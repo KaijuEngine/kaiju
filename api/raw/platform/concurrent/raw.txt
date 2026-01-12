@@ -1,0 +1,39 @@
+package concurrent // import "kaiju/platform/concurrent"
+
+
+TYPES
+
+type MessageQueue[T any] struct {
+	// Has unexported fields.
+}
+
+func NewMessageQueue[T any]() *MessageQueue[T]
+
+func (q *MessageQueue[T]) Enqueue(msg T)
+
+func (q *MessageQueue[T]) Flush() []T
+
+type Threads struct {
+	// Has unexported fields.
+}
+
+func (t *Threads) AddWork(work []func(threadId int))
+
+func (t *Threads) Initialize()
+
+func (t *Threads) Start()
+
+func (t *Threads) Stop()
+
+func (t *Threads) ThreadCount() int
+
+type WorkGroup struct {
+	// Has unexported fields.
+}
+
+func (w *WorkGroup) Add(name string, work func())
+
+func (w *WorkGroup) Execute(name string, threads *Threads)
+
+func (w *WorkGroup) Init()
+

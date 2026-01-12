@@ -1,0 +1,69 @@
+package engine_entity_data_physics // import "kaiju/engine_entity_data/engine_entity_data_tween_transform"
+
+
+CONSTANTS
+
+const BindingKey = "kaiju.TweenTransformEntityData"
+
+TYPES
+
+type Easing int
+
+const (
+	EasingLinear Easing = iota
+	EasingIn
+	EasingOut
+	EasingInAndOut
+	EasingInSine
+	EasingOutSine
+	EasingInAndOutSine
+	EasingInQuad
+	EasingOutQuad
+	EasingInAndOutQuad
+	EasingInCubic
+	EasingOutCubic
+	EasingInAndOutCubic
+	EasingInQuart
+	EasingOutQuart
+	EasingInAndOutQuart
+	EasingInQuint
+	EasingOutQuint
+	EasingInAndOutQuint
+	EasingInExpo
+	EasingOutExpo
+	EasingInAndOutExpo
+	EasingInCirc
+	EasingOutCirc
+	EasingInAndOutCirc
+	EasingInBack
+	EasingOutBack
+	EasingInAndOutBack
+	EasingInElastic
+	EasingOutElastic
+	EasingInAndOutElastic
+	EasingInBounce
+	EasingOutBounce
+	EasingInAndOutBounce
+)
+type Repeat int
+
+const (
+	RepeatNone Repeat = iota
+	RepeatLoop
+	RepeatPingPong
+)
+type TweenTransformEntityData struct {
+	Position    matrix.Vec3
+	Rotation    matrix.Vec3
+	Scale       matrix.Vec3
+	Repeat      Repeat
+	Easing      Easing
+	Time        float64
+	Delay       float64
+	RepeatDelay float64
+	RepeatCount int
+	IsAbsolute  bool
+}
+
+func (d TweenTransformEntityData) Init(e *engine.Entity, host *engine.Host)
+

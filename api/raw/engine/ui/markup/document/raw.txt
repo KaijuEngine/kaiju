@@ -1,0 +1,249 @@
+package document // import "kaiju/engine/ui/markup/document"
+
+
+VARIABLES
+
+var (
+	LinkedPropertyMap map[string]CSSProperty
+)
+
+FUNCTIONS
+
+func TransformHTML(htmlStr string, withData any) (string, error)
+
+TYPES
+
+type CSSProperty interface {
+	Key() string
+	Process(panel *ui.Panel, elm *Element, values []rules.PropertyValue, host *engine.Host) error
+	Sort() int
+	Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule)
+}
+
+type Document struct {
+	Elements     []*Element
+	TopElements  []*Element
+	HeadElements []*Element
+
+	// Has unexported fields.
+}
+
+func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document
+
+func (d *Document) Activate()
+
+func (d *Document) AddChildElement(parent *Element, elm *Element)
+
+func (d *Document) ApplyStyles()
+    ApplyStyles will go through and apply styles to all elements within the
+    document. This is typically used after [SetElementClassesWithoutApply].
+    The typical flow is to call [SetElementClassesWithoutApply] in a loop to
+    change styles of many elements at the same time, then apply styles after.
+
+func (d *Document) ChangeElementParent(child, parent *Element)
+
+func (d *Document) ChangeElementParentWithoutApply(child, parent *Element)
+
+func (d *Document) Clean()
+
+func (d *Document) Deactivate()
+
+func (d *Document) Destroy()
+
+func (d *Document) DuplicateElement(elm *Element) *Element
+    DuplicateElement will create a duplicate of a given element, nesting it
+    under the same parent as the given element (at the end). If you wish to
+    just duplicate an element and use one of the Insert functions, then use
+    Element.Clone followed by an Insert function instead
+
+func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element
+    DuplicateElementRepeat is the same as [DuplicateElement], but will duplicate
+    the element a specified number of times. This is an optimization to avoid
+    calling [ApplyStyles] on each duplicated element and instead call it at the
+    end, after all copies are created.
+
+func (d *Document) DuplicateElementRepeatWithoutApplyStyles(elm *Element, count int) []*Element
+
+func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element
+
+func (d *Document) DuplicateElementWithoutApplyStyles(elm *Element) *Element
+
+func (h *Document) GetElementById(id string) (*Element, bool)
+
+func (h *Document) GetElementsByClass(class string) []*Element
+
+func (h *Document) GetElementsByGroup(group string) []*Element
+
+func (h *Document) GetElementsByTagName(tag string) []*Element
+
+func (d *Document) InsertElementAfter(elm *Element, after *Element)
+    InsertElementAfter inserts the given element elm into the document after
+    the specified element after. It handles the removal of elm from its current
+    parent if it has one, and then inserts it into the children of after's
+    parent at the correct position. The function ensures that elm is properly
+    added to the document's element list and updates all necessary caches and
+    styles after the insertion.
+
+    Parameters:
+      - elm: the element to be inserted
+      - after: the element after which elm should be inserted
+
+    Preconditions:
+      - Both elm and after must not be nil (enforced by debug.Ensure)
+
+func (d *Document) InsertElementBefore(elm *Element, before *Element)
+    InsertElementBefore inserts the given element elm into the document before
+    the specified element before. It handles the removal of elm from its current
+    parent if it has one, and then inserts it into the children of before's
+    parent at the correct position. The function ensures that elm is properly
+    added to the document's element list and updates all necessary caches and
+    styles after the insertion.
+
+    Parameters:
+      - elm: the element to be inserted
+      - before: the element before which elm should be inserted
+
+    Preconditions:
+      - Both elm and before must not be nil (enforced by debug.Ensure)
+
+func (d *Document) IsActive() bool
+
+func (d *Document) MarkDirty()
+
+func (d *Document) RemoveElement(elm *Element)
+    RemoveElement removes the specified element from the document by first
+    recursively removing all child elements, then removing the element from
+    its parent's children list, destroying the UI entity, and updating the
+    document's element caches. Finally, it reapplies all document styles.
+
+    Parameters:
+      - elm: pointer to the Element to be removed from the document
+
+    The function performs the following operations: 1. Recursively removes all
+    child elements starting from the last child 2. Removes the element from
+    its parent's Children list if it has a parent 3. Destroys the UI entity
+    associated with the element 4. Updates the parent's layout dirty flag 5.
+    Removes the element from document's indexed elements 6. Applies all document
+    styles to reflect changes
+
+func (d *Document) RemoveElementWithoutApplyStyles(elm *Element)
+
+func (d *Document) SetElementClasses(elm *Element, classes ...string)
+    SetElementClasses updates the class list of the given element and applies
+    style changes to the entire document. It calls SetElementClassesWithoutApply
+    to update classes, then applies all styles in the document.
+
+    Parameters:
+      - elm: pointer to the Element whose classes will be updated
+      - classes: variadic string parameters representing the new class names
+
+func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string)
+    SetElementClassesWithoutApply updates the class list of the given element
+    without applying styles. It removes the element from its previous class
+    lists, sets the new classes, and updates the document's classElements map to
+    reflect the new class assignments.
+
+    Parameters:
+      - elm: pointer to the Element whose classes will be updated
+      - classes: variadic string parameters representing the new class names
+
+    The function performs the following operations: 1. Sorts both the input
+    classes and existing element classes 2. Returns early if classes are
+    identical 3. Removes element from previous class lists in classElements map
+    4. Sets the new class list on the element 5. Adds element to the appropriate
+    class lists in classElements map
+
+func (d *Document) SetElementId(elm *Element, id string)
+
+func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string)
+
+func (d *Document) SetupInputTabIndexs()
+
+func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylizer Stylizer)
+
+type Element struct {
+	Type html.NodeType
+	Data string
+
+	UI         *ui.UI
+	UIPanel    *ui.Panel
+	Parent     weak.Pointer[Element]
+	Children   []*Element
+	Stylizer   ElementLayoutStylizer
+	UIEventIds [ui.EventTypeEnd][]events.Id
+	// Has unexported fields.
+}
+
+func NewHTML(htmlStr string) *Element
+
+func (e *Element) Attribute(key string) string
+
+func (e *Element) Body() *Element
+
+func (e *Element) ClassList() []string
+
+func (e *Element) Clone(parent *Element) *Element
+
+func (d *Element) EnforceColor(color matrix.Color)
+
+func (e *Element) FindElementById(id string) *Element
+
+func (e *Element) FindElementByTag(tag string) *Element
+
+func (e *Element) FindElementLabelById(id string) *ui.Label
+
+func (e *Element) FindElementsByTag(tag string) []*Element
+
+func (e *Element) HasClass(class string) bool
+
+func (e *Element) Head() *Element
+
+func (e *Element) Html() *Element
+
+func (d *Element) IndexOfChild(child *Element) int
+
+func (d Element) InnerLabel() *ui.Label
+
+func (e *Element) IsButton() bool
+
+func (e *Element) IsImage() bool
+
+func (e *Element) IsInput() bool
+
+func (e *Element) IsSelect() bool
+
+func (e *Element) IsSelectOption() bool
+
+func (e *Element) IsText() bool
+
+func (e *Element) Root() *Element
+
+func (e *Element) SetAttribute(key, value string)
+    SetAttribute sets an attribute on the HTML element. If the attribute key is
+    "class", it parses the value as space-separated class names and sets them
+    using SetClasses. Otherwise, it updates the existing attribute or adds a new
+    one to the element's attribute list.
+
+func (e *Element) SetClasses(classes ...string)
+
+func (d *Element) UnEnforceColor()
+
+type ElementLayoutStylizer struct {
+	// Has unexported fields.
+}
+
+func (s *ElementLayoutStylizer) AddRule(rule rules.Rule)
+
+func (s *ElementLayoutStylizer) ClearRules()
+
+func (s *ElementLayoutStylizer) ProcessStyle(layout *ui.Layout) []error
+
+type Stylizer interface {
+	ApplyStyles(s rules.StyleSheet, doc *Document)
+}
+
+type TemplateIndexedAny struct {
+	Idx   int
+	Value any
+}
+

@@ -1,0 +1,53 @@
+package content_workspace // import "kaiju/editor/editor_workspace/content_workspace"
+
+
+FUNCTIONS
+
+func ShouldHideContent(id string, typeFilters, tagFilters []string, cdb *content_database.Cache) bool
+func ShouldShowContent(query, id string, typeFilters, tagFilters []string, cdb *content_database.Cache) bool
+
+TYPES
+
+type ContentAudioView struct {
+	// Has unexported fields.
+}
+
+type ContentWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *ContentWorkspace) Close()
+
+func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspaceEditorInterface)
+
+func (w *ContentWorkspace) Open()
+
+func (w *ContentWorkspace) Update(deltaTime float64)
+
+type ContentWorkspaceEditorInterface interface {
+	Settings() *editor_settings.Settings
+	Events() *editor_events.EditorEvents
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	ShowReferences(id string)
+	FocusInterface()
+	BlurInterface()
+	ViewHtmlUi(id string)
+	ShadingWorkspaceSelected()
+	VfxWorkspaceSelected()
+	VfxWorkspace() *vfx_workspace.VfxWorkspace
+	ShadingWorkspace() *shading_workspace.ShadingWorkspace
+	OpenStageInStageWorkspace(id string)
+}
+
+type WorkspaceUIData struct {
+	Filters []string
+	Tags    []string
+}
+
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache) []string
+

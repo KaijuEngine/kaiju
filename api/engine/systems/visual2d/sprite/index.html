@@ -1,0 +1,1948 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package sprite - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-sprite" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package sprite
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting_started/getting_started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/launching_the_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching the editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/editor_design/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Editor design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/content/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_9" id="__nav_3_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_10" id="__nav_3_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Shaders
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_10">
+            <span class="md-nav__icon md-icon"></span>
+            Shaders
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/shaders/shader_designer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shader definition
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../editor/plugins.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setdefaulttexturefilter" class="md-nav__link">
+    <span class="md-ellipsis">
+      SetDefaultTextureFilter
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setpixelpositioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      SetPixelPositioning
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#animateduv" class="md-nav__link">
+    <span class="md-ellipsis">
+      AnimatedUV
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#indexedsprite" class="md-nav__link">
+    <span class="md-ellipsis">
+      IndexedSprite
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shaderdata" class="md-nav__link">
+    <span class="md-ellipsis">
+      ShaderData
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ShaderData">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shaderdatasize" class="md-nav__link">
+    <span class="md-ellipsis">
+      ShaderData.Size
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sprite" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sprite">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#spriteactivate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.Activate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritecontainspoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.ContainsPoint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritedeactivate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.Deactivate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritefliphorizontal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.FlipHorizontal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.Init
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteinitflipbook" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.InitFlipBook
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteinitfromtexture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.InitFromTexture
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteinitsheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.InitSheet
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteinituvanimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.InitUVAnimation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritemove" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.Move
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritemove3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.Move3D
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteplayanimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.PlayAnimation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.Position
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetblended" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetBlended
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetcolor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetColor
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetflipbookanimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetFlipBookAnimation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetFrame
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetframerate" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetFrameRate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetPosition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetposition3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetPosition3D
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetpositionz" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetPositionZ
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetsheetclip" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetSheetClip
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetsize" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetSize
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesettexture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetTexture
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetuvs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetUVs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesetunblended" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SetUnBlended
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteshaderdata" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.ShaderData
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritestopanimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.StopAnimation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spriteswapmaterial" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sprite.SwapMaterial
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroup" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SpriteGroup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupadd" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup.Add
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupaddblank" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup.AddBlank
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupfind" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup.Find
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup.Init
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupremove" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup.Remove
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupreserve" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroup.Reserve
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritegroupid" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteGroupId
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheet
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SpriteSheet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newsheetfrombin" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewSheetFromBin
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsheetfromclips" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewSheetFromClips
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsheetfromjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewSheetFromJson
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheetaddclip" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheet.AddClip
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheetfirstclip" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheet.FirstClip
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheetisvalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheet.IsValid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheettobin" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheet.ToBin
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheettojson" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheet.ToJson
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheetclip" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheetClip
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spritesheetframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheetFrame
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SpriteSheetFrame">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#spritesheetframeuvs" class="md-nav__link">
+    <span class="md-ellipsis">
+      SpriteSheetFrame.UVs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-sprite">package sprite</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaiju/engine/systems/visual2d/sprite&quot;</span>
+</span></code></pre></div>
+<h2 id="functions">Functions</h2>
+<h3 id="setdefaulttexturefilter">SetDefaultTextureFilter</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SetDefaultTextureFilter</span><span class="p">(</span><span class="nx">filter</span><span class="w"> </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">TextureFilter</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="setpixelpositioning">SetPixelPositioning</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SetPixelPositioning</span><span class="p">(</span><span class="nx">pixelPositioning</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="types">Types</h2>
+<h3 id="animateduv">AnimatedUV</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">AnimatedUV</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="indexedsprite">IndexedSprite</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">IndexedSprite</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="shaderdata">ShaderData</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ShaderData</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">ShaderDataBase</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nx">UVs</span><span class="w">     </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec4</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nx">FgColor</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="shaderdatasize">ShaderData.Size</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="nx">ShaderData</span><span class="p">)</span><span class="w"> </span><span class="nx">Size</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h3 id="sprite">Sprite</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Sprite</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nx">Entity</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Entity</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="spriteactivate">Sprite.Activate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">Activate</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spritecontainspoint">Sprite.ContainsPoint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">ContainsPoint</span><span class="p">(</span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="spritedeactivate">Sprite.Deactivate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">Deactivate</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spritefliphorizontal">Sprite.FlipHorizontal</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">FlipHorizontal</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spriteinit">Sprite.Init</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">Init</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">texture</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">color</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spriteinitflipbook">Sprite.InitFlipBook</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">InitFlipBook</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">textures</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Texture</span><span class="p">,</span><span class="w"> </span><span class="nx">inFPS</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spriteinitfromtexture">Sprite.InitFromTexture</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">InitFromTexture</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">texture</span><span class="w"> </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Texture</span><span class="p">,</span><span class="w"> </span><span class="nx">color</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spriteinitsheet">Sprite.InitSheet</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">InitSheet</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">textureKey</span><span class="p">,</span><span class="w"> </span><span class="nx">sheetDataKey</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">inFPS</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">initialClip</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h4 id="spriteinituvanimation">Sprite.InitUVAnimation</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">InitUVAnimation</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">texture</span><span class="w"> </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Texture</span><span class="p">,</span><span class="w"> </span><span class="nx">color</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span><span class="p">,</span><span class="w"> </span><span class="nx">inUVAnimation</span><span class="w"> </span><span class="p">[]</span><span class="nx">AnimatedUV</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritemove">Sprite.Move</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">Move</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritemove3d">Sprite.Move3D</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">Move3D</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spriteplayanimation">Sprite.PlayAnimation</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">PlayAnimation</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spriteposition">Sprite.Position</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">Position</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span></code></pre></div>
+<h4 id="spritesetblended">Sprite.SetBlended</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetBlended</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spritesetcolor">Sprite.SetColor</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetColor</span><span class="p">(</span><span class="nx">color</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetflipbookanimation">Sprite.SetFlipBookAnimation</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetFlipBookAnimation</span><span class="p">(</span><span class="nx">inFPS</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">textures</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Texture</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetframe">Sprite.SetFrame</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetFrame</span><span class="p">(</span><span class="nx">frame</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetframerate">Sprite.SetFrameRate</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetFrameRate</span><span class="p">(</span><span class="nx">inFPS</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetposition">Sprite.SetPosition</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetPosition</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetposition3d">Sprite.SetPosition3D</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetPosition3D</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetpositionz">Sprite.SetPositionZ</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetPositionZ</span><span class="p">(</span><span class="nx">z</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetsheetclip">Sprite.SetSheetClip</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetSheetClip</span><span class="p">(</span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="spritesetsize">Sprite.SetSize</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetSize</span><span class="p">(</span><span class="nx">width</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesettexture">Sprite.SetTexture</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetTexture</span><span class="p">(</span><span class="nx">texture</span><span class="w"> </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Texture</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetuvs">Sprite.SetUVs</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetUVs</span><span class="p">(</span><span class="nx">drawing</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">inUVs</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec4</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesetunblended">Sprite.SetUnBlended</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SetUnBlended</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spriteshaderdata">Sprite.ShaderData</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">ShaderData</span><span class="p">(</span><span class="nx">drawing</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">ShaderData</span>
+</span></code></pre></div>
+<h4 id="spritestopanimation">Sprite.StopAnimation</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">StopAnimation</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="spriteswapmaterial">Sprite.SwapMaterial</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SwapMaterial</span><span class="p">(</span><span class="nx">mat</span><span class="w"> </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Material</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="spritegroup">SpriteGroup</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SpriteGroup</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="spritegroupadd">SpriteGroup.Add</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteGroup</span><span class="p">)</span><span class="w"> </span><span class="nx">Add</span><span class="p">(</span><span class="nx">sprite</span><span class="w"> </span><span class="nx">Sprite</span><span class="p">)</span><span class="w"> </span><span class="nx">SpriteGroupId</span>
+</span></code></pre></div>
+<h4 id="spritegroupaddblank">SpriteGroup.AddBlank</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteGroup</span><span class="p">)</span><span class="w"> </span><span class="nx">AddBlank</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">IndexedSprite</span>
+</span></code></pre></div>
+<h4 id="spritegroupfind">SpriteGroup.Find</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteGroup</span><span class="p">)</span><span class="w"> </span><span class="nx">Find</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="nx">SpriteGroupId</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">Sprite</span>
+</span></code></pre></div>
+<h4 id="spritegroupinit">SpriteGroup.Init</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteGroup</span><span class="p">)</span><span class="w"> </span><span class="nx">Init</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritegroupremove">SpriteGroup.Remove</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteGroup</span><span class="p">)</span><span class="w"> </span><span class="nx">Remove</span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="nx">SpriteGroupId</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritegroupreserve">SpriteGroup.Reserve</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteGroup</span><span class="p">)</span><span class="w"> </span><span class="nx">Reserve</span><span class="p">(</span><span class="nx">count</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="spritegroupid">SpriteGroupId</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SpriteGroupId</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<h3 id="spritesheet">SpriteSheet</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SpriteSheet</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-45-2"><a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="w">    </span><span class="nx">Clips</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">SpriteSheetClip</span>
+</span><span id="__span-45-3"><a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newsheetfrombin">NewSheetFromBin</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewSheetFromBin</span><span class="p">(</span><span class="nx">bin</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">SpriteSheet</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newsheetfromclips">NewSheetFromClips</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewSheetFromClips</span><span class="p">(</span><span class="nx">clips</span><span class="w"> </span><span class="p">[]</span><span class="nx">SpriteSheetClip</span><span class="p">)</span><span class="w"> </span><span class="nx">SpriteSheet</span>
+</span></code></pre></div>
+<h4 id="newsheetfromjson">NewSheetFromJson</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewSheetFromJson</span><span class="p">(</span><span class="nx">jsonStr</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">SpriteSheet</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesheetaddclip">SpriteSheet.AddClip</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteSheet</span><span class="p">)</span><span class="w"> </span><span class="nx">AddClip</span><span class="p">(</span><span class="nx">clip</span><span class="w"> </span><span class="nx">SpriteSheetClip</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesheetfirstclip">SpriteSheet.FirstClip</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteSheet</span><span class="p">)</span><span class="w"> </span><span class="nx">FirstClip</span><span class="p">()</span><span class="w"> </span><span class="nx">SpriteSheetClip</span>
+</span></code></pre></div>
+<h4 id="spritesheetisvalid">SpriteSheet.IsValid</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteSheet</span><span class="p">)</span><span class="w"> </span><span class="nx">IsValid</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="spritesheettobin">SpriteSheet.ToBin</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteSheet</span><span class="p">)</span><span class="w"> </span><span class="nx">ToBin</span><span class="p">()</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="spritesheettojson">SpriteSheet.ToJson</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SpriteSheet</span><span class="p">)</span><span class="w"> </span><span class="nx">ToJson</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="spritesheetclip">SpriteSheetClip</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SpriteSheetClip</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-54-2"><a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">   </span><span class="kt">string</span>
+</span><span id="__span-54-3"><a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a><span class="w">    </span><span class="nx">Frames</span><span class="w"> </span><span class="p">[]</span><span class="nx">SpriteSheetFrame</span>
+</span><span id="__span-54-4"><a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="spritesheetframe">SpriteSheetFrame</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SpriteSheetFrame</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-55-2"><a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a><span class="w">    </span><span class="nx">Hold</span><span class="w">      </span><span class="kt">int32</span>
+</span><span id="__span-55-3"><a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a><span class="w">    </span><span class="nx">Rectangle</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec4</span>
+</span><span id="__span-55-4"><a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="spritesheetframeuvs">SpriteSheetFrame.UVs</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">f</span><span class="w"> </span><span class="nx">SpriteSheetFrame</span><span class="p">)</span><span class="w"> </span><span class="nx">UVs</span><span class="p">(</span><span class="nx">texSize</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec4</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../../../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

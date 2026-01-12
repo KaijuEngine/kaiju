@@ -1,0 +1,20 @@
+package host_container // import "kaiju/engine/host_container"
+
+
+TYPES
+
+type Container struct {
+	Host *engine.Host
+
+	PrepLock chan struct{}
+	// Has unexported fields.
+}
+
+func New(name string, logStream *logging.LogStream, adb assets.Database) *Container
+
+func (c *Container) Close()
+
+func (c *Container) Run(width, height, x, y int, platformState any) error
+
+func (c *Container) RunFunction(f func())
+

@@ -1,0 +1,36 @@
+package file_browser // import "kaiju/editor/editor_overlay/file_browser"
+
+
+TYPES
+
+type Config struct {
+	Title        string
+	StartingPath string
+	ExtFilter    []string
+	OnConfirm    func(paths []string)
+	OnCancel     func()
+	OnlyFiles    bool
+	OnlyFolders  bool
+	MultiSelect  bool
+}
+
+type FileBrowser struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, config Config) (*FileBrowser, error)
+
+func (fb *FileBrowser) Close()
+
+type FileBrowserData struct {
+	Title              string
+	QuickAccessFolders []QuickAccessFolder
+	CurrentPath        string
+	OnlyFolders        bool
+}
+
+type QuickAccessFolder struct {
+	Name string
+	Path string
+}
+

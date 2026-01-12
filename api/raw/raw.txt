@@ -1,0 +1,12 @@
+
+
+TYPES
+
+type DummyGame struct{}
+
+func (DummyGame) ContentDatabase() (assets.Database, error)
+
+func (DummyGame) Launch(*engine.Host)
+
+func (DummyGame) PluginRegistry() []reflect.Type
+

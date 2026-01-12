@@ -1,0 +1,91 @@
+package stage_workspace // import "kaiju/editor/editor_workspace/stage_workspace"
+
+
+TYPES
+
+type EntityDataAttachHistory struct {
+	DetailsWorkspace *WorkspaceDetailsUI
+	Entity           *editor_stage_manager.StageEntity
+	Data             *entity_data_binding.EntityDataEntry
+}
+
+func (h *EntityDataAttachHistory) Delete()
+
+func (h *EntityDataAttachHistory) Exit()
+
+func (h *EntityDataAttachHistory) Redo()
+
+func (h *EntityDataAttachHistory) Undo()
+
+type EntityDataDetachHistory struct {
+	DetailsWorkspace *WorkspaceDetailsUI
+	Entity           *editor_stage_manager.StageEntity
+	Data             *entity_data_binding.EntityDataEntry
+}
+
+func (h *EntityDataDetachHistory) Delete()
+
+func (h *EntityDataDetachHistory) Exit()
+
+func (h *EntityDataDetachHistory) Redo()
+
+func (h *EntityDataDetachHistory) Undo()
+
+type HierarchyEntityDragData struct {
+	// Has unexported fields.
+}
+
+func (d HierarchyEntityDragData) DragUpdate()
+
+type StageDragContent struct {
+	// Has unexported fields.
+}
+
+func (d StageDragContent) DragUpdate()
+
+type StageWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *StageWorkspace) Close()
+
+func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface)
+
+func (w *StageWorkspace) Open()
+
+func (w *StageWorkspace) OpenStage(id string)
+
+func (w *StageWorkspace) Update(deltaTime float64)
+
+type WorkspaceContentUI struct {
+	// Has unexported fields.
+}
+
+type WorkspaceDetailsUI struct {
+	TargetedElementValueReload map[reflect.Value]func()
+
+	// Has unexported fields.
+}
+
+type WorkspaceHierarchyUI struct {
+	// Has unexported fields.
+}
+
+type WorkspaceUIData struct {
+	Filters    []string
+	Tags       []string
+	CameraMode string
+}
+
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache, cm string) []string
+

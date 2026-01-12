@@ -1,0 +1,62 @@
+package editor_settings // import "kaiju/editor/editor_settings"
+
+
+TYPES
+
+type AppDataMissingError struct {
+	Err error
+}
+
+func (e AppDataMissingError) Error() string
+
+type BuildToolSettings struct {
+	AndroidNDK string `label:"Android NDK"`
+	JavaHome   string
+}
+
+type EditorCameraSettings struct {
+	ZoomSpeed       float32 `default:"120" label:"Zoom Speed"`
+	FlySpeed        float32 `default:"10"`
+	FlyXSensitivity float32 `default:"0.2"`
+	FlyYSensitivity float32 `default:"0.2"`
+}
+
+type ReadError struct {
+	Err error
+	// Has unexported fields.
+}
+
+func (e ReadError) Error() string
+
+type Settings struct {
+	RecentProjects []string `visible:"false"`
+	RefreshRate    int32    `clamp:"60,0,320"`
+	CodeEditor     string   `default:"code"`
+	ImageEditor    string
+	MeshEditor     string
+	AudioEditor    string
+	UIScrollSpeed  float32 `default:"20" label:"UI Scroll Speed"`
+	EditorCamera   EditorCameraSettings
+	Snapping       SnapSettings
+	BuildTools     BuildToolSettings
+}
+
+func (s *Settings) AddRecentProject(path string)
+
+func (s *Settings) Load() error
+
+func (s *Settings) Save() error
+
+type SnapSettings struct {
+	TranslateIncrement float32
+	RotateIncrement    float32
+	ScaleIncrement     float32
+}
+
+type WriteError struct {
+	Err error
+	// Has unexported fields.
+}
+
+func (e WriteError) Error() string
+

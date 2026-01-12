@@ -1,0 +1,2055 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package physics - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-physics" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package physics
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/getting_started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/launching_the_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching the editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/editor_design/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Editor design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_9" id="__nav_3_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_10" id="__nav_3_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Shaders
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_10">
+            <span class="md-nav__icon md-icon"></span>
+            Shaders
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/shaders/shader_designer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shader definition
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/plugins.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#boxshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      BoxShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BoxShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newboxshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewBoxShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#broadphaseinterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      BroadphaseInterface
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BroadphaseInterface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newbroadphaseinterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewBroadphaseInterface
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capsuleshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      CapsuleShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CapsuleShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newcapsuleshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewCapsuleShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisiondispatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionDispatcher
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CollisionDispatcher">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newcollisiondispatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewCollisionDispatcher
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisionhit" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionHit
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CollisionHit">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#collisionhitisvalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionHit.IsValid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisionhitnormal" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionHit.Normal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisionhitobject" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionHit.Object
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisionhitpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionHit.Point
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisionobject" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionObject
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collisionshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CollisionShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#collisionshapecalculatelocalinertia" class="md-nav__link">
+    <span class="md-ellipsis">
+      CollisionShape.CalculateLocalInertia
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compoundshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      CompoundShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CompoundShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newcompoundshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewCompoundShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coneshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      ConeShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ConeShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newconeshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewConeShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#convexhullshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      ConvexHullShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ConvexHullShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newconvexhullshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewConvexHullShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#convexshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      ConvexShape
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cylindershape" class="md-nav__link">
+    <span class="md-ellipsis">
+      CylinderShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CylinderShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newcylindershape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewCylinderShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#defaultcollisionconfiguration" class="md-nav__link">
+    <span class="md-ellipsis">
+      DefaultCollisionConfiguration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DefaultCollisionConfiguration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newdefaultcollisionconfiguration" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewDefaultCollisionConfiguration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emptyshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      EmptyShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="EmptyShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newemptyshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewEmptyShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#motionstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      MotionState
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MotionState">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newdefaultmotionstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewDefaultMotionState
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multisphereshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      MultiSphereShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MultiSphereShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newmultisphereshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewMultiSphereShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbody" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RigidBody">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newrigidbody" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewRigidBody
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyapplyforceatpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.ApplyForceAtPoint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyapplyimpulseatpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.ApplyImpulseAtPoint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyiscollisionobject" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.IsCollisionObject
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyisstatic" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.IsStatic
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.Position
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyrotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.Rotation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rigidbodyshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      RigidBody.Shape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequentialimpulseconstraintsolver" class="md-nav__link">
+    <span class="md-ellipsis">
+      SequentialImpulseConstraintSolver
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SequentialImpulseConstraintSolver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newsequentialimpulseconstraintsolver" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewSequentialImpulseConstraintSolver
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sphereshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      SphereShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SphereShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newsphereshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewSphereShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#staticplaneshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      StaticPlaneShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="StaticPlaneShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newstaticplaneshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewStaticPlaneShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uniformscalingshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      UniformScalingShape
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UniformScalingShape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newuniformscalingshape" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewUniformScalingShape
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#world" class="md-nav__link">
+    <span class="md-ellipsis">
+      World
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="World">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newdiscretedynamicsworld" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewDiscreteDynamicsWorld
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worldaddrigidbody" class="md-nav__link">
+    <span class="md-ellipsis">
+      World.AddRigidBody
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worldraycast" class="md-nav__link">
+    <span class="md-ellipsis">
+      World.Raycast
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worldremoverigidbody" class="md-nav__link">
+    <span class="md-ellipsis">
+      World.RemoveRigidBody
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worldsetgravity" class="md-nav__link">
+    <span class="md-ellipsis">
+      World.SetGravity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worldspheresweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      World.SphereSweep
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worldstepsimulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      World.StepSimulation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-physics">package physics</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaiju/engine/physics&quot;</span>
+</span></code></pre></div>
+<h2 id="types">Types</h2>
+<h3 id="boxshape">BoxShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">BoxShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newboxshape">NewBoxShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewBoxShape</span><span class="p">(</span><span class="nx">size</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">BoxShape</span>
+</span></code></pre></div>
+<h3 id="broadphaseinterface">BroadphaseInterface</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">BroadphaseInterface</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newbroadphaseinterface">NewBroadphaseInterface</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewBroadphaseInterface</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">BroadphaseInterface</span>
+</span></code></pre></div>
+<h3 id="capsuleshape">CapsuleShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CapsuleShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newcapsuleshape">NewCapsuleShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewCapsuleShape</span><span class="p">(</span><span class="nx">radius</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">CapsuleShape</span>
+</span></code></pre></div>
+<h3 id="collisiondispatcher">CollisionDispatcher</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CollisionDispatcher</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newcollisiondispatcher">NewCollisionDispatcher</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewCollisionDispatcher</span><span class="p">(</span><span class="nx">collisionConfig</span><span class="w"> </span><span class="o">*</span><span class="nx">DefaultCollisionConfiguration</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionDispatcher</span>
+</span></code></pre></div>
+<h3 id="collisionhit">CollisionHit</h3>
+<p><a href="../C">C</a>.<a href="../C#HitWrapper">HitWrapper</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CollisionHit</span><span class="w"> </span><span class="nx">C</span><span class="p">.</span><span class="nx">HitWrapper</span>
+</span></code></pre></div></p>
+<h4 id="collisionhitisvalid">CollisionHit.IsValid</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionHit</span><span class="p">)</span><span class="w"> </span><span class="nx">IsValid</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="collisionhitnormal">CollisionHit.Normal</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionHit</span><span class="p">)</span><span class="w"> </span><span class="nx">Normal</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<h4 id="collisionhitobject">CollisionHit.Object</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionHit</span><span class="p">)</span><span class="w"> </span><span class="nx">Object</span><span class="p">()</span><span class="w"> </span><span class="nx">CollisionObject</span>
+</span></code></pre></div>
+<h4 id="collisionhitpoint">CollisionHit.Point</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionHit</span><span class="p">)</span><span class="w"> </span><span class="nx">Point</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<h3 id="collisionobject">CollisionObject</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CollisionObject</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="collisionshape">CollisionShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="collisionshapecalculatelocalinertia">CollisionShape.CalculateLocalInertia</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionShape</span><span class="p">)</span><span class="w"> </span><span class="nx">CalculateLocalInertia</span><span class="p">(</span><span class="nx">mass</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<h3 id="compoundshape">CompoundShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CompoundShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newcompoundshape">NewCompoundShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewCompoundShape</span><span class="p">(</span><span class="nx">initialChildCapacity</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">enableDynamicAABBTree</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">CompoundShape</span>
+</span></code></pre></div>
+<h3 id="coneshape">ConeShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ConeShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newconeshape">NewConeShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewConeShape</span><span class="p">(</span><span class="nx">radius</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">ConeShape</span>
+</span></code></pre></div>
+<h3 id="convexhullshape">ConvexHullShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ConvexHullShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">ConvexShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newconvexhullshape">NewConvexHullShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewConvexHullShape</span><span class="p">(</span><span class="nx">points</span><span class="w"> </span><span class="p">[]</span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">stride</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">ConvexHullShape</span>
+</span></code></pre></div>
+<h3 id="convexshape">ConvexShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ConvexShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="cylindershape">CylinderShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">CylinderShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newcylindershape">NewCylinderShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewCylinderShape</span><span class="p">(</span><span class="nx">halfExtents</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">CylinderShape</span>
+</span></code></pre></div>
+<h3 id="defaultcollisionconfiguration">DefaultCollisionConfiguration</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">DefaultCollisionConfiguration</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newdefaultcollisionconfiguration">NewDefaultCollisionConfiguration</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewDefaultCollisionConfiguration</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">DefaultCollisionConfiguration</span>
+</span></code></pre></div>
+<h3 id="emptyshape">EmptyShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">EmptyShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newemptyshape">NewEmptyShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewEmptyShape</span><span class="p">(</span><span class="nx">size</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">EmptyShape</span>
+</span></code></pre></div>
+<h3 id="motionstate">MotionState</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">MotionState</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newdefaultmotionstate">NewDefaultMotionState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewDefaultMotionState</span><span class="p">(</span><span class="nx">rot</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Quaternion</span><span class="p">,</span><span class="w"> </span><span class="nx">centerOfMass</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">MotionState</span>
+</span></code></pre></div>
+<h3 id="multisphereshape">MultiSphereShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">MultiSphereShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newmultisphereshape">NewMultiSphereShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewMultiSphereShape</span><span class="p">(</span><span class="nx">positions</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">radii</span><span class="w"> </span><span class="p">[]</span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">MultiSphereShape</span>
+</span></code></pre></div>
+<h3 id="rigidbody">RigidBody</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">RigidBody</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newrigidbody">NewRigidBody</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewRigidBody</span><span class="p">(</span><span class="nx">mass</span><span class="w"> </span><span class="kt">float32</span><span class="p">,</span><span class="w"> </span><span class="nx">motion</span><span class="w"> </span><span class="o">*</span><span class="nx">MotionState</span><span class="p">,</span><span class="w"> </span><span class="nx">shape</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionShape</span><span class="p">,</span><span class="w"> </span><span class="nx">inertia</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span>
+</span></code></pre></div>
+<h4 id="rigidbodyapplyforceatpoint">RigidBody.ApplyForceAtPoint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyForceAtPoint</span><span class="p">(</span><span class="nx">force</span><span class="p">,</span><span class="w"> </span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="rigidbodyapplyimpulseatpoint">RigidBody.ApplyImpulseAtPoint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyImpulseAtPoint</span><span class="p">(</span><span class="nx">force</span><span class="p">,</span><span class="w"> </span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="rigidbodyiscollisionobject">RigidBody.IsCollisionObject</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">IsCollisionObject</span><span class="p">(</span><span class="nx">obj</span><span class="w"> </span><span class="nx">CollisionObject</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="rigidbodyisstatic">RigidBody.IsStatic</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">IsStatic</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="rigidbodyposition">RigidBody.Position</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">Position</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span></code></pre></div>
+<h4 id="rigidbodyrotation">RigidBody.Rotation</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">Rotation</span><span class="p">()</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Quaternion</span>
+</span></code></pre></div>
+<h4 id="rigidbodyshape">RigidBody.Shape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span><span class="w"> </span><span class="nx">Shape</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionShape</span>
+</span></code></pre></div>
+<h3 id="sequentialimpulseconstraintsolver">SequentialImpulseConstraintSolver</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SequentialImpulseConstraintSolver</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newsequentialimpulseconstraintsolver">NewSequentialImpulseConstraintSolver</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewSequentialImpulseConstraintSolver</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">SequentialImpulseConstraintSolver</span>
+</span></code></pre></div>
+<h3 id="sphereshape">SphereShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SphereShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newsphereshape">NewSphereShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewSphereShape</span><span class="p">(</span><span class="nx">radius</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">SphereShape</span>
+</span></code></pre></div>
+<h3 id="staticplaneshape">StaticPlaneShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">StaticPlaneShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newstaticplaneshape">NewStaticPlaneShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewStaticPlaneShape</span><span class="p">(</span><span class="nx">normal</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">constant</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">StaticPlaneShape</span>
+</span></code></pre></div>
+<h3 id="uniformscalingshape">UniformScalingShape</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">UniformScalingShape</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">CollisionShape</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newuniformscalingshape">NewUniformScalingShape</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewUniformScalingShape</span><span class="p">(</span><span class="nx">convexChildShape</span><span class="w"> </span><span class="o">*</span><span class="nx">ConvexShape</span><span class="p">,</span><span class="w"> </span><span class="nx">scaleFactor</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">UniformScalingShape</span>
+</span></code></pre></div>
+<h3 id="world">World</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">World</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-51-2"><a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-51-3"><a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newdiscretedynamicsworld">NewDiscreteDynamicsWorld</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewDiscreteDynamicsWorld</span><span class="p">(</span><span class="nx">dispatcher</span><span class="w"> </span><span class="o">*</span><span class="nx">CollisionDispatcher</span><span class="p">,</span><span class="w"> </span><span class="nx">broadphase</span><span class="w"> </span><span class="o">*</span><span class="nx">BroadphaseInterface</span><span class="p">,</span><span class="w"> </span><span class="nx">solver</span><span class="w"> </span><span class="o">*</span><span class="nx">SequentialImpulseConstraintSolver</span><span class="p">,</span><span class="w"> </span><span class="nx">collisionConfig</span><span class="w"> </span><span class="o">*</span><span class="nx">DefaultCollisionConfiguration</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span>
+</span></code></pre></div>
+<h4 id="worldaddrigidbody">World.AddRigidBody</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span><span class="p">)</span><span class="w"> </span><span class="nx">AddRigidBody</span><span class="p">(</span><span class="nx">body</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="worldraycast">World.Raycast</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span><span class="p">)</span><span class="w"> </span><span class="nx">Raycast</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">CollisionHit</span>
+</span></code></pre></div>
+<h4 id="worldremoverigidbody">World.RemoveRigidBody</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveRigidBody</span><span class="p">(</span><span class="nx">body</span><span class="w"> </span><span class="o">*</span><span class="nx">RigidBody</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="worldsetgravity">World.SetGravity</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span><span class="p">)</span><span class="w"> </span><span class="nx">SetGravity</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="worldspheresweep">World.SphereSweep</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span><span class="p">)</span><span class="w"> </span><span class="nx">SphereSweep</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">,</span><span class="w"> </span><span class="nx">radius</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span><span class="w"> </span><span class="nx">CollisionHit</span>
+</span></code></pre></div>
+<h4 id="worldstepsimulation">World.StepSimulation</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">World</span><span class="p">)</span><span class="w"> </span><span class="nx">StepSimulation</span><span class="p">(</span><span class="nx">timeStep</span><span class="w"> </span><span class="kt">float32</span><span class="p">)</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

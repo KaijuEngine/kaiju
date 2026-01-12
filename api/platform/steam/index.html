@@ -1,0 +1,2744 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package steam - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-steam" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package steam
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/getting_started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/launching_the_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching the editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/editor_design/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Editor design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_9" id="__nav_3_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_10" id="__nav_3_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Shaders
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_10">
+            <span class="md-nav__icon md-icon"></span>
+            Shaders
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/shaders/shader_designer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shader definition
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/plugins.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constants
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Constants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenone" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNone
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeok" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeOK
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodefail" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeFail
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenoconnection" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoConnection
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenoconnectionretry" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoConnectionRetry
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidpassword" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidPassword
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeloggedinelsewhere" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeLoggedInElsewhere
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidprotocolver" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidProtocolVer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidparam" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidParam
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodefilenotfound" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeFileNotFound
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodebusy" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeBusy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidState
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidname" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidName
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidemail" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidEmail
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeduplicatename" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeDuplicateName
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccessdenied" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccessDenied
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodetimeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeTimeout
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodebanned" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeBanned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountnotfound" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountNotFound
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidsteamid" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidSteamID
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeserviceunavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeServiceUnavailable
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenotloggedon" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNotLoggedOn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodepending" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePending
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeencryptionfailure" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeEncryptionFailure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinsufficientprivilege" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInsufficientPrivilege
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodelimitexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeLimitExceeded
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderevoked" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRevoked
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeexpired" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeExpired
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodealreadyredeemed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAlreadyRedeemed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeduplicaterequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeDuplicateRequest
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodealreadyowned" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAlreadyOwned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeipnotfound" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIPNotFound
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodepersistfailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePersistFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodelockingfailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeLockingFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodelogonsessionreplaced" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeLogonSessionReplaced
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeconnectfailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeConnectFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodehandshakefailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeHandshakeFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeiofailure" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIOFailure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderemotedisconnect" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRemoteDisconnect
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeshoppingcartnotfound" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeShoppingCartNotFound
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeblocked" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeBlocked
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeignored" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIgnored
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenomatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoMatch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountdisabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountDisabled
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeservicereadonly" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeServiceReadOnly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountnotfeatured" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountNotFeatured
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeadministratorok" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAdministratorOK
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodecontentversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeContentVersion
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodetryanothercm" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeTryAnotherCM
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodepasswordrequiredtokicksession" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePasswordRequiredToKickSession
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodealreadyloggedinelsewhere" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAlreadyLoggedInElsewhere
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodesuspended" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeSuspended
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodecancelled" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeCancelled
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodedatacorruption" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeDataCorruption
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodediskfull" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeDiskFull
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderemotecallfailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRemoteCallFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodepasswordunset" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePasswordUnset
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeexternalaccountunlinked" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeExternalAccountUnlinked
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodepsnticketinvalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePSNTicketInvalid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeexternalaccountalreadylinked" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeExternalAccountAlreadyLinked
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderemotefileconflict" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRemoteFileConflict
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeillegalpassword" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIllegalPassword
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodesameaspreviousvalue" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeSameAsPreviousValue
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlogondenied" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLogonDenied
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodecannotuseoldpassword" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeCannotUseOldPassword
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidloginauthcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidLoginAuthCode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlogondeniednomail" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLogonDeniedNoMail
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodehardwarenotcapableofipt" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeHardwareNotCapableOfIPT
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeiptiniterror" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIPTInitError
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeparentalcontrolrestricted" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeParentalControlRestricted
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodefacebookqueryerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeFacebookQueryError
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeexpiredloginauthcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeExpiredLoginAuthCode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeiploginrestrictionfailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIPLoginRestrictionFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlockeddown" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLockedDown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlogondeniedverifiedemailrequired" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLogonDeniedVerifiedEmailRequired
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenomatchingurl" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoMatchingURL
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodebadresponse" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeBadResponse
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderequirepasswordreentry" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRequirePasswordReEntry
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodevalueoutofrange" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeValueOutOfRange
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeunexpectederror" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeUnexpectedError
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodedisabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeDisabled
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidcegsubmission" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidCEGSubmission
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderestricteddevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRestrictedDevice
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderegionlocked" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRegionLocked
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderatelimitexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRateLimitExceeded
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlogindeniedneedtwofactor" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLoginDeniedNeedTwoFactor
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeitemdeleted" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeItemDeleted
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlogindeniedthrottle" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLoginDeniedThrottle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodetwofactorcodemismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeTwoFactorCodeMismatch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodetwofactoractivationcodemismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeTwoFactorActivationCodeMismatch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountassociatedtomultiplepartners" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountAssociatedToMultiplePartners
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenotmodified" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNotModified
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenomobiledevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoMobileDevice
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodetimenotsynced" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeTimeNotSynced
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodesmscodefailed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeSmsCodeFailed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountlimitexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountLimitExceeded
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountactivitylimitexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountActivityLimitExceeded
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodephoneactivitylimitexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePhoneActivityLimitExceeded
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcoderefundtowallet" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeRefundToWallet
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeemailsendfailure" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeEmailSendFailure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenotsettled" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNotSettled
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeneedcaptcha" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNeedCaptcha
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodegsltdenied" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeGSLTDenied
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodegsownerdenied" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeGSOwnerDenied
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvaliditemtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidItemType
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeipbanned" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeIPBanned
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodegsltexpired" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeGSLTExpired
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinsufficientfunds" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInsufficientFunds
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodetoomanypending" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeTooManyPending
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenositelicensesfound" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoSiteLicensesFound
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodewgnetworksendexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeWGNetworkSendExceeded
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountnotfriends" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountNotFriends
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodelimiteduseraccount" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeLimitedUserAccount
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodecantremoveitem" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeCantRemoveItem
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeaccountdeleted" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeAccountDeleted
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeexistingusercancelledlicense" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeExistingUserCancelledLicense
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodecommunitycooldown" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeCommunityCooldown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenolauncherspecified" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoLauncherSpecified
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodemustagreetossa" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeMustAgreeToSSA
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodelaunchermigrated" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeLauncherMigrated
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodesteamrealmmismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeSteamRealmMismatch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinvalidsignature" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInvalidSignature
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeparsefailure" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeParseFailure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenoverifiedphone" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNoVerifiedPhone
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodeinsufficientbattery" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeInsufficientBattery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodechargerrequired" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeChargerRequired
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodecachedcredentialinvalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeCachedCredentialInvalid
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodephonenumberisvoip" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodePhoneNumberIsVOIP
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodenotsupported" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeNotSupported
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resultcodefamilysizelimitexceeded" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCodeFamilySizeLimitExceeded
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      Variables
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initialize" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initialize
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isinitialized" class="md-nav__link">
+    <span class="md-ellipsis">
+      IsInitialized
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restartappifnecessary" class="md-nav__link">
+    <span class="md-ellipsis">
+      RestartAppIfNecessary
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runcallbacks" class="md-nav__link">
+    <span class="md-ellipsis">
+      RunCallbacks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shutdown
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resultcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      ResultCode
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-steam">package steam</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaiju/platform/steam&quot;</span>
+</span></code></pre></div>
+<h2 id="constants">Constants</h2>
+<h4 id="resultcodenone">ResultCodeNone</h4>
+<p><code>0 // no result</code></p>
+<h4 id="resultcodeok">ResultCodeOK</h4>
+<p><code>1 // success</code></p>
+<h4 id="resultcodefail">ResultCodeFail</h4>
+<p><code>2 // generic failure</code></p>
+<h4 id="resultcodenoconnection">ResultCodeNoConnection</h4>
+<p><code>3 // no/failed network connection</code></p>
+<h4 id="resultcodenoconnectionretry">ResultCodeNoConnectionRetry</h4>
+<p><code>4              // OBSOLETE - removed</code></p>
+<h4 id="resultcodeinvalidpassword">ResultCodeInvalidPassword</h4>
+<p><code>5  // password/ticket is invalid</code></p>
+<h4 id="resultcodeloggedinelsewhere">ResultCodeLoggedInElsewhere</h4>
+<p><code>6  // same user logged in elsewhere</code></p>
+<h4 id="resultcodeinvalidprotocolver">ResultCodeInvalidProtocolVer</h4>
+<p><code>7  // protocol version is incorrect</code></p>
+<h4 id="resultcodeinvalidparam">ResultCodeInvalidParam</h4>
+<p><code>8  // a parameter is incorrect</code></p>
+<h4 id="resultcodefilenotfound">ResultCodeFileNotFound</h4>
+<p><code>9  // file was not found</code></p>
+<h4 id="resultcodebusy">ResultCodeBusy</h4>
+<p><code>10 // called method busy - action not taken</code></p>
+<h4 id="resultcodeinvalidstate">ResultCodeInvalidState</h4>
+<p><code>11 // called object was in an invalid state</code></p>
+<h4 id="resultcodeinvalidname">ResultCodeInvalidName</h4>
+<p><code>12 // name is invalid</code></p>
+<h4 id="resultcodeinvalidemail">ResultCodeInvalidEmail</h4>
+<p><code>13 // email is invalid</code></p>
+<h4 id="resultcodeduplicatename">ResultCodeDuplicateName</h4>
+<p><code>14 // name is not unique</code></p>
+<h4 id="resultcodeaccessdenied">ResultCodeAccessDenied</h4>
+<p><code>15 // access is denied</code></p>
+<h4 id="resultcodetimeout">ResultCodeTimeout</h4>
+<p><code>16 // operation timed out</code></p>
+<h4 id="resultcodebanned">ResultCodeBanned</h4>
+<p><code>17 // VAC2 banned</code></p>
+<h4 id="resultcodeaccountnotfound">ResultCodeAccountNotFound</h4>
+<p><code>18 // account not found</code></p>
+<h4 id="resultcodeinvalidsteamid">ResultCodeInvalidSteamID</h4>
+<p><code>19 // steamID is invalid</code></p>
+<h4 id="resultcodeserviceunavailable">ResultCodeServiceUnavailable</h4>
+<p><code>20 // The requested service is currently unavailable</code></p>
+<h4 id="resultcodenotloggedon">ResultCodeNotLoggedOn</h4>
+<p><code>21 // The user is not logged on</code></p>
+<h4 id="resultcodepending">ResultCodePending</h4>
+<p><code>22 // Request is pending (may be in process, or waiting on third party)</code></p>
+<h4 id="resultcodeencryptionfailure">ResultCodeEncryptionFailure</h4>
+<p><code>23 // Encryption or Decryption failed</code></p>
+<h4 id="resultcodeinsufficientprivilege">ResultCodeInsufficientPrivilege</h4>
+<p><code>24 // Insufficient privilege</code></p>
+<h4 id="resultcodelimitexceeded">ResultCodeLimitExceeded</h4>
+<p><code>25 // Too much of a good thing</code></p>
+<h4 id="resultcoderevoked">ResultCodeRevoked</h4>
+<p><code>26 // Access has been revoked (used for revoked guest passes)</code></p>
+<h4 id="resultcodeexpired">ResultCodeExpired</h4>
+<p><code>27 // License/Guest pass the user is trying to access is expired</code></p>
+<h4 id="resultcodealreadyredeemed">ResultCodeAlreadyRedeemed</h4>
+<p><code>28 // Guest pass has already been redeemed by account, cannot be acked again</code></p>
+<h4 id="resultcodeduplicaterequest">ResultCodeDuplicateRequest</h4>
+<p><code>29 // The request is a duplicate and the action has already occurred in the past, ignored this time</code></p>
+<h4 id="resultcodealreadyowned">ResultCodeAlreadyOwned</h4>
+<p><code>30 // All the games in this guest pass redemption request are already owned by the user</code></p>
+<h4 id="resultcodeipnotfound">ResultCodeIPNotFound</h4>
+<p><code>31 // IP address not found</code></p>
+<h4 id="resultcodepersistfailed">ResultCodePersistFailed</h4>
+<p><code>32 // failed to write change to the data store</code></p>
+<h4 id="resultcodelockingfailed">ResultCodeLockingFailed</h4>
+<p><code>33 // failed to acquire access lock for this operation</code></p>
+<h4 id="resultcodelogonsessionreplaced">ResultCodeLogonSessionReplaced</h4>
+<p><code>34</code></p>
+<h4 id="resultcodeconnectfailed">ResultCodeConnectFailed</h4>
+<p><code>35</code></p>
+<h4 id="resultcodehandshakefailed">ResultCodeHandshakeFailed</h4>
+<p><code>36</code></p>
+<h4 id="resultcodeiofailure">ResultCodeIOFailure</h4>
+<p><code>37</code></p>
+<h4 id="resultcoderemotedisconnect">ResultCodeRemoteDisconnect</h4>
+<p><code>38</code></p>
+<h4 id="resultcodeshoppingcartnotfound">ResultCodeShoppingCartNotFound</h4>
+<p><code>39 // failed to find the shopping cart requested</code></p>
+<h4 id="resultcodeblocked">ResultCodeBlocked</h4>
+<p><code>40 // a user didn't allow it</code></p>
+<h4 id="resultcodeignored">ResultCodeIgnored</h4>
+<p><code>41 // target is ignoring sender</code></p>
+<h4 id="resultcodenomatch">ResultCodeNoMatch</h4>
+<p><code>42 // nothing matching the request found</code></p>
+<h4 id="resultcodeaccountdisabled">ResultCodeAccountDisabled</h4>
+<p><code>43</code></p>
+<h4 id="resultcodeservicereadonly">ResultCodeServiceReadOnly</h4>
+<p><code>44 // this service is not accepting content changes right now</code></p>
+<h4 id="resultcodeaccountnotfeatured">ResultCodeAccountNotFeatured</h4>
+<p><code>45 // account doesn't have value, so this feature isn't available</code></p>
+<h4 id="resultcodeadministratorok">ResultCodeAdministratorOK</h4>
+<p><code>46 // allowed to take this action, but only because requester is admin</code></p>
+<h4 id="resultcodecontentversion">ResultCodeContentVersion</h4>
+<p><a href="../47 // A Version mismatch in content transmitted within the Steam protocol">47 // A Version mismatch in content transmitted within the Steam protocol</a>.<a href="../47 // A Version mismatch in content transmitted within the Steam protocol#"></a></p>
+<h4 id="resultcodetryanothercm">ResultCodeTryAnotherCM</h4>
+<p><a href="../48 // The current CM can't service the user making a request, user should try another">48 // The current CM can't service the user making a request, user should try another</a>.<a href="../48 // The current CM can't service the user making a request, user should try another#"></a></p>
+<h4 id="resultcodepasswordrequiredtokicksession">ResultCodePasswordRequiredToKickSession</h4>
+<p><a href="../49 // You are already logged in elsewhere, this cached credential login has failed">49 // You are already logged in elsewhere, this cached credential login has failed</a>.<a href="../49 // You are already logged in elsewhere, this cached credential login has failed#"></a></p>
+<h4 id="resultcodealreadyloggedinelsewhere">ResultCodeAlreadyLoggedInElsewhere</h4>
+<p><code>50 // You are already logged in elsewhere, you must wait</code></p>
+<h4 id="resultcodesuspended">ResultCodeSuspended</h4>
+<p><code>51 // Long running operation (content download) suspended/paused</code></p>
+<h4 id="resultcodecancelled">ResultCodeCancelled</h4>
+<p><code>52 // Operation canceled (typically by user: content download)</code></p>
+<h4 id="resultcodedatacorruption">ResultCodeDataCorruption</h4>
+<p><code>53 // Operation canceled because data is ill formed or unrecoverable</code></p>
+<h4 id="resultcodediskfull">ResultCodeDiskFull</h4>
+<p><a href="../54 // Operation canceled - not enough disk space">54 // Operation canceled - not enough disk space</a>.<a href="../54 // Operation canceled - not enough disk space#"></a></p>
+<h4 id="resultcoderemotecallfailed">ResultCodeRemoteCallFailed</h4>
+<p><code>55 // an remote call or IPC call failed</code></p>
+<h4 id="resultcodepasswordunset">ResultCodePasswordUnset</h4>
+<p><code>56 // Password could not be verified as it's unset server side</code></p>
+<h4 id="resultcodeexternalaccountunlinked">ResultCodeExternalAccountUnlinked</h4>
+<p>[57 // External account (PSN, Facebook](../57 // External account (PSN, Facebook).[](../57 // External account (PSN, Facebook#)</p>
+<h4 id="resultcodepsnticketinvalid">ResultCodePSNTicketInvalid</h4>
+<p><code>58 // PSN ticket was invalid</code></p>
+<h4 id="resultcodeexternalaccountalreadylinked">ResultCodeExternalAccountAlreadyLinked</h4>
+<p>[59 // External account (PSN, Facebook](../59 // External account (PSN, Facebook).[](../59 // External account (PSN, Facebook#)</p>
+<h4 id="resultcoderemotefileconflict">ResultCodeRemoteFileConflict</h4>
+<p><code>60 // The sync cannot resume due to a conflict between the local and remote files</code></p>
+<h4 id="resultcodeillegalpassword">ResultCodeIllegalPassword</h4>
+<p><code>61 // The requested new password is not legal</code></p>
+<h4 id="resultcodesameaspreviousvalue">ResultCodeSameAsPreviousValue</h4>
+<p><code>62 // new value is the same as the old one ( secret question and answer )</code></p>
+<h4 id="resultcodeaccountlogondenied">ResultCodeAccountLogonDenied</h4>
+<p><code>63 // account login denied due to 2nd factor authentication failure</code></p>
+<h4 id="resultcodecannotuseoldpassword">ResultCodeCannotUseOldPassword</h4>
+<p><code>64 // The requested new password is not legal</code></p>
+<h4 id="resultcodeinvalidloginauthcode">ResultCodeInvalidLoginAuthCode</h4>
+<p><code>65 // account login denied due to auth code invalid</code></p>
+<h4 id="resultcodeaccountlogondeniednomail">ResultCodeAccountLogonDeniedNoMail</h4>
+<p><code>66 // account login denied due to 2nd factor auth failure - and no mail has been sent - partner site specific</code></p>
+<h4 id="resultcodehardwarenotcapableofipt">ResultCodeHardwareNotCapableOfIPT</h4>
+<p><code>67 //</code></p>
+<h4 id="resultcodeiptiniterror">ResultCodeIPTInitError</h4>
+<p><code>68 //</code></p>
+<h4 id="resultcodeparentalcontrolrestricted">ResultCodeParentalControlRestricted</h4>
+<p><code>69 // operation failed due to parental control restrictions for current user</code></p>
+<h4 id="resultcodefacebookqueryerror">ResultCodeFacebookQueryError</h4>
+<p><code>70 // Facebook query returned an error</code></p>
+<h4 id="resultcodeexpiredloginauthcode">ResultCodeExpiredLoginAuthCode</h4>
+<p><code>71 // account login denied due to auth code expired</code></p>
+<h4 id="resultcodeiploginrestrictionfailed">ResultCodeIPLoginRestrictionFailed</h4>
+<p><code>72</code></p>
+<h4 id="resultcodeaccountlockeddown">ResultCodeAccountLockedDown</h4>
+<p><code>73</code></p>
+<h4 id="resultcodeaccountlogondeniedverifiedemailrequired">ResultCodeAccountLogonDeniedVerifiedEmailRequired</h4>
+<p><code>74</code></p>
+<h4 id="resultcodenomatchingurl">ResultCodeNoMatchingURL</h4>
+<p><code>75</code></p>
+<h4 id="resultcodebadresponse">ResultCodeBadResponse</h4>
+<p><a href="../76  // parse failure, missing field, etc">76  // parse failure, missing field, etc</a>.<a href="../76  // parse failure, missing field, etc#"></a></p>
+<h4 id="resultcoderequirepasswordreentry">ResultCodeRequirePasswordReEntry</h4>
+<p><code>77  // The user cannot complete the action until they re-enter their password</code></p>
+<h4 id="resultcodevalueoutofrange">ResultCodeValueOutOfRange</h4>
+<p><code>78  // the value entered is outside the acceptable range</code></p>
+<h4 id="resultcodeunexpectederror">ResultCodeUnexpectedError</h4>
+<p><code>79  // something happened that we didn't expect to ever happen</code></p>
+<h4 id="resultcodedisabled">ResultCodeDisabled</h4>
+<p><code>80  // The requested service has been configured to be unavailable</code></p>
+<h4 id="resultcodeinvalidcegsubmission">ResultCodeInvalidCEGSubmission</h4>
+<p><code>81  // The set of files submitted to the CEG server are not valid !</code></p>
+<h4 id="resultcoderestricteddevice">ResultCodeRestrictedDevice</h4>
+<p><code>82  // The device being used is not allowed to perform this action</code></p>
+<h4 id="resultcoderegionlocked">ResultCodeRegionLocked</h4>
+<p><code>83  // The action could not be complete because it is region restricted</code></p>
+<h4 id="resultcoderatelimitexceeded">ResultCodeRateLimitExceeded</h4>
+<p><code>84  // Temporary rate limit exceeded, try again later, different from k_EResultLimitExceeded which may be permanent</code></p>
+<h4 id="resultcodeaccountlogindeniedneedtwofactor">ResultCodeAccountLoginDeniedNeedTwoFactor</h4>
+<p><code>85  // Need two-factor code to login</code></p>
+<h4 id="resultcodeitemdeleted">ResultCodeItemDeleted</h4>
+<p><code>86  // The thing we're trying to access has been deleted</code></p>
+<h4 id="resultcodeaccountlogindeniedthrottle">ResultCodeAccountLoginDeniedThrottle</h4>
+<p><code>87  // login attempt failed, try to throttle response to possible attacker</code></p>
+<h4 id="resultcodetwofactorcodemismatch">ResultCodeTwoFactorCodeMismatch</h4>
+<p><code>88  // two factor code mismatch</code></p>
+<h4 id="resultcodetwofactoractivationcodemismatch">ResultCodeTwoFactorActivationCodeMismatch</h4>
+<p><code>89  // activation code for two-factor didn't match</code></p>
+<h4 id="resultcodeaccountassociatedtomultiplepartners">ResultCodeAccountAssociatedToMultiplePartners</h4>
+<p><code>90  // account has been associated with multiple partners</code></p>
+<h4 id="resultcodenotmodified">ResultCodeNotModified</h4>
+<p><code>91  // data not modified</code></p>
+<h4 id="resultcodenomobiledevice">ResultCodeNoMobileDevice</h4>
+<p><code>92  // the account does not have a mobile device associated with it</code></p>
+<h4 id="resultcodetimenotsynced">ResultCodeTimeNotSynced</h4>
+<p><code>93  // the time presented is out of range or tolerance</code></p>
+<h4 id="resultcodesmscodefailed">ResultCodeSmsCodeFailed</h4>
+<p><a href="../94  // SMS code failure (no match, none pending, etc).[">94  // SMS code failure (no match, none pending, etc</a>](../94  // SMS code failure (no match, none pending, etc#))</p>
+<h4 id="resultcodeaccountlimitexceeded">ResultCodeAccountLimitExceeded</h4>
+<p><code>95  // Too many accounts access this resource</code></p>
+<h4 id="resultcodeaccountactivitylimitexceeded">ResultCodeAccountActivityLimitExceeded</h4>
+<p><code>96  // Too many changes to this account</code></p>
+<h4 id="resultcodephoneactivitylimitexceeded">ResultCodePhoneActivityLimitExceeded</h4>
+<p><code>97  // Too many changes to this phone</code></p>
+<h4 id="resultcoderefundtowallet">ResultCodeRefundToWallet</h4>
+<p><code>98  // Cannot refund to payment method, must use wallet</code></p>
+<h4 id="resultcodeemailsendfailure">ResultCodeEmailSendFailure</h4>
+<p><code>99  // Cannot send an email</code></p>
+<h4 id="resultcodenotsettled">ResultCodeNotSettled</h4>
+<p><code>100 // Can't perform operation till payment has settled</code></p>
+<h4 id="resultcodeneedcaptcha">ResultCodeNeedCaptcha</h4>
+<p><code>101 // Needs to provide a valid captcha</code></p>
+<h4 id="resultcodegsltdenied">ResultCodeGSLTDenied</h4>
+<p><code>102 // a game server login token owned by this token's owner has been banned</code></p>
+<h4 id="resultcodegsownerdenied">ResultCodeGSOwnerDenied</h4>
+<p><code>103 // game server owner is denied for other reason (account lock, community ban, vac ban, missing phone)</code></p>
+<h4 id="resultcodeinvaliditemtype">ResultCodeInvalidItemType</h4>
+<p><code>104 // the type of thing we were requested to act on is invalid</code></p>
+<h4 id="resultcodeipbanned">ResultCodeIPBanned</h4>
+<p><code>105 // the ip address has been banned from taking this action</code></p>
+<h4 id="resultcodegsltexpired">ResultCodeGSLTExpired</h4>
+<p><code>106 // this token has expired from disuse; can be reset for use</code></p>
+<h4 id="resultcodeinsufficientfunds">ResultCodeInsufficientFunds</h4>
+<p><code>107 // user doesn't have enough wallet funds to complete the action</code></p>
+<h4 id="resultcodetoomanypending">ResultCodeTooManyPending</h4>
+<p><code>108 // There are too many of this thing pending already</code></p>
+<h4 id="resultcodenositelicensesfound">ResultCodeNoSiteLicensesFound</h4>
+<p><code>109 // No site licenses found</code></p>
+<h4 id="resultcodewgnetworksendexceeded">ResultCodeWGNetworkSendExceeded</h4>
+<p><code>110 // the WG couldn't send a response because we exceeded max network send size</code></p>
+<h4 id="resultcodeaccountnotfriends">ResultCodeAccountNotFriends</h4>
+<p><code>111 // the user is not mutually friends</code></p>
+<h4 id="resultcodelimiteduseraccount">ResultCodeLimitedUserAccount</h4>
+<p><code>112 // the user is limited</code></p>
+<h4 id="resultcodecantremoveitem">ResultCodeCantRemoveItem</h4>
+<p><code>113 // item can't be removed</code></p>
+<h4 id="resultcodeaccountdeleted">ResultCodeAccountDeleted</h4>
+<p><code>114 // account has been deleted</code></p>
+<h4 id="resultcodeexistingusercancelledlicense">ResultCodeExistingUserCancelledLicense</h4>
+<p><code>115 // A license for this already exists, but cancelled</code></p>
+<h4 id="resultcodecommunitycooldown">ResultCodeCommunityCooldown</h4>
+<p><code>116 // access is denied because of a community cooldown (probably from support profile data resets)</code></p>
+<h4 id="resultcodenolauncherspecified">ResultCodeNoLauncherSpecified</h4>
+<p><a href="../117 // No launcher was specified, but a launcher was needed to choose correct realm for operation">117 // No launcher was specified, but a launcher was needed to choose correct realm for operation</a>.<a href="../117 // No launcher was specified, but a launcher was needed to choose correct realm for operation#"></a></p>
+<h4 id="resultcodemustagreetossa">ResultCodeMustAgreeToSSA</h4>
+<p><code>118 // User must agree to china SSA or global SSA before login</code></p>
+<h4 id="resultcodelaunchermigrated">ResultCodeLauncherMigrated</h4>
+<p><code>119 // The specified launcher type is no longer supported; the user should be directed elsewhere</code></p>
+<h4 id="resultcodesteamrealmmismatch">ResultCodeSteamRealmMismatch</h4>
+<p><code>120 // The user's realm does not match the realm of the requested resource</code></p>
+<h4 id="resultcodeinvalidsignature">ResultCodeInvalidSignature</h4>
+<p><code>121 // signature check did not match</code></p>
+<h4 id="resultcodeparsefailure">ResultCodeParseFailure</h4>
+<p><code>122 // Failed to parse input</code></p>
+<h4 id="resultcodenoverifiedphone">ResultCodeNoVerifiedPhone</h4>
+<p><code>123 // account does not have a verified phone number</code></p>
+<h4 id="resultcodeinsufficientbattery">ResultCodeInsufficientBattery</h4>
+<p><code>124 // user device doesn't have enough battery charge currently to complete the action</code></p>
+<h4 id="resultcodechargerrequired">ResultCodeChargerRequired</h4>
+<p><code>125 // The operation requires a charger to be plugged in, which wasn't present</code></p>
+<h4 id="resultcodecachedcredentialinvalid">ResultCodeCachedCredentialInvalid</h4>
+<p><code>126 // Cached credential was invalid - user must reauthenticate</code></p>
+<h4 id="resultcodephonenumberisvoip">ResultCodePhoneNumberIsVOIP</h4>
+<p><code>127 // The phone number provided is a Voice Over IP number</code></p>
+<h4 id="resultcodenotsupported">ResultCodeNotSupported</h4>
+<p><code>128 // The data being accessed is not supported by this API</code></p>
+<h4 id="resultcodefamilysizelimitexceeded">ResultCodeFamilySizeLimitExceeded</h4>
+<p><code>129 // Reached the maximum size of the family</code></p>
+<h2 id="variables">Variables</h2>
+<h2 id="functions">Functions</h2>
+<h3 id="initialize">Initialize</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Initialize</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="isinitialized">IsInitialized</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">IsInitialized</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="restartappifnecessary">RestartAppIfNecessary</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">RestartAppIfNecessary</span><span class="p">(</span><span class="nx">unOwnAppID</span><span class="w"> </span><span class="kt">uint32</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="runcallbacks">RunCallbacks</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">RunCallbacks</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="shutdown">Shutdown</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Shutdown</span><span class="p">()</span>
+</span></code></pre></div>
+<h2 id="types">Types</h2>
+<h3 id="resultcode">ResultCode</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ResultCode</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,31 @@
+package vfx_workspace // import "kaiju/editor/editor_workspace/vfx_workspace"
+
+
+TYPES
+
+type VfxWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *VfxWorkspace) Close()
+
+func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterface)
+
+func (w *VfxWorkspace) Open()
+
+func (w *VfxWorkspace) OpenParticleSystem(id string)
+
+func (w *VfxWorkspace) Update(deltaTime float64)
+
+type VfxWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
+	FocusInterface()
+	BlurInterface()
+	Project() *project.Project
+	StageView() *editor_stage_view.StageView
+}
+

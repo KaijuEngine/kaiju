@@ -1,0 +1,38 @@
+package editor_controls // import "kaiju/editor/editor_controls"
+
+
+CONSTANTS
+
+const (
+	EditorCameraModeNone = EditorCameraMode(iota)
+	EditorCameraMode3d
+	EditorCameraMode2d
+)
+
+TYPES
+
+type EditorCamera struct {
+	OnModeChange events.Event
+	Settings     *editor_settings.EditorCameraSettings
+
+	// Has unexported fields.
+}
+
+func (e *EditorCamera) Focus(bounds collision.AABB)
+
+func (e *EditorCamera) LookAtPoint() matrix.Vec3
+
+func (e *EditorCamera) Mode() EditorCameraMode
+
+func (e *EditorCamera) ModeString() string
+
+func (e *EditorCamera) OnWindowResize()
+
+func (e *EditorCamera) RayCast(mouse *hid.Mouse) collision.Ray
+
+func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host)
+
+func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool)
+
+type EditorCameraMode = int
+

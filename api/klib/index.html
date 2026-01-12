@@ -1,0 +1,2376 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package klib - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-klib" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package klib
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/getting_started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/launching_the_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching the editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/editor_design/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Editor design
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/content/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_9" id="__nav_3_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_10" id="__nav_3_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Shaders
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_10">
+            <span class="md-nav__icon md-icon"></span>
+            Shaders
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/shaders/shader_designer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shader definition
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../editor/plugins.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#constants" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constants
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Constants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iso8601" class="md-nav__link">
+    <span class="md-ellipsis">
+      ISO8601
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      Variables
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#appenduniquet-comparable" class="md-nav__link">
+    <span class="md-ellipsis">
+      AppendUnique[T comparable]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binaryread" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryRead
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binaryreadlen" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryReadLen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binaryreadstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryReadString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binaryreadvart-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryReadVar[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binaryreadvarslicet-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryReadVarSlice[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binarywrite" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryWrite
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binarywritemapk-comparable-v-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryWriteMap[K comparable, V any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binarywritemaplenk-comparable-v-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryWriteMapLen[K comparable, V any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binarywriteslicet-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryWriteSlice[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binarywriteslicelent-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryWriteSliceLen[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#binarywritestring" class="md-nav__link">
+    <span class="md-ellipsis">
+      BinaryWriteString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bytearraytostring" class="md-nav__link">
+    <span class="md-ellipsis">
+      ByteArrayToString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bytecounttostring" class="md-nav__link">
+    <span class="md-ellipsis">
+      ByteCountToString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#byteslicetofloat32slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      ByteSliceToFloat32Slice
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#byteslicetouint16slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      ByteSliceToUInt16Slice
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capitalizefirst" class="md-nav__link">
+    <span class="md-ellipsis">
+      CapitalizeFirst
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkall" class="md-nav__link">
+    <span class="md-ellipsis">
+      CheckAll
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clampt-cmpordered" class="md-nav__link">
+    <span class="md-ellipsis">
+      Clamp[T cmp.Ordered]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clampabst-signed" class="md-nav__link">
+    <span class="md-ellipsis">
+      ClampAbs[T Signed]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleannumstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      CleanNumString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#containst-comparable" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contains[T comparable]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#convertbyteslicetypet-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      ConvertByteSliceType[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decrypt" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decrypt
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delaycall" class="md-nav__link">
+    <span class="md-ellipsis">
+      DelayCall
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#encrypt" class="md-nav__link">
+    <span class="md-ellipsis">
+      Encrypt
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errorist-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      ErrorIs[T error]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exeextension" class="md-nav__link">
+    <span class="md-ellipsis">
+      ExeExtension
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extractfromslicet-s-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      ExtractFromSlice[T, S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#findfirstzeroinbytearray" class="md-nav__link">
+    <span class="md-ellipsis">
+      FindFirstZeroInByteArray
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#floatequalst-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      FloatEquals[T Float]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#formatfloattondecimalst-float32-float64" class="md-nav__link">
+    <span class="md-ellipsis">
+      FormatFloatToNDecimals[T float32 | float64]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interfaceunderlyingpointert-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      InterfaceUnderlyingPointer[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ismobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      IsMobile
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jsondecodet-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      JsonDecode[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mm2pxt-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      MM2PX[T Number]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mapjoint-comparable-u-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      MapJoin[T comparable, U any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mapkeyst-comparable-u-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      MapKeys[T comparable, U any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mapkeyssortedt-cmpordered-u-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      MapKeysSorted[T cmp.Ordered, U any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mapvaluest-comparable-u-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      MapValues[T comparable, U any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memcpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Memcpy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#must" class="md-nav__link">
+    <span class="md-ellipsis">
+      Must
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mustreturnt-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      MustReturn[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mustreturn2t-u-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      MustReturn2[T, U any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notyetimplemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      NotYetImplemented
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#openwebsite" class="md-nav__link">
+    <span class="md-ellipsis">
+      OpenWebsite
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printstack" class="md-nav__link">
+    <span class="md-ellipsis">
+      PrintStack
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readrootfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      ReadRootFile
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#remakeslices-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      RemakeSlice[S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removenilss-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      RemoveNils[S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removeunorderedt-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      RemoveUnordered[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#replacestringrecursive" class="md-nav__link">
+    <span class="md-ellipsis">
+      ReplaceStringRecursive
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#should" class="md-nav__link">
+    <span class="md-ellipsis">
+      Should
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shouldreturnt-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      ShouldReturn[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shufflet-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shuffle[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shufflerandomt-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      ShuffleRandom[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sizedstructtobytearray" class="md-nav__link">
+    <span class="md-ellipsis">
+      SizedStructToByteArray
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slicemoves-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      SliceMove[S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slicesetcaps-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      SliceSetCap[S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slicesetlens-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      SliceSetLen[S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slicesarethesames-comparable" class="md-nav__link">
+    <span class="md-ellipsis">
+      SlicesAreTheSame[S comparable]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slicesremoveelements-comparable" class="md-nav__link">
+    <span class="md-ellipsis">
+      SlicesRemoveElement[S comparable]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sortdirentries" class="md-nav__link">
+    <span class="md-ellipsis">
+      SortDirEntries
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stringvaluecompare" class="md-nav__link">
+    <span class="md-ellipsis">
+      StringValueCompare
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stringscontainscaseinsensitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      StringsContainsCaseInsensitive
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stripfloatstringzeros" class="md-nav__link">
+    <span class="md-ellipsis">
+      StripFloatStringZeros
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structslicetobytearrayt-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      StructSliceToByteArray[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structtobytearrayt-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      StructToByteArray[T any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tickerwait" class="md-nav__link">
+    <span class="md-ellipsis">
+      TickerWait
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tosnakecase" class="md-nav__link">
+    <span class="md-ellipsis">
+      ToSnakeCase
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      Trace
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracestring" class="md-nav__link">
+    <span class="md-ellipsis">
+      TraceString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracestrings" class="md-nav__link">
+    <span class="md-ellipsis">
+      TraceStrings
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wipeslices-any" class="md-nav__link">
+    <span class="md-ellipsis">
+      WipeSlice[S any]
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writerootfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      WriteRootFile
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#complex" class="md-nav__link">
+    <span class="md-ellipsis">
+      Complex
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errorlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      ErrorList
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ErrorList">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newerrorlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      NewErrorList
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errorlistaddany" class="md-nav__link">
+    <span class="md-ellipsis">
+      ErrorList.AddAny
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errorlistany" class="md-nav__link">
+    <span class="md-ellipsis">
+      ErrorList.Any
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errorlistfirst" class="md-nav__link">
+    <span class="md-ellipsis">
+      ErrorList.First
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#float" class="md-nav__link">
+    <span class="md-ellipsis">
+      Float
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integer" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#number" class="md-nav__link">
+    <span class="md-ellipsis">
+      Number
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ordered" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordered
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serializable" class="md-nav__link">
+    <span class="md-ellipsis">
+      Serializable
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Signed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signedinteger" class="md-nav__link">
+    <span class="md-ellipsis">
+      SignedInteger
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unsigned" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unsigned
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-klib">package klib</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaiju/klib&quot;</span>
+</span></code></pre></div>
+<h2 id="constants">Constants</h2>
+<h4 id="iso8601">ISO8601</h4>
+<p><code>"2006-01-02T15:04:05Z"</code></p>
+<h2 id="variables">Variables</h2>
+<h2 id="functions">Functions</h2>
+<h3 id="appenduniquet-comparable">AppendUnique[T comparable]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">AppendUnique</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">comparable</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">values</span><span class="w"> </span><span class="o">...</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="binaryread">BinaryRead</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryRead</span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="binaryreadlen">BinaryReadLen</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryReadLen</span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">int32</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="binaryreadstring">BinaryReadString</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryReadString</span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="binaryreadvart-any">BinaryReadVar[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryReadVar</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">r</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="binaryreadvarslicet-any">BinaryReadVarSlice[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryReadVarSlice</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">r</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="binarywrite">BinaryWrite</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryWrite</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="binarywritemapk-comparable-v-any">BinaryWriteMap[K comparable, V any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryWriteMap</span><span class="p">[</span><span class="nx">K</span><span class="w"> </span><span class="kt">comparable</span><span class="p">,</span><span class="w"> </span><span class="nx">V</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">K</span><span class="p">]</span><span class="nx">V</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="binarywritemaplenk-comparable-v-any">BinaryWriteMapLen[K comparable, V any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryWriteMapLen</span><span class="p">[</span><span class="nx">K</span><span class="w"> </span><span class="kt">comparable</span><span class="p">,</span><span class="w"> </span><span class="nx">V</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">K</span><span class="p">]</span><span class="nx">V</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="binarywriteslicet-any">BinaryWriteSlice[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryWriteSlice</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="binarywriteslicelent-any">BinaryWriteSliceLen[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryWriteSliceLen</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="binarywritestring">BinaryWriteString</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">BinaryWriteString</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">,</span><span class="w"> </span><span class="nx">str</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="bytearraytostring">ByteArrayToString</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ByteArrayToString</span><span class="p">(</span><span class="nx">byteArray</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="bytecounttostring">ByteCountToString</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ByteCountToString</span><span class="p">(</span><span class="nx">bytes</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="byteslicetofloat32slice">ByteSliceToFloat32Slice</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ByteSliceToFloat32Slice</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">float32</span>
+</span></code></pre></div>
+<h3 id="byteslicetouint16slice">ByteSliceToUInt16Slice</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ByteSliceToUInt16Slice</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">uint16</span>
+</span></code></pre></div>
+<h3 id="capitalizefirst">CapitalizeFirst</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">CapitalizeFirst</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="check">Check</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Check</span><span class="p">(</span><span class="nx">outError</span><span class="w"> </span><span class="o">*</span><span class="kt">error</span><span class="p">,</span><span class="w"> </span><span class="nx">newError</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="checkall">CheckAll</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">CheckAll</span><span class="p">(</span><span class="nx">res</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="clampt-cmpordered">Clamp[T cmp.Ordered]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Clamp</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">cmp</span><span class="p">.</span><span class="nx">Ordered</span><span class="p">](</span><span class="nx">current</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="p">,</span><span class="w"> </span><span class="nx">maximum</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="clampabst-signed">ClampAbs[T Signed]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ClampAbs</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">Signed</span><span class="p">](</span><span class="nx">value</span><span class="p">,</span><span class="w"> </span><span class="nx">minimum</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="cleannumstring">CleanNumString</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">CleanNumString</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="containst-comparable">Contains[T comparable]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Contains</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">comparable</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">item</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="convertbyteslicetypet-any">ConvertByteSliceType[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ConvertByteSliceType</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="decrypt">Decrypt</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Decrypt</span><span class="p">(</span><span class="nx">encryptedData</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="delaycall">DelayCall</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">DelayCall</span><span class="p">(</span><span class="nx">d</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">,</span><span class="w"> </span><span class="nx">f</span><span class="w"> </span><span class="kd">func</span><span class="p">(),</span><span class="w"> </span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="encrypt">Encrypt</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Encrypt</span><span class="p">(</span><span class="nx">rawData</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="errorist-error">ErrorIs[T error]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ErrorIs</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">error</span><span class="p">](</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="exeextension">ExeExtension</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ExeExtension</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="extractfromslicet-s-any">ExtractFromSlice[T, S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ExtractFromSlice</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">,</span><span class="w"> </span><span class="nx">expression</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">idx</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="findfirstzeroinbytearray">FindFirstZeroInByteArray</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">FindFirstZeroInByteArray</span><span class="p">(</span><span class="nx">arr</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h3 id="floatequalst-float">FloatEquals[T Float]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">FloatEquals</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">Float</span><span class="p">](</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="formatfloattondecimalst-float32-float64">FormatFloatToNDecimals[T float32 | float64]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">FormatFloatToNDecimals</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">float32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">float64</span><span class="p">](</span><span class="nx">f</span><span class="w"> </span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">decimals</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="interfaceunderlyingpointert-any">InterfaceUnderlyingPointer[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">InterfaceUnderlyingPointer</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span>
+</span></code></pre></div>
+<h3 id="ismobile">IsMobile</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">IsMobile</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="jsondecodet-any">JsonDecode[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">JsonDecode</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">decoder</span><span class="w"> </span><span class="o">*</span><span class="nx">json</span><span class="p">.</span><span class="nx">Decoder</span><span class="p">,</span><span class="w"> </span><span class="nx">container</span><span class="w"> </span><span class="o">*</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="mm2pxt-number">MM2PX[T Number]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MM2PX</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">Number</span><span class="p">](</span><span class="nx">pixels</span><span class="p">,</span><span class="w"> </span><span class="nx">mm</span><span class="p">,</span><span class="w"> </span><span class="nx">targetMM</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="mapjoint-comparable-u-any">MapJoin[T comparable, U any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MapJoin</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">comparable</span><span class="p">,</span><span class="w"> </span><span class="nx">U</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="nx">U</span><span class="p">)</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="nx">U</span>
+</span></code></pre></div>
+<h3 id="mapkeyst-comparable-u-any">MapKeys[T comparable, U any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MapKeys</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">comparable</span><span class="p">,</span><span class="w"> </span><span class="nx">U</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">m</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="nx">U</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="mapkeyssortedt-cmpordered-u-any">MapKeysSorted[T cmp.Ordered, U any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MapKeysSorted</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="nx">cmp</span><span class="p">.</span><span class="nx">Ordered</span><span class="p">,</span><span class="w"> </span><span class="nx">U</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">m</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="nx">U</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="mapvaluest-comparable-u-any">MapValues[T comparable, U any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MapValues</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">comparable</span><span class="p">,</span><span class="w"> </span><span class="nx">U</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">m</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="nx">T</span><span class="p">]</span><span class="nx">U</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">U</span>
+</span></code></pre></div>
+<h3 id="memcpy">Memcpy</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Memcpy</span><span class="p">(</span><span class="nx">dst</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">,</span><span class="w"> </span><span class="nx">src</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">,</span><span class="w"> </span><span class="nx">size</span><span class="w"> </span><span class="kt">uint64</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="must">Must</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Must</span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="mustreturnt-any">MustReturn[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MustReturn</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">ret</span><span class="w"> </span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="mustreturn2t-u-any">MustReturn2[T, U any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MustReturn2</span><span class="p">[</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">U</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">ret1</span><span class="w"> </span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">ret2</span><span class="w"> </span><span class="nx">U</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">U</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="notyetimplemented">NotYetImplemented</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NotYetImplemented</span><span class="p">(</span><span class="nx">issueId</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="openwebsite">OpenWebsite</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">OpenWebsite</span><span class="p">(</span><span class="nx">url</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="printstack">PrintStack</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">PrintStack</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="readrootfile">ReadRootFile</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ReadRootFile</span><span class="p">(</span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">os</span><span class="p">.</span><span class="nx">Root</span><span class="p">,</span><span class="w"> </span><span class="nx">filePath</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="remakeslices-any">RemakeSlice[S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">RemakeSlice</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span>
+</span></code></pre></div>
+<h3 id="removenilss-any">RemoveNils[S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">RemoveNils</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">S</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="o">*</span><span class="nx">S</span>
+</span></code></pre></div>
+<h3 id="removeunorderedt-any">RemoveUnordered[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">RemoveUnordered</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">idx</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="replacestringrecursive">ReplaceStringRecursive</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ReplaceStringRecursive</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">new</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="should">Should</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Should</span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="shouldreturnt-any">ShouldReturn[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ShouldReturn</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">ret</span><span class="w"> </span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="nx">T</span>
+</span></code></pre></div>
+<h3 id="shufflet-any">Shuffle[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Shuffle</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">,</span><span class="w"> </span><span class="nx">rng</span><span class="w"> </span><span class="o">*</span><span class="nx">rand</span><span class="p">.</span><span class="nx">Rand</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="shufflerandomt-any">ShuffleRandom[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ShuffleRandom</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">slice</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="sizedstructtobytearray">SizedStructToByteArray</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SizedStructToByteArray</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">,</span><span class="w"> </span><span class="nx">size</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+</span></code></pre></div>
+<h3 id="slicemoves-any">SliceMove[S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SliceMove</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">,</span><span class="w"> </span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="slicesetcaps-any">SliceSetCap[S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SliceSetCap</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">,</span><span class="w"> </span><span class="nx">amount</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span>
+</span></code></pre></div>
+<h3 id="slicesetlens-any">SliceSetLen[S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SliceSetLen</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">,</span><span class="w"> </span><span class="nx">newLen</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span>
+</span></code></pre></div>
+<h3 id="slicesarethesames-comparable">SlicesAreTheSame[S comparable]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SlicesAreTheSame</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">comparable</span><span class="p">](</span><span class="nx">a</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="slicesremoveelements-comparable">SlicesRemoveElement[S comparable]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SlicesRemoveElement</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">comparable</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">,</span><span class="w"> </span><span class="nx">e</span><span class="w"> </span><span class="nx">S</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span>
+</span></code></pre></div>
+<h3 id="sortdirentries">SortDirEntries</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">SortDirEntries</span><span class="p">(</span><span class="nx">entries</span><span class="w"> </span><span class="p">[]</span><span class="nx">os</span><span class="p">.</span><span class="nx">DirEntry</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">os</span><span class="p">.</span><span class="nx">DirEntry</span>
+</span></code></pre></div>
+<h3 id="stringvaluecompare">StringValueCompare</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">StringValueCompare</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<p>StringValueCompare compares two strings as integers or floats if possible,
+otherwise compares as strings</p>
+<h3 id="stringscontainscaseinsensitive">StringsContainsCaseInsensitive</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">StringsContainsCaseInsensitive</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="stripfloatstringzeros">StripFloatStringZeros</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">StripFloatStringZeros</span><span class="p">(</span><span class="nx">fString</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="structslicetobytearrayt-any">StructSliceToByteArray[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">StructSliceToByteArray</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+</span></code></pre></div>
+<h3 id="structtobytearrayt-any">StructToByteArray[T any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">StructToByteArray</span><span class="p">[</span><span class="nx">T</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+</span></code></pre></div>
+<h3 id="tickerwait">TickerWait</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">TickerWait</span><span class="p">(</span><span class="nx">interval</span><span class="p">,</span><span class="w"> </span><span class="nx">limit</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">,</span><span class="w"> </span><span class="nx">condition</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="tosnakecase">ToSnakeCase</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">ToSnakeCase</span><span class="p">(</span><span class="nx">str</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="trace">Trace</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Trace</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="tracestring">TraceString</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">TraceString</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="tracestrings">TraceStrings</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">TraceStrings</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">skip</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+</span></code></pre></div>
+<h3 id="wipeslices-any">WipeSlice[S any]</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">WipeSlice</span><span class="p">[</span><span class="nx">S</span><span class="w"> </span><span class="kt">any</span><span class="p">](</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">S</span>
+</span></code></pre></div>
+<p>WipeSlice will clear out the slice before returning [:0]. The purpose
+for this is that if there are pointers held within the slice, they hold
+their references for as long as they are within the capacity of the slice.
+Due to this, pointers are not collected by the GC unless actually wiped out
+from the slice.</p>
+<h3 id="writerootfile">WriteRootFile</h3>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">WriteRootFile</span><span class="p">(</span><span class="nx">fs</span><span class="w"> </span><span class="o">*</span><span class="nx">os</span><span class="p">.</span><span class="nx">Root</span><span class="p">,</span><span class="w"> </span><span class="nx">filePath</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h2 id="types">Types</h2>
+<h3 id="complex">Complex</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Complex</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-77-2"><a id="__codelineno-77-2" name="__codelineno-77-2" href="#__codelineno-77-2"></a><span class="w">    </span><span class="o">~</span><span class="kt">complex64</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">complex128</span>
+</span><span id="__span-77-3"><a id="__codelineno-77-3" name="__codelineno-77-3" href="#__codelineno-77-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="errorlist">ErrorList</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">ErrorList</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-78-2"><a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a><span class="w">    </span><span class="nx">Errors</span><span class="w"> </span><span class="p">[]</span><span class="kt">error</span>
+</span><span id="__span-78-3"><a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newerrorlist">NewErrorList</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewErrorList</span><span class="p">()</span><span class="w"> </span><span class="nx">ErrorList</span>
+</span></code></pre></div>
+<h4 id="errorlistaddany">ErrorList.AddAny</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">*</span><span class="nx">ErrorList</span><span class="p">)</span><span class="w"> </span><span class="nx">AddAny</span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="errorlistany">ErrorList.Any</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">*</span><span class="nx">ErrorList</span><span class="p">)</span><span class="w"> </span><span class="nx">Any</span><span class="p">()</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="errorlistfirst">ErrorList.First</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">*</span><span class="nx">ErrorList</span><span class="p">)</span><span class="w"> </span><span class="nx">First</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span>
+</span></code></pre></div>
+<h3 id="float">Float</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Float</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-83-2"><a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="w">    </span><span class="o">~</span><span class="kt">float32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">float64</span>
+</span><span id="__span-83-3"><a id="__codelineno-83-3" name="__codelineno-83-3" href="#__codelineno-83-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="integer">Integer</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Integer</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-84-2"><a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a><span class="w">    </span><span class="nx">SignedInteger</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">Unsigned</span>
+</span><span id="__span-84-3"><a id="__codelineno-84-3" name="__codelineno-84-3" href="#__codelineno-84-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="number">Number</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Number</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-85-2"><a id="__codelineno-85-2" name="__codelineno-85-2" href="#__codelineno-85-2"></a><span class="w">    </span><span class="nx">Integer</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">Float</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">Complex</span>
+</span><span id="__span-85-3"><a id="__codelineno-85-3" name="__codelineno-85-3" href="#__codelineno-85-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="ordered">Ordered</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Ordered</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-86-2"><a id="__codelineno-86-2" name="__codelineno-86-2" href="#__codelineno-86-2"></a><span class="w">    </span><span class="nx">Integer</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">Float</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">string</span>
+</span><span id="__span-86-3"><a id="__codelineno-86-3" name="__codelineno-86-3" href="#__codelineno-86-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="serializable">Serializable</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Serializable</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a><span class="w">    </span><span class="nx">Serialize</span><span class="p">(</span><span class="nx">stream</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span>
+</span><span id="__span-87-3"><a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a><span class="w">    </span><span class="nx">Deserialize</span><span class="p">(</span><span class="nx">stream</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Reader</span><span class="p">)</span>
+</span><span id="__span-87-4"><a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="signed">Signed</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Signed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-88-2"><a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a><span class="w">    </span><span class="nx">SignedInteger</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">Float</span>
+</span><span id="__span-88-3"><a id="__codelineno-88-3" name="__codelineno-88-3" href="#__codelineno-88-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="signedinteger">SignedInteger</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SignedInteger</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-89-2"><a id="__codelineno-89-2" name="__codelineno-89-2" href="#__codelineno-89-2"></a><span class="w">    </span><span class="o">~</span><span class="kt">int</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">int8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">int16</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">int32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">int64</span>
+</span><span id="__span-89-3"><a id="__codelineno-89-3" name="__codelineno-89-3" href="#__codelineno-89-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="unsigned">Unsigned</h3>
+<p><code>interface</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Unsigned</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-90-2"><a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a><span class="w">    </span><span class="o">~</span><span class="kt">uint</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">uint8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">uint16</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">uint32</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">uint64</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">~</span><span class="kt">uintptr</span>
+</span><span id="__span-90-3"><a id="__codelineno-90-3" name="__codelineno-90-3" href="#__codelineno-90-3"></a><span class="p">}</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+    
+  </body>
+</html>

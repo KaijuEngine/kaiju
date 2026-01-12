@@ -1,0 +1,239 @@
+package cameras // import "kaiju/engine/cameras"
+
+
+TYPES
+
+type Camera interface {
+	SetPosition(position matrix.Vec3)
+	SetFOV(fov float32)
+	SetNearPlane(near float32)
+	SetFarPlane(far float32)
+	SetWidth(width float32)
+	SetHeight(height float32)
+	ViewportChanged(width, height float32)
+	SetProperties(fov, nearPlane, farPlane, width, height float32)
+	Forward() matrix.Vec3
+	Right() matrix.Vec3
+	Up() matrix.Vec3
+	SetLookAt(position matrix.Vec3)
+	SetLookAtWithUp(point, up matrix.Vec3)
+	SetPositionAndLookAt(position, lookAt matrix.Vec3)
+	RayCast(cursorPosition matrix.Vec2) collision.Ray
+	TryPlaneHit(cursorPosition matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool)
+	ForwardPlaneHit(cursorPosition matrix.Vec2, planePos matrix.Vec3) (matrix.Vec3, bool)
+	Position() matrix.Vec3
+	Width() float32
+	Height() float32
+	View() matrix.Mat4
+	Projection() matrix.Mat4
+	InverseProjection() matrix.Mat4
+	LookAt() matrix.Vec3
+	NearPlane() float32
+	FarPlane() float32
+	IsOrthographic() bool
+	Viewport() matrix.Vec4
+	Frustum() collision.Frustum
+	IsDirty() bool
+	NewFrame()
+}
+
+type Container struct {
+	Camera Camera
+}
+
+func NewContainer(camera Camera) Container
+
+func (c *Container) ChangeCamera(camera Camera)
+
+func (c *Container) Equal(other Camera) bool
+
+func (c *Container) IsInView(box collision.AABB) bool
+
+func (c *Container) IsValid() bool
+
+func (c *Container) ViewChanged() bool
+
+type StandardCamera struct {
+	// Has unexported fields.
+}
+
+func NewStandardCamera(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera
+    NewStandardCamera creates a new perspective camera using the width/height
+    for the viewport and the position to place the camera.
+
+func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera
+    NewStandardCameraOrthographic creates a new orthographic camera using the
+    width/height for the viewport and the position to place the camera.
+
+func (c *StandardCamera) FarPlane() float32
+    FarPlane will return the far plane of the camera.
+
+func (c *StandardCamera) Forward() matrix.Vec3
+    Forward returns the forward vector of the camera.
+
+func (c *StandardCamera) ForwardPlaneHit(screenPos matrix.Vec2, planePos matrix.Vec3) (matrix.Vec3, bool)
+    ForwardPlaneHit will project a ray from the camera's position given a screen
+    position and test if it hits a plane directly facing the cameras position.
+
+func (c *StandardCamera) Frustum() collision.Frustum
+    Frustum will return the camera's view frustum which is updated any time the
+    view or project of the camera changes.
+
+func (c *StandardCamera) Height() float32
+    Height will return the height of the camera's viewport.
+
+func (c *StandardCamera) InverseProjection() matrix.Mat4
+    InverseProjection will return the inverse projection matrix of the camera.
+
+func (c *StandardCamera) IsDirty() bool
+
+func (c *StandardCamera) IsOrthographic() bool
+    IsOrthographic will return if this camera is set to be an orthographic
+    camera
+
+func (c *StandardCamera) LookAt() matrix.Vec3
+    LookAt will return the look at position of the camera.
+
+func (c *StandardCamera) NearPlane() float32
+    NearPlane will return the near plane of the camera.
+
+func (c *StandardCamera) NewFrame()
+
+func (c *StandardCamera) Position() matrix.Vec3
+    Position will return the position of the camera.
+
+func (c *StandardCamera) Projection() matrix.Mat4
+    Projection will return the projection matrix of the camera.
+
+func (c *StandardCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray
+    RayCast will project a ray from the camera's position given a screen
+    position using the camera's view and projection matrices.
+
+func (c *StandardCamera) Resize(width, height float32)
+    Resize sets the width and height of the camera viewport.
+
+func (c *StandardCamera) Right() matrix.Vec3
+    Right returns the right vector of the camera.
+
+func (c *StandardCamera) SetFOV(fov float32)
+    SetFOV sets the field of view for the camera.
+
+func (c *StandardCamera) SetFarPlane(far float32)
+    SetFarPlane sets the far plane for the camera.
+
+func (c *StandardCamera) SetHeight(height float32)
+    SetHeight sets the height of the camera viewport.
+
+func (c *StandardCamera) SetLookAt(position matrix.Vec3)
+    SetLookAt sets the look at position of the camera.
+
+func (c *StandardCamera) SetLookAtWithUp(point, up matrix.Vec3)
+    SetLookAtWithUp sets the look at position of the camera and the up vector to
+    use.
+
+func (c *StandardCamera) SetNearPlane(near float32)
+    SetNearPlane sets the near plane for the camera.
+
+func (c *StandardCamera) SetPosition(position matrix.Vec3)
+    SetPosition sets the position of the camera.
+
+func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3)
+    SetPositionAndLookAt sets the position and look at position of the camera.
+    This is often useful for when the camera warps to another location in space
+    and avoids needless view matrix updates when setting the position and look
+    at separately.
+
+func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height float32)
+    SetProperties is quick access to set many properties of the camera at once.
+    This is typically used for initializing the camera to new values. Calling
+    each individual setter for fields would otherwise do needless projection
+    matrix updates.
+
+func (c *StandardCamera) SetWidth(width float32)
+    SetWidth sets the width of the camera viewport.
+
+func (c *StandardCamera) TryPlaneHit(screenPos matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool)
+    TryPlaneHit will project a ray from the camera's position given a screen
+    position and test if it hits a plane. If it does, it will return the hit
+    position and true. If it does not, it will return the zero vector and false.
+
+func (c *StandardCamera) Up() matrix.Vec3
+    Up returns the up vector of the camera.
+
+func (c *StandardCamera) View() matrix.Mat4
+    View will return the view matrix of the camera.
+
+func (c *StandardCamera) Viewport() matrix.Vec4
+
+func (c *StandardCamera) ViewportChanged(width, height float32)
+    ViewportChanged will update the camera's projection matrix and should only
+    be used when there is a change in the viewport. This is typically done
+    internally in the system and should not be called by the end-developer.
+
+func (c *StandardCamera) Width() float32
+    Width will return the width of the camera's viewport.
+
+type TurntableCamera struct {
+	StandardCamera
+
+	// Has unexported fields.
+}
+
+func ToTurntable(camera *StandardCamera) *TurntableCamera
+    ToTurntable converts a standard camera to a turntable camera.
+
+func (c *TurntableCamera) Dolly(delta float32)
+    Dolly moves the camera closer/further from the look at point by the given
+    delta.
+
+func (c *TurntableCamera) FlyRotate(yawDelta, pitchDelta float32)
+
+func (c *TurntableCamera) FlyUpdateView()
+
+func (c *TurntableCamera) Orbit(delta matrix.Vec3)
+    Orbit orbits the camera around the look at point by the given delta.
+
+func (c *TurntableCamera) Pan(delta matrix.Vec3)
+    Pan pans the camera while keeping the same facing by the given delta.
+
+func (c *TurntableCamera) Pitch() float32
+    Pitch returns the pitch of the camera.
+
+func (c *TurntableCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray
+    RayCast will project a ray from the camera's position given a screen
+    position using the camera's view and projection matrices.
+
+func (c *TurntableCamera) SetLookAt(lookAt matrix.Vec3)
+    SetLookAt sets the look at position of the camera.
+
+func (c *TurntableCamera) SetLookAtWithUp(point, up matrix.Vec3)
+    SetLookAtWithUp sets the look at position of the camera and the up vector to
+    use.
+
+func (c *TurntableCamera) SetPitch(pitch float32)
+    SetPitch sets the pitch of the camera.
+
+func (c *TurntableCamera) SetPosition(position matrix.Vec3)
+    SetPosition sets the position of the camera.
+
+func (c *TurntableCamera) SetYaw(yaw float32)
+    SetYaw sets the yaw of the camera.
+
+func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32)
+    SetYawAndPitch sets the yaw and pitch of the camera. This helps skip
+    needless view matrix calculations by setting both before updating the view.
+
+func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32)
+    SetYawPitchZoom sets the yaw, pitch, and zoom of the camera. This helps skip
+    needless view matrix calculations by setting all three before updating the
+    view.
+
+func (c *TurntableCamera) SetZoom(zoom float32)
+    SetZoom sets the zoom of the camera.
+
+func (c *TurntableCamera) Yaw() float32
+    Yaw returns the yaw of the camera.
+
+func (c *TurntableCamera) Zoom() float32
+    Zoom returns the zoom of the camera.
+

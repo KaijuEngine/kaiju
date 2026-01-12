@@ -1,0 +1,24 @@
+package engine_entity_data_particles // import "kaiju/engine_entity_data/engine_entity_data_particles"
+
+
+CONSTANTS
+
+const BindingKey = "kaiju.ParticleSystemEntityData"
+
+TYPES
+
+type ParticleSystemEntityData struct {
+	Id content_id.ParticleSystem `visible:"false"`
+}
+
+func (r ParticleSystemEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type Shape int
+
+const (
+	ShapeBox Shape = iota
+	ShapeSphere
+	ShapeCapsule
+	ShapeCylinder
+	ShapeCone
+)

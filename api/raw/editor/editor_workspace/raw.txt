@@ -1,0 +1,28 @@
+package editor_workspace // import "kaiju/editor/editor_workspace"
+
+
+TYPES
+
+type StageWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	FocusInterface()
+	BlurInterface()
+	Settings() *editor_settings.Settings
+	StageView() *editor_stage_view.StageView
+	ShowReferences(id string)
+	ContentWorkspaceSelected()
+}
+
+type Workspace interface {
+	Open()
+	Close()
+	Focus()
+	Blur()
+	Hotkeys() []common_workspace.HotKey
+	Update(float64)
+}
+

@@ -1,0 +1,152 @@
+package klib // import "kaiju/klib"
+
+
+CONSTANTS
+
+const (
+	ISO8601 = "2006-01-02T15:04:05Z"
+)
+
+VARIABLES
+
+var OpenWebsiteAndroidFunc func(url string)
+
+FUNCTIONS
+
+func AppendUnique[T comparable](slice []T, values ...T) []T
+func BinaryRead(r io.Reader, data any) error
+func BinaryReadLen(r io.Reader) (int32, error)
+func BinaryReadString(r io.Reader) (string, error)
+func BinaryReadVar[T any](r io.Reader) (T, error)
+func BinaryReadVarSlice[T any](r io.Reader) ([]T, error)
+func BinaryWrite(w io.Writer, data any) error
+func BinaryWriteMap[K comparable, V any](w io.Writer, data map[K]V) error
+func BinaryWriteMapLen[K comparable, V any](w io.Writer, data map[K]V) error
+func BinaryWriteSlice[T any](w io.Writer, data []T) error
+func BinaryWriteSliceLen[T any](w io.Writer, data []T) error
+func BinaryWriteString(w io.Writer, str string) error
+func ByteArrayToString(byteArray []byte) string
+func ByteCountToString(bytes uint64) string
+func ByteSliceToFloat32Slice(data []byte) []float32
+func ByteSliceToUInt16Slice(data []byte) []uint16
+func CapitalizeFirst(s string) string
+func Check(outError *error, newError error) bool
+func CheckAll(res bool)
+func Clamp[T cmp.Ordered](current, minimum, maximum T) T
+func ClampAbs[T Signed](value, minimum T) T
+func CleanNumString(v string) string
+func Contains[T comparable](slice []T, item T) bool
+func ConvertByteSliceType[T any](slice []byte) []T
+func Decrypt(encryptedData []byte, key []byte) ([]byte, error)
+func DelayCall(d time.Duration, f func(), ctx context.Context)
+func Encrypt(rawData []byte, key []byte) ([]byte, error)
+func ErrorIs[T error](err error) bool
+func ExeExtension() string
+func ExtractFromSlice[T, S any](s []S, expression func(idx int) T) []T
+func FindFirstZeroInByteArray(arr []byte) int
+func FloatEquals[T Float](a, b T) bool
+func FormatFloatToNDecimals[T float32 | float64](f T, decimals int) string
+func InterfaceUnderlyingPointer[T any](s T) unsafe.Pointer
+func IsMobile() bool
+func JsonDecode[T any](decoder *json.Decoder, container *T) error
+func MM2PX[T Number](pixels, mm, targetMM T) T
+func MapJoin[T comparable, U any](a, b map[T]U) map[T]U
+func MapKeys[T comparable, U any](m map[T]U) []T
+func MapKeysSorted[T cmp.Ordered, U any](m map[T]U) []T
+func MapValues[T comparable, U any](m map[T]U) []U
+func Memcpy(dst unsafe.Pointer, src unsafe.Pointer, size uint64)
+func Must(err error)
+func MustReturn[T any](ret T, err error) T
+func MustReturn2[T, U any](ret1 T, ret2 U, err error) (T, U)
+func NotYetImplemented(issueId int)
+func OpenWebsite(url string)
+func PrintStack()
+func ReadRootFile(fs *os.Root, filePath string) ([]byte, error)
+func RemakeSlice[S any](s []S) []S
+func RemoveNils[S any](slice []*S) []*S
+func RemoveUnordered[T any](slice []T, idx int) []T
+func ReplaceStringRecursive(s string, old string, new string) string
+func Should(err error) bool
+func ShouldReturn[T any](ret T, err error) T
+func Shuffle[T any](slice []T, rng *rand.Rand)
+func ShuffleRandom[T any](slice []T)
+func SizedStructToByteArray(s unsafe.Pointer, size int) []byte
+func SliceMove[S any](s []S, from, to int)
+func SliceSetCap[S any](s []S, amount int) []S
+func SliceSetLen[S any](s []S, newLen int) []S
+func SlicesAreTheSame[S comparable](a []S, b []S) bool
+func SlicesRemoveElement[S comparable](s []S, e S) []S
+func SortDirEntries(entries []os.DirEntry) []os.DirEntry
+func StringValueCompare(a, b string) int
+    StringValueCompare compares two strings as integers or floats if possible,
+    otherwise compares as strings
+
+func StringsContainsCaseInsensitive(s []string, value string) bool
+func StripFloatStringZeros(fString string) string
+func StructSliceToByteArray[T any](s []T) []byte
+func StructToByteArray[T any](s T) []byte
+func TickerWait(interval, limit time.Duration, condition func() bool) bool
+func ToSnakeCase(str string) string
+func Trace(message string)
+func TraceString(message string) string
+func TraceStrings(message string, skip int) []string
+func WipeSlice[S any](s []S) []S
+    WipeSlice will clear out the slice before returning [:0]. The purpose
+    for this is that if there are pointers held within the slice, they hold
+    their references for as long as they are within the capacity of the slice.
+    Due to this, pointers are not collected by the GC unless actually wiped out
+    from the slice.
+
+func WriteRootFile(fs *os.Root, filePath string, data []byte) error
+
+TYPES
+
+type Complex interface {
+	~complex64 | ~complex128
+}
+
+type ErrorList struct {
+	Errors []error
+}
+
+func NewErrorList() ErrorList
+
+func (e *ErrorList) AddAny(err error)
+
+func (e *ErrorList) Any() bool
+
+func (e *ErrorList) First() error
+
+type Float interface {
+	~float32 | ~float64
+}
+
+type Integer interface {
+	SignedInteger | Unsigned
+}
+
+type Number interface {
+	Integer | Float | Complex
+}
+
+type Ordered interface {
+	Integer | Float | ~string
+}
+
+type Serializable interface {
+	Serialize(stream io.Writer)
+	Deserialize(stream io.Reader)
+}
+
+type Signed interface {
+	SignedInteger | Float
+}
+
+type SignedInteger interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+type Unsigned interface {
+	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+
