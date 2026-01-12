@@ -92,7 +92,6 @@ type Vulkan struct {
 	color                      TextureId
 	swapChainFrameBuffers      []vk.Framebuffer
 	imageSemaphores            [maxFramesInFlight]vk.Semaphore
-	renderSemaphores           [maxFramesInFlight]vk.Semaphore
 	renderFences               [maxFramesInFlight]vk.Fence
 	swapImageCount             uint32
 	swapChainImageViewCount    uint32
@@ -369,8 +368,6 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 		for i := 0; i < int(vr.swapImageCount); i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
-			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 		}
@@ -431,7 +428,6 @@ func (vr *Vulkan) createSyncObjects() bool {
 			vr.dbg.add(vk.TypeToUintPtr(fence))
 		}
 		vr.imageSemaphores[i] = imgSemaphore
-		vr.renderSemaphores[i] = rdrSemaphore
 		vr.renderFences[i] = fence
 	}
 	if success {
@@ -461,12 +457,9 @@ func (vr *Vulkan) createSyncObjects() bool {
 		for i := 0; i < int(vr.swapImageCount) && success; i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
-			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 			vr.imageSemaphores[i] = vk.NullSemaphore
-			vr.renderSemaphores[i] = vk.NullSemaphore
 			vr.renderFences[i] = vk.NullFence
 		}
 	}
@@ -627,8 +620,6 @@ func (vr *Vulkan) Destroy() {
 		for i := range maxFramesInFlight {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.imageSemaphores[i]))
-			vk.DestroySemaphore(vr.device, vr.renderSemaphores[i], nil)
-			vr.dbg.remove(vk.TypeToUintPtr(vr.renderSemaphores[i]))
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.dbg.remove(vk.TypeToUintPtr(vr.renderFences[i]))
 		}
