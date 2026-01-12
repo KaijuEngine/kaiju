@@ -1,7 +1,7 @@
-//go:build linux && !android
+//go:build linux && !android && !wayland
 
 /******************************************************************************/
-/* window.x11.go                                                              */
+/* window.linux.go                                                            */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */

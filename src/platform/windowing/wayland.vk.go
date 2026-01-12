@@ -1,7 +1,7 @@
-//go:build (linux || darwin) && !android
+//go:build linux && !android && wayland
 
 /******************************************************************************/
-/* x11.vk.go                                                                  */
+/* wayland.vk.go                                                              */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -39,5 +39,5 @@
 package windowing
 
 func getInstanceExtensions() []string {
-	return []string{"VK_KHR_surface\x00", "VK_KHR_xlib_surface\x00"}
+	return []string{"VK_KHR_surface\x00", "VK_KHR_wayland_surface\x00"}
 }
