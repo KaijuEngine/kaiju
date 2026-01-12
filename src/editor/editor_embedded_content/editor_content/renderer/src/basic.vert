@@ -1,41 +1,25 @@
 #version 460
+#define VERTEX_SHADER
 
-#include "inc_vertex.inl"
+#define LAYOUT_VERT_COLOR
+#define LAYOUT_VERT_FLAGS
 
-#define MAX_JOINTS			50
+#define LAYOUT_FRAG_COLOR
+#define LAYOUT_FRAG_FLAGS
+#define LAYOUT_FRAG_POS
+#define LAYOUT_FRAG_TEX_COORDS
+#define LAYOUT_FRAG_NORMAL
+#define LAYOUT_FRAG_VIEW_DIR
 
-#ifdef SKINNING
-layout(set = 0, binding = 2) readonly buffer SkinnedSSBO {
-	mat4 jointTransforms[][MAX_JOINTS];
-};
-#endif
-
-layout(location = LOCATION_START) in vec4 color;
-layout(location = LOCATION_START+1) in uint flags;
-
-layout(location = 0) out vec4 fragColor;
-layout(location = 1) out uint fragFlags;
-layout(location = 2) out vec3 fragPos;
-layout(location = 3) out vec2 fragTexCoords;
-layout(location = 4) out vec3 fragNormal;
-layout(location = 5) out vec3 viewDir;
+#include "kaiju.glsl"
 
 void main() {
 	fragColor = Color * color;
 	fragFlags = flags;
 	fragTexCoords = UV0;
 	fragNormal = mat3(model) * Normal;
-#ifdef SKINNING
-	vec4 pos = vec4(Position, 1.0);
-	mat4 skinMatrix = JointWeights.x * jointTransforms[gl_InstanceIndex][JointIds.x]
-					+ JointWeights.y * jointTransforms[gl_InstanceIndex][JointIds.y]
-					+ JointWeights.z * jointTransforms[gl_InstanceIndex][JointIds.z]
-					+ JointWeights.w * jointTransforms[gl_InstanceIndex][JointIds.w];
-	vec4 wp = skinMatrix * pos;
-#else
-	vec4 wp = model * vec4(Position, 1.0);
-#endif
-    fragPos = wp.xyz; 
-	viewDir = cameraPosition.xyz - wp.xyz;
+	vec4 wp = worldPosition();
+    fragPos = wp.xyz;
+	fragViewDir = cameraPosition.xyz - wp.xyz;
 	gl_Position = projection * view * wp;
 }
