@@ -2,6 +2,7 @@
 #define FRAGMENT_SHADER
 
 #define SAMPLER_COUNT   1
+
 #define SHADOW_SAMPLERS
 #define LAYOUT_FRAG_COLOR
 #define LAYOUT_FRAG_FLAGS
