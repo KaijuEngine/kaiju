@@ -19,14 +19,18 @@ var (
 )
 
 type ShaderSource struct {
-	file       string
-	src        string
-	defines    map[string]any
-	workGroups [3]uint32
-	layouts    []rendering.ShaderLayout
+	file            string
+	src             string
+	defines         map[string]any
+	WorkGroups      [3]uint32
+	Layouts         []rendering.ShaderLayout
+	preprocDepth    int
+	preprocRead     []bool
+	multilineDefine bool
+	lastDefineKey   string
 }
 
-func Parse(path string) (ShaderSource, error) {
+func Parse(path string, args string) (ShaderSource, error) {
 	source := ShaderSource{
 		file:    path,
 		defines: make(map[string]any),
@@ -36,6 +40,7 @@ func Parse(path string) (ShaderSource, error) {
 		slog.Error("failed to read the file", "file", path, "error", err)
 		return source, err
 	}
+	source.readArgs(args)
 	source.src = readImports(string(data), filepath.Dir(source.file))
 	source.readPreprocessor()
 	if source.IsCompute() {
@@ -72,86 +77,159 @@ func (s *ShaderSource) IsCompute() bool {
 	return s.Type() == "Compute"
 }
 
+func (s *ShaderSource) readArgs(args string) {
+	a := strings.Split(args, "-")
+	for i := range a {
+		if len(a[i]) == 0 {
+			continue
+		}
+		if rune(a[i][0]) == 'D' {
+			parts := strings.Split(a[i], " ")
+			if len(parts) > 1 {
+				s.defines[parts[0]] = parts[1]
+			} else {
+				s.defines[parts[0]] = nil
+			}
+		}
+	}
+}
+
+type srcLine string
+
+func srcLineFromString(str string) srcLine {
+	return srcLine(strings.TrimSpace(str))
+}
+
+func (s srcLine) prefixed(pre string) bool {
+	return strings.HasPrefix(string(s), pre)
+}
+
+func (s srcLine) suffixed(pre string) bool {
+	return strings.HasSuffix(string(s), pre)
+}
+
+func (s srcLine) isComment() bool       { return s.prefixed("//") }
+func (s srcLine) isPreprocDefine() bool { return s.prefixed("#define") }
+func (s srcLine) isPreprocIf() bool     { return s.prefixed("#if") }
+func (s srcLine) isPreprocElseIf() bool { return s.prefixed("#elif") }
+func (s srcLine) isPreprocElse() bool   { return s.prefixed("#else") }
+func (s srcLine) isPreprocEndIf() bool  { return s.prefixed("#endif") }
+func (s srcLine) isPreprocIfDef() bool  { return s.prefixed("#ifdef") }
+func (s srcLine) isPreprocIfNDef() bool { return s.prefixed("#ifndef") }
+func (s srcLine) hasDefineSlash() bool  { return s.suffixed("\\") }
+
+func (s srcLine) string() string {
+	str := strings.Split(string(s), "//")[0]
+	return strings.TrimSuffix(str, "\\")
+}
+
 func (s *ShaderSource) readPreprocessor() {
 	re := regexp.MustCompile(`\s*#define\s+(\w+)(?:\s+([\w\d\s\+\-\*\/]+))?`)
 	cRe := regexp.MustCompile(`#(if[n]*def)\s+(\w+)`)
 	c2Re := regexp.MustCompile(`#(e{0,1}l{0,1}if)\s+(!{0,1})defined\((\w+)\)`)
 	ops := []string{"+", "-", "*", "/"}
 	scan := bufio.NewScanner(strings.NewReader(s.src))
-	conditionFailed := false
 	sb := strings.Builder{}
 	sb.Grow(len(s.src))
-	preprocNest := 0
+	s.preprocRead = []bool{true}
 	for scan.Scan() {
 		rawLine := scan.Text()
-		line := strings.TrimSpace(rawLine)
-		if strings.HasPrefix(line, "#if") {
-			preprocNest++
+		line := srcLineFromString(rawLine)
+		if line.isComment() {
+			continue
 		}
-		if strings.HasPrefix(line, "#endif") {
-			preprocNest--
-			if preprocNest == 0 {
-				conditionFailed = false
+		if line.isPreprocIf() {
+			s.preprocRead = append(s.preprocRead, s.preprocRead[s.preprocDepth])
+			s.preprocDepth++
+		} else if line.isPreprocEndIf() {
+			s.preprocRead = s.preprocRead[:s.preprocDepth]
+			s.preprocDepth--
+			continue
+		} else if line.isPreprocElse() {
+			if s.preprocRead[s.preprocDepth-1] {
+				s.preprocRead[s.preprocDepth] = !s.preprocRead[s.preprocDepth]
 			}
 			continue
-		} else if preprocNest == 1 && strings.HasPrefix(line, "#else") {
-			conditionFailed = !conditionFailed
-			continue
-		} else if preprocNest > 1 || (conditionFailed && !strings.HasPrefix(line, "#elif")) {
-			continue
 		}
-		if !conditionFailed {
-			cMatch := cRe.FindStringSubmatch(line)
+		if s.preprocRead[s.preprocDepth] && (line.isPreprocIfDef() || line.isPreprocIfNDef()) {
+			cMatch := cRe.FindStringSubmatch(line.string())
 			if len(cMatch) == 3 {
 				_, ok := s.defines[cMatch[2]]
 				switch cMatch[1] {
 				case "ifndef":
-					conditionFailed = ok
+					s.preprocRead[s.preprocDepth] = !ok
 				case "ifdef":
-					conditionFailed = !ok
+					s.preprocRead[s.preprocDepth] = ok
 				}
 				continue
 			}
 		}
-		c2Match := c2Re.FindStringSubmatch(line)
-		if len(c2Match) == 4 {
-			_, ok := s.defines[c2Match[3]]
-			if c2Match[2] == "!" {
-				ok = !ok
+		if line.isPreprocIf() || line.isPreprocElseIf() {
+			c2Match := c2Re.FindStringSubmatch(line.string())
+			if len(c2Match) == 4 {
+				_, ok := s.defines[c2Match[3]]
+				if c2Match[2] == "!" {
+					ok = !ok
+				}
+				switch c2Match[1] {
+				case "if":
+					s.preprocRead[s.preprocDepth] = ok
+				case "elif":
+					s.preprocRead[s.preprocDepth] = !s.preprocRead[s.preprocDepth] && ok
+				}
+				continue
 			}
-			switch c2Match[1] {
-			case "if", "elif":
-				conditionFailed = !ok
-			}
+		}
+		if !s.preprocRead[s.preprocDepth] {
 			continue
 		}
-		match := re.FindStringSubmatch(line)
-		if len(match) == 3 {
-			name := match[1]
-			value := match[2]
-			isEquation := false
-			if value != "" {
-				for j := range ops {
-					isEquation = isEquation || strings.Contains(value, ops[j])
+		if s.lastDefineKey != "" {
+			s.multilineDefine = line.hasDefineSlash()
+			if v, ok := s.defines[s.lastDefineKey]; ok {
+				if str, ok := v.(string); ok {
+					str += "\n" + line.string()
+					s.defines[s.lastDefineKey] = str
 				}
 			}
-			if isEquation {
-				if v, err := s.processDefineEquation(value); err == nil {
-					s.defines[name] = v
-				} else {
-					slog.Error("error processing equation", "equation", match[0], "error", err)
-					return
-				}
-			} else {
-				if value == "" {
-					s.defines[name] = nil
-				} else if f, err := strconv.ParseFloat(value, 64); err == nil {
-					s.defines[name] = f
-				} else {
-					s.defines[name] = value
-				}
+			if !s.multilineDefine {
+				s.lastDefineKey = ""
 			}
 		} else {
+			s.multilineDefine = false
+		}
+		if line.isPreprocDefine() {
+			s.multilineDefine = line.hasDefineSlash()
+			match := re.FindStringSubmatch(line.string())
+			if len(match) == 3 {
+				name := match[1]
+				value := match[2]
+				isEquation := false
+				if value != "" {
+					for j := range ops {
+						isEquation = isEquation || strings.Contains(value, ops[j])
+					}
+				}
+				if isEquation {
+					if v, err := s.processDefineEquation(value); err == nil {
+						s.defines[name] = v
+					} else {
+						slog.Error("error processing equation", "equation", match[0], "error", err)
+						return
+					}
+				} else {
+					if value == "" {
+						s.defines[name] = nil
+					} else if f, err := strconv.ParseFloat(value, 64); err == nil {
+						s.defines[name] = f
+					} else {
+						s.defines[name] = srcLineFromString(value).string()
+					}
+				}
+				if s.multilineDefine {
+					s.lastDefineKey = name
+				}
+			}
+		} else if rawLine != "" {
 			sb.WriteString(rawLine)
 			sb.WriteRune('\n')
 		}
@@ -177,33 +255,33 @@ func (s *ShaderSource) defineAsString(name string) string {
 
 func (s *ShaderSource) readComputeLayouts() error {
 	matches := computeLayoutReg.FindAllStringSubmatch(s.src, -1)
-	s.layouts = make([]rendering.ShaderLayout, 0, len(matches))
+	s.Layouts = make([]rendering.ShaderLayout, 0, len(matches))
 	for i := range matches {
 		x, _ := strconv.Atoi(matches[i][1])
 		y, _ := strconv.Atoi(matches[i][2])
 		z, _ := strconv.Atoi(matches[i][3])
-		s.workGroups = [3]uint32{uint32(x), uint32(y), uint32(z)}
+		s.WorkGroups = [3]uint32{uint32(x), uint32(y), uint32(z)}
 		break
 	}
 	if err := s.readLayouts(); err != nil {
 		return err
 	}
-	for i := range s.layouts {
+	for i := range s.Layouts {
 		// TODO:  Accurate?
-		s.layouts[i].Type = "StorageBuffer"
+		s.Layouts[i].Type = "StorageBuffer"
 	}
 	return nil
 }
 
 func (s *ShaderSource) readLayouts() error {
 	matches := layoutReg.FindAllStringSubmatch(s.src, -1)
-	s.layouts = make([]rendering.ShaderLayout, 0, len(matches))
+	s.Layouts = make([]rendering.ShaderLayout, 0, len(matches))
 	for i := range matches {
 		name := matches[i][4]
-		if name == "" {
+		if name == "" || matches[i][3] == "flat" {
 			name = matches[i][6]
 		}
-		s.layouts = append(s.layouts, rendering.ShaderLayout{
+		s.Layouts = append(s.Layouts, rendering.ShaderLayout{
 			Location:        -1,
 			Binding:         -1,
 			Count:           1,
@@ -213,7 +291,7 @@ func (s *ShaderSource) readLayouts() error {
 			Name:            name,
 			Source:          matches[i][2],
 		})
-		layout := &s.layouts[len(s.layouts)-1]
+		layout := &s.Layouts[len(s.Layouts)-1]
 		if matches[i][8] != "" {
 			v, err := s.processDefineEquation(matches[i][8])
 			if err != nil {
@@ -237,7 +315,7 @@ func (s *ShaderSource) readLayouts() error {
 						l := *layout
 						l.Count = 1
 						l.Location = layout.Location + j
-						s.layouts = append(s.layouts, l)
+						s.Layouts = append(s.Layouts, l)
 					}
 					layout.Count = 1
 				}

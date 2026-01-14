@@ -2,11 +2,10 @@ package glsl
 
 import "testing"
 
-const basicVertPath = "../../editor/editor_embedded_content/editor_content/renderer/src/basic.vert"
-const basicFragPath = "../../editor/editor_embedded_content/editor_content/renderer/src/basic.frag"
+const vertPath = "../../editor/editor_embedded_content/editor_content/renderer/src/pbr.frag"
 
 func TestParse(t *testing.T) {
-	src, err := Parse(basicVertPath)
+	src, err := Parse(vertPath, "")
 	if err != nil {
 		t.FailNow()
 	}
@@ -40,9 +39,8 @@ func TestParse(t *testing.T) {
 		{"fragTexCoords", 2},
 		{"fragViewDir", 3},
 		{"fragNormal", 4},
-		//{"fragFlags", 29},
-		{"uint", 29}, // TODO:  BUG, the above is correct, but parser messes up "flat uint"
-		{"", -1},     // Global uniform buffer
+		{"fragFlags", 29},
+		{"", -1}, // Global uniform buffer
 		{"Position", 0},
 		{"Normal", 1},
 		{"Tangent", 2},
@@ -54,7 +52,7 @@ func TestParse(t *testing.T) {
 		{"model", 8},
 	}
 	for i := range layouts {
-		l := &src.layouts[i]
+		l := &src.Layouts[i]
 		if l.Name != layouts[i].name || l.Location != layouts[i].location {
 			t.FailNow()
 		}

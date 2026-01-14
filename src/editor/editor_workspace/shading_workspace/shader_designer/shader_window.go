@@ -46,6 +46,8 @@ import (
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering"
+	"kaiju/rendering/glsl"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -315,4 +317,34 @@ func (win *ShaderDesigner) clickLiveShader(elm *document.Element) {
 			}
 		}
 	}()
+}
+
+func importShaderLayout(pfs *project_file_system.FileSystem, shader rendering.ShaderData) (rendering.ShaderData, error) {
+	shader.LayoutGroups = make([]rendering.ShaderLayoutGroup, 0)
+	list := []struct {
+		path  string
+		flags string
+	}{
+		{shader.Vertex, shader.VertexFlags},
+		{shader.Fragment, shader.FragmentFlags},
+		{shader.Geometry, shader.GeometryFlags},
+		{shader.TessellationControl, shader.TessellationControlFlags},
+		{shader.TessellationEvaluation, shader.TessellationEvaluationFlags},
+		{shader.Compute, shader.ComputeFlags},
+	}
+	for i := range list {
+		if list[i].path != "" {
+			s := strings.TrimPrefix(filepath.ToSlash(list[i].path), shaderSrcFolder+"/")
+			c, err := glsl.Parse(s, list[i].flags)
+			if err != nil {
+				return shader, err
+			}
+			shader.LayoutGroups = append(shader.LayoutGroups, rendering.ShaderLayoutGroup{
+				Type:       c.Type(),
+				WorkGroups: c.WorkGroups,
+				Layouts:    c.Layouts,
+			})
+		}
+	}
+	return shader, nil
 }

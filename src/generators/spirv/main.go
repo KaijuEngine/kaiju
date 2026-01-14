@@ -37,81 +37,128 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"flag"
-	"kaiju/klib"
+	"kaiju/rendering"
+	"kaiju/rendering/glsl"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
-
-func compile(args ...string) error {
-	cmd := exec.Command("glslc", args...)
-	outPipe := klib.MustReturn(cmd.StderrPipe())
-	scanner := bufio.NewScanner(outPipe)
-	err := cmd.Start()
-	if err != nil {
-		vp := os.Getenv("VK_SDK_PATH")
-		if vp != "" {
-			cmd = exec.Command(filepath.Join(vp, "Bin", "glslc"), args...)
-			outPipe = klib.MustReturn(cmd.StdoutPipe())
-			scanner = bufio.NewScanner(outPipe)
-			err = cmd.Start()
-		}
-		if err != nil {
-			panic("Failed to run glslc, make sure you have the Vulkan 'Bin' folder in your environment path")
-		}
-	}
-	for scanner.Scan() {
-		println(scanner.Text())
-	}
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	println("Compiled " + args[2])
-	return nil
-}
-
-func hasOIT(path string) bool {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
-	src := string(data)
-	return strings.Contains(src, `"inc_fragment_oit_block.inl"`) ||
-		strings.Contains(src, "#ifdef OIT")
-}
 
 func main() {
 	fs := flag.NewFlagSet("Kaiju Spir-V compile", flag.ContinueOnError)
-	dbg := fs.Bool("d", false, "Compile the shader for debugging")
-	out := fs.String("o", "", "The output path for the compiled shader")
+	rootPath := fs.String("src", "", "The shader root path to use (matches values in Vertex, Fragment, etc.)")
+	spvPath := fs.String("spv", "", "The spv root folder path to use for output (matches values in VertexSpv, FragmentSpv, etc.)")
 	in := fs.String("i", "", "The path of the shader to be compiled")
 	fs.Parse(os.Args[1:])
-	if *in == "" {
+	if in == nil || *in == "" {
 		panic("Expected -i=... input, run with arg -h for help")
 	}
-	outName := *out
-	if outName == "" {
-		outName = filepath.Dir(*in)
+	srcRoot := openRoot(rootPath)
+	spvRoot := openRoot(spvPath)
+	sd := parseShader(*in)
+	if sd.Vertex != "" {
+		i := pathJoin(srcRoot.Name(), sd.Vertex)
+		o := pathJoin(spvRoot.Name(), sd.VertexSpv)
+		parseFile(&sd, i, sd.VertexFlags)
+		compileFile(i, sd.VertexFlags, o)
 	}
-	if !strings.HasSuffix(*out, ".spv") {
-		outName = filepath.Join(*out, filepath.Base(*in)+".spv")
+	if sd.Fragment != "" {
+		i := pathJoin(srcRoot.Name(), sd.Fragment)
+		o := pathJoin(spvRoot.Name(), sd.FragmentSpv)
+		parseFile(&sd, i, sd.FragmentFlags)
+		compileFile(i, sd.FragmentFlags, o)
 	}
-	args := []string{*in,
-		"-o", outName,
+	if sd.Geometry != "" {
+		i := pathJoin(srcRoot.Name(), sd.Geometry)
+		o := pathJoin(spvRoot.Name(), sd.GeometrySpv)
+		parseFile(&sd, i, sd.GeometryFlags)
+		compileFile(i, sd.GeometryFlags, o)
 	}
-	if *dbg {
-		args = append(args, "-g")
+	if sd.TessellationControl != "" {
+		i := pathJoin(srcRoot.Name(), sd.TessellationControl)
+		o := pathJoin(spvRoot.Name(), sd.TessellationControlSpv)
+		parseFile(&sd, i, sd.TessellationControlFlags)
+		compileFile(i, sd.TessellationControlFlags, o)
 	}
-	err := compile(args...)
-	if err == nil && hasOIT(*in) {
-		args[2] = strings.TrimSuffix(args[2], ".spv") + ".oit.spv"
-		args = append(args, "-DOIT")
-		err = compile(args...)
+	if sd.TessellationEvaluation != "" {
+		i := pathJoin(srcRoot.Name(), sd.TessellationEvaluation)
+		o := pathJoin(spvRoot.Name(), sd.TessellationEvaluationSpv)
+		parseFile(&sd, i, sd.TessellationEvaluationFlags)
+		compileFile(i, sd.TessellationEvaluationFlags, o)
 	}
+	if sd.Compute != "" {
+		i := pathJoin(srcRoot.Name(), sd.Compute)
+		o := pathJoin(spvRoot.Name(), sd.ComputeSpv)
+		parseFile(&sd, i, sd.ComputeFlags)
+		compileFile(i, sd.ComputeFlags, o)
+	}
+	data, err := json.Marshal(sd)
 	if err != nil {
-		println("Exiting due to compile error")
+		panic(err)
 	}
+	if err = os.WriteFile(*in, data, os.ModePerm); err != nil {
+		panic(err)
+	}
+}
+
+func pathJoin(a, b string) string {
+	return filepath.ToSlash(filepath.Join(a, b))
+}
+
+func openRoot(path *string) *os.Root {
+	rp := ""
+	if path != nil {
+		rp = *path
+	}
+	root, err := os.OpenRoot(filepath.ToSlash(rp))
+	if err != nil {
+		panic(err)
+	}
+	return root
+}
+
+func parseFile(sd *rendering.ShaderData, fileType, flags string) {
+	src, err := glsl.Parse(fileType, flags)
+	if err != nil {
+		panic(err)
+	}
+	sd.LayoutGroups = append(sd.LayoutGroups, rendering.ShaderLayoutGroup{
+		Type:       src.Type(),
+		WorkGroups: src.WorkGroups,
+		Layouts:    src.Layouts,
+	})
+}
+
+func compileFile(file, flags, out string) {
+	args := []string{file, "-o", out}
+	if flags != "" {
+		args = append(args, flags)
+	}
+	cmd := exec.Command("glslc", args...)
+	if errStr, err := cmd.CombinedOutput(); err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			panic(errStr)
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func parseShader(file string) rendering.ShaderData {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		panic(err)
+	}
+	if len(data) == 0 {
+		panic("the shader file was empty")
+	}
+	var shader rendering.ShaderData
+	if err = json.Unmarshal(data, &shader); err != nil {
+		panic(err)
+	}
+	shader.LayoutGroups = make([]rendering.ShaderLayoutGroup, 0)
+	return shader
 }
