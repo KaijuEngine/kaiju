@@ -24,49 +24,27 @@
 #endif
 
 #ifdef LAYOUT_ALL_LIGHT_REQUIREMENTS
-	#ifdef VERTEX_SHADER
-		#define LAYOUT_VERT_LIGHT_IDS
-	#endif
 	#ifndef LAYOUT_FRAG_TANGENT_VIEW_POS
-		#define LAYOUT_FRAG_TANGENT_VIEW_POS
+		#define LAYOUT_FRAG_TANGENT_VIEW_POS LAYOUT_ALL_LIGHT_REQUIREMENTS
 	#endif
 	#ifndef LAYOUT_FRAG_TANGENT_FRAG_POS
-		#define LAYOUT_FRAG_TANGENT_FRAG_POS
+		#define LAYOUT_FRAG_TANGENT_FRAG_POS LAYOUT_ALL_LIGHT_REQUIREMENTS+1
 	#endif
 	#ifndef LAYOUT_FRAG_LIGHT_T_POS
-		#define LAYOUT_FRAG_LIGHT_T_POS
+		#define LAYOUT_FRAG_LIGHT_T_POS LAYOUT_ALL_LIGHT_REQUIREMENTS+2
 	#endif
 	#ifndef LAYOUT_FRAG_LIGHT_T_DIR
-		#define LAYOUT_FRAG_LIGHT_T_DIR
+		#define LAYOUT_FRAG_LIGHT_T_DIR LAYOUT_ALL_LIGHT_REQUIREMENTS+6
 	#endif
 	#ifndef LAYOUT_FRAG_POS_LIGHT_SPACE
-		#define LAYOUT_FRAG_POS_LIGHT_SPACE
+		#define LAYOUT_FRAG_POS_LIGHT_SPACE LAYOUT_ALL_LIGHT_REQUIREMENTS+10
 	#endif
 	#ifndef LAYOUT_FRAG_LIGHT_COUNT
-		#define LAYOUT_FRAG_LIGHT_COUNT
+		#define LAYOUT_FRAG_LIGHT_COUNT LAYOUT_ALL_LIGHT_REQUIREMENTS+14
 	#endif
 	#ifndef LAYOUT_FRAG_LIGHT_INDEXES
-		#define LAYOUT_FRAG_LIGHT_INDEXES
+		#define LAYOUT_FRAG_LIGHT_INDEXES LAYOUT_ALL_LIGHT_REQUIREMENTS+15
 	#endif
-#endif
-
-#ifdef LAYOUT_VERT_COLOR
-	layout(location = LOCATION_START) in vec4 color;
-#endif
-#ifdef LAYOUT_VERT_METALLIC
-	layout(location = LOCATION_START+1) in float metallic;
-#endif
-#ifdef LAYOUT_VERT_ROUGHNESS
-	layout(location = LOCATION_START+2) in float roughness;
-#endif
-#ifdef LAYOUT_VERT_EMISSIVE
-	layout(location = LOCATION_START+3) in float emissive;
-#endif
-#ifdef LAYOUT_VERT_LIGHT_IDS
-	layout(location = LOCATION_START+4) in int lightIds[NR_LIGHTS];
-#endif
-#ifdef LAYOUT_VERT_FLAGS
-	layout(location = LOCATION_START+4+NR_LIGHTS+0) in uint flags;
 #endif
 
 #ifdef FRAGMENT_SHADER
@@ -77,55 +55,6 @@
 	#error "FRAG_INOUT can only be used in vertex or fragment shaders"
 #endif
 
-#ifdef LAYOUT_FRAG_COLOR
-	layout(location = 0) FRAG_INOUT vec4 fragColor;
-#endif
-#ifdef LAYOUT_FRAG_POS
-	layout(location = 1) FRAG_INOUT vec3 fragPos;
-#endif
-#ifdef LAYOUT_FRAG_TEX_COORDS
-	layout(location = 2) FRAG_INOUT vec2 fragTexCoords;
-#endif
-#ifdef LAYOUT_FRAG_VIEW_DIR
-	layout(location = 3) FRAG_INOUT vec3 fragViewDir;
-#endif
-#ifdef LAYOUT_FRAG_NORMAL
-	layout(location = 4) FRAG_INOUT vec3 fragNormal;
-#endif
-#ifdef LAYOUT_FRAG_TANGENT_VIEW_POS
-	layout(location = 5) FRAG_INOUT vec3 fragTangentViewPos;
-#endif
-#ifdef LAYOUT_FRAG_TANGENT_FRAG_POS
-	layout(location = 6) FRAG_INOUT vec3 fragTangentFragPos;
-#endif
-#ifdef LAYOUT_FRAG_LIGHT_COUNT
-	layout(location = 7) FRAG_INOUT flat int fragLightCount;
-#endif
-#ifdef LAYOUT_FRAG_LIGHT_T_POS
-	layout(location = 8) FRAG_INOUT vec3 fragLightTPos[NR_LIGHTS];
-#endif
-#ifdef LAYOUT_FRAG_LIGHT_T_DIR
-	layout(location = 12) FRAG_INOUT vec3 fragLightTDir[NR_LIGHTS];
-#endif
-#ifdef LAYOUT_FRAG_POS_LIGHT_SPACE
-	layout(location = 18) FRAG_INOUT vec4 fragPosLightSpace[NR_LIGHTS];
-#endif
-#ifdef LAYOUT_FRAG_LIGHT_INDEXES
-	layout(location = 22) FRAG_INOUT flat int fragLightIndexes[NR_LIGHTS];
-#endif
-#ifdef LAYOUT_FRAG_METALLIC
-	layout(location = 26) FRAG_INOUT float fragMetallic;
-#endif
-#ifdef LAYOUT_FRAG_ROUGHNESS
-	layout(location = 27) FRAG_INOUT float fragRoughness;
-#endif
-#ifdef LAYOUT_FRAG_EMISSIVE
-	layout(location = 28) FRAG_INOUT float fragEmissive;
-#endif
-#ifdef LAYOUT_FRAG_FLAGS
-	layout(location = 29) FRAG_INOUT flat uint fragFlags;
-#endif
-
 #ifdef SAMPLER_COUNT
 	layout(binding = 1) uniform sampler2D textures[SAMPLER_COUNT];
 #endif
@@ -133,16 +62,6 @@
 #ifdef SHADOW_SAMPLERS
 	layout(binding = 2) uniform sampler2D shadowMap[MAX_LIGHTS];
 	layout(binding = 3) uniform samplerCube shadowCubeMap[MAX_LIGHTS];
-#endif
-
-#ifdef FRAGMENT_SHADER
-	layout(location = 0) out vec4 outColor;
-	#ifdef OIT
-		layout(location = 1) out float reveal;
-	#else
-		layout(location = 1) out vec4 outPosition;
-		layout(location = 2) out vec4 outNormal;
-	#endif
 #endif
 
 struct Light {
@@ -202,6 +121,84 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	layout (location = 7) in vec3 MorphTarget;
 
 	layout(location = LOCATION_HEAD) in mat4 model;
+#endif
+
+#ifdef LAYOUT_VERT_COLOR
+	layout(location = LOCATION_START+LAYOUT_VERT_COLOR) in vec4 color;
+#endif
+#ifdef LAYOUT_VERT_METALLIC
+	layout(location = LOCATION_START+LAYOUT_VERT_METALLIC) in float metallic;
+#endif
+#ifdef LAYOUT_VERT_ROUGHNESS
+	layout(location = LOCATION_START+LAYOUT_VERT_ROUGHNESS) in float roughness;
+#endif
+#ifdef LAYOUT_VERT_EMISSIVE
+	layout(location = LOCATION_START+LAYOUT_VERT_EMISSIVE) in float emissive;
+#endif
+#ifdef LAYOUT_VERT_LIGHT_IDS
+	layout(location = LOCATION_START+LAYOUT_VERT_LIGHT_IDS) in int lightIds[NR_LIGHTS];
+#endif
+#ifdef LAYOUT_VERT_FLAGS
+	layout(location = LOCATION_START+LAYOUT_VERT_FLAGS) in uint flags;
+#endif
+
+#ifdef LAYOUT_FRAG_COLOR
+	layout(location = LAYOUT_FRAG_COLOR) FRAG_INOUT vec4 fragColor;
+#endif
+#ifdef LAYOUT_FRAG_POS
+	layout(location = LAYOUT_FRAG_POS) FRAG_INOUT vec3 fragPos;
+#endif
+#ifdef LAYOUT_FRAG_TEX_COORDS
+	layout(location = LAYOUT_FRAG_TEX_COORDS) FRAG_INOUT vec2 fragTexCoords;
+#endif
+#ifdef LAYOUT_FRAG_VIEW_DIR
+	layout(location = LAYOUT_FRAG_VIEW_DIR) FRAG_INOUT vec3 fragViewDir;
+#endif
+#ifdef LAYOUT_FRAG_NORMAL
+	layout(location = LAYOUT_FRAG_NORMAL) FRAG_INOUT vec3 fragNormal;
+#endif
+#ifdef LAYOUT_FRAG_TANGENT_VIEW_POS
+	layout(location = LAYOUT_FRAG_TANGENT_VIEW_POS) FRAG_INOUT vec3 fragTangentViewPos;
+#endif
+#ifdef LAYOUT_FRAG_TANGENT_FRAG_POS
+	layout(location = LAYOUT_FRAG_TANGENT_FRAG_POS) FRAG_INOUT vec3 fragTangentFragPos;
+#endif
+#ifdef LAYOUT_FRAG_LIGHT_COUNT
+	layout(location = LAYOUT_FRAG_LIGHT_COUNT) FRAG_INOUT flat int fragLightCount;
+#endif
+#ifdef LAYOUT_FRAG_LIGHT_T_POS
+	layout(location = LAYOUT_FRAG_LIGHT_T_POS) FRAG_INOUT vec3 fragLightTPos[NR_LIGHTS];
+#endif
+#ifdef LAYOUT_FRAG_LIGHT_T_DIR
+	layout(location = LAYOUT_FRAG_LIGHT_T_DIR) FRAG_INOUT vec3 fragLightTDir[NR_LIGHTS];
+#endif
+#ifdef LAYOUT_FRAG_POS_LIGHT_SPACE
+	layout(location = LAYOUT_FRAG_POS_LIGHT_SPACE) FRAG_INOUT vec4 fragPosLightSpace[NR_LIGHTS];
+#endif
+#ifdef LAYOUT_FRAG_LIGHT_INDEXES
+	layout(location = LAYOUT_FRAG_LIGHT_INDEXES) FRAG_INOUT flat int fragLightIndexes[NR_LIGHTS];
+#endif
+#ifdef LAYOUT_FRAG_METALLIC
+	layout(location = LAYOUT_FRAG_METALLIC) FRAG_INOUT float fragMetallic;
+#endif
+#ifdef LAYOUT_FRAG_ROUGHNESS
+	layout(location = LAYOUT_FRAG_ROUGHNESS) FRAG_INOUT float fragRoughness;
+#endif
+#ifdef LAYOUT_FRAG_EMISSIVE
+	layout(location = LAYOUT_FRAG_EMISSIVE) FRAG_INOUT float fragEmissive;
+#endif
+#ifdef LAYOUT_FRAG_FLAGS
+	layout(location = LAYOUT_FRAG_FLAGS) FRAG_INOUT flat uint fragFlags;
+#endif
+
+#ifdef FRAGMENT_SHADER
+	layout(location = 0) out vec4 outColor;
+	#ifdef OIT
+		layout(location = 1) out float reveal;
+	#else
+		layout(location = 1) out vec4 outPosition;
+		layout(location = 2) out vec4 outNormal;
+	#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
