@@ -16,11 +16,7 @@
 void main() {
 	fragColor = Color * color;
 	fragFlags = flags;
-	vec2 uv = UV0;
-	uv *= uvs.zw;
-	uv.y += (1.0 - uvs.w) - uvs.y;
-	uv.x += uvs.x;
-	fragTexCoords = uv;
 	fragNormal = mat3(model) * Normal;
+	writeTexCoords();
 	writeStandardPosition();
 }

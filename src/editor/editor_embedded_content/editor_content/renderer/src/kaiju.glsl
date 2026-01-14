@@ -143,6 +143,9 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_VERT_FLAGS
 	layout(location = LOCATION_START+LAYOUT_VERT_FLAGS) in uint flags;
 #endif
+#ifdef LAYOUT_VERT_FRUSTUM_PROJECTION
+	layout(location = LOCATION_START+LAYOUT_VERT_FRUSTUM_PROJECTION) in mat4 frustumProjection;
+#endif
 
 #ifdef LAYOUT_FRAG_COLOR
 	layout(location = LAYOUT_FRAG_COLOR) FRAG_INOUT vec4 fragColor;
@@ -211,6 +214,13 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef VERTEX_SHADER
+	vec3 transformPoint(mat4 mat, vec3 point) {
+		vec4 pt0 = vec4(point.xyz, 1.0);
+		vec4 res = mat * pt0;
+		vec3 v3 = res.xyz;
+		return v3 / -res.w;
+	}
+
 	mat4 skinMatrix() {
 	#ifdef SKINNING
 		return JointWeights.x * jointTransforms[gl_InstanceIndex][JointIds.x]

@@ -13,7 +13,7 @@
 bool is2DMode() { return color.a - 0.00001 <= 0; }
 
 void main() {
-	fragTexCoords = UV0;
+	writeTexCoords();
 	vec4 wp = worldPosition();
 	fragColor = vec4(color.rgb, 1.0);
 	if (is2DMode()) {
