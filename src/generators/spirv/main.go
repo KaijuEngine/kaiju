@@ -37,8 +37,8 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
-	"flag"
 	"kaiju/rendering"
 	"kaiju/rendering/glsl"
 	"os"
@@ -46,60 +46,67 @@ import (
 	"path/filepath"
 )
 
+type Prebuilt struct {
+	Src     string
+	Spv     string
+	Shaders []string
+}
+
+//go:embed prebuilt.json
+var prebuiltJson []byte
+
 func main() {
-	fs := flag.NewFlagSet("Kaiju Spir-V compile", flag.ContinueOnError)
-	rootPath := fs.String("src", "", "The shader root path to use (matches values in Vertex, Fragment, etc.)")
-	spvPath := fs.String("spv", "", "The spv root folder path to use for output (matches values in VertexSpv, FragmentSpv, etc.)")
-	in := fs.String("i", "", "The path of the shader to be compiled")
-	fs.Parse(os.Args[1:])
-	if in == nil || *in == "" {
-		panic("Expected -i=... input, run with arg -h for help")
-	}
-	srcRoot := openRoot(rootPath)
-	spvRoot := openRoot(spvPath)
-	sd := parseShader(*in)
-	if sd.Vertex != "" {
-		i := pathJoin(srcRoot.Name(), sd.Vertex)
-		o := pathJoin(spvRoot.Name(), sd.VertexSpv)
-		parseFile(&sd, i, sd.VertexFlags)
-		compileFile(i, sd.VertexFlags, o)
-	}
-	if sd.Fragment != "" {
-		i := pathJoin(srcRoot.Name(), sd.Fragment)
-		o := pathJoin(spvRoot.Name(), sd.FragmentSpv)
-		parseFile(&sd, i, sd.FragmentFlags)
-		compileFile(i, sd.FragmentFlags, o)
-	}
-	if sd.Geometry != "" {
-		i := pathJoin(srcRoot.Name(), sd.Geometry)
-		o := pathJoin(spvRoot.Name(), sd.GeometrySpv)
-		parseFile(&sd, i, sd.GeometryFlags)
-		compileFile(i, sd.GeometryFlags, o)
-	}
-	if sd.TessellationControl != "" {
-		i := pathJoin(srcRoot.Name(), sd.TessellationControl)
-		o := pathJoin(spvRoot.Name(), sd.TessellationControlSpv)
-		parseFile(&sd, i, sd.TessellationControlFlags)
-		compileFile(i, sd.TessellationControlFlags, o)
-	}
-	if sd.TessellationEvaluation != "" {
-		i := pathJoin(srcRoot.Name(), sd.TessellationEvaluation)
-		o := pathJoin(spvRoot.Name(), sd.TessellationEvaluationSpv)
-		parseFile(&sd, i, sd.TessellationEvaluationFlags)
-		compileFile(i, sd.TessellationEvaluationFlags, o)
-	}
-	if sd.Compute != "" {
-		i := pathJoin(srcRoot.Name(), sd.Compute)
-		o := pathJoin(spvRoot.Name(), sd.ComputeSpv)
-		parseFile(&sd, i, sd.ComputeFlags)
-		compileFile(i, sd.ComputeFlags, o)
-	}
-	data, err := json.Marshal(sd)
-	if err != nil {
+	var pb Prebuilt
+	if err := json.Unmarshal(prebuiltJson, &pb); err != nil {
 		panic(err)
 	}
-	if err = os.WriteFile(*in, data, os.ModePerm); err != nil {
-		panic(err)
+	srcRoot := openRoot(pb.Src)
+	spvRoot := openRoot(pb.Spv)
+	for i := range pb.Shaders {
+		sd := parseShader(pb.Shaders[i])
+		if sd.Vertex != "" {
+			i := pathJoin(srcRoot.Name(), sd.Vertex)
+			o := pathJoin(spvRoot.Name(), sd.VertexSpv)
+			parseFile(&sd, i, sd.VertexFlags)
+			compileFile(i, sd.VertexFlags, o)
+		}
+		if sd.Fragment != "" {
+			i := pathJoin(srcRoot.Name(), sd.Fragment)
+			o := pathJoin(spvRoot.Name(), sd.FragmentSpv)
+			parseFile(&sd, i, sd.FragmentFlags)
+			compileFile(i, sd.FragmentFlags, o)
+		}
+		if sd.Geometry != "" {
+			i := pathJoin(srcRoot.Name(), sd.Geometry)
+			o := pathJoin(spvRoot.Name(), sd.GeometrySpv)
+			parseFile(&sd, i, sd.GeometryFlags)
+			compileFile(i, sd.GeometryFlags, o)
+		}
+		if sd.TessellationControl != "" {
+			i := pathJoin(srcRoot.Name(), sd.TessellationControl)
+			o := pathJoin(spvRoot.Name(), sd.TessellationControlSpv)
+			parseFile(&sd, i, sd.TessellationControlFlags)
+			compileFile(i, sd.TessellationControlFlags, o)
+		}
+		if sd.TessellationEvaluation != "" {
+			i := pathJoin(srcRoot.Name(), sd.TessellationEvaluation)
+			o := pathJoin(spvRoot.Name(), sd.TessellationEvaluationSpv)
+			parseFile(&sd, i, sd.TessellationEvaluationFlags)
+			compileFile(i, sd.TessellationEvaluationFlags, o)
+		}
+		if sd.Compute != "" {
+			i := pathJoin(srcRoot.Name(), sd.Compute)
+			o := pathJoin(spvRoot.Name(), sd.ComputeSpv)
+			parseFile(&sd, i, sd.ComputeFlags)
+			compileFile(i, sd.ComputeFlags, o)
+		}
+		data, err := json.Marshal(sd)
+		if err != nil {
+			panic(err)
+		}
+		if err = os.WriteFile(pb.Shaders[i], data, os.ModePerm); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -107,12 +114,8 @@ func pathJoin(a, b string) string {
 	return filepath.ToSlash(filepath.Join(a, b))
 }
 
-func openRoot(path *string) *os.Root {
-	rp := ""
-	if path != nil {
-		rp = *path
-	}
-	root, err := os.OpenRoot(filepath.ToSlash(rp))
+func openRoot(path string) *os.Root {
+	root, err := os.OpenRoot(filepath.ToSlash(path))
 	if err != nil {
 		panic(err)
 	}

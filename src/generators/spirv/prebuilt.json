@@ -1,0 +1,8 @@
+{
+    "Src": "editor/editor_embedded_content/editor_content/renderer/src",
+    "Spv": "editor/editor_embedded_content/editor_content/renderer/spv",
+    "Shaders": [
+        "editor/editor_embedded_content/editor_content/renderer/shaders/basic.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/pbr.shader"
+    ]
+}
