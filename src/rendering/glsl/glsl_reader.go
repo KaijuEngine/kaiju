@@ -26,6 +26,7 @@ type ShaderSource struct {
 	Layouts         []rendering.ShaderLayout
 	preprocDepth    int
 	preprocRead     []bool
+	preprocReadAny  []bool
 	multilineDefine bool
 	lastDefineKey   string
 }
@@ -132,6 +133,7 @@ func (s *ShaderSource) readPreprocessor() {
 	sb := strings.Builder{}
 	sb.Grow(len(s.src))
 	s.preprocRead = []bool{true}
+	s.preprocReadAny = []bool{true}
 	for scan.Scan() {
 		rawLine := scan.Text()
 		line := srcLineFromString(rawLine)
@@ -140,14 +142,16 @@ func (s *ShaderSource) readPreprocessor() {
 		}
 		if line.isPreprocIf() {
 			s.preprocRead = append(s.preprocRead, s.preprocRead[s.preprocDepth])
+			s.preprocReadAny = append(s.preprocReadAny, false)
 			s.preprocDepth++
 		} else if line.isPreprocEndIf() {
 			s.preprocRead = s.preprocRead[:s.preprocDepth]
+			s.preprocReadAny = s.preprocReadAny[:s.preprocDepth]
 			s.preprocDepth--
 			continue
 		} else if line.isPreprocElse() {
-			if s.preprocRead[s.preprocDepth-1] {
-				s.preprocRead[s.preprocDepth] = !s.preprocRead[s.preprocDepth]
+			if s.preprocRead[s.preprocDepth-1] && !s.preprocReadAny[s.preprocDepth] {
+				s.preprocRead[s.preprocDepth] = true
 			}
 			continue
 		}
@@ -182,6 +186,8 @@ func (s *ShaderSource) readPreprocessor() {
 		}
 		if !s.preprocRead[s.preprocDepth] {
 			continue
+		} else {
+			s.preprocReadAny[s.preprocDepth] = true
 		}
 		if s.lastDefineKey != "" {
 			s.multilineDefine = line.hasDefineSlash()
@@ -237,7 +243,8 @@ func (s *ShaderSource) readPreprocessor() {
 	s.src = sb.String()
 	for k, v := range s.defines {
 		if v != nil {
-			s.src = strings.ReplaceAll(s.src, k, fmt.Sprintf("%v", v))
+			repl := regexp.MustCompile(fmt.Sprintf(`\b%s\b`, k))
+			s.src = repl.ReplaceAllString(s.src, fmt.Sprintf("%v", v))
 		}
 	}
 }
