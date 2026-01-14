@@ -85,7 +85,7 @@ func (s *ShaderSource) readArgs(args string) {
 			continue
 		}
 		if rune(a[i][0]) == 'D' {
-			parts := strings.Split(a[i], " ")
+			parts := strings.Split(a[i][1:], " ")
 			if len(parts) > 1 {
 				s.defines[parts[0]] = parts[1]
 			} else {

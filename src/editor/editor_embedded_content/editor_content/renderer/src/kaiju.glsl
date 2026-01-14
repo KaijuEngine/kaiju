@@ -15,14 +15,6 @@
 	#define MAX_LIGHTS 20
 #endif
 
-#ifdef SKINNING
-	#define SKIN_SSBO layout(set = 0, binding = 2) readonly buffer SkinnedSSBO { \
-		mat4 jointTransforms[][MAX_JOINTS]; \
-	};
-#else
-	#define SKIN_SSBO
-#endif
-
 #ifdef LAYOUT_ALL_LIGHT_REQUIREMENTS
 	#ifndef LAYOUT_FRAG_TANGENT_VIEW_POS
 		#define LAYOUT_FRAG_TANGENT_VIEW_POS LAYOUT_ALL_LIGHT_REQUIREMENTS
@@ -110,7 +102,14 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 ////////////////////////////////////////////////////////////////////////////////
 // Vertex shader layouts
 ////////////////////////////////////////////////////////////////////////////////
+
 #ifdef VERTEX_SHADER
+	#ifdef SKINNING
+		layout(set = 0, binding = 2) readonly buffer SkinnedSSBO {
+			mat4 jointTransforms[][MAX_JOINTS];
+		};
+	#endif
+
 	layout (location = 0) in vec3 Position;
 	layout (location = 1) in vec3 Normal;
 	layout (location = 2) in vec4 Tangent;
@@ -210,6 +209,7 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 ////////////////////////////////////////////////////////////////////////////////
 // Vertex shader helper functions
 ////////////////////////////////////////////////////////////////////////////////
+
 #ifdef VERTEX_SHADER
 	mat4 skinMatrix() {
 	#ifdef SKINNING
