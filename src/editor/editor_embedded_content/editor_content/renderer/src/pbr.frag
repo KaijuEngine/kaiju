@@ -1,5 +1,6 @@
 #version 460
 #define FRAGMENT_SHADER
+#define HAS_GBUFFER
 
 #define SAMPLER_COUNT   4 // color, normal, metallicRoughness, emissive
 #define SHADOW_SAMPLERS

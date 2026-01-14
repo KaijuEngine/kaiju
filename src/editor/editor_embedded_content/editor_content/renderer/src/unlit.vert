@@ -24,5 +24,3 @@ void main() {
 	fragNormal = mat3(model) * Normal;
 	writeStandardPosition();
 }
-
-

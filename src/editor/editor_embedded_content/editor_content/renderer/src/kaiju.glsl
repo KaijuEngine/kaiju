@@ -193,12 +193,15 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_FRAG_FLAGS
 	layout(location = LAYOUT_FRAG_FLAGS) FRAG_INOUT flat uint fragFlags;
 #endif
+#ifdef LAYOUT_FRAG_WORLD_POS
+	layout(location = LAYOUT_FRAG_WORLD_POS) FRAG_INOUT vec3 fragWorldPos;
+#endif
 
 #ifdef FRAGMENT_SHADER
 	layout(location = 0) out vec4 outColor;
 	#ifdef OIT
 		layout(location = 1) out float reveal;
-	#else
+	#elif defined(HAS_GBUFFER)
 		layout(location = 1) out vec4 outPosition;
 		layout(location = 2) out vec4 outNormal;
 	#endif
@@ -268,11 +271,21 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 		vec3 offset = camRight * Position.x + camUp * Position.y;
 		vec4 worldPos = centerWorld + vec4(offset, 0.0);
 		vec4 camSpace = view * worldPos;
-		fragPos = camSpace.xyz;
+		#ifdef LAYOUT_FRAG_WORLD_POS
+			fragWorldPos = camSpace.xyz;
+		#endif
+		#ifdef LAYOUT_FRAG_POS
+			fragPos = camSpace.xyz;
+		#endif
 		gl_Position = projection * camSpace;
 	#else
 		vec4 wp = worldPosition();
-		fragPos = wp.xyz;
+		#ifdef LAYOUT_FRAG_WORLD_POS
+			fragWorldPos = wp.xyz;
+		#endif
+		#ifdef LAYOUT_FRAG_POS
+			fragPos = wp.xyz;
+		#endif
 		gl_Position = projection * view * wp;
 	#endif
 	}
@@ -310,12 +323,14 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 		vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 	);
 
-	void processGBuffer(vec3 nml) {
-	#ifndef OIT
-		outPosition = vec4(fragPos, uintBitsToFloat(fragFlags));
-		outNormal = vec4(nml, 0.0);
+	#ifdef HAS_GBUFFER
+		void processGBuffer(vec3 nml) {
+		#ifndef OIT
+			outPosition = vec4(fragPos, uintBitsToFloat(fragFlags));
+			outNormal = vec4(nml, 0.0);
+		#endif
+		}
 	#endif
-	}
 
 	void processFinalColor(vec4 inColor) {
 	#ifdef OIT
@@ -369,95 +384,97 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 		return ggx1 * ggx2;
 	}
 
-	float directShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx) {
-		// Perform perspective divide
-		vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-		// Transform to [0,1] range
-		projCoords.xy = projCoords.xy * 0.5 + 0.5;
-		// Get closest depth value from light's perspective
-		// (using [0,1] range fragPosLight as coords)
-		float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
-		// Get depth of current fragment from light's perspective
-		float currentDepth = projCoords.z;
+	#ifdef SHADOW_SAMPLERS
+		float directShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx) {
+			// Perform perspective divide
+			vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+			// Transform to [0,1] range
+			projCoords.xy = projCoords.xy * 0.5 + 0.5;
+			// Get closest depth value from light's perspective
+			// (using [0,1] range fragPosLight as coords)
+			float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
+			// Get depth of current fragment from light's perspective
+			float currentDepth = projCoords.z;
 
-		float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.001);
-		float slopeScale = max(0.005 * (1.0 - dot(normal, lightDir)), 0.002);
-		float dzdx = dFdx(projCoords.z);
-		float dzdy = dFdy(projCoords.z);
-		float depthSlope = max(abs(dzdx), abs(dzdy));
-		bias += slopeScale * depthSlope;
-		bias = clamp(bias, 0.0001, 0.005);
+			float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.001);
+			float slopeScale = max(0.005 * (1.0 - dot(normal, lightDir)), 0.002);
+			float dzdx = dFdx(projCoords.z);
+			float dzdy = dFdy(projCoords.z);
+			float depthSlope = max(abs(dzdx), abs(dzdy));
+			bias += slopeScale * depthSlope;
+			bias = clamp(bias, 0.0001, 0.005);
 
-		float shadow = 0.0;
-		int samples = 16;
-		vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
-		for(int i = 0; i < samples; ++i) {
-			vec2 offset = poissonDisk[i] * texelSize * 1.5;  // Tune radius (1.0-2.0) for penumbra
-			float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + offset).r;
-			shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
+			float shadow = 0.0;
+			int samples = 16;
+			vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
+			for(int i = 0; i < samples; ++i) {
+				vec2 offset = poissonDisk[i] * texelSize * 1.5;  // Tune radius (1.0-2.0) for penumbra
+				float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + offset).r;
+				shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
+			}
+			shadow /= float(samples);
+			if (projCoords.z > 1.0) {
+				shadow = 0.0;
+			}
+			return shadow;
 		}
-		shadow /= float(samples);
-		if (projCoords.z > 1.0) {
-			shadow = 0.0;
+
+		float spotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far, int lightIdx) {
+			// Perform perspective divide
+			vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+			// Transform to [0,1] range
+			projCoords.xy = projCoords.xy * 0.5 + 0.5;
+
+			// Get closest depth value from light's perspective
+			// (using [0,1] range fragPosLight as coords)
+			float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
+
+			// Get depth of current fragment from light's perspective
+			float currentDepth = projCoords.z;
+
+			closestDepth = LinearizeDepth(closestDepth, near, far) / far;
+			currentDepth = LinearizeDepth(currentDepth, near, far) / far;
+
+			float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.001);
+			float slopeScale = max(0.005 * (1.0 - dot(normal, lightDir)), 0.002);
+			float dzdx = dFdx(projCoords.z);
+			float dzdy = dFdy(projCoords.z);
+			float depthSlope = max(abs(dzdx), abs(dzdy));
+			bias += slopeScale * depthSlope;
+			bias = clamp(bias, 0.0001, 0.005);
+
+			float shadow = 0.0;
+			int samples = 16;
+			vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
+			for(int i = 0; i < samples; ++i) {
+				vec2 offset = poissonDisk[i] * texelSize * 1.5;  // Tune radius (1.0-2.0) for penumbra
+				float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + offset).r;
+				shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
+			}
+			shadow /= float(samples);
+			
+			if (projCoords.z > 1.0) {
+				shadow = 0.0;
+			}
+			return shadow;
 		}
-		return shadow;
-	}
 
-	float spotShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, float near, float far, int lightIdx) {
-		// Perform perspective divide
-		vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-		// Transform to [0,1] range
-		projCoords.xy = projCoords.xy * 0.5 + 0.5;
-
-		// Get closest depth value from light's perspective
-		// (using [0,1] range fragPosLight as coords)
-		float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
-
-		// Get depth of current fragment from light's perspective
-		float currentDepth = projCoords.z;
-
-		closestDepth = LinearizeDepth(closestDepth, near, far) / far;
-		currentDepth = LinearizeDepth(currentDepth, near, far) / far;
-
-		float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.001);
-		float slopeScale = max(0.005 * (1.0 - dot(normal, lightDir)), 0.002);
-		float dzdx = dFdx(projCoords.z);
-		float dzdy = dFdy(projCoords.z);
-		float depthSlope = max(abs(dzdx), abs(dzdy));
-		bias += slopeScale * depthSlope;
-		bias = clamp(bias, 0.0001, 0.005);
-
-		float shadow = 0.0;
-		int samples = 16;
-		vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
-		for(int i = 0; i < samples; ++i) {
-			vec2 offset = poissonDisk[i] * texelSize * 1.5;  // Tune radius (1.0-2.0) for penumbra
-			float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + offset).r;
-			shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
+		float pointShadowCalculation(vec3 fragPos, vec3 lightPos, float far, int lightIdx, vec3 normal) {
+			vec3 delta = fragPos - lightPos;
+			float currentDepth = length(delta);
+			float shadow = 0.0;
+			//float bias = 0.15;
+			float bias = 0.15 + (1.0 - dot(normalize(delta), normal)) * 0.1;
+			int samples = 20;
+			float diskRadius = (currentDepth / far) / 25.0;
+			for (int i = 0; i < samples; ++i) {
+				float closestDepth = texture(shadowCubeMap[lightIdx], delta + pointSamplingDiskGrid[i] * diskRadius).r;
+				closestDepth *= far;   // undo mapping [0;1]
+				if ((currentDepth - bias) > closestDepth)
+					shadow += 1.0;
+			}
+			shadow /= float(samples);
+			return shadow;
 		}
-		shadow /= float(samples);
-		
-		if (projCoords.z > 1.0) {
-			shadow = 0.0;
-		}
-		return shadow;
-	}
-
-	float pointShadowCalculation(vec3 fragPos, vec3 lightPos, float far, int lightIdx, vec3 normal) {
-		vec3 delta = fragPos - lightPos;
-		float currentDepth = length(delta);
-		float shadow = 0.0;
-		//float bias = 0.15;
-		float bias = 0.15 + (1.0 - dot(normalize(delta), normal)) * 0.1;
-		int samples = 20;
-		float diskRadius = (currentDepth / far) / 25.0;
-		for (int i = 0; i < samples; ++i) {
-			float closestDepth = texture(shadowCubeMap[lightIdx], delta + pointSamplingDiskGrid[i] * diskRadius).r;
-			closestDepth *= far;   // undo mapping [0;1]
-			if ((currentDepth - bias) > closestDepth)
-				shadow += 1.0;
-		}
-		shadow /= float(samples);
-		return shadow;
-	}
+	#endif
 #endif
