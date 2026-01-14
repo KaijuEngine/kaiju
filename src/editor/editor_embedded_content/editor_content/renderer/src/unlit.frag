@@ -1,7 +1,7 @@
 #version 460
 #define FRAGMENT_SHADER
 
-#define SAMPLER_COUNT   1
+#define SAMPLER_COUNT 1
 
 #define LAYOUT_FRAG_COLOR 0
 #define LAYOUT_FRAG_TEX_COORDS 1

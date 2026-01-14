@@ -263,6 +263,25 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	#endif
 	}
 
+	void writeTexCoords() {
+		#ifdef LAYOUT_FRAG_TEX_COORDS
+			#ifdef LAYOUT_VERT_UVS
+				vec2 uv = UV0;
+				uv *= uvs.zw;
+				uv.y += (1.0 - uvs.w) - uvs.y;
+				uv.x += uvs.x;
+				fragTexCoords = uv;
+			#else
+				fragTexCoords = UV0;
+			#endif
+		#endif
+	}
+
+	void writeStandardUIPosition() {
+		vec4 wp = worldPosition();
+		gl_Position = uiProjection * uiView * wp;
+	}
+
 	void writeStandardPosition() {
 	#ifdef BILLBOARD
 		vec4 centerWorld = model * vec4(0.0, 0.0, 0.0, 1.0);
