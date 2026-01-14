@@ -61,8 +61,8 @@ type ShaderDataPBR struct {
 	Metallic   float32
 	Roughness  float32
 	Emissive   float32
-	LightIds   [4]int32                `visible:"false"`
 	Flags      StandardShaderDataFlags `visible:"false"`
+	LightIds   [4]int32                `visible:"false"`
 }
 
 func (t ShaderDataPBR) Size() int {
