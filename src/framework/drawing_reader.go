@@ -49,10 +49,6 @@ import (
 
 const pbrMaterialKey = assets.MaterialDefinitionPBR
 const basicMaterialKey = assets.MaterialDefinitionBasic
-const basicLitMaterialKey = assets.MaterialDefinitionBasicLit
-const basicLitStaticMaterialKey = assets.MaterialDefinitionBasicLitStatic
-const basicLitDynamicMaterialKey = assets.MaterialDefinitionBasicLitDynamic
-const basicLitTransparentMaterialKey = assets.MaterialDefinitionBasicLitTransparent
 const unlitMaterialKey = assets.MaterialDefinitionUnlit
 const unlitTransparentMaterialKey = assets.MaterialDefinitionUnlitTransparent
 
@@ -166,48 +162,6 @@ func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawin
 			Color:          matrix.ColorWhite(),
 		}
 	})
-}
-
-func CreateDrawingsBasicLit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
-	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
-	draws, err := createDrawings(host, res, basicLitMaterialKey, 1, func() rendering.DrawInstance {
-		return &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	})
-	for i := range draws {
-		draws[i].Drawing.Material.IsLit = true
-	}
-	return draws, err
-}
-
-func CreateDrawingsBasicLitStatic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
-	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
-	draws, err := createDrawings(host, res, basicLitStaticMaterialKey, 1, func() rendering.DrawInstance {
-		return &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	})
-	for i := range draws {
-		draws[i].Drawing.Material.IsLit = true
-	}
-	return draws, err
-}
-
-func CreateDrawingsBasicLitDynamic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
-	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
-	draws, err := createDrawings(host, res, basicLitDynamicMaterialKey, 1, func() rendering.DrawInstance {
-		return &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	})
-	for i := range draws {
-		draws[i].Drawing.Material.IsLit = true
-	}
-	return draws, err
 }
 
 func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {

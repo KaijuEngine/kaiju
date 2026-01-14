@@ -75,6 +75,18 @@
 				"CGO_ENABLED": "1",
 				// "GOEXPERIMENT": "greenteagc"
 			}
+		},
+		{
+			"name": "Spv Prebuilt Generator",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/spirv/main.go",
+			"cwd": "${workspaceFolder}/src",
+			"env": {
+				"CGO_ENABLED": "1",
+				// "GOEXPERIMENT": "greenteagc"
+			}
 		}
 	]
 }
