@@ -18,8 +18,7 @@ void main() {
 	fragFlags = flags;
 	fragTexCoords = UV0;
 	fragNormal = mat3(model) * Normal;
+	writeStandardPosition();
 	vec4 wp = worldPosition();
-    fragPos = wp.xyz;
 	fragViewDir = cameraPosition.xyz - wp.xyz;
-	gl_Position = projection * view * wp;
 }

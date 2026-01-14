@@ -3,6 +3,8 @@
     "Spv": "editor/editor_embedded_content/editor_content/renderer/spv",
     "Shaders": [
         "editor/editor_embedded_content/editor_content/renderer/shaders/basic.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/unlit.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/ed_gizmo.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/pbr.shader"
     ]
 }

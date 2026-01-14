@@ -142,11 +142,9 @@ func compileFile(file, flags, out string) {
 	cmd := exec.Command("glslc", args...)
 	if errStr, err := cmd.CombinedOutput(); err != nil {
 		if _, ok := err.(*exec.ExitError); ok {
-			panic(errStr)
+			panic(string(errStr))
 		}
-		if err != nil {
-			panic(err)
-		}
+		panic(err)
 	}
 }
 

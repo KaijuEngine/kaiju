@@ -138,6 +138,9 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_VERT_LIGHT_IDS
 	layout(location = LOCATION_START+LAYOUT_VERT_LIGHT_IDS) in int lightIds[NR_LIGHTS];
 #endif
+#ifdef LAYOUT_VERT_UVS
+	layout(location = LOCATION_START+LAYOUT_VERT_UVS) in vec4 uvs;
+#endif
 #ifdef LAYOUT_VERT_FLAGS
 	layout(location = LOCATION_START+LAYOUT_VERT_FLAGS) in uint flags;
 #endif
@@ -254,6 +257,23 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 		fragTangentViewPos = TBN * cameraPosition.xyz;
 		fragTangentFragPos = TBN * fragPos;
 		fragNormal = N;
+	#endif
+	}
+
+	void writeStandardPosition() {
+	#ifdef BILLBOARD
+		vec4 centerWorld = model * vec4(0.0, 0.0, 0.0, 1.0);
+		vec3 camRight = vec3(view[0].x, view[1].x, view[2].x);
+		vec3 camUp    = vec3(view[0].y, view[1].y, view[2].y);
+		vec3 offset = camRight * Position.x + camUp * Position.y;
+		vec4 worldPos = centerWorld + vec4(offset, 0.0);
+		vec4 camSpace = view * worldPos;
+		fragPos = camSpace.xyz;
+		gl_Position = projection * camSpace;
+	#else
+		vec4 wp = worldPosition();
+		fragPos = wp.xyz;
+		gl_Position = projection * view * wp;
 	#endif
 	}
 #endif
