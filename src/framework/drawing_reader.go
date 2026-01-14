@@ -49,10 +49,6 @@ import (
 
 const pbrMaterialKey = assets.MaterialDefinitionPBR
 const basicMaterialKey = assets.MaterialDefinitionBasic
-const basicLitMaterialKey = assets.MaterialDefinitionBasicLit
-const basicLitStaticMaterialKey = assets.MaterialDefinitionBasicLitStatic
-const basicLitDynamicMaterialKey = assets.MaterialDefinitionBasicLitDynamic
-const basicLitTransparentMaterialKey = assets.MaterialDefinitionBasicLitTransparent
 const unlitMaterialKey = assets.MaterialDefinitionUnlit
 const unlitTransparentMaterialKey = assets.MaterialDefinitionUnlitTransparent
 
