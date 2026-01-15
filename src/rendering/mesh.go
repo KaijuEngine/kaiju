@@ -1108,10 +1108,55 @@ func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightS
 
 func NewMeshCylinder(cache *MeshCache, radius, height float32, segments int, capped bool) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCylinder").End()
+	if segments < 3 {
+		segments = 3
+	}
 	key := fmt.Sprintf("cylinder_%.2f_%.2f_%d_%v", radius, height, segments, capped)
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	}
+	verts, indices := meshCylinder(height, radius, segments, capped)
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshCone(cache *MeshCache, baseRadius, height float32, segments int, capped bool) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCone").End()
+	if segments < 3 {
+		segments = 3
+	}
+	key := fmt.Sprintf("cone_%.2f_%.2f_%d_%v", baseRadius, height, segments, capped)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	verts, indices := meshCone(height, baseRadius, segments, capped)
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius float32, segments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshArrow").End()
+	if segments < 3 {
+		segments = 3
+	}
+	key := fmt.Sprintf("arrow_%.2f_%.2f_%.2f_%.2f_%d", shaftLength, shaftRadius, tipHeight, tipRadius, segments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	shaftVerts, shaftIndices := meshCylinder(shaftLength, shaftRadius, segments, true)
+	tipVerts, tipIndices := meshCone(tipHeight, tipRadius, segments, true)
+	for i := range tipVerts {
+		tipVerts[i].Position[matrix.Vy] += shaftLength * 0.5
+	}
+	verts := append(shaftVerts, tipVerts...)
+	indices := make([]uint32, 0, len(shaftIndices)+len(tipIndices))
+	indices = append(indices, shaftIndices...)
+	offset := uint32(len(shaftVerts))
+	for i := range tipIndices {
+		indices = append(indices, tipIndices[i]+offset)
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
 	if segments < 3 {
 		segments = 3
 	}
@@ -1189,15 +1234,10 @@ func NewMeshCylinder(cache *MeshCache, radius, height float32, segments int, cap
 			iIndex += 3
 		}
 	}
-	return cache.Mesh(key, verts, indices)
+	return verts, indices
 }
 
-func NewMeshCone(cache *MeshCache, baseRadius, height float32, segments int, capped bool) *Mesh {
-	defer tracing.NewRegion("rendering.NewMeshCone").End()
-	key := fmt.Sprintf("cone_%.2f_%.2f_%d_%v", baseRadius, height, segments, capped)
-	if mesh, ok := cache.FindMesh(key); ok {
-		return mesh
-	}
+func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
 	if segments < 3 {
 		segments = 3
 	}
@@ -1223,10 +1263,10 @@ func NewMeshCone(cache *MeshCache, baseRadius, height float32, segments int, cap
 		phi := float32(j) * 2.0 * math.Pi / float32(segments)
 		cosPhi := matrix.Cos(phi)
 		sinPhi := matrix.Sin(phi)
-		verts[vIndex].Position = matrix.Vec3{baseRadius * cosPhi, 0.0, baseRadius * sinPhi}
+		verts[vIndex].Position = matrix.Vec3{radius * cosPhi, 0.0, radius * sinPhi}
 		// Normal for side: slant
-		slantLength := matrix.Sqrt(baseRadius*baseRadius + height*height)
-		normalXz := baseRadius / slantLength
+		slantLength := matrix.Sqrt(radius*radius + height*height)
+		normalXz := radius / slantLength
 		normalY := height / slantLength
 		verts[vIndex].Normal = matrix.Vec3{normalXz * cosPhi, normalY, normalXz * sinPhi}
 		verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), 0.0}
@@ -1261,90 +1301,5 @@ func NewMeshCone(cache *MeshCache, baseRadius, height float32, segments int, cap
 			iIndex += 3
 		}
 	}
-	return cache.Mesh(key, verts, indices)
-}
-
-func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius float32, segments int) *Mesh {
-	defer tracing.NewRegion("rendering.NewMeshArrow").End()
-	key := fmt.Sprintf("arrow_%.2f_%.2f_%.2f_%.2f_%d", shaftLength, shaftRadius, tipHeight, tipRadius, segments)
-	if mesh, ok := cache.FindMesh(key); ok {
-		return mesh
-	}
-	if segments < 3 {
-		segments = 3
-	}
-	// Shaft: cylinder without caps
-	shaftVerts := segments * 2   // Bottom and top rings
-	shaftIndices := segments * 6 // Sides
-	// Tip: cone without base cap
-	tipVerts := segments + 1   // Base ring + apex
-	tipIndices := segments * 3 // Sides
-	numVerts := shaftVerts + tipVerts
-	numIndices := shaftIndices + tipIndices
-	verts := make([]Vertex, numVerts)
-	indices := make([]uint32, numIndices)
-	vIndex := 0
-	iIndex := 0
-	// Shaft verts (from y=0 to y=shaftLength)
-	for i := 0; i < 2; i++ { // 0: bottom, 1: top
-		y := float32(i) * shaftLength
-		for j := 0; j < segments; j++ {
-			phi := float32(j) * 2.0 * math.Pi / float32(segments)
-			cosPhi := matrix.Cos(phi)
-			sinPhi := matrix.Sin(phi)
-			verts[vIndex].Position = matrix.Vec3{shaftRadius * cosPhi, y, shaftRadius * sinPhi}
-			verts[vIndex].Normal = matrix.Vec3{cosPhi, 0.0, sinPhi}
-			verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), float32(i)}
-			verts[vIndex].Color = matrix.ColorWhite()
-			vIndex++
-		}
-	}
-	// Shaft indices
-	for j := 0; j < segments; j++ {
-		v00 := uint32(j)
-		v10 := uint32((j + 1) % segments)
-		v01 := uint32(j + segments)
-		v11 := uint32((j+1)%segments + segments)
-		indices[iIndex] = v00
-		indices[iIndex+1] = v01
-		indices[iIndex+2] = v10
-		indices[iIndex+3] = v01
-		indices[iIndex+4] = v11
-		indices[iIndex+5] = v10
-		iIndex += 6
-	}
-	// Tip verts (base at y=shaftLength, apex at y=shaftLength + tipHeight)
-	tipOffset := shaftVerts
-	// Apex
-	apex := tipOffset
-	verts[vIndex].Position = matrix.Vec3{0.0, shaftLength + tipHeight, 0.0}
-	slantLength := matrix.Sqrt(tipRadius*tipRadius + tipHeight*tipHeight)
-	normalY := tipHeight / slantLength
-	verts[vIndex].Normal = matrix.Vec3{0.0, normalY, 0.0} // Average, but will use per-vertex
-	verts[vIndex].UV0 = matrix.Vec2{0.5, 1.0}
-	verts[vIndex].Color = matrix.ColorWhite()
-	vIndex++
-	// Base ring
-	for j := 0; j < segments; j++ {
-		phi := float32(j) * 2.0 * math.Pi / float32(segments)
-		cosPhi := matrix.Cos(phi)
-		sinPhi := matrix.Sin(phi)
-		verts[vIndex].Position = matrix.Vec3{tipRadius * cosPhi, shaftLength, tipRadius * sinPhi}
-		normalXz := tipRadius / slantLength
-		verts[vIndex].Normal = matrix.Vec3{normalXz * cosPhi, normalY, normalXz * sinPhi}
-		verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), 0.0}
-		verts[vIndex].Color = matrix.ColorWhite()
-		vIndex++
-	}
-	// Tip indices
-	for j := 0; j < segments; j++ {
-		v0 := uint32(apex)
-		v1 := uint32(tipOffset + 1 + j)
-		v2 := uint32(tipOffset + 1 + (j+1)%segments)
-		indices[iIndex] = v0
-		indices[iIndex+1] = v2
-		indices[iIndex+2] = v1
-		iIndex += 3
-	}
-	return cache.Mesh(key, verts, indices)
+	return verts, indices
 }
