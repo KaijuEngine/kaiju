@@ -1143,8 +1143,11 @@ func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadi
 	}
 	shaftVerts, shaftIndices := meshCylinder(shaftLength, shaftRadius, segments, true)
 	tipVerts, tipIndices := meshCone(tipHeight, tipRadius, segments, true)
+	for i := range shaftVerts {
+		shaftVerts[i].Position[matrix.Vy] += shaftLength * 0.5
+	}
 	for i := range tipVerts {
-		tipVerts[i].Position[matrix.Vy] += shaftLength * 0.5
+		tipVerts[i].Position[matrix.Vy] += shaftLength
 	}
 	verts := append(shaftVerts, tipVerts...)
 	indices := make([]uint32, 0, len(shaftIndices)+len(tipIndices))
