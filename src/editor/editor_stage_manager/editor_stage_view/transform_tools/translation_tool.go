@@ -21,16 +21,17 @@ const (
 )
 
 type TranslationTool struct {
-	root         matrix.Transform
-	arrows       [3]TranslationToolArrow
-	lastCamPos   matrix.Vec3
-	lastHit      matrix.Vec3
-	dragStart    matrix.Vec3
-	OnDragStart  events.EventWithArg[matrix.Vec3]
-	OnDragMove   events.EventWithArg[matrix.Vec3]
-	OnDragEnd    events.EventWithArg[matrix.Vec3]
-	currentArrow int
-	dragging     bool
+	root          matrix.Transform
+	arrows        [3]TranslationToolArrow
+	lastCamPos    matrix.Vec3
+	lastHit       matrix.Vec3
+	rootHitOffset matrix.Vec3
+	dragStart     matrix.Vec3
+	OnDragStart   events.EventWithArg[matrix.Vec3]
+	OnDragMove    events.EventWithArg[matrix.Vec3]
+	OnDragEnd     events.EventWithArg[matrix.Vec3]
+	currentArrow  int
+	dragging      bool
 }
 
 type TranslationToolArrow struct {
@@ -185,11 +186,13 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 	c := host.Window.Cursor
 	if c.Pressed() {
 		t.dragStart = t.lastHit
+		t.rootHitOffset = t.root.Position().Subtract(t.lastHit)
 		t.dragging = true
-		p, ok := matrix.Mat4ToScreenSpace(t.root.Position(), cam.View(), cam.Projection(), cam.Viewport())
-		if ok {
-			host.Window.SetCursorPosition(int(p.X()), int(p.Y()))
-		}
+		// TODO:  Make this in the settings to allow for warping mouse to center
+		// p, ok := matrix.Mat4ToScreenSpace(t.root.Position(), cam.View(), cam.Projection(), cam.Viewport())
+		// if ok {
+		// 	host.Window.SetCursorPosition(int(p.X()), int(p.Y()))
+		// }
 		t.OnDragStart.Execute(t.root.Position())
 	} else if t.dragging {
 		rp := t.root.Position()
@@ -206,11 +209,11 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		if hit, ok := cam.TryPlaneHit(c.Position(), rp, nml); ok {
 			switch t.currentArrow {
 			case matrix.Vx:
-				rp.SetX(hit.X())
+				rp.SetX(hit.X() + t.rootHitOffset.X())
 			case matrix.Vy:
-				rp.SetY(hit.Y())
+				rp.SetY(hit.Y() + t.rootHitOffset.Y())
 			case matrix.Vz:
-				rp.SetZ(hit.Z())
+				rp.SetZ(hit.Z() + t.rootHitOffset.Z())
 			}
 			t.root.SetPosition(rp)
 			t.updateHitBoxes()
