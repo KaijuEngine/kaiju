@@ -1,9 +1,9 @@
 /******************************************************************************/
-/* stage_viewport_interaction.go                                              */
+/* history_transform.go                                                       */
 /******************************************************************************/
-/*                            This file is part of                            */
+/*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
+/*                          https://kaijuengine.com                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -37,53 +37,66 @@
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/platform/hid"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 )
 
-const menuBarHeightArea = 30
-
-func (v *StageView) processViewportInteractions() {
-	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
-	m := &v.host.Window.Mouse
-	kb := &v.host.Window.Keyboard
-	if v.transformTool.Update() {
-		return
-	}
-	if v.transformMan.Update(v.host) {
-		return
-	}
-	// TODO:  This is to prevent deselecting and box selection if the mouse was
-	// over the menu bar area. Probably should do this check in a better way
-	if m.ScreenPosition().Y() <= menuBarHeightArea {
-		return
-	}
-	v.selectTool.Update()
-	if m.Pressed(hid.MouseButtonLeft) {
-		ray := v.camera.RayCast(m)
-		if kb.HasShift() {
-			v.manager.TryAppendSelect(ray)
-		} else if kb.HasCtrl() {
-			v.manager.TryToggleSelect(ray)
-		} else {
-			v.manager.TrySelect(ray)
-		}
-	}
-	if kb.KeyDown(hid.KeyboardKeyF) {
-		if v.manager.HasSelection() {
-			v.camera.Focus(v.manager.SelectionBounds())
-		}
-	} else if kb.KeyDown(hid.KeyboardKeyG) {
-		v.transformTool.Enable(transform_tools.ToolStateMove)
-	} else if kb.KeyDown(hid.KeyboardKeyR) {
-		v.transformTool.Enable(transform_tools.ToolStateRotate)
-	} else if kb.KeyDown(hid.KeyboardKeyS) {
-		v.transformTool.Enable(transform_tools.ToolStateScale)
-	}
+type transformHistory struct {
+	tman     *TransformationManager
+	entities []*editor_stage_manager.StageEntity
+	from     []matrix.Vec3
+	to       []matrix.Vec3
+	state    ToolState
 }
 
-func (v *StageView) isCamera3D() bool {
-	return v.camera.Mode() == editor_controls.EditorCameraMode3d
+func (h *transformHistory) Redo() {
+	defer tracing.NewRegion("transformHistory.Redo").End()
+	for i, e := range h.entities {
+		switch h.state {
+		case ToolStateMove:
+			e.Transform.SetPosition(h.to[i])
+		case ToolStateRotate:
+			e.Transform.SetRotation(h.to[i])
+		case ToolStateScale:
+			e.Transform.SetScale(h.to[i])
+		}
+	}
+	// TODO:  Use the following when the BVH.Refit function is fixed. Just
+	// so there aren't any issues right now, I'm going to use a refit on
+	// the first selected entity as it'll go to the root and refit all.
+	// goroutine - Update all the BVHs
+	//	for _, e := range t.stage.Manager().Selection() {
+	//		e.StageData.Bvh.Refit()
+	//	}
+	man := h.tman.manager
+	man.RefitBVH(h.entities[0])
+	h.tman.translateTool.Show(man.SelectionPivotCenter())
 }
+
+func (h *transformHistory) Undo() {
+	defer tracing.NewRegion("transformHistory.Undo").End()
+	for i, e := range h.entities {
+		switch h.state {
+		case ToolStateMove:
+			e.Transform.SetPosition(h.from[i])
+		case ToolStateRotate:
+			e.Transform.SetRotation(h.from[i])
+		case ToolStateScale:
+			e.Transform.SetScale(h.from[i])
+		}
+	}
+	// TODO:  Use the following when the BVH.Refit function is fixed. Just
+	// so there aren't any issues right now, I'm going to use a refit on
+	// the first selected entity as it'll go to the root and refit all.
+	// goroutine - Update all the BVHs
+	//	for _, e := range t.stage.Manager().Selection() {
+	//		e.StageData.Bvh.Refit()
+	//	}
+	man := h.tman.manager
+	man.RefitBVH(h.entities[0])
+	h.tman.translateTool.Show(man.SelectionPivotCenter())
+}
+
+func (h *transformHistory) Delete() {}
+func (h *transformHistory) Exit()   {}

@@ -4,10 +4,10 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
+	"kaiju/engine/systems/events"
 	"kaiju/matrix"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
-	"weak"
 )
 
 const (
@@ -21,13 +21,14 @@ const (
 )
 
 type TranslationTool struct {
-	host         weak.Pointer[engine.Host]
-	updateId     engine.UpdateId
 	root         matrix.Transform
 	arrows       [3]TranslationToolArrow
 	lastCamPos   matrix.Vec3
 	lastHit      matrix.Vec3
 	dragStart    matrix.Vec3
+	OnDragStart  events.EventWithArg[matrix.Vec3]
+	OnDragMove   events.EventWithArg[matrix.Vec3]
+	OnDragEnd    events.EventWithArg[matrix.Vec3]
 	currentArrow int
 	dragging     bool
 }
@@ -39,14 +40,13 @@ type TranslationToolArrow struct {
 }
 
 func (t *TranslationTool) Initialize(host *engine.Host) {
-	t.host = weak.Make(host)
 	t.root.Initialize(host.WorkGroup())
 	t.currentArrow = -1
 	for i := range t.arrows {
 		t.arrows[i].Initialize(host, i)
 		t.arrows[i].transform.SetParent(&t.root)
 	}
-	t.updateId = host.LateUpdater.AddUpdate(t.update)
+	t.Hide()
 }
 
 func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
@@ -77,12 +77,28 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 	host.Drawings.AddDrawing(draw)
 }
 
-func (t *TranslationTool) update(float64) {
-	h := t.host.Value()
-	cam := h.Cameras.Primary.Camera
+func (t *TranslationTool) Show(pos matrix.Vec3) {
+	t.root.SetPosition(pos)
+	for i := range t.arrows {
+		t.arrows[i].shaderData.Activate()
+	}
+	t.updateHitBoxes()
+}
+
+func (t *TranslationTool) Hide() {
+	for i := range t.arrows {
+		t.arrows[i].shaderData.Deactivate()
+	}
+	t.currentArrow = -1
+	t.dragging = false
+}
+
+func (t *TranslationTool) Update(host *engine.Host) bool {
+	cam := host.Cameras.Primary.Camera
 	t.resize(cam)
-	t.hitCheck(h, cam)
-	t.processDrag(h, cam)
+	t.hitCheck(host, cam)
+	t.processDrag(host, cam)
+	return t.dragging
 }
 
 func (t *TranslationTool) resize(cam cameras.Camera) {
@@ -174,6 +190,7 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		if ok {
 			host.Window.SetCursorPosition(int(p.X()), int(p.Y()))
 		}
+		t.OnDragStart.Execute(t.root.Position())
 	} else if t.dragging {
 		rp := t.root.Position()
 		cp := cam.Position()
@@ -197,9 +214,11 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 			}
 			t.root.SetPosition(rp)
 			t.updateHitBoxes()
+			t.OnDragMove.Execute(t.root.Position())
 		}
 		if c.Released() {
 			t.dragging = false
+			t.OnDragEnd.Execute(t.root.Position())
 		}
 	}
 }

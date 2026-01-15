@@ -63,6 +63,7 @@ type StageView struct {
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
 	selectTool    select_tool.SelectTool
+	transformMan  TransformationManager
 }
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
@@ -81,6 +82,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.host = host
 	v.manager.NewStage()
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
+	v.transformMan.Initialize(v, ed.History())
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
 	v.setupCamera(ed)
