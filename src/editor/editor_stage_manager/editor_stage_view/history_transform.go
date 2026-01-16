@@ -43,11 +43,12 @@ import (
 )
 
 type transformHistory struct {
-	tman     *TransformationManager
-	entities []*editor_stage_manager.StageEntity
-	from     []matrix.Vec3
-	to       []matrix.Vec3
-	state    ToolState
+	tman       *TransformationManager
+	entities   []*editor_stage_manager.StageEntity
+	toolTarget *editor_stage_manager.StageEntity
+	from       []matrix.Vec3
+	to         []matrix.Vec3
+	state      ToolState
 }
 
 func (h *transformHistory) Redo() {
@@ -71,7 +72,7 @@ func (h *transformHistory) Redo() {
 	//	}
 	man := h.tman.manager
 	man.RefitBVH(h.entities[0])
-	h.tman.translateTool.Show(man.SelectionPivotCenter())
+	h.tman.translateTool.Show(h.toolTarget.Transform.Position())
 }
 
 func (h *transformHistory) Undo() {
@@ -95,7 +96,7 @@ func (h *transformHistory) Undo() {
 	//	}
 	man := h.tman.manager
 	man.RefitBVH(h.entities[0])
-	h.tman.translateTool.Show(man.SelectionPivotCenter())
+	h.tman.translateTool.Show(h.toolTarget.Transform.Position())
 }
 
 func (h *transformHistory) Delete() {}

@@ -250,6 +250,10 @@ func (m *StageManager) DuplicateSelected(proj *project.Project) {
 	}
 }
 
+func (m *StageManager) LastSelected() *StageEntity {
+	return m.selected[len(m.selected)-1]
+}
+
 func (m *StageManager) HierarchyRespectiveSelection() []*StageEntity {
 	defer tracing.NewRegion("StageManager.HierarchyRespectiveSelection").End()
 	sel := slices.Clone(m.Selection())
