@@ -1106,6 +1106,48 @@ func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightS
 	return cache.Mesh(key, verts, indices)
 }
 
+// NewMeshCircleWire creates a wireframe circle (line loop) mesh.
+// It follows the same pattern as the other wireframe mesh generators
+// (e.g. NewMeshWireCube, NewMeshWireSphereLatLon, etc.).
+func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCircleWire").End()
+	if segments < 3 {
+		segments = 3
+	}
+	// Use a distinct cache key for the wireframe version.
+	key := fmt.Sprintf("circle_wire_%.2f_%d", radius, segments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	// Vertex layout: one vertex per segment (no center vertex needed for a line loop).
+	verts := make([]Vertex, segments)
+	for i := 0; i < segments; i++ {
+		phi := float32(i) * 2.0 * math.Pi / float32(segments)
+		cosPhi := matrix.Cos(phi)
+		sinPhi := matrix.Sin(phi)
+		verts[i].Position = matrix.Vec3{
+			radius * cosPhi,
+			0.0,
+			radius * sinPhi,
+		}
+		verts[i].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+		verts[i].UV0 = matrix.Vec2{
+			0.5 + 0.5*cosPhi,
+			0.5 + 0.5*sinPhi,
+		}
+		verts[i].Color = matrix.ColorWhite()
+	}
+	// Line‑loop indices: each vertex connects to the next, wrapping at the end.
+	indices := make([]uint32, segments*2)
+	idx := 0
+	for i := 0; i < segments; i++ {
+		indices[idx] = uint32(i)                    // current vertex
+		indices[idx+1] = uint32((i + 1) % segments) // next vertex (wrap)
+		idx += 2
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
 func NewMeshCylinder(cache *MeshCache, radius, height float32, segments int, capped bool) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCylinder").End()
 	if segments < 3 {

@@ -32,6 +32,7 @@ type TranslationTool struct {
 	OnDragEnd     events.EventWithArg[matrix.Vec3]
 	currentArrow  int
 	dragging      bool
+	visible       bool
 }
 
 type TranslationToolArrow struct {
@@ -79,6 +80,7 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 }
 
 func (t *TranslationTool) Show(pos matrix.Vec3) {
+	t.visible = true
 	t.root.SetPosition(pos)
 	for i := range t.arrows {
 		t.arrows[i].shaderData.Activate()
@@ -87,6 +89,7 @@ func (t *TranslationTool) Show(pos matrix.Vec3) {
 }
 
 func (t *TranslationTool) Hide() {
+	t.visible = false
 	for i := range t.arrows {
 		t.arrows[i].shaderData.Deactivate()
 	}
@@ -95,6 +98,9 @@ func (t *TranslationTool) Hide() {
 }
 
 func (t *TranslationTool) Update(host *engine.Host) bool {
+	if !t.visible {
+		return false
+	}
 	cam := host.Cameras.Primary.Camera
 	t.resize(cam)
 	t.hitCheck(host, cam)
@@ -152,10 +158,11 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	target := -1
 	for i := range t.arrows {
 		if hit, ok := t.arrows[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(t.arrows[i].transform.Position())
+			d := ray.Origin.Distance(hit)
 			if d < dist {
 				target = i
 				t.lastHit = hit
+				dist = d
 			}
 		}
 	}
