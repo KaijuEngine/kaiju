@@ -1,1 +1,1 @@
-{"Name":"text3d","Shader":"text3d.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[]}
+{"Name":"text3d","Shader":"text3d.shader","RenderPass":"ui_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[]}
