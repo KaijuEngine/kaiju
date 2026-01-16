@@ -287,6 +287,9 @@ func (v Vec3) String() string {
 }
 
 func (v Vec3) Angle(other Vec3) Float {
+	if v.Equals(other) {
+		return 0
+	}
 	return Acos(Vec3Dot(v, other) / (v.Length() * other.Length()))
 }
 
