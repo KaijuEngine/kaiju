@@ -55,7 +55,7 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 	m := rendering.NewMeshArrow(host.MeshCache(),
 		translationGizmoShaftHeight, translationGizmoShaftRadius,
 		translationGizmoArrowHeight, translationGizmoArrowRadius, 10)
-	mat, _ := host.MaterialCache().Material("unlit.material")
+	mat, _ := host.MaterialCache().Material("gizmo_overlay.material")
 	a.shaderData = shader_data_registry.Create("unlit")
 	sd := a.shaderData.(*shader_data_registry.ShaderDataUnlit)
 	switch vec {
