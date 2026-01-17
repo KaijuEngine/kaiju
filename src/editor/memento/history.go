@@ -43,12 +43,13 @@ import (
 )
 
 type History struct {
-	undoStack     []Memento
-	transaction   *HistoryTransaction
-	position      int
-	limit         int
-	savedPosition int
-	lockAdditions bool
+	undoStack        []Memento
+	transaction      *HistoryTransaction
+	position         int
+	limit            int
+	savedPosition    int
+	transactionDepth int
+	lockAdditions    bool
 }
 
 // Initialize sets the max number of undo entries that the history will retain.
@@ -77,15 +78,19 @@ func (h *History) BeginTransaction() {
 	if h.transaction == nil {
 		h.transaction = &HistoryTransaction{}
 	}
+	h.transactionDepth++
 }
 
 // CommitTransaction finalizes the current transaction, adding all queued
 // mementos to the history as a single atomic operation.
 func (h *History) CommitTransaction() {
-	if h.transaction != nil {
-		t := h.transaction
-		h.transaction = nil
-		h.Add(t)
+	h.transactionDepth--
+	if h.transactionDepth == 0 {
+		if h.transaction != nil {
+			t := h.transaction
+			h.transaction = nil
+			h.Add(t)
+		}
 	}
 }
 
