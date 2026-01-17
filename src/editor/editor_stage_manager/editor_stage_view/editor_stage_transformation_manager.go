@@ -24,8 +24,10 @@ type TransformationManager struct {
 	view           weak.Pointer[StageView]
 	translateTool  transform_tools.TranslationTool
 	rotationTool   transform_tools.RotationTool
+	scalingTool    transform_tools.ScalingTool
 	transformStart matrix.Vec3
-rotationStart  matrix.Vec4
+	rotationStart  matrix.Vec4
+	scalingStart   matrix.Vec3
 	manager        *editor_stage_manager.StageManager
 	history        *memento.History
 	memento        *transformHistory
@@ -39,6 +41,7 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.view = weak.Make(stageView)
 	t.translateTool.Initialize(stageView.host)
 	t.rotationTool.Initialize(stageView.host)
+	t.scalingTool.Initialize(stageView.host)
 	t.manager = &stageView.manager
 	t.history = history
 	t.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -49,6 +52,7 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 		if !t.manager.HasSelection() {
 			t.translateTool.Hide()
 			t.rotationTool.Hide()
+			t.scalingTool.Hide()
 		}
 	})
 	t.translateTool.OnDragStart.Add(t.translateStart)
@@ -57,6 +61,9 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.rotationTool.OnDragStart.Add(t.rotateStart)
 	t.rotationTool.OnDragRotate.Add(t.rotateSpin)
 	t.rotationTool.OnDragEnd.Add(t.rotateEnd)
+	t.scalingTool.OnDragStart.Add(t.scaleStart)
+	t.scalingTool.OnDragScale.Add(t.scaleScale)
+	t.scalingTool.OnDragEnd.Add(t.scaleEnd)
 }
 
 func (t *TransformationManager) Update(host *engine.Host) {
@@ -74,7 +81,8 @@ func (t *TransformationManager) Update(host *engine.Host) {
 			t.setToolState(ToolStateScale, pos)
 		}
 	}
-	t.isBusy = t.translateTool.Update(host) || t.rotationTool.Update(host)
+	t.isBusy = t.translateTool.Update(host) || t.rotationTool.Update(host) ||
+		t.scalingTool.Update(host)
 }
 
 func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
@@ -83,6 +91,7 @@ func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 	}
 	t.translateTool.Hide()
 	t.rotationTool.Hide()
+	t.scalingTool.Hide()
 	t.currentTool = state
 	if !pos.IsNaN() {
 		switch t.currentTool {
@@ -92,6 +101,7 @@ func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 		case ToolStateRotate:
 			t.rotationTool.Show(pos)
 		case ToolStateScale:
+			t.scalingTool.Show(pos)
 		}
 	}
 }
@@ -120,7 +130,7 @@ func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
 
 func (t *TransformationManager) rotateStart(rot matrix.Vec4) {
 	tracing.NewRegion("TransformationManager.rotateStart")
-		t.setupMemento()
+	t.setupMemento()
 }
 
 func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
@@ -128,12 +138,12 @@ func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
 	if matrix.Approx(rot.W(), 0) || rot.Equals(matrix.Vec4Zero()) {
 		return
 	}
-angle := matrix.Deg2Rad(rot.W())
+	angle := matrix.Deg2Rad(rot.W())
 	pivot := t.memento.toolTarget.Transform.Position()
 	rotMat := matrix.Mat4Identity()
 	rotMat.Rotate(rot.AsVec3().Scale(rot.W()))
 	sel := t.manager.HierarchyRespectiveSelection()
-		for i := range sel {
+	for i := range sel {
 		offset := t.memento.from[i].position.Subtract(pivot)
 		rotated := rotMat.TransformPoint(offset)
 		newPos := rotated.Add(pivot)
@@ -152,6 +162,28 @@ angle := matrix.Deg2Rad(rot.W())
 func (t *TransformationManager) rotateEnd(rot matrix.Vec4) {
 	tracing.NewRegion("TransformationManager.rotateEnd")
 	t.rotateSpin(rot)
+	t.history.Add(t.memento)
+}
+
+func (t *TransformationManager) scaleStart(scale matrix.Vec3) {
+	tracing.NewRegion("TransformationManager.scaleStart")
+	t.scalingStart = scale
+	t.setupMemento()
+}
+
+func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
+	tracing.NewRegion("TransformationManager.translateMove")
+	sel := t.manager.HierarchyRespectiveSelection()
+	delta := scale.Subtract(t.scalingStart)
+	for i := range sel {
+		t.memento.to[i].scale = t.memento.from[i].scale.Add(delta)
+		sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
+	}
+}
+
+func (t *TransformationManager) scaleEnd(scale matrix.Vec3) {
+	tracing.NewRegion("TransformationManager.scaleEnd")
+	t.scaleScale(scale)
 	t.history.Add(t.memento)
 }
 

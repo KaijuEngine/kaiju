@@ -77,6 +77,10 @@ func NewVec3(x, y, z Float) Vec3 {
 	return Vec3{x, y, z}
 }
 
+func NewVec3XYZ(xyz Float) Vec3 {
+	return Vec3{xyz, xyz, xyz}
+}
+
 func Vec3FromArray(a [3]Float) Vec3 {
 	return Vec3{a[0], a[1], a[2]}
 }

@@ -1148,25 +1148,28 @@ func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh {
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshCylinder(cache *MeshCache, radius, height float32, segments int, capped bool) *Mesh {
+func NewMeshCylinder(cache *MeshCache, height, radius float32, segments int, capped bool) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCylinder").End()
 	if segments < 3 {
 		segments = 3
 	}
-	key := fmt.Sprintf("cylinder_%.2f_%.2f_%d_%v", radius, height, segments, capped)
+	key := fmt.Sprintf("cylinder_%.2f_%.2f_%d_%v", height, radius, segments, capped)
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	}
 	verts, indices := meshCylinder(height, radius, segments, capped)
+	for i := range verts {
+		verts[i].Position[matrix.Vy] += height * 0.5
+	}
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshCone(cache *MeshCache, baseRadius, height float32, segments int, capped bool) *Mesh {
+func NewMeshCone(cache *MeshCache, height, baseRadius float32, segments int, capped bool) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCone").End()
 	if segments < 3 {
 		segments = 3
 	}
-	key := fmt.Sprintf("cone_%.2f_%.2f_%d_%v", baseRadius, height, segments, capped)
+	key := fmt.Sprintf("cone_%.2f_%.2f_%d_%v", height, baseRadius, segments, capped)
 	if mesh, ok := cache.FindMesh(key); ok {
 		return mesh
 	}
