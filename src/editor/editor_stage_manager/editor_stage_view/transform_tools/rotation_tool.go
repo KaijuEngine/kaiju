@@ -18,9 +18,9 @@ const (
 type RotationTool struct {
 	root           matrix.Transform
 	circles        [3]TranslationToolCircle
-	OnDragStart    events.EventWithArg[matrix.Vec3]
-	OnDragRotate   events.EventWithArg[matrix.Vec3]
-	OnDragEnd      events.EventWithArg[matrix.Vec3]
+	OnDragStart    events.EventWithArg[matrix.Vec4]
+	OnDragRotate   events.EventWithArg[matrix.Vec4]
+	OnDragEnd      events.EventWithArg[matrix.Vec4]
 	lastCamPos     matrix.Vec3
 	lastHit        matrix.Vec3
 	startDirection matrix.Vec3
@@ -192,17 +192,17 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		cp := cam.Position()
 		switch t.currentAxis {
 		case matrix.Vx:
-			nml = matrix.NewVec3(rp.Subtract(cp).X(), 0, 0)
+			nml = matrix.NewVec3(cp.Subtract(rp).X(), 0, 0)
 		case matrix.Vy:
-			nml = matrix.NewVec3(0, rp.Subtract(cp).Y(), 0)
+			nml = matrix.NewVec3(0, cp.Subtract(rp).Y(), 0)
 		case matrix.Vz:
-			nml = matrix.NewVec3(0, 0, rp.Subtract(cp).Z())
+			nml = matrix.NewVec3(0, 0, cp.Subtract(rp).Z())
 		}
 		if hit, ok := cam.TryPlaneHit(c.Position(), rp, nml); ok {
 			dir := hit.Subtract(t.root.Position()).Normal()
-			d := t.lastDirection.SignedAngle(dir, nml)
+			angle := t.lastDirection.SignedAngle(dir, nml)
 			t.lastDirection = dir
-			t.rotationDelta += d
+			t.rotationDelta += angle
 			t.OnDragRotate.Execute(t.rotationVector())
 		}
 		if c.Released() {
@@ -213,15 +213,15 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 	}
 }
 
-func (t *RotationTool) rotationVector() matrix.Vec3 {
+func (t *RotationTool) rotationVector() matrix.Vec4 {
 	deg := matrix.Rad2Deg(t.rotationDelta)
 	switch t.currentAxis {
 	case matrix.Vx:
-		return matrix.NewVec3(deg, 0, 0)
+		return matrix.NewVec4(1, 0, 0, deg)
 	case matrix.Vy:
-		return matrix.NewVec3(0, deg, 0)
+		return matrix.NewVec4(0, 1, 0, deg)
 	case matrix.Vz:
-		return matrix.NewVec3(0, 0, deg)
+		return matrix.NewVec4(0, 0, 1, deg)
 	}
-	return matrix.Vec3Zero()
+	return matrix.Vec4Zero()
 }

@@ -24,6 +24,7 @@ type TransformationManager struct {
 	translateTool  transform_tools.TranslationTool
 	rotationTool   transform_tools.RotationTool
 	transformStart matrix.Vec3
+rotationStart  matrix.Vec4
 	manager        *editor_stage_manager.StageManager
 	history        *memento.History
 	memento        *transformHistory
@@ -79,27 +80,38 @@ func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
 	t.history.Add(t.memento)
 }
 
-func (t *TransformationManager) rotateStart(rot matrix.Vec3) {
+func (t *TransformationManager) rotateStart(rot matrix.Vec4) {
 	tracing.NewRegion("TransformationManager.rotateStart")
-	t.transformStart = rot
-	t.setupMemento()
+		t.setupMemento()
 }
 
-func (t *TransformationManager) rotateSpin(rot matrix.Vec3) {
+func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
 	tracing.NewRegion("TransformationManager.rotateSpin")
-	if rot.Equals(matrix.Vec3Zero()) {
+	if matrix.Approx(rot.W(), 0) || rot.Equals(matrix.Vec4Zero()) {
 		return
 	}
-	sel := t.manager.HierarchyRespectiveSelection()
+angle := matrix.Deg2Rad(rot.W())
+	pivot := t.memento.toolTarget.Transform.Position()
 	rotMat := matrix.Mat4Identity()
-	rotMat.Rotate(rot)
-	rotMat.Translate(t.memento.toolTarget.Transform.Position())
-	for i := range sel {
-		t.memento.to[i].position = rotMat.TransformPoint(t.memento.from[i].position)
+	rotMat.Rotate(rot.AsVec3().Scale(rot.W()))
+	sel := t.manager.HierarchyRespectiveSelection()
+		for i := range sel {
+		offset := t.memento.from[i].position.Subtract(pivot)
+		rotated := rotMat.TransformPoint(offset)
+		newPos := rotated.Add(pivot)
+		t.memento.to[i].position = newPos
+		sel[i].Transform.SetWorldPosition(newPos)
+		currentQuat := matrix.QuaternionFromEuler(t.memento.from[i].rotation)
+		incrementalQuat := matrix.QuaternionAxisAngle(rot.AsVec3(), angle)
+		// newQuat := currentQuat.Multiply(incrementalQuat) // Local space
+		newQuat := incrementalQuat.Multiply(currentQuat) // World space
+		newRot := newQuat.ToEuler()
+		t.memento.to[i].rotation = newRot
+		sel[i].Transform.SetWorldRotation(newRot)
 	}
 }
 
-func (t *TransformationManager) rotateEnd(rot matrix.Vec3) {
+func (t *TransformationManager) rotateEnd(rot matrix.Vec4) {
 	tracing.NewRegion("TransformationManager.rotateEnd")
 	t.rotateSpin(rot)
 	t.history.Add(t.memento)
