@@ -113,6 +113,12 @@ func (v *StageView) Close() {
 func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
 	v.gridTransform.ResetDirty()
+	// If we are currently using any of the transformation tools, we shouldn't
+	// do any of the other updates like camera
+	if v.transformMan.IsBusy() {
+		v.transformMan.Update(v.host)
+		return true
+	}
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
 		v.transformTool.Cancel()

@@ -52,7 +52,8 @@ func (v *StageView) processViewportInteractions() {
 	if v.transformTool.Update() {
 		return
 	}
-	if v.transformMan.Update(v.host) {
+	v.transformMan.Update(v.host)
+	if v.transformMan.IsBusy() {
 		return
 	}
 	// TODO:  This is to prevent deselecting and box selection if the mouse was

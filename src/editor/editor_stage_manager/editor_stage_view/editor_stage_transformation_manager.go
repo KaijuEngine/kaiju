@@ -27,7 +27,10 @@ type TransformationManager struct {
 	manager        *editor_stage_manager.StageManager
 	history        *memento.History
 	memento        *transformHistory
+	isBusy         bool
 }
+
+func (t *TransformationManager) IsBusy() bool { return t.isBusy }
 
 func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History) {
 	t.view = weak.Make(stageView)
@@ -53,8 +56,7 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.rotationTool.OnDragEnd.Add(t.rotateEnd)
 }
 
-func (t *TransformationManager) Update(host *engine.Host) bool {
-	return t.translateTool.Update(host) || t.rotationTool.Update(host)
+	t.isBusy = t.translateTool.Update(host) || t.rotationTool.Update(host)
 }
 
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
