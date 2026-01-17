@@ -158,8 +158,9 @@ func (t *RotationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 }
 
 func (t *RotationTool) updateHitCircles() {
+	const clickPadding = 0.075
 	scale := t.root.Scale().LargestAxis()
-	r := matrix.Float(rotationGizmoRadius * scale)
+	r := matrix.Float((rotationGizmoRadius + clickPadding) * scale)
 	for i := range t.circles {
 		t.circles[i].hitCircle = collision.Circle{
 			Point:  t.root.Position(),
