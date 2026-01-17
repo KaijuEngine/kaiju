@@ -204,7 +204,9 @@ func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode2d
 		}
 		v.updateGridPosition()
-		pjs.Save(ed.ProjectFileSystem())
+		if err := pjs.Save(ed.ProjectFileSystem()); err != nil {
+			slog.Error("there was an error saving the project settings during setupCamera", "error", err)
+		}
 	})
 	v.camera.SetMode(pjs.EditorSettings.CameraMode, v.host)
 	v.camera.Settings = &ed.Settings().EditorCamera
