@@ -6,6 +6,7 @@ import (
 	"kaiju/editor/memento"
 	"kaiju/engine"
 	"kaiju/matrix"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"weak"
 )
@@ -27,6 +28,7 @@ type TransformationManager struct {
 	manager        *editor_stage_manager.StageManager
 	history        *memento.History
 	memento        *transformHistory
+	currentTool    ToolState
 	isBusy         bool
 }
 
@@ -39,13 +41,13 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.manager = &stageView.manager
 	t.history = history
 	t.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
-		// t.translateTool.Show(e.Transform.Position())
-		// t.rotationTool.Show(e.Transform.Position())
+		t.currentTool = ToolStateNone
+		t.setToolState(t.currentTool, e.Transform.Position())
 	})
 	t.manager.OnEntityDeselected.Add(func(e *editor_stage_manager.StageEntity) {
 		if !t.manager.HasSelection() {
-			// t.translateTool.Hide()
-			// t.rotationTool.Hide()
+			t.translateTool.Hide()
+			t.rotationTool.Hide()
 		}
 	})
 	t.translateTool.OnDragStart.Add(t.translateStart)
@@ -56,7 +58,41 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.rotationTool.OnDragEnd.Add(t.rotateEnd)
 }
 
+func (t *TransformationManager) Update(host *engine.Host) {
+	if !t.isBusy {
+		pos := matrix.Vec3NaN()
+		if t.manager.HasSelection() {
+			pos = t.manager.LastSelected().Transform.Position()
+		}
+		kb := &host.Window.Keyboard
+		if kb.KeyDown(hid.KeyboardKey1) {
+			t.setToolState(ToolStateMove, pos)
+		} else if kb.KeyDown(hid.KeyboardKey2) {
+			t.setToolState(ToolStateRotate, pos)
+		} else if kb.KeyDown(hid.KeyboardKey3) {
+			t.setToolState(ToolStateScale, pos)
+		}
+	}
 	t.isBusy = t.translateTool.Update(host) || t.rotationTool.Update(host)
+}
+
+func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
+	if t.currentTool == state {
+		state = ToolStateNone
+	}
+	t.translateTool.Hide()
+	t.rotationTool.Hide()
+	t.currentTool = state
+	if !pos.IsNaN() {
+		switch t.currentTool {
+		case ToolStateNone:
+		case ToolStateMove:
+			t.translateTool.Show(pos)
+		case ToolStateRotate:
+			t.rotationTool.Show(pos)
+		case ToolStateScale:
+		}
+	}
 }
 
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
