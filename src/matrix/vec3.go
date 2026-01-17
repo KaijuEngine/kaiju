@@ -293,6 +293,33 @@ func (v Vec3) Angle(other Vec3) Float {
 	return Acos(Vec3Dot(v, other) / (v.Length() * other.Length()))
 }
 
+// SignedAngle returns the signed angle (in radians) from v to other around the
+// given axis. The sign is positive for counterclockwise rotation when looking
+// along the axis direction. Assumes non-zero vectors; returns 0 if v or other
+// is zero-length or they are equal. For best precision, normalize v, other, and
+// axis before calling if they aren't already.
+func (v Vec3) SignedAngle(other Vec3, axis Vec3) Float {
+	if v.Equals(other) {
+		return 0
+	}
+	lenV := v.Length()
+	if lenV == 0 {
+		return 0
+	}
+	lenO := other.Length()
+	if lenO == 0 {
+		return 0
+	}
+	lenA := axis.Length()
+	if lenA == 0 {
+		return 0
+	}
+	dot := Vec3Dot(v, other) / (lenV * lenO)
+	cross := Vec3Cross(v, other)
+	signedSin := Vec3Dot(cross, axis) / (lenV * lenO * lenA)
+	return Atan2(signedSin, dot)
+}
+
 func (v Vec3) Equals(other Vec3) bool {
 	return Vec3Approx(v, other)
 }

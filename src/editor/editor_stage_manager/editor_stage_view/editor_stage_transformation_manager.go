@@ -48,9 +48,9 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.translateTool.OnDragStart.Add(t.translateStart)
 	t.translateTool.OnDragMove.Add(t.translateMove)
 	t.translateTool.OnDragEnd.Add(t.translateEnd)
-	t.rotationTool.OnDragStart.Add(t.translateStart)
-	t.rotationTool.OnDragRotate.Add(t.translateMove)
-	t.rotationTool.OnDragEnd.Add(t.translateEnd)
+	t.rotationTool.OnDragStart.Add(t.rotateStart)
+	t.rotationTool.OnDragRotate.Add(t.rotateSpin)
+	t.rotationTool.OnDragEnd.Add(t.rotateEnd)
 }
 
 func (t *TransformationManager) Update(host *engine.Host) bool {
@@ -60,20 +60,7 @@ func (t *TransformationManager) Update(host *engine.Host) bool {
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
 	tracing.NewRegion("TransformationManager.translateStart")
 	t.transformStart = pos
-	sel := t.manager.HierarchyRespectiveSelection()
-	t.memento = &transformHistory{
-		tman:       t,
-		toolTarget: t.manager.LastSelected(),
-		state:      ToolStateMove,
-	}
-	t.memento.entities = make([]*editor_stage_manager.StageEntity, len(sel))
-	t.memento.from = make([]matrix.Vec3, len(sel))
-	t.memento.to = make([]matrix.Vec3, len(sel))
-	for i := range sel {
-		t.memento.entities[i] = sel[i]
-		t.memento.from[i] = sel[i].Transform.WorldPosition()
-		t.memento.to[i] = sel[i].Transform.WorldPosition()
-	}
+	t.setupMemento()
 }
 
 func (t *TransformationManager) translateMove(pos matrix.Vec3) {
@@ -81,8 +68,8 @@ func (t *TransformationManager) translateMove(pos matrix.Vec3) {
 	sel := t.manager.HierarchyRespectiveSelection()
 	delta := pos.Subtract(t.transformStart)
 	for i := range sel {
-		t.memento.to[i] = t.memento.from[i].Add(delta)
-		sel[i].Transform.SetWorldPosition(t.memento.to[i])
+		t.memento.to[i].position = t.memento.from[i].position.Add(delta)
+		sel[i].Transform.SetWorldPosition(t.memento.to[i].position)
 	}
 }
 
@@ -90,4 +77,51 @@ func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
 	tracing.NewRegion("TransformationManager.translateEnd")
 	t.translateMove(pos)
 	t.history.Add(t.memento)
+}
+
+func (t *TransformationManager) rotateStart(rot matrix.Vec3) {
+	tracing.NewRegion("TransformationManager.rotateStart")
+	t.transformStart = rot
+	t.setupMemento()
+}
+
+func (t *TransformationManager) rotateSpin(rot matrix.Vec3) {
+	tracing.NewRegion("TransformationManager.rotateSpin")
+	if rot.Equals(matrix.Vec3Zero()) {
+		return
+	}
+	sel := t.manager.HierarchyRespectiveSelection()
+	rotMat := matrix.Mat4Identity()
+	rotMat.Rotate(rot)
+	rotMat.Translate(t.memento.toolTarget.Transform.Position())
+	for i := range sel {
+		t.memento.to[i].position = rotMat.TransformPoint(t.memento.from[i].position)
+	}
+}
+
+func (t *TransformationManager) rotateEnd(rot matrix.Vec3) {
+	tracing.NewRegion("TransformationManager.rotateEnd")
+	t.rotateSpin(rot)
+	t.history.Add(t.memento)
+}
+
+func (t *TransformationManager) setupMemento() {
+	tracing.NewRegion("TransformationManager.setupMemento")
+	sel := t.manager.HierarchyRespectiveSelection()
+	t.memento = &transformHistory{
+		tman:       t,
+		toolTarget: t.manager.LastSelected(),
+	}
+	t.memento.entities = make([]*editor_stage_manager.StageEntity, len(sel))
+	t.memento.from = make([]transformHistoryPRS, len(sel))
+	t.memento.to = make([]transformHistoryPRS, len(sel))
+	for i := range sel {
+		t.memento.entities[i] = sel[i]
+		t.memento.from[i].position = sel[i].Transform.WorldPosition()
+		t.memento.to[i].position = t.memento.from[i].position
+		t.memento.from[i].rotation = sel[i].Transform.WorldRotation()
+		t.memento.to[i].rotation = t.memento.from[i].rotation
+		t.memento.from[i].scale = sel[i].Transform.WorldScale()
+		t.memento.to[i].scale = t.memento.from[i].scale
+	}
 }

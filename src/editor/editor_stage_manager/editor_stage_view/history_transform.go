@@ -46,22 +46,22 @@ type transformHistory struct {
 	tman       *TransformationManager
 	entities   []*editor_stage_manager.StageEntity
 	toolTarget *editor_stage_manager.StageEntity
-	from       []matrix.Vec3
-	to         []matrix.Vec3
-	state      ToolState
+	from       []transformHistoryPRS
+	to         []transformHistoryPRS
+}
+
+type transformHistoryPRS struct {
+	position matrix.Vec3
+	rotation matrix.Vec3
+	scale    matrix.Vec3
 }
 
 func (h *transformHistory) Redo() {
 	defer tracing.NewRegion("transformHistory.Redo").End()
 	for i, e := range h.entities {
-		switch h.state {
-		case ToolStateMove:
-			e.Transform.SetPosition(h.to[i])
-		case ToolStateRotate:
-			e.Transform.SetRotation(h.to[i])
-		case ToolStateScale:
-			e.Transform.SetScale(h.to[i])
-		}
+		e.Transform.SetPosition(h.to[i].position)
+		e.Transform.SetRotation(h.to[i].rotation)
+		e.Transform.SetScale(h.to[i].scale)
 	}
 	// TODO:  Use the following when the BVH.Refit function is fixed. Just
 	// so there aren't any issues right now, I'm going to use a refit on
@@ -78,14 +78,9 @@ func (h *transformHistory) Redo() {
 func (h *transformHistory) Undo() {
 	defer tracing.NewRegion("transformHistory.Undo").End()
 	for i, e := range h.entities {
-		switch h.state {
-		case ToolStateMove:
-			e.Transform.SetPosition(h.from[i])
-		case ToolStateRotate:
-			e.Transform.SetRotation(h.from[i])
-		case ToolStateScale:
-			e.Transform.SetScale(h.from[i])
-		}
+		e.Transform.SetPosition(h.from[i].position)
+		e.Transform.SetRotation(h.from[i].rotation)
+		e.Transform.SetScale(h.from[i].scale)
 	}
 	// TODO:  Use the following when the BVH.Refit function is fixed. Just
 	// so there aren't any issues right now, I'm going to use a refit on

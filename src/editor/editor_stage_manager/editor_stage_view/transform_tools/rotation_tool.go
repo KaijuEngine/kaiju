@@ -1,7 +1,6 @@
 package transform_tools
 
 import (
-	"fmt"
 	"kaiju/engine"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
@@ -25,7 +24,8 @@ type RotationTool struct {
 	lastCamPos     matrix.Vec3
 	lastHit        matrix.Vec3
 	startDirection matrix.Vec3
-	lastAngle      matrix.Float
+	lastDirection  matrix.Vec3
+	rotationDelta  matrix.Float
 	currentAxis    int
 	dragging       bool
 	visible        bool
@@ -175,6 +175,7 @@ func (t *RotationTool) updateHitCircles() {
 		}
 	}
 }
+
 func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 	if t.currentAxis == -1 {
 		return
@@ -182,8 +183,9 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 	c := host.Window.Cursor
 	if c.Pressed() {
 		t.startDirection = t.lastHit.Subtract(t.root.Position()).Normal()
+		t.lastDirection = t.startDirection
 		t.dragging = true
-		// t.OnDragStart.Execute(t.root.Position())
+		t.OnDragStart.Execute(t.rotationVector())
 	} else if t.dragging {
 		nml := matrix.Vec3Forward()
 		rp := t.root.Position()
@@ -198,15 +200,28 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		}
 		if hit, ok := cam.TryPlaneHit(c.Position(), rp, nml); ok {
 			dir := hit.Subtract(t.root.Position()).Normal()
-			d := t.startDirection.Angle(dir)
-			// TODO:  This needs to continue to 360+ as I spin around
-			fmt.Printf("%f\n", matrix.Rad2Deg(d))
-			t.lastAngle = d
-			//t.OnDragRotate.Execute(t.root.Position())
+			d := t.lastDirection.SignedAngle(dir, nml)
+			t.lastDirection = dir
+			t.rotationDelta += d
+			t.OnDragRotate.Execute(t.rotationVector())
 		}
 		if c.Released() {
 			t.dragging = false
-			// t.OnDragEnd.Execute(t.root.Position())
+			t.OnDragEnd.Execute(t.rotationVector())
+			t.rotationDelta = 0
 		}
 	}
+}
+
+func (t *RotationTool) rotationVector() matrix.Vec3 {
+	deg := matrix.Rad2Deg(t.rotationDelta)
+	switch t.currentAxis {
+	case matrix.Vx:
+		return matrix.NewVec3(deg, 0, 0)
+	case matrix.Vy:
+		return matrix.NewVec3(0, deg, 0)
+	case matrix.Vz:
+		return matrix.NewVec3(0, 0, deg)
+	}
+	return matrix.Vec3Zero()
 }

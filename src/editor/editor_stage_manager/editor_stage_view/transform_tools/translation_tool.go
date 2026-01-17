@@ -14,7 +14,7 @@ const (
 	translationGizmoShaftHeight = 2
 	translationGizmoShaftRadius = 0.025
 	translationGizmoArrowHeight = 0.5
-	translationGizmoArrowRadius = 0.25
+	translationGizmoArrowRadius = 0.2
 	translationGizmoTotalHeight = translationGizmoShaftHeight + translationGizmoArrowHeight
 	translationGizmoTotalRadius = max(translationGizmoShaftRadius, translationGizmoArrowRadius)
 	translationGizmoScale       = 0.1
