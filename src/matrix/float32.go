@@ -117,6 +117,10 @@ func Inf(sign int) Float {
 	return Float(math.Inf(sign))
 }
 
+func NaN() Float {
+	return Float(math.NaN())
+}
+
 func Mod(x Float, y Float) Float {
 	return Float(math.Mod(float64(x), float64(y)))
 }

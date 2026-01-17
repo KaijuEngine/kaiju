@@ -51,7 +51,7 @@ type Renderer interface {
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
-	Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender) bool
+	Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender)
 	BlitTargets(passes []*RenderPass)
 	SwapFrame(window RenderingContainer, width, height int32) bool
 	Resize(window RenderingContainer, width, height int)

@@ -385,6 +385,18 @@ func Vec3Inf(sign int) Vec3 {
 	return Vec3{Inf(sign), Inf(sign), Inf(sign)}
 }
 
+func Vec3NaN() Vec3 {
+	return Vec3{NaN(), NaN(), NaN()}
+}
+
 func (v Vec3) IsZero() bool {
 	return Vec3Approx(v, Vec3Zero())
+}
+
+func (v Vec3) IsInf(sign int) bool {
+	return IsInf(v[Vx], sign) || IsInf(v[Vy], sign) || IsInf(v[Vz], sign)
+}
+
+func (v Vec3) IsNaN() bool {
+	return IsNaN(v[Vx]) || IsNaN(v[Vy]) || IsNaN(v[Vz])
 }
