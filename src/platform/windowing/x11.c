@@ -171,7 +171,7 @@ static inline void set_cursor_position_relative_to_window(X11State* s, int x, in
 }
 
 static inline void lock_cursor_position(X11State* s) {
-	set_cursor_position_relative_to_window(state, s->sm.lockCursor.x, s->sm.lockCursor.y);
+	set_cursor_position_relative_to_window(s, s->sm.lockCursor.x, s->sm.lockCursor.y);
 }
 
 void window_poll_controller(void* x11State) {
