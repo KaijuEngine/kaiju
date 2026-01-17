@@ -26,7 +26,6 @@ type TransformationManager struct {
 	rotationTool   transform_tools.RotationTool
 	scalingTool    transform_tools.ScalingTool
 	transformStart matrix.Vec3
-	rotationStart  matrix.Vec4
 	scalingStart   matrix.Vec3
 	manager        *editor_stage_manager.StageManager
 	history        *memento.History
@@ -107,13 +106,13 @@ func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 }
 
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.translateStart")
+	defer tracing.NewRegion("TransformationManager.translateStart").End()
 	t.transformStart = pos
 	t.setupMemento()
 }
 
 func (t *TransformationManager) translateMove(pos matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.translateMove")
+	defer tracing.NewRegion("TransformationManager.translateMove").End()
 	sel := t.manager.HierarchyRespectiveSelection()
 	delta := pos.Subtract(t.transformStart)
 	for i := range sel {
@@ -123,18 +122,18 @@ func (t *TransformationManager) translateMove(pos matrix.Vec3) {
 }
 
 func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.translateEnd")
+	defer tracing.NewRegion("TransformationManager.translateEnd").End()
 	t.translateMove(pos)
 	t.history.Add(t.memento)
 }
 
 func (t *TransformationManager) rotateStart(rot matrix.Vec4) {
-	tracing.NewRegion("TransformationManager.rotateStart")
+	defer tracing.NewRegion("TransformationManager.rotateStart").End()
 	t.setupMemento()
 }
 
 func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
-	tracing.NewRegion("TransformationManager.rotateSpin")
+	defer tracing.NewRegion("TransformationManager.rotateSpin").End()
 	if matrix.Approx(rot.W(), 0) || rot.Equals(matrix.Vec4Zero()) {
 		return
 	}
@@ -160,13 +159,13 @@ func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
 }
 
 func (t *TransformationManager) rotateEnd(rot matrix.Vec4) {
-	tracing.NewRegion("TransformationManager.rotateEnd")
+	defer tracing.NewRegion("TransformationManager.rotateEnd").End()
 	t.rotateSpin(rot)
 	t.history.Add(t.memento)
 }
 
 func (t *TransformationManager) scaleStart(scale matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.scaleStart")
+	defer tracing.NewRegion("TransformationManager.scaleStart").End()
 	t.scalingStart = scale
 	t.setupMemento()
 }
@@ -176,19 +175,56 @@ func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
 	sel := t.manager.HierarchyRespectiveSelection()
 	delta := scale.Subtract(t.scalingStart)
 	for i := range sel {
-		t.memento.to[i].scale = t.memento.from[i].scale.Add(delta)
+		fm := matrix.Mat4Identity()
+		fm.Rotate(sel[i].Transform.WorldRotation())
+		d := fm.Transpose().TransformPoint(delta)
+		worldAxis := matrix.Vec3Zero()
+		maxDelta := matrix.Float(0)
+		axisIndex := -1
+		for k := 0; k < 3; k++ {
+			absD := matrix.Abs(delta[k])
+			if absD > maxDelta {
+				maxDelta = absD
+				axisIndex = k
+			}
+		}
+		if axisIndex >= 0 {
+			worldAxis[axisIndex] = 1.0
+			localDir := fm.Transpose().TransformPoint(worldAxis)
+			maxAbs := matrix.Float(0)
+			maxComp := -1
+			for k := 0; k < 3; k++ {
+				a := matrix.Abs(localDir[k])
+				if a > maxAbs {
+					maxAbs = a
+					maxComp = k
+				}
+			}
+			if maxComp >= 0 {
+				signProj := matrix.Float(0)
+				if localDir[maxComp] > 0 {
+					signProj = 1.0
+				} else if localDir[maxComp] < 0 {
+					signProj = -1.0
+				} else {
+					signProj = 1.0
+				}
+				d.ScaleAssign(signProj)
+			}
+		}
+		t.memento.to[i].scale = t.memento.from[i].scale.Add(d)
 		sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 	}
 }
 
 func (t *TransformationManager) scaleEnd(scale matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.scaleEnd")
+	defer tracing.NewRegion("TransformationManager.scaleEnd").End()
 	t.scaleScale(scale)
 	t.history.Add(t.memento)
 }
 
 func (t *TransformationManager) setupMemento() {
-	tracing.NewRegion("TransformationManager.setupMemento")
+	defer tracing.NewRegion("TransformationManager.setupMemento").End()
 	sel := t.manager.HierarchyRespectiveSelection()
 	t.memento = &transformHistory{
 		tman:       t,
