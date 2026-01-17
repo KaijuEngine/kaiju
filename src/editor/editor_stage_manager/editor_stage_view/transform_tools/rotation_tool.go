@@ -186,6 +186,11 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		t.startDirection = t.lastHit.Subtract(t.root.Position()).Normal()
 		t.lastDirection = t.startDirection
 		t.dragging = true
+		for i := range t.circles {
+			if i != t.currentAxis {
+				t.circles[i].shaderData.Deactivate()
+			}
+		}
 		t.OnDragStart.Execute(t.rotationVector())
 	} else if t.dragging {
 		nml := matrix.Vec3Forward()
@@ -210,6 +215,9 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 			t.dragging = false
 			t.OnDragEnd.Execute(t.rotationVector())
 			t.rotationDelta = 0
+			for i := range t.circles {
+				t.circles[i].shaderData.Activate()
+			}
 		}
 	}
 }

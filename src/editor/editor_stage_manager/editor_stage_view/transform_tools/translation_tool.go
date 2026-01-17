@@ -200,6 +200,11 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		// if ok {
 		// 	host.Window.SetCursorPosition(int(p.X()), int(p.Y()))
 		// }
+		for i := range t.arrows {
+			if i != t.currentArrow {
+				t.arrows[i].shaderData.Deactivate()
+			}
+		}
 		t.OnDragStart.Execute(t.root.Position())
 	} else if t.dragging {
 		rp := t.root.Position()
@@ -229,6 +234,9 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		if c.Released() {
 			t.dragging = false
 			t.OnDragEnd.Execute(t.root.Position())
+			for i := range t.arrows {
+				t.arrows[i].shaderData.Activate()
+			}
 		}
 	}
 }
