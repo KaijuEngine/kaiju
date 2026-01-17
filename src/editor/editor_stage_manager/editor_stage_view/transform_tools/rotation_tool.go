@@ -198,7 +198,7 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		cp := cam.Position()
 		switch t.currentAxis {
 		case matrix.Vx:
-			nml = matrix.NewVec3(cp.Subtract(rp).X(), 0, 0)
+			nml = matrix.NewVec3(rp.Subtract(cp).X(), 0, 0)
 		case matrix.Vy:
 			nml = matrix.NewVec3(0, cp.Subtract(rp).Y(), 0)
 		case matrix.Vz:
