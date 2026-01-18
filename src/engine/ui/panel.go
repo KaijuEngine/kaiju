@@ -683,7 +683,7 @@ func (p *Panel) SetMaterial(mat *rendering.Material) {
 	}
 	textures := pd.drawing.Material.Textures
 	pd.drawing.Material = mat.SelectRoot().CreateInstance(textures)
-	p.recreateDrawing()
+	p.ensureBGExists(textures[0])
 }
 
 func (p *Panel) SetBackground(tex *rendering.Texture) {
@@ -957,7 +957,7 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 	p.shaderData.FgColor = bgColor
 }
 
-func (p *Panel) allowClickThrough() {
+func (p *Panel) AllowClickThrough() {
 	pd := p.PanelData()
 	pd.flags.setAllowClickThrough()
 	p.events[EventTypeDown].Clear()

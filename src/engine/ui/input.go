@@ -149,7 +149,7 @@ func (input *Input) Init(placeholderText string) {
 	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
 	data.highlight.layout.SetZ(1)
 	data.highlight.layout.SetPositioning(PositioningAbsolute)
-	data.highlight.allowClickThrough()
+	data.highlight.AllowClickThrough()
 	p.AddChild((*UI)(data.highlight))
 	data.highlight.entity.Deactivate()
 

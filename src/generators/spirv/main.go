@@ -44,6 +44,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type Prebuilt struct {
@@ -64,41 +65,45 @@ func main() {
 	spvRoot := openRoot(pb.Spv)
 	for i := range pb.Shaders {
 		sd := parseShader(pb.Shaders[i])
+		flagSuffix := ""
+		if sd.EnableDebug {
+			flagSuffix += " -g"
+		}
 		if sd.Vertex != "" {
 			i := pathJoin(srcRoot.Name(), sd.Vertex)
 			o := pathJoin(spvRoot.Name(), sd.VertexSpv)
 			parseFile(&sd, i, sd.VertexFlags)
-			compileFile(i, sd.VertexFlags, o)
+			compileFile(i, sd.VertexFlags+flagSuffix, o)
 		}
 		if sd.Fragment != "" {
 			i := pathJoin(srcRoot.Name(), sd.Fragment)
 			o := pathJoin(spvRoot.Name(), sd.FragmentSpv)
 			parseFile(&sd, i, sd.FragmentFlags)
-			compileFile(i, sd.FragmentFlags, o)
+			compileFile(i, sd.FragmentFlags+flagSuffix, o)
 		}
 		if sd.Geometry != "" {
 			i := pathJoin(srcRoot.Name(), sd.Geometry)
 			o := pathJoin(spvRoot.Name(), sd.GeometrySpv)
 			parseFile(&sd, i, sd.GeometryFlags)
-			compileFile(i, sd.GeometryFlags, o)
+			compileFile(i, sd.GeometryFlags+flagSuffix, o)
 		}
 		if sd.TessellationControl != "" {
 			i := pathJoin(srcRoot.Name(), sd.TessellationControl)
 			o := pathJoin(spvRoot.Name(), sd.TessellationControlSpv)
 			parseFile(&sd, i, sd.TessellationControlFlags)
-			compileFile(i, sd.TessellationControlFlags, o)
+			compileFile(i, sd.TessellationControlFlags+flagSuffix, o)
 		}
 		if sd.TessellationEvaluation != "" {
 			i := pathJoin(srcRoot.Name(), sd.TessellationEvaluation)
 			o := pathJoin(spvRoot.Name(), sd.TessellationEvaluationSpv)
 			parseFile(&sd, i, sd.TessellationEvaluationFlags)
-			compileFile(i, sd.TessellationEvaluationFlags, o)
+			compileFile(i, sd.TessellationEvaluationFlags+flagSuffix, o)
 		}
 		if sd.Compute != "" {
 			i := pathJoin(srcRoot.Name(), sd.Compute)
 			o := pathJoin(spvRoot.Name(), sd.ComputeSpv)
 			parseFile(&sd, i, sd.ComputeFlags)
-			compileFile(i, sd.ComputeFlags, o)
+			compileFile(i, sd.ComputeFlags+flagSuffix, o)
 		}
 		data, err := json.Marshal(sd)
 		if err != nil {
@@ -136,6 +141,7 @@ func parseFile(sd *rendering.ShaderData, fileType, flags string) {
 
 func compileFile(file, flags, out string) {
 	args := []string{file, "-o", out}
+	flags = strings.TrimSpace(flags)
 	if flags != "" {
 		args = append(args, flags)
 	}

@@ -42,7 +42,6 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -54,8 +53,6 @@ import (
 type ColorPicker struct {
 	doc            *document.Document
 	uiMan          ui.Manager
-	onSelect       func(color matrix.Color)
-	onClose        func()
 	r              *document.Element
 	g              *document.Element
 	b              *document.Element
@@ -63,11 +60,12 @@ type ColorPicker struct {
 	previewPanel   *document.Element
 	colorHue       *document.Element
 	colorValue     *document.Element
-	activeEntity   *document.Element
+	hueCursor      *document.Element
+	valueCursor    *document.Element
+	config         Config
 	hue            matrix.Color
 	value          matrix.Color
 	cPanelLastPos  matrix.Vec2
-	updateId       engine.UpdateId
 	lastHuePercent float32
 }
 
@@ -77,23 +75,24 @@ type HSV struct {
 	v float32
 }
 
-type RGB struct {
-	r uint8
-	g uint8
-	b uint8
+type Config struct {
+	Color    matrix.Color
+	OnAccept func(color matrix.Color)
+	OnCancel func()
 }
 
-func (c RGB) toColor8() matrix.Color8 { return matrix.NewColor8(c.r, c.g, c.b, 0xFF) }
-
-func Show(host *engine.Host, onClose func()) (*ColorPicker, error) {
+func Show(host *engine.Host, config Config) (*ColorPicker, error) {
 	defer tracing.NewRegion("color_picker.Show").End()
-	p := &ColorPicker{onClose: onClose}
+	p := &ColorPicker{config: config}
 	p.uiMan.Init(host)
 	var err error
 	p.doc, err = markup.DocumentFromHTMLAsset(&p.uiMan, "editor/ui/overlay/color_picker_overlay.go.html",
 		nil, map[string]func(*document.Element){
-			"clickAccept": p.clickAccept,
-			"clickCancel": p.clickCancel,
+			"dragHueCursor":            p.dragHueCursor,
+			"dragValueCursor":          p.dragValueCursor,
+			"inputChangeUpdatePreview": p.inputChangeUpdatePreview,
+			"clickAccept":              p.clickAccept,
+			"clickCancel":              p.clickCancel,
 		})
 	if err != nil {
 		return p, err
@@ -102,35 +101,40 @@ func Show(host *engine.Host, onClose func()) (*ColorPicker, error) {
 	p.g, _ = p.doc.GetElementById("g")
 	p.b, _ = p.doc.GetElementById("b")
 	p.hex, _ = p.doc.GetElementById("hex")
+	p.colorValue, _ = p.doc.GetElementById("colorPickerValue")
+	p.valueCursor, _ = p.doc.GetElementById("colorPickerValueCursor")
+	p.colorHue, _ = p.doc.GetElementById("colorPicker")
+	p.hueCursor, _ = p.doc.GetElementById("cursorHue")
+	p.previewPanel, _ = p.doc.GetElementById("preview")
+	p.hueCursor.UI.ToPanel().AllowClickThrough()
+	p.valueCursor.UI.ToPanel().AllowClickThrough()
 	p.value = matrix.ColorBlack()
-	p.hue = matrix.ColorFromColor8(p.rgbFromInputs().toColor8())
-	p.setPreviewsToColor(p.hue)
+	rgb := color2rgb(config.Color)
+	p.updateRGBInputs(rgb.R(), rgb.G(), rgb.B())
+	p.hue = matrix.ColorFromColor8(p.rgbFromInputs())
+	p.doc.Clean()
+	p.setPreviewsToColor(config.Color)
 	p.updatePreview()
-	p.updateId = host.Updater.AddUpdate(p.update)
+	p.updateAllInputs()
 	return p, err
 }
 
 func (p *ColorPicker) Close() {
 	defer tracing.NewRegion("ColorPicker.Close").End()
 	host := p.uiMan.Host
-	host.Updater.RemoveUpdate(&p.updateId)
 	host.Window.CursorStandard()
 	p.doc.Destroy()
-	if p.onClose == nil {
-		slog.Warn("onClose was not set on the AIPrompt")
-		return
-	}
-	p.onClose()
 }
 
-func (p *ColorPicker) rgbFromInputs() RGB {
+func (p *ColorPicker) rgbFromInputs() matrix.Color8 {
 	rF, _ := strconv.ParseFloat(p.r.UI.ToInput().Text(), 64)
 	gF, _ := strconv.ParseFloat(p.g.UI.ToInput().Text(), 64)
 	bF, _ := strconv.ParseFloat(p.b.UI.ToInput().Text(), 64)
-	return RGB{
-		r: uint8(math.Floor(rF)),
-		g: uint8(math.Floor(gF)),
-		b: uint8(math.Floor(bF)),
+	return matrix.Color8{
+		uint8(math.Floor(rF)),
+		uint8(math.Floor(gF)),
+		uint8(math.Floor(bF)),
+		0xFF,
 	}
 }
 
@@ -139,16 +143,14 @@ func (p *ColorPicker) updateValueColor() {
 }
 
 func (p *ColorPicker) updateValuePreviewBox(percentX, percentY float32) {
-	cPanel, _ := p.doc.GetElementById("colorPickerValueCursor")
-	cursorValueSprite, _ := p.doc.GetElementById("colorPickerValueCursorSprite")
-	cScale := cPanel.UI.Entity().Transform.WorldScale()
+	cScale := p.valueCursor.UI.Entity().Transform.WorldScale()
 	wScale := p.colorValue.UI.Entity().Transform.WorldScale()
-	cPanel.UI.Layout().SetOffset(percentX*wScale.X()-(cScale.X()*0.5),
-		(1-percentY)*wScale.Y()-(cScale.Y()*0.5))
+	p.valueCursor.UI.Layout().SetOffset(percentX*wScale.X()-(cScale.X()*0.5),
+		percentY*wScale.Y()-(cScale.Y()*0.5))
 	res := matrix.ColorMix(matrix.ColorMix(p.hue, matrix.ColorWhite(), percentX), matrix.ColorBlack(), percentY)
-	cursorValueSprite.UI.ToPanel().SetColor(res)
+	p.valueCursor.UI.ToPanel().SetColor(res)
 	rgb := color2rgb(res)
-	p.value = rgb2color(rgb.r, rgb.g, rgb.b)
+	p.value = rgb2color(rgb.R(), rgb.G(), rgb.B())
 	p.updateValueColor()
 	p.previewPanel.UI.ToPanel().SetColor(p.value)
 }
@@ -218,7 +220,6 @@ func (p *ColorPicker) updateHuePreviewBox(percentX float32) {
 	}
 	p.hue = matrix.NewColor(r, g, b, 1)
 	cPanelSpec, _ := p.doc.GetElementById("cursorHue")
-	cursorHueSprite, _ := p.doc.GetElementById("cursorHueSprite")
 	cScale := cPanelSpec.UI.Entity().Transform.WorldScale()
 	if xOffset <= cScale.X()*0.5 {
 		xOffset = cScale.X() * 0.5
@@ -226,7 +227,7 @@ func (p *ColorPicker) updateHuePreviewBox(percentX float32) {
 		xOffset = wScale.X() - (cScale.X() * 0.5)
 	}
 	cPanelSpec.UI.Layout().SetOffsetX(xOffset - (cScale.X() * 0.5))
-	cursorHueSprite.UI.ToPanel().SetColor(p.hue)
+	cPanelSpec.UI.ToPanel().SetColor(p.hue)
 	p.onSelectedColorValue(p.cPanelLastPos)
 }
 
@@ -267,14 +268,12 @@ func (p *ColorPicker) updateHexInput(r, g, b uint8) {
 func (p *ColorPicker) updateAllInputs() {
 	defer tracing.NewRegion("ColorPicker.updateAllInputs").End()
 	rgb := color2rgb(p.value)
-	p.updateRGBInputs(rgb.r, rgb.g, rgb.b)
-	p.updateHexInput(rgb.r, rgb.g, rgb.b)
+	p.updateRGBInputs(rgb.R(), rgb.G(), rgb.B())
+	p.updateHexInput(rgb.R(), rgb.G(), rgb.B())
 }
 
-func (p *ColorPicker) onSelectedColor() {
+func (p *ColorPicker) onSelectedColor(pos matrix.Vec2) {
 	defer tracing.NewRegion("ColorPicker.onSelectedColor").End()
-	cursor := &p.uiMan.Host.Window.Cursor
-	pos := cursor.Position()
 	wPos := p.colorHue.UI.Entity().Transform.WorldPosition()
 	wScale := p.colorHue.UI.Entity().Transform.WorldScale()
 	diff := matrix.NewVec2(pos.X()-(wPos.X()-wScale.X()*0.5), pos.Y()-(wPos.Y()-wScale.Y()*0.5))
@@ -282,77 +281,63 @@ func (p *ColorPicker) onSelectedColor() {
 	p.updateHuePreviewBox(percentX)
 }
 
-func (p *ColorPicker) update(float64) {
-	defer tracing.NewRegion("ColorPicker.update").End()
-	cursor := &p.uiMan.Host.Window.Cursor
-	pos := cursor.Position()
-	if cursor.Pressed() && p.activeEntity == nil {
-		if p.colorHue.UI.Entity().Transform.ContainsPoint2D(pos) {
-			p.activeEntity = p.colorHue
-		} else if p.colorValue.UI.Entity().Transform.ContainsPoint2D(pos) {
-			p.activeEntity = p.colorValue
-		}
+func (p *ColorPicker) dragHueCursor(e *document.Element) {
+	defer tracing.NewRegion("ColorPicker.dragHueCursor").End()
+	if !e.UI.IsDown() {
+		return
 	}
-	if p.activeEntity != nil {
-		// Show cursor top for hue
-		// show cursor bottom for color value
-		switch p.activeEntity {
-		case p.colorHue:
-			p.onSelectedColor()
-			p.updateAllInputs()
-			p.previewPanel.UI.ToPanel().SetColor(p.value)
-		case p.colorValue:
-			p.onSelectedColorValue(pos)
-			p.updateAllInputs()
-			p.previewPanel.UI.ToPanel().SetColor(p.value)
-		}
+	p.onSelectedColor(p.cursorCenteredPosition())
+	p.updateAllInputs()
+	p.previewPanel.UI.ToPanel().SetColor(p.value)
+}
+
+func (p *ColorPicker) dragValueCursor(e *document.Element) {
+	defer tracing.NewRegion("ColorPicker.dragValueCursor").End()
+	if !e.UI.IsDown() {
+		return
 	}
-	if cursor.Released() {
-		p.activeEntity = nil
-	}
+	p.onSelectedColorValue(p.cursorCenteredPosition())
+	p.updateAllInputs()
+	p.previewPanel.UI.ToPanel().SetColor(p.value)
 }
 
 func (p *ColorPicker) clickAccept(*document.Element) {
 	defer tracing.NewRegion("ColorPicker.clickAccept").End()
-	rgb := RGB{}
+	rgb := matrix.Color8{}
 	crgb := color2rgb(p.hue)
-	hexText := rgb2hex(crgb.r, crgb.g, crgb.b)
+	hexText := rgb2hex(crgb.R(), crgb.G(), crgb.B())
 	hlText := p.hex.UI.ToInput().Text()
 	if hlText != hexText {
 		rgb = hex2rgb(hlText)
 	} else {
 		rgb = p.rgbFromInputs()
 	}
-	p.onSelect(rgb2color(rgb.r, rgb.g, rgb.b))
+	p.config.OnAccept(rgb2color(rgb.R(), rgb.G(), rgb.B()))
 	p.Close()
 }
 
 func (p *ColorPicker) clickCancel(*document.Element) {
 	defer tracing.NewRegion("ColorPicker.clickCancel").End()
+	if p.config.OnCancel != nil {
+		p.config.OnCancel()
+	}
 	p.Close()
 }
 
-func (p *ColorPicker) inputChangeUpdatePreview(elm *document.Element) {
-	input := elm.UI.ToInput()
+func (p *ColorPicker) inputChangeUpdatePreview(e *document.Element) {
+	input := e.UI.ToInput()
 	rgb := p.rgbFromInputs()
-	p.setPreviewsToColor(rgb2color(rgb.r, rgb.g, rgb.b))
-	if elm.Attribute("id") == "hex" {
-		val, err := strconv.ParseFloat(input.Text(), 64)
-		if err == nil && (val < 0 || val > math.MaxUint8) {
-			p.uiMan.Host.RunNextFrame(func() {
-				sanitizeNumInputNextFrame(input)
-			})
-		}
+	if e.Attribute("id") == "hex" {
+		rgb = hex2rgb(input.Text())
 	}
+	p.setPreviewsToColor(rgb2color(rgb.R(), rgb.G(), rgb.B()))
 }
 
-func sanitizeNumInputNextFrame(input *ui.Input) {
-	val, err := strconv.ParseFloat(input.Text(), 64)
-	if err != nil {
-		return
-	}
-	v := klib.Clamp(uint8(val), 0, math.MaxUint8)
-	input.SetTextWithoutEvent(fmt.Sprintf("%d", v))
+func (p *ColorPicker) cursorCenteredPosition() matrix.Vec2 {
+	defer tracing.NewRegion("ColorPicker.cursorCenteredPosition").End()
+	win := p.uiMan.Host.Window
+	cursor := &win.Cursor
+	return cursor.Position().Subtract(matrix.NewVec2(float32(win.Width()/2), float32(win.Height()/2)))
 }
 
 func rgb2hsv(r, g, b float32) HSV {
@@ -413,24 +398,24 @@ func rgb2hex(r, g, b uint8) string {
 	return fmt.Sprintf("%02x%02x%02x", r, g, b)
 }
 
-func hex2rgb(hex string) RGB {
+func hex2rgb(hex string) matrix.Color8 {
 	sHex := safeHex(hex)
 	var r, g, b int
 	_, err := fmt.Sscanf(sHex, "%02x%02x%02x", &r, &g, &b)
 	if err != nil {
 		slog.Error("hex2rgb: failed to parse hex string", "hex", sHex, "err", err)
-		return RGB{}
+		return matrix.Color8{}
 	}
-	return RGB{
-		r: uint8(r),
-		g: uint8(g),
-		b: uint8(b),
+	return matrix.Color8{
+		uint8(r),
+		uint8(g),
+		uint8(b),
+		0xFF,
 	}
 }
 
-func color2rgb(source matrix.Color) RGB {
-	c := matrix.Color8FromColor(source)
-	return RGB{r: c.R(), g: c.G(), b: c.B()}
+func color2rgb(source matrix.Color) matrix.Color8 {
+	return matrix.Color8FromColor(source)
 }
 
 func rgb2color(r, g, b uint8) matrix.Color {
