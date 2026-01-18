@@ -171,13 +171,12 @@ func (t *TransformationManager) scaleStart(scale matrix.Vec3) {
 }
 
 func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.translateMove")
+	defer tracing.NewRegion("TransformationManager.translateMove").End()
 	sel := t.manager.HierarchyRespectiveSelection()
 	delta := scale.Subtract(t.scalingStart)
 	for i := range sel {
 		fm := matrix.Mat4Identity()
 		fm.Rotate(sel[i].Transform.WorldRotation())
-		d := fm.Transpose().TransformPoint(delta)
 		worldAxis := matrix.Vec3Zero()
 		maxDelta := matrix.Float(0)
 		axisIndex := -1
@@ -190,30 +189,15 @@ func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
 		}
 		if axisIndex >= 0 {
 			worldAxis[axisIndex] = 1.0
+			relativeChange := delta[axisIndex] // Relative multiplier change
 			localDir := fm.Transpose().TransformPoint(worldAxis)
-			maxAbs := matrix.Float(0)
-			maxComp := -1
 			for k := 0; k < 3; k++ {
-				a := matrix.Abs(localDir[k])
-				if a > maxAbs {
-					maxAbs = a
-					maxComp = k
-				}
+				proj := matrix.Abs(localDir[k])
+				newScale := t.memento.from[i].scale[k] * max(0.001, 1+relativeChange*proj)
+				t.memento.to[i].scale[k] = newScale
 			}
-			if maxComp >= 0 {
-				signProj := matrix.Float(0)
-				if localDir[maxComp] > 0 {
-					signProj = 1.0
-				} else if localDir[maxComp] < 0 {
-					signProj = -1.0
-				} else {
-					signProj = 1.0
-				}
-				d.ScaleAssign(signProj)
-			}
+			sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 		}
-		t.memento.to[i].scale = t.memento.from[i].scale.Add(d)
-		sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 	}
 }
 
