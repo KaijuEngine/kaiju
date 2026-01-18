@@ -1,3 +1,39 @@
+/******************************************************************************/
+/* editor_stage_transformation_manager.go                                     */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package editor_stage_view
 
 import (
@@ -171,13 +207,12 @@ func (t *TransformationManager) scaleStart(scale matrix.Vec3) {
 }
 
 func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
-	tracing.NewRegion("TransformationManager.translateMove")
+	defer tracing.NewRegion("TransformationManager.translateMove").End()
 	sel := t.manager.HierarchyRespectiveSelection()
 	delta := scale.Subtract(t.scalingStart)
 	for i := range sel {
 		fm := matrix.Mat4Identity()
 		fm.Rotate(sel[i].Transform.WorldRotation())
-		d := fm.Transpose().TransformPoint(delta)
 		worldAxis := matrix.Vec3Zero()
 		maxDelta := matrix.Float(0)
 		axisIndex := -1
@@ -190,30 +225,15 @@ func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
 		}
 		if axisIndex >= 0 {
 			worldAxis[axisIndex] = 1.0
+			relativeChange := delta[axisIndex] // Relative multiplier change
 			localDir := fm.Transpose().TransformPoint(worldAxis)
-			maxAbs := matrix.Float(0)
-			maxComp := -1
 			for k := 0; k < 3; k++ {
-				a := matrix.Abs(localDir[k])
-				if a > maxAbs {
-					maxAbs = a
-					maxComp = k
-				}
+				proj := matrix.Abs(localDir[k])
+				newScale := t.memento.from[i].scale[k] * max(0.001, 1+relativeChange*proj)
+				t.memento.to[i].scale[k] = newScale
 			}
-			if maxComp >= 0 {
-				signProj := matrix.Float(0)
-				if localDir[maxComp] > 0 {
-					signProj = 1.0
-				} else if localDir[maxComp] < 0 {
-					signProj = -1.0
-				} else {
-					signProj = 1.0
-				}
-				d.ScaleAssign(signProj)
-			}
+			sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 		}
-		t.memento.to[i].scale = t.memento.from[i].scale.Add(d)
-		sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 	}
 }
 
