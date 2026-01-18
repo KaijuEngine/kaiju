@@ -41,6 +41,7 @@ import (
 	"errors"
 	"fmt"
 	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_overlay/color_picker"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/content_selector"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
@@ -85,6 +86,7 @@ func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterf
 			"clickSaveEmitter":     w.clickSaveEmitter,
 			"clickSelectEmitter":   w.clickSelectEmitter,
 			"clickDeleteEmitter":   w.clickDeleteEmitter,
+			"showColorPicker":      w.showColorPicker,
 			"changeEmitterData":    w.changeEmitterData,
 			"clickSelectContentId": w.clickSelectContentId,
 		})
@@ -418,14 +420,28 @@ func (w *VfxWorkspace) createDataBindingEntry(g *entity_data_binding.EntityDataE
 			}
 		} else if g.Fields[i].IsColor() {
 			colorInput.UI.Show()
+			color := matrix.Color{}
 			for j := range 4 {
-				c := colorInput.Children[j].UI.ToInput()
-				c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
-				colorInput.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+				color[j] = g.FieldVectorComponent(i, j)
 			}
+			colorInput.Children[0].UI.ToPanel().SetColor(color)
 		}
 	}
 	w.Doc.SetupInputTabIndexs()
+}
+
+func (w *VfxWorkspace) showColorPicker(e *document.Element) {
+	defer tracing.NewRegion("VfxWorkspace.showColorPicker").End()
+	w.ed.BlurInterface()
+	color_picker.Show(w.Host, color_picker.Config{
+		Color: e.UI.ToPanel().Color(),
+		OnAccept: func(color matrix.Color) {
+			w.ed.FocusInterface()
+			e.UI.ToPanel().SetColor(color)
+			w.changeEmitterData(e)
+		},
+		OnCancel: w.ed.FocusInterface,
+	})
 }
 
 func (w *VfxWorkspace) changeEmitterData(e *document.Element) {
@@ -466,6 +482,13 @@ func (w *VfxWorkspace) changeEmitterData(e *document.Element) {
 		v.SetString(inputText)
 	case reflect.Bool:
 		v.SetBool(e.UI.ToCheckbox().IsChecked())
+	case reflect.Array, reflect.Slice:
+		if e.HasClass("edColorPickInput") {
+			color := e.UI.ToPanel().Color()
+			for j := 0; j < len(color); j++ {
+				v.Index(j).SetFloat(float64(color[j]))
+			}
+		}
 	}
 	w.Host.RunOnMainThread(func() {
 		w.emitter.ReloadConfig(w.Host)

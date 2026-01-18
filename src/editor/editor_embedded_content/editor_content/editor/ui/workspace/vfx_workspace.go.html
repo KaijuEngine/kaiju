@@ -49,6 +49,11 @@
 			.edContentPickInput {
 				width: 100%;
 			}
+			.edColorPickInput {
+				width: 100%;
+				height: 2em;
+				border: 5px solid black;
+			}
 			.smallInput, .smallerInput {
 				width: 4.3em;
 				height: 1.2em;
@@ -128,10 +133,7 @@
 							</div>
 							<!-- Color -->
 							<div>
-								<input class="smallerInput" type="text" placeholder="R..." onchange="changeEmitterData" />
-								<input class="smallerInput" type="text" placeholder="G..." onchange="changeEmitterData" />
-								<input class="smallerInput" type="text" placeholder="B..." onchange="changeEmitterData" />
-								<input class="smallerInput" type="text" placeholder="A..." onchange="changeEmitterData" />
+								<div class="edColorPickInput" onclick="showColorPicker"></div>
 							</div>
 							<!-- Select input -->
 							<div>
