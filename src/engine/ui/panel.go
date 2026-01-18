@@ -675,6 +675,17 @@ func (p *Panel) Background() *rendering.Texture {
 	return nil
 }
 
+func (p *Panel) SetMaterial(mat *rendering.Material) {
+	defer tracing.NewRegion("Panel.SetMaterial").End()
+	pd := p.PanelData()
+	if !pd.drawing.IsValid() {
+		p.ensureBGExists(nil)
+	}
+	textures := pd.drawing.Material.Textures
+	pd.drawing.Material = mat.SelectRoot().CreateInstance(textures)
+	p.recreateDrawing()
+}
+
 func (p *Panel) SetBackground(tex *rendering.Texture) {
 	defer tracing.NewRegion("Panel.SetBackground").End()
 	pd := p.PanelData()

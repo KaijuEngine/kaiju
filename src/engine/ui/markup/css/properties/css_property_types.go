@@ -1810,3 +1810,8 @@ func (p WritingMode) Key() string { return "writing-mode" }
 type ZIndex struct{ PropertyBase }
 
 func (p ZIndex) Key() string { return "z-index" }
+
+// Sets the shader to use for an element
+type KaijuMaterial struct{ PropertyBase }
+
+func (p KaijuMaterial) Key() string { return "kaiju-material" }
