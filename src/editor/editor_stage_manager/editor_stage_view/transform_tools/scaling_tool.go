@@ -152,14 +152,14 @@ func (t *ScalingTool) Hide() {
 	t.dragging = false
 }
 
-func (t *ScalingTool) Update(host *engine.Host) bool {
+func (t *ScalingTool) Update(host *engine.Host, snap bool, snapScale float32) bool {
 	if !t.visible {
 		return false
 	}
 	cam := host.Cameras.Primary.Camera
 	t.resize(cam)
 	t.hitCheck(host, cam)
-	t.processDrag(host, cam)
+	t.processDrag(host, cam, snap, snapScale)
 	return t.dragging
 }
 
@@ -249,14 +249,14 @@ func (t *ScalingTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	}
 }
 
-func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera) {
+func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
 	if t.currentAxis == -1 {
 		return
 	}
 	c := &host.Window.Cursor
 	if c.Pressed() {
 		t.dragging = true
-		t.startScale = t.procRayOnAxis(c, cam)
+		t.startScale = t.procRayOnAxis(c, cam, snap, snapScale)
 		for i := range t.boxes {
 			if i != t.currentAxis {
 				t.boxes[i].shaftShaderData.Deactivate()
@@ -265,19 +265,20 @@ func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		}
 		t.OnDragStart.Execute(matrix.Vec3Zero())
 	} else if t.dragging {
-		scale := t.procRayOnAxis(c, cam)
+		scale := t.procRayOnAxis(c, cam, snap, snapScale)
 		scale = scale.Subtract(t.startScale)
 		if c.Released() {
 			t.dragging = false
 			rs := t.root.Scale()
 			boxPos := t.root.Position()
+			s := rs.Scale(scalingGizmoBoxOffset)
 			switch t.currentAxis {
 			case matrix.Vx:
-				boxPos.AddX(scalingGizmoBoxOffset * rs.X())
+				boxPos.AddX(s.X())
 			case matrix.Vy:
-				boxPos.AddY(scalingGizmoBoxOffset * rs.Y())
+				boxPos.AddY(s.Y())
 			case matrix.Vz:
-				boxPos.AddZ(scalingGizmoBoxOffset * rs.Z())
+				boxPos.AddZ(s.Z())
 			}
 			t.OnDragEnd.Execute(scale)
 			t.setVisuals(boxPos)
@@ -291,7 +292,7 @@ func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera) {
 	}
 }
 
-func (t *ScalingTool) procRayOnAxis(c *hid.Cursor, cam cameras.Camera) matrix.Vec3 {
+func (t *ScalingTool) procRayOnAxis(c *hid.Cursor, cam cameras.Camera, snap bool, snapScale float32) matrix.Vec3 {
 	dragPos := t.root.Position()
 	cp := cam.Position()
 	switch t.currentAxis {
@@ -305,6 +306,11 @@ func (t *ScalingTool) procRayOnAxis(c *hid.Cursor, cam cameras.Camera) matrix.Ve
 	nml := cp.Subtract(dragPos)
 	if hit, ok := cam.TryPlaneHit(c.Position(), dragPos, nml); ok {
 		scale := matrix.Vec3Zero()
+		if snap {
+			hit.SetX(matrix.Floor(hit.X()/snapScale) * snapScale)
+			hit.SetY(matrix.Floor(hit.Y()/snapScale) * snapScale)
+			hit.SetZ(matrix.Floor(hit.Z()/snapScale) * snapScale)
+		}
 		switch t.currentAxis {
 		case matrix.Vx:
 			dragPos.SetX(hit.X())

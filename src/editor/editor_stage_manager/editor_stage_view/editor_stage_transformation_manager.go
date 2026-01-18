@@ -37,6 +37,7 @@
 package editor_stage_view
 
 import (
+	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaiju/editor/memento"
@@ -66,14 +67,16 @@ type TransformationManager struct {
 	manager        *editor_stage_manager.StageManager
 	history        *memento.History
 	memento        *transformHistory
+	snapSettings   *editor_settings.SnapSettings
 	currentTool    ToolState
 	isBusy         bool
 }
 
 func (t *TransformationManager) IsBusy() bool { return t.isBusy }
 
-func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History) {
+func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, snapSettings *editor_settings.SnapSettings) {
 	t.view = weak.Make(stageView)
+	t.snapSettings = snapSettings
 	t.translateTool.Initialize(stageView.host)
 	t.rotationTool.Initialize(stageView.host)
 	t.scalingTool.Initialize(stageView.host)
@@ -102,12 +105,12 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 }
 
 func (t *TransformationManager) Update(host *engine.Host) {
+	kb := &host.Window.Keyboard
 	if !t.isBusy {
 		pos := matrix.Vec3NaN()
 		if t.manager.HasSelection() {
 			pos = t.manager.LastSelected().Transform.Position()
 		}
-		kb := &host.Window.Keyboard
 		if kb.KeyDown(hid.KeyboardKey1) {
 			t.setToolState(ToolStateMove, pos)
 		} else if kb.KeyDown(hid.KeyboardKey2) {
@@ -116,8 +119,11 @@ func (t *TransformationManager) Update(host *engine.Host) {
 			t.setToolState(ToolStateScale, pos)
 		}
 	}
-	t.isBusy = t.translateTool.Update(host) || t.rotationTool.Update(host) ||
-		t.scalingTool.Update(host)
+	ss := t.snapSettings
+	snap := kb.HasCtrl()
+	t.isBusy = t.translateTool.Update(host, snap, ss.TranslateIncrement) ||
+		t.rotationTool.Update(host, snap, ss.RotateIncrement) ||
+		t.scalingTool.Update(host, snap, ss.ScaleIncrement)
 }
 
 func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {

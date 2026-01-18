@@ -82,7 +82,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.host = host
 	v.manager.NewStage()
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
-	v.transformMan.Initialize(v, ed.History())
+	v.transformMan.Initialize(v, ed.History(), &ed.Settings().Snapping)
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
 	v.setupCamera(ed)

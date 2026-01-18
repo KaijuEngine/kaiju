@@ -133,14 +133,14 @@ func (t *TranslationTool) Hide() {
 	t.dragging = false
 }
 
-func (t *TranslationTool) Update(host *engine.Host) bool {
+func (t *TranslationTool) Update(host *engine.Host, snap bool, snapScale float32) bool {
 	if !t.visible {
 		return false
 	}
 	cam := host.Cameras.Primary.Camera
 	t.resize(cam)
 	t.hitCheck(host, cam)
-	t.processDrag(host, cam)
+	t.processDrag(host, cam, snap, snapScale)
 	return t.dragging
 }
 
@@ -222,7 +222,7 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	}
 }
 
-func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
+func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
 	if t.currentAxis == -1 {
 		return
 	}
@@ -255,13 +255,19 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 		}
 		nml := cp.Subtract(rp)
 		if hit, ok := cam.TryPlaneHit(c.Position(), rp, nml); ok {
+			p := hit.Add(t.rootHitOffset)
+			if snap {
+				p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
+				p.SetY(matrix.Floor(p.Y()/snapScale) * snapScale)
+				p.SetZ(matrix.Floor(p.Z()/snapScale) * snapScale)
+			}
 			switch t.currentAxis {
 			case matrix.Vx:
-				rp.SetX(hit.X() + t.rootHitOffset.X())
+				rp.SetX(p.X())
 			case matrix.Vy:
-				rp.SetY(hit.Y() + t.rootHitOffset.Y())
+				rp.SetY(p.Y())
 			case matrix.Vz:
-				rp.SetZ(hit.Z() + t.rootHitOffset.Z())
+				rp.SetZ(p.Z())
 			}
 			t.root.SetPosition(rp)
 			t.updateHitBoxes()

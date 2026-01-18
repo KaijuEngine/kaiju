@@ -127,14 +127,14 @@ func (t *RotationTool) Hide() {
 	t.dragging = false
 }
 
-func (t *RotationTool) Update(host *engine.Host) bool {
+func (t *RotationTool) Update(host *engine.Host, snap bool, snapScale float32) bool {
 	if !t.visible {
 		return false
 	}
 	cam := host.Cameras.Primary.Camera
 	t.resize(cam)
 	t.hitCheck(host, cam)
-	t.processDrag(host, cam)
+	t.processDrag(host, cam, snap, snapScale)
 	return t.dragging
 }
 
@@ -213,7 +213,7 @@ func (t *RotationTool) updateHitCircles() {
 	}
 }
 
-func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
+func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
 	if t.currentAxis == -1 {
 		return
 	}
@@ -245,7 +245,11 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera) {
 			angle := t.lastDirection.SignedAngle(dir, nml)
 			t.lastDirection = dir
 			t.rotationDelta += angle
-			t.OnDragRotate.Execute(t.rotationVector())
+			rot := t.rotationVector()
+			if snap {
+				rot.SetW(matrix.Floor(rot.W()/snapScale) * snapScale)
+			}
+			t.OnDragRotate.Execute(rot)
 		}
 		if c.Released() {
 			t.dragging = false
