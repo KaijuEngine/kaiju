@@ -198,6 +198,11 @@ func (fs *FileSystem) EnsureDatabaseExists() error {
 	return nil
 }
 
+func (fs *FileSystem) HasEngineCode() bool {
+	s, err := fs.Stat(KaijuSrcFolder)
+	return err == nil && s.IsDir()
+}
+
 // ReadDir is a wrapper around [os.ReadDir] since [os.Root] doesn't provide an
 // interface to this function directly. This simply grabs the rooted directory
 // path and joins the name argument to it before forwarding to [os.ReadDir].

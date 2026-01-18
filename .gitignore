@@ -28,7 +28,8 @@ interpreter/kaiju-*
 *.zip
 
 # Go pprof files
-*.prof
+heap.prof
+trace.out
 
 # Android files
 src/editor/project_templates/android/.idea

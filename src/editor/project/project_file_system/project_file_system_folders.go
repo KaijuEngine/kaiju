@@ -99,6 +99,7 @@ const (
 	ProjectModFile            = ProjectCodeFolder + "/go.mod"
 	ProjectCodeGameHost       = ProjectCodeGameHostFolder + "/game_host.go"
 	ProjectWorkFile           = "go.work"
+	ProjectGitignoreFile      = ".gitignore"
 	ProjectCodeGameTitle      = KaijuSrcFolder + "/build/title.go"
 	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
 )

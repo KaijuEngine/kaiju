@@ -67,6 +67,40 @@ use (
 )
 `
 
+const srcGitignoreFileData = `# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*__debug*
+*.exe*
+
+# Test binary, built with "go test -c"
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# env file
+.env
+
+# Editor/IDE
+# .idea/
+# .vscode/
+
+# Trace files
+heap.prof
+trace.out
+
+# Kaiju engine code
+#   Feel free to comment this out if you modify the engine code in your project
+kaiju/
+`
+
 const srcModFileData = `module game
 
 go %s
@@ -238,6 +272,10 @@ func (pfs *FileSystem) createCodeProject() error {
 	goVersion := strings.Split(strings.TrimPrefix(runtime.Version(), "go"), " ")[0]
 	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
 	if err := pfs.WriteFile(ProjectWorkFile, workFile, os.ModePerm); err != nil {
+		return err
+	}
+	gitignoreFile := []byte(srcGitignoreFileData)
+	if err := pfs.WriteFile(ProjectGitignoreFile, gitignoreFile, os.ModePerm); err != nil {
 		return err
 	}
 	modFile := []byte(fmt.Sprintf(srcModFileData, goVersion))
