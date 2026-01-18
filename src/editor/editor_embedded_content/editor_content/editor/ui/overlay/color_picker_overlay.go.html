@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body { z-index: 97; }
+			.overlay {
+				position: absolute;
+				width: 50%;
+				height: 50%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				color: white;
+				background-color: #121212;
+				border: 5px solid #575757;
+				border-radius: 5px;
+			}
+            .left {
+                width: 60%;
+                height: 100%;
+            }
+            .right {
+                width: 40%;
+                height: 100%;
+            }
+		</style>
+	</head>
+	<body>
+		<div class="overlay">
+            <div class="left">
+                <div class="colorPicker">
+                    <div id="cursorHue">
+                        <div>
+                            <div id="cursorHueSprite">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="colorPickerValue">
+                    <div id="colorPickerValueCursor">
+                        <div>
+                            <div id="colorPickerValueCursorSprite">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="right">
+                <div>
+                    <span>R: </span>
+                    <input id="r" type="text" placeholder="R..." />
+                </div>
+                <div>
+                    <span>G: </span>
+                    <input id="g" type="text" placeholder="G..." />
+                </div>
+                <div>
+                    <span>B: </span>
+                    <input id="b" type="text" placeholder="B..." />
+                </div>
+                <div>
+                    <span>Hex: </span>
+                    <input id="hex" type="text" placeholder="Hex..." />
+                </div>
+                <div class="preview">
+
+                </div>
+                <div>
+                    <button onclick="clickCancel">Cancel</button>
+                    <button onclick="clickAccept">Accept</button>
+                </div>
+            </div>
+		</div>
+	</body>
+</html>

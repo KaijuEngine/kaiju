@@ -24,6 +24,8 @@
         "editor/editor_embedded_content/editor_content/renderer/shaders/combine.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/composite.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/grid.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/color_picker_color.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/color_picker_value.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/ed_frustum_wire.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/ed_transform_wire.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/ed_gizmo.shader"
