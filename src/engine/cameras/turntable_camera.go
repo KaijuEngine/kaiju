@@ -58,6 +58,7 @@ func ToTurntable(camera *StandardCamera) *TurntableCamera {
 		pitch:          0.0,
 	}
 	tc.updateView = tc.internalUpdateView
+	tc.updateProjection = tc.internalUpdateProjection
 	return tc
 }
 
