@@ -65,9 +65,9 @@ type StandardCamera struct {
 	isOrthographic   bool
 	sizeIsViewSize   bool
 	frameDirty       bool
-	numCascades      uint8
+	csmNumCascades   uint8
 	csmDirty         bool
-	csmSplits        []float32
+	csmProjections   []matrix.Mat4
 }
 
 // NewStandardCamera creates a new perspective camera using the width/height
@@ -98,12 +98,13 @@ func (c *StandardCamera) Frustum() collision.Frustum { return c.frustum }
 func (c *StandardCamera) IsDirty() bool              { return c.frameDirty }
 func (c *StandardCamera) NewFrame()                  { c.frameDirty = false }
 
-func (c *StandardCamera) LightFrustumSplits() []float32 {
+func (c *StandardCamera) LightFrustumCSMProjections() []matrix.Mat4 {
 	defer tracing.NewRegion("StandardCamera.LightFrustums").End()
-	if c.csmDirty {
-		c.updateCSM()
+	if c.csmNumCascades == 0 {
+		return []matrix.Mat4{c.projection}
 	}
-	return c.csmSplits
+	c.updateCSM()
+	return c.csmProjections
 }
 
 // SetPosition sets the position of the camera.
@@ -310,7 +311,7 @@ func (c *StandardCamera) Viewport() matrix.Vec4 {
 
 func (c *StandardCamera) SetNumCSMCascades(n uint8) {
 	defer tracing.NewRegion("StandardCamera.SetNumCSMCascades").End()
-	c.numCascades = n
+	c.csmNumCascades = n
 	c.csmDirty = true
 }
 
@@ -324,7 +325,7 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.projection = matrix.Mat4Identity()
 	c.up = matrix.Vec3Up()
 	c.lookAt = position.Add(matrix.Vec3Forward())
-	c.numCascades = 3 // 0 means single frustum (no CSM)
+	c.csmNumCascades = 3 // 0 means single frustum (no CSM)
 	c.csmDirty = true
 }
 
@@ -357,6 +358,18 @@ func (c *StandardCamera) internalUpdateProjection() {
 	c.iProjection = c.projection
 	c.iProjection.Inverse()
 	c.updateFrustum()
+}
+
+func (c *StandardCamera) createProjection(near, far float32) matrix.Mat4 {
+	defer tracing.NewRegion("StandardCamera.createProjection").End()
+	proj := matrix.Mat4Identity()
+	if !c.isOrthographic {
+		proj.Perspective(matrix.Deg2Rad(c.fieldOfView),
+			c.width/c.height, near, far)
+	} else {
+		proj.Orthographic(-c.width*0.5, c.width*0.5, -c.height*0.5, c.height*0.5, near, far)
+	}
+	return proj
 }
 
 func (c *StandardCamera) internalUpdateView() {
@@ -415,18 +428,21 @@ func (c *StandardCamera) callUpdateProjection() {
 
 func (c *StandardCamera) updateCSM() {
 	defer tracing.NewRegion("StandardCamera.updateCSM").End()
-	num := int(c.numCascades)
+	if !c.csmDirty {
+		return
+	}
+	num := int(c.csmNumCascades)
 	if num == 0 {
 		num = 1
 	}
-	c.csmSplits = c.csmSplits[:0]
+	splits := make([]float32, 0, c.csmNumCascades)
 	if num <= 1 || c.isOrthographic {
-		c.csmSplits = append(c.csmSplits, c.nearPlane, c.farPlane)
+		splits = append(splits, c.nearPlane, c.farPlane)
 		c.csmDirty = false
 		return
 	}
-	c.csmSplits = slices.Grow(c.csmSplits, num+1)
-	c.csmSplits = append(c.csmSplits, c.nearPlane)
+	splits = slices.Grow(splits, num+1)
+	splits = append(splits, c.nearPlane)
 	const lambda float32 = 0.5
 	near64 := float64(c.nearPlane)
 	far64 := float64(c.farPlane)
@@ -436,8 +452,12 @@ func (c *StandardCamera) updateCSM() {
 		logSplit := near64 * math.Pow(far64/near64, p)
 		uniSplit := near64 + range64*p
 		split64 := lambda*float32(logSplit) + (1-lambda)*float32(uniSplit)
-		c.csmSplits = append(c.csmSplits, float32(split64))
+		splits = append(splits, float32(split64))
 	}
-	c.csmSplits = append(c.csmSplits, c.farPlane)
+	splits = append(splits, c.farPlane)
+	c.csmProjections = c.csmProjections[:0]
+	for i := range len(splits) - 1 {
+		c.csmProjections = append(c.csmProjections, c.createProjection(splits[i], splits[i+1]))
+	}
 	c.csmDirty = false
 }

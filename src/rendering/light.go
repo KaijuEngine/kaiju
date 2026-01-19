@@ -238,21 +238,17 @@ func (l *Light) recalculate(camera cameras.Camera) {
 	case LightTypeDirectional:
 		lightView := matrix.Mat4Identity()
 		lightProjection := matrix.Mat4Identity()
-		frustumSplits := camera.LightFrustumSplits()
-		// TODO:  Need to pull the corner points from each frustum
-		for i := range len(frustumSplits) - 1 {
-			near := frustumSplits[i]
-			far := frustumSplits[i+1]
-			// TODO:  Doing this every iteration is not a good idea
-			camera.SetNearPlane(near)
-			camera.SetFarPlane(far)
+		camView := camera.View()
+		csmProjections := camera.LightFrustumCSMProjections()
+		for i := range csmProjections {
 			// TODO:  This shouldn't happen all the time, when the view changes,
 			// might be best to store it along side the camera frustum?
-			corners := collision.FrustumExtractCorners(camera.View(), camera.Projection())
+			corners := collision.FrustumExtractCorners(camView, csmProjections[i])
 			center := corners.Center()
 			lightView.Reset()
-			lookAt := center.Add(l.direction).Add(matrix.NewVec3(0.00001, 0, 0.00001))
-			lightView.LookAt(lookAt, center, matrix.Vec3Up())
+			lightEye := center.Add(l.direction)
+			lightEye.AddAssign(matrix.NewVec3(0.00001, 0, 0.00001))
+			lightView.LookAt(lightEye, center, matrix.Vec3Up())
 			mm := l.minMaxFromCorners(lightView, corners)
 			lightProjection.Reset()
 			lightProjection.Orthographic(mm.Min.X(), mm.Max.X(),
@@ -263,9 +259,6 @@ func (l *Light) recalculate(camera cameras.Camera) {
 			// send the number of cascades we're using to the shader
 			break
 		}
-		// TODO:  Fixing the above dumb stuff "Doing this every iteration is not a good idea"
-		camera.SetNearPlane(frustumSplits[0])
-		camera.SetFarPlane(frustumSplits[len(frustumSplits)-1])
 	case LightTypePoint:
 	case LightTypeSpot:
 	}
