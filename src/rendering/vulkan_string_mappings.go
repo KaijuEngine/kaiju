@@ -508,6 +508,25 @@ var (
 		"AccelerationStructureReadBitNvx":   vulkan_const.AccessAccelerationStructureReadBitNvx,
 		"AccelerationStructureWriteBitNvx":  vulkan_const.AccessAccelerationStructureWriteBitNvx,
 	}
+	StringVkShaderStageFlagBits = map[string]vulkan_const.ShaderStageFlagBits{
+		"VertexBit":                 vulkan_const.ShaderStageVertexBit,
+		"TessellationControlBit":    vulkan_const.ShaderStageTessellationControlBit,
+		"TessellationEvaluationBit": vulkan_const.ShaderStageTessellationEvaluationBit,
+		"GeometryBit":               vulkan_const.ShaderStageGeometryBit,
+		"FragmentBit":               vulkan_const.ShaderStageFragmentBit,
+		"ComputeBit":                vulkan_const.ShaderStageComputeBit,
+		"AllGraphics":               vulkan_const.ShaderStageAllGraphics,
+		"All":                       vulkan_const.ShaderStageAll,
+		"RaygenBitNvx":              vulkan_const.ShaderStageRaygenBitNvx,
+		"AnyHitBitNvx":              vulkan_const.ShaderStageAnyHitBitNvx,
+		"ClosestHitBitNvx":          vulkan_const.ShaderStageClosestHitBitNvx,
+		"MissBitNvx":                vulkan_const.ShaderStageMissBitNvx,
+		"IntersectionBitNvx":        vulkan_const.ShaderStageIntersectionBitNvx,
+		"CallableBitNvx":            vulkan_const.ShaderStageCallableBitNvx,
+		"TaskBitNv":                 vulkan_const.ShaderStageTaskBitNv,
+		"MeshBitNv":                 vulkan_const.ShaderStageMeshBitNv,
+		"FlagBitsMaxEnum":           vulkan_const.ShaderStageFlagBitsMaxEnum,
+	}
 	StringVkPipelineBindPoint = map[string]vulkan_const.PipelineBindPoint{
 		"Graphics":      vulkan_const.PipelineBindPointGraphics,
 		"Compute":       vulkan_const.PipelineBindPointCompute,

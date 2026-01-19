@@ -147,9 +147,19 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 	return allWrites
 }
 
-func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
+func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayout, pushConstantData unsafe.Pointer) {
+	if s.pipelineInfo.PushConstant.Size == 0 || pushConstantData == nil {
+		return
+	}
+	vk.CmdPushConstants(cmd, layout,
+		s.pipelineInfo.PushConstant.StageFlags, 0,
+		s.pipelineInfo.PushConstant.Size, pushConstantData)
+}
+
+func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, pipeline)
+	writePushConstants(s, cmd, layout, pushConstantData)
 	dynOffsets := [...]uint32{0}
 	vbOffsets := [...]vk.DeviceSize{0}
 	ibOffsets := [...]vk.DeviceSize{0}
