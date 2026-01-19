@@ -39,6 +39,7 @@ package rendering
 import (
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
@@ -106,6 +107,7 @@ type LightsForRender struct {
 type Light struct {
 	renderer         *Vulkan
 	depthMaterial    *Material
+	texture          *Texture
 	camera           cameras.Camera
 	renderPass       *RenderPass
 	lightSpaceMatrix [cubeMapSides]matrix.Mat4
@@ -224,26 +226,64 @@ func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
 	return copy
 }
 
-func (l *Light) recalculate(followCam cameras.Camera) {
-	if !l.reset {
+func (l *Light) recalculate(camera cameras.Camera) {
+	if !l.reset && !camera.IsDirty() {
 		return
 	}
 	if l.lightType == LightTypeDirectional {
-		l.position = l.direction.Scale(-l.camera.FarPlane() * 0.5)
-		if followCam != nil {
-			l.lastFollowPos = matrix.NewVec3(followCam.Position().X(), 0, followCam.Position().Z())
-		}
+		l.position = l.direction.Scale(-camera.FarPlane() * 0.5)
 		l.position.AddAssign(l.lastFollowPos)
 	}
-	lookAt := l.position.Add(l.direction)
-	lookAt.AddAssign(matrix.NewVec3(0.00001, 0, 0.00001))
-	l.camera.SetPositionAndLookAt(l.position, lookAt)
 	switch l.lightType {
-	case LightTypeDirectional, LightTypeSpot:
-		l.lightSpaceMatrix[0] = matrix.Mat4Multiply(l.camera.View(), l.camera.Projection())
+	case LightTypeDirectional:
+		lightView := matrix.Mat4Identity()
+		lightProjection := matrix.Mat4Identity()
+		frustumSplits := camera.LightFrustumSplits()
+		// TODO:  Need to pull the corner points from each frustum
+		for i := range len(frustumSplits) - 1 {
+			near := frustumSplits[i]
+			far := frustumSplits[i+1]
+			// TODO:  Doing this every iteration is not a good idea
+			camera.SetNearPlane(near)
+			camera.SetFarPlane(far)
+			// TODO:  This shouldn't happen all the time, when the view changes,
+			// might be best to store it along side the camera frustum?
+			corners := collision.FrustumExtractCorners(camera.View(), camera.Projection())
+			center := corners.Center()
+			lightView.Reset()
+			lookAt := center.Add(l.direction).Add(matrix.NewVec3(0.00001, 0, 0.00001))
+			lightView.LookAt(lookAt, center, matrix.Vec3Up())
+			mm := l.minMaxFromCorners(lightView, corners)
+			lightProjection.Reset()
+			lightProjection.Orthographic(mm.Min.X(), mm.Max.X(),
+				mm.Min.Y(), mm.Max.Y(), mm.Max.Z(), mm.Min.Z())
+			l.lightSpaceMatrix[0] = matrix.Mat4Multiply(lightView, lightProjection)
+			// TODO:  This break is temp for testing, the above
+			// l.lightSpaceMatrix[i] may need to be updated, also I'll need to
+			// send the number of cascades we're using to the shader
+			break
+		}
+		// TODO:  Fixing the above dumb stuff "Doing this every iteration is not a good idea"
+		camera.SetNearPlane(frustumSplits[0])
+		camera.SetFarPlane(frustumSplits[len(frustumSplits)-1])
 	case LightTypePoint:
+	case LightTypeSpot:
 	}
 	l.reset = false
+}
+
+func (l *Light) minMaxFromCorners(view matrix.Mat4, corners collision.FrustumCorners) matrix.Vec3MinMax {
+	mm := matrix.NewVec3MinMax()
+	for i := range corners {
+		trf := matrix.Mat4MultiplyVec4(view, corners[i])
+		mm.Min.SetX(min(mm.Min.X(), trf.X()))
+		mm.Max.SetX(max(mm.Max.X(), trf.X()))
+		mm.Min.SetY(min(mm.Min.Y(), trf.Y()))
+		mm.Max.SetY(max(mm.Max.Y(), trf.Y()))
+		mm.Min.SetZ(min(mm.Min.Z(), trf.Z()))
+		mm.Max.SetZ(max(mm.Max.Z(), trf.Z()))
+	}
+	return mm
 }
 
 func (l *Light) transformToGPULight() GPULight {

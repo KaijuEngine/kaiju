@@ -40,6 +40,8 @@ import (
 	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"math"
+	"slices"
 )
 
 type StandardCamera struct {
@@ -63,6 +65,9 @@ type StandardCamera struct {
 	isOrthographic   bool
 	sizeIsViewSize   bool
 	frameDirty       bool
+	numCascades      uint8
+	csmDirty         bool
+	csmSplits        []float32
 }
 
 // NewStandardCamera creates a new perspective camera using the width/height
@@ -91,8 +96,15 @@ func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32,
 // view or project of the camera changes.
 func (c *StandardCamera) Frustum() collision.Frustum { return c.frustum }
 func (c *StandardCamera) IsDirty() bool              { return c.frameDirty }
+func (c *StandardCamera) NewFrame()                  { c.frameDirty = false }
 
-func (c *StandardCamera) NewFrame() { c.frameDirty = false }
+func (c *StandardCamera) LightFrustumSplits() []float32 {
+	defer tracing.NewRegion("StandardCamera.LightFrustums").End()
+	if c.csmDirty {
+		c.updateCSM()
+	}
+	return c.csmSplits
+}
 
 // SetPosition sets the position of the camera.
 func (c *StandardCamera) SetPosition(position matrix.Vec3) {
@@ -296,6 +308,12 @@ func (c *StandardCamera) Viewport() matrix.Vec4 {
 	return matrix.NewVec4(0, 0, c.viewWidth, c.viewHeight)
 }
 
+func (c *StandardCamera) SetNumCSMCascades(n uint8) {
+	defer tracing.NewRegion("StandardCamera.SetNumCSMCascades").End()
+	c.numCascades = n
+	c.csmDirty = true
+}
+
 func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.initializeValues").End()
 	c.fieldOfView = 60.0
@@ -306,6 +324,8 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.projection = matrix.Mat4Identity()
 	c.up = matrix.Vec3Up()
 	c.lookAt = position.Add(matrix.Vec3Forward())
+	c.numCascades = 3 // 0 means single frustum (no CSM)
+	c.csmDirty = true
 }
 
 func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32) {
@@ -384,9 +404,40 @@ func (c *StandardCamera) internalRayCast(cursorPosition matrix.Vec2, pos matrix.
 func (c *StandardCamera) callUpdateView() {
 	c.updateView()
 	c.frameDirty = true
+	c.csmDirty = true
 }
 
 func (c *StandardCamera) callUpdateProjection() {
 	c.updateProjection()
 	c.frameDirty = true
+	c.csmDirty = true
+}
+
+func (c *StandardCamera) updateCSM() {
+	defer tracing.NewRegion("StandardCamera.updateCSM").End()
+	num := int(c.numCascades)
+	if num == 0 {
+		num = 1
+	}
+	c.csmSplits = c.csmSplits[:0]
+	if num <= 1 || c.isOrthographic {
+		c.csmSplits = append(c.csmSplits, c.nearPlane, c.farPlane)
+		c.csmDirty = false
+		return
+	}
+	c.csmSplits = slices.Grow(c.csmSplits, num+1)
+	c.csmSplits = append(c.csmSplits, c.nearPlane)
+	const lambda float32 = 0.5
+	near64 := float64(c.nearPlane)
+	far64 := float64(c.farPlane)
+	range64 := far64 - near64
+	for i := 1; i < num; i++ {
+		p := float64(i) / float64(num)
+		logSplit := near64 * math.Pow(far64/near64, p)
+		uniSplit := near64 + range64*p
+		split64 := lambda*float32(logSplit) + (1-lambda)*float32(uniSplit)
+		c.csmSplits = append(c.csmSplits, float32(split64))
+	}
+	c.csmSplits = append(c.csmSplits, c.farPlane)
+	c.csmDirty = false
 }

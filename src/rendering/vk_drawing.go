@@ -255,7 +255,14 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		renderPass.ExecuteSecondaryCommands()
 	}
 	renderPass.endSubpasses()
-	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame])
+	// TODO:  Make this more generic so that there can be a sequence of stages
+	// that require other stages to be done. For now I'm just adding the pre and
+	// post stages to make sure shadows go first
+	if renderPass.construction.Name == "light_offscreen" {
+		vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], true)
+	} else {
+		vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], false)
+	}
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
@@ -323,7 +330,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 	cmd := &vr.combineCmds[vr.currentFrame]
 	cmd.Begin()
 	defer cmd.End()
-	vr.forceQueueCommand(*cmd)
+	vr.forceQueueCommand(*cmd, false)
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
@@ -365,7 +372,7 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	cmd := &vr.blitCmds[vr.currentFrame]
 	cmd.Begin()
 	defer cmd.End()
-	vr.forceQueueCommand(*cmd)
+	vr.forceQueueCommand(*cmd, false)
 	frame := vr.currentFrame
 	idxSF := vr.imageIndex[frame]
 	vr.transitionImageLayout(&vr.swapImages[idxSF],
