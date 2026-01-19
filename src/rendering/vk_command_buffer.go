@@ -46,16 +46,13 @@ import (
 	"weak"
 )
 
-const (
-	maxCommandPoolsInFlight = maxFramesInFlight * MaxCommandPools
-)
-
 type CommandRecorder struct {
 	buffer    vk.CommandBuffer
 	pool      vk.CommandPool
 	poolingId pooling.PoolGroupId
 	elmId     pooling.PoolIndex
 	fence     vk.Fence
+	stage     int
 	pooled    bool
 }
 

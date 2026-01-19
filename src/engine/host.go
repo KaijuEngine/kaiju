@@ -395,7 +395,7 @@ func (host *Host) Render() {
 		for i := 0; i < len(lights.Lights) && !lights.HasChanges; i++ {
 			lights.HasChanges = lights.Lights[i].ResetFrameDirty()
 		}
-		host.lighting.Update(host.Cameras.Primary.Camera.Position())
+		host.lighting.Update(host.PrimaryCamera().Position())
 		if host.Window.Renderer.ReadyFrame(host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
