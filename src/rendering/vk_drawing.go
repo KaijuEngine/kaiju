@@ -209,7 +209,11 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		}
 		p.Unpin()
 	}
-	renderPass.beginNextSubpass(vr.currentFrame, vr.swapChainExtent, renderPass.construction.ImageClears)
+	ext := vk.Extent2D{
+		Width:  max(vr.swapChainExtent.Width, uint32(renderPass.construction.Width)),
+		Height: max(vr.swapChainExtent.Height, uint32(renderPass.construction.Height)),
+	}
+	renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears)
 	for i := range drawings {
 		d := &drawings[i]
 		if doDrawings[i] {
@@ -221,7 +225,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 	renderPass.ExecuteSecondaryCommands()
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
-		renderPass.beginNextSubpass(vr.currentFrame, vr.swapChainExtent, renderPass.construction.ImageClears)
+		renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears)
 		cmd := &s.cmd[vr.currentFrame]
 		vk.CmdBindPipeline(cmd.buffer, vulkan_const.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))

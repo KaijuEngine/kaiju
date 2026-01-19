@@ -51,6 +51,8 @@ type RenderPassData struct {
 	AttachmentDescriptions []RenderPassAttachmentDescription
 	SubpassDescriptions    []RenderPassSubpassDescription
 	SubpassDependencies    []RenderPassSubpassDependency
+	Width                  int
+	Height                 int
 	SkipCombine            bool
 }
 
@@ -127,6 +129,8 @@ type RenderPassSubpassImageData struct {
 type RenderPassDataCompiled struct {
 	Name                   string
 	Sort                   int
+	Width                  int
+	Height                 int
 	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
 	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
 	SubpassDependencies    []RenderPassSubpassDependencyCompiled
@@ -208,6 +212,8 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	c := RenderPassDataCompiled{
 		Name:                   d.Name,
 		Sort:                   d.Sort,
+		Width:                  d.Width,
+		Height:                 d.Height,
 		AttachmentDescriptions: make([]RenderPassAttachmentDescriptionCompiled, len(d.AttachmentDescriptions)),
 		SubpassDescriptions:    make([]RenderPassSubpassDescriptionCompiled, len(d.SubpassDescriptions)),
 		SubpassDependencies:    make([]RenderPassSubpassDependencyCompiled, len(d.SubpassDependencies)),
