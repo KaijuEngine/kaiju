@@ -44,6 +44,11 @@ const vec3StrFmt = "%f, %f, %f"
 
 type Vec3 [3]Float
 
+type Vec3MinMax struct {
+	Min Vec3
+	Max Vec3
+}
+
 func (v Vec3) X() Float                   { return v[Vx] }
 func (v Vec3) Y() Float                   { return v[Vy] }
 func (v Vec3) Z() Float                   { return v[Vz] }
@@ -87,6 +92,13 @@ func Vec3FromArray(a [3]Float) Vec3 {
 
 func Vec3FromSlice(a []Float) Vec3 {
 	return Vec3{a[0], a[1], a[2]}
+}
+
+func NewVec3MinMax() Vec3MinMax {
+	return Vec3MinMax{
+		Min: Vec3{FloatMax, FloatMax, FloatMax},
+		Max: Vec3{-FloatMax, -FloatMax, -FloatMax},
+	}
 }
 
 func (v Vec3) AsAligned16() [4]Float {
