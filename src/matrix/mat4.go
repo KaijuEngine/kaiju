@@ -333,7 +333,7 @@ func (m *Mat4) Scale(scale Vec3) {
 	m[x2y2] *= scale.Z()
 }
 
-func Mat4LookAt(eye, center, up Vec3) Mat4 {
+func (m *Mat4) LookAt(eye, center, up Vec3) {
 	f := eye.Subtract(center)
 	f.Normalize()
 	s := Vec3Cross(up, f)
@@ -342,11 +342,17 @@ func Mat4LookAt(eye, center, up Vec3) Mat4 {
 	ns := s.Negative()
 	nu := u.Negative()
 	nf := f.Negative()
-	return Mat4{
+	*m = Mat4{
 		s.X(), u.X(), f.X(), 0.0,
 		s.Y(), u.Y(), f.Y(), 0.0,
 		s.Z(), u.Z(), f.Z(), 0.0,
 		Vec3Dot(ns, eye), Vec3Dot(nu, eye), Vec3Dot(nf, eye), 1.0}
+}
+
+func Mat4LookAt(eye, center, up Vec3) Mat4 {
+	m := Mat4Identity()
+	m.LookAt(eye, center, up)
+	return m
 }
 
 func (m *Mat4) Rotate(rotate Vec3) {
