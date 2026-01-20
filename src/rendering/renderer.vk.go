@@ -273,7 +273,7 @@ func (vr *Vulkan) createColorResources() bool {
 			Samples:     vr.msaaSamples,
 		})
 	return vr.createImageView(&vr.color, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
-		vulkan_const.ImageViewType2d, 0, 0)
+		vulkan_const.ImageViewType2d)
 }
 
 func NewVKRenderer(window RenderingContainer, applicationName string, assets assets.Database) (*Vulkan, error) {

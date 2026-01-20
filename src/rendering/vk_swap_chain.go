@@ -186,8 +186,8 @@ func (vr *Vulkan) swapChainCleanup() {
 		vr.dbg.remove(vk.TypeToUintPtr(vr.swapChainFrameBuffers[i]))
 	}
 	for i := uint32(0); i < vr.swapChainImageViewCount; i++ {
-		vk.DestroyImageView(vr.device, vr.swapImages[i].Views[0], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.swapImages[i].Views[0]))
+		vk.DestroyImageView(vr.device, vr.swapImages[i].View, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(vr.swapImages[i].View))
 	}
 	vk.DestroySwapchain(vr.device, vr.swapChain, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(vr.swapChain))

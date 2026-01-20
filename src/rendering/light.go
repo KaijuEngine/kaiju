@@ -253,7 +253,11 @@ func (l *Light) recalculate(camera cameras.Camera) {
 			lightProjection.Reset()
 			lightProjection.Orthographic(mm.Min.X(), mm.Max.X(),
 				mm.Min.Y(), mm.Max.Y(), mm.Max.Z(), mm.Min.Z())
-			l.lightSpaceMatrix[i] = matrix.Mat4Multiply(lightView, lightProjection)
+			l.lightSpaceMatrix[0] = matrix.Mat4Multiply(lightView, lightProjection)
+			// TODO:  This break is temp for testing, the above
+			// l.lightSpaceMatrix[i] may need to be updated, also I'll need to
+			// send the number of cascades we're using to the shader
+			break
 		}
 	case LightTypePoint:
 	case LightTypeSpot:

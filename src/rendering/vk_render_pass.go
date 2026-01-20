@@ -42,7 +42,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"unsafe"
 	"weak"
 
 	"kaiju/engine/assets"
@@ -52,19 +51,18 @@ import (
 )
 
 type RenderPass struct {
-	Handle           vk.RenderPass
-	Buffers          []vk.Framebuffer
-	device           vk.Device
-	dbg              *debugVulkan
-	textures         []Texture
-	construction     RenderPassDataCompiled
-	subpasses        []RenderPassSubpass
-	cmd              [maxFramesInFlight][]CommandRecorder
-	cmdSecondary     [maxFramesInFlight][]CommandRecorderSecondary
-	pushConstantData unsafe.Pointer
-	currentIdx       int
-	subpassIdx       int
-	frame            int
+	Handle       vk.RenderPass
+	Buffer       vk.Framebuffer
+	device       vk.Device
+	dbg          *debugVulkan
+	textures     []Texture
+	construction RenderPassDataCompiled
+	subpasses    []RenderPassSubpass
+	cmd          [maxFramesInFlight]CommandRecorder
+	cmdSecondary [maxFramesInFlight]CommandRecorderSecondary
+	currentIdx   int
+	subpassIdx   int
+	frame        int
 }
 
 type RenderPassSubpass struct {
@@ -135,12 +133,12 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 	return nil
 }
 
-func (r *RenderPass) endSubpasses(bufferIndex int) {
-	vk.CmdEndRenderPass(r.cmd[r.frame][bufferIndex].buffer)
-	r.cmd[r.frame][bufferIndex].End()
+func (r *RenderPass) endSubpasses() {
+	vk.CmdEndRenderPass(r.cmd[r.frame].buffer)
+	r.cmd[r.frame].End()
 }
 
-func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clearColors []vk.ClearValue, bufferIndex int) {
+func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clearColors []vk.ClearValue) {
 	r.frame = currentFrame
 	viewport := vk.Viewport{
 		X:        0,
@@ -158,7 +156,7 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 		renderPassInfo := vk.RenderPassBeginInfo{
 			SType:       vulkan_const.StructureTypeRenderPassBeginInfo,
 			RenderPass:  r.Handle,
-			Framebuffer: r.Buffers[bufferIndex],
+			Framebuffer: r.Buffer,
 			RenderArea: vk.Rect2D{
 				Offset: vk.Offset2D{X: 0, Y: 0},
 				Extent: extent,
@@ -168,13 +166,13 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 		if len(clearColors) > 0 {
 			renderPassInfo.PClearValues = &clearColors[0]
 		}
-		r.cmd[r.frame][bufferIndex].Begin()
-		vk.CmdBeginRenderPass(r.cmd[r.frame][bufferIndex].buffer, &renderPassInfo, vulkan_const.SubpassContentsSecondaryCommandBuffers)
-		r.cmdSecondary[r.frame][bufferIndex].Begin(viewport, scissor)
+		r.cmd[r.frame].Begin()
+		vk.CmdBeginRenderPass(r.cmd[r.frame].buffer, &renderPassInfo, vulkan_const.SubpassContentsSecondaryCommandBuffers)
+		r.cmdSecondary[r.frame].Begin(viewport, scissor)
 	} else {
 		sp := &r.subpasses[r.subpassIdx-1]
 		sp.cmd[r.frame].Reset()
-		vk.CmdNextSubpass(r.cmd[r.frame][bufferIndex].buffer, vulkan_const.SubpassContentsSecondaryCommandBuffers)
+		vk.CmdNextSubpass(r.cmd[r.frame].buffer, vulkan_const.SubpassContentsSecondaryCommandBuffers)
 		sp.cmd[r.frame].Begin(viewport, scissor)
 	}
 	r.currentIdx = r.subpassIdx
@@ -184,15 +182,15 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 	}
 }
 
-func (r *RenderPass) ExecuteSecondaryCommands(bufferIndex int) {
+func (r *RenderPass) ExecuteSecondaryCommands() {
 	buffs := [1]vk.CommandBuffer{}
-	rec := &r.cmdSecondary[r.frame][bufferIndex]
+	rec := &r.cmdSecondary[r.frame]
 	if r.currentIdx > 0 {
 		rec = &r.subpasses[r.currentIdx-1].cmd[r.frame]
 	}
 	rec.End()
 	buffs[0] = rec.buffer
-	vk.CmdExecuteCommands(r.cmd[r.frame][bufferIndex].buffer, uint32(len(buffs)), &buffs[0])
+	vk.CmdExecuteCommands(r.cmd[r.frame].buffer, uint32(len(buffs)), &buffs[0])
 }
 
 func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
@@ -280,18 +278,14 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 	r := &p.construction
 	var err error
 	for i := range len(p.cmd) {
-		c, err := NewCommandRecorder(vr)
-		if err != nil {
+		if p.cmd[i], err = NewCommandRecorder(vr); err != nil {
 			return err
 		}
-		p.cmd[i] = append(p.cmd[i], c)
 	}
 	for i := range len(p.cmdSecondary) {
-		c, err := NewCommandRecorderSecondary(vr, p, 0)
-		if err != nil {
+		if p.cmdSecondary[i], err = NewCommandRecorderSecondary(vr, p, 0); err != nil {
 			return nil
 		}
-		p.cmdSecondary[i] = append(p.cmdSecondary[i], c)
 	}
 	{
 		w := max(vr.swapChainExtent.Width, uint32(r.Width))
@@ -323,16 +317,14 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
 			}
-			for layer := range img.LayerCount {
-				success = vr.createImageView(&p.textures[i].RenderId, img.Aspect, vulkan_const.ImageViewType2d, layer, 1)
-				if !success {
-					const e = "failed to create image view for render pass attachment"
-					for j := range i + 1 {
-						p.textures[j].RenderId = vr.textureIdFree(p.textures[j].RenderId)
-					}
-					slog.Error(e, "attachmentIndex", i)
-					return errors.New(e)
+			success = vr.createImageView(&p.textures[i].RenderId, img.Aspect, vulkan_const.ImageViewType2d)
+			if !success {
+				const e = "failed to create image view for render pass attachment"
+				for j := range i + 1 {
+					p.textures[j].RenderId = vr.textureIdFree(p.textures[j].RenderId)
 				}
+				slog.Error(e, "attachmentIndex", i)
+				return errors.New(e)
 			}
 			success = vr.createTextureSampler(&p.textures[i].RenderId.Sampler,
 				img.MipLevels, img.Filter)
@@ -459,67 +451,39 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 	for i := range r.Subpass {
 		p.setupSubpass(&r.Subpass[i], vr, vr.caches.AssetDatabase(), i+1)
 	}
-	textureViews := make([]TextureId, 0, len(p.textures))
+	imageViews := make([]vk.ImageView, 0, len(p.textures))
 	for i := range len(r.AttachmentDescriptions) {
 		a := &r.AttachmentDescriptions[i]
 		if a.Image.IsInvalid() {
 			if a.Image.ExistingImage != "" {
 				for _, v := range vr.renderPassCache {
 					if t, ok := v.findTextureByName(a.Image.ExistingImage); ok {
-						textureViews = append(textureViews, t.RenderId)
+						imageViews = append(imageViews, t.RenderId.View)
 						break
 					}
 				}
 			}
 		} else {
-			textureViews = append(textureViews, p.textures[i].RenderId)
+			imageViews = append(imageViews, p.textures[i].RenderId.View)
 		}
 	}
-	if len(textureViews) == len(attachments) {
-		if err = p.CreateFrameBuffer(vr, textureViews, p.textures[0].Width, p.textures[0].Height); err != nil {
+	if len(imageViews) == len(attachments) {
+		if err = p.CreateFrameBuffer(vr, imageViews, p.textures[0].Width, p.textures[0].Height); err != nil {
 			slog.Error("failed to create the frame buffer for the render pass", "error", err)
 			return err
-		}
-	}
-	for range len(p.Buffers) - 1 {
-		for i := range len(p.cmd) {
-			c, err := NewCommandRecorder(vr)
-			if err != nil {
-				return err
-			}
-			p.cmd[i] = append(p.cmd[i], c)
-		}
-		for i := range len(p.cmdSecondary) {
-			c, err := NewCommandRecorderSecondary(vr, p, 0)
-			if err != nil {
-				return nil
-			}
-			p.cmdSecondary[i] = append(p.cmdSecondary[i], c)
 		}
 	}
 	return nil
 }
 
-func (p *RenderPass) CreateFrameBuffer(vr *Vulkan, textureViews []TextureId, width, height int) error {
-	views := make([]vk.ImageView, 0, len(textureViews))
-	layer := 0
-	for {
-		for i := range textureViews {
-			if len(textureViews[i].Views) > layer {
-				views = append(views, textureViews[i].Views[layer])
-			}
-		}
-		if len(views) == 0 {
-			break
-		}
-		fb, ok := vr.CreateFrameBuffer(p, views, uint32(width), uint32(height))
-		if !ok {
-			return errors.New("failed to create the frame buffer for the pass")
-		}
-		p.Buffers = append(p.Buffers, fb)
-		views = views[:0]
-		layer++
+func (p *RenderPass) CreateFrameBuffer(vr *Vulkan,
+	imageViews []vk.ImageView, width, height int) error {
+
+	fb, ok := vr.CreateFrameBuffer(p, imageViews, uint32(width), uint32(height))
+	if !ok {
+		return errors.New("failed to create the frame buffer for the pass")
 	}
+	p.Buffer = fb
 	return nil
 }
 
@@ -530,12 +494,9 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 	vk.DestroyRenderPass(p.device, p.Handle, nil)
 	p.dbg.remove(vk.TypeToUintPtr(p.Handle))
 	p.Handle = vk.NullRenderPass
-	for i := range p.Buffers {
-		vk.DestroyFramebuffer(p.device, p.Buffers[i], nil)
-		p.dbg.remove(vk.TypeToUintPtr(p.Buffers[i]))
-		p.Buffers[i] = vk.NullFramebuffer
-	}
-	p.Buffers = p.Buffers[:0]
+	vk.DestroyFramebuffer(p.device, p.Buffer, nil)
+	p.dbg.remove(vk.TypeToUintPtr(p.Buffer))
+	p.Buffer = vk.NullFramebuffer
 	for i := range p.textures {
 		vr.destroyTextureHandle(p.textures[i].RenderId)
 		p.textures[i].RenderId = TextureId{}
@@ -547,15 +508,9 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 	}
 	p.subpasses = klib.WipeSlice(p.subpasses)
 	for i := range p.cmd {
-		for j := range p.cmd[i] {
-			p.cmd[i][j].Destroy(vr)
-		}
-		p.cmd[i] = p.cmd[i][:0]
+		p.cmd[i].Destroy(vr)
 	}
 	for i := range p.cmdSecondary {
-		for j := range p.cmdSecondary[i] {
-			p.cmdSecondary[i][j].Destroy(vr)
-		}
-		p.cmdSecondary[i] = p.cmdSecondary[i][:0]
+		p.cmdSecondary[i].Destroy(vr)
 	}
 }

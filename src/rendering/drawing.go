@@ -202,13 +202,11 @@ func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		if len(rp.Buffers) == 0 {
+		if rp.Buffer == nil {
 			rp.Recontstruct(renderer.(*Vulkan))
 		}
-		for j := range rp.Buffers {
-			renderer.Draw(rp, d.renderPassGroups[i].draws, lights, j)
-			passes = append(passes, rp)
-		}
+		renderer.Draw(rp, d.renderPassGroups[i].draws, lights)
+		passes = append(passes, rp)
 	}
 	if len(passes) > 0 {
 		sort.Slice(passes, func(i, j int) bool {

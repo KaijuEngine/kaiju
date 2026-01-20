@@ -83,7 +83,7 @@ func (s ShaderId) IsValid() bool {
 type TextureId struct {
 	Image      vk.Image
 	Memory     vk.DeviceMemory
-	Views      []vk.ImageView
+	View       vk.ImageView
 	Sampler    vk.Sampler
 	Format     vulkan_const.Format
 	MipLevels  uint32

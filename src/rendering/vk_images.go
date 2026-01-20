@@ -41,7 +41,6 @@ import (
 	"log/slog"
 	"unsafe"
 
-	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
@@ -128,24 +127,18 @@ func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vulkan_const.For
 	return true
 }
 
-func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags, viewType vulkan_const.ImageViewType, layer, layerCount uint32) bool {
+func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags, viewType vulkan_const.ImageViewType) bool {
 	defer tracing.NewRegion("Vulkan.createImageView").End()
-	if layerCount == 0 {
-		layerCount = uint32(id.LayerCount)
-	}
-	viewInfo := vk.ImageViewCreateInfo{
-		SType:    vulkan_const.StructureTypeImageViewCreateInfo,
-		Image:    id.Image,
-		ViewType: viewType,
-		Format:   id.Format,
-		SubresourceRange: vk.ImageSubresourceRange{
-			AspectMask:     aspectFlags,
-			BaseMipLevel:   0,
-			LevelCount:     id.MipLevels,
-			BaseArrayLayer: layer,
-			LayerCount:     layerCount,
-		},
-	}
+	viewInfo := vk.ImageViewCreateInfo{}
+	viewInfo.SType = vulkan_const.StructureTypeImageViewCreateInfo
+	viewInfo.Image = id.Image
+	viewInfo.ViewType = viewType
+	viewInfo.Format = id.Format
+	viewInfo.SubresourceRange.AspectMask = aspectFlags
+	viewInfo.SubresourceRange.BaseMipLevel = 0
+	viewInfo.SubresourceRange.LevelCount = id.MipLevels
+	viewInfo.SubresourceRange.BaseArrayLayer = 0
+	viewInfo.SubresourceRange.LayerCount = uint32(id.LayerCount)
 	var idView vk.ImageView
 	if vk.CreateImageView(vr.device, &viewInfo, nil, &idView) != vulkan_const.Success {
 		slog.Error("Failed to create texture image view")
@@ -153,10 +146,7 @@ func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags
 	} else {
 		vr.dbg.add(vk.TypeToUintPtr(idView))
 	}
-	if len(id.Views) <= int(layer) {
-		id.Views = klib.SliceSetLen(id.Views, int(layer)+1)
-	}
-	id.Views[layer] = idView
+	id.View = idView
 	return true
 }
 
@@ -166,7 +156,7 @@ func (vr *Vulkan) createImageViews() bool {
 	vr.swapChainImageViewCount = vr.swapImageCount
 	success := true
 	for i := uint32(0); i < vr.swapChainImageViewCount && success; i++ {
-		if !vr.createImageView(&vr.swapImages[i], vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), vulkan_const.ImageViewType2d, 0, 0) {
+		if !vr.createImageView(&vr.swapImages[i], vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), vulkan_const.ImageViewType2d) {
 			slog.Error("Failed to create image views")
 			success = false
 		}
@@ -402,14 +392,11 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, requests []GPUImageWr
 
 func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
 	defer tracing.NewRegion("Vulkan.textureIdFree").End()
-	for i := range id.Views {
-		if id.Views[i] != vk.NullImageView {
-			vk.DestroyImageView(vr.device, id.Views[i], nil)
-			vr.dbg.remove(vk.TypeToUintPtr(id.Views[i]))
-			id.Views[i] = vk.NullImageView
-		}
+	if id.View != vk.NullImageView {
+		vk.DestroyImageView(vr.device, id.View, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(id.View))
+		id.View = vk.NullImageView
 	}
-	id.Views = id.Views[:0]
 	if id.Image != vk.NullImage {
 		vk.DestroyImage(vr.device, id.Image, nil)
 		vr.dbg.remove(vk.TypeToUintPtr(id.Image))

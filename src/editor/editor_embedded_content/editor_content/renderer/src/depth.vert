@@ -1,15 +1,14 @@
 #version 460
-#define VERTEX_SHADER
 
-#include "kaiju.glsl"
-
-layout(push_constant) uniform Push {
-    int CascadeIndex;
-};
+#include "inc_vertex.inl"
 
 layout(location = LOCATION_START) in int lightIndex;
 
 void main() {
-    mat4 fragLightSpaceMatrix = vertLights[lightIndex].matrix[CascadeIndex];
-    gl_Position = fragLightSpaceMatrix * model * vec4(Position, 1.0);
+#ifdef MULTI_LIGHT
+	mat4 fragLightSpaceMatrix = vertLights[lightIndex].matrix[0];
+#else
+	mat4 fragLightSpaceMatrix = vertLights[0].matrix[0];
+#endif
+	gl_Position = fragLightSpaceMatrix * model * vec4(Position, 1.0);
 }
