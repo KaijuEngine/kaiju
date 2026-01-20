@@ -57,11 +57,12 @@ const (
 	lightDirectionalScaleOut = 50.0
 	lightShadowmapFilter     = vulkan_const.FilterLinear
 	lightDepthFormat         = vulkan_const.FormatD16Unorm
+	MaxCascades              = 3
 	//lightDepthFormat       = vk.FormatD32Sfloat
 )
 
 var (
-	lightDepthMaterial     weak.Pointer[Material]
+	lightDepthMaterial     [MaxCascades]weak.Pointer[Material]
 	lightCubeDepthMaterial weak.Pointer[Material]
 )
 
@@ -106,7 +107,6 @@ type LightsForRender struct {
 
 type Light struct {
 	renderer         *Vulkan
-	depthMaterial    *Material
 	texture          *Texture
 	camera           cameras.Camera
 	renderPass       *RenderPass
@@ -147,10 +147,17 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 		}
 		return mat, nil
 	}
-	if mat, err := setupMat(assets.MaterialDefinitionLightDepth, materialCache); err != nil {
-		return err
-	} else {
-		lightDepthMaterial = weak.Make(mat)
+	mats := []string{
+		assets.MaterialDefinitionLightDepth,
+		assets.MaterialDefinitionLightDepthCSM1,
+		assets.MaterialDefinitionLightDepthCSM2,
+	}
+	for i := range mats {
+		if mat, err := setupMat(mats[i], materialCache); err != nil {
+			return err
+		} else {
+			lightDepthMaterial[i] = weak.Make(mat)
+		}
 	}
 	//if lightCubeDepthMaterial, err = setupMat(assets.MaterialDefinitionLightCubeDepth, materialCache); err != nil {
 	//	return err
@@ -183,19 +190,16 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 	case LightTypeDirectional:
 		fallthrough
 	default:
-		light.depthMaterial = lightDepthMaterial.Value()
 		const w, h = lightWidth, lightHeight
 		light.camera = cameras.NewStandardCameraOrthographic(w, h, w, h, v30)
 		light.camera.SetFarPlane(lightDirectionalScaleOut * 2.0)
 	case LightTypePoint:
-		light.depthMaterial = lightCubeDepthMaterial.Value()
 		light.camera = cameras.NewStandardCamera(lightDepthMapWidth, lightDepthMapHeight,
 			lightDepthMapWidth, lightDepthMapHeight, v30)
 		// Make FOV exactly large enough for each face of cubemap
 		light.camera.SetFOV(90)
 		light.camera.SetFarPlane(50.0)
 	case LightTypeSpot:
-		light.depthMaterial = lightDepthMaterial.Value()
 		light.camera = cameras.NewStandardCamera(lightDepthMapWidth, lightDepthMapHeight,
 			lightDepthMapWidth, lightDepthMapHeight, v30)
 		light.camera.SetFOV(90)
@@ -214,14 +218,14 @@ func (l *Light) ShadowMapTexture() *Texture {
 func (l *Light) Type() LightType { return l.lightType }
 func (l *Light) IsValid() bool   { return l.renderer != nil }
 
-func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
+func lightTransformDrawingToDepth(drawing *Drawing, cascades uint8) Drawing {
 	copy := *drawing
-	copy.Material = lightDepthMaterial.Value()
+	copy.Material = lightDepthMaterial[cascades].Value()
 	copy.Material.IsLit = false
 	copy.Material.ReceivesShadows = false
 	copy.Material.CastsShadows = false
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
-	drawing.ShaderData.setShadow(sd)
+	drawing.ShaderData.addShadow(sd)
 	copy.ShaderData = sd
 	return copy
 }

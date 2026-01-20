@@ -141,7 +141,7 @@ func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGro
 	}
 }
 
-func (d *Drawings) PreparePending() {
+func (d *Drawings) PreparePending(shadowCascades uint8) {
 	defer tracing.NewRegion("Drawings.PreparePending").End()
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
@@ -156,7 +156,9 @@ func (d *Drawings) PreparePending() {
 		}
 		d.addToRenderPassGroup(drawing, rpGroup)
 		if drawing.Material.CastsShadows {
-			d.backDraws = append(d.backDraws, lightTransformDrawingToDepth(drawing))
+			for i := range shadowCascades {
+				d.backDraws = append(d.backDraws, lightTransformDrawingToDepth(drawing, i))
+			}
 		}
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)

@@ -43,6 +43,7 @@ import (
 	"log/slog"
 	"runtime"
 	"slices"
+	"strings"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -199,6 +200,24 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return
 	}
+
+	// TODO:  This is some goofy stuff, I'll need to refactor after
+	// getting this shadow stuff working
+	if strings.HasPrefix(renderPass.construction.Name, "light_offscreen") {
+		lpc := struct{ CascadeIndex int }{}
+		switch renderPass.construction.Name[len(renderPass.construction.Name)-1] {
+		case '1':
+			lpc.CascadeIndex = 1
+		case '2':
+			lpc.CascadeIndex = 2
+		default:
+			lpc.CascadeIndex = 0
+		}
+		for i := range drawings {
+			drawings[i].pushConstantData = unsafe.Pointer(&lpc)
+		}
+	}
+
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
 	{
@@ -333,7 +352,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 			ViewCuller: &vr.combinedDrawingCuller,
 		})
 	}
-	vr.combinedDrawings.PreparePending()
+	vr.combinedDrawings.PreparePending(0)
 }
 
 func (vr *Vulkan) combineTargets() *TextureId {

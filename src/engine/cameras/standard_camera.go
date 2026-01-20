@@ -309,6 +309,8 @@ func (c *StandardCamera) Viewport() matrix.Vec4 {
 	return matrix.NewVec4(0, 0, c.viewWidth, c.viewHeight)
 }
 
+func (c *StandardCamera) NumCSMCascades() uint8 { return max(1, c.csmNumCascades) }
+
 func (c *StandardCamera) SetNumCSMCascades(n uint8) {
 	defer tracing.NewRegion("StandardCamera.SetNumCSMCascades").End()
 	c.csmNumCascades = n

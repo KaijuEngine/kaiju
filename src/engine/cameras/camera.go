@@ -72,6 +72,7 @@ type Camera interface {
 	Viewport() matrix.Vec4
 	Frustum() collision.Frustum
 	LightFrustumCSMProjections() []matrix.Mat4
+	NumCSMCascades() uint8
 	IsDirty() bool
 	NewFrame()
 }
