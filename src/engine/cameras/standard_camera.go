@@ -321,7 +321,7 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.initializeValues").End()
 	c.fieldOfView = 60.0
 	c.nearPlane = 0.01
-	c.farPlane = 500.0
+	c.farPlane = 250.0
 	c.position = position
 	c.view = matrix.Mat4Identity()
 	c.projection = matrix.Mat4Identity()

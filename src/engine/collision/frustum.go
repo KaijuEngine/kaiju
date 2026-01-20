@@ -70,19 +70,18 @@ func FrustumExtractCorners(view, projection matrix.Mat4) FrustumCorners {
 	inv := vp
 	inv.Inverse()
 	ndcCorners := [8]matrix.Vec4{
-		{-1, -1, -1, 1},
-		{+1, -1, -1, 1},
-		{+1, +1, -1, 1},
-		{-1, +1, -1, 1},
-		{-1, -1, +1, 1},
-		{+1, -1, +1, 1},
-		{+1, +1, +1, 1},
-		{-1, +1, +1, 1},
+		{-1, -1, 0, 1}, // Near plane corners
+		{+1, -1, 0, 1},
+		{+1, +1, 0, 1},
+		{-1, +1, 0, 1},
+		{-1, -1, 1, 1}, // Far plane corners
+		{+1, -1, 1, 1},
+		{+1, +1, 1, 1},
+		{-1, +1, 1, 1},
 	}
 	var corners FrustumCorners
 	for i, ndc := range ndcCorners {
 		worldH := matrix.Mat4MultiplyVec4(inv, ndc)
-		// perspective divide
 		if worldH.W() != 0 {
 			invW := 1.0 / worldH.W()
 			corners[i] = matrix.NewVec4(
@@ -92,7 +91,6 @@ func FrustumExtractCorners(view, projection matrix.Mat4) FrustumCorners {
 				1,
 			)
 		} else {
-			// rare degenerate case — keep as-is or handle differently
 			corners[i] = worldH
 		}
 	}
