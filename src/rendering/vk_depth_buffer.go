@@ -102,5 +102,5 @@ func (vr *Vulkan) createDepthResources() bool {
 			Samples:     vr.msaaSamples,
 		})
 	return vr.createImageView(&vr.depth,
-		vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit), vulkan_const.ImageViewType2d)
+		vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit), vulkan_const.ImageViewType2d, 0, 0)
 }

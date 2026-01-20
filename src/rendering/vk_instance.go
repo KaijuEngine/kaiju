@@ -51,9 +51,9 @@ func (vr *Vulkan) createSwapChainFrameBuffer() bool {
 	success := true
 	for i := uint32(0); i < count && success; i++ {
 		attachments := []vk.ImageView{
-			vr.color.View,
-			vr.depth.View,
-			vr.swapImages[i].View,
+			vr.color.Views[0],
+			vr.depth.Views[0],
+			vr.swapImages[i].Views[0],
 		}
 		vr.swapChainFrameBuffers[i], success = vr.CreateFrameBuffer(vr.swapChainRenderPass, attachments,
 			vr.swapChainExtent.Width, vr.swapChainExtent.Height)

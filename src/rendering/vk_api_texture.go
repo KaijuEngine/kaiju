@@ -92,7 +92,7 @@ func (vr *Vulkan) CreateImage(textureId *TextureId, properties vk.MemoryProperty
 	textureId.Format = imageInfo.Format
 	textureId.Width = int(imageInfo.Extent.Width)
 	textureId.Height = int(imageInfo.Extent.Height)
-	textureId.LayerCount = 1
+	textureId.LayerCount = int(imageInfo.ArrayLayers)
 	textureId.MipLevels = imageInfo.MipLevels
 	textureId.Samples = imageInfo.Samples
 	return true
@@ -270,7 +270,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		uint32(width), uint32(height), uint32(mip), filter)
 	vr.createImageView(&texture.RenderId,
 		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
-		viewTypeFromDimensions(data))
+		viewTypeFromDimensions(data), 0, 0)
 	vr.createTextureSampler(&texture.RenderId.Sampler, uint32(mip), filter)
 	runtime.AddCleanup(texture, func(state TextureCleanup) {
 		v := state.renderer.(*Vulkan)

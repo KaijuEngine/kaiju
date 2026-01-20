@@ -70,7 +70,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 	return true
 }
 
-func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, p *runtime.Pinner, viewIndex int) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
@@ -111,7 +111,7 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 		if texCount > 0 {
 			for j := range texCount {
 				t := group.MaterialInstance.Textures[j]
-				group.imageInfos[j] = imageInfo(t.RenderId.View, t.RenderId.Sampler)
+				group.imageInfos[j] = imageInfo(t.RenderId.Views[viewIndex], t.RenderId.Sampler)
 			}
 			addWrite(prepareSetWriteImage(set, group.imageInfos, 1, false))
 			if group.MaterialInstance.ReceivesShadows {
@@ -130,8 +130,8 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 							}
 						}
 					}
-					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
-					imageInfosCube[j] = imageInfo(smCube.View, smCube.Sampler)
+					imageInfos[j] = imageInfo(sm.Views[viewIndex], sm.Sampler)
+					imageInfosCube[j] = imageInfo(smCube.Views[viewIndex], smCube.Sampler)
 				}
 				addWrite(prepareSetWriteImage(set, imageInfos[:], 2, false))
 				addWrite(prepareSetWriteImage(set, imageInfosCube[:], 3, false))
@@ -194,11 +194,23 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 	}
 }
 
-func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender) {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, passBufferIndex int) {
 	defer tracing.NewRegion("Vulkan.Draw").End()
-	if !vr.hasSwapChain || len(drawings) == 0 {
+	if !vr.hasSwapChain {
 		return
 	}
+
+	// TODO:  This is some goofy stuff, I'll need to refactor after
+	// getting this shadow stuff working
+	lpc := struct {
+		CascadeIndex int
+	}{passBufferIndex}
+	if renderPass.construction.Name == "light_offscreen" {
+		for i := range drawings {
+			drawings[i].pushConstantData = unsafe.Pointer(&lpc)
+		}
+	}
+
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
 	{
@@ -206,7 +218,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, &p)
+			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, &p, passBufferIndex)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -223,19 +235,20 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		Width:  max(vr.swapChainExtent.Width, uint32(renderPass.construction.Width)),
 		Height: max(vr.swapChainExtent.Height, uint32(renderPass.construction.Height)),
 	}
-	renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears)
+	renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears, passBufferIndex)
 	for i := range drawings {
 		d := &drawings[i]
 		if doDrawings[i] {
 			s := &d.material.Shader.RenderId
-			vr.renderEach(renderPass.cmdSecondary[vr.currentFrame].buffer,
-				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+			vr.renderEach(renderPass.cmdSecondary[vr.currentFrame][passBufferIndex].buffer,
+				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups,
+				d.material.Shader, d.pushConstantData)
 		}
 	}
-	renderPass.ExecuteSecondaryCommands()
+	renderPass.ExecuteSecondaryCommands(passBufferIndex)
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
-		renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears)
+		renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears, passBufferIndex)
 		cmd := &s.cmd[vr.currentFrame]
 		vk.CmdBindPipeline(cmd.buffer, vulkan_const.PipelineBindPointGraphics, s.shader.RenderId.graphicsPipeline)
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
@@ -248,7 +261,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 				break
 			}
 			t := &renderPass.textures[s.sampledImages[j]].RenderId
-			imageInfos[j] = imageInfo(t.View, t.Sampler)
+			imageInfos[j] = imageInfo(t.Views[passBufferIndex], t.Sampler)
 			descriptorWrites[j] = prepareSetWriteImage(set, imageInfos[j:j+1], uint32(j), true)
 		}
 		vk.UpdateDescriptorSets(vr.device, uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
@@ -262,17 +275,14 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		vk.CmdBindVertexBuffers(cmd.buffer, 0, 1, &vb[0], &vbOffsets[0])
 		vk.CmdBindIndexBuffer(cmd.buffer, mid.indexBuffer, 0, vulkan_const.IndexTypeUint32)
 		vk.CmdDrawIndexed(cmd.buffer, mid.indexCount, 1, 0, 0, 0)
-		renderPass.ExecuteSecondaryCommands()
+		renderPass.ExecuteSecondaryCommands(passBufferIndex)
 	}
-	renderPass.endSubpasses()
+	renderPass.endSubpasses(passBufferIndex)
 	// TODO:  Make this more generic so that there can be a sequence of stages
 	// that require other stages to be done. For now I'm just adding the pre and
 	// post stages to make sure shadows go first
-	if renderPass.construction.Name == "light_offscreen" {
-		vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], true)
-	} else {
-		vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], false)
-	}
+	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame][passBufferIndex],
+		renderPass.construction.Name == "light_offscreen")
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
@@ -352,7 +362,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
-	vr.Draw(combinePass, draws, LightsForRender{})
+	vr.Draw(combinePass, draws, LightsForRender{}, 0)
 	return &combinePass.textures[0].RenderId
 }
 
