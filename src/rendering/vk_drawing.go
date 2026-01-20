@@ -227,9 +227,10 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 	for i := range drawings {
 		d := &drawings[i]
 		if doDrawings[i] {
-			s := &d.material.Shader.RenderId
+			shader := d.material.Shader
+			s := &shader.RenderId
 			vr.renderEach(renderPass.cmdSecondary[vr.currentFrame].buffer,
-				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData)
 		}
 	}
 	renderPass.ExecuteSecondaryCommands()
