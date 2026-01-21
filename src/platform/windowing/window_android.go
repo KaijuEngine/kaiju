@@ -86,7 +86,7 @@ func (w *Window) createWindow(_ string, _, _ int, platformState any) {
 	klib.OpenWebsiteAndroidFunc = w.openWebsite
 }
 
-func (w *Window) destroyWindow() {
+func destroyWindow(handle unsafe.Pointer) {
 }
 
 func (w *Window) pollController() {

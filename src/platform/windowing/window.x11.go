@@ -113,8 +113,8 @@ func (w *Window) showWindow() {
 	C.window_show(w.handle)
 }
 
-func (w *Window) destroyWindow() {
-	C.window_destroy(w.handle)
+func destroyWindow(handle unsafe.Pointer) {
+	C.window_destroy(handle)
 }
 
 func (w *Window) poll() {
