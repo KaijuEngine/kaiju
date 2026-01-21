@@ -46,6 +46,7 @@ import (
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"runtime"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -311,7 +312,12 @@ func (w *Window) Destroy() {
 	w.isClosed = true
 	w.removeFromActiveWindows()
 	w.Renderer.Destroy()
-	destroyWindow(w.handle)
+	// TODO:  Pass both to not have this if statement
+	if runtime.GOOS == "darwin" {
+		destroyWindow(w.instance)
+	} else {
+		destroyWindow(w.handle)
+	}
 	close(w.windowSync)
 }
 
