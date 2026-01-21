@@ -73,7 +73,7 @@ type Camera interface {
 	Frustum() collision.Frustum
 	LightFrustumCSMProjections() []matrix.Mat4
 	NumCSMCascades() uint8
-	CSMCascadeDistances() [5]float32
+	CSMCascadeDistances() [4]float32
 	IsDirty() bool
 	NewFrame()
 }

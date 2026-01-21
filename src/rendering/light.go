@@ -211,10 +211,6 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 
 func (l *Light) FrameDirty() bool { return l.reset }
 
-func (l *Light) ShadowMapTexture() *Texture {
-	return &l.renderPass.textures[0]
-}
-
 func (l *Light) Type() LightType { return l.lightType }
 func (l *Light) IsValid() bool   { return l.renderer != nil }
 

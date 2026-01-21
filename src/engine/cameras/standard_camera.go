@@ -312,11 +312,15 @@ func (c *StandardCamera) Viewport() matrix.Vec4 {
 
 func (c *StandardCamera) NumCSMCascades() uint8 { return max(1, c.csmNumCascades) }
 
-func (c *StandardCamera) CSMCascadeDistances() [5]float32 {
-	out := [5]float32{}
-	if c.csmNumCascades <= 1 {
-		out[0] = c.farPlane
-	} else {
+func (c *StandardCamera) CSMCascadeDistances() [4]float32 {
+	out := [4]float32{}
+	if len(c.csmSplits) < int(c.csmNumCascades) {
+		c.updateCSM()
+	}
+	for i := range out {
+		out[i] = c.farPlane
+	}
+	if c.csmNumCascades > 0 {
 		for i := range min(int(c.NumCSMCascades()), len(out)) {
 			out[i] = c.csmSplits[i+1]
 		}

@@ -202,18 +202,27 @@ func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
 		return
 	}
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
+	shadows := [MaxLocalLights]TextureId{}
+	shadowIdx := 0
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
 		if rp.Buffer == nil {
 			rp.Recontstruct(renderer.(*Vulkan))
 		}
-		renderer.Draw(rp, d.renderPassGroups[i].draws, lights)
 		passes = append(passes, rp)
+		if rp.IsShadowPass() {
+			shadows[shadowIdx] = rp.textures[0].RenderId
+			shadowIdx++
+		}
+	}
+	sort.Slice(passes, func(i, j int) bool {
+		return passes[i].construction.Sort < passes[j].construction.Sort
+	})
+	for i := range d.renderPassGroups {
+		rp := d.renderPassGroups[i].renderPass
+		renderer.Draw(rp, d.renderPassGroups[i].draws, lights, shadows[:])
 	}
 	if len(passes) > 0 {
-		sort.Slice(passes, func(i, j int) bool {
-			return passes[i].construction.Sort < passes[j].construction.Sort
-		})
 		renderer.BlitTargets(passes)
 	}
 }

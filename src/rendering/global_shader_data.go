@@ -59,7 +59,8 @@ type GlobalShaderData struct {
 	Time                  float32
 	ScreenSize            matrix.Vec2
 	CascadeCount          int32
-	CascadePlaneDistances [5]float32
+	_                     float32
+	CascadePlaneDistances [4]float32
 	VertLights            [MaxLocalLights]GPULight
 	LightInfos            [MaxLocalLights]GPULightInfo
 }

@@ -43,7 +43,6 @@ import (
 	"log/slog"
 	"runtime"
 	"slices"
-	"strings"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -71,7 +70,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 	return true
 }
 
-func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
@@ -121,14 +120,9 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				for j := range MaxLocalLights {
 					sm := &vr.fallbackShadowMap.RenderId
 					smCube := &vr.fallbackCubeShadowMap.RenderId
-					if lights.Lights[j].IsValid() {
-						s := lights.Lights[j].ShadowMapTexture()
-						if s.RenderId.IsValid() {
-							if lights.Lights[j].Type() == LightTypePoint {
-								smCube = &s.RenderId
-							} else {
-								sm = &s.RenderId
-							}
+					if len(shadows) > j {
+						if shadows[j].IsValid() {
+							sm = &shadows[j]
 						}
 					}
 					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
@@ -195,7 +189,7 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 	}
 }
 
-func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender) {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId) {
 	defer tracing.NewRegion("Vulkan.Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return
@@ -203,7 +197,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 
 	// TODO:  This is some goofy stuff, I'll need to refactor after
 	// getting this shadow stuff working
-	if strings.HasPrefix(renderPass.construction.Name, "light_offscreen") {
+	if renderPass.IsShadowPass() {
 		lpc := struct{ CascadeIndex int }{}
 		switch renderPass.construction.Name[len(renderPass.construction.Name)-1] {
 		case '1':
@@ -225,7 +219,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, &p)
+			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, &p)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -288,8 +282,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 	// TODO:  Make this more generic so that there can be a sequence of stages
 	// that require other stages to be done. For now I'm just adding the pre and
 	// post stages to make sure shadows go first
-	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame],
-		strings.HasPrefix(renderPass.construction.Name, "light_offscreen"))
+	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], renderPass.IsShadowPass())
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
@@ -369,7 +362,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
-	vr.Draw(combinePass, draws, LightsForRender{})
+	vr.Draw(combinePass, draws, LightsForRender{}, []TextureId{})
 	return &combinePass.textures[0].RenderId
 }
 

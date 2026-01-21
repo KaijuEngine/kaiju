@@ -96,7 +96,7 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	float time;
 	vec2 screenSize;
 	int cascadeCount;
-	float cascadePlaneDistances[5];
+	vec4 cascadePlaneDistances;
 	Light vertLights[MAX_LIGHTS];
 	LightInfo lightInfos[MAX_LIGHTS];
 };
@@ -265,6 +265,18 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 			idx = min(idx, MAX_LIGHTS - 1);
 			fragLightTPos[fragLightCount] = TBN * vertLights[idx].position;
 			fragLightTDir[fragLightCount] = TBN * normalize(vertLights[idx].direction);
+			//vec4 fragPosViewSpace = view * vec4(fragPos, 1.0);
+			//float depthValue = abs(fragPosViewSpace.z);
+			//int layer = -1;
+			//for (int i = 0; i < cascadeCount; ++i) {
+			//	if (depthValue < cascadePlaneDistances[i]) {
+			//		layer = i;
+			//		break;
+			//	}
+			//}
+			//if (layer == -1) {
+			//	layer = cascadeCount;
+			//}
 			fragPosLightSpace[fragLightCount] = vertLights[idx].matrix[0] * vec4(fragPos, 1.0);
 			fragLightIndexes[fragLightCount] = idx;
 			fragLightCount++;
@@ -416,51 +428,46 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	}
 
 	#ifdef SHADOW_SAMPLERS
-		float directShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx) {
-			/*
+		int selectCSMLayer() {
 			vec4 fragPosViewSpace = view * vec4(fragPos, 1.0);
 			float depthValue = abs(fragPosViewSpace.z);
-				
 			int layer = -1;
-			for (int i = 0; i < cascadeCount; ++i)
-			{
-				if (depthValue < cascadePlaneDistances[i])
-				{
+			for (int i = 0; i < cascadeCount; ++i) {
+				if (depthValue < cascadePlaneDistances[i] - (cascadePlaneDistances[i] * 0.075)) {
 					layer = i;
 					break;
 				}
 			}
-			if (layer == -1)
-			{
+			if (layer == -1) {
 				layer = cascadeCount;
 			}
-				
-			vec4 fragPosLightSpace = lightSpaceMatrices[layer] * vec4(fragPosWorldSpace, 1.0);
-			*/
+			return layer;
+		}
+
+		float directShadowCalculation(vec3 normal, vec3 lightDir, int lightIdx, float farPlane) {
+			int layer = selectCSMLayer();
+			vec4 fragPosLightSpace = vertLights[lightIdx].matrix[layer] * vec4(fragPos, 1.0);
 			// Perform perspective divide
 			vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 			// Transform to [0,1] range
 			projCoords.xy = projCoords.xy * 0.5 + 0.5;
 			// Get closest depth value from light's perspective
 			// (using [0,1] range fragPosLight as coords)
-			float closestDepth = texture(shadowMap[lightIdx], projCoords.xy).r;
+			float closestDepth = texture(shadowMap[layer], projCoords.xy).r;
 			// Get depth of current fragment from light's perspective
 			float currentDepth = projCoords.z;
-
 			float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.001);
-			float slopeScale = max(0.005 * (1.0 - dot(normal, lightDir)), 0.002);
-			float dzdx = dFdx(projCoords.z);
-			float dzdy = dFdy(projCoords.z);
-			float depthSlope = max(abs(dzdx), abs(dzdy));
-			bias += slopeScale * depthSlope;
-			bias = clamp(bias, 0.0001, 0.005);
-
+			if (layer == cascadeCount) {
+				bias *= 1 / (farPlane * 0.5);
+			} else {
+				bias *= 1 / (cascadePlaneDistances[layer] * 0.5);
+			}
 			float shadow = 0.0;
 			int samples = 16;
-			vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[lightIdx], 0));
+			vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[layer], 0));
 			for(int i = 0; i < samples; ++i) {
 				vec2 offset = poissonDisk[i] * texelSize * 1.5;  // Tune radius (1.0-2.0) for penumbra
-				float pcfDepth = texture(shadowMap[lightIdx], projCoords.xy + offset).r;
+				float pcfDepth = texture(shadowMap[layer], projCoords.xy + offset).r;
 				shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
 			}
 			shadow /= float(samples);

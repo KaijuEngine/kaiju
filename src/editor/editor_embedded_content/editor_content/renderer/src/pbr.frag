@@ -20,7 +20,6 @@
 
 void main() {
 	vec3 V = normalize(fragTangentViewPos - fragTangentFragPos);
-
 	// Convert albedo from sRGB to linear space
 	//vec3 albedo = pow(texture(textures[0], fragTexCoords).rgb, 2.2);
 	vec3 albedo = texture(textures[0], fragTexCoords).rgb;
@@ -58,7 +57,7 @@ void main() {
 		float lightShadow = 0.0;
 		if (light.type == 0) {
 			attenuation = light.intensity;
-			lightShadow = directShadowCalculation(fplSpace, N, fltDir, lightIdx);
+			lightShadow = directShadowCalculation(N, fltDir, lightIdx, light.farPlane);
 		} else if (light.type == 1) {
 			float d = length(fltPos - fragTangentFragPos);
 			attenuation = light.intensity / (light.constant +
