@@ -1,5 +1,5 @@
 #include "vk_default_loader.h"
-#include "vulkan/vulkan.h"
+#include "kaiju_vulkan.h"
 
 #if defined(_WIN32)
     #include <windows.h>

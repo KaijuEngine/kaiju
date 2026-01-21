@@ -43,6 +43,7 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
+	"os"
 	"reflect"
 )
 
@@ -70,12 +71,26 @@ func (EditorGame) Launch(host *engine.Host) {
 	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(512)
 	ed.earlyLoadUI()
+	var autoTestPath string
+	if build.Debug && engine.LaunchParams.AutoTest {
+		var err error
+		autoTestPath, err = os.MkdirTemp("", "kaiju-autotest-*")
+		if err != nil {
+			slog.Error("failed to create autotest temp project directory", "error", err)
+			autoTestPath = "autotestproject"
+		} else {
+			ed.autoTestProjectPath = autoTestPath
+		}
+	}
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
 		ed.BlurInterface()
 		if build.Debug && engine.LaunchParams.AutoTest {
 			// Auto-test mode: create a temporary test project automatically
-			ed.createProject("AutoTest", "autotestproject", "")
+			if autoTestPath == "" {
+				autoTestPath = "autotestproject"
+			}
+			ed.createProject("AutoTest", autoTestPath, "")
 		} else {
 			ed.newProjectOverlay()
 		}

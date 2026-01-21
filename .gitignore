@@ -35,3 +35,6 @@ trace.out
 src/editor/project_templates/android/.idea
 src/editor/project_templates/android/app/src/main/cpp/libkaiju_android.h
 kaiju_android.so
+
+# GoLand
+.idea/

@@ -2,7 +2,7 @@
 #define VULKAN_BRIDGE_H_ 1
 
 #define VK_NO_PROTOTYPES 1
-#include "vulkan/vulkan.h"
+#include "kaiju_vulkan.h"
 
 #ifdef VK_USE_PLATFORM_IOS_MVK
 #include "moltenVK/vk_mvk_moltenvk.h"

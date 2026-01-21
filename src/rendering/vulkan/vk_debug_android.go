@@ -42,7 +42,7 @@ package vulkan
 /*
 #cgo android LDFLAGS: -llog
 
-#include "vulkan/vulkan.h"
+#include "kaiju_vulkan.h"
 #include <android/log.h>
 
 VkBool32 debugReportCallback(

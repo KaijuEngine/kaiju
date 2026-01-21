@@ -44,6 +44,11 @@
     [NSApp activateIgnoringOtherApps:YES];
     return YES;
 }
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
+    (void)sender;
+    return YES;
+}
 @end
 
 #pragma mark - Helpers
