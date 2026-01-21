@@ -39,6 +39,7 @@ package rendering
 import (
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
+	"kaiju/engine/collision"
 	"kaiju/matrix"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
@@ -56,11 +57,12 @@ const (
 	lightDirectionalScaleOut = 50.0
 	lightShadowmapFilter     = vulkan_const.FilterLinear
 	lightDepthFormat         = vulkan_const.FormatD16Unorm
+	MaxCascades              = 3
 	//lightDepthFormat       = vk.FormatD32Sfloat
 )
 
 var (
-	lightDepthMaterial     weak.Pointer[Material]
+	lightDepthMaterial     [MaxCascades]weak.Pointer[Material]
 	lightCubeDepthMaterial weak.Pointer[Material]
 )
 
@@ -105,7 +107,7 @@ type LightsForRender struct {
 
 type Light struct {
 	renderer         *Vulkan
-	depthMaterial    *Material
+	texture          *Texture
 	camera           cameras.Camera
 	renderPass       *RenderPass
 	lightSpaceMatrix [cubeMapSides]matrix.Mat4
@@ -145,10 +147,17 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 		}
 		return mat, nil
 	}
-	if mat, err := setupMat(assets.MaterialDefinitionLightDepth, materialCache); err != nil {
-		return err
-	} else {
-		lightDepthMaterial = weak.Make(mat)
+	mats := []string{
+		assets.MaterialDefinitionLightDepth,
+		assets.MaterialDefinitionLightDepthCSM1,
+		assets.MaterialDefinitionLightDepthCSM2,
+	}
+	for i := range mats {
+		if mat, err := setupMat(mats[i], materialCache); err != nil {
+			return err
+		} else {
+			lightDepthMaterial[i] = weak.Make(mat)
+		}
 	}
 	//if lightCubeDepthMaterial, err = setupMat(assets.MaterialDefinitionLightCubeDepth, materialCache); err != nil {
 	//	return err
@@ -181,19 +190,16 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 	case LightTypeDirectional:
 		fallthrough
 	default:
-		light.depthMaterial = lightDepthMaterial.Value()
 		const w, h = lightWidth, lightHeight
 		light.camera = cameras.NewStandardCameraOrthographic(w, h, w, h, v30)
 		light.camera.SetFarPlane(lightDirectionalScaleOut * 2.0)
 	case LightTypePoint:
-		light.depthMaterial = lightCubeDepthMaterial.Value()
 		light.camera = cameras.NewStandardCamera(lightDepthMapWidth, lightDepthMapHeight,
 			lightDepthMapWidth, lightDepthMapHeight, v30)
 		// Make FOV exactly large enough for each face of cubemap
 		light.camera.SetFOV(90)
 		light.camera.SetFarPlane(50.0)
 	case LightTypeSpot:
-		light.depthMaterial = lightDepthMaterial.Value()
 		light.camera = cameras.NewStandardCamera(lightDepthMapWidth, lightDepthMapHeight,
 			lightDepthMapWidth, lightDepthMapHeight, v30)
 		light.camera.SetFOV(90)
@@ -205,45 +211,68 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 
 func (l *Light) FrameDirty() bool { return l.reset }
 
-func (l *Light) ShadowMapTexture() *Texture {
-	return &l.renderPass.textures[0]
-}
-
 func (l *Light) Type() LightType { return l.lightType }
 func (l *Light) IsValid() bool   { return l.renderer != nil }
 
-func lightTransformDrawingToDepth(drawing *Drawing) Drawing {
+func lightTransformDrawingToDepth(drawing *Drawing, cascades uint8) Drawing {
 	copy := *drawing
-	copy.Material = lightDepthMaterial.Value()
+	copy.Material = lightDepthMaterial[cascades].Value()
 	copy.Material.IsLit = false
 	copy.Material.ReceivesShadows = false
 	copy.Material.CastsShadows = false
 	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
-	drawing.ShaderData.setShadow(sd)
+	drawing.ShaderData.addShadow(sd)
 	copy.ShaderData = sd
 	return copy
 }
 
-func (l *Light) recalculate(followCam cameras.Camera) {
-	if !l.reset {
+func (l *Light) recalculate(camera cameras.Camera) {
+	if !l.reset && !camera.IsDirty() {
 		return
 	}
 	if l.lightType == LightTypeDirectional {
-		l.position = l.direction.Scale(-l.camera.FarPlane() * 0.5)
-		if followCam != nil {
-			l.lastFollowPos = matrix.NewVec3(followCam.Position().X(), 0, followCam.Position().Z())
-		}
+		l.position = l.direction.Scale(-camera.FarPlane() * 0.5)
 		l.position.AddAssign(l.lastFollowPos)
 	}
-	lookAt := l.position.Add(l.direction)
-	lookAt.AddAssign(matrix.NewVec3(0.00001, 0, 0.00001))
-	l.camera.SetPositionAndLookAt(l.position, lookAt)
 	switch l.lightType {
-	case LightTypeDirectional, LightTypeSpot:
-		l.lightSpaceMatrix[0] = matrix.Mat4Multiply(l.camera.View(), l.camera.Projection())
+	case LightTypeDirectional:
+		lightView := matrix.Mat4Identity()
+		lightProjection := matrix.Mat4Identity()
+		camView := camera.View()
+		csmProjections := camera.LightFrustumCSMProjections()
+		for i := range csmProjections {
+			// TODO:  This shouldn't happen all the time, when the view changes,
+			// might be best to store it along side the camera frustum?
+			corners := collision.FrustumExtractCorners(camView, csmProjections[i])
+			center := corners.Center()
+			lightView.Reset()
+			lightEye := center.Add(l.direction)
+			lightEye.AddAssign(matrix.NewVec3(0.00001, 0, 0.00001))
+			lightView.LookAt(lightEye, center, matrix.Vec3Up())
+			mm := l.minMaxFromCorners(lightView, corners)
+			lightProjection.Reset()
+			lightProjection.Orthographic(mm.Min.X(), mm.Max.X(),
+				mm.Min.Y(), mm.Max.Y(), mm.Max.Z(), mm.Min.Z())
+			l.lightSpaceMatrix[i] = matrix.Mat4Multiply(lightView, lightProjection)
+		}
 	case LightTypePoint:
+	case LightTypeSpot:
 	}
 	l.reset = false
+}
+
+func (l *Light) minMaxFromCorners(view matrix.Mat4, corners collision.FrustumCorners) matrix.Vec3MinMax {
+	mm := matrix.NewVec3MinMax()
+	for i := range corners {
+		trf := matrix.Mat4MultiplyVec4(view, corners[i])
+		mm.Min.SetX(min(mm.Min.X(), trf.X()))
+		mm.Max.SetX(max(mm.Max.X(), trf.X()))
+		mm.Min.SetY(min(mm.Min.Y(), trf.Y()))
+		mm.Max.SetY(max(mm.Max.Y(), trf.Y()))
+		mm.Min.SetZ(min(mm.Min.Z(), trf.Z()))
+		mm.Max.SetZ(max(mm.Max.Z(), trf.Z()))
+	}
+	return mm
 }
 
 func (l *Light) transformToGPULight() GPULight {

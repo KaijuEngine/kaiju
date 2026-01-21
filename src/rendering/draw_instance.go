@@ -68,7 +68,7 @@ type DrawInstance interface {
 	InstanceBoundDataSize() int
 	setTransform(transform *matrix.Transform)
 	SelectLights(lights LightsForRender)
-	setShadow(shadow DrawInstance)
+	addShadow(shadow DrawInstance)
 	renderBounds() collision.AABB
 }
 
@@ -90,7 +90,7 @@ type ShaderDataBase struct {
 	deactivated bool
 	viewCulled  bool
 	_           [1]byte // Byte alignment
-	shadow      DrawInstance
+	shadows     []DrawInstance
 	transform   *matrix.Transform
 	InitModel   matrix.Mat4
 	model       matrix.Mat4
@@ -128,22 +128,22 @@ func (s *ShaderDataBase) ModelPtr() *matrix.Mat4                   { return &s.m
 
 func (s *ShaderDataBase) Destroy() {
 	s.destroyed = true
-	if s.shadow != nil {
-		s.shadow.Destroy()
+	for i := range s.shadows {
+		s.shadows[i].Destroy()
 	}
 }
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
-	if s.shadow != nil {
-		s.shadow.Activate()
+	for i := range s.shadows {
+		s.shadows[i].Activate()
 	}
 }
 
 func (s *ShaderDataBase) Deactivate() {
 	s.deactivated = true
-	if s.shadow != nil {
-		s.shadow.Deactivate()
+	for i := range s.shadows {
+		s.shadows[i].Deactivate()
 	}
 }
 
@@ -155,10 +155,10 @@ func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	}
 }
 
-func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
-	s.shadow = shadow
+func (s *ShaderDataBase) addShadow(shadow DrawInstance) {
+	s.shadows = append(s.shadows, shadow)
 	if s.deactivated {
-		s.shadow.Deactivate()
+		shadow.Deactivate()
 	}
 }
 

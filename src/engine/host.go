@@ -383,7 +383,7 @@ func (host *Host) Update(deltaTime float64) {
 func (host *Host) Render() {
 	defer tracing.NewRegion("Host.Render").End()
 	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
-	host.Drawings.PreparePending()
+	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()

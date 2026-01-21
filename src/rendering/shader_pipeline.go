@@ -54,6 +54,7 @@ type ShaderPipelineData struct {
 	DepthStencil          ShaderPipelineDepthStencil
 	Tessellation          ShaderPipelineTessellation
 	GraphicsPipeline      ShaderPipelineGraphicsPipeline
+	PushConstant          ShaderPipelinePushConstant
 }
 
 type ShaderPipelineInputAssembly struct {
@@ -124,6 +125,11 @@ type ShaderPipelineGraphicsPipeline struct {
 	PipelineCreateFlags []string `options:"StringVkPipelineCreateFlagBits"`
 }
 
+type ShaderPipelinePushConstant struct {
+	Size       uint32
+	StageFlags []string `options:"StringVkAccessFlagBits"`
+}
+
 type ShaderPipelineColorBlendAttachments struct {
 	BlendEnable         bool
 	SrcColorBlendFactor string   `options:"StringVkBlendFactor"`
@@ -145,6 +151,7 @@ type ShaderPipelineDataCompiled struct {
 	DepthStencil          ShaderPipelineDepthStencilCompiled
 	Tessellation          ShaderPipelineTessellationCompiled
 	GraphicsPipeline      ShaderPipelineGraphicsPipelineCompiled
+	PushConstant          ShaderPipelinePushConstantCompiled
 }
 
 type ShaderPipelineInputAssemblyCompiled struct {
@@ -198,6 +205,11 @@ type ShaderPipelineTessellationCompiled struct {
 type ShaderPipelineGraphicsPipelineCompiled struct {
 	Subpass             uint32
 	PipelineCreateFlags vk.PipelineCreateFlags
+}
+
+type ShaderPipelinePushConstantCompiled struct {
+	Size       uint32
+	StageFlags vk.ShaderStageFlags
 }
 
 type ShaderPipelineColorBlendAttachmentsCompiled struct {
@@ -282,6 +294,10 @@ func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompil
 		GraphicsPipeline: ShaderPipelineGraphicsPipelineCompiled{
 			Subpass:             d.GraphicsPipeline.Subpass,
 			PipelineCreateFlags: d.GraphicsPipeline.PipelineCreateFlagsToVK(),
+		},
+		PushConstant: ShaderPipelinePushConstantCompiled{
+			Size:       d.PushConstant.Size,
+			StageFlags: d.PushConstant.ShaderStageFlagsToVK(),
 		},
 	}
 	for i := range d.ColorBlendAttachments {
@@ -581,17 +597,33 @@ func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCr
 	return vk.PipelineCreateFlags(mask)
 }
 
+func (s *ShaderPipelinePushConstant) ShaderStageFlagsToVK() vk.ShaderStageFlags {
+	mask := vulkan_const.ShaderStageFlagBits(0)
+	for i := range s.StageFlags {
+		mask |= StringVkShaderStageFlagBits[s.StageFlags[i]]
+	}
+	return vk.ShaderStageFlags(mask)
+}
+
 func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
 	defer tracing.NewRegion("ShaderPipelineDataCompiled.ConstructPipeline").End()
 	vr := renderer.(*Vulkan)
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
-		SType:                  vulkan_const.StructureTypePipelineLayoutCreateInfo,
-		Flags:                  0, // PipelineLayoutCreateFlags
-		SetLayoutCount:         1,
-		PSetLayouts:            &shader.RenderId.descriptorSetLayout,
-		PushConstantRangeCount: 0,
-		PPushConstantRanges:    nil,
+		SType:          vulkan_const.StructureTypePipelineLayoutCreateInfo,
+		Flags:          0, // PipelineLayoutCreateFlags
+		SetLayoutCount: 1,
+		PSetLayouts:    &shader.RenderId.descriptorSetLayout,
 	}
+	if s.PushConstant.Size > 0 {
+		pushRanges := [1]vk.PushConstantRange{{
+			StageFlags: s.PushConstant.StageFlags,
+			Offset:     0,
+			Size:       s.PushConstant.Size,
+		}}
+		pipelineLayoutInfo.PushConstantRangeCount = 1
+		pipelineLayoutInfo.PPushConstantRanges = &pushRanges[0]
+	}
+
 	var pLayout vk.PipelineLayout
 	if vk.CreatePipelineLayout(vr.device, &pipelineLayoutInfo, nil, &pLayout) != vulkan_const.Success {
 		slog.Error("Failed to create pipeline layout")

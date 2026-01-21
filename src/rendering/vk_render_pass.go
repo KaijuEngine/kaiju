@@ -75,6 +75,71 @@ type RenderPassSubpass struct {
 	cmd            [maxFramesInFlight]CommandRecorderSecondary
 }
 
+func (r *RenderPass) IsShadowPass() bool {
+	// TODO:  Need another way to denote this is a shadow pass
+	return strings.HasPrefix(r.construction.Name, "light_offscreen")
+}
+
+func (r *RenderPass) ExecuteSecondaryCommands() {
+	buffs := [1]vk.CommandBuffer{}
+	rec := &r.cmdSecondary[r.frame]
+	if r.currentIdx > 0 {
+		rec = &r.subpasses[r.currentIdx-1].cmd[r.frame]
+	}
+	rec.End()
+	buffs[0] = rec.buffer
+	vk.CmdExecuteCommands(r.cmd[r.frame].buffer, uint32(len(buffs)), &buffs[0])
+}
+
+func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
+	targetFormat := vr.swapImages[0].Format
+	var fallback *Texture
+	for i := range r.construction.AttachmentDescriptions {
+		a := &r.construction.AttachmentDescriptions[i]
+		if (a.Image.Usage & vk.ImageUsageFlags(vulkan_const.ImageUsageColorAttachmentBit)) != 0 {
+			if fallback == nil {
+				// First image is likely the better image to fall back to
+				fallback = &r.textures[i]
+			}
+			if a.Format == targetFormat {
+				return &r.textures[i]
+			}
+		}
+	}
+	// Matching image not found, search in remote connected passes
+	for i := range r.construction.AttachmentDescriptions {
+		a := &r.construction.AttachmentDescriptions[i]
+		if a.Format == targetFormat {
+			if a.Image.ExistingImage != "" {
+				for _, p := range vr.renderPassCache {
+					if t, ok := p.findTextureByName(a.Image.ExistingImage); ok {
+						return t
+					}
+				}
+			}
+		}
+	}
+	if fallback != nil {
+		return fallback
+	}
+	for i := range r.textures {
+		if !isDepthFormat(r.textures[i].RenderId.Format) {
+			slog.Error("failed to find an output color attachment for the render pass, using fallback", "renderPass", r.construction.Name)
+			return &r.textures[i]
+		}
+	}
+	return nil
+}
+
+func (r *RenderPass) SelectOutputAttachmentWithSuffix(vr *Vulkan, suffix string) (*Texture, bool) {
+	for i := range r.construction.AttachmentDescriptions {
+		if strings.HasSuffix(r.construction.AttachmentDescriptions[i].Image.Name, suffix) {
+			return &r.textures[i], true
+		}
+	}
+	return nil, false
+}
+
 func (r *RenderPass) findTextureByName(name string) (*Texture, bool) {
 	for i := range r.textures {
 		if r.textures[i].Key == name {
@@ -180,66 +245,6 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 	if r.subpassIdx > len(r.subpasses) {
 		r.subpassIdx = 0
 	}
-}
-
-func (r *RenderPass) ExecuteSecondaryCommands() {
-	buffs := [1]vk.CommandBuffer{}
-	rec := &r.cmdSecondary[r.frame]
-	if r.currentIdx > 0 {
-		rec = &r.subpasses[r.currentIdx-1].cmd[r.frame]
-	}
-	rec.End()
-	buffs[0] = rec.buffer
-	vk.CmdExecuteCommands(r.cmd[r.frame].buffer, uint32(len(buffs)), &buffs[0])
-}
-
-func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
-	targetFormat := vr.swapImages[0].Format
-	var fallback *Texture
-	for i := range r.construction.AttachmentDescriptions {
-		a := &r.construction.AttachmentDescriptions[i]
-		if (a.Image.Usage & vk.ImageUsageFlags(vulkan_const.ImageUsageColorAttachmentBit)) != 0 {
-			if fallback == nil {
-				// First image is likely the better image to fall back to
-				fallback = &r.textures[i]
-			}
-			if a.Format == targetFormat {
-				return &r.textures[i]
-			}
-		}
-	}
-	// Matching image not found, search in remote connected passes
-	for i := range r.construction.AttachmentDescriptions {
-		a := &r.construction.AttachmentDescriptions[i]
-		if a.Format == targetFormat {
-			if a.Image.ExistingImage != "" {
-				for _, p := range vr.renderPassCache {
-					if t, ok := p.findTextureByName(a.Image.ExistingImage); ok {
-						return t
-					}
-				}
-			}
-		}
-	}
-	if fallback != nil {
-		return fallback
-	}
-	for i := range r.textures {
-		if !isDepthFormat(r.textures[i].RenderId.Format) {
-			slog.Error("failed to find an output color attachment for the render pass, using fallback", "renderPass", r.construction.Name)
-			return &r.textures[i]
-		}
-	}
-	return nil
-}
-
-func (r *RenderPass) SelectOutputAttachmentWithSuffix(vr *Vulkan, suffix string) (*Texture, bool) {
-	for i := range r.construction.AttachmentDescriptions {
-		if strings.HasSuffix(r.construction.AttachmentDescriptions[i].Image.Name, suffix) {
-			return &r.textures[i], true
-		}
-	}
-	return nil, false
 }
 
 func isDepthFormat(format vulkan_const.Format) bool {
