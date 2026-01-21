@@ -1,0 +1,3 @@
+[submodule "src/libs"]
+	path = src/libs
+	url = https://github.com/KaijuEngine/kaiju_prebuilts.git
