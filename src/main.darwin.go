@@ -1,8 +1,7 @@
-//go:build android
-// +build android
+//go:build darwin
 
 /******************************************************************************/
-/* vk_debug_android.go                                                        */
+/* main.darwin.go                                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -37,51 +36,19 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package vulkan
+package main
 
-/*
-#cgo android LDFLAGS: -llog
+import (
+	"kaiju/platform/windowing"
+	"runtime"
+)
 
-#include "kaiju_vulkan.h"
-#include <android/log.h>
+func main() {
+	runtime.LockOSThread()
 
-VkBool32 debugReportCallback(
-  VkDebugReportFlagsEXT msgFlags,
-  VkDebugReportObjectTypeEXT objType,
-  uint64_t srcObject, size_t location,
-  int32_t msgCode, const char * pLayerPrefix,
-  const char * pMsg, void * pUserData )
-{
-  if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-    __android_log_print(ANDROID_LOG_ERROR,
-                        "VkAndroid",
-                        "ERROR: [%s] Code %i : %s",
-                        pLayerPrefix, msgCode, pMsg);
-  } else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
-    __android_log_print(ANDROID_LOG_WARN,
-                        "VkAndroid",
-                        "WARNING: [%s] Code %i : %s",
-                        pLayerPrefix, msgCode, pMsg);
-  } else if (msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
-    __android_log_print(ANDROID_LOG_WARN,
-                        "VkAndroid",
-                        "PERFORMANCE WARNING: [%s] Code %i : %s",
-                        pLayerPrefix, msgCode, pMsg);
-  } else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-    __android_log_print(ANDROID_LOG_INFO,
-                        "VkAndroid", "INFO: [%s] Code %i : %s",
-                        pLayerPrefix, msgCode, pMsg);
-  } else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
-    __android_log_print(ANDROID_LOG_VERBOSE,
-                        "VkAndroid", "DEBUG: [%s] Code %i : %s",
-                        pLayerPrefix, msgCode, pMsg);
-  }
+	go func() {
+		_main(nil) // your engine
+	}()
 
-  // Returning false tells the layer not to stop when the event occurs, so
-  // they see the same behavior with and without validation layers enabled.
-  return VK_FALSE;
+	windowing.CocoaRunApp() // blocks forever
 }
-*/
-import "C"
-
-var DebugReportCallbackAndroid = C.debugReportCallback

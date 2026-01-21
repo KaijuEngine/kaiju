@@ -58,9 +58,9 @@ func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
 }
 
 func vkInstanceExtensions() []string {
-	return []string{
-		"VK_KHR_portability_enumeration\x00",
-	}
+	// VK_KHR_portability_enumeration is enabled via VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR flag (vkInstanceFlags = 1)
+	// Don't request it as an extension, just use the flag
+	return []string{}
 }
 
 func vkDeviceExtensions() []string {

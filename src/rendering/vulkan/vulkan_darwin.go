@@ -41,15 +41,14 @@ package vulkan
 
 /*
 #cgo darwin CFLAGS: -DVK_USE_PLATFORM_MACOS_MVK -Wno-deprecated-declarations
-#cgo darwin LDFLAGS: -F/Library/Frameworks -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal -lvulkan
+#cgo darwin LDFLAGS: -L/usr/local/lib -lMoltenVK -Wl,-rpath,/usr/local/lib -framework Cocoa -framework IOKit -framework IOSurface -framework QuartzCore -framework Metal
 
-#include "vulkan/vulkan.h"
+#include "kaiju_vulkan.h"
 #include "vk_wrapper.h"
 #include "vk_bridge.h"
 */
 import "C"
 import (
-	"kaiju/rendering/vulkan_const"
 	vkc "kaiju/rendering/vulkan_const"
 	"unsafe"
 )
@@ -79,15 +78,4 @@ func CreateSurfaceFromNSView(instance Instance, nsView unsafe.Pointer, surface *
 		(*C.VkSurfaceKHR)(unsafe.Pointer(surface)),
 	)
 	return vkc.Result(res)
-}
-
-func (vr *Vulkan) createSurface(window RenderingContainer) bool {
-	nsView := window.PlatformWindow() // unsafe.Pointer to NSView*
-	var surface vk.Surface
-	res := vk.CreateSurfaceFromNSView(vr.instance, nsView, &surface)
-	if res != vulkan_const.Success {
-		return false
-	}
-	vr.surface = surface
-	return true
 }

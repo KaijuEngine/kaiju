@@ -49,7 +49,6 @@ import (
 	"kaiju/tools/html_preview"
 	"log/slog"
 	"runtime"
-	"time"
 )
 
 var containerCleanedUp, hostCleanedUp, windowCleanedUp bool
@@ -92,6 +91,10 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 		<-container.PrepLock
 		initExternalGameService()
 		<-container.Host.Done()
+		if build.Debug {
+			hostCleanedUp = true
+			windowCleanedUp = true
+		}
 	}
 	terminateExternalGameService()
 }
@@ -100,20 +103,8 @@ func bootstrapInternal(logStream *logging.LogStream, game GameInterface, platfor
 	bootstrapLoop(logStream, game, platformState)
 	if waitForCleanup {
 		runtime.GC()
-		for !containerCleanedUp {
-			println("Waiting for container cleanup...")
-			time.Sleep(time.Second * 1)
-			runtime.GC()
-		}
-		for !hostCleanedUp {
-			println("Waiting for host cleanup...")
-			time.Sleep(time.Second * 1)
-			runtime.GC()
-		}
-		for !windowCleanedUp {
-			println("Waiting for window cleanup...")
-			time.Sleep(time.Second * 1)
-			runtime.GC()
-		}
+		waitForCleanup("container", &containerCleanedUp)
+		waitForCleanup("host", &hostCleanedUp)
+		waitForCleanup("window", &windowCleanedUp)
 	}
 }
