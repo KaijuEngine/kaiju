@@ -121,14 +121,14 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 	if !vr.hasSwapChain {
 		return false
 	}
-	imgCount := scs.capabilities.MinImageCount + 1
+	imgCount := uint32(scs.capabilities.MinImageCount + 1)
 	if scs.capabilities.MaxImageCount > 0 && imgCount > scs.capabilities.MaxImageCount {
 		imgCount = scs.capabilities.MaxImageCount
 	}
 	info := vk.SwapchainCreateInfo{}
 	info.SType = vulkan_const.StructureTypeSwapchainCreateInfo
 	info.Surface = vr.surface
-	info.MinImageCount = imgCount
+	info.MinImageCount = min(uint32(maxFramesInFlight), imgCount)
 	info.ImageFormat = surfaceFormat.Format
 	info.ImageColorSpace = vkColorSpace(surfaceFormat)
 	info.ImageExtent = extent
@@ -149,16 +149,11 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 	info.CompositeAlpha = compositeAlpha
 	info.PresentMode = presentMode
 	info.Clipped = vulkan_const.True
-	if vr.swapChain != vk.Swapchain(vk.NullHandle) {
-		info.OldSwapchain = vr.swapChain
-	} else {
-		info.OldSwapchain = vk.Swapchain(vk.NullHandle)
-	}
+	info.OldSwapchain = vk.Swapchain(vk.NullHandle)
 	//free_swap_chain_support_details(scs);
 	var swapChain vk.Swapchain
 	if res := vk.CreateSwapchain(vr.device, &info, nil, &swapChain); res != vulkan_const.Success {
 		slog.Error("Failed to create swap chain")
-		vr.hasSwapChain = false
 		return false
 	} else {
 		vr.dbg.add(vk.TypeToUintPtr(swapChain))
@@ -166,9 +161,9 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 		vk.GetSwapchainImages(vr.device, vr.swapChain, &vr.swapImageCount, nil)
 		vr.swapImages = make([]TextureId, vr.swapImageCount)
 		swapImageList := make([]vk.Image, vr.swapImageCount)
-		//for i := uint32(0); i < vr.swapImageCount; i++ {
-		//	swapImageList[i] = vr.swapImages[i].Image
-		//}
+		for i := uint32(0); i < vr.swapImageCount; i++ {
+			swapImageList[i] = vr.swapImages[i].Image
+		}
 		vk.GetSwapchainImages(vr.device, vr.swapChain, &vr.swapImageCount, &swapImageList[0])
 		for i := uint32(0); i < vr.swapImageCount; i++ {
 			vr.swapImages[i].Image = swapImageList[i]
@@ -183,7 +178,7 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 	}
 }
 
-func (vr *Vulkan) swapChainCleanup(destroySwapchain bool) {
+func (vr *Vulkan) swapChainCleanup() {
 	vr.color = vr.textureIdFree(vr.color)
 	vr.depth = vr.textureIdFree(vr.depth)
 	for i := uint32(0); i < vr.swapChainFrameBufferCount; i++ {
@@ -194,10 +189,6 @@ func (vr *Vulkan) swapChainCleanup(destroySwapchain bool) {
 		vk.DestroyImageView(vr.device, vr.swapImages[i].View, nil)
 		vr.dbg.remove(vk.TypeToUintPtr(vr.swapImages[i].View))
 	}
-	vr.swapChainFrameBufferCount = 0
-	vr.swapChainImageViewCount = 0
-	if destroySwapchain {
-		vk.DestroySwapchain(vr.device, vr.swapChain, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.swapChain))
-	}
+	vk.DestroySwapchain(vr.device, vr.swapChain, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(vr.swapChain))
 }

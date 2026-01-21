@@ -365,7 +365,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
 	if vr.hasSwapChain {
 		vr.WaitForRender()
-		vr.swapChainCleanup(false)
+		vr.swapChainCleanup()
 		// Destroy the previous swap sync objects
 		for i := 0; i < int(vr.swapImageCount); i++ {
 			vk.DestroySemaphore(vr.device, vr.imageSemaphores[i], nil)
@@ -383,11 +383,6 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	}
 	vr.createSwapChain(window)
 	if !vr.hasSwapChain {
-		if oldSwapChain != vk.Swapchain(vk.NullHandle) {
-			vk.DestroySwapchain(vr.device, oldSwapChain, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(oldSwapChain))
-		}
-		vr.swapChain = vk.Swapchain(vk.NullHandle)
 		return
 	}
 	slog.Info("recreated vulkan swap chain")
@@ -509,18 +504,11 @@ func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, u
 	vr.acquireImageResult = vk.AcquireNextImage(vr.device, vr.swapChain,
 		math.MaxUint64, vr.imageSemaphores[vr.currentFrame],
 		vk.Fence(vk.NullHandle), &vr.imageIndex[vr.currentFrame])
-	switch vr.acquireImageResult {
-	case vulkan_const.Success:
-		// ok
-	case vulkan_const.Suboptimal:
-		// ok to keep going, but we should rebuild soon (safe option: rebuild now)
+	if vr.acquireImageResult == vulkan_const.ErrorOutOfDate {
 		vr.remakeSwapChain(window)
 		return false
-	case vulkan_const.ErrorOutOfDate:
-		vr.remakeSwapChain(window)
-		return false
-	default:
-		slog.Error("Failed to acquire swap chain image", slog.Int("code", int(vr.acquireImageResult)))
+	} else if vr.acquireImageResult != vulkan_const.Success {
+		slog.Error("Failed to present swap chain image")
 		vr.hasSwapChain = false
 		return false
 	}
@@ -611,18 +599,12 @@ func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
 	presentInfo.PSwapchains = &swapChains[0]
 	presentInfo.PImageIndices = &vr.imageIndex[vr.currentFrame]
 	presentInfo.PResults = nil // Optional
-
-	presentRes := vk.QueuePresent(vr.presentQueue, &presentInfo)
+	vk.QueuePresent(vr.presentQueue, &presentInfo)
 	qPresent.End()
-	switch presentRes {
-	case vulkan_const.Success:
-		// ok
-	case vulkan_const.Suboptimal, vulkan_const.ErrorOutOfDate:
+	if vr.acquireImageResult == vulkan_const.ErrorOutOfDate || vr.acquireImageResult == vulkan_const.Suboptimal {
 		vr.remakeSwapChain(window)
-		return false
-	default:
-		slog.Error("Failed to present swap chain image", slog.Int("code", int(presentRes)))
-		vr.hasSwapChain = false
+	} else if vr.acquireImageResult != vulkan_const.Success {
+		slog.Error("Failed to present swap chain image")
 		return false
 	}
 	vr.currentFrame = (vr.currentFrame + 1) % int(vr.swapImageCount)
@@ -680,7 +662,7 @@ func (vr *Vulkan) Destroy() {
 			vr.dbg.remove(vk.TypeToUintPtr(vr.descriptorPools[i]))
 		}
 		vr.swapChainRenderPass.Destroy(vr)
-		vr.swapChainCleanup(true)
+		vr.swapChainCleanup()
 		vk.DestroyDevice(vr.device, nil)
 		vr.dbg.remove(uintptr(unsafe.Pointer(vr.device)))
 	}
