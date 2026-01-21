@@ -56,7 +56,6 @@ func createDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, texture
 	}
 	mat = mat.CreateInstance(textures)
 	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
 		Material:   mat,
 		Mesh:       mesh,
 		ViewCuller: &host.Cameras.Primary,
@@ -74,44 +73,4 @@ func CreateDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, texture
 
 func CreateDrawingFromMeshUnlitTransparent(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error) {
 	return createDrawingFromMeshUnlit(host, mesh, textures, true)
-}
-
-func CreateDrawingFromMeshBasicLit(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error) {
-	var mat *rendering.Material
-	var err error
-	mat, err = host.MaterialCache().Material(basicLitMaterialKey)
-	if err != nil {
-		return rendering.Drawing{}, err
-	}
-	mat = mat.CreateInstance(textures)
-	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
-		Material:   mat,
-		Mesh:       mesh,
-		ViewCuller: &host.Cameras.Primary,
-		ShaderData: &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		},
-	}, nil
-}
-
-func CreateDrawingFromMeshBasicLitDynamic(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error) {
-	var mat *rendering.Material
-	var err error
-	mat, err = host.MaterialCache().Material(basicLitDynamicMaterialKey)
-	if err != nil {
-		return rendering.Drawing{}, err
-	}
-	mat = mat.CreateInstance(textures)
-	return rendering.Drawing{
-		Renderer:   host.Window.Renderer,
-		Material:   mat,
-		Mesh:       mesh,
-		ViewCuller: &host.Cameras.Primary,
-		ShaderData: &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		},
-	}, nil
 }

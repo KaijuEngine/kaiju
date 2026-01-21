@@ -41,13 +41,15 @@ import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"weak"
 )
 
 type sliderData struct {
 	panelData
-	bgPanel *Panel
-	fgPanel *Panel
-	value   float32
+	bgPanel  *Panel
+	fgPanel  *Panel
+	value    float32
+	dragging bool
 }
 
 func (s *sliderData) innerPanelData() *panelData { return &s.panelData }
@@ -73,7 +75,7 @@ func (s *Slider) Init() {
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	ld.bgPanel = man.Add().ToPanel()
 	ld.bgPanel.Init(tex, ElementTypePanel)
-	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{p.Base()}}
+	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
 	ld.bgPanel.SetColor(matrix.ColorBlack())
 	ld.fgPanel = man.Add().ToPanel()
 	ld.fgPanel.Init(tex, ElementTypePanel)
@@ -92,7 +94,7 @@ func (slider *Slider) onLayoutUpdating() {
 	bl := &ld.bgPanel.layout
 	pLayout := FirstOnEntity(bl.Ui().Entity().Parent).Layout()
 	wh := pLayout.ContentSize()
-	bl.Scale(wh.Width()-10, wh.Height()) // TODO:  Why -10?
+	bl.Scale(max(0.001, wh.Width()-10), wh.Height())
 
 	// Foreground
 	fl := &ld.fgPanel.layout
@@ -106,8 +108,12 @@ func (slider *Slider) onLayoutUpdating() {
 func (slider *Slider) update(deltaTime float64) {
 	defer tracing.NewRegion("Slider.update").End()
 	slider.Base().ToPanel().update(deltaTime)
-	if slider.drag {
+	if slider.flags.drag() {
 		slider.SetValue(slider.Delta())
+		slider.SliderData().dragging = true
+	} else if slider.SliderData().dragging {
+		slider.submit()
+		slider.SliderData().dragging = false
 	}
 }
 
@@ -119,10 +125,6 @@ func (slider Slider) Delta() float32 {
 	xPos -= w * 0.5
 	mp := host.Window.Cursor.Position()
 	return (mp.X() - xPos) / w
-}
-
-func (slider *Slider) onDown() {
-	slider.SetValue(slider.Delta())
 }
 
 func (slider Slider) Value() float32 {
@@ -148,4 +150,13 @@ func (slider *Slider) SetFGColor(fgColor matrix.Color) {
 
 func (slider *Slider) SetBGColor(bgColor matrix.Color) {
 	slider.SliderData().bgPanel.SetColor(bgColor)
+}
+
+func (slider *Slider) submit() {
+	defer tracing.NewRegion("Slider.submit").End()
+	slider.Base().ExecuteEvent(EventTypeSubmit)
+}
+
+func (slider *Slider) onDown() {
+	slider.SetValue(slider.Delta())
 }

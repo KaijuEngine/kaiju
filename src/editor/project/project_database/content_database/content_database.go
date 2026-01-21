@@ -45,6 +45,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
+	"path/filepath"
 )
 
 func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_system.FileSystem, cache *Cache) []string {
@@ -84,7 +85,7 @@ func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_s
 		slog.Warn("failed to update the name of the table of contents", "id", res[0].Id, "error", err)
 		return ids
 	}
-	cache.Index(cc.Path, fs)
+	cache.IndexCachedContent(cc)
 	return ids
 }
 
@@ -94,6 +95,14 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	cat, ok := selectCategoryForFile(path)
 	if !ok {
 		return res, CategoryNotFoundError{Path: path}
+	}
+	srcPath := fs.NormalizePath(path)
+	matches := cache.SearchSources(cat.TypeName(), srcPath)
+	if len(matches) == 1 {
+		return []ImportResult{{
+			Id:       matches[0].Id(),
+			Category: cat,
+		}}, nil
 	}
 	proc, err := cat.Import(path, fs)
 	if err != nil {
@@ -109,7 +118,9 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if useLinkedId && linkedId == "" {
 			linkedId = res[i].Id
 		}
-		f, err := fs.Create(res[i].ConfigPath())
+		configPath := res[i].ConfigPath()
+		fs.MkdirAll(filepath.Dir(configPath), os.ModePerm)
+		f, err := fs.Create(configPath)
 		if err != nil {
 			return res, err
 		}
@@ -123,13 +134,15 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			Name:     proc.Variants[i].Name,
 			SrcName:  proc.Variants[i].Name,
 			Type:     cat.TypeName(),
-			SrcPath:  fs.NormalizePath(path),
+			SrcPath:  srcPath,
 			LinkedId: linkedId,
 		}
 		if err = json.NewEncoder(f).Encode(cfg); err != nil {
 			return res, err
 		}
-		if err = fs.WriteFile(res[i].ContentPath(), proc.Variants[i].Data, os.ModePerm); err != nil {
+		contentPath := res[i].ContentPath()
+		fs.MkdirAll(filepath.Dir(contentPath), os.ModePerm)
+		if err = fs.WriteFile(contentPath, proc.Variants[i].Data, os.ModePerm); err != nil {
 			return res, err
 		}
 		res[i].Dependencies = make([]ImportResult, 0, len(proc.Dependencies))
@@ -188,4 +201,27 @@ func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 		return res, err
 	}
 	return res, nil
+}
+
+func Delete(id string, fs *project_file_system.FileSystem, cache *Cache) error {
+	// TODO:  Find all references and warn or prevent deletion
+	if id == "" {
+		return DeleteContentMissingIdError
+	}
+	cc, err := cache.Read(id)
+	if err != nil {
+		slog.Error("failed to read cached content for deletion", "id", id, "error", err)
+		return err
+	}
+	if err := fs.Remove(cc.Path); err != nil {
+		slog.Error("failed to delete config file", "path", cc.Path, "error", err)
+		return err
+	}
+	contentPath := ToContentPath(cc.Path)
+	if err := fs.Remove(contentPath); err != nil {
+		slog.Error("failed to delete content file", "path", contentPath, "error", err)
+		return err
+	}
+	cache.Remove(id)
+	return nil
 }

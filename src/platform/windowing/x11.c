@@ -162,12 +162,16 @@ void window_show(void* x11State) {
 	//while (window_poll(x11State) != 0) {}
 }
 
-static inline void lock_cursor_position(X11State* s) {
+static inline void set_cursor_position_relative_to_window(X11State* s, int x, int y) {
 	int borderSize = ((s->sm.right-s->sm.left)-s->sm.clientRect.right) / 2;
 	int titleSize = (s->sm.bottom-s->sm.top)-s->sm.clientRect.bottom-borderSize;
-	int x = s->sm.left + s->sm.lockCursor.x + borderSize;
-	int y = s->sm.top + s->sm.lockCursor.y + titleSize;
-	XWarpPointer(s->d, None, s->w, 0, 0, 0, 0, x, y);
+	int wx = s->sm.left + x + borderSize;
+	int wy = s->sm.top + y + titleSize;
+	XWarpPointer(s->d, None, s->w, 0, 0, 0, 0, wx, wy);
+}
+
+static inline void lock_cursor_position(X11State* s) {
+	set_cursor_position_relative_to_window(s, s->sm.lockCursor.x, s->sm.lockCursor.y);
 }
 
 void window_poll_controller(void* x11State) {
@@ -263,13 +267,13 @@ void window_poll(void* x11State) {
 					int deltaX = 0;
 					int deltaY = 0;
 					if (btn == 4) {
-						deltaY =  120;	// Scroll up
+						deltaY =  1;
 					} else if (btn == 5) {
-						deltaY = -120;	// Scroll down
+						deltaY = -1;
 					} else if (btn == 6) {
-						deltaX = -120;	// Scroll left
+						deltaX = -1;
 					} else if (btn == 7) {
-						deltaX =  120;	// Scroll right
+						deltaX =  1;
 					}
 					WindowEvent evt = {
 						.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
@@ -424,12 +428,17 @@ void window_lock_cursor(void* state, int x, int y) {
 	s->sm.lockCursor.x = x;
 	s->sm.lockCursor.y = y;
 	s->sm.lockCursor.active = true;
-	XWarpPointer(s->d, None, s->w, 0, 0, 0, 0, x, y);
+	set_cursor_position_relative_to_window(state, x, y);
 }
 
 void window_unlock_cursor(void* state) {
 	X11State* s = state;
 	s->sm.lockCursor.active = false;
+}
+
+void window_set_cursor_position(void* state, int x, int y) {
+	X11State* s = state;
+	set_cursor_position_relative_to_window(s, x, y);
 }
 
 float window_dpi(void* state) {

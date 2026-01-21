@@ -1,12 +1,11 @@
 #version 460
+#define FRAGMENT_SHADER
 
-#include "inc_default.inl"
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_TEX_COORDS 1
+#define LAYOUT_FRAG_WORLD_POS 2
 
-layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec2 fragTexCoords;
-layout(location = 2) in vec3 fragWorldPos;
-
-layout(location = 0) out vec4 outColor;
+#include "kaiju.glsl"
 
 void main() {
 	vec4 color = fragColor;

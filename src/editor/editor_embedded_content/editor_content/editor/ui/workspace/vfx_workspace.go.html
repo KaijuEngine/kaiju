@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.leftPanel {
+				position: absolute;
+				top: var(--ed-menu-bar-height);
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				width: 15em;
+				color: white;
+				overflow-y: scroll;
+				padding: 5px;
+			}
+			.leftPanel { left: 0; }
+			.rightPanel {
+				position: absolute;
+				top: var(--ed-menu-bar-height);
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				width: 15em;
+				color: white;
+				overflow-y: scroll;
+				padding: 5px;
+			}
+			.rightPanel { right: 0; }
+			.dataTable {
+				width: 100%;
+				padding: 5px;
+				font-size: 0.8em;
+			}
+			.dataBindingBlock {
+				background-color: #282828;
+				color: white;
+				border: 2px solid #AAA;
+				margin-bottom: 0.2em;
+			}
+			.center { text-align: center; }
+			.dataInput {
+				width: 100%;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-bottom: 0.2em;
+			}
+			.dataCheck {
+				width: 0.8em;
+				height: 0.8em;
+				margin-left: 5px;
+				margin-bottom: 0.2em;
+			}
+			.edContentPickInput {
+				width: 100%;
+			}
+			.edColorPickInput {
+				width: 100%;
+				height: 2em;
+				border: 5px solid black;
+			}
+			.smallInput, .smallerInput {
+				width: 4.3em;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-left: 0.3em;
+			}
+			.smallerInput {
+				width: 3.15em;
+			}
+			.addBtn, .saveBtn {
+				position: absolute;
+				bottom: 0;
+				width: 50%;
+			}
+			.saveBtn {
+				right: 0
+			}
+			#emitterList {
+				width: 100%;
+				height: calc(100% - 5em);
+				overflow-y: scroll;
+			}
+			.edPanelBgHoverable button {
+				position: absolute;
+				width: 1.5em;
+				height: 100%;
+				font-size: 0.7em;
+				right: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="leftPanel edPanelBg">
+			<div class="center">Particle system</div>
+			<input id="systemName" class="dataInput" type="text" placeholder="Name..." />
+			<div id="emitterList">
+				<div id="emitterListEntryTemplate" class="edPanelBgHoverable" onclick="clickSelectEmitter">
+					<span>Name...</span>
+					<button onclick="clickDeleteEmitter">X</button>
+				</div>
+			</div>
+			<button class="addBtn" onclick="clickAddEmitter">Add Emitter</button>
+			<button class="saveBtn" onclick="clickSaveEmitter">Save</button>
+		</div>
+		<div class="rightPanel edPanelBg">
+			<div id="emitterData" class="dataTable">
+				<div id="emitterDataList">
+					<div id="emitterDataTemplate" class="dataBindingBlock">
+						<div class="center">Shader name...</div>
+						<div class="entityDataField" data-fieldidx="" data-bindidx="">
+							<span>Field name...</span>
+							<!-- Text input -->
+							<div>
+								<input class="dataInput" type="text" placeholder="Input..." onchange="changeEmitterData" />
+							</div>
+							<!-- Checkbox input -->
+							<div>
+								<input class="dataCheck" type="checkbox" onchange="changeEmitterData" />
+							</div>
+							<!-- Vec2 -->
+							<div>
+								<input class="smallInput" type="text" placeholder="X..." onchange="changeEmitterData" />
+								<input class="smallInput" type="text" placeholder="Y..." onchange="changeEmitterData" />
+							</div>
+							<!-- Vec3 -->
+							<div>
+								<input class="smallInput" type="text" placeholder="X..." onchange="changeEmitterData" />
+								<input class="smallInput" type="text" placeholder="Y..." onchange="changeEmitterData" />
+								<input class="smallInput" type="text" placeholder="Z..." onchange="changeEmitterData" />
+							</div>
+							<!-- Vec4 -->
+							<div>
+								<input class="smallerInput" type="text" placeholder="X..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="Y..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="Z..." onchange="changeEmitterData" />
+								<input class="smallerInput" type="text" placeholder="W..." onchange="changeEmitterData" />
+							</div>
+							<!-- Color -->
+							<div>
+								<div class="edColorPickInput" onclick="showColorPicker"></div>
+							</div>
+							<!-- Select input -->
+							<div>
+								<select class="dataInput" onchange="changeEmitterData"></select>
+							</div>
+							<!-- ContentId input -->
+							<div>
+								<div class="edContentPickInput" data-type="" onclick="clickSelectContentId">empty &lpar;TypeName&rpar;</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

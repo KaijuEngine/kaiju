@@ -52,24 +52,24 @@ func Log(msg string, args ...any) {
 }
 
 func Assert(res bool, msg string) {
-	if build.Debug {
-		if !res {
+	if !res {
+		if build.Debug {
 			panic(msg)
+		} else {
+			slog.Error(msg)
 		}
-	} else {
-		slog.Error(msg)
 	}
 }
 
 func Halt(msg string) {
-	if !build.Shipping {
+	if build.Debug {
 		slog.Error(msg)
 		runtime.Breakpoint()
 	}
 }
 
 func Ensure(res bool) {
-	if !build.Shipping {
+	if build.Debug {
 		if !res {
 			runtime.Breakpoint()
 		}
@@ -77,7 +77,7 @@ func Ensure(res bool) {
 }
 
 func EnsureMsg(res bool, msg string) {
-	if !build.Shipping {
+	if build.Debug {
 		if !res {
 			slog.Error(msg)
 			runtime.Breakpoint()
@@ -86,7 +86,7 @@ func EnsureMsg(res bool, msg string) {
 }
 
 func EnsureNotError(err error) {
-	if !build.Shipping {
+	if build.Debug {
 		if err != nil {
 			EnsureMsg(false, err.Error())
 		}
@@ -94,7 +94,7 @@ func EnsureNotError(err error) {
 }
 
 func EnsureNotNil(target any) {
-	if !build.Shipping {
+	if build.Debug {
 		EnsureMsg(target != nil, "the target was expected not to be nil, but was")
 	}
 }

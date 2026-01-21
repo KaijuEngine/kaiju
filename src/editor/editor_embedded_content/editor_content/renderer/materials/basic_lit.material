@@ -1,1 +1,0 @@
-{"Name":"basic_lit","Shader":"basic_lit.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[{"Texture":"square.png","Filter":"Linear"}]}

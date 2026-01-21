@@ -49,10 +49,6 @@ import (
 
 const pbrMaterialKey = assets.MaterialDefinitionPBR
 const basicMaterialKey = assets.MaterialDefinitionBasic
-const basicLitMaterialKey = assets.MaterialDefinitionBasicLit
-const basicLitStaticMaterialKey = assets.MaterialDefinitionBasicLitStatic
-const basicLitDynamicMaterialKey = assets.MaterialDefinitionBasicLitDynamic
-const basicLitTransparentMaterialKey = assets.MaterialDefinitionBasicLitTransparent
 const unlitMaterialKey = assets.MaterialDefinitionUnlit
 const unlitTransparentMaterialKey = assets.MaterialDefinitionUnlitTransparent
 
@@ -96,9 +92,9 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 		}
 		var tForm matrix.Transform
 		tForm.Initialize(host.WorkGroup())
-		tForm.SetPosition(m.Node.Transform.WorldPosition())
-		tForm.SetRotation(m.Node.Transform.WorldRotation())
-		tForm.SetScale(m.Node.Transform.WorldScale())
+		tForm.SetLocalPosition(m.Node.Position)
+		tForm.SetRotation(m.Node.Rotation.ToEuler())
+		tForm.SetScale(m.Node.Scale)
 		mesh, ok := host.MeshCache().FindMesh(m.MeshName)
 		if !ok {
 			mesh = rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
@@ -122,7 +118,6 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 			Node:     m.Node,
 			MeshName: m.Name,
 			Drawing: rendering.Drawing{
-				Renderer:   host.Window.Renderer,
 				Material:   mat,
 				Mesh:       mesh,
 				Transform:  &tForm,
@@ -169,48 +164,6 @@ func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawin
 	})
 }
 
-func CreateDrawingsBasicLit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
-	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
-	draws, err := createDrawings(host, res, basicLitMaterialKey, 1, func() rendering.DrawInstance {
-		return &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	})
-	for i := range draws {
-		draws[i].Drawing.Material.IsLit = true
-	}
-	return draws, err
-}
-
-func CreateDrawingsBasicLitStatic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
-	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
-	draws, err := createDrawings(host, res, basicLitStaticMaterialKey, 1, func() rendering.DrawInstance {
-		return &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	})
-	for i := range draws {
-		draws[i].Drawing.Material.IsLit = true
-	}
-	return draws, err
-}
-
-func CreateDrawingsBasicLitDynamic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
-	defer tracing.NewRegion("framework.CreateDrawingsBasicLit").End()
-	draws, err := createDrawings(host, res, basicLitDynamicMaterialKey, 1, func() rendering.DrawInstance {
-		return &shader_data_registry.ShaderDataBasicLit{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorWhite(),
-		}
-	})
-	for i := range draws {
-		draws[i].Drawing.Material.IsLit = true
-	}
-	return draws, err
-}
-
 func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsPBR").End()
 	drawings, err := createDrawings(host, res, pbrMaterialKey, 4, func() rendering.DrawInstance {
@@ -220,18 +173,13 @@ func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingS
 			Metallic:       0,
 			Roughness:      1,
 			Emissive:       0,
-			Light0:         0,
-			Light1:         0,
-			Light2:         0,
-			Light3:         0,
+			LightIds:       [...]int32{0, 0, 0, 0},
 		}
 	})
 	for i := range drawings {
-		drawings[i].Drawing.CastsShadows = true
+		drawings[i].Drawing.Material.CastsShadows = true
+		drawings[i].Drawing.Material.ReceivesShadows = true
 		drawings[i].Drawing.Material.IsLit = true
-		// TODO:  This some shady stuff to pull the first light here
-		drawings[i].Drawing.Material.ShadowMap = host.Lighting().Lights.FindById(1).Target.ShadowMapTexture()
-		//drawings[i].Material.ShadowCubeMap =
 	}
 	return drawings, err
 }

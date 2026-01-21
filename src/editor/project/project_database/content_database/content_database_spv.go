@@ -51,7 +51,7 @@ type Spv struct{}
 // the following functions
 
 func (Spv) Path() string       { return project_file_system.ContentSpvFolder }
-func (Spv) TypeName() string   { return "spv" }
+func (Spv) TypeName() string   { return "Spv" }
 func (Spv) ExtNames() []string { return []string{".spv"} }
 
 func (Spv) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

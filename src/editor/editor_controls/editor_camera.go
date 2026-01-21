@@ -68,6 +68,8 @@ const (
 	EditorCameraMode2d
 )
 
+var cameraModeStrings = []string{"None", "3D", "2D"}
+
 type EditorCamera struct {
 	OnModeChange     events.Event
 	Settings         *editor_settings.EditorCameraSettings
@@ -79,21 +81,17 @@ type EditorCamera struct {
 	dragging         bool
 	mode             EditorCameraMode
 	resizeId         events.Id
+	flyCamStarted    bool
 	flyCamFlickerFix bool
 	flySpeedModifier float32
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
+func (e *EditorCamera) ModeString() string     { return cameraModeStrings[e.mode] }
 
 func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
 	defer tracing.NewRegion("EditorCamera.LookAtPoint").End()
-	switch e.mode {
-	case EditorCameraMode3d:
-		// Something is backwards about the lookat for the turntable camera...
-		return e.camera.LookAt().Negative()
-	default:
-		return e.camera.LookAt()
-	}
+	return e.camera.LookAt()
 }
 
 func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
@@ -148,19 +146,22 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			host.Window.LockCursor(lockX, lockY)
 			e.lastMousePos = m.Position()
 			e.flyCamFlickerFix = false
+			e.flyCamStarted = true
 			return true
-		} else if !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
+		} else if e.flyCamStarted && !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
+			e.flyCamStarted = false
 			host.Window.UnlockCursor()
 			host.Window.ShowCursor()
 			return false
-		} else if !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
+		} else if e.flyCamStarted && !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
 			// TODO:  This is annoying and unfortunate, but functional,
 			// basically skip one update to prevent camera jumping
 			if !e.flyCamFlickerFix {
 				e.flyCamFlickerFix = true
 				return false
 			}
-			return e.update3dFly(host, delta)
+			e.update3dFly(host, delta)
+			return true
 		} else {
 			return e.update3d(host, delta)
 		}
@@ -275,10 +276,10 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 		changed = true
 	}
 	if kb.KeyHeld(hid.KeyboardKeyQ) {
-		delta.AddAssign(e.camera.Up().Scale(matrix.Float(deltaTime) * flySpeed))
+		delta.AddAssign(e.camera.Up().Negative().Scale(matrix.Float(deltaTime) * flySpeed))
 		changed = true
 	} else if kb.KeyHeld(hid.KeyboardKeyE) {
-		delta.AddAssign(e.camera.Up().Negative().Scale(matrix.Float(deltaTime) * flySpeed))
+		delta.AddAssign(e.camera.Up().Scale(matrix.Float(deltaTime) * flySpeed))
 		changed = true
 	}
 	if changed {

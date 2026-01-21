@@ -38,7 +38,9 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"errors"
 	"kaiju/editor/editor_workspace/common_workspace"
+	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
@@ -46,8 +48,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-
-	"github.com/KaijuEngine/uuid"
 )
 
 func (win *ShaderDesigner) reloadPipelineDoc() {
@@ -57,7 +57,8 @@ func (win *ShaderDesigner) reloadPipelineDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.pipelineDoc.Destroy()
 	}
-	data := common_workspace.ReflectUIStructure(&win.pipeline.ShaderPipelineData, "", map[string][]ui.SelectOption{})
+	data := common_workspace.ReflectUIStructure(win.ed.Cache(),
+		&win.pipeline.ShaderPipelineData, "", map[string][]ui.SelectOption{})
 	data.Name = "Shader Pipeline Editor"
 	win.pipelineDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
@@ -81,7 +82,7 @@ func showPipelineTooltip(e *document.Element) {
 	if !ok {
 		return
 	}
-	tipElm := e.Root().FindElementById("ToolTip")
+	tipElm := e.Root().FindElementById("toolTip")
 	if tipElm == nil || len(tipElm.Children) == 0 {
 		return
 	}
@@ -107,16 +108,23 @@ func (win *ShaderDesigner) pipelineValueChanged(e *document.Element) {
 }
 
 func (win *ShaderDesigner) pipelineSave(e *document.Element) {
-	if win.pipeline.id == "" {
-		win.pipeline.id = uuid.NewString()
-	}
 	res, err := json.Marshal(win.pipeline)
 	if err != nil {
 		slog.Error("failed to marshal the pipeline data", "error", err)
 		return
 	}
-	err = win.pfs.WriteFile(filepath.Join(project_file_system.ContentFolder,
-		project_file_system.ContentShaderPipelineFolder, win.pipeline.id), res, os.ModePerm)
+	if win.pipeline.id != "" {
+		err = win.ed.ProjectFileSystem().WriteFile(filepath.Join(project_file_system.ContentFolder,
+			project_file_system.ContentShaderPipelineFolder, win.pipeline.id), res, os.ModePerm)
+	} else {
+		ids := content_database.ImportRaw(win.shader.Name, res, content_database.ShaderPipeline{}, win.ed.ProjectFileSystem(), win.ed.Cache())
+		if len(ids) > 0 {
+			win.pipeline.id = ids[0]
+			win.ed.Events().OnContentAdded.Execute(ids)
+		} else {
+			err = errors.New("failed to import the raw shader pipeline file data to the database")
+		}
+	}
 	if err != nil {
 		slog.Error("failed to write the shader pipeline data to file", "error", err)
 		return

@@ -38,12 +38,12 @@ package editor_stage_view
 
 import (
 	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
 	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/editor/memento"
+
+	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/matrix"
@@ -63,6 +63,7 @@ type StageView struct {
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
 	selectTool    select_tool.SelectTool
+	transformMan  TransformationManager
 }
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
@@ -75,15 +76,16 @@ func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
-func (v *StageView) Initialize(host *engine.Host, history *memento.History, settings *editor_settings.Settings, editorUI editor_stage_manager.EditorUserInterface) {
+func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
-	v.manager.Initialize(host, history, editorUI)
-	v.manager.NewStage()
+	v.manager.Initialize(host, ed.History(), ed)
 	v.host = host
-	v.transformTool.Initialize(host, v, history, &settings.Snapping)
+	v.manager.NewStage()
+	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
+	v.transformMan.Initialize(v, ed.History(), &ed.Settings().Snapping)
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
-	v.setupCamera(&settings.EditorCamera)
+	v.setupCamera(ed)
 	// Data binding visualizers
 	weakHost := weak.Make(host)
 	v.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -108,17 +110,28 @@ func (v *StageView) Close() {
 // control of the keyboard interactions. It'll return false otherwise. If this
 // returns true, then the caller shouldn't process any hotkeys or other types
 // of keyboard actions.
-func (v *StageView) Update(deltaTime float64) bool {
+func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
 	v.gridTransform.ResetDirty()
+	// If we are currently using any of the transformation tools, we shouldn't
+	// do any of the other updates like camera
+	if v.transformMan.IsBusy() {
+		v.transformMan.Update(v.host)
+		return true
+	}
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
+		v.transformTool.Cancel()
 		return true
 	} else {
 		v.processViewportInteractions()
 	}
-	if v.host.Window.Keyboard.KeyDown(hid.KeyboardKeyDelete) {
+	kb := &v.host.Window.Keyboard
+	if kb.KeyDown(hid.KeyboardKeyDelete) {
 		v.manager.DestroySelected()
+	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyD) {
+		v.DuplicateSelected(proj)
+		return true
 	}
 	return false
 }
@@ -130,11 +143,12 @@ func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
-	camPos := v.host.PrimaryCamera().Position()
+	cam := v.host.PrimaryCamera()
+	camPos := cam.Position()
 	switch v.camera.Mode() {
 	case editor_controls.EditorCameraMode2d:
 		v.gridTransform.SetPosition(matrix.NewVec3(
-			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), 0))
+			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), -cam.FarPlane()*0.45))
 	case editor_controls.EditorCameraMode3d:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
@@ -165,7 +179,6 @@ func (v *StageView) createViewportGrid() {
 	v.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
 	v.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
 	v.host.Drawings.AddDrawing(rendering.Drawing{
-		Renderer:   v.host.Window.Renderer,
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: v.gridShader,
@@ -175,20 +188,43 @@ func (v *StageView) createViewportGrid() {
 	v.gridTransform.ResetDirty()
 }
 
-func (v *StageView) setupCamera(settings *editor_settings.EditorCameraSettings) {
+func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.setupCamera").End()
+	pjs := &ed.Project().Settings
 	v.camera.OnModeChange.Add(func() {
 		switch v.camera.Mode() {
 		case editor_controls.EditorCameraMode3d:
 			// Identity matrix is fine
 			v.gridShader.Color.SetA(1)
 			v.gridTransform.SetRotation(matrix.Vec3Zero())
+			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
 		case editor_controls.EditorCameraMode2d:
 			v.gridShader.Color.SetA(0)
 			v.gridTransform.SetRotation(matrix.NewVec3(90, 0, 0))
+			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode2d
 		}
 		v.updateGridPosition()
+		if err := pjs.Save(ed.ProjectFileSystem()); err != nil {
+			slog.Error("there was an error saving the project settings during setupCamera", "error", err)
+		}
 	})
-	v.camera.SetMode(editor_controls.EditorCameraMode3d, v.host)
-	v.camera.Settings = settings
+	v.camera.SetMode(pjs.EditorSettings.CameraMode, v.host)
+	v.camera.Settings = &ed.Settings().EditorCamera
+}
+
+func (v *StageView) DuplicateSelected(proj *project.Project) {
+	v.manager.DuplicateSelected(proj)
+	// The new selection is the duplicated entities
+	var callAttachments func(e *editor_stage_manager.StageEntity)
+	callAttachments = func(e *editor_stage_manager.StageEntity) {
+		for _, de := range e.DataBindings() {
+			data_binding_renderer.Attached(de, weak.Make(v.host), &v.manager, e)
+		}
+		for _, c := range e.Children {
+			callAttachments(editor_stage_manager.EntityToStageEntity(c))
+		}
+	}
+	for _, e := range v.manager.HierarchyRespectiveSelection() {
+		callAttachments(e)
+	}
 }

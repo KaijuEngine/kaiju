@@ -54,7 +54,7 @@ func (p *Project) writeProjectTitle() {
 	defer tracing.NewRegion("Project.writeProjectTitle").End()
 	err := p.fileSystem.WriteFile(project_file_system.ProjectCodeGameTitle,
 		[]byte(fmt.Sprintf(nameSetCodeTitleFileContentFormat,
-			p.settings.Name, p.settings.ArchiveEncryptionKey)), os.ModePerm)
+			p.Settings.Name, p.Settings.ArchiveEncryptionKey)), os.ModePerm)
 	if err != nil {
 		slog.Error("could not set the title in source, please update or create it",
 			"file", project_file_system.ProjectCodeGameTitle)

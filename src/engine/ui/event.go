@@ -48,6 +48,8 @@ const (
 	EventTypeDoubleClick
 	EventTypeDown
 	EventTypeUp
+	EventTypeRightDown
+	EventTypeRightUp
 	EventTypeMiss
 	EventTypeDragStart
 	EventTypeDrop
@@ -57,6 +59,8 @@ const (
 	EventTypeScroll
 	EventTypeRebuild
 	EventTypeDestroy
+	EventTypeFocus
+	EventTypeBlur
 	EventTypeSubmit
 	EventTypeChange
 	EventTypeRender

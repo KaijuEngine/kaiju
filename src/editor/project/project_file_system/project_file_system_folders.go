@@ -72,6 +72,7 @@ const (
 	ContentMaterialFolder        = ContentRenderFolder + "/material"
 	ContentRenderPassFolder      = ContentRenderFolder + "/renderpass"
 	ContentShaderFolder          = ContentRenderFolder + "/shader"
+	ContentParticlesFolder       = ContentRenderFolder + "/particles"
 	ContentShaderPipelineFolder  = ContentRenderFolder + "/pipeline"
 	ContentSpvFolder             = ContentRenderFolder + "/spv"
 	ContentStageFolder           = "stage"
@@ -98,6 +99,7 @@ const (
 	ProjectModFile            = ProjectCodeFolder + "/go.mod"
 	ProjectCodeGameHost       = ProjectCodeGameHostFolder + "/game_host.go"
 	ProjectWorkFile           = "go.work"
+	ProjectGitignoreFile      = ".gitignore"
 	ProjectCodeGameTitle      = KaijuSrcFolder + "/build/title.go"
 	EntityDataBindingInit     = ProjectCodeFolder + "/entity_data_binding_init.go"
 )
@@ -112,6 +114,14 @@ func HtmlPath(id string) ContentPath {
 
 func StagePath(id string) ContentPath {
 	return AsContentPath(filepath.Join(ContentFolder, ContentStageFolder, id))
+}
+
+func ShaderPath(id string) ContentPath {
+	return AsContentPath(filepath.Join(ContentFolder, ContentShaderFolder, id))
+}
+
+func SpvPath(id string) ContentPath {
+	return AsContentPath(filepath.Join(ContentFolder, ContentSpvFolder, id))
 }
 
 func (p ContentPath) String() string { return string(p) }

@@ -53,7 +53,7 @@ type MaterialConfig struct{}
 // the following functions
 
 func (Material) Path() string       { return project_file_system.ContentMaterialFolder }
-func (Material) TypeName() string   { return "material" }
+func (Material) TypeName() string   { return "Material" }
 func (Material) ExtNames() []string { return []string{".material"} }
 
 func (Material) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

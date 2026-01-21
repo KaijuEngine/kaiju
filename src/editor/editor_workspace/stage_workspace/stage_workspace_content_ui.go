@@ -45,8 +45,10 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
 	"kaiju/rendering"
 	"log/slog"
 	"slices"
@@ -55,18 +57,32 @@ import (
 )
 
 type WorkspaceContentUI struct {
-	workspace      weak.Pointer[StageWorkspace]
-	typeFilters    []string
-	tagFilters     []string
-	query          string
-	contentArea    *document.Element
-	dragPreview    *document.Element
-	entryTemplate  *document.Element
-	hideContentElm *document.Element
-	showContentElm *document.Element
-	dragging       *document.Element
-	tooltip        *document.Element
-	dragContentId  string
+	workspace          weak.Pointer[StageWorkspace]
+	typeFilters        []string
+	typeFiltersDisable []string
+	tagFilters         []string
+	tagFiltersDisable  []string
+	query              string
+	contentArea        *document.Element
+	dragPreview        *document.Element
+	entryTemplate      *document.Element
+	dragging           *document.Element
+	tooltip            *document.Element
+	dragContentId      string
+}
+
+type StageDragContent struct {
+	cui *WorkspaceContentUI
+	id  string
+}
+
+func (d StageDragContent) DragUpdate() {
+	defer tracing.NewRegion("HierarchyEntityDragData.DragUpdate").End()
+	w := d.cui.workspace.Value()
+	m := &w.Host.Window.Mouse
+	mp := m.ScreenPosition()
+	ps := d.cui.dragPreview.UI.Layout().PixelSize()
+	d.cui.dragPreview.UI.Layout().SetOffset(mp.X()-ps.X()*0.5, mp.Y()-ps.Y()*0.5)
 }
 
 func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
@@ -75,8 +91,6 @@ func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
 		"tagFilter":         cui.tagFilter,
 		"clickFilter":       cui.clickFilter,
 		"dblClickEntry":     cui.dblClickEntry,
-		"hideContent":       cui.hideContent,
-		"showContent":       cui.showContent,
 		"entryDragStart":    cui.entryDragStart,
 		"entryMouseEnter":   cui.entryMouseEnter,
 		"entryMouseMove":    cui.entryMouseMove,
@@ -91,8 +105,6 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
 	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
 	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
-	cui.hideContentElm, _ = w.Doc.GetElementById("hideContent")
-	cui.showContentElm, _ = w.Doc.GetElementById("showContent")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
@@ -104,33 +116,15 @@ func (cui *WorkspaceContentUI) open() {
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
 	cui.tooltip.UI.Hide()
-	if cui.hideContentElm.UI.Entity().IsActive() {
-		cui.showContentElm.UI.Hide()
-	}
-}
-
-func (cui *WorkspaceContentUI) update(w *StageWorkspace) bool {
-	defer tracing.NewRegion("WorkspaceContentUI.update").End()
-	if cui.dragging != nil {
-		m := &w.Host.Window.Mouse
-		mp := m.ScreenPosition()
-		ps := cui.dragPreview.UI.Layout().PixelSize()
-		cui.dragPreview.UI.Layout().SetOffset(mp.X()-ps.X()*0.5, mp.Y()-ps.Y()*0.5)
-		if m.Released(hid.MouseButtonLeft) {
-			cui.dropContent(w, m)
-		}
-		return false
-	}
-	return true
 }
 
 func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
 	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
 	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
-		if cui.hideContentElm.UI.Entity().IsActive() {
-			cui.hideContent(nil)
+		if cui.contentArea.UI.Entity().IsActive() {
+			cui.contentArea.UI.Hide()
 		} else {
-			cui.showContent(nil)
+			cui.contentArea.UI.Show()
 		}
 	}
 }
@@ -143,12 +137,14 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w := cui.workspace.Value()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		cc, err := w.ed.Cache().Read(ids[i])
-		if err != nil {
-			slog.Error("failed to read the cached content", "id", ids[i], "error", err)
-			continue
+		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
+			cc, err := w.ed.Cache().Read(ids[i])
+			if err != nil {
+				slog.Error("failed to read the cached content", "id", ids[i], "error", err)
+				continue
+			}
+			ccAll = append(ccAll, cc)
 		}
-		ccAll = append(ccAll, cc)
 	}
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
@@ -157,7 +153,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
-		cui.loadEntryImage(cpys[i], cc.Path, cc.Config.Type)
+		cui.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().Texture(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
 			rendering.TextureFilterLinear)
@@ -203,28 +199,25 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 	}
 }
 
-func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, configPath, typeName string) {
+func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
 	defer tracing.NewRegion("WorkspaceContentUI.loadEntryImage").End()
 	img := e.Children[0].UI.ToPanel()
 	w := cui.workspace.Value()
-	if typeName == (content_database.Texture{}).TypeName() {
+	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			path := content_database.ToContentPath(configPath)
-			data, err := w.ed.ProjectFileSystem().ReadFile(path)
+			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
 			if err != nil {
-				slog.Error("error reading the image file", "path", path)
+				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
 			}
-			tex, err := rendering.NewTextureFromMemory(rendering.GenerateUniqueTextureKey,
-				data, 0, 0, rendering.TextureFilterLinear)
-			if err != nil {
-				slog.Error("failed to insert the texture to the cache", "error", err)
-				return
-			}
+			// This has to happen before delayed create to have access to the texture data
+			isTransparent := tex.ReadPendingDataForTransparency()
 			w.Host.RunOnMainThread(func() {
-				tex.DelayedCreate(w.Host.Window.Renderer)
 				img.SetBackground(tex)
+				if isTransparent {
+					img.SetUseBlending(true)
+				}
 			})
 		}()
 	}
@@ -262,39 +255,58 @@ func (cui *WorkspaceContentUI) runFilter() {
 		if id == "entryTemplate" {
 			continue
 		}
-		if content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
+		hide := content_workspace.ShouldHideContent(id, cui.typeFiltersDisable, cui.tagFiltersDisable, w.ed.Cache())
+		if !hide && content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
 			e.UI.Show()
 		} else {
 			e.UI.Hide()
 		}
 	}
-	cui.workspace.Value().Host.RunOnMainThread(w.Doc.Clean)
+	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.clickFilter").End()
-	isSelected := slices.Contains(e.ClassList(), "filterSelected")
+	inverted := cui.workspace.Value().Host.Window.Keyboard.HasAlt()
+	isSelected := false
+	if inverted {
+		isSelected = slices.Contains(e.ClassList(), "inverted")
+	} else {
+		isSelected = slices.Contains(e.ClassList(), "selected")
+	}
+	w := cui.workspace.Value()
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	w := cui.workspace.Value()
-	if isSelected {
-		w.Doc.SetElementClasses(e, "leftBtn", "filterSelected")
-		if typeName != "" {
-			cui.typeFilters = append(cui.typeFilters, typeName)
-		}
-		if tagName != "" {
-			cui.tagFilters = append(cui.tagFilters, tagName)
-		}
-	} else {
-		w.Doc.SetElementClasses(e, "leftBtn")
-		if typeName != "" {
-			cui.typeFilters = klib.SlicesRemoveElement(cui.typeFilters, typeName)
-		}
-		if tagName != "" {
-			cui.tagFilters = klib.SlicesRemoveElement(cui.tagFilters, tagName)
-		}
+	var targetList *[]string
+	var invTargetList *[]string
+	var name string
+	if typeName != "" {
+		targetList = &cui.typeFilters
+		invTargetList = &cui.typeFiltersDisable
+		name = typeName
 	}
+	if tagName != "" {
+		targetList = &cui.tagFilters
+		invTargetList = &cui.tagFiltersDisable
+		name = tagName
+	}
+	if inverted {
+		targetList, invTargetList = invTargetList, targetList
+	}
+	if isSelected {
+		className := "selected"
+		if inverted {
+			className = "inverted"
+		}
+		w.Doc.SetElementClasses(e, "filterBtn", className)
+		*targetList = append(*targetList, name)
+	} else {
+		w.Doc.SetElementClasses(e, "filterBtn")
+		*targetList = klib.SlicesRemoveElement(*targetList, name)
+	}
+	// Remove it from inverse list in both cases intentionally
+	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
 	cui.runFilter()
 }
 
@@ -311,26 +323,14 @@ func (cui *WorkspaceContentUI) dblClickEntry(e *document.Element) {
 	cui.dragPreview.UI.Hide()
 }
 
-func (cui *WorkspaceContentUI) hideContent(*document.Element) {
-	defer tracing.NewRegion("WorkspaceContentUI.hideContent").End()
-	cui.hideContentElm.UI.Hide()
-	cui.showContentElm.UI.Show()
-	cui.contentArea.UI.Hide()
-}
-
-func (cui *WorkspaceContentUI) showContent(*document.Element) {
-	defer tracing.NewRegion("WorkspaceContentUI.showContent").End()
-	cui.showContentElm.UI.Hide()
-	cui.hideContentElm.UI.Show()
-	cui.contentArea.UI.Show()
-}
-
 func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.entryDragStart").End()
 	cui.dragging = e
 	cui.dragPreview.UI.Show()
 	cui.dragPreview.UIPanel.SetBackground(e.Children[0].UIPanel.Background())
 	cui.dragContentId = e.Attribute("id")
+	windowing.SetDragData(StageDragContent{cui, cui.dragContentId})
+	windowing.OnDragStop.Add(cui.dropContent)
 }
 
 func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
@@ -359,12 +359,24 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 		ui.Show()
 	}
 	host := cui.workspace.Value().Host
+	win := host.Window
+	p := win.Mouse.ScreenPosition()
+	// Offsetting the box so the mouse doesn't collide with it easily
+	const xOffset, yOffset = 10, 20
+	const statusBarYBuffer = 20
+	x := p.X() + xOffset
+	y := p.Y() + yOffset
+	ps := ui.Layout().PixelSize()
+	if x+ps.Width() > matrix.Float(win.Width()) {
+		x = p.X() - ps.Width() - xOffset
+	}
+	if y+ps.Height()+statusBarYBuffer > matrix.Float(win.Height()) {
+		y = p.Y() - ps.Height() - yOffset
+	}
 	// Running on the main thread so it's up to date with the mouse position on
 	// the next frame. Maybe there's no need for this...
 	host.RunOnMainThread(func() {
-		p := host.Window.Mouse.ScreenPosition()
-		// Offsetting the box so the mouse doesn't collide with it easily
-		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+		ui.Layout().SetOffset(x, y)
 	})
 }
 
@@ -374,9 +386,14 @@ func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 	cui.tooltip.UI.Hide()
 }
 
-func (cui *WorkspaceContentUI) dropContent(w *StageWorkspace, m *hid.Mouse) {
+func (cui *WorkspaceContentUI) dropContent() {
+	w := cui.workspace.Value()
+	m := &w.Host.Window.Mouse
 	defer tracing.NewRegion("WorkspaceContentUI.dropContent").End()
-	if !cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition()) {
+	inContentArea := cui.contentArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition())
+	inDetailsArea := w.hierarchyUI.hierarchyArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition())
+	inHierarchyArea := w.detailsUI.detailsArea.UI.Entity().Transform.ContainsPoint2D(m.CenteredPosition())
+	if !inContentArea && !inDetailsArea && !inHierarchyArea {
 		cc, err := w.ed.Cache().Read(cui.dragContentId)
 		if err != nil {
 			slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)

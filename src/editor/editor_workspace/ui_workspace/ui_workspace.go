@@ -70,7 +70,6 @@ type UIWorkspace struct {
 	previewHelp *document.Element
 	ratioX      *document.Element
 	ratioY      *document.Element
-	updateId    engine.UpdateId
 	html        string
 	data        string
 	styles      []string
@@ -81,6 +80,7 @@ type UIWorkspace struct {
 }
 
 func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterface) {
+	defer tracing.NewRegion("UIWorkspace.Initialize").End()
 	w.ed = ed
 	w.ratio = matrix.NewVec2(16, 9)
 	w.CommonWorkspace.InitializeWithUI(host,
@@ -96,7 +96,6 @@ func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterfac
 	w.ratioX, _ = w.Doc.GetElementById("ratioX")
 	w.ratioY, _ = w.Doc.GetElementById("ratioY")
 	w.previewMan.Init(host)
-	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.previewArea.UIPanel.DontFitContent()
 }
 
@@ -188,7 +187,7 @@ func (w *UIWorkspace) applyRatio() {
 	w.previewArea.UI.Layout().Scale(targetWidth, targetHeight)
 }
 
-func (w *UIWorkspace) update(deltaTime float64) {
+func (w *UIWorkspace) Update(deltaTime float64) {
 	if !w.Doc.IsActive() {
 		return
 	}

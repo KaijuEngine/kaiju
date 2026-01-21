@@ -66,6 +66,7 @@ package windowing
 #cgo noescape window_set_windowed
 #cgo noescape window_lock_cursor
 #cgo noescape window_unlock_cursor
+#cgo noescape window_set_cursor_position
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -83,10 +84,6 @@ import (
 //export goProcessEvents
 func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
 	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
-}
-
-func scaleScrollDelta(delta float32) float32 {
-	return delta
 }
 
 func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
@@ -228,6 +225,10 @@ func (w *Window) addBorder() {
 
 func (w Window) disableRawMouse() { /* Don't think this is needed for X11 */ }
 func (w Window) enableRawMouse()  { /* Don't think this is needed for X11 */ }
+
+func (w *Window) setCursorPosition(x, y int) {
+	C.window_set_cursor_position(w.handle, C.int(x), C.int(y))
+}
 
 func (w *Window) readApplicationAsset(path string) ([]byte, error) {
 	return []byte{}, errors.New("linux doesn't support application assets")

@@ -1,19 +1,20 @@
 #version 460
-
-#include "inc_vertex.inl"
+#define VERTEX_SHADER
 
 // RGB + A (alpha is the mode 0 = 2D, anything else is 3D)
-layout(location = LOCATION_START) in vec4 color;
+#define LAYOUT_VERT_COLOR 0
 
-layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec2 fragTexCoords;
-layout(location = 2) out vec3 fragWorldPos;
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_TEX_COORDS 1
+#define LAYOUT_FRAG_WORLD_POS 2
+
+#include "kaiju.glsl"
 
 bool is2DMode() { return color.a - 0.00001 <= 0; }
 
 void main() {
-	fragTexCoords = UV0;
-	vec4 wp = model * vec4(Position, 1.0);
+	writeTexCoords();
+	vec4 wp = worldPosition();
 	fragColor = vec4(color.rgb, 1.0);
 	if (is2DMode()) {
 		fragColor.a = 0.1;
@@ -29,6 +30,5 @@ void main() {
 			fragColor = vec4(0.8, 0.3, 0.3, 1.0);
 		}
 	}
-	fragWorldPos = wp.xyz;
-	gl_Position = projection * view * wp;
+	writeStandardPosition();
 }

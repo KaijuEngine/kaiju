@@ -49,7 +49,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 	}
 	bufferInfo := vk.BufferCreateInfo{}
 	bufferInfo.SType = vulkan_const.StructureTypeBufferCreateInfo
-	bufferInfo.Size = vr.padUniformBufferSize(size)
+	bufferInfo.Size = vr.padBufferSize(size)
 	bufferInfo.Usage = usage
 	bufferInfo.SharingMode = vulkan_const.SharingModeExclusive
 	var localBuffer vk.Buffer

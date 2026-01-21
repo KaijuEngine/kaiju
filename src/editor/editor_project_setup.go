@@ -97,29 +97,38 @@ func (ed *Editor) openProject(path string) {
 		ed.retryNewProjectOverlay(err)
 		return
 	}
-	projectVersion := ed.project.Settings().EditorVersion
+	projectVersion := ed.project.Settings.EditorVersion
 	finishLoad := func() {
 		ed.setProjectName(ed.project.Name())
 		ed.postProjectLoad()
 		ed.FocusInterface()
 	}
-	if projectVersion != EditorVersion {
+	hasEngineSource := ed.project.FileSystem().HasEngineCode()
+	if projectVersion != EditorVersion || !hasEngineSource {
+		title := "Upgrade project"
+		description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."
+		cancelMsg := "Project upgrade refused, unable to open project"
+		if projectVersion == EditorVersion {
+			title = "Import engine code"
+			description = "Your project doesn't have the engine source, would you like to import it? This is typical if you don't commit the `kaiju` folder to your repository."
+			cancelMsg = "Engine source import refused, unable to open project"
+		}
 		confirm_prompt.Show(ed.host, confirm_prompt.Config{
-			Title:       "Upgrade project",
-			Description: "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding.",
+			Title:       title,
+			Description: description,
 			ConfirmText: "Yes",
 			CancelText:  "Cancel",
 			OnConfirm: func() {
 				if err := ed.project.TryUpgrade(); err != nil {
 					ed.retryNewProjectOverlay(err)
 				} else {
-					ed.project.Settings().EditorVersion = EditorVersion
-					ed.project.Settings().Save(ed.ProjectFileSystem())
+					ed.project.Settings.EditorVersion = EditorVersion
+					ed.project.Settings.Save(ed.ProjectFileSystem())
 					finishLoad()
 				}
 			},
 			OnCancel: func() {
-				ed.retryNewProjectOverlay(errors.New("Project upgrade refused, unable to open project"))
+				ed.retryNewProjectOverlay(errors.New(cancelMsg))
 			},
 		})
 	} else {

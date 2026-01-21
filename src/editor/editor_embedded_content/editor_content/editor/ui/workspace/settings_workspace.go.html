@@ -1,6 +1,6 @@
 {{define "bitmask"}}
 <div class="inputItemFlags">
-	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<div class="inputFlags lightDarkBG">
 		{{range .List}}
 			<div class="checkboxListEntry">
@@ -14,14 +14,14 @@
 
 {{define "bool"}}
 <div class="inputItem">
-	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<input data-path="{{.FullPath}}" class="inputCheck" type="checkbox" {{if .Value}}checked="checked"{{end}} onchange="valueChanged" />
 </div>
 {{end}}
 
 {{define "enum"}}
 <div class="inputItem">
-	<div class="inputLabel" data-tooltip="{{.TipKey}}" onmouseenter="showTooltip">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<select data-path="{{.FullPath}}" class="input" value="{{.Value}}" onchange="valueChanged">
 	{{range .List}}
 		<option value="{{.Value}}">{{$.PascalToTitle .Name}}</option>
@@ -32,7 +32,7 @@
 
 {{define "any"}}
 <div class="inputItem">
-	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<div class="inputLabel">{{.DisplayName}}:</div>
 	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
 </div>
 {{end}}
@@ -73,15 +73,14 @@
 	<head>
 		<style>
 			.content {
-				top: 2em;
+				top: var(--ed-menu-bar-height);
 				width: 100%;
-				height: calc(100% - 2em);
+				height: calc(100% - var(--ed-status-bar-height));
 				background-color: #121212;
 			}
 			.leftPanel, .rightPanel {
 				height: 100%;
 				overflow-y: scroll;
-				background-color: #282828;
 			}
 			.leftPanel {
 				width: 10em;
@@ -94,18 +93,7 @@
 			}
 			.settingsBox {
 				width: 100%;
-			}
-			.leftEntry {
-				color: #AAA;
-				background-color: #282828;
-			}
-			.leftEntry:hover {
-				color: white;
-				background-color: #353535;
-			}
-			.leftEntrySelected {
-				color: white;
-				background-color: #353535;
+				margin-bottom: 2em;
 			}
 			/*** Data fields styles ***/
 			h2 {
@@ -171,15 +159,26 @@
 			.lightDarkBG {
 				background-color: #313232;
 			}
+			.pluginEntry {
+				width: 100%;
+				border: 2px solid #CCC;
+			}
+			.pluginWebsite {
+				color: #63b361;
+			}
+			#pluginSettingsBox button {
+				margin-right: 1em;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="content">
-			<div class="leftPanel">
-				<div class="leftEntry" onclick="showProjectSettings">Project Settings</div>
-				<div class="leftEntry" onclick="showEditorSettings">Editor Settings</div>
+			<div class="leftPanel edPanelBg">
+				<div class="edPanelBgHoverable" onclick="showProjectSettings">Project Settings</div>
+				<div class="edPanelBgHoverable" onclick="showEditorSettings">Editor Settings</div>
+				<div class="edPanelBgHoverable" onclick="showPluginSettings">Plugin Settings</div>
 			</div>
-			<div class="rightPanel">
+			<div class="rightPanel edPanelBg">
 				<div id="projectSettingsBox" class="settingsBox">
 					<h1>Project Settings</h1>
 					{{template "section" .Project}}
@@ -187,6 +186,30 @@
 				<div id="editorSettingsBox" class="settingsBox">
 					<h1>Editor Settings</h1>
 					{{template "section" .Editor}}
+				</div>
+				<div id="pluginSettingsBox" class="settingsBox">
+					<h1>Plugin Settings</h1>
+					<button onclick="clickOpenPlugins">Open plugins folder</button>
+					<button onclick="recompileEditor">Recompile Editor</button>
+					{{range $i, $p := .Plugins}}
+					<div class="pluginEntry edPanelBgDark">
+						<h1>{{$p.Config.Name}}</h1>
+						<div>{{$p.Config.Description}}</div>
+						<div>Author: {{$p.Config.Author}}</div>
+						<div>Version: {{$p.Config.Version}}</div>
+						<div>
+							{{if $p.Config.Website}}
+							<div>
+								<a class="pluginWebsite" onclick="openPluginWebsite">{{$p.Config.Website}}</a>
+							</div>
+							{{end}}
+						</div>
+						<div>
+							<input type="checkbox" class="inputCheck" data-idx="{{$i}}" {{if $p.Config.Enabled}}checked="checked"{{end}} onchange="togglePlugin" />
+							<span class="inputCheckLabel">Enabled</span>
+						</div>
+					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>

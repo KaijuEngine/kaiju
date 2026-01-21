@@ -88,10 +88,14 @@ type Animation struct {
 }
 
 type Node struct {
+	Id         int32
 	Name       string
 	Parent     int
-	Transform  matrix.Transform
+	Position   matrix.Vec3
+	Rotation   matrix.Quaternion
+	Scale      matrix.Vec3
 	Attributes map[string]any
+	IsAnimated bool
 }
 
 type Joint struct {
@@ -104,6 +108,16 @@ type Result struct {
 	Meshes     []Mesh
 	Animations []Animation
 	Joints     []Joint
+}
+
+func (r *Result) IsTreeAnimated(nodeIdx int) bool {
+	isAnimated := r.Nodes[nodeIdx].IsAnimated
+	p := r.Nodes[nodeIdx].Parent
+	for !isAnimated && p >= 0 {
+		isAnimated = r.Nodes[p].IsAnimated
+		p = r.Nodes[p].Parent
+	}
+	return isAnimated
 }
 
 func (r *Result) IsValid() bool { return len(r.Meshes) > 0 }

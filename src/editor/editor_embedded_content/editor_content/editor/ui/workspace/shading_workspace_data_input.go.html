@@ -30,10 +30,21 @@
 </div>
 {{end}}
 
+{{define "content"}}
+<div class="inputItem">
+	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	<div data-path="{{.FullPath}}" value="{{.Value}}" class="edContentPickInput input" data-type="{{.ContentType}}" onclick="clickSelectContentId">{{if .Value}}{{.ContentName}}{{else}}empty &lpar;{{.ContentType}}&rpar;{{end}}</div>
+</div>
+{{end}}
+
 {{define "any"}}
 <div class="inputItem">
 	<div data-tooltip="{{.TipKey}}" onmouseenter="showTooltip" class="inputLabel">{{.DisplayName}}:</div>
+	{{if .IsStatic}}
+	<span>{{.Value}}</span>
+	{{else}}
 	<input data-path="{{.FullPath}}" class="input" type="text" value="{{.Value}}" onchange="valueChanged" />
+	{{end}}
 </div>
 {{end}}
 
@@ -62,6 +73,8 @@
 			{{template "enum" $f}}
 		{{else if eq $f.Type "bitmask"}}
 			{{template "bitmask" $f}}
+		{{else if eq $f.Type "content"}}
+			{{template "content" $f}}
 		{{else}}
 			{{template "any" $f}}
 		{{end}}
@@ -154,10 +167,9 @@
 			}
             .rightPanel {
 				position: absolute;
-				top: 3em;
-				height: calc(100% - 5em);
+				top: var(--ed-menu-bar-height);
+				height: calc(100% - var(--ed-status-bar-height));
 				width: 25em;
-				background-color: #282828;
 				color: white;
 				overflow-y: scroll;
 				padding: 5px;
@@ -169,13 +181,22 @@
 		</style>
 	</head>
 	<body>
-		<div class="rightPanel">
+		<div class="rightPanel edPanelBg">
 			<div class="topFields">
 				<h1>{{.Name}}</h1>
+				{{if eq .Name "Material Editor"}}
+				<div class="inputItem">
+					<div class="inputLabel">Name:</div>
+					<input id="nameInput" class="input" type="text" placeholder="Name..." value="{{.GroupName}}" />
+				</div>
+				{{end}}
 				{{template "section" .}}
 				<button class="inputButtonWide" onclick="saveData">Save</button>
+				{{if eq .Name "Shader Editor"}}
+				<button class="inputButtonWide" onclick="clickLiveShader">Start live</button>
+				{{end}}
 			</div>
-			<div id="ToolTip" class="bottomTooltip">tooltip</div>
+			<div id="toolTip" class="bottomTooltip">tooltip</div>
 		</div>
 	</body>
 </html>

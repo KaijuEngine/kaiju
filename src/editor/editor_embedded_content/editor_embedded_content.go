@@ -60,6 +60,7 @@ func (EditorContent) Close()                        {}
 
 func toEmbedPath(key string) string {
 	const prefix = "editor/editor_embedded_content/editor_content"
+	key = filepath.ToSlash(key)
 	if strings.HasPrefix(key, "editor/") {
 		return filepath.ToSlash(filepath.Join(prefix, key))
 	}
@@ -131,6 +132,9 @@ func (e EditorContent) ReadText(key string) (string, error) {
 
 func (e EditorContent) Exists(key string) bool {
 	defer tracing.NewRegion("EditorContent.Exists: " + key).End()
+	if strings.TrimSpace(key) == "" {
+		return false
+	}
 	if key[0] == absoluteFilePrefix {
 		return filesystem.FileExists(key[1:])
 	}

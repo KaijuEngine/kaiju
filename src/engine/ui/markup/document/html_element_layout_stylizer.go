@@ -159,10 +159,10 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 }
 
 func (s *ElementLayoutStylizer) ProcessStyle(layout *ui.Layout) []error {
-	return s.processRules(layout, s.currentInvoke)
+	return s.processRules(layout)
 }
 
-func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.RuleInvoke) []error {
+func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
 	problems := make([]error, 0)
 	elm := s.element.Value()
 	if elm == nil {
@@ -205,9 +205,6 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout, invoke rules.Rul
 	}
 	slices.SortFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
 	for i := range all {
-		if len(all[i].Values) == 1 && all[i].Values[0].Str == "revert" {
-			continue
-		}
 		if p, ok := LinkedPropertyMap[all[i].Property]; ok {
 			if err := p.Process(layout.Ui().ToPanel(), elm, all[i].Values, host); err != nil {
 				problems = append(problems, err)

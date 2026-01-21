@@ -3,7 +3,7 @@
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -43,12 +43,13 @@ import (
 )
 
 type History struct {
-	undoStack     []Memento
-	transaction   *HistoryTransaction
-	position      int
-	limit         int
-	savedPosition int
-	lockAdditions bool
+	undoStack        []Memento
+	transaction      *HistoryTransaction
+	position         int
+	limit            int
+	savedPosition    int
+	transactionDepth int
+	lockAdditions    bool
 }
 
 // Initialize sets the max number of undo entries that the history will retain.
@@ -74,15 +75,23 @@ func (h *History) IsInTransaction() bool { return h.transaction != nil }
 // will generate history, thus creating 2 history entries (clear and delete). By
 // starting a transaction, both of those will be within the same undo/redo call.
 func (h *History) BeginTransaction() {
-	h.transaction = &HistoryTransaction{}
+	if h.transaction == nil {
+		h.transaction = &HistoryTransaction{}
+	}
+	h.transactionDepth++
 }
 
 // CommitTransaction finalizes the current transaction, adding all queued
 // mementos to the history as a single atomic operation.
 func (h *History) CommitTransaction() {
-	t := h.transaction
-	h.transaction = nil
-	h.Add(t)
+	h.transactionDepth--
+	if h.transactionDepth == 0 {
+		if h.transaction != nil {
+			t := h.transaction
+			h.transaction = nil
+			h.Add(t)
+		}
+	}
 }
 
 // CancelTransaction aborts the current transaction, discarding any queued

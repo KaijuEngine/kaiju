@@ -1,0 +1,122 @@
+/******************************************************************************/
+/* particle_system_entity_data_renderer.go                                    */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
+package data_binding_renderer
+
+import (
+	"kaiju/editor/codegen/entity_data_binding"
+	"kaiju/editor/editor_stage_manager"
+	"kaiju/engine"
+	"kaiju/engine_entity_data/engine_entity_data_particles"
+	"kaiju/platform/profiler/tracing"
+	"kaiju/rendering"
+	"kaiju/rendering/vfx"
+	"log/slog"
+)
+
+type particleSystemGizmo struct {
+	id     string
+	system vfx.ParticleSystem
+	icon   rendering.DrawInstance
+}
+
+type ParticleSystemEntityDataRenderer struct {
+	Systems map[*editor_stage_manager.StageEntity]*particleSystemGizmo
+}
+
+func init() {
+	AddRenderer(engine_entity_data_particles.BindingKey, &ParticleSystemEntityDataRenderer{
+		Systems: make(map[*editor_stage_manager.StageEntity]*particleSystemGizmo),
+	})
+}
+
+func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Attached").End()
+	c.Systems[target] = &particleSystemGizmo{
+		icon: commonAttached(host, manager, target, "particles.png"),
+	}
+	target.OnActivate.Add(func() {
+		if g, ok := c.Systems[target]; ok {
+			g.system.Activate()
+		}
+	})
+	target.OnDeactivate.Add(func() {
+		if g, ok := c.Systems[target]; ok {
+			g.system.Deactivate()
+		}
+	})
+	target.OnDestroy.Add(func() {
+		c.Detatched(host, manager, target, data)
+	})
+}
+
+func (c *ParticleSystemEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Detatched").End()
+	if d, ok := c.Systems[target]; ok {
+		d.icon.Destroy()
+		// Particle system destroys itself when the entity is destroyed
+		delete(c.Systems, target)
+	}
+}
+
+func (c *ParticleSystemEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Show").End()
+}
+
+func (c *ParticleSystemEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
+	// defer tracing.NewRegion("ParticleSystemEntityDataRenderer.Hide").End()
+}
+
+func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
+	if g, ok := c.Systems[target]; ok {
+		id := data.FieldValueByName("Id").(string)
+		if g.id == id && target.Transform.IsDirty() {
+			return
+		}
+		g.id = id
+		g.system.Clear()
+		spec, err := vfx.LoadSpec(host, id)
+		if err != nil {
+			slog.Error("invlaid particle system id specified", "id", id, "error", err)
+			return
+		}
+		if !g.system.IsValid() {
+			g.system.Initialize(host, &target.Entity, spec)
+		} else {
+			g.system.LoadSpec(host, spec)
+		}
+	}
+}

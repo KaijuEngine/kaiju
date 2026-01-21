@@ -1,0 +1,225 @@
+name: Nightly Build & Release
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # 8:00 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: windows-2022
+    env:
+      VULKAN_SDK_VERSION: "1.4.335.0"
+      MINGW_RELEASE: "15.2.0-rt_v13-rev0"
+      MINGW_FILENAME: "x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: src/go.sum
+
+      - name: Install DirectX (June 2010) runtime for XINPUT1_3.dll
+        shell: pwsh
+        run: |
+          curl -L https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_Jun2010_redist.exe -o ${{ runner.temp }}/directx_Jun2010_redist.exe
+          & ${{ runner.temp }}/directx_Jun2010_redist.exe /Q /T:${{ runner.temp }}/directx | Out-Null
+          ${{ runner.temp }}/directx/DXSETUP.exe /silent | Out-Null
+
+      - name: Restore Vulkan SDK from Cache
+        id: cache-vulkansdk
+        uses: actions/cache@v5
+        with:
+          path: C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}
+          key: vulkan-sdk-windows-${{ env.VULKAN_SDK_VERSION }}
+          restore-keys: ""
+
+      - name: Install Vulkan SDK if cache miss
+        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/windows/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe -o ${{ runner.temp }}/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe
+          ${{ runner.temp }}/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe --root C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }} --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.sdl2 com.lunarg.vulkan.debug
+
+      - name: Restore MinGW from Cache
+        id: cache-mingw
+        uses: actions/cache@v5
+        with:
+          path: C:\mingw64
+          key: ${{ env.MINGW_RELEASE }}/${{ env.MINGW_FILENAME }}
+          restore-keys: ""
+
+      - name: Install MinGW if cache miss
+        if: steps.cache-mingw.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://github.com/niXman/mingw-builds-binaries/releases/download/${{ env.MINGW_RELEASE }}/${{ env.MINGW_FILENAME }} -o ${{ runner.temp }}/x86_64-15.2.0-release-win32-seh-msvcrt-rt_v13-rev0.7z
+          & "C:\Program Files\7-Zip\7z.exe" x ${{ runner.temp }}/${{ env.MINGW_FILENAME }} -oc:\ -y
+
+      - name: Ensure Vulkan & MinGW Env Vars are set
+        run: |
+          "C:\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $ErrorActionPreference = "Stop"
+          $sdk = "C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}"
+          if (-not (Test-Path $sdk)) { throw "SDK path not found: $sdk" }
+          "VULKAN_SDK=$sdk" | Out-File -Append $env:GITHUB_ENV
+          "PATH=$sdk\Bin;$env:PATH" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Build editor (Debug)
+        working-directory: ./src
+        run: |
+          go build -tags="debug,editor" -o ../kaiju.exe ./
+          Get-ChildItem ../kaiju.exe | Format-Table Name, Length, LastWriteTime
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-windows
+          path: kaiju.exe
+          retention-days: 7
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: src/go.sum
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            g++ \
+            libx11-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            mesa-common-dev \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            libvulkan-dev \
+            libasound2-dev
+
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | \
+            sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list \
+            https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
+
+      - name: Build editor (Debug)
+        working-directory: ./src
+        run: |
+          go build -tags="debug,editor" -o ../kaiju ./
+          ls -lh ../kaiju
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-linux
+          path: kaiju
+          retention-days: 7
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    continue-on-error: true # macOS builds are currently unstable
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: src/go.sum
+
+      - name: Build editor (Debug)
+        working-directory: ./src
+        run: go build -tags="debug,editor" -o ../kaiju-macos ./
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-macos
+          path: kaiju-macos
+          retention-days: 7
+
+  release:
+    name: Create Nightly Release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux, build-macos]
+    # Run only if Windows and Linux builds succeeded (macOS ignored due to instability)
+    if: always() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Tag
+        id: tag
+        run: |
+          DATE=$(date +'%y.%m.%d')
+          echo "Date: $DATE"
+
+          # Get all tags matching today's pattern
+          TAGS=$(git tag --list "$DATE.*-nightly")
+
+          MAX_INDEX=0
+
+          if [ -n "$TAGS" ]; then
+             for tag in $TAGS; do
+               # tag format: YY.MM.DD.INDEX-nightly
+               suffix="${tag#$DATE.}"
+               index="${suffix%%-nightly}"
+               
+               if [ "$index" -gt "$MAX_INDEX" ]; then
+                 MAX_INDEX=$index
+               fi
+             done
+          fi
+
+          NEXT_INDEX=$((MAX_INDEX + 1))
+          NEW_TAG="$DATE.$NEXT_INDEX-nightly"
+
+          echo "New Tag: $NEW_TAG"
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag.outputs.tag }}
+          name: Nightly ${{ steps.tag.outputs.tag }}
+          body: "Nightly build for ${{ steps.tag.outputs.tag }}"
+          prerelease: true
+          artifacts: "artifacts/**/*"
+          token: ${{ secrets.GITHUB_TOKEN }}

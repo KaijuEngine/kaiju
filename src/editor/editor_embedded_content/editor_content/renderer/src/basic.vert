@@ -1,24 +1,24 @@
 #version 460
+#define VERTEX_SHADER
 
-#include "inc_vertex.inl"
+#define LAYOUT_VERT_COLOR 0
+#define LAYOUT_VERT_FLAGS 1
 
-layout(location = LOCATION_START) in vec4 color;
-layout(location = LOCATION_START+1) in uint flags;
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_FLAGS 1
+#define LAYOUT_FRAG_POS 2
+#define LAYOUT_FRAG_TEX_COORDS 3
+#define LAYOUT_FRAG_NORMAL 4
+#define LAYOUT_FRAG_VIEW_DIR 5
 
-layout(location = 0) out vec4 fragColor;
-layout(location = 1) out uint fragFlags;
-layout(location = 2) out vec3 fragPos;
-layout(location = 3) out vec2 fragTexCoords;
-layout(location = 4) out vec3 fragNormal;
-layout(location = 5) out vec3 viewDir;
+#include "kaiju.glsl"
 
 void main() {
 	fragColor = Color * color;
 	fragFlags = flags;
 	fragTexCoords = UV0;
 	fragNormal = mat3(model) * Normal;
-	vec4 wp = model * vec4(Position, 1.0);
-    fragPos = wp.xyz; 
-	viewDir = cameraPosition.xyz - wp.xyz;
-	gl_Position = projection * view * wp;
+	writeStandardPosition();
+	vec4 wp = worldPosition();
+	fragViewDir = cameraPosition.xyz - wp.xyz;
 }

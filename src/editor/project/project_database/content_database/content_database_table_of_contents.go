@@ -39,6 +39,7 @@ package content_database
 import (
 	"bytes"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/assets/table_of_contents"
 	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/platform/profiler/tracing"
@@ -72,7 +73,7 @@ func (TableOfContents) PostImportProcessing(proc ProcessedImport, res *ImportRes
 	return nil
 }
 
-func (TableOfContents) ArchiveSerializer(rawData []byte) ([]byte, error) {
+func (TableOfContents) ArchiveSerializer(_ content_archive.FileReader, rawData []byte) ([]byte, error) {
 	toc, err := table_of_contents.Deserialize(rawData)
 	if err != nil {
 		return rawData, err

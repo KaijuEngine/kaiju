@@ -40,7 +40,6 @@ import "kaiju/platform/profiler/tracing"
 
 type Tween struct {
 	val         *float32
-	delayTime   float64
 	totalUpdate float64
 	time        float64
 	initial     float32
@@ -53,13 +52,6 @@ type Tween struct {
 
 func (t *Tween) update(deltaTime float64) bool {
 	defer tracing.NewRegion("Tween.update").End()
-	if t.delayTime > 0.0 {
-		t.delayTime -= deltaTime
-		if t.delayTime <= 0.0 {
-			t.initial = *t.val
-		}
-		return false
-	}
 	*t.val = t.calculate()
 	if t.onChange != nil {
 		t.onChange(*t.val)

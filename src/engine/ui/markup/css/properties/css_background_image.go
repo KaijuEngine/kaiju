@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
@@ -50,11 +50,11 @@ import (
 
 func (p BackgroundImage) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
-		return errors.New("Expected exactly 1 value but got " + string(len(values)))
+		return fmt.Errorf("Expected exactly 1 value but got %d", len(values))
 	}
 	reg := regexp.MustCompile(`url\s{0,}\(\s{0,}"(.*?)"\s{0,}\)`)
 	if parts := reg.FindStringSubmatch(values[0].Str); len(parts) != 2 {
-		return errors.New("Expected exactly 1 url but got " + string(len(parts)-1))
+		return fmt.Errorf("Expected exactly 1 url but got %d", len(parts)-1)
 	} else {
 		path := strings.TrimSpace(parts[1])
 		if tex, err := host.TextureCache().Texture(path, rendering.TextureFilterLinear); err != nil {

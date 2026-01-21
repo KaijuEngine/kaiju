@@ -3,7 +3,7 @@
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -38,6 +38,7 @@ package codegen
 
 import (
 	"kaiju/engine"
+	"kaiju/engine_entity_data/content_id"
 	"kaiju/matrix"
 	"reflect"
 )
@@ -73,6 +74,21 @@ func init() {
 	RegisterType[engine.EntityId]()
 	RegisterType[engine.Host]()
 	RegisterType[engine.UpdateId]()
+	RegisterType[content_id.Css]()
+	RegisterType[content_id.Font]()
+	RegisterType[content_id.Html]()
+	RegisterType[content_id.Material]()
+	RegisterType[content_id.Mesh]()
+	RegisterType[content_id.Music]()
+	RegisterType[content_id.ParticleSystem]()
+	RegisterType[content_id.RenderPass]()
+	RegisterType[content_id.ShaderPipeline]()
+	RegisterType[content_id.Shader]()
+	RegisterType[content_id.Sound]()
+	RegisterType[content_id.TableOfContents]()
+	RegisterType[content_id.Template]()
+	RegisterType[content_id.Texture]()
+	RegisterType[content_id.Stage]()
 }
 
 func RegisterType[T any]() {

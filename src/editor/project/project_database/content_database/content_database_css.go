@@ -53,7 +53,7 @@ type Css struct{}
 // the following functions
 
 func (Css) Path() string       { return project_file_system.ContentCssFolder }
-func (Css) TypeName() string   { return "css" }
+func (Css) TypeName() string   { return "Css" }
 func (Css) ExtNames() []string { return []string{".css"} }
 
 func (Css) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

@@ -1,18 +1,17 @@
 #version 460
+#define FRAGMENT_SHADER
 
-#define AMBIENT_LIGHT_COLOR vec3(0.05, 0.05, 0.05)
+#define SAMPLER_COUNT 1
 
-layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec2 fragTexCoords;
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_TEX_COORDS 1
+#define LAYOUT_FRAG_FLAGS 2
+#define LAYOUT_FRAG_POS 3
+#define LAYOUT_FRAG_NORMAL 4
 
-layout(binding = 1) uniform sampler2D texSampler;
-
-layout(location = 0) out vec4 outColor;
-#ifdef OIT
-layout(location = 1) out float reveal;
-#endif
+#include "kaiju.glsl"
 
 void main() {
-    vec4 unWeightedColor = texture(texSampler, fragTexCoords) * fragColor;
-#include "inc_fragment_oit_block.inl"
+    vec4 unWeightedColor = texture(textures[0], fragTexCoords) * fragColor;
+    processFinalColor(unWeightedColor);
 }

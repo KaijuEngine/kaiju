@@ -37,32 +37,54 @@
 package shader_data_registry
 
 import (
+	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"unsafe"
 )
 
 func init() {
-	register("pbr", func() rendering.DrawInstance {
+	gob.Register([4]int32{})
+	register(func() rendering.DrawInstance {
 		return &ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
+			LightIds:       [...]int32{-1, -1, -1, -1},
 		}
-	})
+	}, "pbr")
 }
 
 type ShaderDataPBR struct {
-	rendering.ShaderDataBase
+	rendering.ShaderDataBase `visible:"false"`
+
 	VertColors matrix.Color
 	Metallic   float32
 	Roughness  float32
 	Emissive   float32
-	Light0     float32
-	Light1     float32
-	Light2     float32
-	Light3     float32
+	Flags      StandardShaderDataFlags `visible:"false"`
+	LightIds   [4]int32                `visible:"false"`
 }
 
 func (t ShaderDataPBR) Size() int {
 	return int(unsafe.Sizeof(ShaderDataPBR{}) - rendering.ShaderBaseDataStart)
+}
+
+func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender) {
+	shouldUpdate := lights.HasChanges
+	t := s.Transform()
+	shouldUpdate = shouldUpdate || (t != nil && t.IsDirty())
+	if !shouldUpdate {
+		return
+	}
+	// TODO:  This is for testing, should select closest
+	for i := range s.LightIds {
+		s.LightIds[i] = -1
+	}
+	for i := range lights.Lights {
+		if lights.Lights[i].IsValid() {
+			s.LightIds[i] = int32(i)
+		} else {
+			break
+		}
+	}
 }

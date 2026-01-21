@@ -45,10 +45,10 @@ import (
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets/content_archive"
+	"kaiju/engine/stages"
 	"kaiju/engine/systems/events"
 	"kaiju/platform/filesystem"
 	"kaiju/platform/profiler/tracing"
-	"kaiju/stages"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -75,15 +75,13 @@ type Project struct {
 	OnEntityDataUpdated events.EventWithArg[[]codegen.GeneratedType]
 	fileSystem          project_file_system.FileSystem
 	cacheDatabase       content_database.Cache
-	settings            Settings
+	Settings            Settings
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
-	contentSerializers  map[string]func([]byte) ([]byte, error)
+	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
 	readingCode         bool
 	isCompiling         atomic.Bool
 }
-
-func (p *Project) Settings() *Settings { return &p.settings }
 
 // EntityData returns all of the generated/reflected entity data binding types
 func (p *Project) EntityData() []codegen.GeneratedType { return p.entityData }
@@ -139,10 +137,11 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	if err = p.settings.load(&p.fileSystem); err != nil {
+	p.Settings = Settings{}
+	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
-	p.settings.EditorVersion = editorVersion
+	p.Settings.EditorVersion = editorVersion
 	p.commonInit()
 	return nil
 }
@@ -152,7 +151,7 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 // error saving the config.
 func (p *Project) Close() error {
 	defer tracing.NewRegion("Project.Close").End()
-	return p.settings.Save(&p.fileSystem)
+	return p.Settings.Save(&p.fileSystem)
 }
 
 // Open constructs an existing project given a target folder. This function can
@@ -179,7 +178,8 @@ func (p *Project) Open(path string) error {
 		slog.Error("failed to read the cache database", "error", err)
 		return err
 	}
-	if err = p.settings.load(&p.fileSystem); err != nil {
+	p.Settings = Settings{}
+	if err = p.Settings.load(&p.fileSystem); err != nil {
 		return ConfigLoadError{Err: err}
 	}
 	p.commonInit()
@@ -192,22 +192,22 @@ func (p *Project) commonInit() {
 
 // Name will return the name that has been set for this project. If the name is
 // not set, either the project hasn't been setup/selected or it is an error.
-func (p *Project) Name() string { return p.settings.Name }
+func (p *Project) Name() string { return p.Settings.Name }
 
 // SetName will update the name of the project and save the project config file.
 // When the name is successfully set, the [OnNameChange] func will be called.
 func (p *Project) SetName(name string) {
 	defer tracing.NewRegion("Project.SetName").End()
 	name = strings.TrimSpace(name)
-	if name == "" || p.settings.Name == name {
+	if name == "" || p.Settings.Name == name { // TODO: panic
 		return
 	}
-	p.settings.Name = name
-	p.settings.Save(&p.fileSystem)
+	p.Settings.Name = name
+	p.Settings.Save(&p.fileSystem)
 	if p.OnNameChange != nil {
-		p.OnNameChange(p.settings.Name)
+		p.OnNameChange(p.Settings.Name)
 	}
-	p.settings.Android.RootProjectName = p.settings.Name
+	p.Settings.Android.RootProjectName = p.Settings.Name
 	p.writeProjectTitle()
 }
 
@@ -282,7 +282,20 @@ func (p *Project) packagePath() string {
 	return filepath.Join(p.fileSystem.FullPath(project_file_system.ProjectBuildFolder), "game.dat")
 }
 
-func (p *Project) Package() error {
+func (p *Project) PackageDebug() {
+	files := []content_archive.SourceContent{
+		{
+			Key:     stages.EntryPointAssetKey,
+			RawData: []byte(p.Settings.EntryPointStage),
+		},
+	}
+	for i := range files {
+		path := filepath.Join(project_file_system.DebugFolder, files[i].Key)
+		p.fileSystem.WriteFile(path, files[i].RawData, os.ModePerm)
+	}
+}
+
+func (p *Project) Package(reader content_archive.FileReader) error {
 	defer tracing.NewRegion("Project.Package").End()
 	outPath := p.packagePath()
 	// TODO:  Needs to use a reference graph to determine all of the content
@@ -317,10 +330,10 @@ func (p *Project) Package() error {
 	}
 	files = append(files, content_archive.SourceContent{
 		Key:     stages.EntryPointAssetKey,
-		RawData: []byte(p.settings.EntryPointStage),
+		RawData: []byte(p.Settings.EntryPointStage),
 	})
-	err = content_archive.CreateArchiveFromFiles(outPath,
-		files, []byte(p.settings.ArchiveEncryptionKey))
+	err = content_archive.CreateArchiveFromFiles(reader, outPath,
+		files, []byte(p.Settings.ArchiveEncryptionKey))
 	if err != nil {
 		slog.Error("failed to package game content", "error", err)
 	} else {
@@ -417,7 +430,8 @@ func (p *Project) ReadSourceCode() {
 	p.entityData = p.entityData[:0]
 	p.entityDataMap = make(map[string]*codegen.GeneratedType)
 	slog.Info("reading through project code to find bindable data")
-	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_data_bindings"))
+	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
+	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_entity_data"))
 	if err != nil {
 		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
 		return
@@ -427,8 +441,8 @@ func (p *Project) ReadSourceCode() {
 		slog.Error("failed to read the source code folder for the project", "error", err)
 		return
 	}
-	a, _ := codegen.Walk(kaijuBindings, "kaiju/engine_data_bindings")
-	b, _ := codegen.Walk(srcRoot, p.fileSystem.ReadModName())
+	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaiju")
+	b, _ := codegen.Walk(srcRoot, srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
 	for i := range p.entityData {
 		p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]

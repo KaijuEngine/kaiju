@@ -92,7 +92,7 @@ func Show(host *engine.Host, onClose func()) (*AIPrompt, error) {
 }
 
 func (o *AIPrompt) Close() {
-	defer tracing.NewRegion("ConfirmPrompt.Close").End()
+	defer tracing.NewRegion("AIPrompt.Close").End()
 	o.uiMan.Host.Window.CursorStandard()
 	o.doc.Destroy()
 	o.uiMan.Host.Window.Keyboard.RemoveKeyCallback(o.keyKb)
@@ -104,7 +104,7 @@ func (o *AIPrompt) Close() {
 }
 
 func (o *AIPrompt) submitPrompt(e *document.Element) {
-	defer tracing.NewRegion("ConfirmPrompt.confirm").End()
+	defer tracing.NewRegion("AIPrompt.confirm").End()
 	p := strings.TrimSpace(e.UI.ToInput().Text())
 	o.Close()
 	if p == "" {

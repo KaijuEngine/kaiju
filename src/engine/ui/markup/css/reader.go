@@ -119,6 +119,10 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 		lastTargets = append(lastTargets, elm)
 		for _, part := range parts[1:] {
 			switch part.SelectType {
+			case rules.ReadingCondition:
+				if len(parts) > 2 && elm.Attribute(parts[1].Name) == parts[2].Name {
+					targets = klib.AppendUnique(targets, elm)
+				}
 			case rules.ReadingClass:
 				if elm.HasClass(part.Name) {
 					targets = klib.AppendUnique(targets, elm)
@@ -152,6 +156,11 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 func cleanMapDuplicates(cssMap CSSMap) {
 	for k, v := range cssMap {
 		for i := 0; i < len(v); i++ {
+			if len(v[i].Values) == 1 && v[i].Values[0].Str == "revert" {
+				v = slices.Delete(v, i, i+1)
+				i--
+				continue
+			}
 			for j := i + 1; j < len(v); j++ {
 				if v[i].Property == v[j].Property && v[i].Invocation == v[j].Invocation {
 					v = slices.Delete(v, i, i+1)

@@ -37,15 +37,24 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 	"kaiju/engine"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 )
 
 func (p BackgroundPositionY) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("BackgroundPositionY not implemented")}
-
-	return problems[0]
+	if len(values) != 1 {
+		return fmt.Errorf("expected only one argument to background-position-y but got %d", len(values))
+	}
+	sd := panel.Base().ShaderData()
+	if sd == nil {
+		return nil
+	}
+	bgSizeY := panel.Background().Size().Y()
+	y := helpers.NumFromLength(values[0].Str, host.Window)
+	sd.UVs.SetY((bgSizeY-y)/bgSizeY - sd.UVs.W())
+	return nil
 }

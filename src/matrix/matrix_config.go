@@ -105,7 +105,7 @@ func Deg2Rad(degree Float) Float {
 }
 
 func Approx(a, b Float) bool {
-	return math.Abs(float64(a-b)) < FloatSmallestNonzero
+	return math.Abs(float64(a-b)) < float64(FloatSmallestNonzero)
 }
 
 func ApproxTo(a, b, tolerance Float) bool {

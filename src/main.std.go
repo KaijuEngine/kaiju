@@ -40,6 +40,7 @@ import (
 	"kaiju/bootstrap"
 	"kaiju/engine"
 	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
+	_ "kaiju/engine_entity_data/content_id"   // Run the content id init
 	"kaiju/platform/profiler"
 	"kaiju/plugins"
 )

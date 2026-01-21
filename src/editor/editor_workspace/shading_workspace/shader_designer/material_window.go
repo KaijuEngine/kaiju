@@ -38,6 +38,8 @@ package shader_designer
 
 import (
 	"encoding/json"
+	"errors"
+	"kaiju/editor/editor_overlay/content_selector"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -49,8 +51,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-
-	"github.com/KaijuEngine/uuid"
+	"weak"
 )
 
 func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *content_database.Cache, cat content_database.ContentCategory) []ui.SelectOption {
@@ -59,7 +60,7 @@ func collectSpecificFileOptions(pfs *project_file_system.FileSystem, cache *cont
 	for i := range found {
 		options = append(options, ui.SelectOption{
 			Name:  found[i].Config.Name,
-			Value: content_database.ToContentPath(found[i].Path),
+			Value: found[i].Id(),
 		})
 	}
 	stock := project_file_system.StockFolder
@@ -93,8 +94,22 @@ func collectShaderPipelinesOptions(pfs *project_file_system.FileSystem, cache *c
 	return collectSpecificFileOptions(pfs, cache, content_database.ShaderPipeline{})
 }
 
-func collectTextureOptions(pfs *project_file_system.FileSystem, cache *content_database.Cache) []ui.SelectOption {
-	return collectSpecificFileOptions(pfs, cache, content_database.Texture{})
+func (win *ShaderDesigner) materialPullTextureLabels() {
+	if win.material.Shader == "" {
+		return
+	}
+	s, err := win.host.AssetDatabase().Read(win.material.Shader)
+	if err != nil {
+		return
+	}
+	var sh rendering.ShaderData
+	err = json.Unmarshal(s, &sh)
+	if err != nil {
+		return
+	}
+	for i := range min(len(win.material.Textures), len(sh.SamplerLabels)) {
+		win.material.Textures[i].Label = sh.SamplerLabels[i]
+	}
 }
 
 func (win *ShaderDesigner) reloadMaterialDoc() {
@@ -104,21 +119,28 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 		sy = content.UIPanel.ScrollY()
 		win.materialDoc.Destroy()
 	}
+	pfs := win.ed.ProjectFileSystem()
+	cache := win.ed.Cache()
 	listings := map[string][]ui.SelectOption{}
-	listings["Shader"] = collectShaderOptions(win.pfs, win.cache)
-	listings["RenderPass"] = collectRenderPassOptions(win.pfs, win.cache)
-	listings["ShaderPipeline"] = collectShaderPipelinesOptions(win.pfs, win.cache)
-	listings["Texture"] = collectTextureOptions(win.pfs, win.cache)
-	data := common_workspace.ReflectUIStructure(&win.material.MaterialData, "", listings)
+	listings["Shader"] = collectShaderOptions(pfs, cache)
+	listings["RenderPass"] = collectRenderPassOptions(pfs, cache)
+	listings["ShaderPipeline"] = collectShaderPipelinesOptions(pfs, cache)
+	win.materialPullTextureLabels()
+	data := common_workspace.ReflectUIStructure(win.ed.Cache(),
+		&win.material.MaterialData, "", listings)
 	data.Name = "Material Editor"
+	data.GroupName = win.material.name
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
-			"showTooltip":     showMaterialTooltip,
-			"valueChanged":    win.materialValueChanged,
-			"addToSlice":      win.materialAddToSlice,
-			"removeFromSlice": win.materialRemoveFromSlice,
-			"saveData":        win.materialSave,
+			"showTooltip":          showMaterialTooltip,
+			"valueChanged":         win.materialValueChanged,
+			"addToSlice":           win.materialAddToSlice,
+			"removeFromSlice":      win.materialRemoveFromSlice,
+			"clickSelectContentId": win.clickSelectContentId,
+			"saveData":             win.materialSave,
 		})
+	input, _ := win.materialDoc.GetElementById("nameInput")
+	win.nameInputField = weak.Make(input)
 	if sy != 0 {
 		content := win.materialDoc.GetElementsByClass("topFields")[0]
 		win.uiMan.Host.RunAfterFrames(2, func() {
@@ -132,6 +154,24 @@ func showMaterialTooltip(e *document.Element) { showTooltip(materialTooltips, e)
 func (win *ShaderDesigner) materialAddToSlice(e *document.Element) {
 	common_workspace.ReflectAddToSlice(&win.material, e)
 	win.reloadMaterialDoc()
+}
+
+func (win *ShaderDesigner) clickSelectContentId(e *document.Element) {
+	cache := win.ed.Cache()
+	win.ed.BlurInterface()
+	content_selector.Show(win.host, e.Attribute("data-type"), cache,
+		func(id string) {
+			e.SetAttribute("value", id)
+			cc, err := cache.Read(id)
+			if err != nil || cc.Config.Name == "" {
+				e.InnerLabel().SetText(id)
+			} else {
+				e.InnerLabel().SetText(cc.Config.Name)
+			}
+			win.materialValueChanged(e)
+			win.ed.FocusInterface()
+		}, win.ed.FocusInterface)
+
 }
 
 func (win *ShaderDesigner) materialRemoveFromSlice(e *document.Element) {
@@ -158,9 +198,7 @@ func loadMaterialData(path string) (rendering.MaterialData, bool) {
 }
 
 func (win *ShaderDesigner) materialSave(e *document.Element) {
-	if win.material.id == "" {
-		win.material.id = uuid.NewString()
-	}
+	win.material.name = win.nameInputField.Value().UI.ToInput().Text()
 	win.material.RenderPass = filepath.ToSlash(win.material.RenderPass)
 	win.material.Shader = filepath.ToSlash(win.material.Shader)
 	win.material.ShaderPipeline = filepath.ToSlash(win.material.ShaderPipeline)
@@ -172,8 +210,21 @@ func (win *ShaderDesigner) materialSave(e *document.Element) {
 		slog.Error("failed to marshal the material data", "error", err)
 		return
 	}
-	err = win.pfs.WriteFile(filepath.Join(project_file_system.ContentFolder,
-		project_file_system.ContentMaterialFolder, win.material.id), res, os.ModePerm)
+	if win.material.id != "" {
+		err = win.ed.ProjectFileSystem().WriteFile(filepath.Join(project_file_system.ContentFolder,
+			project_file_system.ContentMaterialFolder, win.material.id), res, os.ModePerm)
+		if _, err := win.ed.Cache().Rename(win.material.id, win.material.name, win.ed.ProjectFileSystem()); err == nil {
+			win.ed.Events().OnContentRenamed.Execute(win.material.id)
+		}
+	} else {
+		ids := content_database.ImportRaw(win.material.name, res, content_database.Material{}, win.ed.ProjectFileSystem(), win.ed.Cache())
+		if len(ids) > 0 {
+			win.material.id = ids[0]
+			win.ed.Events().OnContentAdded.Execute(ids)
+		} else {
+			err = errors.New("failed to import the raw material file data to the database")
+		}
+	}
 	if err != nil {
 		slog.Error("failed to write the material data to file", "error", err)
 		return

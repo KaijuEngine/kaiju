@@ -102,18 +102,18 @@ func evaluateExpression(tokens []string, index int) (float64, int, error) {
 	}
 	index = nextIndex
 	for index < len(tokens) {
-		operator := tokens[index]
-		if operator == "+" || operator == "-" {
+		operator := []rune(tokens[index])[0]
+		if operator == '+' || operator == '-' {
 			index++
 			rightValue, nextIndex, err := evaluateTerm(tokens, index)
 			if err != nil {
 				return 0, index, err
 			}
 			index = nextIndex
-
-			if operator == "+" {
+			switch operator {
+			case '+':
 				leftValue += rightValue
-			} else if operator == "-" {
+			case '-':
 				leftValue -= rightValue
 			}
 		} else {
@@ -138,10 +138,10 @@ func evaluateTerm(tokens []string, index int) (float64, int, error) {
 				return 0, index, err
 			}
 			index = nextIndex
-
-			if operator == "*" {
+			switch operator {
+			case "*":
 				leftValue *= rightValue
-			} else if operator == "/" {
+			case "/":
 				if rightValue == 0 {
 					return 0, index, fmt.Errorf("division by zero")
 				}

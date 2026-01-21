@@ -72,10 +72,6 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
 }
 
-func scaleScrollDelta(delta float32) float32 {
-	return delta
-}
-
 func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
 	klib.NotYetImplemented(494)
 	return map[hid.KeyboardKey]bool{}

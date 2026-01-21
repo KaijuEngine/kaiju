@@ -52,7 +52,7 @@ type MusicConfig struct{}
 // the following functions
 
 func (Music) Path() string       { return project_file_system.ContentMusicFolder }
-func (Music) TypeName() string   { return "music" }
+func (Music) TypeName() string   { return "Music" }
 func (Music) ExtNames() []string { return []string{".mp3", ".ogg"} }
 
 func (Music) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

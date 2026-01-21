@@ -4,13 +4,14 @@
 		<style>
 			#previewArea {
 				width: revert;
-				background-color: black;
 				overflow: hidden;
 				left: 50%;
 				top: calc(50% - 12px);
 				transform: translate(-50% -50%);
 			}
 			#previewHelp {
+				width: 100%;
+				height: 100%;
 				background-color: black;
 				color: white;
 				padding: 1em;
@@ -19,7 +20,7 @@
 				position: absolute;
 				width: 100%;
 				height: 2em;
-				bottom: 1.3em;
+				bottom: var(--ed-status-bar-height);
 				background-color: #121212;
 				color: white;
 			}

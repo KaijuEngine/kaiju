@@ -63,6 +63,17 @@ func ShouldShowContent(query, id string, typeFilters, tagFilters []string, cdb *
 	return show
 }
 
+func ShouldHideContent(id string, typeFilters, tagFilters []string, cdb *content_database.Cache) bool {
+	defer tracing.NewRegion("content_workspace.ShouldHideContent").End()
+	cc, err := cdb.Read(id)
+	if err != nil {
+		return false
+	}
+	hide := slices.Contains(typeFilters, cc.Config.Type) ||
+		filterThroughTags(&cc, tagFilters)
+	return hide
+}
+
 func filterThroughTags(cc *content_database.CachedContent, tagFilters []string) bool {
 	defer tracing.NewRegion("content_workspace.filterThroughTags").End()
 	for i := range cc.Config.Tags {

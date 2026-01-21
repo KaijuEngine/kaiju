@@ -106,9 +106,9 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 			}
 			var tForm matrix.Transform
 			tForm.Initialize(host.WorkGroup())
-			tForm.SetPosition(m.Node.Transform.WorldPosition())
-			tForm.SetRotation(m.Node.Transform.WorldRotation())
-			tForm.SetScale(m.Node.Transform.WorldScale())
+			tForm.SetLocalPosition(m.Node.Position)
+			tForm.SetRotation(m.Node.Rotation.ToEuler())
+			tForm.SetScale(m.Node.Scale)
 			mesh, ok := host.MeshCache().FindMesh(m.MeshName)
 			if !ok {
 				mesh = rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
@@ -136,7 +136,6 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					Node:     m.Node,
 					MeshName: m.Name,
 					Drawing: rendering.Drawing{
-						Renderer:   host.Window.Renderer,
 						Material:   mat,
 						Mesh:       mesh,
 						Transform:  &tForm,
@@ -161,7 +160,6 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					Node:     nil,
 					MeshName: info.Meshes[j].Key(),
 					Drawing: rendering.Drawing{
-						Renderer:   host.Window.Renderer,
 						Material:   mat,
 						Mesh:       info.Meshes[j],
 						ViewCuller: &host.Cameras.Primary,

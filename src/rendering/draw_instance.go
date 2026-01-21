@@ -52,6 +52,7 @@ type ViewCuller interface {
 
 type DrawInstance interface {
 	Base() *ShaderDataBase
+	SkinningHeader() *SkinnedShaderDataHeader
 	Destroy()
 	IsDestroyed() bool
 	Activate()
@@ -62,10 +63,11 @@ type DrawInstance interface {
 	UpdateModel(viewCuller ViewCuller, container collision.AABB)
 	DataPointer() unsafe.Pointer
 	// Returns true if it should write the data, otherwise false
-	UpdateNamedData(index, capacity int, name string) bool
-	NamedDataPointer(name string) unsafe.Pointer
-	NamedDataInstanceSize(name string) int
+	UpdateBoundData() bool
+	BoundDataPointer() unsafe.Pointer
+	InstanceBoundDataSize() int
 	setTransform(transform *matrix.Transform)
+	SelectLights(lights LightsForRender)
 	setShadow(shadow DrawInstance)
 	renderBounds() collision.AABB
 }
@@ -113,12 +115,23 @@ func (s *ShaderDataBase) Setup() {
 	s.SetModel(matrix.Mat4Identity())
 }
 
-func (s *ShaderDataBase) Base() *ShaderDataBase { return s }
-func (s *ShaderDataBase) Destroy()              { s.destroyed = true }
-func (s *ShaderDataBase) CancelDestroy()        { s.destroyed = false }
-func (s *ShaderDataBase) IsDestroyed() bool     { return s.destroyed }
-func (s *ShaderDataBase) IsInView() bool        { return !s.deactivated && !s.viewCulled }
-func (s *ShaderDataBase) Model() matrix.Mat4    { return s.model }
+func (s *ShaderDataBase) SelectLights(lights LightsForRender) {}
+func (s *ShaderDataBase) Transform() *matrix.Transform        { return s.transform }
+
+func (s *ShaderDataBase) Base() *ShaderDataBase                    { return s }
+func (s *ShaderDataBase) SkinningHeader() *SkinnedShaderDataHeader { return nil }
+func (s *ShaderDataBase) CancelDestroy()                           { s.destroyed = false }
+func (s *ShaderDataBase) IsDestroyed() bool                        { return s.destroyed }
+func (s *ShaderDataBase) IsInView() bool                           { return !s.deactivated && !s.viewCulled }
+func (s *ShaderDataBase) Model() matrix.Mat4                       { return s.model }
+func (s *ShaderDataBase) ModelPtr() *matrix.Mat4                   { return &s.model }
+
+func (s *ShaderDataBase) Destroy() {
+	s.destroyed = true
+	if s.shadow != nil {
+		s.shadow.Destroy()
+	}
+}
 
 func (s *ShaderDataBase) Activate() {
 	s.deactivated = false
@@ -137,6 +150,9 @@ func (s *ShaderDataBase) Deactivate() {
 func (s *ShaderDataBase) setTransform(transform *matrix.Transform) {
 	s.transform = transform
 	s.forceUpdateTransformModel()
+	if s.transform != nil {
+		s.transform.SetDirty()
+	}
 }
 
 func (s *ShaderDataBase) setShadow(shadow DrawInstance) {
@@ -161,7 +177,10 @@ func (s *ShaderDataBase) forceUpdateTransformModel() {
 }
 
 func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.AABB) {
-	recalcCulling := viewCuller.ViewChanged()
+	recalcCulling := false
+	if viewCuller != nil {
+		recalcCulling = viewCuller.ViewChanged()
+	}
 	if s.transform != nil && s.transform.IsDirty() {
 		s.forceUpdateTransformModel()
 		a := s.model.TransformPoint(container.Min())
@@ -182,11 +201,11 @@ func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 	return unsafe.Pointer(&s.model[0])
 }
 
-func (s *ShaderDataBase) UpdateNamedData(index, capacity int, name string) bool { return false }
+func (s *ShaderDataBase) UpdateBoundData() bool { return false }
 
-func (s *ShaderDataBase) NamedDataPointer(name string) unsafe.Pointer { return nil }
+func (s *ShaderDataBase) BoundDataPointer() unsafe.Pointer { return nil }
 
-func (s *ShaderDataBase) NamedDataInstanceSize(name string) int { return 0 }
+func (s *ShaderDataBase) InstanceBoundDataSize() int { return 0 }
 
 type InstanceCopyData struct {
 	byteMapping [maxFramesInFlight]unsafe.Pointer
@@ -207,7 +226,7 @@ type DrawInstanceGroup struct {
 	viewCuller        ViewCuller
 	Instances         []DrawInstance
 	rawData           InstanceCopyData
-	namedInstanceData map[string]InstanceCopyData
+	boundInstanceData []InstanceCopyData
 	instanceSize      int
 	visibleCount      int
 	sort              int
@@ -219,7 +238,7 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int, viewCuller ViewCuller) DrawI
 		Mesh:              mesh,
 		Instances:         make([]DrawInstance, 0),
 		rawData:           InstanceCopyDataNew(dataSize % 16),
-		namedInstanceData: make(map[string]InstanceCopyData),
+		boundInstanceData: make([]InstanceCopyData, 0),
 		instanceSize:      dataSize,
 		destroyed:         false,
 		viewCuller:        viewCuller,
@@ -259,11 +278,13 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 		for j := range g.Layouts {
 			if g.Layouts[j].IsBuffer() {
 				b := &g.Layouts[j]
-				n := b.FullName()
-				s := d.namedInstanceData[n]
+				if len(d.boundInstanceData) <= b.Binding {
+					grow := (b.Binding + 1) - len(d.boundInstanceData)
+					d.boundInstanceData = klib.SliceSetLen(d.boundInstanceData, grow)
+				}
+				s := &d.boundInstanceData[b.Binding]
 				if s.length < b.Capacity() {
-					s.length = instance.NamedDataInstanceSize(n) + s.padding
-					d.namedInstanceData[n] = s
+					s.length = instance.InstanceBoundDataSize() + s.padding
 				}
 			}
 		}
@@ -277,19 +298,21 @@ func (d *DrawInstanceGroup) VisibleSize() int {
 	return d.visibleCount * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) updateNamedData(index int, instance DrawInstance, name string, frame int) {
-	if !instance.UpdateNamedData(index, d.namedBuffers[name].capacity, name) {
+func (d *DrawInstanceGroup) updateBoundData(index, bindingId int, instance DrawInstance, frame int) {
+	if !instance.UpdateBoundData() {
 		return
 	}
-	if ptr := instance.NamedDataPointer(name); ptr != nil {
-		offset := uintptr(d.namedBuffers[name].stride * index)
-		base := d.namedInstanceData[name].byteMapping[frame]
+	if ptr := instance.BoundDataPointer(); ptr != nil {
+		nb := d.boundBuffers[bindingId]
+		data := d.boundInstanceData[bindingId]
+		offset := uintptr((nb.stride) * index)
+		base := data.byteMapping[frame]
 		to := unsafe.Pointer(uintptr(base) + offset)
-		klib.Memcpy(to, ptr, uint64(d.namedInstanceData[name].length))
+		klib.Memcpy(to, ptr, uint64(nb.stride))
 	}
 }
 
-func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
+func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights LightsForRender) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
@@ -308,9 +331,12 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int) {
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
 		if instanceBase.IsInView() {
-			if d.generatedSets {
-				for k := range d.namedInstanceData {
-					d.updateNamedData(instanceIndex, instance, k, frame)
+			if d.MaterialInstance.IsLit {
+				instance.SelectLights(lights)
+			}
+			if d.generatedSets && len(d.boundInstanceData) > 0 {
+				for j := range d.boundInstanceData {
+					d.updateBoundData(instanceIndex, j, instance, frame)
 				}
 			}
 			to := unsafe.Pointer(uintptr(base) + offset)

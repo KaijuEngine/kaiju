@@ -41,15 +41,16 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
-	"path/filepath"
 	"sync"
+	"weak"
 )
 
 type MaterialCache struct {
-	renderer      Renderer
-	assetDatabase assets.Database
-	materials     map[string]*Material
-	mutex         sync.Mutex
+	renderer       Renderer
+	assetDatabase  assets.Database
+	materials      map[string]*Material
+	mutex          sync.Mutex
+	loadingPrepass bool
 }
 
 func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) MaterialCache {
@@ -57,7 +58,6 @@ func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) Material
 		renderer:      renderer,
 		assetDatabase: assetDatabase,
 		materials:     make(map[string]*Material),
-		mutex:         sync.Mutex{},
 	}
 }
 
@@ -65,8 +65,8 @@ func (m *MaterialCache) AddMaterial(material *Material) *Material {
 	defer tracing.NewRegion("MaterialCache.AddMaterial").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	if found, ok := m.materials[material.Name]; !ok {
-		m.materials[material.Name] = material
+	if found, ok := m.materials[material.Id]; !ok {
+		m.materials[material.Id] = material
 		return material
 	} else {
 		return found
@@ -87,15 +87,12 @@ func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
 func (m *MaterialCache) Material(key string) (*Material, error) {
 	defer tracing.NewRegion("MaterialCache.Material").End()
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	if material, ok := m.materials[key]; ok {
+		m.mutex.Unlock()
 		return material, nil
 	} else {
+		m.mutex.Unlock()
 		matStr, err := m.assetDatabase.ReadText(key)
-		if err != nil {
-			key = filepath.Join(key + ".material")
-			matStr, err = m.assetDatabase.ReadText(key)
-		}
 		if err != nil {
 			slog.Error("failed to load the material", "material", key, "error", err)
 			return nil, err
@@ -110,8 +107,18 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
 		}
+		if materialData.PrepassMaterial != "" {
+			prep, err := m.Material(materialData.PrepassMaterial)
+			if err != nil {
+				slog.Error("failed to create the material prepass", "prepass", materialData.PrepassMaterial, "error", err)
+				return nil, err
+			}
+			material.PrepassMaterial = weak.Make(prep)
+		}
 		material.Id = key
-		m.materials[materialData.Name] = material
+		m.mutex.Lock()
+		m.materials[key] = material
+		m.mutex.Unlock()
 		return material, nil
 	}
 }

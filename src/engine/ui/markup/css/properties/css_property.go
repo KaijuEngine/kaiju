@@ -384,4 +384,5 @@ var PropertyMap = map[string]document.CSSProperty{
 	"word-wrap":                   WordWrap{},
 	"writing-mode":                WritingMode{},
 	"z-index":                     ZIndex{},
+	"kaiju-material":              KaijuMaterial{},
 }

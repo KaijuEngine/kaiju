@@ -106,6 +106,10 @@ func play(soloud SoloudHandle, wav SoloudWav) VoiceHandle {
 	return VoiceHandle(C.Soloud_play(soloud, (*C.AudioSource)(wav)))
 }
 
+func stopAudio(soloud SoloudHandle, handle VoiceHandle) {
+	C.Soloud_stop(soloud, (C.uint)(handle))
+}
+
 func stopAudioSource(soloud SoloudHandle, wav SoloudWav) {
 	C.Soloud_stopAudioSource(soloud, (*C.AudioSource)(wav))
 }

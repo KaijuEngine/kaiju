@@ -3,7 +3,7 @@
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -77,18 +77,18 @@ func (s *structure) IsPrimitiveType() bool {
 	return s.Spec == nil && s.PrimSpec != nil
 }
 
-func Walk(srcRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
+func Walk(srcRoot, readRoot *os.Root, pkgPrefix string) ([]GeneratedType, error) {
 	defer tracing.NewRegion("codegen.Walk").End()
-	return walkInternal(srcRoot, pkgPrefix, ".go")
+	return walkInternal(srcRoot, readRoot, pkgPrefix, ".go")
 }
 
-func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, error) {
+func walkInternal(srcRoot, readRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, error) {
 	defer tracing.NewRegion("codegen.walkInternal").End()
 	gens := []GeneratedType{}
 	skips := []string{}
 	registrations := map[string]string{}
-	sp := filepath.ToSlash(srcRoot.Name()) + "/"
-	wErr := filepath.Walk(srcRoot.Name(), func(path string, info os.FileInfo, err error) error {
+	sp := filepath.ToSlash(readRoot.Name()) + "/"
+	wErr := filepath.Walk(readRoot.Name(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -98,6 +98,10 @@ func walkInternal(srcRoot *os.Root, pkgPrefix, ext string) ([]GeneratedType, err
 		path = strings.TrimPrefix(filepath.ToSlash(path), sp)
 		if slices.Contains(skips, path) {
 			return nil
+		}
+		if srcRoot != readRoot {
+			path = strings.TrimPrefix(filepath.Join(readRoot.Name(), path), srcRoot.Name())
+			path = strings.TrimPrefix(filepath.ToSlash(path), "/")
 		}
 		if g, err := create(srcRoot, path, ext, &skips, &registrations); err == nil {
 			for i := range g {
@@ -137,7 +141,8 @@ func readAst(srcRoot *os.Root, file string, registrations *map[string]string, lo
 			return nil, fmt.Errorf("the registration key for type name '%s' was empty", typeName)
 		}
 		if _, ok := (*registrations)[key]; ok {
-			return nil, fmt.Errorf("the key '%s' has already been registered", key)
+			continue
+			// return nil, fmt.Errorf("the key '%s' has already been registered", key)
 		}
 		(*registrations)[key] = typeName
 		(*localRegs)[typeName] = key

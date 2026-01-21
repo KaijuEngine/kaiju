@@ -39,6 +39,7 @@ package editor
 import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/input_prompt"
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -72,6 +73,10 @@ func (ed *Editor) ShadingWorkspaceSelected() {
 	ed.setWorkspaceState(WorkspaceStateShading)
 }
 
+func (ed *Editor) VfxWorkspaceSelected() {
+	ed.setWorkspaceState(WorkspaceStateVfx)
+}
+
 // UIWorkspaceSelected will inform the editor that the developer has changed to
 // the ui workspace. This is an exposed function to meet the interface needs of
 // [menu_bar.MenuBarHandler].
@@ -87,62 +92,81 @@ func (ed *Editor) SettingsWorkspaceSelected() {
 }
 
 func (ed *Editor) Build(buildMode project.GameBuildMode) {
-	if !ed.ensureMainStageExists() {
-		return
-	}
-	// goroutine
-	go ed.project.CompileGame(buildMode)
-	// goroutine
-	go ed.project.Package()
+	ed.SaveCurrentStageWithCallback(func(saved bool) {
+		if !saved {
+			return
+		}
+		if !ed.ensureMainStageExists() {
+			return
+		}
+		// goroutine
+		go ed.project.CompileGame(buildMode)
+		// goroutine
+		go ed.project.Package(ed.host.AssetDatabase())
+	})
 }
 
 func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
-	if !ed.ensureMainStageExists() {
-		return
-	}
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	// goroutine
-	go func() {
-		ed.project.CompileGame(buildMode)
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		ed.project.Package()
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		wg.Wait()
-		ed.project.Run()
-	}()
+	ed.SaveCurrentStageWithCallback(func(saved bool) {
+		if !saved {
+			return
+		}
+		if !ed.ensureMainStageExists() {
+			return
+		}
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		// goroutine
+		go func() {
+			ed.project.CompileGame(buildMode)
+			wg.Done()
+		}()
+		// goroutine
+		go func() {
+			// Archiving isn't required for debug builds as they don't use
+			// the packaged content archive, but we still need to write any
+			// generated files like the starting stage id
+			if buildMode == project.GameBuildModeDebug {
+				ed.project.PackageDebug()
+			} else {
+				ed.project.Package(ed.host.AssetDatabase())
+			}
+			wg.Done()
+		}()
+		// goroutine
+		go func() {
+			wg.Wait()
+			ed.project.Run()
+		}()
+	})
 }
 
 func (ed *Editor) BuildAndRunCurrentStage() {
-	stageId := ed.stageView.Manager().StageId()
-	if stageId == "" {
-		slog.Error("current stage has not yet been created, please save it to test")
-		return
-	}
-	ed.stageView.Manager().SaveStage(ed.Cache(), ed.project.FileSystem())
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	// goroutine
-	go func() {
-		ed.project.CompileDebug()
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		ed.project.Package()
-		wg.Done()
-	}()
-	// goroutine
-	go func() {
-		wg.Wait()
-		ed.project.Run("-startStage", stageId)
-	}()
+	ed.SaveCurrentStageWithCallback(func(saved bool) {
+		if !saved {
+			return
+		}
+		stageId := ed.stageView.Manager().StageId()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		// goroutine
+		go func() {
+			ed.project.CompileDebug()
+			wg.Done()
+		}()
+		// Archiving isn't required for build and run current stage because
+		// debug builds don't use the packaged content archive
+		// goroutine
+		//go func() {
+		//	ed.project.Package(ed.host.AssetDatabase())
+		//	wg.Done()
+		//}()
+		// goroutine
+		go func() {
+			wg.Wait()
+			ed.project.Run("-startStage", stageId)
+		}()
+	})
 }
 
 // OpenCodeEditor will run a command specified in CodeEditor settings entry
@@ -152,15 +176,7 @@ func (ed *Editor) BuildAndRunCurrentStage() {
 // func (ed *Editor) OpenVSCodeProject() {
 func (ed *Editor) OpenCodeEditor() {
 	defer tracing.NewRegion("Editor.OpenCodeEditor").End()
-	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
-	command := fullArgs[0]
-	var args []string
-	if len(fullArgs) > 1 {
-		args = append(args, fullArgs[1:]...)
-	}
-	args = append(args, ed.project.FileSystem().FullPath(""))
-	// goroutine
-	go exec.Command(command, args...).Run()
+	ed.openCodeEditor(ed.project.FileSystem().FullPath(""))
 }
 
 func (ed *Editor) CreateNewStage() {
@@ -186,6 +202,9 @@ func (ed *Editor) CreateNewStage() {
 // function to meet the interface needs of [menu_bar.MenuBarHandler].
 func (ed *Editor) SaveCurrentStage() {
 	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
+	if !ed.history.HasPendingChanges() {
+		return
+	}
 	sm := ed.stageView.Manager()
 	if sm.IsNew() {
 		ed.BlurInterface()
@@ -207,21 +226,59 @@ func (ed *Editor) SaveCurrentStage() {
 	}
 }
 
+func (ed *Editor) SaveCurrentStageWithCallback(cb func(bool)) {
+	defer tracing.NewRegion("Editor.SaveCurrentStage").End()
+	if !ed.history.HasPendingChanges() {
+		cb(true)
+		return
+	}
+	sm := ed.stageView.Manager()
+	if sm.IsNew() {
+		ed.BlurInterface()
+		input_prompt.Show(ed.host, input_prompt.Config{
+			Title:       "Name stage",
+			Description: "What would you like to name your stage?",
+			Placeholder: "Stage name...",
+			Value:       "New Stage",
+			ConfirmText: "Save",
+			CancelText:  "Cancel",
+			OnConfirm: func(name string) {
+				ed.FocusInterface()
+				ed.saveNewStage(strings.TrimSpace(name))
+				cb(true)
+			},
+			OnCancel: func() {
+				ed.FocusInterface()
+				cb(false)
+			},
+		})
+	} else {
+		ed.saveCurrentStageWithoutNameInput()
+		cb(true)
+	}
+}
+
 func (ed *Editor) CreateNewCamera() {
 	ed.workspaces.stage.CreateNewCamera()
 }
 
 func (ed *Editor) CreateNewEntity() {
 	ed.history.BeginTransaction()
+	defer ed.history.CommitTransaction()
 	e, _ := ed.workspaces.stage.CreateNewEntity()
 	m := ed.stageView.Manager()
 	m.ClearSelection()
 	m.SelectEntity(e)
-	ed.history.CommitTransaction()
 }
 
 func (ed *Editor) CreateNewLight() {
 	ed.workspaces.stage.CreateNewLight()
+}
+
+func (ed *Editor) CreatePluginProject(path string) {
+	if err := editor_plugin.CreatePluginProject(path); err == nil {
+		ed.openCodeEditor(path)
+	}
 }
 
 func (ed *Editor) CreateHtmlUiFile(name string) {
@@ -258,13 +315,15 @@ func (ed *Editor) saveCurrentStageWithoutNameInput() {
 	sm := ed.stageView.Manager()
 	if err := sm.SaveStage(ed.project.CacheDatabase(), ed.project.FileSystem()); err == nil {
 		ed.history.SetSavePosition()
+		ed.Project().Settings.EditorSettings.LatestOpenStage = sm.StageId()
+		ed.Project().Settings.Save(ed.ProjectFileSystem())
 	} else {
 		slog.Error("failed to save the current stage", "error", err)
 	}
 }
 
 func (ed *Editor) ensureMainStageExists() bool {
-	if ed.project.Settings().EntryPointStage == "" {
+	if ed.project.Settings.EntryPointStage == "" {
 		slog.Error("failed to build, 'main stage' not set in project settings")
 		return false
 	}
@@ -286,10 +345,24 @@ func (ed *Editor) saveNewStage(name string) {
 	ed.events.OnContentAdded.Execute([]string{id})
 	// If the entry point stage hasn't yet been created in the
 	// settings, assume that this stage will be the one.
-	ps := ed.project.Settings()
+	ps := &ed.project.Settings
 	if ps.EntryPointStage == "" {
 		ps.EntryPointStage = id
 		ps.Save(ed.project.FileSystem())
 		ed.workspaces.settings.RequestReload()
 	}
+}
+
+func (ed *Editor) openCodeEditor(path string) {
+	defer tracing.NewRegion("Editor.openCodeEditor").End()
+	// TODO:  If this is a file path, the space split won't be enough
+	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
+	command := fullArgs[0]
+	var args []string
+	if len(fullArgs) > 1 {
+		args = append(args, fullArgs[1:]...)
+	}
+	args = append(args, path)
+	// goroutine
+	go exec.Command(command, args...).Run()
 }

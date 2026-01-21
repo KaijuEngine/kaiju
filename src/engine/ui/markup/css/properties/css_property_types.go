@@ -172,16 +172,19 @@ func (p BackgroundOrigin) Key() string { return "background-origin" }
 type BackgroundPosition struct{ PropertyBase }
 
 func (p BackgroundPosition) Key() string { return "background-position" }
+func (p BackgroundPosition) Sort() int   { return 2 }
 
 // Specifies the position of a background image on x-axis
 type BackgroundPositionX struct{ PropertyBase }
 
 func (p BackgroundPositionX) Key() string { return "background-position-x" }
+func (p BackgroundPositionX) Sort() int   { return 2 }
 
 // Specifies the position of a background image on y-axis
 type BackgroundPositionY struct{ PropertyBase }
 
 func (p BackgroundPositionY) Key() string { return "background-position-y" }
+func (p BackgroundPositionY) Sort() int   { return 2 }
 
 // Sets if/how a background image will be repeated
 type BackgroundRepeat struct{ PropertyBase }
@@ -192,6 +195,7 @@ func (p BackgroundRepeat) Key() string { return "background-repeat" }
 type BackgroundSize struct{ PropertyBase }
 
 func (p BackgroundSize) Key() string { return "background-size" }
+func (p BackgroundSize) Sort() int   { return 1 }
 
 // Specifies the size of an element in block direction
 type BlockSize struct{ PropertyBase }
@@ -1806,3 +1810,8 @@ func (p WritingMode) Key() string { return "writing-mode" }
 type ZIndex struct{ PropertyBase }
 
 func (p ZIndex) Key() string { return "z-index" }
+
+// Sets the shader to use for an element
+type KaijuMaterial struct{ PropertyBase }
+
+func (p KaijuMaterial) Key() string { return "kaiju-material" }

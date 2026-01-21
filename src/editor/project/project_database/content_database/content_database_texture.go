@@ -62,7 +62,7 @@ type TextureConfig struct{}
 // the following functions
 
 func (Texture) Path() string       { return project_file_system.ContentTextureFolder }
-func (Texture) TypeName() string   { return "texture" }
+func (Texture) TypeName() string   { return "Texture" }
 func (Texture) ExtNames() []string { return []string{".png", ".jpg", ".jpeg", ".bmp"} }
 
 func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

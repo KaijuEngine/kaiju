@@ -924,3 +924,430 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 	indices[iIndex+5] = v11
 	return cache.Mesh(key, verts, indices)
 }
+
+func NewMeshWireSphereLatLon(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireSphereLatLon").End()
+	key := fmt.Sprintf("wire_sphere_latlon_%.2f_%d_%d", radius, latitudeBands, longitudeBands)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	if latitudeBands < 4 {
+		latitudeBands = 4
+	}
+	if longitudeBands < 8 {
+		longitudeBands = 8
+	}
+	numRings := latitudeBands - 1
+	numVerts := numRings * longitudeBands
+	verts := make([]Vertex, numVerts)
+	vIdx := 0
+	for ring := 1; ring < latitudeBands; ring++ {
+		theta := float32(ring) * math.Pi / float32(latitudeBands)
+		sinTheta := matrix.Sin(theta)
+		cosTheta := matrix.Cos(theta)
+		for lon := 0; lon < longitudeBands; lon++ {
+			phi := float32(lon) * 2.0 * math.Pi / float32(longitudeBands)
+			sinPhi := matrix.Sin(phi)
+			cosPhi := matrix.Cos(phi)
+
+			verts[vIdx].Position = matrix.Vec3{
+				radius * cosPhi * sinTheta,
+				radius * cosTheta,
+				radius * sinPhi * sinTheta,
+			}
+			verts[vIdx].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+			verts[vIdx].UV0 = matrix.Vec2{0.0, 0.0}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	var indices []uint32
+	for ring := 0; ring < numRings; ring++ {
+		base := uint32(ring * longitudeBands)
+		for lon := 0; lon < longitudeBands; lon++ {
+			curr := base + uint32(lon)
+			next := base + uint32((lon+1)%longitudeBands)
+			indices = append(indices, curr, next)
+		}
+	}
+	for lon := 0; lon < longitudeBands; lon++ {
+		for ring := 0; ring < numRings-1; ring++ {
+			curr := uint32(ring*longitudeBands + lon)
+			next := uint32((ring+1)*longitudeBands + lon)
+			indices = append(indices, curr, next)
+		}
+	}
+
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshWireCylinder(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireCylinder").End()
+	key := fmt.Sprintf("wire_cylinder_%.2f_%.2f_%d_%d", radius, height, segments, heightSegments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	if segments < 8 {
+		segments = 8
+	}
+	if heightSegments < 1 {
+		heightSegments = 1
+	}
+	numRings := heightSegments + 1
+	numVerts := numRings * segments
+	verts := make([]Vertex, numVerts)
+	vIdx := 0
+	halfHeight := height / 2.0
+	for ring := 0; ring < numRings; ring++ {
+		y := -halfHeight + float32(ring)/float32(heightSegments)*height
+		for s := 0; s < segments; s++ {
+			phi := float32(s) * 2.0 * math.Pi / float32(segments)
+			cosPhi := matrix.Cos(phi)
+			sinPhi := matrix.Sin(phi)
+			verts[vIdx].Position = matrix.Vec3{
+				radius * cosPhi,
+				y,
+				radius * sinPhi,
+			}
+			verts[vIdx].Normal = matrix.Vec3{0.0, 0.0, 1.0} // not used for wireframe
+			verts[vIdx].UV0 = matrix.Vec2{0.0, 0.0}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	var indices []uint32
+	for ring := 0; ring < numRings; ring++ {
+		base := uint32(ring * segments)
+		for s := 0; s < segments; s++ {
+			curr := base + uint32(s)
+			next := base + uint32((s+1)%segments)
+			indices = append(indices, curr, next)
+		}
+	}
+	for s := 0; s < segments; s++ {
+		for ring := 0; ring < heightSegments; ring++ {
+			curr := uint32(ring*segments + s)
+			next := uint32((ring+1)*segments + s)
+			indices = append(indices, curr, next)
+		}
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshWireCone").End()
+	key := fmt.Sprintf("wire_cone_%.2f_%.2f_%d_%d", radius, height, segments, heightSegments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	if segments < 8 {
+		segments = 8
+	}
+	if heightSegments < 1 {
+		heightSegments = 1
+	}
+	numRings := heightSegments + 1
+	numVerts := 1 + numRings*segments
+	verts := make([]Vertex, numVerts)
+	verts[0].Position = matrix.Vec3{0.0, height / 2.0, 0.0}
+	verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[0].UV0 = matrix.Vec2{0.0, 0.0}
+	verts[0].Color = matrix.ColorWhite()
+	halfHeight := height / 2.0
+	apexIdx := uint32(0)
+	vIdx := 1
+	for ring := 0; ring < numRings; ring++ {
+		t := float32(ring) / float32(heightSegments)
+		y := -halfHeight + t*height
+		currentRadius := radius * (1.0 - t)
+		for s := 0; s < segments; s++ {
+			phi := float32(s) * 2.0 * math.Pi / float32(segments)
+			cosPhi := matrix.Cos(phi)
+			sinPhi := matrix.Sin(phi)
+
+			verts[vIdx].Position = matrix.Vec3{
+				currentRadius * cosPhi,
+				y,
+				currentRadius * sinPhi,
+			}
+			verts[vIdx].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+			verts[vIdx].UV0 = matrix.Vec2{0.0, 0.0}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	var indices []uint32
+	for ring := 0; ring < numRings; ring++ {
+		t := float32(ring) / float32(heightSegments)
+		if t >= 1.0 {
+			continue
+		}
+		base := uint32(1 + ring*segments)
+		for s := 0; s < segments; s++ {
+			curr := base + uint32(s)
+			next := base + uint32((s+1)%segments)
+			indices = append(indices, curr, next)
+		}
+	}
+	baseRingStart := uint32(1 + (numRings-1)*segments)
+	for s := 0; s < segments; s++ {
+		baseVert := baseRingStart + uint32(s)
+		indices = append(indices, apexIdx, baseVert)
+	}
+	for s := 0; s < segments; s++ {
+		for ring := 0; ring < numRings-1; ring++ {
+			curr := uint32(1 + ring*segments + s)
+			next := uint32(1 + (ring+1)*segments + s)
+			indices = append(indices, curr, next)
+		}
+		topOfLine := uint32(1 + (numRings-1)*segments + s)
+		indices = append(indices, topOfLine, apexIdx)
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+// NewMeshCircleWire creates a wireframe circle (line loop) mesh.
+// It follows the same pattern as the other wireframe mesh generators
+// (e.g. NewMeshWireCube, NewMeshWireSphereLatLon, etc.).
+func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCircleWire").End()
+	if segments < 3 {
+		segments = 3
+	}
+	// Use a distinct cache key for the wireframe version.
+	key := fmt.Sprintf("circle_wire_%.2f_%d", radius, segments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	// Vertex layout: one vertex per segment (no center vertex needed for a line loop).
+	verts := make([]Vertex, segments)
+	for i := 0; i < segments; i++ {
+		phi := float32(i) * 2.0 * math.Pi / float32(segments)
+		cosPhi := matrix.Cos(phi)
+		sinPhi := matrix.Sin(phi)
+		verts[i].Position = matrix.Vec3{
+			radius * cosPhi,
+			0.0,
+			radius * sinPhi,
+		}
+		verts[i].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+		verts[i].UV0 = matrix.Vec2{
+			0.5 + 0.5*cosPhi,
+			0.5 + 0.5*sinPhi,
+		}
+		verts[i].Color = matrix.ColorWhite()
+	}
+	// Line‑loop indices: each vertex connects to the next, wrapping at the end.
+	indices := make([]uint32, segments*2)
+	idx := 0
+	for i := 0; i < segments; i++ {
+		indices[idx] = uint32(i)                    // current vertex
+		indices[idx+1] = uint32((i + 1) % segments) // next vertex (wrap)
+		idx += 2
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshCylinder(cache *MeshCache, height, radius float32, segments int, capped bool) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCylinder").End()
+	if segments < 3 {
+		segments = 3
+	}
+	key := fmt.Sprintf("cylinder_%.2f_%.2f_%d_%v", height, radius, segments, capped)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	verts, indices := meshCylinder(height, radius, segments, capped)
+	for i := range verts {
+		verts[i].Position[matrix.Vy] += height * 0.5
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshCone(cache *MeshCache, height, baseRadius float32, segments int, capped bool) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshCone").End()
+	if segments < 3 {
+		segments = 3
+	}
+	key := fmt.Sprintf("cone_%.2f_%.2f_%d_%v", height, baseRadius, segments, capped)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	verts, indices := meshCone(height, baseRadius, segments, capped)
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius float32, segments int) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshArrow").End()
+	if segments < 3 {
+		segments = 3
+	}
+	key := fmt.Sprintf("arrow_%.2f_%.2f_%.2f_%.2f_%d", shaftLength, shaftRadius, tipHeight, tipRadius, segments)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	shaftVerts, shaftIndices := meshCylinder(shaftLength, shaftRadius, segments, true)
+	tipVerts, tipIndices := meshCone(tipHeight, tipRadius, segments, true)
+	for i := range shaftVerts {
+		shaftVerts[i].Position[matrix.Vy] += shaftLength * 0.5
+	}
+	for i := range tipVerts {
+		tipVerts[i].Position[matrix.Vy] += shaftLength
+	}
+	verts := append(shaftVerts, tipVerts...)
+	indices := make([]uint32, 0, len(shaftIndices)+len(tipIndices))
+	indices = append(indices, shaftIndices...)
+	offset := uint32(len(shaftVerts))
+	for i := range tipIndices {
+		indices = append(indices, tipIndices[i]+offset)
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
+	if segments < 3 {
+		segments = 3
+	}
+	numVerts := segments * 2   // Bottom and top rings
+	numIndices := segments * 6 // Sides (2 triangles per segment)
+	if capped {
+		numVerts += segments * 2       // Additional rings for caps, but actually triangles for caps
+		numIndices += segments * 3 * 2 // Two caps, each with segments triangles
+	}
+	verts := make([]Vertex, numVerts)
+	indices := make([]uint32, numIndices)
+	vIndex := 0
+	iIndex := 0
+	// Generate bottom and top rings
+	halfHeight := height / 2.0
+	for i := 0; i < 2; i++ { // 0: bottom, 1: top
+		y := -halfHeight + float32(i)*height
+		for j := 0; j < segments; j++ {
+			phi := float32(j) * 2.0 * math.Pi / float32(segments)
+			cosPhi := matrix.Cos(phi)
+			sinPhi := matrix.Sin(phi)
+			verts[vIndex].Position = matrix.Vec3{radius * cosPhi, y, radius * sinPhi}
+			verts[vIndex].Normal = matrix.Vec3{cosPhi, 0.0, sinPhi} // Side normal
+			verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), float32(i)}
+			verts[vIndex].Color = matrix.ColorWhite()
+			vIndex++
+		}
+	}
+	// Generate side indices
+	for j := 0; j < segments; j++ {
+		v00 := uint32(j)
+		v10 := uint32((j + 1) % segments)
+		v01 := uint32(j + segments)
+		v11 := uint32((j+1)%segments + segments)
+		indices[iIndex] = v00
+		indices[iIndex+1] = v01
+		indices[iIndex+2] = v10
+		indices[iIndex+3] = v01
+		indices[iIndex+4] = v11
+		indices[iIndex+5] = v10
+		iIndex += 6
+	}
+	if capped {
+		// For caps, we need center points or triangulate
+		// Add bottom center
+		bottomCenter := vIndex
+		verts[vIndex].Position = matrix.Vec3{0.0, -halfHeight, 0.0}
+		verts[vIndex].Normal = matrix.Vec3{0.0, -1.0, 0.0}
+		verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
+		verts[vIndex].Color = matrix.ColorWhite()
+		vIndex++
+		// Add top center
+		topCenter := vIndex
+		verts[vIndex].Position = matrix.Vec3{0.0, halfHeight, 0.0}
+		verts[vIndex].Normal = matrix.Vec3{0.0, 1.0, 0.0}
+		verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
+		verts[vIndex].Color = matrix.ColorWhite()
+		vIndex++
+		// Bottom cap indices (note: adjust for winding)
+		for j := 0; j < segments; j++ {
+			v0 := uint32(j)
+			v1 := uint32((j + 1) % segments)
+			indices[iIndex] = uint32(bottomCenter)
+			indices[iIndex+1] = v0
+			indices[iIndex+2] = v1
+			iIndex += 3
+		}
+		// Top cap indices
+		for j := 0; j < segments; j++ {
+			v0 := uint32(j + segments)
+			v1 := uint32((j+1)%segments + segments)
+			indices[iIndex] = uint32(topCenter)
+			indices[iIndex+1] = v1
+			indices[iIndex+2] = v0
+			iIndex += 3
+		}
+	}
+	return verts, indices
+}
+
+func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
+	if segments < 3 {
+		segments = 3
+	}
+	numVerts := segments + 1   // Base ring + apex
+	numIndices := segments * 3 // Side triangles
+	if capped {
+		numIndices += segments * 3 // Base cap
+		numVerts++                 // Base center
+	}
+	verts := make([]Vertex, numVerts)
+	indices := make([]uint32, numIndices)
+	vIndex := 0
+	iIndex := 0
+	// Apex
+	apex := vIndex
+	verts[vIndex].Position = matrix.Vec3{0.0, height, 0.0}
+	verts[vIndex].Normal = matrix.Vec3{0.0, 1.0, 0.0} // Will compute better normals later if needed
+	verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
+	verts[vIndex].Color = matrix.ColorWhite()
+	vIndex++
+	// Base ring
+	for j := 0; j < segments; j++ {
+		phi := float32(j) * 2.0 * math.Pi / float32(segments)
+		cosPhi := matrix.Cos(phi)
+		sinPhi := matrix.Sin(phi)
+		verts[vIndex].Position = matrix.Vec3{radius * cosPhi, 0.0, radius * sinPhi}
+		// Normal for side: slant
+		slantLength := matrix.Sqrt(radius*radius + height*height)
+		normalXz := radius / slantLength
+		normalY := height / slantLength
+		verts[vIndex].Normal = matrix.Vec3{normalXz * cosPhi, normalY, normalXz * sinPhi}
+		verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), 0.0}
+		verts[vIndex].Color = matrix.ColorWhite()
+		vIndex++
+	}
+	// Side indices
+	for j := 0; j < segments; j++ {
+		v0 := uint32(apex)
+		v1 := uint32(1 + j)
+		v2 := uint32(1 + (j+1)%segments)
+		indices[iIndex] = v0
+		indices[iIndex+1] = v2
+		indices[iIndex+2] = v1
+		iIndex += 3
+	}
+	if capped {
+		// Base center
+		baseCenter := vIndex
+		verts[vIndex].Position = matrix.Vec3{0.0, 0.0, 0.0}
+		verts[vIndex].Normal = matrix.Vec3{0.0, -1.0, 0.0}
+		verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
+		verts[vIndex].Color = matrix.ColorWhite()
+		vIndex++
+		// Base cap indices (winding opposite for backface)
+		for j := 0; j < segments; j++ {
+			v0 := uint32(1 + j)
+			v1 := uint32(1 + (j+1)%segments)
+			indices[iIndex] = uint32(baseCenter)
+			indices[iIndex+1] = v0
+			indices[iIndex+2] = v1
+			iIndex += 3
+		}
+	}
+	return verts, indices
+}

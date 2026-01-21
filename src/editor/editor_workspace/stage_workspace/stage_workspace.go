@@ -39,34 +39,34 @@ package stage_workspace
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
+	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
+	"kaiju/platform/windowing"
 )
 
 const maxContentDropDistance = 10
 
 type StageWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed          StageWorkspaceEditorInterface
+	ed          editor_workspace.StageWorkspaceEditorInterface
 	stageView   *editor_stage_view.StageView
-	pageData    content_workspace.WorkspaceUIData
+	pageData    WorkspaceUIData
 	contentUI   WorkspaceContentUI
 	hierarchyUI WorkspaceHierarchyUI
 	detailsUI   WorkspaceDetailsUI
-	updateId    engine.UpdateId
 }
 
-func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
+func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
-	w.stageView.Initialize(host, ed.History(), ed.Settings(), ed)
-	w.pageData.SetupUIData(w.ed.Cache())
+	w.stageView.Initialize(host, ed)
+	w.pageData.SetupUIData(w.ed.Cache(), ed.StageView().Camera().ModeString())
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
 	}
@@ -79,13 +79,22 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorIn
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
 	w.initLLMActions()
+	w.loadLastOpenStage()
+}
+
+func (w *StageWorkspace) loadLastOpenStage() {
+	defer tracing.NewRegion("StageWorkspace.loadLastOpenStage").End()
+	p := w.ed.Project()
+	lastStage := p.Settings.EditorSettings.LatestOpenStage
+	if lastStage != "" {
+		w.OpenStage(lastStage)
+	}
 }
 
 func (w *StageWorkspace) Open() {
 	defer tracing.NewRegion("StageWorkspace.Open").End()
 	w.CommonOpen()
 	w.stageView.Open()
-	w.updateId = w.Host.Updater.AddUpdate(w.update)
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
@@ -95,7 +104,6 @@ func (w *StageWorkspace) Open() {
 func (w *StageWorkspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
 	w.stageView.Close()
-	w.Host.Updater.RemoveUpdate(&w.updateId)
 	w.CommonClose()
 }
 
@@ -115,18 +123,19 @@ func (w *StageWorkspace) focusRename() {
 	w.detailsUI.focusRename()
 }
 
-func (w *StageWorkspace) update(deltaTime float64) {
+func (w *StageWorkspace) Update(deltaTime float64) {
 	defer tracing.NewRegion("StageWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
 		return
 	}
-	if !w.contentUI.update(w) {
+	if windowing.HasDragData() {
 		return
 	}
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {
 		return
 	}
-	didKeyboardActions := w.stageView.Update(deltaTime)
+	w.detailsUI.update()
+	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
 	if !didKeyboardActions {
 		w.contentUI.processHotkeys(w.Host)
 		w.hierarchyUI.processHotkeys(w.Host)

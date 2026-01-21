@@ -96,12 +96,16 @@ static inline double now_seconds() {
     return (uli.QuadPart / 10000000.0) - 11644473600.0;
 }
 
-static inline void lock_cursor_position(SharedMem* sm) {
+static inline void set_cursor_position_relative_to_window(SharedMem* sm, int x, int y) {
 	int borderSize = ((sm->right-sm->left)-sm->clientRect.right) / 2;
 	int titleSize = (sm->bottom-sm->top)-sm->clientRect.bottom-borderSize;
-	int x = sm->left + sm->lockCursor.x + borderSize;
-	int y = sm->top + sm->lockCursor.y + titleSize;
-	SetCursorPos(x, y);
+	int wx = sm->left + x + borderSize;
+	int wy = sm->top + y + titleSize;
+	SetCursorPos(wx, wy);
+}
+
+static inline void lock_cursor_position(SharedMem* sm) {
+	set_cursor_position_relative_to_window(sm, sm->lockCursor.x, sm->lockCursor.y);
 }
 
 static inline bool obtainControllerStates(SharedMem* sm) {
@@ -375,7 +379,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam),
+					.deltaY = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
 				}
 			};
 			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
@@ -387,7 +391,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WindowEvent evt = {
 				.type = WINDOW_EVENT_TYPE_MOUSE_SCROLL,
 				.mouseScroll = {
-					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam),
+					.deltaX = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA,
 				}
 			};
 			readMousePosition(lParam, &evt.mouseScroll.x, &evt.mouseScroll.y);
@@ -842,7 +846,7 @@ void window_lock_cursor(void* hwnd, int x, int y) {
 	sm->lockCursor.x = x;
 	sm->lockCursor.y = y;
 	sm->lockCursor.active = true;
-	SetCursorPos(x, y);
+	set_cursor_position_relative_to_window(sm, x, y);
 }
 
 void window_unlock_cursor(void* hwnd) {
@@ -928,6 +932,11 @@ void window_disable_raw_mouse(void* hwnd) {
 
 void window_set_title(void* hwnd, const wchar_t* windowTitle) {
 	SetWindowTextW(hwnd, windowTitle);
+}
+
+void window_set_cursor_position(void* hwnd, int x, int y) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	set_cursor_position_relative_to_window(sm, x, y);
 }
 
 #endif

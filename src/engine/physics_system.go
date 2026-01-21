@@ -37,9 +37,9 @@
 package engine
 
 import (
+	"kaiju/engine/physics"
 	"kaiju/klib"
 	"kaiju/matrix"
-	"kaiju/physics"
 	"kaiju/platform/concurrent"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -136,8 +136,8 @@ func (p *StagePhysics) Update(threads *concurrent.Threads, deltaTime float64) {
 		}
 		wg.Add(1)
 		works = append(works, func(threadId int) {
-			wg.Done()
 			p.entities[i].updateTransform()
+			wg.Done()
 		})
 	}
 	threads.AddWork(works)

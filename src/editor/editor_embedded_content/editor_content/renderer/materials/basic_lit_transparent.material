@@ -1,1 +1,0 @@
-{"Name":"basic_lit_transparent","Shader":"basic_lit_transparent.shader","RenderPass":"transparent.renderpass","ShaderPipeline":"basic_transparent.shaderpipeline","Textures":[{"Texture":"square.png"}]}

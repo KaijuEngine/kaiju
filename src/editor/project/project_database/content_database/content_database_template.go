@@ -52,7 +52,7 @@ type Template struct{}
 // the following functions
 
 func (Template) Path() string       { return project_file_system.ContentTemplateFolder }
-func (Template) TypeName() string   { return "template" }
+func (Template) TypeName() string   { return "Template" }
 func (Template) ExtNames() []string { return []string{".template"} }
 
 func (Template) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {

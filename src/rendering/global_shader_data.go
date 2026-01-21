@@ -41,7 +41,6 @@ import "kaiju/matrix"
 const (
 	MaxJoints        = 50
 	MaxSkinInstances = 50
-	MaxPointShadows  = 50
 )
 
 type PointShadow struct {
@@ -61,12 +60,6 @@ type GlobalShaderData struct {
 	ScreenSize       matrix.Vec2
 	Time             float32
 	_                float32
-	StaticShadows    [MaxPointShadows]PointShadow
-	DynamicShadows   [MaxPointShadows]PointShadow
-	VertLights       [MaxLights]GPULight
-	LightInfos       [MaxLights]GPULightInfo
-}
-
-type SkinnedShaderData struct {
-	jointTransforms [MaxJoints]matrix.Mat4
+	VertLights       [MaxLocalLights]GPULight
+	LightInfos       [MaxLocalLights]GPULightInfo
 }

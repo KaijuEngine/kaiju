@@ -51,16 +51,20 @@ import (
 	"unsafe"
 )
 
+type FileReader interface {
+	Read(key string) ([]byte, error)
+}
+
 func title() []byte { return []byte{0x50, 0x45, 0x43, 0x4B} } // "PECK"
 
 type SourceContent struct {
 	Key              string
 	FullPath         string
 	RawData          []byte
-	CustomSerializer func(rawData []byte) ([]byte, error)
+	CustomSerializer func(reader FileReader, rawData []byte) ([]byte, error)
 }
 
-func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
+func CreateArchiveFromFolder(reader FileReader, inPath, outPath string, key []byte) error {
 	defer tracing.NewRegion("content_archive.CreateArchiveFromFolder").End()
 	files := []SourceContent{}
 	err := filepath.Walk(inPath, func(path string, info os.FileInfo, err error) error {
@@ -86,10 +90,10 @@ func CreateArchiveFromFolder(inPath, outPath string, key []byte) error {
 	if len(files) == 0 {
 		return fmt.Errorf("no assets found in the supplied folder: %s", inPath)
 	}
-	return CreateArchiveFromFiles(outPath, files, key)
+	return CreateArchiveFromFiles(reader, outPath, files, key)
 }
 
-func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) error {
+func CreateArchiveFromFiles(reader FileReader, outPath string, files []SourceContent, key []byte) error {
 	defer tracing.NewRegion("content_archive.CreateArchiveFromFiles").End()
 	if len(files) == 0 {
 		return fmt.Errorf("no assets were provided to archive")
@@ -112,7 +116,7 @@ func CreateArchiveFromFiles(outPath string, files []SourceContent, key []byte) e
 		}
 		srcData := buff.Bytes()
 		if files[i].CustomSerializer != nil {
-			srcData, err = files[i].CustomSerializer(srcData)
+			srcData, err = files[i].CustomSerializer(reader, srcData)
 		}
 		if err != nil {
 			return err

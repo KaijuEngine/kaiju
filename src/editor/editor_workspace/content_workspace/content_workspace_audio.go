@@ -39,7 +39,6 @@ package content_workspace
 import (
 	"fmt"
 	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/platform/audio"
@@ -55,7 +54,6 @@ type ContentAudioView struct {
 	playing     *audio.AudioClip
 	handle      audio.VoiceHandle
 	duration    float64
-	updateId    engine.UpdateId
 	seconds     float64
 	lastId      string
 }
@@ -131,9 +129,6 @@ func (v *ContentAudioView) playAudio(clip *audio.AudioClip) {
 		return
 	}
 	w := v.workspace.Value()
-	if v.updateId == 0 {
-		v.updateId = w.Host.Updater.AddUpdate(v.update)
-	}
 	a := w.Host.Audio()
 	shouldPlay := v.playing != clip
 	v.stopAudio()
@@ -176,7 +171,7 @@ func (v *ContentAudioView) stopAudio() {
 		return
 	}
 	a := v.workspace.Value().Host.Audio()
-	a.Stop(v.playing)
+	a.StopSource(v.playing)
 	v.playing = nil
 	v.handle = 0
 	audioPlayButton(v.audioPlayer).Label().SetText("Play")
@@ -189,6 +184,9 @@ func (v *ContentAudioView) update(deltaTime float64) {
 	}
 	v.seconds += deltaTime
 	if v.seconds > v.duration {
+		v.stopAudio()
+		v.setAudioPosition(0)
+		audioSlider(v.audioPlayer).SetValueWithoutEvent(0)
 		return
 	}
 	v.setSliderPosition()

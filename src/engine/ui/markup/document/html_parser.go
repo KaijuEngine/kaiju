@@ -194,6 +194,9 @@ func (h *Document) recacheElementTags() {
 	clear(h.tagElements)
 	for i := range h.Elements {
 		e := h.Elements[i]
+		if e.IsText() {
+			continue
+		}
 		if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 			h.tagElement(e, tag.Key())
 		}
@@ -309,7 +312,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				cb := panel.Base().ToCheckbox()
 				cb.Init()
 				if e.Attribute("checked") != "" {
-					cb.SetChecked(true)
+					cb.SetCheckedWithoutEvent(true)
 				}
 			case "slider":
 				slider := panel.Base().ToSlider()
@@ -317,7 +320,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				panel.DontFitContent()
 				if a := e.Attribute("value"); a != "" {
 					if f, err := strconv.ParseFloat(a, 32); err == nil {
-						slider.SetValue(float32(f))
+						slider.SetValueWithoutEvent(float32(f))
 					}
 				}
 			case "text", "number":
@@ -354,9 +357,9 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					val := child.Attribute("value")
 					sel.AddOption(childText, val)
 					if val == selectStartValue {
-						sel.PickOption(i)
+						sel.PickOptionWithoutEvent(i)
 					} else if val == "" && childText == selectStartValue {
-						sel.PickOption(i)
+						sel.PickOptionWithoutEvent(i)
 					}
 				}
 			}
@@ -498,8 +501,10 @@ func (d *Document) Destroy() {
 			}
 		}
 	}
-	for _, e := range d.Elements {
-		e.UI.Entity().Destroy()
+	if host := d.host.Value(); host != nil {
+		for _, e := range d.Elements {
+			host.DestroyEntity(e.UI.Entity())
+		}
 	}
 	clear(d.funcMap)
 	*d = Document{}
@@ -615,12 +620,14 @@ func (d *Document) RemoveElement(elm *Element) {
 
 func (d *Document) RemoveElementWithoutApplyStyles(elm *Element) {
 	for i := len(elm.Children) - 1; i >= 0; i-- {
-		d.RemoveElement(elm.Children[i])
+		d.RemoveElementWithoutApplyStyles(elm.Children[i])
 	}
 	if elm.Parent.Value() != nil {
 		for i, c := range elm.Parent.Value().Children {
 			if c == elm {
-				c.UI.Entity().Destroy()
+				if host := d.host.Value(); host != nil {
+					host.DestroyEntity(c.UI.Entity())
+				}
 				parent := elm.Parent.Value()
 				parent.Children = slices.Delete(parent.Children, i, i+1)
 				parent.UI.SetDirty(ui.DirtyTypeLayout)
@@ -671,6 +678,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 			d.classElements[c] = []*Element{elm}
 		}
 	}
+	elm.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
 // SetElementClasses updates the class list of the given element and applies
@@ -697,13 +705,42 @@ func (d *Document) ApplyStyles() { d.stylizer.ApplyStyles(d.style, d) }
 // duplicate an element and use one of the Insert functions, then use
 // Element.Clone followed by an Insert function instead
 func (d *Document) DuplicateElement(elm *Element) *Element {
+	cpy := d.DuplicateElementWithoutApplyStyles(elm)
+	d.stylizer.ApplyStyles(d.style, d)
+	return cpy
+}
+
+func (d *Document) DuplicateElementWithoutApplyStyles(elm *Element) *Element {
 	cpy := elm.Clone(elm.Parent.Value())
 	if elm.Attribute("id") != "" {
 		cpy.SetAttribute("id", "")
 	}
 	d.appendElement(cpy)
-	d.stylizer.ApplyStyles(d.style, d)
 	return cpy
+}
+
+func (d *Document) SetupInputTabIndexs() {
+	var lastInput *ui.Input
+	var setupTabs func(e *Element)
+	setupTabs = func(e *Element) {
+		if e.UI == nil || e.IsText() {
+			return
+		}
+		if e.UI.IsType(ui.ElementTypeInput) {
+			input := e.UI.ToInput()
+			if lastInput != nil {
+				lastInput.SetNextFocusedInput(input)
+			}
+			lastInput = input
+		} else {
+			for _, c := range e.Children {
+				setupTabs(c)
+			}
+		}
+	}
+	for _, h := range d.TopElements {
+		setupTabs(h)
+	}
 }
 
 func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {
@@ -744,7 +781,9 @@ func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
 		delete(d.ids, currentId)
 	}
 	elm.SetAttribute("id", id)
-	d.ids[id] = elm
+	if id != "" {
+		d.ids[id] = elm
+	}
 }
 
 func (d *Document) SetElementId(elm *Element, id string) {

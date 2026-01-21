@@ -3,7 +3,7 @@
 /******************************************************************************/
 /*                           This file is part of:                            */
 /*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.org                           */
+/*                          https://kaijuengine.com                           */
 /******************************************************************************/
 /* MIT License                                                                */
 /*                                                                            */
@@ -49,7 +49,7 @@ func TestWalk(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	gens, err := walkInternal(srcRoot, "test_structure", ".txt")
+	gens, err := walkInternal(srcRoot, srcRoot, "test_structure", ".txt")
 	if err != nil {
 		t.Error(err)
 	}

@@ -56,7 +56,10 @@ type Settings struct {
 	RecentProjects []string `visible:"false"`
 	RefreshRate    int32    `clamp:"60,0,320"`
 	CodeEditor     string   `default:"code"`
-	UIScrollSpeed  float32  `default:"20" label:"UI Scroll Speed"`
+	ImageEditor    string
+	MeshEditor     string
+	AudioEditor    string
+	UIScrollSpeed  float32 `default:"20" label:"UI Scroll Speed"`
 	EditorCamera   EditorCameraSettings
 	Snapping       SnapSettings
 	BuildTools     BuildToolSettings

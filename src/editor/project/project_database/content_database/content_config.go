@@ -189,5 +189,13 @@ func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig,
 	}
 	defer f.Close()
 	err = json.NewDecoder(f).Decode(&cfg)
+	// TODO:  This is temporary for upgrading, remove later
+	if err == nil {
+		oldType := cfg.Type
+		cfg.Type = klib.CapitalizeFirst(cfg.Type)
+		if oldType != cfg.Type {
+			WriteConfig(path, cfg, fs)
+		}
+	}
 	return cfg, err
 }

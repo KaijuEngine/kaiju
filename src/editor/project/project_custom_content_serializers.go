@@ -41,27 +41,31 @@ import (
 	"encoding/json"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/project/project_database/content_database"
+	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/runtime/encoding/gob"
-	"kaiju/stages"
+	"kaiju/engine/stages"
+	"kaiju/registry/shader_data_registry"
+	"kaiju/rendering"
 	"log/slog"
+	"reflect"
 )
 
 func (p *Project) initializeCustomSerializers() {
-	p.contentSerializers = make(map[string]func([]byte) ([]byte, error))
+	p.contentSerializers = make(map[string]func(content_archive.FileReader, []byte) ([]byte, error))
 	p.contentSerializers[(content_database.Stage{}).TypeName()] = p.stageArchiveSerializer
 	toc := content_database.TableOfContents{}
 	p.contentSerializers[toc.TypeName()] = toc.ArchiveSerializer
 }
 
-func (p *Project) stageArchiveSerializer(rawData []byte) ([]byte, error) {
+func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawData []byte) ([]byte, error) {
 	var ss stages.StageJson
 	if err := json.Unmarshal(rawData, &ss); err != nil {
 		return rawData, err
 	}
 	s := stages.Stage{}
 	s.FromMinimized(ss)
-	var removeUnpackedDataBindings func(desc *stages.EntityDescription)
-	removeUnpackedDataBindings = func(desc *stages.EntityDescription) {
+	var removeUnpackedDataBindings func(desc *stages.EntityDescription) error
+	removeUnpackedDataBindings = func(desc *stages.EntityDescription) error {
 		for i := range desc.DataBinding {
 			g, ok := p.EntityDataBinding(desc.DataBinding[i].RegistraionKey)
 			if ok {
@@ -77,12 +81,59 @@ func (p *Project) stageArchiveSerializer(rawData []byte) ([]byte, error) {
 			}
 		}
 		desc.DataBinding = make([]stages.EntityDataBinding, 0)
-		for i := range desc.Children {
-			removeUnpackedDataBindings(&desc.Children[i])
+		// Simpler than most ideas I had, essentially pull the shader data
+		// the same way you would in a running game. Then cast all of the JSON
+		// fields to the instance through the entity_data_binding.ToDataBinding
+		// helpers. Then pull the actual value out for serialization.
+		//
+		// This is needed because the JSON serialization doesn't use the correct
+		// types internally, int would be int64 and float32 would be float64. So
+		// this will basically fix the values before serializing with GOB.
+		extractShaderData := func() {
+			if desc.Material == "" {
+				return
+			}
+			m, err := reader.Read(desc.Material)
+			if err != nil {
+				return
+			}
+			var mat rendering.MaterialData
+			err = json.Unmarshal(m, &mat)
+			if err != nil {
+				return
+			}
+			s, err := reader.Read(mat.Shader)
+			if err != nil {
+				return
+			}
+			var sh rendering.ShaderData
+			err = json.Unmarshal(s, &sh)
+			if err != nil {
+				return
+			}
+			sd := shader_data_registry.Create(sh.Name)
+			v := reflect.ValueOf(sd)
+			for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+				v = v.Elem()
+			}
+			db := entity_data_binding.ToDataBinding("", sd)
+			for i := range desc.ShaderData {
+				db.SetFieldByName(desc.ShaderData[i].Name, desc.ShaderData[i].Value)
+				desc.ShaderData[i].Value = db.FieldValueByName(desc.ShaderData[i].Name)
+			}
 		}
+		extractShaderData()
+		for i := range desc.Children {
+			if err := removeUnpackedDataBindings(&desc.Children[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	for i := range s.Entities {
-		removeUnpackedDataBindings(&s.Entities[i])
+		if err := removeUnpackedDataBindings(&s.Entities[i]); err != nil {
+			return rawData, err
+		}
 	}
 	stream := bytes.NewBuffer(rawData)
 	stream.Reset()

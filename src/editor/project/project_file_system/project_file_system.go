@@ -79,6 +79,7 @@ var (
 		ContentRenderFolder,
 		ContentMaterialFolder,
 		ContentShaderFolder,
+		ContentParticlesFolder,
 		ContentRenderPassFolder,
 		ContentShaderPipelineFolder,
 		ContentSpvFolder,
@@ -195,6 +196,11 @@ func (fs *FileSystem) EnsureDatabaseExists() error {
 		}
 	}
 	return nil
+}
+
+func (fs *FileSystem) HasEngineCode() bool {
+	s, err := fs.Stat(KaijuSrcFolder)
+	return err == nil && s.IsDir()
 }
 
 // ReadDir is a wrapper around [os.ReadDir] since [os.Root] doesn't provide an

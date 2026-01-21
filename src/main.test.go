@@ -40,8 +40,6 @@ package main
 
 import (
 	"kaiju/bootstrap"
-	"kaiju/engine"
-	"kaiju/engine/assets"
 	"reflect"
 )
 

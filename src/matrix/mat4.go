@@ -315,10 +315,6 @@ func (m *Mat4) Perspective(fovy, aspect, nearVal, farVal Float) {
 	m[x2y3] = 2.0 * nearVal * farVal * fn
 }
 
-func (m Mat4) Position() Vec3 {
-	return Vec3{m[x0y3], m[x1y3], m[x2y3]}
-}
-
 func (m *Mat4) Translate(translation Vec3) {
 	(*m)[x0y3] += translation.X()
 	(*m)[x1y3] += translation.Y()
@@ -337,7 +333,7 @@ func (m *Mat4) Scale(scale Vec3) {
 	m[x2y2] *= scale.Z()
 }
 
-func Mat4LookAt(eye, center, up Vec3) Mat4 {
+func (m *Mat4) LookAt(eye, center, up Vec3) {
 	f := eye.Subtract(center)
 	f.Normalize()
 	s := Vec3Cross(up, f)
@@ -346,11 +342,17 @@ func Mat4LookAt(eye, center, up Vec3) Mat4 {
 	ns := s.Negative()
 	nu := u.Negative()
 	nf := f.Negative()
-	return Mat4{
+	*m = Mat4{
 		s.X(), u.X(), f.X(), 0.0,
 		s.Y(), u.Y(), f.Y(), 0.0,
 		s.Z(), u.Z(), f.Z(), 0.0,
 		Vec3Dot(ns, eye), Vec3Dot(nu, eye), Vec3Dot(nf, eye), 1.0}
+}
+
+func Mat4LookAt(eye, center, up Vec3) Mat4 {
+	m := Mat4Identity()
+	m.LookAt(eye, center, up)
+	return m
 }
 
 func (m *Mat4) Rotate(rotate Vec3) {
@@ -529,15 +531,15 @@ func (m Mat4) TransformPoint(point Vec3) Vec3 {
 }
 
 func (m Mat4) Right() Vec3 {
-	return Vec3{m[x0y0], m[x1y0], m[x2y0]}.Normal()
+	return Vec3{m[x0y0], m[x1y0], m[x2y0]}
 }
 
 func (m Mat4) Up() Vec3 {
-	return Vec3{m[x0y1], m[x1y1], m[x2y1]}.Normal()
+	return Vec3{m[x0y1], m[x1y1], m[x2y1]}
 }
 
 func (m Mat4) Forward() Vec3 {
-	return Vec3{m[x0y2], m[x1y2], m[x2y2]}.Normal()
+	return Vec3{m[x0y2], m[x1y2], m[x2y2]}
 }
 
 func (m Mat4) ToQuaternion() Quaternion {
@@ -597,21 +599,117 @@ func (m Mat4) IsIdentity() bool {
 }
 
 func Mat4Approx(a, b Mat4) bool {
-	res := false
+	res := true
 	for i := range a {
-		res = res || Abs(a[i]-b[i]) < FloatSmallestNonzero
+		res = res && Abs(a[i]-b[i]) < FloatSmallestNonzero
 	}
 	return res
 }
 
-func Mat4ApproxTo(a, b Vec4, delta Float) bool {
-	res := false
+func Mat4ApproxTo(a, b Mat4, delta Float) bool {
+	res := true
 	for i := range a {
-		res = res || Abs(a[i]-b[i]) < delta
+		res = res && Abs(a[i]-b[i]) < delta
 	}
 	return res
 }
 
 func (m Mat4) Equals(other Mat4) bool {
 	return Mat4Approx(m, other)
+}
+
+func (m Mat4) ExtractPosition() Vec3 {
+	return Vec3{m[x0y3], m[x1y3], m[x2y3]}
+}
+
+func (m Mat4) ExtractScale() Vec3 {
+	sx := Sqrt(m[x0y0]*m[x0y0] + m[x1y0]*m[x1y0] + m[x2y0]*m[x2y0])
+	sy := Sqrt(m[x0y1]*m[x0y1] + m[x1y1]*m[x1y1] + m[x2y1]*m[x2y1])
+	sz := Sqrt(m[x0y2]*m[x0y2] + m[x1y2]*m[x1y2] + m[x2y2]*m[x2y2])
+	det := m[x0y0]*(m[x1y1]*m[x2y2]-m[x1y2]*m[x2y1]) -
+		m[x0y1]*(m[x1y0]*m[x2y2]-m[x1y2]*m[x2y0]) +
+		m[x0y2]*(m[x1y0]*m[x2y1]-m[x1y1]*m[x2y0])
+	if det < 0 {
+		if sx >= sy && sx >= sz {
+			sx = -sx
+		} else if sy >= sx && sy >= sz {
+			sy = -sy
+		} else {
+			sz = -sz
+		}
+	}
+	return Vec3{sx, sy, sz}
+}
+
+func (m Mat4) ExtractRotation() Quaternion {
+	sx := Float(Sqrt(m[x0y0]*m[x0y0] + m[x1y0]*m[x1y0] + m[x2y0]*m[x2y0]))
+	sy := Float(Sqrt(m[x0y1]*m[x0y1] + m[x1y1]*m[x1y1] + m[x2y1]*m[x2y1]))
+	sz := Float(Sqrt(m[x0y2]*m[x0y2] + m[x1y2]*m[x1y2] + m[x2y2]*m[x2y2]))
+	if sx == 0 || sy == 0 || sz == 0 {
+		return Quaternion{0, 0, 0, 1}
+	}
+	r00 := m[x0y0] / sx
+	r10 := m[x1y0] / sx
+	r20 := m[x2y0] / sx
+	r01 := m[x0y1] / sy
+	r11 := m[x1y1] / sy
+	r21 := m[x2y1] / sy
+	r02 := m[x0y2] / sz
+	r12 := m[x1y2] / sz
+	r22 := m[x2y2] / sz
+	det := m[x0y0]*(m[x1y1]*m[x2y2]-m[x1y2]*m[x2y1]) -
+		m[x0y1]*(m[x1y0]*m[x2y2]-m[x1y2]*m[x2y0]) +
+		m[x0y2]*(m[x1y0]*m[x2y1]-m[x1y1]*m[x2y0])
+	flipIndex := -1
+	if det < 0 {
+		absSx, absSy, absSz := Abs(sx), Abs(sy), Abs(sz)
+		if absSx >= absSy && absSx >= absSz {
+			flipIndex = 0
+		} else if absSy >= absSx && absSy >= absSz {
+			flipIndex = 1
+		} else {
+			flipIndex = 2
+		}
+	}
+	if flipIndex == 0 {
+		r00 = -r00
+		r10 = -r10
+		r20 = -r20
+	} else if flipIndex == 1 {
+		r01 = -r01
+		r11 = -r11
+		r21 = -r21
+	} else if flipIndex == 2 {
+		r02 = -r02
+		r12 = -r12
+		r22 = -r22
+	}
+	trace := r00 + r11 + r22
+	var q Quaternion
+	if trace > 0 {
+		t := Sqrt(trace+1) * 2
+		q[Qw] = 0.25 * t
+		q[Qx] = (r21 - r12) / t
+		q[Qy] = (r02 - r20) / t
+		q[Qz] = (r10 - r01) / t
+	} else if r00 > r11 && r00 > r22 {
+		t := Sqrt(1+r00-r11-r22) * 2
+		q[Qx] = 0.25 * t
+		q[Qw] = (r21 - r12) / t
+		q[Qy] = (r01 + r10) / t
+		q[Qz] = (r02 + r20) / t
+	} else if r11 > r22 {
+		t := Sqrt(1+r11-r00-r22) * 2
+		q[Qy] = 0.25 * t
+		q[Qw] = (r02 - r20) / t
+		q[Qx] = (r01 + r10) / t
+		q[Qz] = (r12 + r21) / t
+	} else {
+		t := Sqrt(1+r22-r00-r11) * 2
+		q[Qz] = 0.25 * t
+		q[Qw] = (r10 - r01) / t
+		q[Qx] = (r02 + r20) / t
+		q[Qy] = (r12 + r21) / t
+	}
+	return q
 }

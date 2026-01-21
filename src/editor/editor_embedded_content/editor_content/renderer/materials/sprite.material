@@ -1,1 +1,1 @@
-{"Name":"sprite","Shader":"sprite.shader","RenderPass":"simple_opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[]}
+{"Name":"sprite","Shader":"sprite.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"simple.shaderpipeline","Textures":[]}

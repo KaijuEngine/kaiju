@@ -76,6 +76,7 @@ import (
 #cgo noescape window_enable_raw_mouse
 #cgo noescape window_disable_raw_mouse
 #cgo noescape window_set_title
+#cgo noescape window_set_cursor_position
 
 #include "windowing.h"
 */
@@ -84,16 +85,6 @@ import "C"
 //export goProcessEvents
 func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.uint32_t) {
 	goProcessEventsCommon(uint64(goWindow), events, uint32(eventCount))
-}
-
-func scaleScrollDelta(delta float32) float32 {
-	// TODO:  Store if we are using raw input (from C) and pick which to use
-	v := delta / 120.0
-	if v < 1 && v > -1 {
-		// We are most likely using raw input
-		v = delta
-	}
-	return v
 }
 
 func (w *Window) checkToggleKeyState() map[hid.KeyboardKey]bool {
@@ -251,10 +242,14 @@ func (w *Window) disableRawMouse() {
 	C.window_disable_raw_mouse(w.handle)
 }
 
-func (w Window) setTitle(newTitle string) {
+func (w *Window) setTitle(newTitle string) {
 	windowTitle := utf16.Encode(append([]rune(newTitle), []rune("\x00\x00")...))
 	title := (*C.wchar_t)(unsafe.Pointer(&windowTitle[0]))
 	C.window_set_title(w.handle, title)
+}
+
+func (w *Window) setCursorPosition(x, y int) {
+	C.window_set_cursor_position(w.handle, C.int(x), C.int(y))
 }
 
 func (w *Window) readApplicationAsset(path string) ([]byte, error) {

@@ -41,6 +41,7 @@ import (
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/concurrent"
+	"kaiju/rendering"
 	"log/slog"
 	"slices"
 )
@@ -66,10 +67,10 @@ type Entity struct {
 	Children              []*Entity
 	namedData             map[string][]any
 	OnDestroy             events.Event
+	OnDestroyRequested    events.Event
 	OnActivate            events.Event
 	OnDeactivate          events.Event
 	name                  string
-	destroyedFrames       int8
 	isDestroyed           bool
 	isActive              bool
 	deactivatedFromParent bool
@@ -178,30 +179,6 @@ func (e *Entity) SetActive(isActive bool) {
 	}
 }
 
-// Destroy will set the destroyed flag on the entity, this can be queried with
-// #Entity.IsDestroyed. The entity is not immediately destroyed as it may be
-// in use for the current frame. The #Entity.TickCleanup should be called for
-// each frame to check if the entity is ready to be completely destroyed.
-//
-// Destroying a parent will also destroy all children of the entity.
-func (e *Entity) Destroy() {
-	if !e.isDestroyed {
-		e.innerDestroy()
-		e.removeFromParent()
-		e.Transform.SetParent(nil)
-	}
-}
-
-func (e *Entity) innerDestroy() {
-	if !e.isDestroyed {
-		e.isDestroyed = true
-		e.destroyedFrames = 1
-		for i := range e.Children {
-			e.Children[i].innerDestroy()
-		}
-	}
-}
-
 // HasParent will loop through each parent and determine if any of them is the
 // parent Entity supplied. If so, then it will return true, false otherwise.
 func (e *Entity) HasParent(parent *Entity) bool {
@@ -282,21 +259,6 @@ func (e *Entity) FindByName(name string) *Entity {
 		}
 	}
 	return nil
-}
-
-// TickCleanup will check if the entity is ready to be completely destroyed. If
-// the entity is ready to be destroyed, it will execute the #Entity.OnDestroy
-// event and return true. If the entity is not ready to be destroyed, it will
-// return false.
-func (e *Entity) TickCleanup() bool {
-	if e.isDestroyed {
-		if e.destroyedFrames <= 0 {
-			e.ForceCleanup()
-			return true
-		}
-		e.destroyedFrames--
-	}
-	return false
 }
 
 // ForceCleanup will force the full cleanup of the entity, typically this is to
@@ -390,16 +352,13 @@ func (e *Entity) deactivateFromParent() {
 	e.deactivatedFromParent = fromParent
 }
 
-func (e *Entity) Duplicate(sparse bool, onDupe func(from, to *Entity), workGroup *concurrent.WorkGroup) *Entity {
+func (e *Entity) Duplicate(workGroup *concurrent.WorkGroup) *Entity {
 	dupe := NewEntity(workGroup)
-	if !sparse {
-		dupe.Children = make([]*Entity, len(e.Children))
-		for i := range e.Children {
-			dupe.Children[i] = e.Children[i].Duplicate(sparse, onDupe, workGroup)
-		}
+	dupe.Children = make([]*Entity, len(e.Children))
+	for i := range e.Children {
+		dupe.Children[i] = e.Children[i].Duplicate(workGroup)
 	}
 	dupe.Copy(e)
-	onDupe(e, dupe)
 	return dupe
 }
 
@@ -427,4 +386,40 @@ func (e *Entity) IndexOfChild(child *Entity) int {
 		}
 	}
 	return -1
+}
+
+func (e *Entity) StoreShaderData(sd rendering.DrawInstance) {
+	e.AddNamedData("ShaderData", sd)
+}
+
+func (e *Entity) ShaderData() rendering.DrawInstance {
+	all := e.NamedData("ShaderData")
+	if len(all) > 0 {
+		return all[0].(rendering.DrawInstance)
+	}
+	return nil
+}
+
+func (e *Entity) DestroyShaderData() {
+	all := e.NamedData("ShaderData")
+	for i := range all {
+		all[i].(rendering.DrawInstance).Destroy()
+	}
+}
+func (e *Entity) destroy(host *Host) {
+	if !e.isDestroyed {
+		e.innerDestroy(host)
+		e.removeFromParent()
+		e.Transform.SetParent(nil)
+	}
+}
+
+func (e *Entity) innerDestroy(host *Host) {
+	if !e.isDestroyed {
+		e.isDestroyed = true
+		for i := range e.Children {
+			host.destroyedEntities = append(host.destroyedEntities, e.Children[i])
+			e.Children[i].innerDestroy(host)
+		}
+	}
 }

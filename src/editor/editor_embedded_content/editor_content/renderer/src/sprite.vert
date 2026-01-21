@@ -1,20 +1,16 @@
 #version 460
+#define VERTEX_SHADER
 
-#include "inc_vertex.inl"
+#define LAYOUT_VERT_UVS 0
+#define LAYOUT_VERT_COLOR 1
 
-layout(location = LOCATION_START) in vec4 uvs;
-layout(location = 13) in vec4 fgColor;
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_TEX_COORDS 1
 
-layout(location = 0) out vec4 fragColor;
-layout(location = 4) out vec2 fragTexCoord;
+#include "kaiju.glsl"
 
 void main() {
-	vec4 vPos = model * vec4(Position, 1.0);
-	gl_Position = uiProjection * uiView * vPos;
-	vec2 uv = UV0;
-	uv *= uvs.zw;
-	uv.y += (1.0 - uvs.w) - uvs.y;
-	uv.x += uvs.x;
-	fragColor = Color * fgColor;
-	fragTexCoord = uv;
+	fragColor = Color * color;
+	writeTexCoords();
+	writeStandardUIPosition();
 }

@@ -1,0 +1,1 @@
+{"Name":"gizmo_overlay","Shader":"unlit.shader","RenderPass":"gizmo_overlay.renderpass","ShaderPipeline":"basic.shaderpipeline","Textures":[{"Texture":"square.png","Filter":""}]}

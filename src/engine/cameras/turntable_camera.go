@@ -58,6 +58,7 @@ func ToTurntable(camera *StandardCamera) *TurntableCamera {
 		pitch:          0.0,
 	}
 	tc.updateView = tc.internalUpdateView
+	tc.updateProjection = tc.internalUpdateProjection
 	return tc
 }
 
@@ -202,9 +203,9 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
-func (c *TurntableCamera) RayCast(screenPos matrix.Vec2) collision.Ray {
+func (c *TurntableCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray {
 	defer tracing.NewRegion("TurntableCamera.RayCast").End()
-	return c.internalRayCast(screenPos, c.iView.Position())
+	return c.internalRayCast(cursorPosition, c.iView.ExtractPosition())
 }
 
 func (c *TurntableCamera) internalUpdateView() {
@@ -278,7 +279,7 @@ func (c *TurntableCamera) updateViewAndPosition() {
 	defer tracing.NewRegion("TurntableCamera.updateViewAndPosition").End()
 	c.position.SetZ(c.zoom)
 	c.callUpdateView()
-	c.position = c.iView.Position()
+	c.position = c.iView.ExtractPosition()
 }
 
 func (c *TurntableCamera) setYaw(yaw float32) {

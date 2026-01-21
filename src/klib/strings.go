@@ -41,6 +41,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -78,6 +79,15 @@ func ToSnakeCase(str string) string {
 	snake := snakeCaseMatchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = snakeCaseMatchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
+}
+
+func CapitalizeFirst(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	r := []rune(s)
+	r[0] = unicode.ToUpper(r[0])
+	return string(r)
 }
 
 func ByteCountToString(bytes uint64) string {

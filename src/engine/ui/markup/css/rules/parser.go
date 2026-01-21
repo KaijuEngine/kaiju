@@ -47,9 +47,10 @@ import (
 )
 
 type StyleSheet struct {
-	Groups     []SelectorGroup
-	CustomVars map[string][]string
-	state      RuleState
+	Groups         []SelectorGroup
+	CustomVars     map[string][]string
+	state          RuleState
+	stateFuncDepth int
 }
 
 func (s *StyleSheet) addGroup() {
@@ -87,13 +88,19 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		switch val.TokenType {
 		case css.IdentToken:
 			fallthrough
+		case css.StringToken:
+			fallthrough
 		case css.NumberToken:
 			if s.state == ReadingPseudoFunction {
 				idx := len(sel.Parts) - 1
 				sel.Parts[idx].Args = append(sel.Parts[idx].Args, string(val.Data))
 			} else {
+				d := string(val.Data)
+				if s.state == ReadingConditionAssignment {
+					d = strings.Trim(d, `"`)
+				}
 				sel.Parts = append(sel.Parts, SelectorPart{
-					Name:       string(val.Data),
+					Name:       d,
 					SelectType: s.state,
 				})
 			}
@@ -115,6 +122,10 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			s.state = ReadingPseudo
 		case css.WhitespaceToken:
 			s.state = ReadingTag
+		case css.LeftBracketToken:
+			s.state = ReadingCondition
+		case css.RightBracketToken:
+			s.state = ReadingTag
 		case css.DelimToken:
 			switch string(val.Data) {
 			case "#":
@@ -129,6 +140,10 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 				s.state = ReadingAdjacent
 			case ":":
 				s.state = ReadingPseudo
+			case "=":
+				if s.state == ReadingCondition {
+					s.state = ReadingConditionAssignment
+				}
 			}
 		}
 	}
@@ -144,23 +159,45 @@ func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window hel
 	for _, val := range cssParser.Values() {
 		switch val.TokenType {
 		case css.FunctionToken:
+			s.stateFuncDepth++
 			s.state = ReadingPropertyFunction
 			r.Values = append(r.Values, PropertyValue{
-				Str:  strings.TrimSuffix(string(val.Data), "("),
-				Args: make([]string, 0),
+				Str: strings.TrimSuffix(string(val.Data), "("),
 			})
 		case css.CommaToken:
 		case css.CommentToken:
 		case css.WhitespaceToken:
 		case css.RightParenthesisToken:
-			s.state = ReadingProperty
+			s.stateFuncDepth = max(0, s.stateFuncDepth-1)
+			if s.stateFuncDepth == 0 {
+				s.state = ReadingProperty
+			}
 		default:
 			if s.state == ReadingPropertyFunction {
-				r.Values[len(r.Values)-1].Args = append(r.Values[len(r.Values)-1].Args, string(val.Data))
+				last := &r.Values[len(r.Values)-1]
+				str := string(val.Data)
+				if last.Str == "var" {
+					r.Values = r.Values[0 : len(r.Values)-1]
+					if len(r.Values) > 0 {
+						last = &r.Values[len(r.Values)-1]
+					}
+					if v, ok := s.CustomVars[str]; ok {
+						for i := range v {
+							if s.stateFuncDepth > 1 {
+								last.Args = append(last.Args, v[i])
+							} else {
+								r.Values = append(r.Values, PropertyValue{
+									Str: v[i],
+								})
+							}
+						}
+					}
+				} else {
+					last.Args = append(last.Args, str)
+				}
 			} else {
 				r.Values = append(r.Values, PropertyValue{
-					Str:  string(val.Data),
-					Args: make([]string, 0),
+					Str: string(val.Data),
 				})
 			}
 		}
@@ -253,7 +290,7 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 			name := string(propData)
 			vals := make([]string, 0)
 			for _, val := range cssParser.Values() {
-				vals = append(vals, string(val.Data))
+				vals = append(vals, strings.TrimSpace(string(val.Data)))
 			}
 			s.CustomVars[name] = vals
 		}

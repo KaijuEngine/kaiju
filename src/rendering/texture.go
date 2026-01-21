@@ -72,6 +72,7 @@ type TextureColorFormat int
 type TextureFilter = int
 type TextureMemType = int
 type TextureFileFormat = int
+type TextureDimensions = int
 
 const (
 	TextureInputTypeCompressedRgbaAstc4x4 TextureInputType = iota
@@ -123,6 +124,13 @@ const (
 )
 
 const (
+	TextureDimensions2 TextureDimensions = iota
+	TextureDimensions1
+	TextureDimensions3
+	TextureDimensionsCube
+)
+
+const (
 	GenerateUniqueTextureKey = ""
 )
 
@@ -139,7 +147,16 @@ type TextureData struct {
 	Width          int
 	Height         int
 	InputType      TextureFileFormat
+	Dimensions     TextureDimensions
 }
+
+type transparencyReadState int
+
+const (
+	transparencyReadStateNone transparencyReadState = iota
+	transparencyReadStateRead
+	transparencyReadStateFound
+)
 
 type Texture struct {
 	Key               string
@@ -152,6 +169,7 @@ type Texture struct {
 	Height            int
 	CacheInvalid      bool
 	pendingData       *TextureData
+	hasTransparency   transparencyReadState
 }
 
 func TextureKeys(textures []*Texture) []string {
@@ -314,6 +332,42 @@ func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter T
 	}
 }
 
+func (t *Texture) Reload(renderer Renderer, assetDb assets.Database) error {
+	t.RenderId = TextureId{}
+	if assetDb.Exists(t.Key) {
+		if imgBuff, err := assetDb.Read(t.Key); err != nil {
+			return err
+		} else if len(imgBuff) == 0 {
+			return errors.New("no data in texture")
+		} else {
+			t.create(imgBuff)
+			return nil
+		}
+	}
+	return errors.New("texture does not exist")
+}
+
+func (t *Texture) triedToReadTransparency() bool {
+	return t.hasTransparency != transparencyReadStateNone
+}
+
+func (t *Texture) ReadPendingDataForTransparency() bool {
+	if t.hasTransparency == transparencyReadStateFound {
+		return true
+	}
+	if t.triedToReadTransparency() || t.pendingData == nil {
+		return false
+	}
+	t.hasTransparency = transparencyReadStateRead
+	for i := 0; i < len(t.pendingData.Mem); i += 4 {
+		if t.pendingData.Mem[i] != 255 {
+			t.hasTransparency = transparencyReadStateFound
+			break
+		}
+	}
+	return t.hasTransparency == transparencyReadStateFound
+}
+
 func (t *Texture) DelayedCreate(renderer Renderer) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
 	if t.RenderId.IsValid() {
@@ -349,6 +403,12 @@ func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest
 
 func (t Texture) Size() matrix.Vec2 {
 	return matrix.Vec2{float32(t.Width), float32(t.Height)}
+}
+
+func (t *Texture) SetPendingDataDimensions(dim TextureDimensions) {
+	if t.pendingData != nil {
+		t.pendingData.Dimensions = dim
+	}
 }
 
 func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, error) {

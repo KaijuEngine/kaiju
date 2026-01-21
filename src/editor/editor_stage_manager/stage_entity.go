@@ -52,10 +52,31 @@ type StageEntity struct {
 }
 
 func EntityToStageEntity(e *engine.Entity) *StageEntity {
+	if e == nil {
+		return nil
+	}
 	return (*StageEntity)(unsafe.Pointer(e))
 }
 
 func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }
+
+func (e *StageEntity) DetachDataBinding(binding *entity_data_binding.EntityDataEntry) {
+	for i, b := range e.dataBindings {
+		if b == binding {
+			e.dataBindings = append(e.dataBindings[:i], e.dataBindings[i+1:]...)
+			return
+		}
+	}
+}
+
+func (e *StageEntity) AttachDataBinding(binding *entity_data_binding.EntityDataEntry) {
+	for _, b := range e.dataBindings {
+		if b == binding {
+			return
+		}
+	}
+	e.dataBindings = append(e.dataBindings, binding)
+}
 
 func (e *StageEntity) DataBindingsByKey(key string) []*entity_data_binding.EntityDataEntry {
 	out := []*entity_data_binding.EntityDataEntry{}
@@ -91,20 +112,22 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 	e.StageData.ShaderData.Destroy()
 	e.StageData.Description.Textures = make([]string, len(mat.Textures))
 	e.StageData.Description.Material = mat.Id
-	if e.StageData.Description.Material == "" {
-		e.StageData.Description.Material = mat.Name
-	}
 	for i := range mat.Textures {
 		e.StageData.Description.Textures[i] = mat.Textures[i].Key
 	}
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	draw := rendering.Drawing{
-		Renderer:   manager.host.Window.Renderer,
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,
 		ShaderData: e.StageData.ShaderData,
 		Transform:  &e.Transform,
 		ViewCuller: &manager.host.Cameras.Primary,
+	}
+	db := entity_data_binding.ToDataBinding("", e.StageData.ShaderData)
+	for i := range db.Fields {
+		if db.RunTagParserOnField(i) {
+			db.SetField(i, db.Fields[i].Value)
+		}
 	}
 	manager.host.Drawings.AddDrawing(draw)
 }

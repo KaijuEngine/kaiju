@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_logging"
 	"kaiju/editor/editor_overlay/ai_prompt"
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
 	"kaiju/editor/editor_workspace"
@@ -50,6 +51,7 @@ import (
 	"kaiju/editor/editor_workspace/shading_workspace"
 	"kaiju/editor/editor_workspace/stage_workspace"
 	"kaiju/editor/editor_workspace/ui_workspace"
+	"kaiju/editor/editor_workspace/vfx_workspace"
 	"kaiju/editor/global_interface/menu_bar"
 	"kaiju/editor/global_interface/status_bar"
 	"kaiju/editor/memento"
@@ -79,12 +81,13 @@ type Editor struct {
 	project          project.Project
 	workspaceState   WorkspaceState
 	workspaces       workspaces
-	globalInterfaces globalInterface
+	globalInterfaces globalUI
 	currentWorkspace editor_workspace.Workspace
 	logging          editor_logging.Logging
 	history          memento.History
 	events           editor_events.EditorEvents
 	stageView        editor_stage_view.StageView
+	plugins          []editor_plugin.EditorPlugin
 	window           struct {
 		activateId     events.Id
 		deactivateId   events.Id
@@ -98,14 +101,17 @@ type workspaces struct {
 	stage    stage_workspace.StageWorkspace
 	content  content_workspace.ContentWorkspace
 	shading  shading_workspace.ShadingWorkspace
+	vfx      vfx_workspace.VfxWorkspace
 	ui       ui_workspace.UIWorkspace
 	settings settings_workspace.SettingsWorkspace
 }
 
-type globalInterface struct {
+type globalUI struct {
 	menuBar   menu_bar.MenuBar
 	statusBar status_bar.StatusBar
 }
+
+func (ed *Editor) Host() *engine.Host { return ed.host }
 
 // FocusInterface is responsible for enabling the input on the various
 // interfaces that are currently presented to the developer. This primarily
@@ -155,22 +161,33 @@ func (ed *Editor) postProjectLoad() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("compiling the project to get things ready")
+	{
+		// Read the project source synchronosly for now, if not, any stage loading
+		// before this is complete will have issues.
+		ed.project.ReadSourceCode()
+	}
 	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
 	ed.setupWindowActivity()
 	ed.workspaces.stage.Initialize(ed.host, ed)
 	ed.workspaces.content.Initialize(ed.host, ed)
 	ed.workspaces.shading.Initialize(ed.host, ed)
+	ed.workspaces.vfx.Initialize(ed.host, ed)
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
 	// goroutine
 	go ed.project.CompileDebug()
-	// goroutine
-	go ed.project.ReadSourceCode()
 	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
+	for k, v := range editorPluginRegistry {
+		if err := v.Launch(ed); err != nil {
+			slog.Error("failed to launch plugin", "key", k, "error", err)
+			continue
+		}
+		ed.plugins = append(ed.plugins, v)
 	}
 }
 
@@ -183,11 +200,17 @@ func (ed *Editor) update(deltaTime float64) {
 		if kb.KeyDown(hid.KeyboardKeyZ) {
 			if !kb.HasShift() {
 				ed.history.Undo()
+				return
 			} else {
 				ed.history.Redo()
+				return
 			}
 		} else if kb.KeyDown(hid.KeyboardKeyY) {
 			ed.history.Redo()
+			return
+		} else if kb.KeyDown(hid.KeyboardKeyS) {
+			ed.SaveCurrentStage()
+			return
 		}
 	}
 	if kb.HasShift() && kb.KeyDown(hid.KeyboardKeyF1) {
@@ -196,8 +219,22 @@ func (ed *Editor) update(deltaTime float64) {
 		ai_prompt.Show(ed.host, func() {
 			ed.FocusInterface()
 		})
+		return
+	}
+	if kb.KeyDown(hid.KeyboardKeyF5) {
+		if kb.HasCtrl() {
+			if kb.HasShift() {
+				ed.BuildAndRun(project.GameBuildModeRelease)
+			} else {
+				ed.BuildAndRun(project.GameBuildModeDebug)
+			}
+		} else {
+			ed.BuildAndRunCurrentStage()
+		}
+		return
 	}
 	processWorkspaceHotkeys(ed, kb)
+	ed.currentWorkspace.Update(deltaTime)
 }
 
 func processWorkspaceHotkeys(ed *Editor, kb *hid.Keyboard) {

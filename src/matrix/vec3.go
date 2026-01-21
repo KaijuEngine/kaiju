@@ -44,6 +44,11 @@ const vec3StrFmt = "%f, %f, %f"
 
 type Vec3 [3]Float
 
+type Vec3MinMax struct {
+	Min Vec3
+	Max Vec3
+}
+
 func (v Vec3) X() Float                   { return v[Vx] }
 func (v Vec3) Y() Float                   { return v[Vy] }
 func (v Vec3) Z() Float                   { return v[Vz] }
@@ -77,12 +82,23 @@ func NewVec3(x, y, z Float) Vec3 {
 	return Vec3{x, y, z}
 }
 
+func NewVec3XYZ(xyz Float) Vec3 {
+	return Vec3{xyz, xyz, xyz}
+}
+
 func Vec3FromArray(a [3]Float) Vec3 {
 	return Vec3{a[0], a[1], a[2]}
 }
 
 func Vec3FromSlice(a []Float) Vec3 {
 	return Vec3{a[0], a[1], a[2]}
+}
+
+func NewVec3MinMax() Vec3MinMax {
+	return Vec3MinMax{
+		Min: Vec3{FloatMax, FloatMax, FloatMax},
+		Max: Vec3{-FloatMax, -FloatMax, -FloatMax},
+	}
 }
 
 func (v Vec3) AsAligned16() [4]Float {
@@ -151,6 +167,10 @@ func (v *Vec3) ShrinkAssign(scalar Float) {
 
 func (v Vec3) Length() Float {
 	return Sqrt(Vec3Dot(v, v))
+}
+
+func (v Vec3) LengthSquared() Float {
+	return v[Vx]*v[Vx] + v[Vy]*v[Vy] + v[Vz]*v[Vz]
 }
 
 func (v Vec3) Normal() Vec3 {
@@ -283,7 +303,37 @@ func (v Vec3) String() string {
 }
 
 func (v Vec3) Angle(other Vec3) Float {
+	if v.Equals(other) {
+		return 0
+	}
 	return Acos(Vec3Dot(v, other) / (v.Length() * other.Length()))
+}
+
+// SignedAngle returns the signed angle (in radians) from v to other around the
+// given axis. The sign is positive for counterclockwise rotation when looking
+// along the axis direction. Assumes non-zero vectors; returns 0 if v or other
+// is zero-length or they are equal. For best precision, normalize v, other, and
+// axis before calling if they aren't already.
+func (v Vec3) SignedAngle(other Vec3, axis Vec3) Float {
+	if v.Equals(other) {
+		return 0
+	}
+	lenV := v.Length()
+	if lenV == 0 {
+		return 0
+	}
+	lenO := other.Length()
+	if lenO == 0 {
+		return 0
+	}
+	lenA := axis.Length()
+	if lenA == 0 {
+		return 0
+	}
+	dot := Vec3Dot(v, other) / (lenV * lenO)
+	cross := Vec3Cross(v, other)
+	signedSin := Vec3Dot(cross, axis) / (lenV * lenO * lenA)
+	return Atan2(signedSin, dot)
 }
 
 func (v Vec3) Equals(other Vec3) bool {
@@ -351,6 +401,18 @@ func Vec3Inf(sign int) Vec3 {
 	return Vec3{Inf(sign), Inf(sign), Inf(sign)}
 }
 
+func Vec3NaN() Vec3 {
+	return Vec3{NaN(), NaN(), NaN()}
+}
+
 func (v Vec3) IsZero() bool {
 	return Vec3Approx(v, Vec3Zero())
+}
+
+func (v Vec3) IsInf(sign int) bool {
+	return IsInf(v[Vx], sign) || IsInf(v[Vy], sign) || IsInf(v[Vz], sign)
+}
+
+func (v Vec3) IsNaN() bool {
+	return IsNaN(v[Vx]) || IsNaN(v[Vy]) || IsNaN(v[Vz])
 }

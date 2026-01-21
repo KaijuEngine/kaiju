@@ -37,13 +37,12 @@
 package shader_designer
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/rendering"
 	"slices"
+	"weak"
 )
 
 const (
@@ -77,7 +76,8 @@ type ShaderDesignerShaderPipeline struct {
 
 type ShaderDesignerMaterial struct {
 	rendering.MaterialData
-	id string
+	id   string
+	name string
 }
 
 type ShaderDesigner struct {
@@ -91,10 +91,11 @@ type ShaderDesigner struct {
 	pipelineDoc       *document.Document
 	renderPassDoc     *document.Document
 	materialDoc       *document.Document
+	nameInputField    weak.Pointer[document.Element]
 	uiMan             *ui.Manager
-	pfs               *project_file_system.FileSystem
-	cache             *content_database.Cache
+	ed                ShaderDesignerEditorInterface
 	state             ShaderDesignerState
+	liveShader        bool
 }
 
 type flagState struct {
@@ -165,18 +166,14 @@ func (s flagState) Has(val string) bool {
 	return slices.Contains(s.Current, val)
 }
 
-func (s *ShaderDesigner) Initialize(host *engine.Host, uiMan *ui.Manager, pfs *project_file_system.FileSystem, cache *content_database.Cache) {
+func (s *ShaderDesigner) Initialize(host *engine.Host, uiMan *ui.Manager, ed ShaderDesignerEditorInterface) {
 	s.host = host
+	s.ed = ed
 	s.uiMan = uiMan
-	s.pfs = pfs
-	s.cache = cache
 	s.Reload()
 }
 
 func (win *ShaderDesigner) ChangeWindowState(state ShaderDesignerState) {
-	if win.state == state {
-		return
-	}
 	win.state = state
 	if win.shaderDoc != nil {
 		win.shaderDoc.Deactivate()
@@ -233,12 +230,18 @@ func (win *ShaderDesigner) ShowPipelineWindow(id string, data rendering.ShaderPi
 func (win *ShaderDesigner) ShowMaterialWindow(id string, data rendering.MaterialData) {
 	win.resetDataValues()
 	win.material.id = id
+	if id != "" {
+		if cc, err := win.ed.Cache().Read(id); err == nil {
+			win.material.name = cc.Config.Name
+		}
+	}
 	win.material.MaterialData = data
 	win.ChangeWindowState(StateMaterial)
 }
 
 func (win *ShaderDesigner) Close() {
 	win.ChangeWindowState(StateNone)
+	win.liveShader = false
 }
 
 func (win *ShaderDesigner) resetDataValues() {

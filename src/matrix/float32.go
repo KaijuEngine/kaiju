@@ -42,8 +42,8 @@ import "math"
 
 type Float = float32
 
-const FloatSmallestNonzero = math.SmallestNonzeroFloat32
-const FloatMax = math.MaxFloat32
+const FloatSmallestNonzero = Float(math.SmallestNonzeroFloat32)
+const FloatMax = Float(math.MaxFloat32)
 
 func Abs(x Float) Float {
 	return math.Float32frombits(math.Float32bits(x) &^ (1 << 31))
@@ -115,6 +115,10 @@ func IsInf(x Float, sign int) bool {
 
 func Inf(sign int) Float {
 	return Float(math.Inf(sign))
+}
+
+func NaN() Float {
+	return Float(math.NaN())
 }
 
 func Mod(x Float, y Float) Float {

@@ -52,8 +52,6 @@ type WorkspaceHierarchyUI struct {
 	hierarchyArea        *document.Element
 	entityTemplate       *document.Element
 	entityList           *document.Element
-	hideHierarchyElm     *document.Element
-	showHierarchyElm     *document.Element
 	hierarchyDragPreview *document.Element
 }
 
@@ -61,8 +59,6 @@ func (hui *WorkspaceHierarchyUI) setupFuncs() map[string]func(*document.Element)
 	defer tracing.NewRegion("WorkspaceHierarchyUI.setupFuncs").End()
 	return map[string]func(*document.Element){
 		"hierarchySearch": hui.hierarchySearch,
-		"hideHierarchy":   hui.hideHierarchy,
-		"showHierarchy":   hui.showHierarchy,
 		"selectEntity":    hui.selectEntity,
 		"entityDragStart": hui.entityDragStart,
 		"entityDrop":      hui.entityDrop,
@@ -77,8 +73,6 @@ func (hui *WorkspaceHierarchyUI) setup(w *StageWorkspace) {
 	hui.hierarchyArea, _ = w.Doc.GetElementById("hierarchyArea")
 	hui.entityList, _ = w.Doc.GetElementById("entityList")
 	hui.entityTemplate, _ = w.Doc.GetElementById("entityTemplate")
-	hui.hideHierarchyElm, _ = w.Doc.GetElementById("hideHierarchy")
-	hui.showHierarchyElm, _ = w.Doc.GetElementById("showHierarchy")
 	hui.hierarchyDragPreview, _ = w.Doc.GetElementById("hierarchyDragPreview")
 	hui.workspace = weak.Make(w)
 	man := w.stageView.Manager()
@@ -92,8 +86,6 @@ func (hui *WorkspaceHierarchyUI) setup(w *StageWorkspace) {
 func (hui *WorkspaceHierarchyUI) open() {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.open").End()
 	hui.entityTemplate.UI.Hide()
-	hui.hideHierarchyElm.UI.Show()
-	hui.showHierarchyElm.UI.Hide()
 	hui.hierarchyArea.UI.Show()
 	hui.hierarchyDragPreview.UI.Hide()
 }
@@ -115,29 +107,15 @@ func (hui *WorkspaceHierarchyUI) processHotkeys(host *engine.Host) {
 	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
 	kb := &host.Window.Keyboard
 	if kb.KeyDown(hid.KeyboardKeyH) {
-		if hui.hideHierarchyElm.UI.Entity().IsActive() {
-			hui.hideHierarchy(nil)
+		if hui.hierarchyArea.UI.Entity().IsActive() {
+			hui.hierarchyArea.UI.Hide()
 		} else {
-			hui.showHierarchy(nil)
+			hui.hierarchyArea.UI.Show()
 		}
 	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyT) {
 		w := hui.workspace.Value()
 		w.stageView.Manager().CreateTemplateFromSelected(w.ed.Events(), w.ed.Project())
 	}
-}
-
-func (hui *WorkspaceHierarchyUI) hideHierarchy(*document.Element) {
-	defer tracing.NewRegion("WorkspaceHierarchyUI.hideHierarchy").End()
-	hui.hierarchyArea.UI.Hide()
-	hui.hideHierarchyElm.UI.Hide()
-	hui.showHierarchyElm.UI.Show()
-}
-
-func (hui *WorkspaceHierarchyUI) showHierarchy(*document.Element) {
-	defer tracing.NewRegion("WorkspaceHierarchyUI.showHierarchy").End()
-	hui.hierarchyArea.UI.Show()
-	hui.hideHierarchyElm.UI.Show()
-	hui.showHierarchyElm.UI.Hide()
 }
 
 func (hui *WorkspaceHierarchyUI) selectEntity(e *document.Element) {
@@ -270,11 +248,15 @@ func (hui *WorkspaceHierarchyUI) entityDestroyed(e *editor_stage_manager.StageEn
 
 func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entitySelected").End()
-	entries := hui.workspace.Value().Doc.GetElementsByClass("hierarchyEntry")
+	w := hui.workspace.Value()
+	entries := w.Doc.GetElementsByClass("hierarchyEntry")
 	for _, elm := range entries {
 		if elm.Attribute("id") == e.StageData.Description.Id {
 			hui.workspace.Value().Doc.SetElementClasses(
 				elm, hui.buildEntityClasses(elm)...)
+			w.Host.RunAfterNextUIClean(func() {
+				hui.entityList.UI.ToPanel().ScrollToChild(elm.UI)
+			})
 			break
 		}
 	}

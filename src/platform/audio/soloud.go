@@ -167,10 +167,24 @@ func (a *Audio) LoadSound(adb assets.Database, key string) (*AudioClip, error) {
 }
 
 func (a *Audio) Play(clip *AudioClip) VoiceHandle {
-	return play(a.soloud, clip.wav)
+	handle := play(a.soloud, clip.wav)
+	if clip.isSFX {
+		if sfx, ok := a.sfx[clip.key]; ok {
+			sfx.handles = append(sfx.handles, uint32(handle))
+		}
+	} else {
+		if bgm, ok := a.bgm[clip.key]; ok {
+			bgm.handles = append(bgm.handles, uint32(handle))
+		}
+	}
+	return handle
 }
 
-func (a *Audio) Stop(clip *AudioClip) {
+func (a *Audio) Stop(handle VoiceHandle) {
+	stopAudio(a.soloud, handle)
+}
+
+func (a *Audio) StopSource(clip *AudioClip) {
 	stopAudioSource(a.soloud, clip.wav)
 	clip.handles = clip.handles[:0]
 }
@@ -198,6 +212,10 @@ func (a *Audio) PlayMusic(key string) (*AudioClip, uint32) {
 		return bgm, uint32(handle)
 	}
 	return nil, 0
+}
+
+func (a *Audio) SetLooping(handle VoiceHandle, looping bool) {
+	setLooping(a.soloud, handle, looping)
 }
 
 func (a *Audio) SetSoundVolume(volume float32) {

@@ -51,7 +51,7 @@ func (r Ray) Point(distance float32) matrix.Vec3 {
 }
 
 // TriangleHit returns true if the ray hits the triangle defined by the three points
-func (r Ray) TriangleHit(rayLen float32, a, b, c matrix.Vec3) bool {
+func (r Ray) TriangleHit(rayLen float32, a, b, c matrix.Vec3) (matrix.Vec3, bool) {
 	s := Segment{r.Origin, r.Point(rayLen)}
 	return s.TriangleHit(a, b, c)
 }

@@ -55,7 +55,7 @@ func TrySelectResultMesh(mesh *load_result.Mesh,
 				a := mat.TransformPoint(mesh.Verts[mesh.Indexes[j]].Position)
 				b := mat.TransformPoint(mesh.Verts[mesh.Indexes[j+1]].Position)
 				c := mat.TransformPoint(mesh.Verts[mesh.Indexes[j+2]].Position)
-				if ray.TriangleHit(rayLen, a, b, c) {
+				if _, ok := ray.TriangleHit(rayLen, a, b, c); ok {
 					center := matrix.Vec3{
 						(a.X() + b.X() + c.X()) / 3.0,
 						(a.Y() + b.Y() + c.Y()) / 3.0,

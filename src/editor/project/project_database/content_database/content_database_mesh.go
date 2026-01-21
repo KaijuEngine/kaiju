@@ -38,6 +38,7 @@ package content_database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets"
@@ -66,8 +67,13 @@ type MeshConfig struct{}
 // the following functions
 
 func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
-func (Mesh) TypeName() string   { return "mesh" }
-func (Mesh) ExtNames() []string { return []string{".gltf", ".glb"} }
+func (Mesh) TypeName() string   { return "Mesh" }
+func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
+
+type meshImportPostProcData struct {
+	mesh       load_result.Mesh
+	isAnimated bool
+}
 
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Mesh.Import").End()
@@ -85,13 +91,21 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if res, err = loaders.GLTF(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
+	case ".obj":
+		adb, err := assets.NewFileDatabase(filepath.Dir(src))
+		if err != nil {
+			return p, err
+		}
+		if res, err = loaders.OBJ(filepath.Base(src), adb); err != nil {
+			return p, err
+		}
 	}
 	if len(res.Meshes) == 0 {
 		return p, NoMeshesInFileError{Path: src}
 	}
 	baseName := fileNameNoExt(src)
 	kms := kaiju_mesh.LoadedResultToKaijuMesh(res)
-	postProcData := map[string]load_result.Mesh{}
+	postProcData := map[string]meshImportPostProcData{}
 	for i := range kms {
 		kd, err := kms[i].Serialize()
 		if err != nil {
@@ -103,7 +117,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			Data: kd,
 		}
 		p.Variants = append(p.Variants, v)
-		postProcData[v.Name] = res.Meshes[i]
+		postProcData[v.Name] = meshImportPostProcData{res.Meshes[i], res.IsTreeAnimated(int(res.Meshes[i].Node.Id))}
 	}
 	p.postProcessData = postProcData
 	for i := range res.Meshes {
@@ -131,7 +145,7 @@ func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSyst
 
 func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
-	meshes := proc.postProcessData.(map[string]load_result.Mesh)
+	meshes := proc.postProcessData.(map[string]meshImportPostProcData)
 	cc, err := cache.Read(res.Id)
 	if err != nil {
 		return err
@@ -154,43 +168,92 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		return rendering.MaterialTextureData{}
 	}
 	var mat rendering.MaterialData
-	if _, ok := variant.Textures["metallicRoughness"]; ok {
+	if _, ok := variant.mesh.Textures["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
-			Name:           "pbr",
-			RenderPass:     "simple_opaque.renderpass",
-			Shader:         "pbr.shader",
-			ShaderPipeline: "simple.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			Shader:          "pbr.shader",
+			RenderPass:      "opaque.renderpass",
+			ShaderPipeline:  "basic.shaderpipeline",
+			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.mesh.Textures)),
+			IsLit:           true,
+			ReceivesShadows: true,
+			CastsShadows:    true,
 		}
-		if t, ok := variant.Textures["baseColor"]; ok {
+		if variant.isAnimated {
+			mat.Shader = "pbr_skinned.shader"
+		}
+		if t, ok := variant.mesh.Textures["baseColor"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "baseColor")
+			delete(variant.mesh.Textures, "baseColor")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		if t, ok := variant.Textures["normal"]; ok {
+		if t, ok := variant.mesh.Textures["normal"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "normal")
+			delete(variant.mesh.Textures, "normal")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		if t, ok := variant.Textures["metallicRoughness"]; ok {
+		if t, ok := variant.mesh.Textures["metallicRoughness"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "metallicRoughness")
+			delete(variant.mesh.Textures, "metallicRoughness")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		if t, ok := variant.Textures["emissive"]; ok {
+		if t, ok := variant.mesh.Textures["emissive"]; ok {
 			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.Textures, "emissive")
+			delete(variant.mesh.Textures, "emissive")
+		} else {
+			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+				Texture: assets.TextureSquare, Filter: "Linear"})
 		}
-		for _, t := range variant.Textures {
+		for _, t := range variant.mesh.Textures {
 			mat.Textures = append(mat.Textures, matchTexture(t))
 		}
 	} else {
 		mat = rendering.MaterialData{
-			Name:           "standard",
-			RenderPass:     "opaque.renderpass",
 			Shader:         "basic.shader",
+			RenderPass:     "opaque.renderpass",
 			ShaderPipeline: "basic.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.Textures)),
+			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.mesh.Textures)),
 		}
-		for _, t := range variant.Textures {
+		if variant.isAnimated {
+			mat.Shader = "basic_skinned.shader"
+		}
+		for _, t := range variant.mesh.Textures {
 			mat.Textures = append(mat.Textures, matchTexture(t))
+		}
+	}
+	// Determine if a matching material already exists
+	options := cache.ListByType(Material{}.TypeName())
+	// Searching reverse here as the latest additions are more likely to collide
+	for i := len(options) - 1; i >= 0; i-- {
+		d, err := fs.ReadFile(options[i].ContentPath())
+		if err != nil {
+			continue
+		}
+		var dm rendering.MaterialData
+		if err = json.Unmarshal(d, &dm); err != nil {
+			continue
+		}
+		same := mat.Shader == dm.Shader &&
+			mat.RenderPass == dm.RenderPass &&
+			mat.ShaderPipeline == dm.ShaderPipeline &&
+			mat.PrepassMaterial == dm.PrepassMaterial &&
+			mat.IsLit == dm.IsLit &&
+			mat.ReceivesShadows == dm.ReceivesShadows &&
+			mat.CastsShadows == dm.CastsShadows &&
+			len(mat.Textures) == len(dm.Textures)
+		if !same {
+			continue
+		}
+		for j := 0; j < len(mat.Textures) && same; j++ {
+			same = mat.Textures[j] == dm.Textures[j]
+		}
+		if same {
+			return nil
 		}
 	}
 	f, err := os.CreateTemp("", "*-kaiju-mat.material")
@@ -210,9 +273,9 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	if err != nil {
 		return err
 	}
-	ccMat.Config.Name = fmt.Sprintf("%s_mat", cc.Config.Name)
-	if err := WriteConfig(ccMat.Path, ccMat.Config, fs); err != nil {
+	_, err = cache.Rename(ccMat.Id(), fmt.Sprintf("%s_mat", cc.Config.Name), fs)
+	if !errors.Is(err, CacheContentNameEqual) {
 		return err
 	}
-	return cache.Index(ccMat.Path, fs)
+	return nil
 }

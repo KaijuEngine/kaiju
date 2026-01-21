@@ -401,6 +401,8 @@ func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
 
 func (w *Window) SetTitle(name string) { w.setTitle(name) }
 
+func (w *Window) SetCursorPosition(x, y int) { w.setCursorPosition(x, y) }
+
 // ReadApplicationAsset will read an asset bound to the application. This is
 // typically only useful on mobile platforms like Android. Platforms like Linux,
 // Windows, and Mac will return an error, use #ReadFile instead
@@ -488,9 +490,8 @@ func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
 func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
 	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
 	s := w.Mouse.Scroll()
-	deltaX := scaleScrollDelta(float32(evt.deltaX))
-	deltaY := scaleScrollDelta(float32(evt.deltaY))
-	w.Mouse.SetScroll(s.X()+deltaX, s.Y()+deltaY)
+	w.Mouse.SetScroll(s.X(), s.Y()+float32(evt.deltaX))
+	w.Mouse.SetScroll(s.X(), s.Y()+float32(evt.deltaY))
 }
 
 func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {

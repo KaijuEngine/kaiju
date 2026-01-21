@@ -6,24 +6,38 @@ repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
   - Home: index.md
-  - Getting started:
-    - Launching the editor: getting_started/editor_launch.md
-  - Programming:
-    - Data Binding: programming/data_binding.md
-  - UI:
-    - Writing: ui/writing.md
-    - Preview: ui/preview.md
-    - Go Access: ui/go_access.md
-    - HTML Attributes: ui/html_attributes.md
-  - Engine Developers:
-    - Build from source: engine_developers/build_from_source.md
-    - Build tags: engine_developers/build_tags.md
-    - Building new fonts: engine_developers/building_fonts.md
-    - Editor windows: engine_developers/editor_windows.md
-    - Prompt popups: engine_developers/prompt_popup.md
-  - Shaders:
-    - Shader definition: shaders/shader_designer.md
+  - Getting started: getting_started/getting_started.md
+  - Kaiju Editor:
+    - Launching the editor: editor/launching_the_editor.md
+    - Editor design: editor/editor_design.md
+    - Stage: editor/stage.md
+    - Content: editor/content.md
+    - Shading: editor/shading.md
+    - VFX (particles): editor/vfx.md
+    - UI: editor/ui.md
+    - Settings: editor/settings.md
+    - Programming:
+      - Data Binding: editor/programming/data_binding.md
+    - Shaders:
+      - Shader definition: editor/shaders/shader_designer.md
+    - Plugins: editor/plugins.md
+  - Kaiju Engine:
+    - Design goals: engine/design_goals.md
+    - Build from source: engine/build_from_source.md
+    - Build tags: engine/build_tags.md
+    - Performance profiling: engine/performance_profiling.md
+    - Building new fonts: engine/building_fonts.md
+    - UI:
+      - Writing: engine/ui/writing.md
+      - Preview: engine/ui/preview.md
+      - Go access: engine/ui/go_access.md
+      - HTML attributes: engine/ui/html_attributes.md
   - API: api/
+  - Community:
+    - GitHub: https://github.com/KaijuEngine/kaiju
+    - Creator X: https://twitter.com/ShieldCrush
+    - Discord: https://discord.gg/8rFPEu8U52
+  - Sponsor Kaiju: https://github.com/sponsors/BrentFarris
 theme:
   name: 'material'
   icon:
@@ -58,3 +72,5 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+extra_css:
+  - stylesheets/style.css

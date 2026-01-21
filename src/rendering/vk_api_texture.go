@@ -52,22 +52,14 @@ type TextureCleanup struct {
 	renderer Renderer
 }
 
-func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vulkan_const.SampleCountFlagBits, format vulkan_const.Format, tiling vulkan_const.ImageTiling, usage vk.ImageUsageFlags, properties vk.MemoryPropertyFlags, textureId *TextureId, layerCount int) bool {
+func (vr *Vulkan) CreateImage(textureId *TextureId, properties vk.MemoryPropertyFlags, imageInfo vk.ImageCreateInfo) bool {
 	textureId.Layout = vulkan_const.ImageLayoutUndefined
-	imageInfo := vk.ImageCreateInfo{}
 	imageInfo.SType = vulkan_const.StructureTypeImageCreateInfo
-	imageInfo.ImageType = vulkan_const.ImageType2d
-	imageInfo.Extent.Width = width
-	imageInfo.Extent.Height = height
-	imageInfo.Extent.Depth = 1
-	imageInfo.MipLevels = mipLevels
-	imageInfo.ArrayLayers = uint32(layerCount)
-	imageInfo.Format = format
-	imageInfo.Tiling = tiling
 	imageInfo.InitialLayout = vulkan_const.ImageLayoutUndefined
-	imageInfo.Usage = usage
-	imageInfo.Samples = numSamples
 	imageInfo.SharingMode = vulkan_const.SharingModeExclusive
+	if imageInfo.Extent.Depth == 0 {
+		imageInfo.Extent.Depth = 1
+	}
 	var image vk.Image
 	if vk.CreateImage(vr.device, &imageInfo, nil, &image) != vulkan_const.Success {
 		slog.Error("Failed to create image")
@@ -97,12 +89,12 @@ func (vr *Vulkan) CreateImage(width, height, mipLevels uint32, numSamples vulkan
 	textureId.Memory = tidMemory
 	vk.BindImageMemory(vr.device, textureId.Image, textureId.Memory, 0)
 	textureId.Access = 0
-	textureId.Format = format
-	textureId.Width = int(width)
-	textureId.Height = int(height)
+	textureId.Format = imageInfo.Format
+	textureId.Width = int(imageInfo.Extent.Width)
+	textureId.Height = int(imageInfo.Extent.Height)
 	textureId.LayerCount = 1
-	textureId.MipLevels = mipLevels
-	textureId.Samples = numSamples
+	textureId.MipLevels = imageInfo.MipLevels
+	textureId.Samples = imageInfo.Samples
 	return true
 }
 
@@ -112,15 +104,17 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	format := vulkan_const.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
 	case TextureInputTypeRgba8:
-		if data.Format == TextureColorFormatRgbaSrgb {
+		switch data.Format {
+		case TextureColorFormatRgbaSrgb:
 			format = vulkan_const.FormatR8g8b8a8Srgb
-		} else if data.Format == TextureColorFormatRgbaUnorm {
+		case TextureColorFormatRgbaUnorm:
 			format = vulkan_const.FormatR8g8b8a8Unorm
 		}
 	case TextureInputTypeRgb8:
-		if data.Format == TextureColorFormatRgbSrgb {
+		switch data.Format {
+		case TextureColorFormatRgbSrgb:
 			format = vulkan_const.FormatR8g8b8Srgb
-		} else if data.Format == TextureColorFormatRgbUnorm {
+		case TextureColorFormatRgbUnorm:
 			format = vulkan_const.FormatR8g8b8Unorm
 		}
 	case TextureInputTypeCompressedRgbaAstc4x4:
@@ -216,8 +210,16 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		w, h := float32(width), float32(height)
 		mip = int(matrix.Floor(matrix.Log2(matrix.Max(w, h)))) + 1
 	}
-	// TODO:  This should be the channels in the image rather than just 4
-	memLen := len(data.Mem)
+
+	layerCount := 1
+	flags := vk.ImageCreateFlags(0)
+	// TODO:  Deal with cube maps the correct way
+	if data.Dimensions == TextureDimensionsCube {
+		layerCount = 6
+		flags = vk.ImageCreateFlags(vulkan_const.ImageCreateCubeCompatibleBit)
+	}
+
+	memLen := len(data.Mem) * layerCount
 
 	var stagingBuffer vk.Buffer
 	var stagingBufferMemory vk.DeviceMemory
@@ -227,13 +229,29 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		&stagingBuffer, &stagingBufferMemory)
 	var stageData unsafe.Pointer
 	vk.MapMemory(vr.device, stagingBufferMemory, 0, vk.DeviceSize(memLen), 0, &stageData)
-	vk.Memcopy(stageData, data.Mem[:memLen])
+	offset := uintptr(0)
+	// TODO:  This is just copying the same texture over and over, it needs to be fixed
+	for i := 0; i < layerCount; i++ {
+		// TODO:  the /layerCount is due to the above todo for this just copying same image
+		vk.Memcopy(unsafe.Pointer(uintptr(stageData)+offset), data.Mem[:memLen/layerCount])
+		offset += uintptr(memLen / layerCount)
+	}
 	vk.UnmapMemory(vr.device, stagingBufferMemory)
 	// TODO:  Provide the desired sample as part of texture data?
-	layerCount := 1
-	vr.CreateImage(uint32(width), uint32(height), uint32(mip),
-		vulkan_const.SampleCount1Bit, format, tile, vk.ImageUsageFlags(use),
-		vk.MemoryPropertyFlags(props), &texture.RenderId, layerCount)
+	vr.CreateImage(&texture.RenderId, vk.MemoryPropertyFlags(props), vk.ImageCreateInfo{
+		ImageType: imageTypeFromDimensions(data),
+		Extent: vk.Extent3D{
+			Width:  uint32(width),
+			Height: uint32(height),
+		},
+		MipLevels:   uint32(mip),
+		ArrayLayers: uint32(layerCount),
+		Format:      format,
+		Tiling:      tile,
+		Usage:       vk.ImageUsageFlags(use),
+		Samples:     vulkan_const.SampleCount1Bit,
+		Flags:       flags,
+	})
 	texture.RenderId.MipLevels = uint32(mip)
 	texture.RenderId.Format = format
 	texture.RenderId.Width = width
@@ -243,7 +261,7 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 		vulkan_const.ImageLayoutTransferDstOptimal, vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
 		texture.RenderId.Access, nil)
 	vr.copyBufferToImage(stagingBuffer, texture.RenderId.Image,
-		uint32(width), uint32(height))
+		uint32(width), uint32(height), layerCount)
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
 	vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
@@ -251,7 +269,8 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	vr.generateMipmaps(&texture.RenderId, format,
 		uint32(width), uint32(height), uint32(mip), filter)
 	vr.createImageView(&texture.RenderId,
-		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit))
+		vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+		viewTypeFromDimensions(data))
 	vr.createTextureSampler(&texture.RenderId.Sampler, uint32(mip), filter)
 	runtime.AddCleanup(texture, func(state TextureCleanup) {
 		v := state.renderer.(*Vulkan)
@@ -305,4 +324,32 @@ func (vr *Vulkan) destroyTextureHandle(id TextureId) {
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
 	defer tracing.NewRegion("Vulkan.TextureReadPixel").End()
 	panic("not implemented")
+}
+
+func viewTypeFromDimensions(data *TextureData) vulkan_const.ImageViewType {
+	switch data.Dimensions {
+	case TextureDimensions1:
+		return vulkan_const.ImageViewType1d
+	case TextureDimensions3:
+		return vulkan_const.ImageViewType3d
+	case TextureDimensionsCube:
+		return vulkan_const.ImageViewTypeCube
+	case TextureDimensions2:
+		fallthrough
+	default:
+		return vulkan_const.ImageViewType2d
+	}
+}
+
+func imageTypeFromDimensions(data *TextureData) vulkan_const.ImageType {
+	switch data.Dimensions {
+	case TextureDimensions1:
+		return vulkan_const.ImageType1d
+	case TextureDimensions3:
+		return vulkan_const.ImageType3d
+	case TextureDimensions2:
+		fallthrough
+	default:
+		return vulkan_const.ImageType2d
+	}
 }

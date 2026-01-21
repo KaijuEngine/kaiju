@@ -54,6 +54,7 @@ var modNameRe = regexp.MustCompile(`^module\s+(\w+)`)
 
 var skipFiles = []string{
 	"main.ed.go",
+	"main.ed.dbg.go",
 	"main.test.go",
 	"build/generator.go",
 }
@@ -66,6 +67,40 @@ use (
 )
 `
 
+const srcGitignoreFileData = `# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*__debug*
+*.exe*
+
+# Test binary, built with "go test -c"
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# env file
+.env
+
+# Editor/IDE
+# .idea/
+# .vscode/
+
+# Trace files
+heap.prof
+trace.out
+
+# Kaiju engine code
+#   Feel free to comment this out if you modify the engine code in your project
+kaiju/
+`
+
 const srcModFileData = `module game
 
 go %s
@@ -73,11 +108,15 @@ go %s
 
 const srcGameHostFileData = `package game_host
 
+import (
+	"kaiju/engine"
+)
+
 type GameHost struct {
 	// Developer should fill in structure and NewGameHost as needed
 }
 
-func NewGameHost() *GameHost {
+func NewGameHost(host *engine.Host) *GameHost {
 	return &GameHost{}
 }`
 
@@ -91,7 +130,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/klib"
-	"kaiju/stages"
+	"kaiju/engine/stages"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -161,8 +200,8 @@ func (Game) Launch(host *engine.Host) {
 			return
 		}
 	}
-	host.SetGame(game_host.NewGameHost())
-	s.Launch(host)
+	host.SetGame(game_host.NewGameHost(host))
+	s.Load(host)
 }
 
 func getGame() bootstrap.GameInterface { return Game{} }
@@ -230,9 +269,13 @@ func (pfs *FileSystem) createCodeProject() error {
 		return err
 	}
 	slog.Info("creating workspace management files")
-	goVersion := strings.TrimPrefix(runtime.Version(), "go")
+	goVersion := strings.Split(strings.TrimPrefix(runtime.Version(), "go"), " ")[0]
 	workFile := []byte(fmt.Sprintf(srcWorkFileData, goVersion))
 	if err := pfs.WriteFile(ProjectWorkFile, workFile, os.ModePerm); err != nil {
+		return err
+	}
+	gitignoreFile := []byte(srcGitignoreFileData)
+	if err := pfs.WriteFile(ProjectGitignoreFile, gitignoreFile, os.ModePerm); err != nil {
 		return err
 	}
 	modFile := []byte(fmt.Sprintf(srcModFileData, goVersion))

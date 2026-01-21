@@ -37,6 +37,8 @@
 package settings_workspace
 
 import (
+	"kaiju/editor/editor_events"
+	"kaiju/editor/editor_plugin"
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
@@ -44,9 +46,11 @@ import (
 )
 
 type SettingsWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
 	History() *memento.History
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
 	Settings() *editor_settings.Settings
 	UpdateSettings()
+	RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onComplete func(err error)) error
 }

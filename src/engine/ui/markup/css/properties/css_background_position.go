@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 	"kaiju/engine"
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/css/rules"
@@ -45,7 +45,18 @@ import (
 )
 
 func (p BackgroundPosition) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("BackgroundPosition not implemented")}
-
-	return problems[0]
+	switch len(values) {
+	case 1:
+		if err := (BackgroundPositionX{}.Process(panel, elm, values, host)); err != nil {
+			return err
+		}
+		return BackgroundPositionY{}.Process(panel, elm, values, host)
+	case 2:
+		if err := (BackgroundPositionX{}.Process(panel, elm, values[0:1], host)); err != nil {
+			return err
+		}
+		return BackgroundPositionY{}.Process(panel, elm, values[1:], host)
+	default:
+		return fmt.Errorf("invalid number of arguments to CSS background-position, expected %d got %d", 2, len(values))
+	}
 }
