@@ -288,11 +288,8 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 	// TODO:  Make this more generic so that there can be a sequence of stages
 	// that require other stages to be done. For now I'm just adding the pre and
 	// post stages to make sure shadows go first
-	if renderPass.construction.Name == "light_offscreen" {
-		vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], true)
-	} else {
-		vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], false)
-	}
+	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame],
+		strings.HasPrefix(renderPass.construction.Name, "light_offscreen"))
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {

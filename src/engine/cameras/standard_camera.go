@@ -66,6 +66,7 @@ type StandardCamera struct {
 	sizeIsViewSize   bool
 	frameDirty       bool
 	csmNumCascades   uint8
+	csmSplits        []matrix.Float
 	csmDirty         bool
 	csmProjections   []matrix.Mat4
 }
@@ -311,6 +312,18 @@ func (c *StandardCamera) Viewport() matrix.Vec4 {
 
 func (c *StandardCamera) NumCSMCascades() uint8 { return max(1, c.csmNumCascades) }
 
+func (c *StandardCamera) CSMCascadeDistances() [5]float32 {
+	out := [5]float32{}
+	if c.csmNumCascades <= 1 {
+		out[0] = c.farPlane
+	} else {
+		for i := range min(int(c.NumCSMCascades()), len(out)) {
+			out[i] = c.csmSplits[i+1]
+		}
+	}
+	return out
+}
+
 func (c *StandardCamera) SetNumCSMCascades(n uint8) {
 	defer tracing.NewRegion("StandardCamera.SetNumCSMCascades").End()
 	c.csmNumCascades = n
@@ -437,14 +450,15 @@ func (c *StandardCamera) updateCSM() {
 	if num == 0 {
 		num = 1
 	}
-	splits := make([]float32, 0, c.csmNumCascades)
+	c.csmSplits = c.csmSplits[:0]
+	c.csmSplits = slices.Grow(c.csmSplits, int(c.csmNumCascades))
 	if num <= 1 || c.isOrthographic {
-		splits = append(splits, c.nearPlane, c.farPlane)
+		c.csmSplits = append(c.csmSplits, c.nearPlane, c.farPlane)
 		c.csmDirty = false
 		return
 	}
-	splits = slices.Grow(splits, num+1)
-	splits = append(splits, c.nearPlane)
+	c.csmSplits = slices.Grow(c.csmSplits, num+1)
+	c.csmSplits = append(c.csmSplits, c.nearPlane)
 	const lambda float32 = 0.5
 	near64 := float64(c.nearPlane)
 	far64 := float64(c.farPlane)
@@ -454,12 +468,12 @@ func (c *StandardCamera) updateCSM() {
 		logSplit := near64 * math.Pow(far64/near64, p)
 		uniSplit := near64 + range64*p
 		split64 := lambda*float32(logSplit) + (1-lambda)*float32(uniSplit)
-		splits = append(splits, float32(split64))
+		c.csmSplits = append(c.csmSplits, float32(split64))
 	}
-	splits = append(splits, c.farPlane)
+	c.csmSplits = append(c.csmSplits, c.farPlane)
 	c.csmProjections = c.csmProjections[:0]
-	for i := range len(splits) - 1 {
-		c.csmProjections = append(c.csmProjections, c.createProjection(splits[i], splits[i+1]))
+	for i := range len(c.csmSplits) - 1 {
+		c.csmProjections = append(c.csmProjections, c.createProjection(c.csmSplits[i], c.csmSplits[i+1]))
 	}
 	c.csmDirty = false
 }

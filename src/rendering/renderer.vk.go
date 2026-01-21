@@ -236,6 +236,8 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 			matrix.Float(vr.swapChainExtent.Width),
 			matrix.Float(vr.swapChainExtent.Height),
 		},
+		CascadeCount:          int32(camera.NumCSMCascades()),
+		CascadePlaneDistances: camera.CSMCascadeDistances(),
 	}
 	for i := range lights.Lights {
 		if lights.Lights[i].IsValid() {

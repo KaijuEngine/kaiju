@@ -93,8 +93,10 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	mat4 uiProjection;
 	vec4 cameraPosition;
 	vec3 uiCameraPosition;
-	vec2 screenSize;
 	float time;
+	vec2 screenSize;
+	int cascadeCount;
+	float cascadePlaneDistances[5];
 	Light vertLights[MAX_LIGHTS];
 	LightInfo lightInfos[MAX_LIGHTS];
 };
@@ -415,6 +417,26 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 
 	#ifdef SHADOW_SAMPLERS
 		float directShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int lightIdx) {
+			/*
+			vec4 fragPosViewSpace = view * vec4(fragPos, 1.0);
+			float depthValue = abs(fragPosViewSpace.z);
+				
+			int layer = -1;
+			for (int i = 0; i < cascadeCount; ++i)
+			{
+				if (depthValue < cascadePlaneDistances[i])
+				{
+					layer = i;
+					break;
+				}
+			}
+			if (layer == -1)
+			{
+				layer = cascadeCount;
+			}
+				
+			vec4 fragPosLightSpace = lightSpaceMatrices[layer] * vec4(fragPosWorldSpace, 1.0);
+			*/
 			// Perform perspective divide
 			vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 			// Transform to [0,1] range
