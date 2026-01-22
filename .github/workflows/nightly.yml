@@ -156,9 +156,42 @@ jobs:
           go-version: "1.25"
           cache-dependency-path: src/go.sum
 
-      - name: Build editor (Debug)
+      - name: Restore Vulkan SDK from Cache
+        id: cache-vulkansdk
+        uses: actions/cache@v5
+        with:
+          path: ~/VulkanSDK/${{ env.VULKAN_SDK_VERSION }}
+          key: vulkan-sdk-${{ matrix.os }}-${{ env.VULKAN_SDK_VERSION }}
+          restore-keys: ""   # disables prefix matching
+
+      - name: Install Vulkan SDK if cache miss
+        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/mac/vulkansdk-macos-${{ env.VULKAN_SDK_VERSION }}.zip -o /tmp/vulkansdk-macos-${{ env.VULKAN_SDK_VERSION }}.zip
+          unzip /tmp/vulkansdk-macos-${{ env.VULKAN_SDK_VERSION }}.zip -d /tmp/vulkansdk
+          /tmp/vulkansdk/vulkansdk-macOS-${{ env.VULKAN_SDK_VERSION }}.app/Contents/MacOS/vulkansdk-macOS-${{ env.VULKAN_SDK_VERSION }} --root ~/VulkanSDK/"${{ env.VULKAN_SDK_VERSION }}" --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.core com.lunarg.vulkan.usr com.lunarg.vulkan.sdl2 com.lunarg.vulkan.glm com.lunarg.vulkan.volk com.lunarg.vulkan.vma com.lunarg.vulkan.ios copy_only=1
+
+      - name: Setup Vulkan SDK
+        run: |
+          set -x
+          cd ~/VulkanSDK/"${{ env.VULKAN_SDK_VERSION }}"
+          sudo ./install_vulkan.py
+          chmod a+x ./setup-env.sh
+          ./setup-env.sh
+          echo "VULKAN_SDK=$HOME/VulkanSDK/${VULKAN_SDK_VERSION}/macOS" >> $GITHUB_ENV
+          echo "VK_SDK_PATH=$HOME/VulkanSDK/${VULKAN_SDK_VERSION}" >> $GITHUB_ENV
+
+      - name: Verify Vulkan SDK installation
+        run: |
+          echo "Vulkan SDK version:"
+          vulkaninfo --summary || echo "vulkaninfo failed, but continuing..."
+          echo "VK_SDK_PATH: $VK_SDK_PATH"
+          echo "VULKAN_SDK: $VULKAN_SDK"
+
+      - name: Build editor (debug mode)
         working-directory: ./src
-        run: go build -tags="debug,editor" -o ../kaiju-macos ./
+        run: |
+          CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -v -tags="debug,editor" -o ../kaiju-macos ./
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
