@@ -191,6 +191,10 @@ static NSEvent* handleEvent(NSEvent* e) {
 
         case NSEventTypeKeyDown:
         case NSEventTypeKeyUp:
+			// Skip auto‑repeat key‑down events
+		    if (e.type == NSEventTypeKeyDown && e.isARepeat) {
+ 		       break;
+ 		   }
             shared_mem_add_event(sm, (WindowEvent){
                 .type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
                 .keyboardButton = { e.keyCode, e.type==NSEventTypeKeyDown?WINDOW_EVENT_BUTTON_TYPE_DOWN:WINDOW_EVENT_BUTTON_TYPE_UP }

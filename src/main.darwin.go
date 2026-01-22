@@ -45,10 +45,8 @@ import (
 
 func main() {
 	runtime.LockOSThread()
-
 	go func() {
-		_main(nil) // your engine
+		_main(nil)
 	}()
-
 	windowing.CocoaRunApp() // blocks forever
 }
