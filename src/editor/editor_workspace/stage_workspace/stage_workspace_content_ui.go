@@ -135,6 +135,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		return
 	}
 	w := cui.workspace.Value()
+	w.hideFtde()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
 		if _, ok := w.Doc.GetElementById(ids[i]); !ok {

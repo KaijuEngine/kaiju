@@ -44,6 +44,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/platform/windowing"
@@ -59,6 +60,10 @@ type StageWorkspace struct {
 	contentUI   WorkspaceContentUI
 	hierarchyUI WorkspaceHierarchyUI
 	detailsUI   WorkspaceDetailsUI
+	ftde        struct {
+		arrow *document.Element
+		y     float32
+	}
 }
 
 func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface) {
@@ -75,6 +80,7 @@ func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.Stage
 	funcs = klib.MapJoin(funcs, w.detailsUI.setupFuncs())
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs)
+	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
@@ -123,8 +129,18 @@ func (w *StageWorkspace) focusRename() {
 	w.detailsUI.focusRename()
 }
 
+func (w *StageWorkspace) updateFtde(deltaTime float64) {
+	defer tracing.NewRegion("StageWorkspace.updateFtde").End()
+	if w.ftde.arrow == nil {
+		return
+	}
+	w.ftde.y += float32(deltaTime)
+	w.ftde.arrow.UI.Layout().SetOffsetY((1 + matrix.Cos(w.ftde.y)) * 10)
+}
+
 func (w *StageWorkspace) Update(deltaTime float64) {
 	defer tracing.NewRegion("StageWorkspace.update").End()
+	w.updateFtde(deltaTime)
 	if w.UiMan.IsUpdateDisabled() {
 		return
 	}
@@ -153,5 +169,13 @@ func (w *StageWorkspace) toggleDimension(e *document.Element) {
 	case "2D":
 		lbl.SetText("3D")
 		w.stageView.SetCameraMode(editor_controls.EditorCameraMode3d)
+	}
+}
+
+func (w *StageWorkspace) hideFtde() {
+	defer tracing.NewRegion("StageWorkspace.hideFtde").End()
+	if ftde, ok := w.Doc.GetElementById("ftdePrompt"); ok {
+		w.Doc.RemoveElement(ftde)
+		w.ftde.arrow = nil
 	}
 }
