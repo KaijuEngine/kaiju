@@ -1,0 +1,1 @@
+{"Name":"light_depth","Shader":"light_depth.shader","RenderPass":"light_depth_csm2.renderpass","ShaderPipeline":"light_depth.shaderpipeline","Textures":null}

@@ -346,28 +346,30 @@ func (s *ShaderSource) readLayouts() error {
 		attrs := strings.Split(matches[i][1], ",")
 		for j := range attrs {
 			parts := strings.Fields(attrs[j])
-			val, err := s.processDefineEquation(strings.Join(parts[2:], " "))
-			if err != nil {
-				slog.Error("invalid value for layout", "value", matches[i][0], "error", err)
-			}
-			switch parts[0] {
-			case "location":
-				layout.Location = int(val)
-				if layout.Count > 1 {
-					for j := 1; j < layout.Count; j++ {
-						l := *layout
-						l.Count = 1
-						l.Location = layout.Location + j
-						s.Layouts = append(s.Layouts, l)
-					}
-					layout.Count = 1
+			if len(parts) > 1 {
+				val, err := s.processDefineEquation(strings.Join(parts[2:], " "))
+				if err != nil {
+					slog.Error("invalid value for layout", "value", matches[i][0], "error", err)
 				}
-			case "binding":
-				layout.Binding = int(val)
-			case "set":
-				layout.Set = int(val)
-			case "input_attachment_index":
-				layout.InputAttachment = int(val)
+				switch parts[0] {
+				case "location":
+					layout.Location = int(val)
+					if layout.Count > 1 {
+						for j := 1; j < layout.Count; j++ {
+							l := *layout
+							l.Count = 1
+							l.Location = layout.Location + j
+							s.Layouts = append(s.Layouts, l)
+						}
+						layout.Count = 1
+					}
+				case "binding":
+					layout.Binding = int(val)
+				case "set":
+					layout.Set = int(val)
+				case "input_attachment_index":
+					layout.InputAttachment = int(val)
+				}
 			}
 		}
 		if matches[i][5] != "" {

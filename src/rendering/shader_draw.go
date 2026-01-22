@@ -39,11 +39,13 @@ package rendering
 import (
 	"kaiju/klib"
 	"sort"
+	"unsafe"
 )
 
 type ShaderDraw struct {
-	material       *Material
-	instanceGroups []DrawInstanceGroup
+	material         *Material
+	instanceGroups   []DrawInstanceGroup
+	pushConstantData unsafe.Pointer
 }
 
 func NewShaderDraw(material *Material) ShaderDraw {

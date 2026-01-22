@@ -236,10 +236,12 @@ func (vr *Vulkan) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera came
 			matrix.Float(vr.swapChainExtent.Width),
 			matrix.Float(vr.swapChainExtent.Height),
 		},
+		CascadeCount:          int32(camera.NumCSMCascades()),
+		CascadePlaneDistances: camera.CSMCascadeDistances(),
 	}
 	for i := range lights.Lights {
 		if lights.Lights[i].IsValid() {
-			lights.Lights[i].recalculate(nil)
+			lights.Lights[i].recalculate(camera)
 			ubo.VertLights[i] = lights.Lights[i].transformToGPULight()
 			ubo.LightInfos[i] = lights.Lights[i].transformToGPULightInfo()
 		}
@@ -309,7 +311,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 		return nil, errors.New("failed to create logical device")
 	}
 	slog.Info("creating vulkan swap chain")
-	if !vr.createSwapChain(window) {
+	if !vr.createSwapChain(window, vk.NullSwapchain) {
 		return nil, errors.New("failed to create swap chain")
 	}
 	if !vr.createImageViews() {
@@ -361,6 +363,8 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 
 func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
+	oldSwapChain := vr.swapChain
+	vr.swapChain = vk.NullSwapchain
 	if vr.hasSwapChain {
 		vr.WaitForRender()
 		vr.swapChainCleanup()
@@ -379,7 +383,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
 		}
 	}
-	vr.createSwapChain(window)
+	vr.createSwapChain(window, oldSwapChain)
 	if !vr.hasSwapChain {
 		return
 	}
@@ -522,7 +526,12 @@ func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, u
 	return true
 }
 
-func (vr *Vulkan) forceQueueCommand(cmd CommandRecorder) {
+func (vr *Vulkan) forceQueueCommand(cmd CommandRecorder, isPrePass bool) {
+	if isPrePass {
+		cmd.stage = 0
+	} else {
+		cmd.stage = 1
+	}
 	vr.writtenCommands = append(vr.writtenCommands, cmd)
 }
 
@@ -532,29 +541,48 @@ func (vr *Vulkan) SwapFrame(window RenderingContainer, width, height int32) bool
 		return false
 	}
 	qSubmit := tracing.NewRegion("Vulkan.QueueSubmit")
-	all := make([]vk.CommandBuffer, len(vr.writtenCommands))
-	for i := range vr.writtenCommands {
-		all[i] = vr.writtenCommands[i].buffer
-	}
-	vr.writtenCommands = vr.writtenCommands[:0]
+	all := make([]vk.CommandBuffer, 0, len(vr.writtenCommands))
 	waitSemaphores := [...]vk.Semaphore{vr.imageSemaphores[vr.currentFrame]}
 	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)}
 	signalSemaphores := [...]vk.Semaphore{vr.renderFinishedSemaphores[vr.imageIndex[vr.currentFrame]]}
-	submitInfo := vk.SubmitInfo{
-		SType:                vulkan_const.StructureTypeSubmitInfo,
-		WaitSemaphoreCount:   1,
-		CommandBufferCount:   uint32(len(all)),
-		PCommandBuffers:      &all[0],
-		SignalSemaphoreCount: 1,
-		PWaitSemaphores:      &waitSemaphores[0],
-		PWaitDstStageMask:    &waitStages[0],
-		PSignalSemaphores:    &signalSemaphores[0],
+	// TODO:  Make this better when adding more stages, this is just for shadows
+	// at the moment
+	const prePostQueueRange = 2
+	waited := false
+	for sort := range prePostQueueRange {
+		all = all[:0]
+		for i := range vr.writtenCommands {
+			if vr.writtenCommands[i].stage == sort {
+				all = append(all, vr.writtenCommands[i].buffer)
+			}
+		}
+		if len(all) == 0 {
+			continue
+		}
+		submitInfo := vk.SubmitInfo{
+			SType:              vulkan_const.StructureTypeSubmitInfo,
+			PCommandBuffers:    &all[0],
+			CommandBufferCount: uint32(len(all)),
+			PWaitDstStageMask:  &waitStages[0],
+		}
+		fence := vk.NullFence
+		if !waited {
+			submitInfo.WaitSemaphoreCount = uint32(len(waitSemaphores))
+			submitInfo.PWaitSemaphores = &waitSemaphores[0]
+			waited = true
+		}
+		if sort == prePostQueueRange-1 {
+			submitInfo.SignalSemaphoreCount = uint32(len(signalSemaphores))
+			submitInfo.PSignalSemaphores = &signalSemaphores[0]
+			fence = vr.renderFences[vr.currentFrame]
+		}
+		eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, fence)
+		if eCode != vulkan_const.Success {
+			slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
+			return false
+		}
 	}
-	eCode := vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, vr.renderFences[vr.currentFrame])
-	if eCode != vulkan_const.Success {
-		slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
-		return false
-	}
+	vr.writtenCommands = vr.writtenCommands[:0]
 	qSubmit.End()
 	qPresent := tracing.NewRegion("Vulkan.QueuePresent")
 	dependency := vk.SubpassDependency{}

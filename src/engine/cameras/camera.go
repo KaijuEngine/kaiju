@@ -71,6 +71,9 @@ type Camera interface {
 	IsOrthographic() bool
 	Viewport() matrix.Vec4
 	Frustum() collision.Frustum
+	LightFrustumCSMProjections() []matrix.Mat4
+	NumCSMCascades() uint8
+	CSMCascadeDistances() [4]float32
 	IsDirty() bool
 	NewFrame()
 }

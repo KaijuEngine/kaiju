@@ -70,7 +70,7 @@ func (vr *Vulkan) mapAndCopy(fromBuffer []byte, sb ShaderBuffer, mapLen vk.Devic
 	return true
 }
 
-func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
@@ -120,14 +120,9 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 				for j := range MaxLocalLights {
 					sm := &vr.fallbackShadowMap.RenderId
 					smCube := &vr.fallbackCubeShadowMap.RenderId
-					if lights.Lights[j].IsValid() {
-						s := lights.Lights[j].ShadowMapTexture()
-						if s.RenderId.IsValid() {
-							if lights.Lights[j].Type() == LightTypePoint {
-								smCube = &s.RenderId
-							} else {
-								sm = &s.RenderId
-							}
+					if len(shadows) > j {
+						if shadows[j].IsValid() {
+							sm = &shadows[j]
 						}
 					}
 					imageInfos[j] = imageInfo(sm.View, sm.Sampler)
@@ -147,9 +142,19 @@ func (vr *Vulkan) writeDrawingDescriptors(material *Material, groups []DrawInsta
 	return allWrites
 }
 
-func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup) {
+func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayout, pushConstantData unsafe.Pointer) {
+	if s.pipelineInfo.PushConstant.Size == 0 || pushConstantData == nil {
+		return
+	}
+	vk.CmdPushConstants(cmd, layout,
+		s.pipelineInfo.PushConstant.StageFlags, 0,
+		s.pipelineInfo.PushConstant.Size, pushConstantData)
+}
+
+func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout vk.PipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, pipeline)
+	writePushConstants(s, cmd, layout, pushConstantData)
 	dynOffsets := [...]uint32{0}
 	vbOffsets := [...]vk.DeviceSize{0}
 	ibOffsets := [...]vk.DeviceSize{0}
@@ -184,11 +189,29 @@ func (vr *Vulkan) renderEach(cmd vk.CommandBuffer, pipeline vk.Pipeline, layout 
 	}
 }
 
-func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender) {
+func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId) {
 	defer tracing.NewRegion("Vulkan.Draw").End()
 	if !vr.hasSwapChain || len(drawings) == 0 {
 		return
 	}
+
+	// TODO:  This is some goofy stuff, I'll need to refactor after
+	// getting this shadow stuff working
+	if renderPass.IsShadowPass() {
+		lpc := struct{ CascadeIndex int }{}
+		switch renderPass.construction.Name[len(renderPass.construction.Name)-1] {
+		case '1':
+			lpc.CascadeIndex = 1
+		case '2':
+			lpc.CascadeIndex = 2
+		default:
+			lpc.CascadeIndex = 0
+		}
+		for i := range drawings {
+			drawings[i].pushConstantData = unsafe.Pointer(&lpc)
+		}
+	}
+
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
 	{
@@ -196,7 +219,7 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, &p)
+			writes := vr.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, &p)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -217,9 +240,10 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 	for i := range drawings {
 		d := &drawings[i]
 		if doDrawings[i] {
-			s := &d.material.Shader.RenderId
+			shader := d.material.Shader
+			s := &shader.RenderId
 			vr.renderEach(renderPass.cmdSecondary[vr.currentFrame].buffer,
-				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups)
+				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData)
 		}
 	}
 	renderPass.ExecuteSecondaryCommands()
@@ -255,7 +279,10 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		renderPass.ExecuteSecondaryCommands()
 	}
 	renderPass.endSubpasses()
-	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame])
+	// TODO:  Make this more generic so that there can be a sequence of stages
+	// that require other stages to be done. For now I'm just adding the pre and
+	// post stages to make sure shadows go first
+	vr.forceQueueCommand(renderPass.cmd[vr.currentFrame], renderPass.IsShadowPass())
 }
 
 func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
@@ -315,7 +342,7 @@ func (vr *Vulkan) prepCombinedTargets(passes []*RenderPass) {
 			ViewCuller: &vr.combinedDrawingCuller,
 		})
 	}
-	vr.combinedDrawings.PreparePending()
+	vr.combinedDrawings.PreparePending(0)
 }
 
 func (vr *Vulkan) combineTargets() *TextureId {
@@ -323,7 +350,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 	cmd := &vr.combineCmds[vr.currentFrame]
 	cmd.Begin()
 	defer cmd.End()
-	vr.forceQueueCommand(*cmd)
+	vr.forceQueueCommand(*cmd, false)
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := vr.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
@@ -335,7 +362,7 @@ func (vr *Vulkan) combineTargets() *TextureId {
 		}
 	}
 	combinePass := vr.combinedDrawings.renderPassGroups[0].renderPass
-	vr.Draw(combinePass, draws, LightsForRender{})
+	vr.Draw(combinePass, draws, LightsForRender{}, []TextureId{})
 	return &combinePass.textures[0].RenderId
 }
 
@@ -365,7 +392,7 @@ func (vr *Vulkan) BlitTargets(passes []*RenderPass) {
 	cmd := &vr.blitCmds[vr.currentFrame]
 	cmd.Begin()
 	defer cmd.End()
-	vr.forceQueueCommand(*cmd)
+	vr.forceQueueCommand(*cmd, false)
 	frame := vr.currentFrame
 	idxSF := vr.imageIndex[frame]
 	vr.transitionImageLayout(&vr.swapImages[idxSF],

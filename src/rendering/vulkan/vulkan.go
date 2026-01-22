@@ -358,7 +358,7 @@ package vulkan
 #cgo nocallback callVkGetRefreshCycleDurationGOOGLE
 #cgo nocallback callVkGetPastPresentationTimingGOOGLE
 
-#include "vulkan/vulkan.h"
+#include "kaiju_vulkan.h"
 #include "vk_wrapper.h"
 #include "vk_bridge.h"
 #include <stdlib.h>

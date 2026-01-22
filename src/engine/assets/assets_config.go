@@ -64,6 +64,8 @@ const (
 	MaterialDefinitionSprite              = "sprite.material"
 	MaterialDefinitionSpriteTransparent   = "sprite_transparent.material"
 	MaterialDefinitionLightDepth          = "light_depth.material"
+	MaterialDefinitionLightDepthCSM1      = "light_depth_csm1.material"
+	MaterialDefinitionLightDepthCSM2      = "light_depth_csm2.material"
 	MaterialDefinitionLightCubeDepth      = "light_cube_depth.material"
 	MaterialDefinitionParticle            = "particle.material"
 	MaterialDefinitionParticleTransparent = "particle_transparent.material"

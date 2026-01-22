@@ -143,7 +143,7 @@ func compileFile(file, flags, out string) {
 	args := []string{file, "-o", out}
 	flags = strings.TrimSpace(flags)
 	if flags != "" {
-		args = append(args, flags)
+		args = append(args, strings.Split(flags, " ")...)
 	}
 	cmd := exec.Command("glslc", args...)
 	if errStr, err := cmd.CombinedOutput(); err != nil {
