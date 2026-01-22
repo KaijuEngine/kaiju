@@ -27,12 +27,6 @@ external/bin
 interpreter/kaiju-*
 *.zip
 
-# Submodule stuff
-src/libs/*.a
-src/libs/*.lib
-src/libs/*.dll
-src/libs/*.js
-
 # Go pprof files
 heap.prof
 trace.out
