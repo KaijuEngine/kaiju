@@ -129,15 +129,6 @@ func (w *StageWorkspace) focusRename() {
 	w.detailsUI.focusRename()
 }
 
-func (w *StageWorkspace) updateFtde(deltaTime float64) {
-	defer tracing.NewRegion("StageWorkspace.updateFtde").End()
-	if w.ftde.arrow == nil {
-		return
-	}
-	w.ftde.y += float32(deltaTime)
-	w.ftde.arrow.UI.Layout().SetOffsetY((1 + matrix.Cos(w.ftde.y)) * 10)
-}
-
 func (w *StageWorkspace) Update(deltaTime float64) {
 	defer tracing.NewRegion("StageWorkspace.update").End()
 	w.updateFtde(deltaTime)
@@ -172,7 +163,16 @@ func (w *StageWorkspace) toggleDimension(e *document.Element) {
 	}
 }
 
-func (w *StageWorkspace) hideFtde() {
+func (w *StageWorkspace) updateFtde(deltaTime float64) {
+	defer tracing.NewRegion("StageWorkspace.updateFtde").End()
+	if w.ftde.arrow == nil {
+		return
+	}
+	w.ftde.y += float32(deltaTime)
+	w.ftde.arrow.UI.Layout().SetOffsetY((1 + matrix.Cos(w.ftde.y)) * 10)
+}
+
+func (w *StageWorkspace) removeFtde() {
 	defer tracing.NewRegion("StageWorkspace.hideFtde").End()
 	if ftde, ok := w.Doc.GetElementById("ftdePrompt"); ok {
 		w.Doc.RemoveElement(ftde)

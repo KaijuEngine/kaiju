@@ -48,6 +48,7 @@ import (
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
+	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"log/slog"
@@ -89,6 +90,10 @@ type ContentWorkspace struct {
 		newTagHint       *document.Element
 		tagHintTemplate  *document.Element
 	}
+	ftde struct {
+		arrow *document.Element
+		x     float32
+	}
 }
 
 func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspaceEditorInterface) {
@@ -122,6 +127,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"changeAudioPosition": w.changeAudioPosition,
 			"clickOpenInEditor":   w.clickOpenInEditor,
 		})
+	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
 	w.contentList, _ = w.Doc.GetElementById("contentList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
@@ -171,6 +177,7 @@ func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey {
 
 func (w *ContentWorkspace) Update(deltaTime float64) {
 	w.audio.update(deltaTime)
+	w.updateFtde(deltaTime)
 }
 
 func (w *ContentWorkspace) clickImport(*document.Element) {
@@ -224,6 +231,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 	if len(ids) == 0 {
 		return
 	}
+	w.removeFtde()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
 		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
@@ -889,5 +897,22 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 		slog.Warn("currently there isn't an editor that can open the content", "type", cc.Config.Type)
 	} else {
 		openContentEditor(ed, path)
+	}
+}
+
+func (w *ContentWorkspace) updateFtde(deltaTime float64) {
+	defer tracing.NewRegion("ContentWorkspace.updateFtde").End()
+	if w.ftde.arrow == nil {
+		return
+	}
+	w.ftde.x += float32(deltaTime)
+	w.ftde.arrow.UI.Layout().SetOffsetX(7 + (1+matrix.Cos(w.ftde.x))*10)
+}
+
+func (w *ContentWorkspace) removeFtde() {
+	defer tracing.NewRegion("ContentWorkspace.hideFtde").End()
+	if ftde, ok := w.Doc.GetElementById("ftdePrompt"); ok {
+		w.Doc.RemoveElement(ftde)
+		w.ftde.arrow = nil
 	}
 }

@@ -2,6 +2,25 @@
 <html>
 	<head>
 		<style>
+			#ftdePrompt {
+				position: absolute;
+				width: 400px;
+				left: 15em;
+				top: 3.5em;
+				color: white;
+				background-color: #682A2D;
+				border: 5px solid #575757;
+				border-radius: 5px;
+				text-align: center;
+				z-index: 20;
+			}
+			#ftdeArrow {
+				position: absolute;
+				color: white;
+				top: 1em;
+				font-size: 2em;
+				text-align: left;
+			}
 			.content {
 				top: var(--ed-menu-bar-height);
 				width: 100%;
@@ -176,6 +195,14 @@
 					<button onclick="clickDelete">Delete</button>
 				</div>
 			</div>
+		</div>
+		<div id="ftdePrompt">
+			<div id="ftdeArrow">&lt;</div>
+			<br />
+			<h1>Import some content</h1>
+			<p>
+				This is the content workspace, you can import content here by clicking on the "Import content..." button on the left.
+			</p>
 		</div>
 		<span id="tooltip">Tooltip...</span>
 	</body>
