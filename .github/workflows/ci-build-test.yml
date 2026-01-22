@@ -192,6 +192,7 @@ jobs:
       matrix:
         os:
           - macos-15
+          
         #  - macos-15-intel  # does not work with current src
 
     env:
@@ -200,6 +201,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Go
         uses: actions/setup-go@v5

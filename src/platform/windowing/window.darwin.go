@@ -122,9 +122,9 @@ func (w *Window) clipboardContents() string {
 	return C.GoString(cStr)
 }
 
-func (w *Window) destroyWindow() {
-	if w.instance != nil {
-		C.cocoa_destroy_window(w.instance)
+func destroyWindow(instance unsafe.Pointer) {
+	if instance != nil {
+		C.cocoa_destroy_window(instance)
 	}
 }
 
@@ -260,6 +260,10 @@ func (w *Window) setTitle(title string) {
 		defer C.free(unsafe.Pointer(cTitle))
 		C.cocoa_set_title(w.instance, cTitle)
 	}
+}
+
+func (w *Window) setCursorPosition(x, y int) {
+	// C.cocoa_set_cursor_position(w.handle, C.int(x), C.int(y))
 }
 
 // App asset read (private)

@@ -112,7 +112,8 @@ func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSup
 	return details
 }
 
-func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
+func (vr *Vulkan) createSwapChain(window RenderingContainer, oldSwapChain vk.Swapchain) bool {
+	defer vr.swapChainDestroy(oldSwapChain)
 	scs := vr.querySwapChainSupport(vr.physicalDevice)
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)
@@ -121,7 +122,7 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 	if !vr.hasSwapChain {
 		return false
 	}
-	imgCount := uint32(scs.capabilities.MinImageCount + 1)
+	imgCount := scs.capabilities.MinImageCount + 1
 	if scs.capabilities.MaxImageCount > 0 && imgCount > scs.capabilities.MaxImageCount {
 		imgCount = scs.capabilities.MaxImageCount
 	}
@@ -149,7 +150,7 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer) bool {
 	info.CompositeAlpha = compositeAlpha
 	info.PresentMode = presentMode
 	info.Clipped = vulkan_const.True
-	info.OldSwapchain = vk.Swapchain(vk.NullHandle)
+	info.OldSwapchain = oldSwapChain
 	//free_swap_chain_support_details(scs);
 	var swapChain vk.Swapchain
 	if res := vk.CreateSwapchain(vr.device, &info, nil, &swapChain); res != vulkan_const.Success {
@@ -189,6 +190,15 @@ func (vr *Vulkan) swapChainCleanup() {
 		vk.DestroyImageView(vr.device, vr.swapImages[i].View, nil)
 		vr.dbg.remove(vk.TypeToUintPtr(vr.swapImages[i].View))
 	}
-	vk.DestroySwapchain(vr.device, vr.swapChain, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(vr.swapChain))
+	if vr.swapChain != vk.NullSwapchain {
+		vr.swapChainDestroy(vr.swapChain)
+		vr.swapChain = vk.NullSwapchain
+	}
+}
+
+func (vr *Vulkan) swapChainDestroy(swapChain vk.Swapchain) {
+	if swapChain != vk.NullSwapchain {
+		vk.DestroySwapchain(vr.device, swapChain, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(swapChain))
+	}
 }
