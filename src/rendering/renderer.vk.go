@@ -311,7 +311,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 		return nil, errors.New("failed to create logical device")
 	}
 	slog.Info("creating vulkan swap chain")
-	if !vr.createSwapChain(window) {
+	if !vr.createSwapChain(window, vk.NullSwapchain) {
 		return nil, errors.New("failed to create swap chain")
 	}
 	if !vr.createImageViews() {
@@ -363,6 +363,8 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 
 func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
+	oldSwapChain := vr.swapChain
+	vr.swapChain = vk.NullSwapchain
 	if vr.hasSwapChain {
 		vr.WaitForRender()
 		vr.swapChainCleanup()
@@ -381,7 +383,7 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 			vr.dbg.remove(vk.TypeToUintPtr(vr.globalUniformBuffersMemory[i]))
 		}
 	}
-	vr.createSwapChain(window)
+	vr.createSwapChain(window, oldSwapChain)
 	if !vr.hasSwapChain {
 		return
 	}

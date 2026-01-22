@@ -9,6 +9,8 @@ on:
     branches:
       - master
       - staging
+  workflow_dispatch:
+
 
 jobs:
 
@@ -177,6 +179,107 @@ jobs:
         with:
           name: kaiju-editor-${{ matrix.os }}
           path: kaiju.exe
+          retention-days: 7
+
+
+  # Quick smoke test - runs on every commit for fast feedback
+  build-and-test-macos:
+    name: Build and E2E Test on macOS (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-15
+          
+        #  - macos-15-intel  # does not work with current src
+
+    env:
+      VULKAN_SDK_VERSION: "1.4.335.0"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: src/go.sum
+
+      - name: Install GNU timeout
+        run: brew install coreutils
+
+      - name: Restore Vulkan SDK from Cache
+        id: cache-vulkansdk
+        uses: actions/cache@v5
+        with:
+          path: ~/VulkanSDK/${{ env.VULKAN_SDK_VERSION }}
+          key: vulkan-sdk-${{ matrix.os }}-${{ env.VULKAN_SDK_VERSION }}
+          restore-keys: ""   # disables prefix matching
+
+      - name: Install Vulkan SDK if cache miss
+        if: steps.cache-vulkansdk.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/mac/vulkansdk-macos-${{ env.VULKAN_SDK_VERSION }}.zip -o /tmp/vulkansdk-macos-${{ env.VULKAN_SDK_VERSION }}.zip
+          unzip /tmp/vulkansdk-macos-${{ env.VULKAN_SDK_VERSION }}.zip -d /tmp/vulkansdk
+          /tmp/vulkansdk/vulkansdk-macOS-${{ env.VULKAN_SDK_VERSION }}.app/Contents/MacOS/vulkansdk-macOS-${{ env.VULKAN_SDK_VERSION }} --root ~/VulkanSDK/"${{ env.VULKAN_SDK_VERSION }}" --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.core com.lunarg.vulkan.usr com.lunarg.vulkan.sdl2 com.lunarg.vulkan.glm com.lunarg.vulkan.volk com.lunarg.vulkan.vma com.lunarg.vulkan.ios copy_only=1
+
+      - name: Setup Vulkan SDK
+        run: |
+          set -x
+          cd ~/VulkanSDK/"${{ env.VULKAN_SDK_VERSION }}"
+          sudo ./install_vulkan.py
+          chmod a+x ./setup-env.sh
+          ./setup-env.sh
+          echo "VULKAN_SDK=$HOME/VulkanSDK/${VULKAN_SDK_VERSION}/macOS" >> $GITHUB_ENV
+          echo "VK_SDK_PATH=$HOME/VulkanSDK/${VULKAN_SDK_VERSION}" >> $GITHUB_ENV
+
+      - name: Verify Vulkan SDK installation
+        run: |
+          echo "Vulkan SDK version:"
+          vulkaninfo --summary || echo "vulkaninfo failed, but continuing..."
+          echo "VK_SDK_PATH: $VK_SDK_PATH"
+          echo "VULKAN_SDK: $VULKAN_SDK"
+
+      - name: Build editor (debug mode)
+        working-directory: ./src
+        run: |
+          CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -v -tags="debug,editor" -o ../kaiju ./
+          ls -lh ../kaiju
+
+      - name: Run editor E2E test
+        working-directory: .
+        run: |
+          
+          # Run the editor with automated integration tests
+          echo "Starting Kaiju Editor with automated tests..."
+          gtimeout 30s ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+
+          # Check exit code
+          # Exit code 0 means auto-test completed successfully
+          # timeout returns 124 if it times out (should not happen with auto-test)
+          if [ ${EXIT_CODE:-0} -eq 0 ]; then
+            echo "✓ Editor automated tests completed successfully"
+            TEST_RESULT=0
+          elif [ ${EXIT_CODE:-0} -eq 124 ]; then
+            echo "✗ Editor tests timed out after 30 seconds"
+            TEST_RESULT=1
+          else
+            echo "✗ Editor tests failed with exit code: ${EXIT_CODE}"
+            TEST_RESULT=1
+          fi
+          exit $TEST_RESULT
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaiju-editor-${{ matrix.os }}
+          path: kaiju
           retention-days: 7
 
   # Quick smoke test - runs on every commit for fast feedback
