@@ -180,12 +180,23 @@ static NSEvent* handleEvent(NSEvent* e) {
 		} break;
 
 		case NSEventTypeFlagsChanged: {
+			// Caps‑Lock is the only modifier we want to treat as a toggle.
+			if (e.keyCode == 0x39) {
+				shared_mem_add_event(sm, (WindowEvent){
+					.type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
+					.keyboardButton = { e.keyCode, WINDOW_EVENT_BUTTON_TYPE_UP }
+				});
+				break;
+			}
+
+			// Existing handling for the other modifiers (Shift, Ctrl, …)
 			NSEventModifierFlags f = modifierFlagForKeyCode(e.keyCode);
 			if (!f) break;
 			BOOL down = (e.modifierFlags & f) != 0;
 			shared_mem_add_event(sm, (WindowEvent){
 				.type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
-				.keyboardButton = { e.keyCode, down?WINDOW_EVENT_BUTTON_TYPE_DOWN:WINDOW_EVENT_BUTTON_TYPE_UP }
+				.keyboardButton = { e.keyCode,
+					down ? WINDOW_EVENT_BUTTON_TYPE_DOWN : WINDOW_EVENT_BUTTON_TYPE_UP }
 			});
 		} break;
 
