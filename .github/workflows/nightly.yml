@@ -144,6 +144,10 @@ jobs:
     name: Build macOS
     runs-on: macos-latest
     continue-on-error: true # macOS builds are currently unstable
+
+    env:
+      VULKAN_SDK_VERSION: "1.4.335.0"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
