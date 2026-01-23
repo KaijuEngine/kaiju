@@ -138,6 +138,11 @@ func (d *MaterialTextureData) FilterToVK() TextureFilter {
 
 func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.Compile").End()
+	return d.CompileExt(assets, renderer, false)
+}
+
+func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, copyShader bool) (*Material, error) {
+	defer tracing.NewRegion("MaterialData.CompileExt").End()
 	vr := renderer.(*Vulkan)
 	c := &Material{
 		Textures:        make([]*Texture, len(d.Textures)),
@@ -179,7 +184,11 @@ func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Mate
 	if err := json.Unmarshal([]byte(shaderConfig), &rawSD); err != nil {
 		return c, err
 	}
-	c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
+	if copyShader {
+		c.Shader = NewShader(rawSD.Compile())
+	} else {
+		c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
+	}
 	c.Shader.pipelineInfo = &c.pipelineInfo
 	c.Shader.renderPass = weak.Make(c.renderPass)
 	for i := range d.Textures {

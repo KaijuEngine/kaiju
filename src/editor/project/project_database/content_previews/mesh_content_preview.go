@@ -1,10 +1,7 @@
 package content_previews
 
 import (
-	"bytes"
 	"fmt"
-	"image"
-	"image/png"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
@@ -39,30 +36,7 @@ func (p *ContentPreviewer) renderMesh(id string) {
 	host.RunBeforeRender(func() {
 		mesh.DelayedCreate(host.Window.Renderer)
 		host.RunAfterFrames(1, func() {
-			defer p.completeProc()
-			pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(host.Window.Renderer)
-			sd.Destroy()
-			if err != nil {
-				slog.Error("failed to read the mesh preview image from GPU", "id", id, "error", err)
-				return
-			} else if len(pixels) == 0 {
-				slog.Error("failed to read the mesh preview image from GPU, result was empty", "id", id)
-				return
-			}
-			tex := p.mat.RenderPass().Texture(0)
-			w, h := tex.Width, tex.Height
-			img := image.NewRGBA(image.Rect(0, 0, w, h))
-			copy(img.Pix, pixels)
-			var buf bytes.Buffer
-			if err = png.Encode(&buf, img); err != nil {
-				slog.Error("failed to encode the pixel buffer from the GPU for the mesh preview image", "id", id, "error", err)
-				return
-			}
-			if err = p.writePreviewFile(id, buf.Bytes()); err != nil {
-				slog.Error("failed to write the mesh preview image cache file", "id", id, "error", err)
-				return
-			}
-			p.ed.Events().OnContentPreviewGenerated.Execute(id)
+			p.readRenderPass(host, sd, id)
 		})
 	})
 }

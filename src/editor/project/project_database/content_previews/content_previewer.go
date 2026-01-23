@@ -1,8 +1,12 @@
 package content_previews
 
 import (
+	"bytes"
+	"image"
+	"image/png"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
+	"kaiju/engine"
 	"kaiju/engine/cameras"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
@@ -31,10 +35,11 @@ func (p *ContentPreviewer) Initialize(ed EditorInterface) error {
 	}
 	p.mat = mat
 	rp := p.mat.RenderPass()
+	lookAt := matrix.NewVec3(0, 0.67, -matrix.Vec3Forward().Z())
+	pos := lookAt.Scale(2)
 	p.cam = cameras.NewStandardCamera(float32(rp.Width()), float32(rp.Height()),
 		float32(rp.Width()), float32(rp.Height()), matrix.Vec3Zero())
-	p.cam.SetPositionAndLookAt(matrix.Vec3Zero(),
-		matrix.NewVec3(0, -0.67, matrix.Vec3Forward().Z()))
+	p.cam.SetPositionAndLookAt(pos, matrix.Vec3Zero())
 	return nil
 }
 
@@ -124,6 +129,8 @@ func (p *ContentPreviewer) proc(id string) {
 	switch cc.Config.Type {
 	case content_database.Mesh{}.TypeName():
 		p.renderMesh(id)
+	// case content_database.Material{}.TypeName():
+	// 	p.renderMaterial(id)
 	default:
 		p.completeProc()
 	}
@@ -135,4 +142,31 @@ func (p *ContentPreviewer) writePreviewFile(id string, data []byte) error {
 	dir := project_file_system.EditorCacheContentPreviews
 	pfs.MkdirAll(dir, os.ModePerm)
 	return pfs.WriteFile(filepath.Join(dir, id), data, os.ModePerm)
+}
+
+func (p *ContentPreviewer) readRenderPass(host *engine.Host, sd rendering.DrawInstance, id string) {
+	defer p.completeProc()
+	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(host.Window.Renderer)
+	sd.Destroy()
+	if err != nil {
+		slog.Error("failed to read the mesh preview image from GPU", "id", id, "error", err)
+		return
+	} else if len(pixels) == 0 {
+		slog.Error("failed to read the mesh preview image from GPU, result was empty", "id", id)
+		return
+	}
+	tex := p.mat.RenderPass().Texture(0)
+	w, h := tex.Width, tex.Height
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	copy(img.Pix, pixels)
+	var buf bytes.Buffer
+	if err = png.Encode(&buf, img); err != nil {
+		slog.Error("failed to encode the pixel buffer from the GPU for the mesh preview image", "id", id, "error", err)
+		return
+	}
+	if err = p.writePreviewFile(id, buf.Bytes()); err != nil {
+		slog.Error("failed to write the mesh preview image cache file", "id", id, "error", err)
+		return
+	}
+	p.ed.Events().OnContentPreviewGenerated.Execute(id)
 }

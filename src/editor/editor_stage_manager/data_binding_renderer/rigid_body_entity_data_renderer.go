@@ -134,7 +134,7 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 	case engine_entity_data_physics.ShapeBox:
 		wireframe = rendering.NewMeshWireCube(host.MeshCache(), "rigidbody_gizmo", matrix.ColorWhite())
 	case engine_entity_data_physics.ShapeSphere:
-		wireframe = rendering.NewMeshWireSphereLatLon(host.MeshCache(), 1, 8, 8)
+		wireframe = rendering.NewMeshWireSphere(host.MeshCache(), 1, 8, 8)
 	case engine_entity_data_physics.ShapeCapsule:
 		wireframe = rendering.NewMeshCapsule(host.MeshCache(), g.Radius, g.Height, 10, 3)
 	case engine_entity_data_physics.ShapeCylinder:

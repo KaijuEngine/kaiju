@@ -925,7 +925,66 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshWireSphereLatLon(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
+func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
+	if latitudeBands < 2 {
+		latitudeBands = 2
+	}
+	if longitudeBands < 3 {
+		longitudeBands = 3
+	}
+	key := fmt.Sprintf("sphere_%.2f_%d_%d", radius, latitudeBands, longitudeBands)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	numVerts := (latitudeBands + 1) * (longitudeBands + 1)
+	verts := make([]Vertex, numVerts)
+	vIdx := 0
+	for lat := 0; lat <= latitudeBands; lat++ {
+		theta := float32(lat) * math.Pi / float32(latitudeBands) // 0..π
+		sinTheta := matrix.Sin(theta)
+		cosTheta := matrix.Cos(theta)
+		for lon := 0; lon <= longitudeBands; lon++ {
+			phi := float32(lon) * 2.0 * math.Pi / float32(longitudeBands) // 0..2π
+			sinPhi := matrix.Sin(phi)
+			cosPhi := matrix.Cos(phi)
+			x := radius * sinTheta * cosPhi
+			y := radius * cosTheta
+			z := radius * sinTheta * sinPhi
+			verts[vIdx].Position = matrix.Vec3{x, y, z}
+			if radius != 0 {
+				invR := 1.0 / radius
+				verts[vIdx].Normal = matrix.Vec3{x * invR, y * invR, z * invR}
+			} else {
+				verts[vIdx].Normal = matrix.Vec3{0, 0, 0}
+			}
+			verts[vIdx].UV0 = matrix.Vec2{
+				float32(lon) / float32(longitudeBands),
+				float32(lat) / float32(latitudeBands),
+			}
+			verts[vIdx].Color = matrix.ColorWhite()
+			vIdx++
+		}
+	}
+	numIndices := latitudeBands * longitudeBands * 6
+	indices := make([]uint32, numIndices)
+	iIdx := 0
+	for lat := 0; lat < latitudeBands; lat++ {
+		for lon := 0; lon < longitudeBands; lon++ {
+			first := uint32(lat*(longitudeBands+1) + lon)
+			second := first + uint32(longitudeBands+1)
+			indices[iIdx] = first
+			indices[iIdx+1] = second
+			indices[iIdx+2] = first + 1
+			indices[iIdx+3] = second
+			indices[iIdx+4] = second + 1
+			indices[iIdx+5] = first + 1
+			iIdx += 6
+		}
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshWireSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshWireSphereLatLon").End()
 	key := fmt.Sprintf("wire_sphere_latlon_%.2f_%d_%d", radius, latitudeBands, longitudeBands)
 	if mesh, ok := cache.FindMesh(key); ok {
@@ -949,7 +1008,6 @@ func NewMeshWireSphereLatLon(cache *MeshCache, radius float32, latitudeBands, lo
 			phi := float32(lon) * 2.0 * math.Pi / float32(longitudeBands)
 			sinPhi := matrix.Sin(phi)
 			cosPhi := matrix.Cos(phi)
-
 			verts[vIdx].Position = matrix.Vec3{
 				radius * cosPhi * sinTheta,
 				radius * cosTheta,
@@ -977,7 +1035,6 @@ func NewMeshWireSphereLatLon(cache *MeshCache, radius float32, latitudeBands, lo
 			indices = append(indices, curr, next)
 		}
 	}
-
 	return cache.Mesh(key, verts, indices)
 }
 

@@ -77,6 +77,19 @@ func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isN
 	}
 }
 
+func (s *ShaderCache) AddShader(shader *Shader) {
+	defer tracing.NewRegion("ShaderCache.Shader").End()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if _, ok := s.shaders[shader.data.Name]; ok {
+		return
+	}
+	if shader != nil {
+		s.pendingShaders = append(s.pendingShaders, shader)
+	}
+	s.shaders[shader.data.Name] = shader
+}
+
 func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled) {
 	shader, ok := s.shaders[shaderData.Name]
 	if !ok {
