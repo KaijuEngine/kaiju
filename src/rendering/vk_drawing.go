@@ -232,9 +232,17 @@ func (vr *Vulkan) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights Lig
 		}
 		p.Unpin()
 	}
+	w := vr.swapChainExtent.Width
+	h := vr.swapChainExtent.Height
+	if renderPass.construction.Width > 0 {
+		w = uint32(renderPass.construction.Width)
+	}
+	if renderPass.construction.Height > 0 {
+		h = uint32(renderPass.construction.Height)
+	}
 	ext := vk.Extent2D{
-		Width:  max(vr.swapChainExtent.Width, uint32(renderPass.construction.Width)),
-		Height: max(vr.swapChainExtent.Height, uint32(renderPass.construction.Height)),
+		Width:  w,
+		Height: h,
 	}
 	renderPass.beginNextSubpass(vr.currentFrame, ext, renderPass.construction.ImageClears)
 	for i := range drawings {

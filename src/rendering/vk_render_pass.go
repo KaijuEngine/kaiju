@@ -295,8 +295,14 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		}
 	}
 	{
-		w := max(vr.swapChainExtent.Width, uint32(r.Width))
-		h := max(vr.swapChainExtent.Height, uint32(r.Height))
+		w := vr.swapChainExtent.Width
+		h := vr.swapChainExtent.Height
+		if r.Width > 0 {
+			w = uint32(r.Width)
+		}
+		if r.Height > 0 {
+			h = uint32(r.Height)
+		}
 		for i := range len(r.AttachmentDescriptions) {
 			a := &r.AttachmentDescriptions[i]
 			img := &a.Image
