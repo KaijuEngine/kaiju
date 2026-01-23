@@ -6,7 +6,7 @@ repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
   - Home: index.md
-  - Getting started: getting_started/getting_started.md
+  - Getting started: getting_started/index.md
   - Kaiju Editor:
     - Launching the editor: editor/launching_the_editor.md
     - Editor design: editor/editor_design.md
@@ -45,6 +45,9 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - toc.integrate
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -74,3 +77,5 @@ markdown_extensions:
   - pymdownx.superfences
 extra_css:
   - stylesheets/style.css
+extra_javascript:
+  - javascripts/script.js

@@ -60,6 +60,20 @@ If you clone in this way, you'll need to manually build the library dependencies
 
 
 
+## Documentation
+To run the documentation locally, you need to install `mkdocs` and `mkdocs-material`.
+
+1. Install dependencies:
+```sh
+pip install mkdocs mkdocs-material
+```
+
+2. Serve the documentation in watch mode:
+```sh
+mkdocs serve -w ./docs
+```
+
+
 # Kaiju Engine
 An open source game engine and editor, written in Go backed by Vulkan.
 
