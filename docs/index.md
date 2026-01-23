@@ -19,7 +19,7 @@ The engine supports both **2D and 3D game development** with a comprehensive fea
 		</video>
 	</div>
 	<div>
-		The editor is a testament to the engine's flexibility, because the editor itself is a game running in the engine. Built entirely using Kaiju, it demonstrates the power and versatility of the engine while providing a full-featured development environment. From asset management and scene composition to shader editing and particle system design, the editor showcases what's possible when you build your tools with your own technology. This approach ensures that any feature available to game developers is also available to the editor itself, creating a tight feedback loop between engine development and practical usage. The editor serves as both a powerful tool for game creation and a living proof of concept for the engine's capabilities.
+		The editor is a testament to the engine's flexibility, because the editor itself is a game running in the engine.
 	</div>
 </div>
 
