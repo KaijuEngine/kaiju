@@ -168,7 +168,7 @@ func (w *StageWorkspace) updateFtde(deltaTime float64) {
 	if w.ftde.arrow == nil {
 		return
 	}
-	w.ftde.y += float32(deltaTime)
+	w.ftde.y += float32(deltaTime) * 5
 	w.ftde.arrow.UI.Layout().SetOffsetY((1 + matrix.Cos(w.ftde.y)) * 10)
 }
 
