@@ -25,12 +25,12 @@ async function listSupporters() {
 }
 
 async function processIndex() {
-	document.querySelector(".md-sidebar").style.display = "none";
+	// document.querySelector(".md-sidebar").style.display = "none";
 	await listSupporters();
 }
 
 if (window.location.pathname == "/") {
 	processIndex();
 } else {
-	document.querySelector(".md-sidebar").style.display = "";
+	// document.querySelector(".md-sidebar").style.display = "";
 }
