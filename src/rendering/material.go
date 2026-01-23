@@ -63,6 +63,8 @@ type Material struct {
 	CastsShadows    bool
 }
 
+func (m *Material) RenderPass() *RenderPass { return m.renderPass }
+
 func (m *Material) HasTransparentSuffix() bool {
 	return strings.Contains(m.Id, "_transparent")
 }

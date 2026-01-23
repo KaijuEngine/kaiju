@@ -28,6 +28,7 @@
         "editor/editor_embedded_content/editor_content/renderer/shaders/color_picker_value.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/ed_frustum_wire.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/ed_transform_wire.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/ed_thumb_preview_mesh.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/ed_gizmo.shader"
     ]
 }
