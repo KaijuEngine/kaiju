@@ -17,6 +17,10 @@
 @end
 
 @implementation MetalView
+- (BOOL)mouseDownCanMoveWindow {
+	return NO;
+}
+
 - (instancetype)initWithFrame:(NSRect)frame {
 	self = [super initWithFrame:frame];
 	if (self) {
