@@ -50,6 +50,7 @@ type Renderer interface {
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
 	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
+	TextureRead(texture *Texture) ([]byte, error)
 	TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
 	Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId)
 	BlitTargets(passes []*RenderPass)

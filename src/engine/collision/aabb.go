@@ -55,6 +55,15 @@ func AABBFromWidth(center matrix.Vec3, halfWidth matrix.Float) AABB {
 	}
 }
 
+func AABBFromPoints(points []matrix.Vec3) AABB {
+	mm := matrix.NewVec3MinMax()
+	for i := range points {
+		mm.Min = matrix.Vec3Min(mm.Min, points[i])
+		mm.Max = matrix.Vec3Max(mm.Max, points[i])
+	}
+	return AABBFromMinMax(mm.Min, mm.Max)
+}
+
 // AABBFromMinMax creates an AABB from the minimum and maximum points
 func AABBFromMinMax(min, max matrix.Vec3) AABB {
 	return AABB{

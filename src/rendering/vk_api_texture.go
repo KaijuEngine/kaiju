@@ -37,6 +37,7 @@
 package rendering
 
 import (
+	"fmt"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
@@ -323,7 +324,154 @@ func (vr *Vulkan) destroyTextureHandle(id TextureId) {
 
 func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
 	defer tracing.NewRegion("Vulkan.TextureReadPixel").End()
-	panic("not implemented")
+	var zero matrix.Color
+	id := &texture.RenderId
+	origLayout := id.Layout
+	const transferSrcLayout = vulkan_const.ImageLayoutTransferSrcOptimal
+	if origLayout != transferSrcLayout {
+		if !vr.transitionImageLayout(id, transferSrcLayout,
+			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil) {
+			return zero
+		}
+	}
+	var stagingBuf vk.Buffer
+	var stagingMem vk.DeviceMemory
+	if !vr.CreateBuffer(vk.DeviceSize(4),
+		vk.BufferUsageFlags(vulkan_const.BufferUsageTransferDstBit),
+		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
+		&stagingBuf, &stagingMem) {
+		if origLayout != transferSrcLayout {
+			vr.transitionImageLayout(id, origLayout,
+				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
+		}
+		return zero
+	}
+	cmd := vr.beginSingleTimeCommands()
+	region := vk.BufferImageCopy{
+		BufferOffset:      0,
+		BufferRowLength:   0,
+		BufferImageHeight: 0,
+		ImageSubresource: vk.ImageSubresourceLayers{
+			AspectMask:     vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+			MipLevel:       0,
+			BaseArrayLayer: 0,
+			LayerCount:     1,
+		},
+		ImageOffset: vk.Offset3D{
+			X: int32(x),
+			Y: int32(y),
+			Z: 0,
+		},
+		ImageExtent: vk.Extent3D{
+			Width:  1,
+			Height: 1,
+			Depth:  1,
+		},
+	}
+	vk.CmdCopyImageToBuffer(cmd.buffer, id.Image,
+		transferSrcLayout, stagingBuf, 1, &region)
+	defer vr.endSingleTimeCommands(cmd)
+	var pixelData unsafe.Pointer
+	if vk.MapMemory(vr.device, stagingMem, 0, vk.DeviceSize(4), 0, &pixelData) != vulkan_const.Success {
+		vk.DestroyBuffer(vr.device, stagingBuf, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(stagingBuf))
+		vk.FreeMemory(vr.device, stagingMem, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(stagingMem))
+		if origLayout != transferSrcLayout {
+			vr.transitionImageLayout(id, origLayout,
+				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
+		}
+		return zero
+	}
+	raw := *(*[4]byte)(pixelData)
+	vk.UnmapMemory(vr.device, stagingMem)
+	vk.DestroyBuffer(vr.device, stagingBuf, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBuf))
+	vk.FreeMemory(vr.device, stagingMem, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(stagingMem))
+	if origLayout != transferSrcLayout {
+		vr.transitionImageLayout(id, origLayout,
+			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
+	}
+	return matrix.Color{
+		float32(raw[0]) / 255.0,
+		float32(raw[1]) / 255.0,
+		float32(raw[2]) / 255.0,
+		float32(raw[3]) / 255.0,
+	}
+}
+
+func (vr *Vulkan) TextureRead(texture *Texture) ([]byte, error) {
+	defer tracing.NewRegion("Vulkan.TextureRead").End()
+	id := &texture.RenderId
+	origLayout := id.Layout
+	const transferSrcLayout = vulkan_const.ImageLayoutTransferSrcOptimal
+	if origLayout != transferSrcLayout {
+		if !vr.transitionImageLayout(id, transferSrcLayout,
+			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil) {
+			return []byte{}, fmt.Errorf("failed to transition image layout to transfer src")
+		}
+	}
+	width, height := id.Width, id.Height
+	pixelSize := 4
+	bufferSize := vk.DeviceSize(width * height * pixelSize)
+	var stagingBuf vk.Buffer
+	var stagingMem vk.DeviceMemory
+	if !vr.CreateBuffer(bufferSize,
+		vk.BufferUsageFlags(vulkan_const.BufferUsageTransferDstBit),
+		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
+		&stagingBuf, &stagingMem) {
+		if origLayout != transferSrcLayout {
+			vr.transitionImageLayout(id, origLayout,
+				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
+		}
+		return []byte{}, fmt.Errorf("failed to create staging buffer")
+	}
+	cmd := vr.beginSingleTimeCommands()
+	region := vk.BufferImageCopy{
+		BufferOffset:      0,
+		BufferRowLength:   0,
+		BufferImageHeight: 0,
+		ImageSubresource: vk.ImageSubresourceLayers{
+			AspectMask:     vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+			MipLevel:       0,
+			BaseArrayLayer: 0,
+			LayerCount:     1,
+		},
+		ImageOffset: vk.Offset3D{X: 0, Y: 0, Z: 0},
+		ImageExtent: vk.Extent3D{
+			Width:  uint32(width),
+			Height: uint32(height),
+			Depth:  1,
+		},
+	}
+	vk.CmdCopyImageToBuffer(cmd.buffer, id.Image, transferSrcLayout, stagingBuf, 1, &region)
+	vr.endSingleTimeCommands(cmd)
+	var mapped unsafe.Pointer
+	if vk.MapMemory(vr.device, stagingMem, 0, bufferSize, 0, &mapped) != vulkan_const.Success {
+		vk.DestroyBuffer(vr.device, stagingBuf, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(stagingBuf))
+		vk.FreeMemory(vr.device, stagingMem, nil)
+		vr.dbg.remove(vk.TypeToUintPtr(stagingMem))
+		if origLayout != transferSrcLayout {
+			vr.transitionImageLayout(id, origLayout,
+				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
+		}
+		return []byte{}, fmt.Errorf("failed to map staging memory")
+	}
+	data := make([]byte, bufferSize)
+	src := (*[1 << 30]byte)(mapped)[:bufferSize:bufferSize]
+	copy(data, src)
+	vk.UnmapMemory(vr.device, stagingMem)
+	vk.DestroyBuffer(vr.device, stagingBuf, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(stagingBuf))
+	vk.FreeMemory(vr.device, stagingMem, nil)
+	vr.dbg.remove(vk.TypeToUintPtr(stagingMem))
+	if origLayout != transferSrcLayout {
+		vr.transitionImageLayout(id, origLayout,
+			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
+	}
+	return data, nil
 }
 
 func viewTypeFromDimensions(data *TextureData) vulkan_const.ImageViewType {

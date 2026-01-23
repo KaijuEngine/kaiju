@@ -396,6 +396,11 @@ func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color {
 	return renderer.TextureReadPixel(t, x, y)
 }
 
+func (t *Texture) ReadAllPixels(renderer Renderer) ([]byte, error) {
+	defer tracing.NewRegion("Texture.ReadPixel").End()
+	return renderer.TextureRead(t)
+}
+
 func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest) {
 	defer tracing.NewRegion("Texture.WritePixels").End()
 	renderer.TextureWritePixels(t, requests)
