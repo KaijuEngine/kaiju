@@ -9,23 +9,6 @@ Below are instructions on how to build the editor from source
 ## Prerequisites
 To start, make sure you have the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed for your system.
 
-## macOS Development
-- Install Xcode Command Line Tools:
-  - Run `xcode-select --install` in Terminal
-- Install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#mac) for macOS
-  - After installation, add the Vulkan library path to your environment:
-    ```sh
-    export VULKAN_SDK=$HOME/Library/VulkanSDK/1.4.XXX.X/macOS  # Replace with your version and your sdk path
-    ```
-- Pull the repository
-- Go into src: `cd src`
-- To build the editor in debug mode, run:
-  - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -tags="debug,editor" -o ../bin/kaiju`
-- To build the editor, run:
-  - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -ldflags="-s -w" -tags="editor" -o ../bin/kaiju`
-
-**Note:** On macOS, the engine uses Cocoa/AppKit for windowing and MoltenVK for Vulkan support. Keyboard shortcuts use the Cmd key (not Ctrl) for operations like copy/paste (Cmd+C/Cmd+V).
-
 ## Windows Development
 ### Windows Requirements (Important)
 
@@ -64,6 +47,23 @@ Expected output: amd64
   - `go build -tags="debug,editor" -o ../ ./`
 - To build the exe, run:
   - `go build -ldflags="-s -w" -tags="editor" -o ../ ./`
+
+## macOS Development
+- Install Xcode Command Line Tools:
+  - Run `xcode-select --install` in Terminal
+- Install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#mac) for macOS
+  - After installation, add the Vulkan library path to your environment:
+    ```sh
+    export VULKAN_SDK=$HOME/Library/VulkanSDK/1.4.XXX.X/macOS  # Replace with your version and your sdk path
+    ```
+- Pull the repository
+- Go into src: `cd src`
+- To build the editor in debug mode, run:
+  - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -tags="debug,editor" -o ../bin/kaiju`
+- To build the editor, run:
+  - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -ldflags="-s -w" -tags="editor" -o ../bin/kaiju`
+
+**Note:** On macOS, the engine uses Cocoa/AppKit for windowing and MoltenVK for Vulkan support. Keyboard shortcuts use the Cmd key (not Ctrl) for operations like copy/paste (Cmd+C/Cmd+V).
 
 ## Building Soloud
 Currently the engine uses Soloud for playing music and sound effects. Below are instructions on how to build the library for the engine.
