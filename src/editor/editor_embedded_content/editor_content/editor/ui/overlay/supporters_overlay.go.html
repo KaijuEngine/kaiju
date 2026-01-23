@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body { z-index: 97; }
+			.overlay {
+				position: absolute;
+				width: 50%;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50% -50%);
+				color: white;
+				background-color: #121212;
+				border: 5px solid #575757;
+				border-radius: 5px;
+				padding: 1em;
+				font-size: 1.25em;
+			}
+			input {
+				width: 100%;
+				height: 2em;
+			}
+			.supporterList {
+				width: 100%;
+				height: 60%;
+				overflow-y: scroll;
+			}
+			.supportLink { color: lightblue; }
+			.center { text-align: center; }
+			.supporterEntry {
+				padding: 0.25em 0;
+				margin-top: 0.25em;
+				background-color: #282828;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="overlay" onmiss="missClose">
+			<p>
+				Below are a list of people who support the project through GitHub supporters.
+			</p>
+			<span class="supportLink" data-path="https://github.com/sponsors/BrentFarris" onclick="clickLink">Click here to support the project</span>
+			<div class="supporterList">
+				<div class="center">Supporters:</div>
+				{{range .}}
+				<div class="supporterEntry">
+					<span>{{.Name}} (lvl: {{.Support}})</span>
+					{{if .GitHub}}
+					<span> | </span>
+					<span class="supportLink" data-path="{{.GitHub}}" onclick="clickLink">GitHub</span>
+					{{end}}
+					<!-- {{if .Website}}
+					<span> | </span>
+					<span class="supportLink" data-path="{{.Website}}" onclick="clickLink">Website</span>
+					{{end}} -->
+				</div>
+				{{end}}
+			</div>
+		</div>
+	</body>
+</html>
