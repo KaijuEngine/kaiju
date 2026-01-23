@@ -62,7 +62,7 @@ const (
 // We need overlapping letters to be drawn first when rendering blocks of text,
 // otherwise, when they have a background, they will clip the text that they
 // are overlapping
-var overlappingLetters = []rune{'j', 'J'}
+var overlappingLetters = []rune{'j', 'J', ' '}
 
 type FontJustify int
 
@@ -273,7 +273,6 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	mesh := NewMeshScreenQuad(meshCache)
 	transformation := matrix.Mat4Identity()
 	transformation.Scale(matrix.Vec3{w, h, 1})
-
 	var clm cachedLetterMesh
 	clm.mesh = mesh
 	clm.material = mat
@@ -492,11 +491,11 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				}
 				var m *Mesh
 				model := matrix.Mat4Identity()
+				zPos := z
+				if slices.Contains(overlappingLetters, c) {
+					zPos -= 0.0001
+				}
 				if clm == nil {
-					zPos := z
-					if slices.Contains(overlappingLetters, c) {
-						zPos += 0.0001
-					}
 					var verts [4]Vertex
 					verts[0].Position = matrix.Vec3{xPos, yPos, zPos}
 					verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
@@ -527,7 +526,7 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					// TODO:  Scale and place the mesh based on justify, baseline, etc.
 					model.MultiplyAssign(clm.transformation)
 					model.Scale(matrix.Vec3{scale * inverseWidth, scale * inverseHeight, 1.0})
-					model.Translate(matrix.Vec3{xPos, (yPos + h), z})
+					model.Translate(matrix.Vec3{xPos, (yPos + h), zPos})
 					uvs = clm.uvs
 					m = clm.mesh
 				}
