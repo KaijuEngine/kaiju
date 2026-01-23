@@ -96,6 +96,9 @@ profile.cov
 heap.prof
 trace.out
 
+# Kaiju editor cache
+database/.edcache
+
 # Kaiju engine code
 #   Feel free to comment this out if you modify the engine code in your project
 kaiju/
