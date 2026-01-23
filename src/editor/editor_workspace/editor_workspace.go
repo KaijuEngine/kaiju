@@ -44,6 +44,7 @@ import (
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
+	"kaiju/editor/project/project_database/content_previews"
 	"kaiju/editor/project/project_file_system"
 )
 
@@ -68,4 +69,5 @@ type StageWorkspaceEditorInterface interface {
 	StageView() *editor_stage_view.StageView
 	ShowReferences(id string)
 	ContentWorkspaceSelected()
+	ContentPreviewer() *content_previews.ContentPreviewer
 }

@@ -377,6 +377,13 @@ func (t *Texture) DelayedCreate(renderer Renderer) {
 	t.pendingData = nil
 }
 
+func NewTextureFromImage(key string, data []byte, filter TextureFilter) (*Texture, error) {
+	defer tracing.NewRegion("rendering.NewTextureFromImage").End()
+	tex := &Texture{Key: key, Filter: filter}
+	tex.create(data)
+	return tex, nil
+}
+
 func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTextureFromMemory").End()
 	key = selectKey(key)

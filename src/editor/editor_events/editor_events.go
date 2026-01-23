@@ -57,4 +57,9 @@ type EditorEvents struct {
 	// OnContentChangesSaved is called when content is updated and allows for
 	// other parts of the system to update in order to reflect those changes.
 	OnContentChangesSaved events.EventWithArg[string]
+
+	// OnContentPreviewGenerated is called whenever a content preview image has
+	// been generated. This is primarily used in the background of the editor
+	// for updating any content preview images.
+	OnContentPreviewGenerated events.EventWithArg[string]
 }

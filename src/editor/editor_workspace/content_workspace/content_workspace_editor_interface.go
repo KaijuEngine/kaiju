@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_workspace/shading_workspace"
 	"kaiju/editor/editor_workspace/vfx_workspace"
 	"kaiju/editor/project/project_database/content_database"
+	"kaiju/editor/project/project_database/content_previews"
 	"kaiju/editor/project/project_file_system"
 )
 
@@ -59,4 +60,5 @@ type ContentWorkspaceEditorInterface interface {
 	VfxWorkspace() *vfx_workspace.VfxWorkspace
 	ShadingWorkspace() *shading_workspace.ShadingWorkspace
 	OpenStageInStageWorkspace(id string)
+	ContentPreviewer() *content_previews.ContentPreviewer
 }

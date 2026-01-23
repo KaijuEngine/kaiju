@@ -109,6 +109,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
 	edEvts.OnContentRenamed.Add(cui.renameContent)
+	edEvts.OnContentPreviewGenerated.Add(cui.contentPreviewGenerated)
 }
 
 func (cui *WorkspaceContentUI) open() {
@@ -164,6 +165,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	}
 	w.Doc.ApplyStyles()
 	cui.refreshFilterOnContentChange()
+	w.ed.ContentPreviewer().GeneratePreviews(ids)
 }
 
 func (cui *WorkspaceContentUI) removeContent(ids []string) {
@@ -198,6 +200,21 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 	} else {
 		slog.Error("failed to find element to remove", "id", id)
 	}
+}
+
+func (cui *WorkspaceContentUI) contentPreviewGenerated(id string) {
+	defer tracing.NewRegion("WorkspaceContentUI.contentPreviewGenerated").End()
+	w := cui.workspace.Value()
+	elm, ok := w.Doc.GetElementById(id)
+	if !ok {
+		return
+	}
+	tex, err := w.ed.ContentPreviewer().LoadPreviewImage(id)
+	if err != nil {
+		return
+	}
+	img := elm.Children[0].UI.ToPanel()
+	img.SetBackground(tex)
 }
 
 func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {

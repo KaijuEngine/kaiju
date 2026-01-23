@@ -10,7 +10,6 @@ func init() {
 	register(func() rendering.DrawInstance {
 		return &ShaderDataEdThumbPreviewMesh{
 			ShaderDataBase: rendering.NewShaderDataBase(),
-			Color:          matrix.ColorSlateGrey(),
 		}
 	}, "ed_thumb_preview_mesh")
 }
@@ -18,8 +17,13 @@ func init() {
 type ShaderDataEdThumbPreviewMesh struct {
 	rendering.ShaderDataBase `visible:"false"`
 
-	Color matrix.Color
-	Flags StandardShaderDataFlags `visible:"false"`
+	View       matrix.Mat4 `visible:"false"`
+	Projection matrix.Mat4 `visible:"false"`
+}
+
+func (s *ShaderDataEdThumbPreviewMesh) SetCamera(view, projection matrix.Mat4) {
+	s.View = view
+	s.Projection = projection
 }
 
 func (ShaderDataEdThumbPreviewMesh) Size() int {

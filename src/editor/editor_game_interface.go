@@ -69,6 +69,7 @@ func (EditorGame) Launch(host *engine.Host) {
 	ed.UpdateSettings()
 	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(512)
+	ed.contentPreviewer.Initialize(ed)
 	ed.earlyLoadUI()
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {

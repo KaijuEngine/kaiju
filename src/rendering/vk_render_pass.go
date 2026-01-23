@@ -75,6 +75,9 @@ type RenderPassSubpass struct {
 	cmd            [maxFramesInFlight]CommandRecorderSecondary
 }
 
+func (r *RenderPass) Width() int  { return r.construction.Width }
+func (r *RenderPass) Height() int { return r.construction.Height }
+
 func (r *RenderPass) Texture(index int) *Texture { return &r.textures[index] }
 
 func (r *RenderPass) IsShadowPass() bool {

@@ -95,7 +95,18 @@ func (t *TextureCache) ReloadTexture(textureKey string, filter TextureFilter) er
 	return nil
 }
 
-func (t *TextureCache) InsertTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
+func (t *TextureCache) InsertTexture(tex *Texture) {
+	defer tracing.NewRegion("TextureCache.InsertTexture").End()
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	if _, ok := t.textures[tex.Filter][tex.Key]; ok {
+		return
+	}
+	t.pendingTextures = append(t.pendingTextures, tex)
+	t.textures[tex.Filter][tex.Key] = tex
+}
+
+func (t *TextureCache) InsertRawTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("TextureCache.InsertTexture").End()
 	t.mutex.Lock()
 	defer t.mutex.Unlock()

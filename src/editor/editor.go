@@ -56,6 +56,7 @@ import (
 	"kaiju/editor/global_interface/status_bar"
 	"kaiju/editor/memento"
 	"kaiju/editor/project"
+	"kaiju/editor/project/project_database/content_previews"
 	"kaiju/engine"
 	"kaiju/engine/systems/events"
 	"kaiju/engine/ui"
@@ -93,8 +94,9 @@ type Editor struct {
 		deactivateId   events.Id
 		lastActiveTime time.Time
 	}
-	updateId engine.UpdateId
-	blurred  bool
+	contentPreviewer content_previews.ContentPreviewer
+	updateId         engine.UpdateId
+	blurred          bool
 }
 
 type workspaces struct {
@@ -112,6 +114,10 @@ type globalUI struct {
 }
 
 func (ed *Editor) Host() *engine.Host { return ed.host }
+
+func (ed *Editor) ContentPreviewer() *content_previews.ContentPreviewer {
+	return &ed.contentPreviewer
+}
 
 // FocusInterface is responsible for enabling the input on the various
 // interfaces that are currently presented to the developer. This primarily

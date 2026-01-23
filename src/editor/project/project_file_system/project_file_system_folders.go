@@ -52,6 +52,11 @@ const (
 	StockFolder         = "database/stock"
 	DebugFolder         = "database/debug"
 	ProjectConfigFile   = "database/project.json"
+	EditorCache         = "database/.edcache"
+)
+
+const (
+	EditorCacheContentPreviews = EditorCache + "/previews"
 )
 
 const (

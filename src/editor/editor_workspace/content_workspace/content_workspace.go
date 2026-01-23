@@ -145,6 +145,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	edEvts := w.editor.Events()
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
+	edEvts.OnContentPreviewGenerated.Add(w.contentPreviewGenerated)
 	edEvts.OnContentAdded.Execute(ids)
 	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
 }
@@ -259,6 +260,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		}
 	}
 	w.Doc.ApplyStyles()
+	w.editor.ContentPreviewer().GeneratePreviews(ids)
 }
 
 func (w *ContentWorkspace) focusContent(id string) {
@@ -272,6 +274,20 @@ func (w *ContentWorkspace) focusContent(id string) {
 		return
 	}
 	w.clickEntry(elm)
+}
+
+func (w *ContentWorkspace) contentPreviewGenerated(id string) {
+	defer tracing.NewRegion("ContentWorkspace.contentPreviewGenerated").End()
+	elm, ok := w.Doc.GetElementById(id)
+	if !ok {
+		return
+	}
+	tex, err := w.editor.ContentPreviewer().LoadPreviewImage(id)
+	if err != nil {
+		return
+	}
+	img := elm.Children[0].UI.ToPanel()
+	img.SetBackground(tex)
 }
 
 func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
@@ -604,6 +620,7 @@ func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 			continue
 		}
 		w.editor.Events().OnContentRemoved.Execute([]string{id})
+		w.editor.ContentPreviewer().DeletePreviewImage(id)
 		w.rightBody.UI.Hide()
 		w.tooltip.UI.Hide()
 	}

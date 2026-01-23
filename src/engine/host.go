@@ -57,6 +57,7 @@ import (
 	"log/slog"
 	"math"
 	"runtime"
+	"sync"
 	"time"
 	"weak"
 )
@@ -104,6 +105,7 @@ type Host struct {
 	lighting          lighting.LightingInformation
 	timeRunner        []timeRun
 	frameRunner       []frameRun
+	preRenderRunner   []func()
 	plugins           []*plugins.LuaVM
 	Window            *windowing.Window
 	LogStream         *logging.LogStream
@@ -132,6 +134,7 @@ type Host struct {
 	OnClose           events.Event
 	CloseSignal       chan struct{}
 	frameRateLimit    *time.Ticker
+	runnerMutex       sync.Mutex
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -383,6 +386,10 @@ func (host *Host) Update(deltaTime float64) {
 func (host *Host) Render() {
 	defer tracing.NewRegion("Host.Render").End()
 	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
+	for _, p := range host.preRenderRunner {
+		p()
+	}
+	host.preRenderRunner = host.preRenderRunner[:0]
 	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
@@ -418,10 +425,12 @@ func (host *Host) RunAfterFrames(wait int, call func()) {
 	if call == nil {
 		return
 	}
+	host.runnerMutex.Lock()
 	host.frameRunner = append(host.frameRunner, frameRun{
 		frame: host.frame + uint64(wait),
 		call:  call,
 	})
+	host.runnerMutex.Unlock()
 }
 
 // RunNextFrame will run the given function on the next frame. This is the same
@@ -439,23 +448,28 @@ func (host *Host) RunAfterNextUIClean(call func()) {
 	host.RunAfterFrames(1, call)
 }
 
-func (host *Host) RunOnMainThread(call func()) {
+func (host *Host) RunBeforeRender(call func()) {
 	if call == nil {
 		return
 	}
-	host.frameRunner = append(host.frameRunner, frameRun{
-		frame: host.frame,
-		call:  call,
-	})
+	host.runnerMutex.Lock()
+	host.preRenderRunner = append(host.preRenderRunner, call)
+	host.runnerMutex.Unlock()
+}
+
+func (host *Host) RunOnMainThread(call func()) {
+	host.RunAfterFrames(0, call)
 }
 
 // RunAfterTime will call the given function after the given number of time
 // has passed from the current frame
 func (host *Host) RunAfterTime(wait time.Duration, call func()) {
+	host.runnerMutex.Lock()
 	host.timeRunner = append(host.timeRunner, timeRun{
 		end:  time.Now().Add(wait),
 		call: call,
 	})
+	host.runnerMutex.Unlock()
 }
 
 // Teardown will destroy the host and all of its resources. This will also

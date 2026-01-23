@@ -2,20 +2,94 @@ package content_previews
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/png"
-	"kaiju/engine"
+	"kaiju/editor/project/project_database/content_database"
+	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
 	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"kaiju/rendering/loaders/kaiju_mesh"
+	"log/slog"
 )
 
-func GenerateMeshPreview(host *engine.Host, km kaiju_mesh.KaijuMesh, onComplete func(image.Image, error)) error {
+func (p *ContentPreviewer) renderMesh(id string) {
+	defer tracing.NewRegion("ContentPreviewer.renderMesh").End()
+	km, err := readMesh(id, p.ed)
+	if err != nil {
+		slog.Error("failed to generate a preview for mesh", "id", id, "error", err)
+		p.completeProc()
+		return
+	}
+	host := p.ed.Host()
+	adjustMeshColorAndLocation(p.cam, &km)
+	mesh := rendering.NewMesh("tmp", km.Verts, km.Indexes)
+	sd := shader_data_registry.Create(p.mat.Shader.ShaderDataName())
+	sd.(*shader_data_registry.ShaderDataEdThumbPreviewMesh).SetCamera(
+		p.cam.View(), p.cam.Projection())
+	draw := rendering.Drawing{
+		Material:   p.mat,
+		Mesh:       mesh,
+		ShaderData: sd,
+	}
+	host.Drawings.AddDrawing(draw)
+	host.RunBeforeRender(func() {
+		mesh.DelayedCreate(host.Window.Renderer)
+		host.RunAfterFrames(1, func() {
+			defer p.completeProc()
+			pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(host.Window.Renderer)
+			sd.Destroy()
+			if err != nil {
+				slog.Error("failed to read the mesh preview image from GPU", "id", id, "error", err)
+				return
+			} else if len(pixels) == 0 {
+				slog.Error("failed to read the mesh preview image from GPU, result was empty", "id", id)
+				return
+			}
+			tex := p.mat.RenderPass().Texture(0)
+			w, h := tex.Width, tex.Height
+			img := image.NewRGBA(image.Rect(0, 0, w, h))
+			copy(img.Pix, pixels)
+			var buf bytes.Buffer
+			if err = png.Encode(&buf, img); err != nil {
+				slog.Error("failed to encode the pixel buffer from the GPU for the mesh preview image", "id", id, "error", err)
+				return
+			}
+			if err = p.writePreviewFile(id, buf.Bytes()); err != nil {
+				slog.Error("failed to write the mesh preview image cache file", "id", id, "error", err)
+				return
+			}
+			p.ed.Events().OnContentPreviewGenerated.Execute(id)
+		})
+	})
+}
+
+func readMesh(id string, ed EditorInterface) (kaiju_mesh.KaijuMesh, error) {
+	defer tracing.NewRegion("content_previews.readMesh").End()
+	cc, err := ed.Cache().Read(id)
+	if err != nil {
+		return kaiju_mesh.KaijuMesh{}, err
+	}
+	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return kaiju_mesh.KaijuMesh{},
+			fmt.Errorf("can't generate a mesh preview image for content, the provided id '%s' is not a mesh", id)
+	}
+	data, err := ed.ProjectFileSystem().ReadFile(cc.ContentPath())
+	if err != nil {
+		return kaiju_mesh.KaijuMesh{}, err
+	}
+	return kaiju_mesh.Deserialize(data)
+}
+
+func adjustMeshColorAndLocation(cam cameras.Camera, km *kaiju_mesh.KaijuMesh) {
+	defer tracing.NewRegion("content_previews.adjustMeshColorAndLocation").End()
 	offset := matrix.Vec3Zero()
 	points := make([]matrix.Vec3, len(km.Verts))
 	for i := range km.Verts {
+		km.Verts[i].Color = matrix.ColorSlateGrey()
 		points[i] = km.Verts[i].Position
 		offset.AddAssign(km.Verts[i].Position)
 	}
@@ -24,49 +98,9 @@ func GenerateMeshPreview(host *engine.Host, km kaiju_mesh.KaijuMesh, onComplete 
 		points[i].AddAssign(offset)
 	}
 	box := collision.AABBFromPoints(points)
-	// TODO:  Create a camera view/projection that fits the size of the render-
-	// pass texture size and render to that, rather than doing this thing where
-	// we move the mesh to the primary camera and fit into it.
-	offset = host.PrimaryCamera().Position()
-	offset.AddAssign(host.PrimaryCamera().Forward().Scale(box.Size().Length() * 1.5))
+	offset = cam.Position()
+	offset.AddAssign(cam.Forward().Scale(box.Size().Length() * 1.35))
 	for i := range km.Verts {
 		km.Verts[i].Position = points[i].Add(offset)
 	}
-	mesh := rendering.NewMesh("tmp", km.Verts, km.Indexes)
-	mesh.DelayedCreate(host.Window.Renderer)
-	mat, err := host.MaterialCache().Material("ed_thumb_preview_mesh.material")
-	if err != nil {
-		return err
-	}
-	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
-	draw := rendering.Drawing{
-		Material:   mat,
-		Mesh:       mesh,
-		ShaderData: sd,
-	}
-	host.Drawings.AddDrawing(draw)
-	host.RunAfterFrames(1, func() {
-		pixels, err := mat.RenderPass().Texture(0).ReadAllPixels(host.Window.Renderer)
-		sd.Destroy()
-		if err != nil {
-			onComplete(nil, err)
-		} else if len(pixels) > 0 {
-			tex := mat.RenderPass().Texture(0)
-			w, h := tex.Width, tex.Height
-			img := image.NewRGBA(image.Rect(0, 0, w, h))
-			copy(img.Pix, pixels)
-			var buf bytes.Buffer
-			if encErr := png.Encode(&buf, img); encErr != nil {
-				onComplete(nil, encErr)
-				return
-			}
-			decodedImg, decErr := png.Decode(&buf)
-			if decErr != nil {
-				onComplete(nil, decErr)
-				return
-			}
-			onComplete(decodedImg, nil)
-		}
-	})
-	return nil
 }
