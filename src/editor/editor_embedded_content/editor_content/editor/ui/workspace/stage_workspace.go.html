@@ -42,8 +42,9 @@
 				padding: 10px;
 			}
 			input {
-				width: 100%;
+				width: calc(100% - 1em);
 				height: 2em;
+				margin-left: 0.25em;
 				margin-bottom: 0.5em;
 			}
 			.entry {
@@ -93,7 +94,7 @@
 			}
 			#hierarchyArea {
 				top: var(--ed-menu-bar-height);
-				width: 15%;
+				width: 18%;
 				color: white;
 				border-right: 2px solid #777;
 			}
@@ -155,9 +156,9 @@
 			}
 			#detailsArea {
 				position: absolute;
-				right: 0;
+				right: 0.5em;
 				top: var(--ed-menu-bar-height);
-				width: 15%;
+				width: 18%;
 				color: white;
 				overflow-y: scroll;
 				border-left: 2px solid #777;
@@ -172,7 +173,7 @@
 				width: 3.15em;
 			}
 			.dataTable {
-				width: 100%;
+				width: calc(100% - 0.5em);
 				padding: 5px;
 				font-size: 0.8em;
 			}

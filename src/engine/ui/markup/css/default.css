@@ -436,10 +436,14 @@ button:active {
 	--ed-status-bar-height: 1.3em;
 }
 input[type="text"] {
-	color: black;
-	background-color: #BBB;
-	border: 2px solid black;
+	color: white;
+	background-color: #111;
+	border: 2px solid #111;
+	border-radius: 5px;
 	overflow: hidden;
+}
+input[type="text"]:focus {
+	border: 2px solid #777;
 }
 .filterBtn {
 	padding: 2px 5px;

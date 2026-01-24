@@ -44,6 +44,7 @@ const (
 	RuleInvokeImmediate RuleInvoke = iota
 	RuleInvokeHover
 	RuleInvokeActive
+	RuleInvokeFocus
 )
 
 type PropertyValue struct {

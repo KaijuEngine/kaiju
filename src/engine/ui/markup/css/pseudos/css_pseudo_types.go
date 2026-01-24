@@ -159,9 +159,8 @@ func (p Future) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:focus
 type Focus struct{}
 
-func (p Focus) Key() string                                { return "focus" }
-func (p Focus) IsFunction() bool                           { return false }
-func (p Focus) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
+func (p Focus) Key() string      { return "focus" }
+func (p Focus) IsFunction() bool { return false }
 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:focus-visible
 type FocusVisible struct{}
