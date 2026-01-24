@@ -55,11 +55,13 @@ func ToDataBinding(name string, target any) EntityDataEntry {
 		f := t.Field(i)
 		fieldValue := v.Field(i)
 		g.Fields[i] = EntityDataField{
-			Idx:   i,
-			Name:  f.Name,
-			Type:  f.Type.Name(),
-			Value: fieldValue.Interface(),
-			Pkg:   f.Type.PkgPath(),
+			Idx:  i,
+			Name: f.Name,
+			Type: f.Type.Name(),
+			Pkg:  f.Type.PkgPath(),
+		}
+		if fieldValue.IsValid() && fieldValue.CanInterface() {
+			g.Fields[i].Value = fieldValue.Interface()
 		}
 		g.Gen.FieldGens = append(g.Gen.FieldGens, codegen.GeneratedType{})
 	}
