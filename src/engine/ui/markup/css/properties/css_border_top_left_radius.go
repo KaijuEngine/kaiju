@@ -40,12 +40,16 @@ import (
 	"errors"
 	"kaiju/engine"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 )
 
 func (p BorderTopLeftRadius) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("BorderTopLeftRadius not implemented")}
-
-	return problems[0]
+	if len(values) != 1 {
+		return errors.New("border-top-left-radus expects exactly 1 argument")
+	}
+	v := helpers.NumFromLength(values[0].Str, host.Window)
+	panel.SetBorderRadiusTopLeft(v)
+	return nil
 }

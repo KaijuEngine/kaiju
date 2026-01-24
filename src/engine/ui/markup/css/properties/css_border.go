@@ -131,21 +131,11 @@ func (Border) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}
-	BorderLeftWidth{}.Process(panel, elm, values[:1], host)
-	BorderTopWidth{}.Process(panel, elm, values[:1], host)
-	BorderRightWidth{}.Process(panel, elm, values[:1], host)
-	BorderBottomWidth{}.Process(panel, elm, values[:1], host)
-	if len(values) > 1 {
-		BorderLeftStyle{}.Process(panel, elm, values[1:2], host)
-		BorderTopStyle{}.Process(panel, elm, values[1:2], host)
-		BorderRightStyle{}.Process(panel, elm, values[1:2], host)
-		BorderBottomStyle{}.Process(panel, elm, values[1:2], host)
-	}
-	if len(values) > 2 {
-		BorderLeftColor{}.Process(panel, elm, values[2:], host)
-		BorderTopColor{}.Process(panel, elm, values[2:], host)
-		BorderRightColor{}.Process(panel, elm, values[2:], host)
-		BorderBottomColor{}.Process(panel, elm, values[2:], host)
+	if len(values) == 3 {
+		BorderLeft{}.Process(panel, elm, values, host)
+		BorderTop{}.Process(panel, elm, values, host)
+		BorderRight{}.Process(panel, elm, values, host)
+		BorderBottom{}.Process(panel, elm, values, host)
 	}
 	return nil
 }

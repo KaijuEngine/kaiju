@@ -40,12 +40,16 @@ import (
 	"errors"
 	"kaiju/engine"
 	"kaiju/engine/ui"
+	"kaiju/engine/ui/markup/css/helpers"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 )
 
 func (p BorderBottomRightRadius) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("BorderBottomRightRadius not implemented")}
-
-	return problems[0]
+	if len(values) != 1 {
+		return errors.New("border-bottom-right-radus expects exactly 1 argument")
+	}
+	v := helpers.NumFromLength(values[0].Str, host.Window)
+	panel.SetBorderRadiusBottomRight(v)
+	return nil
 }
