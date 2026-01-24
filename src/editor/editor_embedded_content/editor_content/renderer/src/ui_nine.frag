@@ -5,7 +5,7 @@ layout(location = 1) in vec4 fragBGColor;
 layout(location = 2) in vec4 fragSize2D;
 layout(location = 3) in vec4 fragBorderRadius;
 layout(location = 4) in vec4 fragBorderSize;
-layout(location = 5) in mat4 fragBorderColor;
+layout(location = 5) in mat4 fragBorderColorsLTRB;
 layout(location = 9) in vec2 fragTexCoord;
 layout(location = 10) in vec2 fragBorderLen;
 layout(location = 11) in vec4 fragUvs;
@@ -16,6 +16,8 @@ layout(location = 0) out vec4 outColor;
 #ifdef OIT
 layout(location = 1) out float reveal;
 #endif
+
+const float edgeSoftness = 2.0;
 
 float processAxis(float coord, float border, float ratio) {
 	float len = border * ratio;
@@ -51,7 +53,15 @@ void main(void) {
 		vec2 dimensions = fragSize2D.xy;
 		vec2 size = dimensions/2.0;
 		vec2 pixPos = size-(fragTexCoord.xy * dimensions);
-		float edgeSoftness = 2.0;
+		// Pre-select what color in the color matrix should be used, the order
+		// of colors are [0] = left, [1] = top, [2] = right, [3] = bottom
+		int sideIdx = 0;
+		if (abs(pixPos.x) > abs(pixPos.y)) {
+			sideIdx = (pixPos.x > 0.0) ? 0 : 2;
+		} else {
+			sideIdx = (pixPos.y > 0.0) ? 1 : 3;
+		}
+        vec4 borderColor = fragBorderColorsLTRB[sideIdx];
 		// Border radius
 		float dist = roundedBoxSDF(pixPos, size, fragBorderRadius);
 		float smoothedAlpha = 1.0-smoothstep(0.0, edgeSoftness, dist);
@@ -64,8 +74,7 @@ void main(void) {
 		float innerMask = 1.0-smoothstep(0.0, edgeSoftness, borderDistance);
 		float smoothedBorderAlpha = 1.0 - innerMask;
 		// Border color
-		vec4 bc = fragBorderColor[0].xyzw;
-		unWeightedColor = mix(unWeightedColor, bc, smoothedBorderAlpha);
+		unWeightedColor = mix(unWeightedColor, borderColor, smoothedBorderAlpha);
 		unWeightedColor.a = smoothedAlpha * unWeightedColor.a;
 	}
 #include "inc_fragment_oit_block.inl"
