@@ -124,8 +124,12 @@ func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
 	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
 		if cui.contentArea.UI.Entity().IsActive() {
 			cui.contentArea.UI.Hide()
+			cui.workspace.Value().hierarchyUI.extendHeight()
+			cui.workspace.Value().detailsUI.extendHeight()
 		} else {
 			cui.contentArea.UI.Show()
+			cui.workspace.Value().hierarchyUI.standardHeight()
+			cui.workspace.Value().detailsUI.standardHeight()
 		}
 	}
 }

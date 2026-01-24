@@ -7,6 +7,8 @@
 				bottom: 1.3em;
 				width: 100%;
 				height: 30%;
+				border-top: 2px solid #777;
+				background-color: black;
 			}
 			#ftdePrompt {
 				position: absolute;
@@ -91,10 +93,12 @@
 			}
 			#hierarchyArea {
 				top: var(--ed-menu-bar-height);
-				height: calc(70% - 3em);
 				width: 15%;
 				color: white;
+				border-right: 2px solid #777;
 			}
+			.sideBarStandard { height: calc(70% - 3em); }
+			.sideBarTall { height: calc(100% - 3em); }
 			#entityList {
 				width: 100%;
 				height: calc(100% - 3em);
@@ -153,10 +157,10 @@
 				position: absolute;
 				right: 0;
 				top: var(--ed-menu-bar-height);
-				height: calc(70% - 3em);
 				width: 15%;
 				color: white;
 				overflow-y: scroll;
+				border-left: 2px solid #777;
 			}
 			.smallInput, .smallerInput {
 				width: 4.3em;
@@ -224,7 +228,7 @@
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
-		<div id="hierarchyArea" class="edPanelBg" ondrop="hierarchyDrop">
+		<div id="hierarchyArea" class="edPanelBg sideBarStandard" ondrop="hierarchyDrop">
 			<input type="text" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
 			<div id="entityList">
 				<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
@@ -234,7 +238,7 @@
 		</div>
 		<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />
 		<!-- Details UI -->
-		<div id="detailsArea" class="edPanelBg">
+		<div id="detailsArea" class="edPanelBg sideBarStandard">
 			<div class="detailsBody">
 				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" />
 				<div>Position</div>

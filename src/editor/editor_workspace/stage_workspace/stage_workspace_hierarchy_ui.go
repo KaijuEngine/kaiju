@@ -328,3 +328,13 @@ func (hui *WorkspaceHierarchyUI) updateEntityName(id, name string) {
 		e.Children[0].InnerLabel().SetText(name)
 	}
 }
+
+func (hui *WorkspaceHierarchyUI) extendHeight() {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.extendHeight").End()
+	hui.workspace.Value().Doc.SetElementClasses(hui.hierarchyArea, "edPanelBg", "sideBarTall")
+}
+
+func (hui *WorkspaceHierarchyUI) standardHeight() {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.standardHeight").End()
+	hui.workspace.Value().Doc.SetElementClasses(hui.hierarchyArea, "edPanelBg", "sideBarStandard")
+}

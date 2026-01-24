@@ -938,6 +938,16 @@ func (dui *WorkspaceDetailsUI) selectAnimationNames(g *entity_data_binding.Entit
 	return out
 }
 
+func (dui *WorkspaceDetailsUI) extendHeight() {
+	defer tracing.NewRegion("WorkspaceDetailsUI.extendHeight").End()
+	dui.workspace.Value().Doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarTall")
+}
+
+func (dui *WorkspaceDetailsUI) standardHeight() {
+	defer tracing.NewRegion("WorkspaceDetailsUI.standardHeight").End()
+	dui.workspace.Value().Doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarStandard")
+}
+
 func toInt(str string) int64 {
 	defer tracing.NewRegion("stage_workspace.toInt").End()
 	if str == "" {
