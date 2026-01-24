@@ -170,9 +170,7 @@ func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingS
 		return &shader_data_registry.ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
-			Metallic:       0,
-			Roughness:      1,
-			Emissive:       0,
+			MeRoEmAo:       matrix.NewVec4(0, 1, 0, 0),
 			LightIds:       [...]int32{0, 0, 0, 0},
 		}
 	})

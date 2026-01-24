@@ -136,6 +136,9 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_VERT_EMISSIVE
 	layout(location = LOCATION_START+LAYOUT_VERT_EMISSIVE) in float emissive;
 #endif
+#ifdef LAYOUT_VERT_METALLIC_ROUGHNESS_EMISSIVE_ALBEDO
+	layout(location = LOCATION_START+LAYOUT_VERT_METALLIC_ROUGHNESS_EMISSIVE_ALBEDO) in vec4 meRoEmAo;
+#endif
 #ifdef LAYOUT_VERT_LIGHT_IDS
 	layout(location = LOCATION_START+LAYOUT_VERT_LIGHT_IDS) in int lightIds[NR_LIGHTS];
 #endif

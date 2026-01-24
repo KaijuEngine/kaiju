@@ -2,11 +2,9 @@
 #define VERTEX_SHADER
 
 #define LAYOUT_VERT_COLOR 0
-#define LAYOUT_VERT_METALLIC 1
-#define LAYOUT_VERT_ROUGHNESS 2
-#define LAYOUT_VERT_EMISSIVE 3
-#define LAYOUT_VERT_FLAGS 4
-#define LAYOUT_VERT_LIGHT_IDS 5
+#define LAYOUT_VERT_METALLIC_ROUGHNESS_EMISSIVE_ALBEDO 1
+#define LAYOUT_VERT_FLAGS 2
+#define LAYOUT_VERT_LIGHT_IDS 3
 
 #define LAYOUT_FRAG_COLOR 0
 #define LAYOUT_FRAG_FLAGS 1
@@ -22,9 +20,9 @@
 #include "kaiju.glsl"
 
 void main() {
-	fragMetallic = metallic;
-	fragRoughness = roughness;
-	fragEmissive = emissive;
+	fragMetallic = meRoEmAo.r;
+	fragRoughness = meRoEmAo.g;
+	fragEmissive = meRoEmAo.b;
 	fragFlags = flags;
 	fragTexCoords = UV0;
 	fragColor = color * Color;

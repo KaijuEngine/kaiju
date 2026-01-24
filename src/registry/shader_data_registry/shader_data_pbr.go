@@ -58,9 +58,7 @@ type ShaderDataPBR struct {
 	rendering.ShaderDataBase `visible:"false"`
 
 	VertColors matrix.Color
-	Metallic   float32
-	Roughness  float32
-	Emissive   float32
+	MeRoEmAo   matrix.Vec4
 	Flags      StandardShaderDataFlags `visible:"false"`
 	LightIds   [4]int32                `visible:"false"`
 }

@@ -57,11 +57,9 @@ type ShaderDataPbrSkinned struct {
 	rendering.ShaderDataBase          `visible:"false"`
 
 	VertColors matrix.Color
-	Metallic   float32
-	Roughness  float32
-	Emissive   float32
-	LightIds   [4]int32                `visible:"false"`
+	MeRoEmAo   matrix.Vec4
 	Flags      StandardShaderDataFlags `visible:"false"`
+	LightIds   [4]int32                `visible:"false"`
 }
 
 func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
@@ -69,8 +67,7 @@ func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHead
 }
 
 func (t ShaderDataPbrSkinned) Size() int {
-	const size = int(unsafe.Sizeof(ShaderDataPbrSkinned{}) - rendering.ShaderBaseDataStart)
-	return size
+	return int(unsafe.Sizeof(ShaderDataPbrSkinned{}) - rendering.ShaderBaseDataStart)
 }
 
 func (t *ShaderDataPbrSkinned) InstanceBoundDataSize() int {
