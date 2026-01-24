@@ -161,7 +161,7 @@ The engine supports both **2D and 3D game development** with a comprehensive fea
 	</div>
 </div>
 
-## Support the project
+## Sponsor the project
 If you like what you see, and want to support the project's continued development, please consider [becoming a sponsor](https://github.com/sponsors/BrentFarris).
 
 <iframe src="https://github.com/sponsors/BrentFarris/button" title="Sponsor BrentFarris" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
@@ -171,8 +171,8 @@ If you like what you see, and want to support the project's continued developmen
 - [Kaiju creator on X/Twitter](https://twitter.com/ShieldCrush)
 - [Discord server](https://discord.gg/8rFPEu8U52)
 
-## Supporters - Thank you!
-<table id="supporters">
+## Sponsors - Thank you!
+<table id="sponsors">
 	<tr>
 		<th>Name</th>
 		<th>GitHub</th>

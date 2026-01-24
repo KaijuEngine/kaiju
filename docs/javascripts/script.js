@@ -1,10 +1,10 @@
-async function listSupporters() {
-	let box = document.getElementById("supporters");
+async function listSponsors() {
+	let box = document.getElementById("sponsors");
 	let list = await fetch("https://raw.githubusercontent.com/KaijuEngine/kaiju/refs/heads/master/sponsors.json");
-	let supporters = await list.json()
-	supporters.sort((a, b) => b.Support - a.Support);
-	for (let i = 0; i < supporters.length; i++) {
-		const s = supporters[i];
+	let sponsors = await list.json()
+	sponsors.sort((a, b) => b.Support - a.Support);
+	for (let i = 0; i < sponsors.length; i++) {
+		const s = sponsors[i];
 		const tr = document.createElement('tr');
 		const tdName = document.createElement('td');
 		tdName.textContent = s.Name;
@@ -23,7 +23,7 @@ async function listSupporters() {
 
 async function processIndex() {
 	// document.querySelector(".md-sidebar").style.display = "none";
-	await listSupporters();
+	await listSponsors();
 }
 
 if (window.location.pathname == "/") {

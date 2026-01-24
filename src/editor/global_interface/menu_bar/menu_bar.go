@@ -41,7 +41,7 @@ import (
 	"kaiju/editor/editor_overlay/create_entity_data"
 	"kaiju/editor/editor_overlay/file_browser"
 	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/editor/editor_overlay/supporters"
+	"kaiju/editor/editor_overlay/sponsors"
 	"kaiju/editor/project"
 	"kaiju/engine"
 	"kaiju/engine/systems/logging"
@@ -111,7 +111,7 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickMailArchives":        b.clickMailArchives,
 			"clickCreatePluginProject": b.clickCreatePluginProject,
 			"clickCloseEditor":         b.clickCloseEditor,
-			"clickSupporters":          b.clickSupporters,
+			"clickSponsors":            b.clickSponsors,
 			"popupMiss":                b.popupMiss,
 		})
 	b.doc.Clean()
@@ -473,11 +473,11 @@ func (b *MenuBar) clickCloseEditor(*document.Element) {
 	b.uiMan.Host.Close()
 }
 
-func (b *MenuBar) clickSupporters(*document.Element) {
+func (b *MenuBar) clickSponsors(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickSupporters").End()
 	b.hidePopups()
 	b.handler.BlurInterface()
-	supporters.Show(b.uiMan.Host, b.handler.FocusInterface)
+	sponsors.Show(b.uiMan.Host, b.handler.FocusInterface)
 }
 
 func (b *MenuBar) popupMiss(e *document.Element) {
