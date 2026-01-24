@@ -876,13 +876,13 @@ func (p *Panel) BorderColor() [4]matrix.Color {
 
 func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
 	p.shaderData.BorderRadius = matrix.Vec4{
-		topLeft, topRight, bottomRight, bottomLeft}
+		bottomLeft, bottomRight, topRight, topLeft}
 }
 
-func (p *Panel) SetBorderRadiusTopLeft(r float32)     { p.shaderData.BorderRadius.SetX(r) }
-func (p *Panel) SetBorderRadiusTopRight(r float32)    { p.shaderData.BorderRadius.SetY(r) }
-func (p *Panel) SetBorderRadiusBottomRight(r float32) { p.shaderData.BorderRadius.SetZ(r) }
-func (p *Panel) SetBorderRadiusBottomLeft(r float32)  { p.shaderData.BorderRadius.SetW(r) }
+func (p *Panel) SetBorderRadiusTopLeft(r float32)     { p.shaderData.BorderRadius.SetW(r) }
+func (p *Panel) SetBorderRadiusTopRight(r float32)    { p.shaderData.BorderRadius.SetZ(r) }
+func (p *Panel) SetBorderRadiusBottomRight(r float32) { p.shaderData.BorderRadius.SetY(r) }
+func (p *Panel) SetBorderRadiusBottomLeft(r float32)  { p.shaderData.BorderRadius.SetX(r) }
 
 func (p *Panel) SetBorderSize(left, top, right, bottom float32) {
 	p.layout.SetBorder(left, top, right, bottom)
