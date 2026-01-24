@@ -315,6 +315,7 @@ func (c *StandardCamera) NumCSMCascades() uint8 { return max(1, c.csmNumCascades
 func (c *StandardCamera) CSMCascadeDistances() [4]float32 {
 	out := [4]float32{}
 	if len(c.csmSplits) < int(c.csmNumCascades) {
+		c.csmDirty = true
 		c.updateCSM()
 	}
 	for i := range out {
@@ -457,6 +458,7 @@ func (c *StandardCamera) updateCSM() {
 	c.csmSplits = c.csmSplits[:0]
 	c.csmSplits = slices.Grow(c.csmSplits, int(c.csmNumCascades))
 	if num <= 1 || c.isOrthographic {
+		c.csmNumCascades = 1
 		c.csmSplits = append(c.csmSplits, c.nearPlane, c.farPlane)
 		c.csmDirty = false
 		return
@@ -474,7 +476,9 @@ func (c *StandardCamera) updateCSM() {
 		split64 := lambda*float32(logSplit) + (1-lambda)*float32(uniSplit)
 		c.csmSplits = append(c.csmSplits, float32(split64))
 	}
-	c.csmSplits = append(c.csmSplits, c.farPlane)
+	for range int(c.csmNumCascades+1) - len(c.csmSplits) {
+		c.csmSplits = append(c.csmSplits, c.farPlane)
+	}
 	c.csmProjections = c.csmProjections[:0]
 	for i := range len(c.csmSplits) - 1 {
 		c.csmProjections = append(c.csmProjections, c.createProjection(c.csmSplits[i], c.csmSplits[i+1]))
