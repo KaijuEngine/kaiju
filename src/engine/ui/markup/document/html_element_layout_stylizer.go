@@ -78,6 +78,15 @@ type ElementLayoutStylizer struct {
 	currentInvoke rules.RuleInvoke
 }
 
+func (s *ElementLayoutStylizer) HasRule(rule string) bool {
+	for i := range s.styleRules {
+		if s.styleRules[i].Property == rule {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *ElementLayoutStylizer) ClearRules() {
 	s.styleRules = s.styleRules[:0]
 	e := s.element.Value()
