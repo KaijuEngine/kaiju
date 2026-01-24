@@ -20,14 +20,14 @@
 				width: 100%;
 				height: 2em;
 			}
-			.supporterList {
+			.sponsorList {
 				width: 100%;
 				height: 60%;
 				overflow-y: scroll;
 			}
-			.supportLink { color: lightblue; }
+			.sponsorLink { color: lightblue; }
 			.center { text-align: center; }
-			.supporterEntry {
+			.sponsorEntry {
 				padding: 0.25em 0;
 				margin-top: 0.25em;
 				background-color: #282828;
@@ -37,21 +37,21 @@
 	<body>
 		<div class="overlay" onmiss="missClose">
 			<p>
-				Below are a list of people who support the project through GitHub supporters.
+				Below are a list of people who sponsor the project through GitHub.
 			</p>
-			<span class="supportLink" data-path="https://github.com/sponsors/BrentFarris" onclick="clickLink">Click here to support the project</span>
-			<div class="supporterList">
-				<div class="center">Supporters:</div>
+			<span class="sponsorLink" data-path="https://github.com/sponsors/BrentFarris" onclick="clickLink">Click here to sponsor the project</span>
+			<div class="sponsorList">
+				<div class="center">Sponsors:</div>
 				{{range .}}
-				<div class="supporterEntry">
+				<div class="sponsorEntry">
 					<span>{{.Name}}</span>
 					{{if .GitHub}}
 					<span> | </span>
-					<span class="supportLink" data-path="{{.GitHub}}" onclick="clickLink">GitHub</span>
+					<span class="sponsorLink" data-path="{{.GitHub}}" onclick="clickLink">GitHub</span>
 					{{end}}
 					<!-- {{if .Website}}
 					<span> | </span>
-					<span class="supportLink" data-path="{{.Website}}" onclick="clickLink">Website</span>
+					<span class="sponsorLink" data-path="{{.Website}}" onclick="clickLink">Website</span>
 					{{end}} -->
 				</div>
 				{{end}}
