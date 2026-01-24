@@ -45,6 +45,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -391,6 +392,12 @@ func (s *ShaderSource) readLayouts() error {
 			}
 		}
 	}
+	slices.SortFunc(s.Layouts, func(a, b rendering.ShaderLayout) int {
+		if a.Source == "in" && b.Source == "out" {
+			return -1
+		}
+		return a.Location - b.Location
+	})
 	return nil
 }
 
