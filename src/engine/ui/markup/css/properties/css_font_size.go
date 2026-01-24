@@ -65,6 +65,8 @@ func (p FontSize) Process(panel *ui.Panel, elm *document.Element, values []rules
 	if len(values) != 1 {
 		return errors.New("FontSize requires exactly 1 value")
 	}
-	setChildrenFontSize(elm, values[0].Str, host)
+	for _, child := range elm.Children {
+		setChildrenFontSize(child, values[0].Str, host)
+	}
 	return nil
 }
