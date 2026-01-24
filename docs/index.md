@@ -175,7 +175,6 @@ If you like what you see, and want to support the project's continued developmen
 <table id="supporters">
 	<tr>
 		<th>Name</th>
-		<th>Level</th>
 		<th>GitHub</th>
 	</tr>
 </table>

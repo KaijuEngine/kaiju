@@ -9,9 +9,6 @@ async function listSupporters() {
 		const tdName = document.createElement('td');
 		tdName.textContent = s.Name;
 		tr.appendChild(tdName);
-		const tdLevel = document.createElement('td');
-		tdLevel.textContent = s.Support;
-		tr.appendChild(tdLevel);
 		const tdGit = document.createElement('td');
 		const a = document.createElement('a');
 		a.href = `https://github.com/${s.GitHub}`;
