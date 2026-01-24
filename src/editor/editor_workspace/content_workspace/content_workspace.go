@@ -165,6 +165,9 @@ func (w *ContentWorkspace) Open() {
 	w.Doc.Clean()
 	w.runFilter()
 	w.showRightPanel()
+	if w.isListMode {
+		w.Doc.ApplyStyles()
+	}
 }
 
 func (w *ContentWorkspace) Close() {
