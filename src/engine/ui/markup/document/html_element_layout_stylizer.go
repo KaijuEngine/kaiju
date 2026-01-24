@@ -69,7 +69,11 @@ type ElementLayoutStylizer struct {
 	deactivateEvtId events.Id
 	hoverEvtId      events.Id
 	hoverExitEvtId  events.Id
-	activeEvt       struct {
+	focusEvt        struct {
+		clickId events.Id
+		missId  events.Id
+	}
+	activeEvt struct {
 		enterId events.Id
 		downId  events.Id
 		upId    events.Id
@@ -95,6 +99,8 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	}
 	e.UI.RemoveEvent(ui.EventTypeEnter, s.hoverEvtId)
 	e.UI.RemoveEvent(ui.EventTypeExit, s.hoverExitEvtId)
+	e.UI.RemoveEvent(ui.EventTypeClick, s.focusEvt.clickId)
+	e.UI.RemoveEvent(ui.EventTypeMiss, s.focusEvt.missId)
 	e.UI.RemoveEvent(ui.EventTypeEnter, s.activeEvt.enterId)
 	e.UI.RemoveEvent(ui.EventTypeExit, s.activeEvt.exitId)
 	e.UI.RemoveEvent(ui.EventTypeDown, s.activeEvt.downId)
@@ -111,6 +117,8 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	entity.OnDeactivate.Remove(s.deactivateEvtId)
 	s.hoverEvtId = 0
 	s.hoverExitEvtId = 0
+	s.focusEvt.clickId = 0
+	s.focusEvt.missId = 0
 	s.activeEvt.enterId = 0
 	s.activeEvt.exitId = 0
 	s.activeEvt.downId = 0
@@ -135,6 +143,17 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 				elm.UI.SetDirty(ui.DirtyTypeGenerated)
 			})
 			s.hoverExitEvtId = elm.UI.AddEvent(ui.EventTypeExit, func() {
+				s.currentInvoke = rules.RuleInvokeImmediate
+				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+			})
+		}
+	case rules.RuleInvokeFocus:
+		if s.focusEvt.clickId == 0 {
+			s.focusEvt.clickId = elm.UI.AddEvent(ui.EventTypeClick, func() {
+				s.currentInvoke = rules.RuleInvokeFocus
+				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+			})
+			s.focusEvt.missId = elm.UI.AddEvent(ui.EventTypeMiss, func() {
 				s.currentInvoke = rules.RuleInvokeImmediate
 				elm.UI.SetDirty(ui.DirtyTypeGenerated)
 			})

@@ -37,11 +37,17 @@
 package pseudos
 
 import (
-	"errors"
 	"kaiju/engine/ui/markup/css/rules"
 	"kaiju/engine/ui/markup/document"
 )
 
 func (p Focus) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
-	return []*document.Element{elm}, errors.New("not implemented")
+	return []*document.Element{elm}, nil
+}
+
+func (p Focus) AlterRules(inRules []rules.Rule) []rules.Rule {
+	for i := range inRules {
+		inRules[i].Invocation = rules.RuleInvokeFocus
+	}
+	return inRules
 }
