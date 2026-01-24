@@ -403,16 +403,13 @@ func (t *Transform) LookAt(point Vec3) {
 // this transform.
 func (t *Transform) ScaleWithoutChildren(scale Vec3) {
 	count := len(t.children)
-	type tmp struct{ pos, rot, scale Vec3 }
-	arr := make([]tmp, count)
+	arr := make([]Vec3, count)
 	for i := range t.children {
-		arr[i].pos, arr[i].rot, arr[i].scale = t.children[i].WorldTransform()
+		arr[i] = t.children[i].WorldScale()
 	}
 	t.SetScale(scale)
 	for i := range count {
-		t.children[i].SetWorldPosition(arr[i].pos)
-		t.children[i].SetWorldRotation(arr[i].rot)
-		t.children[i].SetWorldScale(arr[i].scale)
+		t.children[i].SetWorldScale(arr[i])
 	}
 }
 
