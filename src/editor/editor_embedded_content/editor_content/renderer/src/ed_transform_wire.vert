@@ -9,6 +9,7 @@
 #include "kaiju.glsl"
 
 void main() {
+	fragColor = color;
 	writeTexCoords();
 	writeStandardPosition();
 }
