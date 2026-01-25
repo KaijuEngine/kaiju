@@ -49,9 +49,9 @@ body {
 	display: block;
 	margin: 8px;
 }
-body:focus {
+/* body:focus {
 	outline: none;
-}
+} */
 caption {
 	display: table-caption;
 	text-align: center;
@@ -104,9 +104,9 @@ span {
 em {
 	font-style: italic;
 }
-embed:focus {
+/* embed:focus {
 	outline: none;
-}
+} */
 fieldset {
 	display: block;
 	margin-left: 2px;
@@ -213,15 +213,15 @@ hr {
 html {
 	display: block;
 }
-html:focus {
+/* html:focus {
 	outline: none;
-}
+} */
 i {
 	font-style: italic;
 }
-iframe:focus {
+/* iframe:focus {
 	outline: none;
-}
+} */
 iframe[seamless] {
 	display: block;
 }
@@ -267,9 +267,9 @@ menu {
 }
 nav {display: block;
 }
-object:focus {
+/* object:focus {
 	outline: none;
-}
+} */
 ol {
 	display: block;
 	list-style-type: decimal;

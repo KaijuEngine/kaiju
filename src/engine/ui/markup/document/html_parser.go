@@ -409,6 +409,7 @@ func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 	body := h.Body()
 	bodyPanel := uiMan.Add().ToPanel()
 	bodyPanel.Init(nil, ui.ElementTypePanel)
+	bodyPanel.AllowClickThrough()
 	bodyPanel.DontFitContent()
 	bodyPanel.Base().Clean()
 	body.UI = bodyPanel.Base()

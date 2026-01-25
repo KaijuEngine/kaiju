@@ -58,6 +58,7 @@ func (s *SelectTool) Init(host *engine.Host, handler ResultHandler) {
 	s.uiMan.Init(host)
 	s.panel = s.uiMan.Add().ToPanel()
 	s.panel.Init(nil, ui.ElementTypePanel)
+	s.panel.AllowClickThrough()
 	s.panel.SetColor(matrix.NewColor(1, 1, 1, 0.5))
 	s.panel.Base().Hide()
 }

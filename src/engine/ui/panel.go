@@ -967,4 +967,8 @@ func (p *Panel) AllowClickThrough() {
 	pd.flags.setAllowClickThrough()
 	p.events[EventTypeDown].Clear()
 	p.events[EventTypeUp].Clear()
+	p.events[EventTypeClick].Clear()
+	p.events[EventTypeRightClick].Clear()
+	p.events[EventTypeRightDown].Clear()
+	p.events[EventTypeRightUp].Clear()
 }
