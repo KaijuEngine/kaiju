@@ -4,11 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"kaiju/editor/project/project_database/content_database"
+	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
 	"log/slog"
 )
+
+func (p *ContentPreviewer) updateSphereTransform() *matrix.Transform {
+	host := p.ed.Host()
+	cam := host.PrimaryCamera()
+	ratio := cam.Width() / cam.Height()
+	scaleOut := max(sphereRadius, ratio, 1/ratio) + 1.5
+	spherePos := cam.Position().Add(cam.Forward().Scale(scaleOut))
+	p.sphereTransform.SetPosition(spherePos)
+	p.sphereTransform.SetScale(matrix.NewVec3(ratio, 1, ratio))
+	p.sphereTransform.SetRotation(p.rotForMaterialTransform())
+	return &p.sphereTransform
+}
 
 func (p *ContentPreviewer) renderMaterial(id string) {
 	mat, err := readMaterial(id, p.ed)
@@ -18,12 +31,14 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 		return
 	}
 	host := p.ed.Host()
-	mesh := rendering.NewMeshSphere(host.MeshCache(), 1, 32, 32)
+	mesh := rendering.NewMeshSphere(host.MeshCache(), sphereRadius, sphereSegments, sphereSegments)
 	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       mesh,
 		ShaderData: sd,
+		Transform:  p.updateSphereTransform(),
+		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
 	host.RunBeforeRender(func() {
@@ -32,6 +47,26 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 			p.readRenderPass(host, sd, id)
 		})
 	})
+}
+
+func (p *ContentPreviewer) rotForMaterialTransform() matrix.Vec3 {
+	view := matrix.Mat4LookAt(p.sphereTransform.Position(),
+		p.cam.Position(), matrix.Vec3Up())
+	rot := matrix.Mat4Identity()
+	rot[matrix.Mat4x0y0] = view[matrix.Mat4x0y0]
+	rot[matrix.Mat4x0y1] = view[matrix.Mat4x1y0]
+	rot[matrix.Mat4x0y2] = view[matrix.Mat4x2y0]
+	rot[matrix.Mat4x1y0] = view[matrix.Mat4x0y1]
+	rot[matrix.Mat4x1y1] = view[matrix.Mat4x1y1]
+	rot[matrix.Mat4x1y2] = view[matrix.Mat4x2y1]
+	rot[matrix.Mat4x2y0] = view[matrix.Mat4x0y2]
+	rot[matrix.Mat4x2y1] = view[matrix.Mat4x2y1]
+	rot[matrix.Mat4x2y2] = view[matrix.Mat4x2y2]
+	rot[matrix.Mat4x0y2] *= -1
+	rot[matrix.Mat4x1y2] *= -1
+	rot[matrix.Mat4x2y2] *= -1
+	q := matrix.QuaternionFromMat4(rot)
+	return q.ToEuler()
 }
 
 func readMaterial(id string, ed EditorInterface) (*rendering.Material, error) {

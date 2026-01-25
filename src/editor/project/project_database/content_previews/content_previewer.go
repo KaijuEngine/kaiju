@@ -17,13 +17,19 @@ import (
 	"sync"
 )
 
+const (
+	sphereRadius   = 1
+	sphereSegments = 32
+)
+
 type ContentPreviewer struct {
-	ed      EditorInterface
-	pending []string
-	mat     *rendering.Material
-	cam     cameras.Camera
-	mutex   sync.Mutex
-	inProc  bool
+	ed              EditorInterface
+	pending         []string
+	mat             *rendering.Material
+	cam             cameras.Camera
+	sphereTransform matrix.Transform
+	mutex           sync.Mutex
+	inProc          bool
 }
 
 func (p *ContentPreviewer) Initialize(ed EditorInterface) error {
@@ -40,6 +46,7 @@ func (p *ContentPreviewer) Initialize(ed EditorInterface) error {
 	p.cam = cameras.NewStandardCamera(float32(rp.Width()), float32(rp.Height()),
 		float32(rp.Width()), float32(rp.Height()), matrix.Vec3Zero())
 	p.cam.SetPositionAndLookAt(pos, matrix.Vec3Zero())
+	p.sphereTransform.Initialize(p.ed.Host().WorkGroup())
 	return nil
 }
 
