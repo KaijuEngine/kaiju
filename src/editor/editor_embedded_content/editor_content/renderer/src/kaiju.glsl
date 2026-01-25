@@ -539,3 +539,15 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 		}
 	#endif
 #endif
+
+vec3 vec2Round(vec2 v) {
+	return vec2(round(v.x), round(v.y));
+}
+
+vec3 vec3Round(vec3 v) {
+	return vec3(round(v.x), round(v.y), round(v.z));
+}
+
+vec4 vec4Round(vec4 v) {
+	return vec4(round(v.x), round(v.y), round(v.z), round(v.w));
+}
