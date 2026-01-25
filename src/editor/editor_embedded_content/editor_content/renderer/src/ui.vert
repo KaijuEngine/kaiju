@@ -22,10 +22,6 @@ layout(location = 9) out vec2 fragTexCoord;
 layout(location = 10) out vec2 fragBorderLen;
 layout(location = 11) out vec4 fragUvs;
 
-vec4 vec4Round(vec4 v) {
-	return vec4(round(v.x), round(v.y), round(v.z), round(v.w));
-}
-
 void main() {
 	vec4 vPos = model * vec4(Position, 1.0);
 	vPos.x = round(vPos.x);
