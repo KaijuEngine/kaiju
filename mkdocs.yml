@@ -8,8 +8,8 @@ nav:
   - Home: index.md
   - Getting started: getting_started/index.md
   - Kaiju Editor:
-    - Launching the editor: editor/launching_the_editor.md
-    - Editor design: editor/editor_design.md
+    # - Launching the editor: editor/launching_the_editor.md
+    # - Editor design: editor/editor_design.md
     - Stage: editor/stage.md
     - Content:
       - Content workspace: editor/content/workspace.md
