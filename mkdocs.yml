@@ -14,6 +14,7 @@ nav:
     - Content:
       - Content workspace: editor/content/workspace.md
       - Reference viewer: editor/content/reference_viewer.md
+      - Table of contents: editor/content/table_of_contents.md
     - Shading: editor/shading.md
     - VFX (particles): editor/vfx.md
     - UI: editor/ui.md
