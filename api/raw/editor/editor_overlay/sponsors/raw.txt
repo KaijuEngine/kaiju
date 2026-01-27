@@ -1,0 +1,20 @@
+package sponsors // import "kaiju/editor/editor_overlay/sponsors"
+
+
+TYPES
+
+type Sponsor struct {
+	Name    string
+	GitHub  string
+	Website string
+	Support int
+}
+
+type Sponsors struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, onClose func()) (*Sponsors, error)
+
+func (o *Sponsors) Close()
+

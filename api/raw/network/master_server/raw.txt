@@ -1,0 +1,97 @@
+package master_server // import "kaiju/network/master_server"
+
+
+CONSTANTS
+
+const (
+	MaxPasswordSize = 16
+)
+const (
+	ErrorNone = Error(iota)
+	ErrorIncorrectPassword
+	ErrorServerDoesntExist
+)
+const (
+	RequestTypeRegisterServer = MasterServerRequestType(iota)
+	RequestTypeUnregisterServer
+	RequestTypePing
+	RequestTypeServerList
+	RequestTypeJoinServer
+)
+const (
+	ResponseTypeConfirmRegister = MasterServerResponseType(iota)
+	ResponseTypeServerList
+	ResponseTypeJoinServerInfo
+	ResponseTypeClientJoinInfo
+	ResponseTypeError
+)
+
+TYPES
+
+type Error = uint8
+
+type MasterServer struct {
+	// Has unexported fields.
+}
+
+func New(updater *engine.Updater) (*MasterServer, error)
+
+type MasterServerClient struct {
+	OnServerList func([]ResponseServerList, uint32)
+	OnServerJoin func(string)
+	OnClientJoin func(string)
+	OnError      func(uint8)
+	// Has unexported fields.
+}
+
+func (c *MasterServerClient) Connect(updater *engine.Updater) error
+
+func (c *MasterServerClient) Disconnect(updater *engine.Updater)
+
+func (c *MasterServerClient) JoinServer(id uint64) error
+
+func (c *MasterServerClient) ListServers(game string) error
+
+func (c *MasterServerClient) RegisterServer(game, name string, maxPlayers, currentPlayers uint16) error
+
+type MasterServerRequestType = uint8
+
+type MasterServerResponseType = uint8
+
+type Request struct {
+	Game           [gameKeySize]byte
+	Name           [gameNameSize]byte
+	Password       [MaxPasswordSize]byte
+	ServerId       uint64
+	MaxPlayers     uint16
+	CurrentPlayers uint16
+	Type           MasterServerRequestType
+}
+
+func DeserializeRequest(buffer []byte) Request
+
+func (r *Request) Serialize(buffer []byte)
+
+type Response struct {
+	Type      MasterServerResponseType
+	List      [serversPerResponse]ResponseServerList
+	Address   [addressMaxLen]byte
+	TotalList uint32
+	Error     uint8
+}
+
+func DeserializeResponse(buffer []byte) Response
+
+func (r Response) Serialize(buffer []byte) []byte
+
+type ResponseServerList struct {
+	Name           [gameNameSize]byte
+	Id             uint64
+	MaxPlayers     uint16
+	CurrentPlayers uint16
+}
+
+type ServerListing struct {
+	// Has unexported fields.
+}
+

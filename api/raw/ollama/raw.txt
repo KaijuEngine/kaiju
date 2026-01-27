@@ -1,0 +1,137 @@
+package ollama // import "kaiju/ollama"
+
+
+FUNCTIONS
+
+func ReflectFuncToOllama(a LLMAction, name, description string) error
+func Stdin(hostAddr string, req APIRequest, reader func(think, msg string) error) error
+func Stream(hostAddr string, request APIRequest, reader func(APIResponse) error, onToolCall func(ToolCall) error) error
+func UnloadModel(hostAddr, modelName string) error
+
+TYPES
+
+type APIRequest struct {
+	Model      string               `json:"model"`
+	Prompt     string               `json:"prompt"`
+	Messages   []Message            `json:"messages"`
+	Stream     bool                 `json:"stream"`
+	Suffix     string               `json:"suffix,omitempty"`
+	Images     []Base64EncodedImage `json:"images,omitempty"`
+	Format     string               `json:"format,omitempty"`
+	Template   string               `json:"template,omitempty"`
+	KeepAlive  int                  `json:"keep_alive,omitempty"`
+	System     string               `json:"system,omitempty"`
+	Options    APIRequestOptions    `json:"options,omitempty"`
+	Think      bool                 `json:"think,omitempty"`
+	Raw        bool                 `json:"raw,omitempty"`
+	Tools      []Tool               `json:"tools,omitempty"`
+	RetryCount int
+}
+
+type APIRequestOptions struct {
+	Mirostat      int     `json:"mirostat,omitempty"`
+	MirostatEta   float64 `json:"mirostat_eta,omitempty"`
+	MirostatTau   float64 `json:"mirostat_tau,omitempty"`
+	NumCtx        int64   `json:"num_ctx,omitempty"`
+	RepeatLastN   int     `json:"repeat_last_n,omitempty"`
+	RepeatPenalty float64 `json:"repeat_penalty,omitempty"`
+	Temperature   float64 `json:"temperature,omitempty"`
+	Seed          int     `json:"seed,omitempty"`
+	Stop          string  `json:"stop,omitempty"`
+	NumPredict    int     `json:"num_predict,omitempty"`
+	TopK          int     `json:"top_k,omitempty"`
+	TopP          float64 `json:"top_p,omitempty"`
+	MinP          float64 `json:"min_p,omitempty"`
+}
+
+type APIResponse struct {
+	Model              string    `json:"model"`
+	Created            time.Time `json:"created_at"`
+	Thinking           string    `json:"thinking"`
+	Response           string    `json:"response"`
+	Message            Message   `json:"message"`
+	Done               bool      `json:"done"`
+	TotalDuration      int64     `json:"total_duration"`
+	LoadDuration       int64     `json:"load_duration"`
+	PromptEvalCount    int64     `json:"prompt_eval_count"`
+	PromptEvalDuration int64     `json:"prompt_eval_duration"`
+	EvalCount          int64     `json:"eval_count"`
+	EvalDuration       int64     `json:"eval_duration"`
+	Error              string    `json:"error"`
+}
+
+func Chat(hostAddr string, req APIRequest) (APIResponse, error)
+
+type Base64EncodedImage = string
+
+type FieldInfo struct {
+	Type     reflect.Type
+	JSON     string
+	Desc     string
+	Enum     []string
+	Optional bool
+}
+
+type Function struct {
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Parameters  FunctionParameters `json:"parameters"`
+}
+
+type FunctionParameterProperty struct {
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Enum        []string `json:"enum,omitempty"`
+}
+
+type FunctionParameters struct {
+	Type       string                               `json:"type"`
+	Properties map[string]FunctionParameterProperty `json:"properties"`
+	Required   []string                             `json:"required,omitempty"`
+}
+
+type LLMAction interface {
+	Execute() (any, error)
+}
+
+type LLMActionResultBase struct {
+	Success bool   `json:"success" llmskip:"true"`
+	Error   string `json:"error" llmskip:"true"`
+}
+
+func (a *LLMActionResultBase) SetErrorMessage(msg string)
+
+func (a *LLMActionResultBase) SetSuccess()
+
+type Message struct {
+	Role               string     `json:"role"`
+	Content            string     `json:"content"`
+	ToolCalls          []ToolCall `json:"tool_calls"`
+	DoneReason         string     `json:"done_reason"`
+	Done               bool       `json:"done"`
+	TotalDuration      uint64     `json:"total_duration"`
+	LoadDuration       uint64     `json:"load_duration"`
+	PromptEvalCount    uint64     `json:"prompt_eval_count"`
+	PromptEvalDuration uint64     `json:"prompt_eval_duration"`
+	EvalCount          uint64     `json:"eval_count"`
+	EvalDuration       uint64     `json:"eval_duration"`
+}
+
+type Tool struct {
+	Type     string   `json:"type"`
+	Function Function `json:"function"`
+}
+
+type ToolCall struct {
+	Function ToolCallFunction `json:"function"`
+}
+
+type ToolCallFunction struct {
+	Name      string         `json:"name"`
+	Arguments map[string]any `json:"arguments"`
+}
+
+type ToolFunc struct {
+	// Has unexported fields.
+}
+

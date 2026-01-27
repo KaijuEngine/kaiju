@@ -1,0 +1,17 @@
+package select_tool // import "kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
+
+
+TYPES
+
+type ResultHandler interface {
+	TryBoxSelect(screenBox matrix.Vec4)
+}
+
+type SelectTool struct {
+	// Has unexported fields.
+}
+
+func (s *SelectTool) Init(host *engine.Host, handler ResultHandler)
+
+func (s *SelectTool) Update()
+

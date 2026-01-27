@@ -1,0 +1,14 @@
+package font_to_msdf // import "kaiju/tools/font_to_msdf"
+
+
+FUNCTIONS
+
+func ProcessTTF(ttfFile string, charsetFile string) (kaiju_font.KaijuFont, error)
+    ProcessTTF will take in a path to a TTF file and a set of characters that
+    need to be rendered and generate the engine's proprietary font rendering
+    data object. To do this, it uses the open source msdf-atlas-gen executable
+    that is packaged with the engine, and generate the .json and .png files,
+    then reads the .json file into the kaiju_font.FontData structure. A
+    kaiju_font.KaijuFont is returned with the font details and the MSDF version
+    of a PNG file.
+

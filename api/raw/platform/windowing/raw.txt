@@ -1,0 +1,214 @@
+package windowing // import "kaiju/platform/windowing"
+
+
+FUNCTIONS
+
+func DPI2PX(pixels, mm, targetMM int) int
+func DPI2PXF(pixels, mm, targetMM float64) float64
+func HasDragData() bool
+func NewBinding(ptr unsafe.Pointer, assets assets.Database)
+func SetDragData(data DragDataTarget)
+func UpdateDragData(sender *Window, x, y int)
+func UpdateDragDrop(sender *Window, x, y int)
+
+TYPES
+
+type ControllerStateWindowEvent struct {
+	// Has unexported fields.
+}
+
+type DragDataTarget interface {
+	DragUpdate()
+}
+
+var (
+	OnDragStop events.Event
+)
+func DragData() DragDataTarget
+
+type FileSearch struct {
+	Title     string
+	Extension string
+}
+
+type KeyboardButtonWindowEvent struct {
+	// Has unexported fields.
+}
+
+type MouseButtonWindowEvent struct {
+	// Has unexported fields.
+}
+
+type MouseMoveWindowEvent struct {
+	// Has unexported fields.
+}
+
+type MouseScrollWindowEvent struct {
+	// Has unexported fields.
+}
+
+type SetHandleEvent struct {
+	// Has unexported fields.
+}
+
+type StylusActionState = int32
+
+type StylusStateWindowEvent struct {
+	// Has unexported fields.
+}
+
+type TouchActionState = int32
+
+type TouchStateWindowEvent struct {
+	// Has unexported fields.
+}
+
+type Window struct {
+	Mouse        hid.Mouse
+	Keyboard     hid.Keyboard
+	Touch        hid.Touch
+	Stylus       hid.Stylus
+	Controller   hid.Controller
+	Cursor       hid.Cursor
+	Renderer     rendering.Renderer
+	OnResize     events.Event
+	OnMove       events.Event
+	OnActivate   events.Event
+	OnDeactivate events.Event
+
+	// Has unexported fields.
+}
+
+func FindWindowAtPoint(x, y int) (*Window, bool)
+
+func New(windowName string, width, height, x, y int, adb assets.Database, platformState any) (*Window, error)
+
+func (w *Window) AddBorder()
+
+func (w *Window) Center() (x int, y int)
+
+func (w *Window) ClipboardContents() string
+
+func (w *Window) CopyToClipboard(text string)
+
+func (w *Window) CursorIbeam()
+
+func (w *Window) CursorSizeAll()
+
+func (w *Window) CursorSizeNS()
+
+func (w *Window) CursorSizeWE()
+
+func (w *Window) CursorStandard()
+
+func (w *Window) Destroy()
+
+func (w *Window) DisableRawMouseInput()
+
+func (w *Window) DotsPerMillimeter() float64
+
+func (w *Window) EnableRawMouseInput()
+
+func (w *Window) EndUpdate()
+
+func (w *Window) Focus()
+
+func (w *Window) GetDrawableSize() (int32, int32)
+
+func (w *Window) GetInstanceExtensions() []string
+
+func (w *Window) Height() int
+
+func (w *Window) HideCursor()
+
+func (w *Window) IsClosed() bool
+
+func (w *Window) IsCrashed() bool
+
+func (w *Window) IsFullScreen() bool
+
+func (w *Window) IsMinimized() bool
+
+func (w *Window) IsPCSize() bool
+
+func (w *Window) IsPhoneSize() bool
+
+func (w *Window) IsTabletSize() bool
+
+func (w *Window) LockCursor(x, y int)
+
+func (w *Window) OpenFileDialog(startPath string, extensions []filesystem.DialogExtension, ok func(path string), cancel func()) error
+
+func (w *Window) PlatformInstance() unsafe.Pointer
+
+func (w *Window) PlatformWindow() unsafe.Pointer
+
+func (w *Window) Poll()
+
+func (w *Window) Position() (x int, y int)
+
+func (w *Window) ReadApplicationAsset(path string) ([]byte, error)
+    ReadApplicationAsset will read an asset bound to the application. This is
+    typically only useful on mobile platforms like Android. Platforms like
+    Linux, Windows, and Mac will return an error, use #ReadFile instead
+
+func (w *Window) RemoveBorder()
+
+func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []filesystem.DialogExtension, ok func(path string), cancel func()) error
+
+func (w *Window) ScreenSizeMM() (int, int, error)
+
+func (w *Window) SetCursorPosition(x, y int)
+
+func (w *Window) SetFullscreen()
+
+func (w *Window) SetPosition(x, y int)
+
+func (w *Window) SetSize(width, height int)
+
+func (w *Window) SetTitle(name string)
+
+func (w *Window) SetWindowed(width, height int)
+
+func (w *Window) ShowCursor()
+
+func (w *Window) SizeMM() (int, int, error)
+
+func (w *Window) SwapBuffers()
+
+func (w *Window) ToLocalPosition(x, y int) (int, int)
+
+func (w *Window) ToScreenPosition(x, y int) (int, int)
+
+func (w *Window) UnlockCursor()
+
+func (w *Window) Viewport() matrix.Vec4
+
+func (w *Window) Width() int
+
+func (w *Window) X() int
+
+func (w *Window) XY() (int, int)
+
+func (w *Window) Y() int
+
+type WindowActivityEvent struct {
+	// Has unexported fields.
+}
+
+type WindowEventActivityType = uint32
+
+type WindowEventButtonType = uint32
+
+type WindowEventControllerConnectionType = uint32
+
+type WindowEventType = uint8
+
+type WindowMoveEvent struct {
+	// Has unexported fields.
+}
+
+type WindowResizeEvent struct {
+	// Has unexported fields.
+}
+

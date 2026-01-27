@@ -1,0 +1,78 @@
+package stages // import "kaiju/engine/stages"
+
+
+CONSTANTS
+
+const EntryPointAssetKey = "entryPointStage"
+
+FUNCTIONS
+
+func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityDescription) (*engine.Entity, error)
+
+TYPES
+
+type EntityDataBinding struct {
+	RegistraionKey string
+	Fields         map[string]any `json:",omitempty"`
+}
+
+type EntityDescription struct {
+	Id             string
+	TemplateId     string
+	Name           string
+	Mesh           string
+	Material       string
+	Textures       []string
+	Position       matrix.Vec3
+	Rotation       matrix.Vec3
+	Scale          matrix.Vec3
+	DataBinding    []EntityDataBinding
+	Children       []EntityDescription
+	ShaderData     []EntityDescriptionShaderDataField
+	RawDataBinding []any
+}
+
+func EntityDescriptionArchiveDeserializer(rawData []byte) (EntityDescription, error)
+
+type EntityDescriptionJson struct {
+	Id          string
+	TemplateId  string
+	Name        string
+	Mesh        int
+	Material    int                     `json:"Mat"`
+	Textures    []int                   `json:"Tex,omitempty"`
+	Position    matrix.Vec3             `json:"P"`
+	Rotation    matrix.Vec3             `json:"R"`
+	Scale       matrix.Vec3             `json:"S"`
+	DataBinding []EntityDataBinding     `json:"Data,omitempty"`
+	Children    []EntityDescriptionJson `json:"Kids,omitempty"`
+	ShaderData  map[string]EntityDescriptionShaderDataField
+}
+
+type EntityDescriptionShaderDataField struct {
+	Name  string
+	Index int32
+	Value any
+}
+
+type Stage struct {
+	Id       string
+	Entities []EntityDescription
+}
+
+func ArchiveDeserializer(rawData []byte) (Stage, error)
+
+func (s *Stage) FromMinimized(ss StageJson)
+
+func (s *Stage) Load(host *engine.Host)
+
+func (s *Stage) ToMinimized() StageJson
+
+type StageJson struct {
+	Id        string
+	Meshes    []string                `json:",omitempty"`
+	Materials []string                `json:",omitempty"`
+	Textures  []string                `json:",omitempty"`
+	Entities  []EntityDescriptionJson `json:",omitempty"`
+}
+

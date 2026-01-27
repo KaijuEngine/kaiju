@@ -1,0 +1,140 @@
+package sprite // import "kaiju/engine/systems/visual2d/sprite"
+
+
+FUNCTIONS
+
+func SetDefaultTextureFilter(filter rendering.TextureFilter)
+func SetPixelPositioning(pixelPositioning bool)
+
+TYPES
+
+type AnimatedUV struct {
+	// Has unexported fields.
+}
+
+type IndexedSprite struct {
+	// Has unexported fields.
+}
+
+type ShaderData struct {
+	rendering.ShaderDataBase
+	UVs     matrix.Vec4
+	FgColor matrix.Color
+}
+
+func (t ShaderData) Size() int
+
+type Sprite struct {
+	Entity *engine.Entity
+
+	// Has unexported fields.
+}
+
+func (s *Sprite) Activate()
+
+func (s *Sprite) ContainsPoint(point matrix.Vec2) bool
+
+func (s *Sprite) Deactivate()
+
+func (s *Sprite) FlipHorizontal()
+
+func (s *Sprite) Init(x, y, width, height float32, host *engine.Host, texture string, color matrix.Color)
+
+func (s *Sprite) InitFlipBook(x, y, width, height float32, host *engine.Host, textures []*rendering.Texture, inFPS float32)
+
+func (s *Sprite) InitFromTexture(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, color matrix.Color)
+
+func (s *Sprite) InitSheet(x, y, width, height float32, host *engine.Host, textureKey, sheetDataKey string, inFPS float32, initialClip string) error
+
+func (s *Sprite) InitUVAnimation(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, color matrix.Color, inUVAnimation []AnimatedUV)
+
+func (s *Sprite) Move(x, y float32)
+
+func (s *Sprite) Move3D(x, y, z float32)
+
+func (s *Sprite) PlayAnimation()
+
+func (s *Sprite) Position() matrix.Vec2
+
+func (s *Sprite) SetBlended()
+
+func (s *Sprite) SetColor(color matrix.Color)
+
+func (s *Sprite) SetFlipBookAnimation(inFPS float32, textures []*rendering.Texture)
+
+func (s *Sprite) SetFrame(frame int)
+
+func (s *Sprite) SetFrameRate(inFPS float32)
+
+func (s *Sprite) SetPosition(x, y float32)
+
+func (s *Sprite) SetPosition3D(x, y, z float32)
+
+func (s *Sprite) SetPositionZ(z float32)
+
+func (s *Sprite) SetSheetClip(name string) bool
+
+func (s *Sprite) SetSize(width, height float32)
+
+func (s *Sprite) SetTexture(texture *rendering.Texture)
+
+func (s *Sprite) SetUVs(drawing int, inUVs matrix.Vec4)
+
+func (s *Sprite) SetUnBlended()
+
+func (s *Sprite) ShaderData(drawing int) *ShaderData
+
+func (s *Sprite) StopAnimation()
+
+func (s *Sprite) SwapMaterial(mat *rendering.Material)
+
+type SpriteGroup struct {
+	// Has unexported fields.
+}
+
+func (g *SpriteGroup) Add(sprite Sprite) SpriteGroupId
+
+func (g *SpriteGroup) AddBlank() *IndexedSprite
+
+func (g *SpriteGroup) Find(id SpriteGroupId) *Sprite
+
+func (g *SpriteGroup) Init(host *engine.Host)
+
+func (g *SpriteGroup) Remove(id SpriteGroupId)
+
+func (g *SpriteGroup) Reserve(count int)
+
+type SpriteGroupId = int
+
+type SpriteSheet struct {
+	Clips map[string]SpriteSheetClip
+}
+
+func NewSheetFromBin(bin []byte) (SpriteSheet, error)
+
+func NewSheetFromClips(clips []SpriteSheetClip) SpriteSheet
+
+func NewSheetFromJson(jsonStr string) (SpriteSheet, error)
+
+func (s *SpriteSheet) AddClip(clip SpriteSheetClip)
+
+func (s *SpriteSheet) FirstClip() SpriteSheetClip
+
+func (s *SpriteSheet) IsValid() bool
+
+func (s *SpriteSheet) ToBin() ([]byte, error)
+
+func (s *SpriteSheet) ToJson() (string, error)
+
+type SpriteSheetClip struct {
+	Name   string
+	Frames []SpriteSheetFrame
+}
+
+type SpriteSheetFrame struct {
+	Hold      int32
+	Rectangle matrix.Vec4
+}
+
+func (f SpriteSheetFrame) UVs(texSize matrix.Vec2) matrix.Vec4
+

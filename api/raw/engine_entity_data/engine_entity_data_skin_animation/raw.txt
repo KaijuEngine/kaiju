@@ -1,0 +1,22 @@
+package engine_entity_data_skin_animation // import "kaiju/engine_entity_data/engine_entity_data_skin_animation"
+
+
+CONSTANTS
+
+const BindingKey = "kaiju.SkinAnimationEntityData"
+
+TYPES
+
+type MeshSkinningAnimation struct {
+	// Has unexported fields.
+}
+
+func (a *MeshSkinningAnimation) SetAnimation(name string)
+
+type SkinAnimationEntityData struct {
+	MeshId   content_id.Mesh
+	AnimName string `options:"animations"`
+}
+
+func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host)
+

@@ -1,0 +1,44 @@
+package shading_workspace // import "kaiju/editor/editor_workspace/shading_workspace"
+
+
+TYPES
+
+type ShadingWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *ShadingWorkspace) Close()
+
+func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEditorInterface)
+
+func (w *ShadingWorkspace) Open()
+
+func (w *ShadingWorkspace) OpenSpec(id string)
+
+func (w *ShadingWorkspace) Update(deltaTime float64)
+
+type ShadingWorkspaceEditorInterface interface {
+	BlurInterface()
+	FocusInterface()
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	StageView() *editor_stage_view.StageView
+}
+
+type ShadingWorkspaceUIData struct {
+	Files []ShadingWorkspaceUIDataFile
+}
+
+type ShadingWorkspaceUIDataFile struct {
+	Id   string
+	Type string
+	Name string
+}
+
