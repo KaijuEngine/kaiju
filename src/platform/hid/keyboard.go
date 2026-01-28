@@ -36,7 +36,11 @@
 
 package hid
 
-import "strings"
+import (
+	"log/slog"
+	"strings"
+	"time"
+)
 
 type KeyState = uint8
 type KeyboardKey = int
@@ -164,14 +168,22 @@ type keyCallback struct {
 
 type Keyboard struct {
 	keyStates      [KeyboardKeyMaximum]KeyState
+	lastClicked    [KeyboardKeyMaximum]time.Time
 	nextCallbackId KeyCallbackId
 	keyCallbacks   []keyCallback
 }
 
 func NewKeyboard() Keyboard {
+	lastClicked := [KeyboardKeyMaximum]time.Time{}
+	t := time.Now()
+	for i := 0; i < KeyboardKeyMaximum; i++ {
+		lastClicked[i] = t
+	}
+
 	return Keyboard{
 		nextCallbackId: 1,
 		keyCallbacks:   []keyCallback{},
+		lastClicked:    lastClicked,
 	}
 }
 
@@ -270,6 +282,7 @@ func (k *Keyboard) SetKeyDown(key KeyboardKey) {
 	if key != KeyBoardKeyInvalid && k.keyStates[key] != KeyStateHeld {
 		k.keyStates[key] = KeyStateDown
 		k.doKeyCallbacks(key, KeyStateDown)
+		k.lastClicked[key] = time.Now()
 	}
 }
 
@@ -494,4 +507,13 @@ func (k *Keyboard) Reset() {
 			k.keyStates[i] = KeyStateUp
 		}
 	}
+}
+
+func (k *Keyboard) GetKeyLastClicked(keyId int) time.Time {
+	if keyId < 0 || keyId > KeyboardKeyMaximum {
+		slog.Error("inside keyboard::GetKeyLastClicked", "keyId", keyId)
+		return time.Now()
+	}
+
+	return k.lastClicked[keyId]
 }
