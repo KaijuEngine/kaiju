@@ -38,3 +38,6 @@ kaiju_android.so
 
 # GoLand
 .idea/
+
+#Mac
+.DS_Store

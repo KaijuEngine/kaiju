@@ -45,6 +45,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
 	"math"
+	"time"
 	"unicode"
 	"unicode/utf8"
 	"weak"
@@ -805,6 +806,16 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 			(*UI)(input).requestEvent(EventTypeKeyDown)
 		} else if keyState == hid.KeyStateUp {
 			(*UI)(input).requestEvent(EventTypeKeyUp)
+		} else if keyState == hid.KeyStateHeld {
+			kb := &host.Window.Keyboard
+			switch keyId {
+			case hid.KeyboardKeyBackspace:
+				prev := kb.GetKeyLastClicked(keyId)
+				dt := time.Since(prev)
+				if dt.Milliseconds() > 500 {
+					input.backspace(kb)
+				}
+			}
 		}
 	}
 }
