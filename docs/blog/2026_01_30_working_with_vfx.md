@@ -15,7 +15,7 @@ date: 2026-01-30
 
 Visual effects (VFX) are a cornerstone of modern game development, providing everything from subtle smoke trails to spectacular fireworks.  Kaiju Engine's VFX subsystem is designed to be lightweight, extensible, and tightly integrated with the editor, allowing designers to craft and iterate on particle effects in real time.
 
-In this post we'll explore the architecture of the VFX system, dive into the key data structures (`Particle`, `Emitter`, and `ParticleSystem`), and show how to edit emitters using the built‑in editor UI.  We'll also provide a simple firework example, debugging tips, and guidance on extending the system with custom path functions.
+In this post we'll explore the architecture of the VFX system, dive into the key data structures (`Particle`, `Emitter`, and `ParticleSystem`), and show how to edit emitters using the built‑in editor UI.
 
 ---
 
