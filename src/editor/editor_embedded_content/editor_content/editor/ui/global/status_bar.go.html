@@ -51,11 +51,37 @@
 	<body>
 		<div id="bar">
 			<div class="msg">
-				<span id="log" onclick="openLogWindow">No logs</span>
+				<span id="log" onclick="openLogWindow()">No logs</span>
 			</div>
 		</div>
-		<div id="logPopup" onclick="closePopup" onmiss="closePopup">
+		<div id="logPopup" onclick="closePopup()" onmiss="closePopup()">
 			<div id="logEntryTemplate" class="logLine">Logs...</div>
 		</div>
+
+		<script>
+			function addLogEntry(text) {
+				const logPopup = document.getElementById('logPopup');
+				
+				
+				const template = document.getElementById('logEntryTemplate');
+				const entry = template.cloneNode(true);
+				entry.id = ''; 
+				entry.textContent = text;
+				entry.style.display = 'block';
+
+				
+				entry.addEventListener('contextmenu', function(e) {
+					e.preventDefault(); 
+					navigator.clipboard.writeText(text); 
+				});
+
+				logPopup.appendChild(entry);
+			}
+
+			
+			addLogEntry("[INFO] Application started");
+			addLogEntry("[WARN] Low memory warning");
+			addLogEntry("[ERROR] Failed to load asset");
+		</script>
 	</body>
 </html>
