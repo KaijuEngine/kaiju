@@ -4,4 +4,4 @@ Welcome to the Kaiju Engine blog! Here you will find updates, announcements, and
 
 ## Posts
 
-- [Working With VFX](/blog/2026_01_30_working_with_vfx)
+- [Working With VFX (Jan 30th, 2026)](/blog/2026_01_30_working_with_vfx)

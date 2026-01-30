@@ -7,7 +7,14 @@ date: 2026-01-30
 ---
 
 # Working with VFX in Kaiju Engine
-
+<div class="blog-author">
+    <span class="author-name">
+		Brent Farris
+	</span>
+    <span class="author-date">
+		January 30th, 2026
+	</span>
+</div>
 
 ---
 

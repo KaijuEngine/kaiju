@@ -7,6 +7,27 @@
     max-width: 1200px;
 }
 
+.blog-author {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9rem;
+    color: var(--md-default-fg-color--light);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+    list-style: none;
+    padding-left: 0;
+}
+
+.blog-author .author-name {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.blog-author .author-date {
+    font-style: italic;
+    color: var(--md-default-fg-color--lighter);
+}
+
 .feature-card {
     border: 1px solid var(--md-default-fg-color--lighter);
     border-radius: 8px;
