@@ -57,11 +57,10 @@
     <div id="logPopup" onclick="closePopup()" onmiss="closePopup()">
         <div id="logEntryTemplate" class="logLine">Logs...</div>
     </div>
-
     <script>
         function addLogEntry(text) {
             const logPopup = document.getElementById('logPopup');
-
+            
             const template = document.getElementById('logEntryTemplate');
             const entry = template.cloneNode(true);
             entry.id = ''; 
@@ -69,8 +68,8 @@
             entry.style.display = 'block';
 
             entry.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                navigator.clipboard.writeText(text);
+                e.preventDefault(); 
+                navigator.clipboard.writeText(text); 
             });
 
             logPopup.appendChild(entry);
