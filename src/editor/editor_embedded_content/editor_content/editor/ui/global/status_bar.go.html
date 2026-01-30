@@ -51,7 +51,7 @@
 <body>
     <div id="bar">
         <div class="msg">
-            <span id="log" onclick="openLogWindow">No logs</span>
+            <span id="log" onclick="openLogWindow()">No logs</span>
         </div>
     </div>
     <div id="logPopup" onclick="closePopup()" onmiss="closePopup()">
@@ -62,17 +62,15 @@
         function addLogEntry(text) {
             const logPopup = document.getElementById('logPopup');
 
-           
             const template = document.getElementById('logEntryTemplate');
             const entry = template.cloneNode(true);
             entry.id = ''; 
             entry.textContent = text;
             entry.style.display = 'block';
 
-           
             entry.addEventListener('contextmenu', function(e) {
-                e.preventDefault(); 
-                navigator.clipboard.writeText(text); // copy the entire log
+                e.preventDefault();
+                navigator.clipboard.writeText(text);
             });
 
             logPopup.appendChild(entry);
