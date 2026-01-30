@@ -1,0 +1,7 @@
+# Blog
+
+Welcome to the Kaiju Engine blog! Here you will find updates, announcements, and deep dives into the engine's development.
+
+## Posts
+
+- [Working With VFX](/blog/2026_01_30_working_with_vfx)

@@ -6,6 +6,7 @@ repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
   - Home: index.md
+  - Blog: blog/index.md
   - Getting started: getting_started/index.md
   - Kaiju Editor:
     # - Launching the editor: editor/launching_the_editor.md
