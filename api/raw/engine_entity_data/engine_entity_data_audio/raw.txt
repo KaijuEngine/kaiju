@@ -1,0 +1,32 @@
+package engine_entity_data_audio // import "kaiju/engine_entity_data/engine_entity_data_audio"
+
+
+CONSTANTS
+
+const MusicBindingKey = "kaiju.PlayMusicEntityData"
+const SoundBindingKey = "kaiju.PlaySoundEntityData"
+
+TYPES
+
+type MusicPlayer struct {
+	Clip   *audio.AudioClip
+	Handle audio.VoiceHandle
+	// Has unexported fields.
+}
+
+func (p *MusicPlayer) Stop()
+
+type PlayMusicEntityData struct {
+	MusicId content_id.Music
+	Loop    bool
+}
+
+func (c PlayMusicEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type PlaySoundEntityData struct {
+	SoundId      content_id.Sound
+	DelaySeconds float32
+}
+
+func (c PlaySoundEntityData) Init(e *engine.Entity, host *engine.Host)
+

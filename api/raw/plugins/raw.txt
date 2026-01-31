@@ -1,0 +1,25 @@
+package plugins // import "kaiju/plugins"
+
+
+VARIABLES
+
+var (
+	GamePluginRegistry = []reflect.Type{}
+)
+
+FUNCTIONS
+
+func RegenerateAPI() error
+
+TYPES
+
+type LuaVM struct {
+	PluginPath string
+
+	// Has unexported fields.
+}
+
+func LaunchPlugins(adb assets.Database, path string) ([]*LuaVM, error)
+
+func (vm *LuaVM) InvokeGlobalFunction(name string)
+

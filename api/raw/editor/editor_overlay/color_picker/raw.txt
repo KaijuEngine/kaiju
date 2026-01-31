@@ -1,0 +1,23 @@
+package color_picker // import "kaiju/editor/editor_overlay/color_picker"
+
+
+TYPES
+
+type ColorPicker struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, config Config) (*ColorPicker, error)
+
+func (p *ColorPicker) Close()
+
+type Config struct {
+	Color    matrix.Color
+	OnAccept func(color matrix.Color)
+	OnCancel func()
+}
+
+type HSV struct {
+	// Has unexported fields.
+}
+

@@ -1,0 +1,36 @@
+package engine_entity_data_camera // import "kaiju/engine_entity_data/engine_entity_data_camera"
+
+
+CONSTANTS
+
+const BindingKey = "kaiju.CameraEntityData"
+
+TYPES
+
+type CameraEntityData struct {
+	Width        float32 `default:"0" tip:"0 = viewport width"`
+	Height       float32 `default:"0" tip:"0 = viewport height"`
+	FOV          float32 `clamp:"60,45,120"` //default,min,max
+	NearPlane    float32 `default:"0.01"`
+	FarPlane     float32 `default:"500.0"`
+	Type         CameraType
+	IsMainCamera bool
+}
+
+func NewCameraDataBinding() CameraEntityData
+
+func (c CameraEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type CameraModule struct {
+	// Has unexported fields.
+}
+
+func (c *CameraModule) SetAsActive()
+
+type CameraType int
+
+const (
+	CameraTypePerspective CameraType = iota
+	CameraTypeOrthographic
+	CameraTypeTurntable
+)

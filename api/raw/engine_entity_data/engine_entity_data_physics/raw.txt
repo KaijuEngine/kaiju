@@ -1,0 +1,29 @@
+package engine_entity_data_physics // import "kaiju/engine_entity_data/engine_entity_data_physics"
+
+
+CONSTANTS
+
+const BindingKey = "kaiju.RigidBodyEntityData"
+
+TYPES
+
+type RigidBodyEntityData struct {
+	Extent   matrix.Vec3 `default:"1,1,1"`
+	Mass     float32     `default:"1"`
+	Radius   float32     `default:"1"`
+	Height   float32     `default:"1"`
+	Shape    Shape
+	IsStatic bool
+}
+
+func (r RigidBodyEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type Shape int
+
+const (
+	ShapeBox Shape = iota
+	ShapeSphere
+	ShapeCapsule
+	ShapeCylinder
+	ShapeCone
+)

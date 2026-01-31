@@ -1,0 +1,139 @@
+package shader_data_registry // import "kaiju/registry/shader_data_registry"
+
+
+CONSTANTS
+
+const (
+	ShaderDataStandardFlagOutline = StandardShaderDataFlags(1 << iota)
+	// Enable bit will be set anytime there are flags. This is needed because
+	// bits at the extremes of the float will be truncated to 0 otherwise. By
+	// setting this bit (largest exponent bit 2^1) this issue can be prevented.
+	ShaderDataStandardFlagEnable = 1 << 30
+)
+
+FUNCTIONS
+
+func Create(name string) rendering.DrawInstance
+func StandardShaderDataFlagsClear(target rendering.DrawInstance, flag StandardShaderDataFlags)
+func StandardShaderDataFlagsSet(target rendering.DrawInstance, flag StandardShaderDataFlags)
+func StandardShaderDataFlagsTest(target rendering.DrawInstance, flag StandardShaderDataFlags) bool
+
+TYPES
+
+type ShaderDataEdFrustumWire struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color             matrix.Color
+	FrustumProjection matrix.Mat4
+}
+
+func (t ShaderDataEdFrustumWire) Size() int
+
+type ShaderDataEdThumbPreviewMesh struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	View       matrix.Mat4 `visible:"false"`
+	Projection matrix.Mat4 `visible:"false"`
+}
+
+func (s *ShaderDataEdThumbPreviewMesh) SetCamera(view, projection matrix.Mat4)
+
+func (ShaderDataEdThumbPreviewMesh) Size() int
+
+type ShaderDataEdTransformWire struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color matrix.Color
+}
+
+func (t ShaderDataEdTransformWire) Size() int
+
+type ShaderDataGrid struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color matrix.Color
+}
+
+func (t ShaderDataGrid) Size() int
+
+type ShaderDataPBR struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	VertColors matrix.Color
+	MeRoEmAo   matrix.Vec4
+	Flags      StandardShaderDataFlags `visible:"false"`
+	LightIds   [4]int32                `visible:"false"`
+}
+
+func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender)
+
+func (t ShaderDataPBR) Size() int
+
+type ShaderDataParticle struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color matrix.Color
+	UVs   matrix.Vec4 `default:"0,0,1,1"`
+}
+
+func (t ShaderDataParticle) Size() int
+
+type ShaderDataPbrSkinned struct {
+	rendering.SkinnedShaderDataHeader `visible:"false"`
+	rendering.ShaderDataBase          `visible:"false"`
+
+	VertColors matrix.Color
+	MeRoEmAo   matrix.Vec4
+	Flags      StandardShaderDataFlags `visible:"false"`
+	LightIds   [4]int32                `visible:"false"`
+}
+
+func (t *ShaderDataPbrSkinned) BoundDataPointer() unsafe.Pointer
+
+func (t *ShaderDataPbrSkinned) InstanceBoundDataSize() int
+
+func (t ShaderDataPbrSkinned) Size() int
+
+func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader
+
+func (t *ShaderDataPbrSkinned) UpdateBoundData() bool
+
+type ShaderDataStandard struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color matrix.Color
+	Flags StandardShaderDataFlags `visible:"false"`
+}
+
+func (ShaderDataStandard) Size() int
+
+type ShaderDataStandardSkinned struct {
+	rendering.SkinnedShaderDataHeader `visible:"false"`
+	rendering.ShaderDataBase          `visible:"false"`
+
+	Color matrix.Color
+	Flags StandardShaderDataFlags `visible:"false"`
+}
+
+func (t *ShaderDataStandardSkinned) BoundDataPointer() unsafe.Pointer
+
+func (t *ShaderDataStandardSkinned) InstanceBoundDataSize() int
+
+func (t ShaderDataStandardSkinned) Size() int
+
+func (t *ShaderDataStandardSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader
+
+func (t *ShaderDataStandardSkinned) UpdateBoundData() bool
+
+type ShaderDataUnlit struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color matrix.Color
+	UVs   matrix.Vec4             `default:"0,0,1,1"`
+	Flags StandardShaderDataFlags `visible:"false"`
+}
+
+func (t ShaderDataUnlit) Size() int
+
+type StandardShaderDataFlags = uint32
+
