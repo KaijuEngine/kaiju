@@ -9,8 +9,6 @@ nav:
   - Blog: blog/index.md
   - Getting started: getting_started/index.md
   - Kaiju Editor:
-    # - Launching the editor: editor/launching_the_editor.md
-    # - Editor design: editor/editor_design.md
     - Stage: editor/stage.md
     - Content:
       - Content workspace: editor/content/workspace.md
@@ -22,8 +20,6 @@ nav:
     - Settings: editor/settings.md
     - Programming:
       - Data Binding: editor/programming/data_binding.md
-    - Shaders:
-      - Shader definition: editor/shaders/shader_designer.md
     - Plugins: editor/plugins.md
   - Kaiju Engine:
     - Design goals: engine/design_goals.md

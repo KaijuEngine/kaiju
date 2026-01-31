@@ -5,7 +5,7 @@ title: Kaiju Engine
 # Kaiju Engine
 An extremely fast, open source game engine and editor, written in [Go](https://go.dev/) backed by [Vulkan](https://www.vulkan.org/).
 
-Kaiju is a powerful game development platform where all game scripting and logic is written in **[Go](https://go.dev/)**, combining the performance of a compiled language with the simplicity of modern syntax. Whether you prefer working with the **Kaiju Editor** (a visual interface with integrated Go code editing) or using the **Kaiju Engine** directly (pure Go code), you have the flexibility to build games your way.
+Kaiju is a powerful game development platform where all game scripting and logic is written in **[Go](https://go.dev/)**, combining the performance of a compiled language with the simplicity of modern syntax. Whether you prefer working with the **Kaiju Editor** (a visual interface with integrated Go code editing) or using the **Kaiju Engine** directly (Go code), you have the flexibility to build games your way.
 
 The engine supports both **2D and 3D game development** with a comprehensive feature set including physics simulation, particle systems, skeletal animation, a custom UI framework with HTML/CSS support, spatial audio, and live shader updates. Built on [Vulkan](https://www.vulkan.org/) for high-performance rendering, Kaiju delivers fast build times and rapid iteration cycles, making it ideal for developers who want to spend more time creating and less time waiting.
 
