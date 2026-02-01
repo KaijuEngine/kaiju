@@ -93,6 +93,9 @@ type WorkspaceDetailsUI struct {
 	shaderInstanceDataTemplate *document.Element
 	TargetedElementValueReload map[reflect.Value]func()
 	copiedEntityData           weak.Pointer[entity_data_binding.EntityDataEntry]
+	copiedEntityPosition       matrix.Vec3
+	copiedEntityRotation       matrix.Vec3
+	copiedEntityScale          matrix.Vec3
 	previousPosition           matrix.Vec3
 	previousRotation           matrix.Vec3
 	previousScale              matrix.Vec3
@@ -105,6 +108,12 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"setPosX":              dui.setPosX,
 		"setPosY":              dui.setPosY,
 		"setPosZ":              dui.setPosZ,
+		"copyEntityPosition":   dui.copyEntityPosition,
+		"pasteEntityPosition":  dui.pasteEntityPosition,
+		"copyEntityRotation":   dui.copyEntityRotation,
+		"pasteEntityRotation":  dui.pasteEntityRotation,
+		"copyEntityScale":      dui.copyEntityScale,
+		"pasteEntityScale":     dui.pasteEntityScale,
 		"setRotX":              dui.setRotX,
 		"setRotY":              dui.setRotY,
 		"setRotZ":              dui.setRotZ,
@@ -884,6 +893,7 @@ func (dui *WorkspaceDetailsUI) update() {
 	if len(sel) == 0 {
 		return
 	}
+	// slog.Info("Stage entities", "len", len(sel))
 	e := sel[len(sel)-1]
 	p := e.Transform.Position()
 	r := e.Transform.Rotation()
@@ -979,4 +989,73 @@ func toFloat(str string) float64 {
 		return f
 	}
 	return 0
+}
+
+func (dui *WorkspaceDetailsUI) copyEntityPosition(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityPosition").End()
+	w := dui.workspace.Value()
+	if w == nil {
+		slog.Error("WorkspaceDetailsUI:copyEntityPosition workspace ptr is nil")
+		return
+	}
+	sel := w.stageView.Manager().Selection()
+
+	slog.Info("entity", sel[0].Name(), sel[0].Transform.Position())
+
+	dui.copiedEntityPosition = sel[0].Transform.Position()
+	slog.Info("copied entity position data")
+}
+
+func (dui *WorkspaceDetailsUI) pasteEntityPosition(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
+	dui.applyTransform(transformPos, 0, dui.copiedEntityPosition[0])
+	dui.applyTransform(transformPos, 1, dui.copiedEntityPosition[1])
+	dui.applyTransform(transformPos, 2, dui.copiedEntityPosition[2])
+	slog.Info("pasting entity position data")
+}
+
+func (dui *WorkspaceDetailsUI) copyEntityRotation(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityRotation").End()
+	w := dui.workspace.Value()
+	if w == nil {
+		slog.Error("WorkspaceDetailsUI:copyEntityRotation workspace ptr is nil")
+		return
+	}
+	sel := w.stageView.Manager().Selection()
+
+	slog.Info("entity", sel[0].Name(), sel[0].Transform.Rotation())
+
+	dui.copiedEntityRotation = sel[0].Transform.Rotation()
+	slog.Info("copied entity Rotation data")
+}
+
+func (dui *WorkspaceDetailsUI) pasteEntityRotation(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
+	dui.applyTransform(transformRot, 0, dui.copiedEntityRotation[0])
+	dui.applyTransform(transformRot, 1, dui.copiedEntityRotation[1])
+	dui.applyTransform(transformRot, 2, dui.copiedEntityRotation[2])
+	slog.Info("pasting entity Rotation data")
+}
+
+func (dui *WorkspaceDetailsUI) copyEntityScale(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityScale").End()
+	w := dui.workspace.Value()
+	if w == nil {
+		slog.Error("WorkspaceDetailsUI:copyEntityScale workspace ptr is nil")
+		return
+	}
+	sel := w.stageView.Manager().Selection()
+
+	slog.Info("entity", sel[0].Name(), sel[0].Transform.Scale())
+
+	dui.copiedEntityScale = sel[0].Transform.Scale()
+	slog.Info("copied entity Scale data")
+}
+
+func (dui *WorkspaceDetailsUI) pasteEntityScale(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
+	dui.applyTransform(transformScale, 0, dui.copiedEntityScale[0])
+	dui.applyTransform(transformScale, 1, dui.copiedEntityScale[1])
+	dui.applyTransform(transformScale, 2, dui.copiedEntityScale[2])
+	slog.Info("pasting entity ScapasteEntityScale data")
 }
