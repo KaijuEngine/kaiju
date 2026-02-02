@@ -39,7 +39,6 @@ package stage_workspace
 import (
 	"kaiju/editor/editor_controls"
 	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/editor_workspace"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/engine"
 	"kaiju/engine/ui/markup/document"
@@ -54,7 +53,7 @@ const maxContentDropDistance = 10
 
 type StageWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed          editor_workspace.StageWorkspaceEditorInterface
+	ed          StageWorkspaceEditorInterface
 	stageView   *editor_stage_view.StageView
 	pageData    WorkspaceUIData
 	contentUI   WorkspaceContentUI
@@ -66,7 +65,7 @@ type StageWorkspace struct {
 	}
 }
 
-func (w *StageWorkspace) Initialize(host *engine.Host, ed editor_workspace.StageWorkspaceEditorInterface) {
+func (w *StageWorkspace) Initialize(host *engine.Host, ed StageWorkspaceEditorInterface) {
 	defer tracing.NewRegion("StageWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
