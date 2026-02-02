@@ -69,6 +69,22 @@ const (
 	transformScale
 )
 
+type copyPasteKind int
+
+const (
+	entityPosition copyPasteKind = iota
+	entityRotation
+	entityScale
+	entityName
+)
+
+var fieldMap = map[string]copyPasteKind{
+	"entityPosition": entityPosition,
+	"entityRotation": entityRotation,
+	"entityScale":    entityScale,
+	"entityName":     entityName,
+}
+
 type WorkspaceDetailsUI struct {
 	workspace                  weak.Pointer[StageWorkspace]
 	detailsArea                *document.Element
@@ -93,9 +109,7 @@ type WorkspaceDetailsUI struct {
 	shaderInstanceDataTemplate *document.Element
 	TargetedElementValueReload map[reflect.Value]func()
 	copiedEntityData           weak.Pointer[entity_data_binding.EntityDataEntry]
-	copiedEntityPosition       matrix.Vec3
-	copiedEntityRotation       matrix.Vec3
-	copiedEntityScale          matrix.Vec3
+	copiedAttribute            any
 	previousPosition           matrix.Vec3
 	previousRotation           matrix.Vec3
 	previousScale              matrix.Vec3
@@ -108,12 +122,8 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"setPosX":              dui.setPosX,
 		"setPosY":              dui.setPosY,
 		"setPosZ":              dui.setPosZ,
-		"copyEntityPosition":   dui.copyEntityPosition,
-		"pasteEntityPosition":  dui.pasteEntityPosition,
-		"copyEntityRotation":   dui.copyEntityRotation,
-		"pasteEntityRotation":  dui.pasteEntityRotation,
-		"copyEntityScale":      dui.copyEntityScale,
-		"pasteEntityScale":     dui.pasteEntityScale,
+		"copyAttribute":        dui.copyAttribute,
+		"pasteAttribute":       dui.pasteAttribute,
 		"setRotX":              dui.setRotX,
 		"setRotY":              dui.setRotY,
 		"setRotZ":              dui.setRotZ,
@@ -991,7 +1001,10 @@ func toFloat(str string) float64 {
 	return 0
 }
 
-func (dui *WorkspaceDetailsUI) copyEntityPosition(e *document.Element) {
+// Prerequisite:
+// document.Element must have a `data-copy` attribute which would represent The
+// target attribute which need's to be copied
+func (dui *WorkspaceDetailsUI) copyAttribute(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityPosition").End()
 	w := dui.workspace.Value()
 	if w == nil {
@@ -1000,62 +1013,73 @@ func (dui *WorkspaceDetailsUI) copyEntityPosition(e *document.Element) {
 	}
 	sel := w.stageView.Manager().Selection()
 
-	slog.Info("entity", sel[0].Name(), sel[0].Transform.Position())
+	fieldToCopy := e.Attribute("data-copy")
+	switch fieldMap[fieldToCopy] {
+	case entityPosition:
+		dui.copiedAttribute = sel[0].Transform.Position()
+	case entityRotation:
+		dui.copiedAttribute = sel[0].Transform.Rotation()
+	case entityScale:
+		dui.copiedAttribute = sel[0].Transform.Scale()
+	case entityName:
+		dui.copiedAttribute = sel[0].Name()
+	}
 
-	dui.copiedEntityPosition = sel[0].Transform.Position()
-	slog.Info("copied entity position data")
+	slog.Info("entity", "field to copy", fieldToCopy, "copied", dui.copiedAttribute)
 }
 
-func (dui *WorkspaceDetailsUI) pasteEntityPosition(e *document.Element) {
+// Prerequisite:
+// document.Element must have a `data-paste` attribute which would represent The
+// target attribute where it needs to be pasted
+func (dui *WorkspaceDetailsUI) pasteAttribute(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
-	dui.applyTransform(transformPos, 0, dui.copiedEntityPosition[0])
-	dui.applyTransform(transformPos, 1, dui.copiedEntityPosition[1])
-	dui.applyTransform(transformPos, 2, dui.copiedEntityPosition[2])
-	slog.Info("pasting entity position data")
-}
 
-func (dui *WorkspaceDetailsUI) copyEntityRotation(e *document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityRotation").End()
+	if dui.copiedAttribute == nil {
+		slog.Error("WorkspaceDetailsUI:pasteAttribute copied value is nil")
+		return
+	}
+
 	w := dui.workspace.Value()
 	if w == nil {
-		slog.Error("WorkspaceDetailsUI:copyEntityRotation workspace ptr is nil")
+		slog.Error("WorkspaceDetailsUI:pasteAttribute workspace ptr is nil")
 		return
 	}
 	sel := w.stageView.Manager().Selection()
 
-	slog.Info("entity", sel[0].Name(), sel[0].Transform.Rotation())
+	valToPaste := reflect.TypeOf(dui.copiedAttribute)
 
-	dui.copiedEntityRotation = sel[0].Transform.Rotation()
-	slog.Info("copied entity Rotation data")
-}
-
-func (dui *WorkspaceDetailsUI) pasteEntityRotation(e *document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
-	dui.applyTransform(transformRot, 0, dui.copiedEntityRotation[0])
-	dui.applyTransform(transformRot, 1, dui.copiedEntityRotation[1])
-	dui.applyTransform(transformRot, 2, dui.copiedEntityRotation[2])
-	slog.Info("pasting entity Rotation data")
-}
-
-func (dui *WorkspaceDetailsUI) copyEntityScale(e *document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityScale").End()
-	w := dui.workspace.Value()
-	if w == nil {
-		slog.Error("WorkspaceDetailsUI:copyEntityScale workspace ptr is nil")
+	pasteToField := e.Attribute("data-paste")
+	switch fieldMap[pasteToField] {
+	case entityPosition:
+		if valToPaste.Kind() == reflect.TypeOf(sel[0].Transform.Position()).Kind() {
+			sel[0].Transform.SetPosition(dui.copiedAttribute.(matrix.Vec3))
+		}
+	case entityRotation:
+		if valToPaste.Kind() == reflect.TypeOf(sel[0].Transform.Rotation()).Kind() {
+			sel[0].Transform.SetRotation(dui.copiedAttribute.(matrix.Vec3))
+		}
+	case entityScale:
+		if valToPaste.Kind() == reflect.TypeOf(sel[0].Transform.Scale()).Kind() {
+			sel[0].Transform.SetScale(dui.copiedAttribute.(matrix.Vec3))
+		}
+	case entityName:
+		if valToPaste.Kind() == reflect.TypeOf(sel[0].Name()).Kind() {
+			newName := dui.copiedAttribute.(string)
+			h := &detailSetNameHistory{
+				w:        dui,
+				nextName: newName,
+				entities: []*editor_stage_manager.StageEntity{sel[0]},
+				prevName: []string{sel[0].Name()},
+			}
+			sel[0].SetName(newName)
+			w.hierarchyUI.updateEntityName(sel[0].StageData.Description.Id, newName)
+			w.ed.History().Add(h)
+			dui.detailsName.UI.ToInput().SetText(newName)
+		}
+	default:
+		slog.Info("data type is not registered")
 		return
 	}
-	sel := w.stageView.Manager().Selection()
 
-	slog.Info("entity", sel[0].Name(), sel[0].Transform.Scale())
-
-	dui.copiedEntityScale = sel[0].Transform.Scale()
-	slog.Info("copied entity Scale data")
-}
-
-func (dui *WorkspaceDetailsUI) pasteEntityScale(e *document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
-	dui.applyTransform(transformScale, 0, dui.copiedEntityScale[0])
-	dui.applyTransform(transformScale, 1, dui.copiedEntityScale[1])
-	dui.applyTransform(transformScale, 2, dui.copiedEntityScale[2])
-	slog.Info("pasting entity ScapasteEntityScale data")
+	slog.Info("pasting ", "data", dui.copiedAttribute)
 }

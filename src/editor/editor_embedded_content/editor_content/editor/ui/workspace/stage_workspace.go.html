@@ -289,26 +289,46 @@
         <!-- Details UI -->
         <div id="detailsArea" class="edPanelBg sideBarStandard">
             <div class="detailsBody">
-                <input
-                    id="detailsName"
-                    type="text"
-                    placeholder="Name..."
-                    onsubmit="submitDetailsName"
-                />
-                <div class="entityAttributeLabel">
-                    <span>Position</span>
-
+                <div>
+                    <input
+                        id="detailsName"
+                        type="text"
+                        placeholder="Name..."
+                        onsubmit="submitDetailsName"
+                    />
                     <button
                         class="pasteIcon"
                         data-bindidx=""
-                        onclick="pasteEntityPosition"
+                        data-paste="entityName"
+                        onclick="pasteAttribute"
                     >
                         📋
                     </button>
                     <button
                         class="copyIcon"
                         data-bindidx=""
-                        onclick="copyEntityPosition"
+                        data-copy="entityName"
+                        onclick="copyAttribute"
+                    >
+                        🖨︎
+                    </button>
+                </div>
+                <div class="entityAttributeLabel">
+                    <span>Position</span>
+
+                    <button
+                        class="pasteIcon"
+                        data-bindidx=""
+                        data-paste="entityPosition"
+                        onclick="pasteAttribute"
+                    >
+                        📋
+                    </button>
+                    <button
+                        class="copyIcon"
+                        data-bindidx=""
+                        data-copy="entityPosition"
+                        onclick="copyAttribute"
                     >
                         🖨︎
                     </button>
@@ -340,14 +360,16 @@
                     <button
                         class="pasteIcon"
                         data-bindidx=""
-                        onclick="pasteEntityRotation"
+                        data-paste="entityRotation"
+                        onclick="pasteAttribute"
                     >
                         📋
                     </button>
                     <button
                         class="copyIcon"
                         data-bindidx=""
-                        onclick="copyEntityRotation"
+                        data-copy="entityRotation"
+                        onclick="copyAttribute"
                     >
                         🖨︎
                     </button>
@@ -379,14 +401,16 @@
                     <button
                         class="pasteIcon"
                         data-bindidx=""
-                        onclick="pasteEntityScale"
+                        data-paste=""
+                        onclick="pasteAttribute"
                     >
                         📋
                     </button>
                     <button
                         class="copyIcon"
                         data-bindidx=""
-                        onclick="copyEntityScale"
+                        data-copy=""
+                        onclick="copyAttribute"
                     >
                         🖨︎
                     </button>
@@ -554,6 +578,7 @@
                                 <button
                                     class="pasteIcon"
                                     data-bindidx=""
+                                    data-copy=""
                                     onclick="pasteEntityData"
                                 >
                                     📋
