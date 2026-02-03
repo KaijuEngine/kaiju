@@ -70,23 +70,83 @@
 
 // func Mat4Multiply(a, b Mat4) Mat4
 TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
-	PACK_COLUMNS(64)
-	DOT(a+0(FP), X1, ret+128(FP))   // x0y0
-	DOT(a+0(FP), X2, ret+132(FP))   // x0y1
-	DOT(a+0(FP), X3, ret+136(FP))   // x0y2
-	DOT(a+0(FP), X4, ret+140(FP))   // x0y3
-	DOT(a+16(FP), X1, ret+144(FP))  // x1y0
-	DOT(a+16(FP), X2, ret+148(FP))  // x1y1
-	DOT(a+16(FP), X3, ret+152(FP))  // x1y2
-	DOT(a+16(FP), X4, ret+156(FP))  // x1y3
-	DOT(a+32(FP), X1, ret+160(FP))  // x2y0
-	DOT(a+32(FP), X2, ret+164(FP))  // x2y1
-	DOT(a+32(FP), X3, ret+168(FP))  // x2y2
-	DOT(a+32(FP), X4, ret+172(FP))  // x2y3
-	DOT(a+48(FP), X1, ret+176(FP))  // x3y0
-	DOT(a+48(FP), X2, ret+180(FP))  // x3y1
-	DOT(a+48(FP), X3, ret+184(FP))  // x3y2
-	DOT(a+48(FP), X4, ret+188(FP))  // x3y3
+	// Load b rows (contiguous)
+	MOVUPS b+64(FP), X1   // b row0
+	MOVUPS b+80(FP), X2   // b row1
+	MOVUPS b+96(FP), X3   // b row2
+	MOVUPS b+112(FP), X4  // b row3
+	// Compute ret row0 = sum (a row0[k] * b row k for k=0..3)
+	MOVUPS a+0(FP), X0    // a row0: a00 a01 a02 a03
+	MOVAPS X0, X5
+	SHUFPS $0x00, X5, X5  // a00 a00 a00 a00
+	MULPS  X1, X5         // a00 * b row0
+	MOVAPS X0, X6
+	SHUFPS $0x55, X6, X6  // a01 a01 a01 a01
+	MULPS  X2, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xAA, X6, X6  // a02 a02 a02 a02
+	MULPS  X3, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xFF, X6, X6  // a03 a03 a03 a03
+	MULPS  X4, X6
+	ADDPS  X6, X5
+	MOVUPS X5, ret+128(FP)
+	// Compute ret row1
+	MOVUPS a+16(FP), X0   // a row1: a10 a11 a12 a13
+	MOVAPS X0, X5
+	SHUFPS $0x00, X5, X5
+	MULPS  X1, X5
+	MOVAPS X0, X6
+	SHUFPS $0x55, X6, X6
+	MULPS  X2, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xAA, X6, X6
+	MULPS  X3, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xFF, X6, X6
+	MULPS  X4, X6
+	ADDPS  X6, X5
+	MOVUPS X5, ret+144(FP)
+	// Compute ret row2
+	MOVUPS a+32(FP), X0   // a row2: a20 a21 a22 a23
+	MOVAPS X0, X5
+	SHUFPS $0x00, X5, X5
+	MULPS  X1, X5
+	MOVAPS X0, X6
+	SHUFPS $0x55, X6, X6
+	MULPS  X2, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xAA, X6, X6
+	MULPS  X3, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xFF, X6, X6
+	MULPS  X4, X6
+	ADDPS  X6, X5
+	MOVUPS X5, ret+160(FP)
+	// Compute ret row3
+	MOVUPS a+48(FP), X0   // a row3: a30 a31 a32 a33
+	MOVAPS X0, X5
+	SHUFPS $0x00, X5, X5
+	MULPS  X1, X5
+	MOVAPS X0, X6
+	SHUFPS $0x55, X6, X6
+	MULPS  X2, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xAA, X6, X6
+	MULPS  X3, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xFF, X6, X6
+	MULPS  X4, X6
+	ADDPS  X6, X5
+	MOVUPS X5, ret+176(FP)
 	RET
 
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
