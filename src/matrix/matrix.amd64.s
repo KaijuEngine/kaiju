@@ -39,35 +39,6 @@
 
 #include "textflag.h"
 
-#define DOT(a, b, to)    \
-	MOVUPS a,  X0        \
-	MULPS  b,  X0        \
-	MOVAPS X0, X5        \
-	SHUFPS $0x4E, X5, X5 \
-	ADDPS  X5, X0        \
-	MOVAPS X0, X5        \
-	SHUFPS $0xB1, X5, X5 \
-	ADDPS  X5, X0        \
-	MOVSS  X0, to
-
-#define PACK_COLUMNS(start)           \
-	INSERTPS  $14, m+start+0(FP),  X1 \  // x0y0
-	INSERTPS  $14, m+start+4(FP),  X2 \  // x0y1
-	INSERTPS  $14, m+start+8(FP),  X3 \  // x0y2
-	INSERTPS  $14, m+start+12(FP), X4 \  // x0y3
-	INSERTPS  $16, m+start+16(FP), X1 \  // x1y0
-	INSERTPS  $16, m+start+20(FP), X2 \  // x1y1
-	INSERTPS  $16, m+start+24(FP), X3 \  // x1y2
-	INSERTPS  $16, m+start+28(FP), X4 \  // x1y3
-	INSERTPS  $32, m+start+32(FP), X1 \  // x2y0
-	INSERTPS  $32, m+start+36(FP), X2 \  // x2y1
-	INSERTPS  $32, m+start+40(FP), X3 \  // x2y2
-	INSERTPS  $32, m+start+44(FP), X4 \  // x2y3
-	INSERTPS  $48, m+start+48(FP), X1 \  // x3y0
-	INSERTPS  $48, m+start+52(FP), X2 \  // x3y1
-	INSERTPS  $48, m+start+56(FP), X3 \  // x3y2
-	INSERTPS  $48, m+start+60(FP), X4    // x3y3
-
 // func Mat4Multiply(a, b Mat4) Mat4
 TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 	// Load b rows (contiguous)
@@ -151,21 +122,69 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
-	PACK_COLUMNS(0)
-	DOT(b+64(FP), X1, ret+80(FP))   // x
-	DOT(b+64(FP), X2, ret+84(FP))   // y
-	DOT(b+64(FP), X3, ret+88(FP))   // z
-	DOT(b+64(FP), X4, ret+92(FP))   // w
+	// Load b rows
+	MOVUPS b+16(FP), X1  // b row0
+	MOVUPS b+32(FP), X2  // b row1
+	MOVUPS b+48(FP), X3  // b row2
+	MOVUPS b+64(FP), X4  // b row3
+	// Load a vec
+	MOVUPS a+0(FP), X0   // ax ay az aw
+	// Compute ret = ax * row0 + ay * row1 + az * row2 + aw * row3
+	MOVAPS X0, X5
+	SHUFPS $0x00, X5, X5  // ax ax ax ax
+	MULPS  X1, X5         // ax * b row0
+	MOVAPS X0, X6
+	SHUFPS $0x55, X6, X6  // ay ay ay ay
+	MULPS  X2, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xAA, X6, X6  // az az az az
+	MULPS  X3, X6
+	ADDPS  X6, X5
+	MOVAPS X0, X6
+	SHUFPS $0xFF, X6, X6  // aw aw aw aw
+	MULPS  X4, X6
+	ADDPS  X6, X5
+	MOVUPS X5, ret+80(FP)
 	RET
 
 // func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
 TEXT   ·Vec4MultiplyMat4(SB),NOSPLIT,$0-96
-	MOVUPS    b+16(FP), X1
-	MOVUPS    b+32(FP), X2
-	MOVUPS    b+48(FP), X3
-	MOVUPS    b+64(FP), X4
-	DOT(a+0(FP), X1, ret+80(FP))    // x
-	DOT(a+0(FP), X2, ret+84(FP))    // y
-	DOT(a+0(FP), X3, ret+88(FP))    // z
-	DOT(a+0(FP), X4, ret+92(FP))    // w
+	// Load a rows
+	MOVUPS a+0(FP), X1   // row0
+	MOVUPS a+16(FP), X2  // row1
+	MOVUPS a+32(FP), X3  // row2
+	MOVUPS a+48(FP), X4  // row3
+	// Transpose to get "columns" (m00 m10 m20 m30, etc.)
+	MOVAPS X1, X5
+	UNPCKLPS X2, X5      // m00 m10 m01 m11
+	UNPCKHPS X1, X2      // m02 m12 m03 m13
+	MOVAPS X3, X6
+	UNPCKLPS X4, X6      // m20 m30 m21 m31
+	UNPCKHPS X3, X4      // m22 m32 m23 m33
+	MOVAPS X5, X7
+	UNPCKLPS X6, X7      // m00 m10 m20 m30  (col0)
+	UNPCKHPS X5, X6      // m01 m11 m21 m31  (col1)
+	MOVAPS X2, X8
+	UNPCKLPS X4, X8      // m02 m12 m22 m32  (col2)
+	UNPCKHPS X2, X4      // m03 m13 m23 m33  (col3)
+	// Load b vec
+	MOVUPS b+64(FP), X0  // bx by bz bw
+	// Compute ret = bx * col0 + by * col1 + bz * col2 + bw * col3
+	MOVAPS X0, X5
+	SHUFPS $0x00, X5, X5  // bx bx bx bx
+	MULPS  X7, X5         // bx * col0
+	MOVAPS X0, X9
+	SHUFPS $0x55, X9, X9  // by by by by
+	MULPS  X6, X9
+	ADDPS  X9, X5
+	MOVAPS X0, X9
+	SHUFPS $0xAA, X9, X9  // bz bz bz bz
+	MULPS  X8, X9
+	ADDPS  X9, X5
+	MOVAPS X0, X9
+	SHUFPS $0xFF, X9, X9  // bw bw bw bw
+	MULPS  X4, X9
+	ADDPS  X9, X5
+	MOVUPS X5, ret+80(FP)
 	RET
