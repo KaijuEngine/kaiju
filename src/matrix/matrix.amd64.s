@@ -39,11 +39,15 @@
 
 #include "textflag.h"
 
-#define DOT(a, b, to) \
-	MOVUPS a,  X0     \
-	MULPS  b,  X0     \
-	HADDPS X0, X0     \
-	HADDPS X0, X0     \
+#define DOT(a, b, to)    \
+	MOVUPS a,  X0        \
+	MULPS  b,  X0        \
+	MOVAPS X0, X5        \
+	SHUFPS $0x4E, X5, X5 \
+	ADDPS  X5, X0        \
+	MOVAPS X0, X5        \
+	SHUFPS $0xB1, X5, X5 \
+	ADDPS  X5, X0        \
 	MOVSS  X0, to
 
 #define PACK_COLUMNS(start)           \
