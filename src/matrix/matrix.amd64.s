@@ -151,11 +151,36 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
-	PACK_COLUMNS(0)
-	DOT(b+64(FP), X1, ret+80(FP))   // x
-	DOT(b+64(FP), X2, ret+84(FP))   // y
-	DOT(b+64(FP), X3, ret+88(FP))   // z
-	DOT(b+64(FP), X4, ret+92(FP))   // w
+	MOVUPS m+0(FP), X0
+	MOVUPS m+16(FP), X1
+	MOVUPS m+32(FP), X2
+	MOVUPS m+48(FP), X3
+	MOVAPS X0, X4
+	UNPCKLPS X1, X4
+	MOVAPS X0, X5
+	UNPCKHPS X1, X5
+	MOVAPS X2, X6
+	UNPCKLPS X3, X6
+	MOVAPS X2, X7
+	UNPCKHPS X3, X7
+	MOVAPS X4, X8
+	MOVLHPS X6, X8
+	MOVAPS X4, X9
+	MOVHLPS X4, X9
+	MOVAPS X6, X12
+	MOVHLPS X6, X12
+	MOVLHPS X12, X9
+	MOVAPS X5, X10
+	MOVLHPS X7, X10
+	MOVAPS X5, X11
+	MOVHLPS X5, X11
+	MOVAPS X7, X13
+	MOVHLPS X7, X13
+	MOVLHPS X13, X11
+	DOT(b+64(FP), X8, ret+80(FP))   // x
+	DOT(b+64(FP), X9, ret+84(FP))   // y
+	DOT(b+64(FP), X10, ret+88(FP))  // z
+	DOT(b+64(FP), X11, ret+92(FP))  // w
 	RET
 
 // func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
