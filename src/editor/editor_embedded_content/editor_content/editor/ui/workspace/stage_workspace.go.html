@@ -1,829 +1,401 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-    <head>
-        <style>
-            #contentArea {
-                position: absolute;
-                bottom: 1.3em;
-                width: 100%;
-                height: 30%;
-                border-top: 2px solid black;
-                background-color: black;
-            }
-            #ftdePrompt {
-                position: absolute;
-                width: 400px;
-                left: 21em;
-                top: 4.5em;
-                color: white;
-                background-color: #682a2d;
-                border: 5px solid #575757;
-                border-radius: 5px;
-                text-align: center;
-                z-index: 20;
-            }
-            #ftdeArrow {
-                position: absolute;
-                color: white;
-                left: 1em;
-                font-size: 2em;
-                text-align: left;
-            }
-            .left {
-                padding: 0 5px;
-                width: 15em;
-                height: 100%;
-                overflow-y: scroll;
-            }
-            .right {
-                width: calc(100% - 15em);
-                height: 100%;
-                overflow-y: scroll;
-                padding: 10px;
-            }
-            input {
-                width: calc(100% - 1em);
-                height: 2em;
-                margin-left: 0.25em;
-                margin-bottom: 0.5em;
-            }
-            .entry {
-                width: 5em;
-                height: 6em;
-                background-color: #282828;
-                color: #aaa;
-                margin-top: 5px;
-                margin-right: 5px;
-                font-size: 0.7em;
-            }
-            .entrySelected {
-                background-color: #575757;
-                color: white;
-            }
-            .entry:hover {
-                background-color: #575757;
-                color: white;
-            }
-            .preview {
-                width: 5em;
-                height: 5em;
-            }
-            #dragPreview {
-                position: absolute;
-                width: 3em;
-                height: 3em;
-                z-index: 10;
-            }
-            .typeThumb {
-                position: absolute;
-                width: 16px;
-                height: 16px;
-                top: 0;
-                left: 0;
-                z-index: 1;
-            }
-            #tooltip {
-                position: absolute;
-                padding: 5px;
-                background-color: #282828;
-                border: 2px solid white;
-                color: #aaa;
-                top: 0;
-                left: 0;
-                z-index: 20;
-            }
-            #hierarchyArea {
-                top: var(--ed-menu-bar-height);
-                width: 18%;
-                color: white;
-                border-right: 2px solid black;
-            }
-            .sideBarStandard {
-                height: calc(70% - 3em);
-            }
-            .sideBarTall {
-                height: calc(100% - 3em);
-            }
-            #entityList {
-                width: 100%;
-                height: calc(100% - 3em);
-                overflow-y: scroll;
-                padding-left: 1em;
-            }
-            .hierarchyEntry {
-                width: 100%;
-                min-height: 24px;
-                color: white;
-                background-color: #1f1f1f;
-                line-height: 24px;
-            }
-            .hierarchyEntry:hover {
-                background-color: #313232;
-            }
-            .hierarchyEntrySelected {
-                background-color: #575757;
-            }
-            .hierarchyEntryDragHover:hover {
-                background-color: #682a2d;
-            }
-            .arrow {
-                height: 24px;
-                text-align: center;
-            }
-            .contentSearchInput {
-                margin-left: 2em;
-                width: calc(100% - 2em);
-                height: 2em;
-            }
-            .hierarchyEntryChild {
-                margin-left: 1em;
-            }
-            #hierarchyDragPreview {
-                position: absolute;
-                width: 2em;
-                height: 2em;
-                z-index: 10;
-            }
-            #dimensionToggle {
-                position: absolute;
-                font-size: 0.6em;
-                top: 2.5em;
-                left: 50%;
-                padding: 0.25em;
-                transform: translateX(-50%);
-                color: white;
-                background-color: #282828;
-                border: 2px solid #aaa;
-            }
-            #dimensionToggle:hover {
-                background-color: #aaa;
-            }
-            #detailsArea {
-                position: absolute;
-                right: 0;
-                top: var(--ed-menu-bar-height);
-                width: 18%;
-                color: white;
-                overflow-y: scroll;
-                border-left: 2px solid black;
-            }
-            #detailsBody {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-evenly;
-                align-items: start;
-            }
-            .entityAttributeLabel {
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                /* flex-wrap: wrap; */
-            }
-            .smallInput,
-            .smallerInput {
-                width: 4.3em;
-                height: 1.2em;
-                font-size: 0.8em;
-                margin-left: 0.3em;
-            }
-            .smallerInput {
-                width: 3.15em;
-            }
-            .dataTable {
-                width: calc(100% - 0.5em);
-                padding: 5px;
-                font-size: 0.8em;
-            }
-            .entityDataListEntry {
-                width: 100%;
-                background-color: #282828;
-            }
-            .entityDataListEntry:hover {
-                background-color: #353535;
-            }
-            .dataInput {
-                width: 100%;
-                height: 1.2em;
-                font-size: 0.8em;
-                margin-bottom: 0.2em;
-            }
-            .dataCheck {
-                width: 0.8em;
-                height: 0.8em;
-                margin-left: 5px;
-                margin-bottom: 0.2em;
-            }
-            .dataBindingBlock {
-                background-color: #282828;
-                color: white;
-                border: 2px solid #aaa;
-                margin-bottom: 0.2em;
-            }
-            .dataContentId {
-                width: 100%;
-                background-color: #282828;
-                color: #aaa;
-                border: 2px solid black;
-            }
-            .dataContentId .dragHover {
-                background-color: #682a2d;
-            }
-            .center {
-                text-align: center;
-            }
-            .dataControls {
-                width: 4.5em;
-                height: 1.5em;
-                right: 0;
-            }
-            .deleteButton,
-            .copyIcon,
-            .pasteIcon {
-                width: 2em;
-                height: 2em;
-                font-size: 1em;
-            }
-            .copyIcon,
-            .pasteIcon {
-                font-family: "NotoEmoji-Regular";
-            }
-        </style>
-    </head>
-    <body>
-        <!-- Floating UI -->
-        <span id="dimensionToggle" onclick="toggleDimension"
-            >{{ .CameraMode }}</span
-        >
-        <!-- Hierarchy UI -->
-        <div
-            id="hierarchyArea"
-            class="edPanelBg sideBarStandard"
-            ondrop="hierarchyDrop"
-        >
-            <input
-                type="text"
-                placeholder="Search..."
-                onsubmit="hierarchySearch"
-                onchange="hierarchySearch"
-            />
-            <div id="entityList">
-                <div
-                    id="entityTemplate"
-                    class="hierarchyEntry"
-                    onclick="selectEntity"
-                    ondragstart="entityDragStart"
-                    ondrop="entityDrop"
-                    ondragenter="entityDragEnter"
-                    ondragleave="entityDragExit"
-                >
-                    <span>Name...</span>
-                </div>
-            </div>
-        </div>
-        <img
-            id="hierarchyDragPreview"
-            src="editor/textures/icons/menu_bar_logo.png"
-        />
-        <!-- Details UI -->
-        <div id="detailsArea" class="edPanelBg sideBarStandard">
-            <div class="detailsBody">
-                <div>
-                    <input
-                        id="detailsName"
-                        type="text"
-                        placeholder="Name..."
-                        onsubmit="submitDetailsName"
-                    />
-                    <button
-                        class="pasteIcon"
-                        data-bindidx=""
-                        data-paste="entityName"
-                        onclick="pasteAttribute"
-                    >
-                        📋
-                    </button>
-                    <button
-                        class="copyIcon"
-                        data-bindidx=""
-                        data-copy="entityName"
-                        onclick="copyAttribute"
-                    >
-                        🖨︎
-                    </button>
-                </div>
-                <div class="entityAttributeLabel">
-                    <span>Position</span>
-
-                    <button
-                        class="pasteIcon"
-                        data-bindidx=""
-                        data-paste="entityPosition"
-                        onclick="pasteAttribute"
-                    >
-                        📋
-                    </button>
-                    <button
-                        class="copyIcon"
-                        data-bindidx=""
-                        data-copy="entityPosition"
-                        onclick="copyAttribute"
-                    >
-                        🖨︎
-                    </button>
-                </div>
-                <input
-                    id="detailsPosX"
-                    class="smallInput"
-                    type="number"
-                    placeholder="X..."
-                    onchange="setPosX"
-                />
-                <input
-                    id="detailsPosY"
-                    class="smallInput"
-                    type="number"
-                    placeholder="Y..."
-                    onchange="setPosY"
-                />
-                <input
-                    id="detailsPosZ"
-                    class="smallInput"
-                    type="number"
-                    placeholder="Z..."
-                    onchange="setPosZ"
-                />
-                <div class="entityAttributeLabel">
-                    <span>Rotation</span>
-
-                    <button
-                        class="pasteIcon"
-                        data-bindidx=""
-                        data-paste="entityRotation"
-                        onclick="pasteAttribute"
-                    >
-                        📋
-                    </button>
-                    <button
-                        class="copyIcon"
-                        data-bindidx=""
-                        data-copy="entityRotation"
-                        onclick="copyAttribute"
-                    >
-                        🖨︎
-                    </button>
-                </div>
-                <input
-                    id="detailsRotX"
-                    class="smallInput"
-                    type="number"
-                    placeholder="X..."
-                    onchange="setRotX"
-                />
-                <input
-                    id="detailsRotY"
-                    class="smallInput"
-                    type="number"
-                    placeholder="Y..."
-                    onchange="setRotY"
-                />
-                <input
-                    id="detailsRotZ"
-                    class="smallInput"
-                    type="number"
-                    placeholder="Z..."
-                    onchange="setRotZ"
-                />
-                <div class="entityAttributeLabel">
-                    <span>Scale</span>
-
-                    <button
-                        class="pasteIcon"
-                        data-bindidx=""
-                        data-paste=""
-                        onclick="pasteAttribute"
-                    >
-                        📋
-                    </button>
-                    <button
-                        class="copyIcon"
-                        data-bindidx=""
-                        data-copy=""
-                        onclick="copyAttribute"
-                    >
-                        🖨︎
-                    </button>
-                </div>
-                <input
-                    id="detailsScaleX"
-                    class="smallInput"
-                    type="number"
-                    placeholder="X..."
-                    onchange="setScaleX"
-                />
-                <input
-                    id="detailsScaleY"
-                    class="smallInput"
-                    type="number"
-                    placeholder="Y..."
-                    onchange="setScaleY"
-                />
-                <input
-                    id="detailsScaleZ"
-                    class="smallInput"
-                    type="number"
-                    placeholder="Z..."
-                    onchange="setScaleZ"
-                />
-                <div id="detailsMultiSelect">Multiple objects selected...</div>
-                <div id="shaderInstanceData" class="dataTable">
-                    <div id="shaderInstanceDataList">
-                        <div
-                            id="shaderInstanceDataTemplate"
-                            class="dataBindingBlock"
-                        >
-                            <div class="center">Shader name...</div>
-                            <div
-                                class="entityDataField"
-                                data-fieldidx=""
-                                data-bindidx=""
-                            >
-                                <span>Field name...</span>
-                                <!-- Text input -->
-                                <div>
-                                    <input
-                                        class="dataInput"
-                                        type="text"
-                                        placeholder="Input..."
-                                        onchange="changeShaderData"
-                                    />
-                                </div>
-                                <!-- Checkbox input -->
-                                <div>
-                                    <input
-                                        class="dataCheck"
-                                        type="checkbox"
-                                        onchange="changeShaderData"
-                                    />
-                                </div>
-                                <!-- Vec2 -->
-                                <div>
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="X..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="Y..."
-                                        onchange="changeShaderData"
-                                    />
-                                </div>
-                                <!-- Vec3 -->
-                                <div>
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="X..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="Y..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="Z..."
-                                        onchange="changeShaderData"
-                                    />
-                                </div>
-                                <!-- Vec4 -->
-                                <div>
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="X..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="Y..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="Z..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="W..."
-                                        onchange="changeShaderData"
-                                    />
-                                </div>
-                                <!-- Color -->
-                                <div>
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="R..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="G..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="B..."
-                                        onchange="changeShaderData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="A..."
-                                        onchange="changeShaderData"
-                                    />
-                                </div>
-                                <!-- Select input -->
-                                <div>
-                                    <select
-                                        class="dataInput"
-                                        onchange="changeShaderData"
-                                    ></select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="detailsEntityDataTable" class="dataTable">
-                    <div id="boundEntityDataList">
-                        <div
-                            id="boundEntityDataTemplate"
-                            class="dataBindingBlock"
-                        >
-                            <div class="dataControls">
-                                <button
-                                    class="pasteIcon"
-                                    data-bindidx=""
-                                    data-copy=""
-                                    onclick="pasteEntityData"
-                                >
-                                    📋
-                                </button>
-                                <button
-                                    class="copyIcon"
-                                    data-bindidx=""
-                                    onclick="copyEntityData"
-                                >
-                                    🖨︎
-                                </button>
-                                <button
-                                    class="deleteButton"
-                                    data-bindidx=""
-                                    onclick="removeEntityData"
-                                >
-                                    X
-                                </button>
-                            </div>
-                            <div class="center">Data name...</div>
-                            <div
-                                class="entityDataField"
-                                data-fieldidx=""
-                                data-bindidx=""
-                            >
-                                <span>Field name...</span>
-                                <!-- Text input -->
-                                <div>
-                                    <input
-                                        class="dataInput"
-                                        type="text"
-                                        placeholder="Input..."
-                                        onchange="changeData"
-                                    />
-                                </div>
-                                <!-- Checkbox input -->
-                                <div>
-                                    <input
-                                        class="dataCheck"
-                                        type="checkbox"
-                                        onchange="changeData"
-                                    />
-                                </div>
-                                <!-- Vec2 -->
-                                <div>
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="X..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="Y..."
-                                        onchange="changeData"
-                                    />
-                                </div>
-                                <!-- Vec3 -->
-                                <div>
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="X..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="Y..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallInput"
-                                        type="text"
-                                        placeholder="Z..."
-                                        onchange="changeData"
-                                    />
-                                </div>
-                                <!-- Vec4 -->
-                                <div>
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="X..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="Y..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="Z..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="W..."
-                                        onchange="changeData"
-                                    />
-                                </div>
-                                <!-- Color -->
-                                <div>
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="R..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="G..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="B..."
-                                        onchange="changeData"
-                                    />
-                                    <input
-                                        class="smallerInput"
-                                        type="text"
-                                        placeholder="A..."
-                                        onchange="changeData"
-                                    />
-                                </div>
-                                <!-- Select input -->
-                                <div>
-                                    <select
-                                        class="dataInput"
-                                        onchange="changeData"
-                                    ></select>
-                                </div>
-                                <!-- ContentId input -->
-                                <div>
-                                    <div
-                                        class="dataContentId"
-                                        data-type=""
-                                        onclick="clickSelectContentId"
-                                        ondrop="contentIdDrop"
-                                        ondragenter="contentIdDragEnter"
-                                        ondragleave="contentIdDragExit"
-                                    >
-                                        empty &lpar;TypeName&rpar;
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <span>Add data, or </span
-                        ><button
-                            class="pasteIcon"
-                            onclick="pasteEntityDataAsNew"
-                        >
-                            📋
-                        </button>
-                    </div>
-                    <input
-                        type="text"
-                        placeholder="Find entity data..."
-                        onchange="searchEntityData"
-                    />
-                    <div id="entityDataList">
-                        <div
-                            id="entityDataListTemplate"
-                            class="entityDataListEntry"
-                            onclick="addEntityData"
-                        >
-                            Name...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Content UI -->
-        <img id="dragPreview" src="editor/textures/icons/file.png" />
-        <div id="contentArea">
-            <div class="left edPanelBg">
-                <input
-                    type="text"
-                    placeholder="Content search..."
-                    onchange="inputFilter"
-                />
-                {{range .Filters}}
-                <span class="filterBtn" data-type="{{.}}" onclick="clickFilter"
-                    >{{.}}</span
-                >
-                {{end}}
-                <input
-                    type="text"
-                    placeholder="Tag search..."
-                    onchange="tagFilter"
-                />
-                <div id="tagFilterList">
-                    {{range .Tags}}
-                    <span
-                        class="filterBtn"
-                        group="tag"
-                        data-tag="{{.}}"
-                        onclick="clickFilter"
-                        >{{.}}</span
-                    >
-                    {{end}}
-                </div>
-            </div>
-            <div class="right edPanelBgDark">
-                <span
-                    id="entryTemplate"
-                    data-type=""
-                    group="entry"
-                    class="entry"
-                    ondblclick="dblClickEntry"
-                    ondragstart="entryDragStart"
-                    onmouseenter="entryMouseEnter"
-                    onmouseleave="entryMouseLeave"
-                    onmousemove="entryMouseMove"
-                    onrightclick="rightClickContent"
-                >
-                    <img class="preview" src="editor/textures/icons/file.png" />
-                    <div>Name...</div>
-                    <img
-                        class="typeThumb"
-                        src="editor/textures/icons/file.png"
-                    />
-                </span>
-            </div>
-        </div>
-        <div id="ftdePrompt">
-            <div id="ftdeArrow">^</div>
-            <br />
-            <h1>Welcome to Kaiju!</h1>
-            <p>
-                It looks like this is your first time opening this project.
-                Let's begin by opening up the "Content" workspace and importing
-                some content for your game!
-            </p>
-        </div>
-        <span id="tooltip">Tooltip...</span>
-    </body>
+	<head>
+		<style>
+			#contentArea {
+				position: absolute;
+				bottom: 1.3em;
+				width: 100%;
+				height: 30%;
+				border-top: 2px solid black;
+				background-color: black;
+			}
+			#ftdePrompt {
+				position: absolute;
+				width: 400px;
+				left: 21em;
+				top: 4.5em;
+				color: white;
+				background-color: #682A2D;
+				border: 5px solid #575757;
+				border-radius: 5px;
+				text-align: center;
+				z-index: 20;
+			}
+			#ftdeArrow {
+				position: absolute;
+				color: white;
+				left: 1em;
+				font-size: 2em;
+				text-align: left;
+			}
+			.left {
+				padding: 0 5px;
+				width: 15em;
+				height: 100%;
+				overflow-y: scroll;
+			}
+			.right {
+				width: calc(100% - 15em);
+				height: 100%;
+				overflow-y: scroll;
+				padding: 10px;
+			}
+			input {
+				width: calc(100% - 1em);
+				height: 2em;
+				margin-left: 0.25em;
+				margin-bottom: 0.5em;
+			}
+			.entry {
+				width: 5em;
+				height: 6em;
+				background-color: #282828;
+				color: #AAA;
+				margin-top: 5px;
+				margin-right: 5px;
+				font-size: 0.7em;
+			}
+			.entrySelected {
+				background-color: #575757;
+				color: white;
+			}
+			.entry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.preview {
+				width: 5em;
+				height: 5em;
+			}
+			#dragPreview {
+				position: absolute;
+				width: 3em;
+				height: 3em;
+				z-index: 10;
+			}
+			.typeThumb {
+				position: absolute;
+				width: 16px;
+				height: 16px;
+				top: 0;
+				left: 0;
+				z-index: 1;
+			}
+			#tooltip {
+				position: absolute;
+				padding: 5px;
+				background-color: #282828;
+				border: 2px solid white;
+				color: #AAA;
+				top: 0;
+				left: 0;
+				z-index: 20;
+			}
+			#hierarchyArea {
+				top: var(--ed-menu-bar-height);
+				width: 18%;
+				color: white;
+				border-right: 2px solid black;
+			}
+			.sideBarStandard { height: calc(70% - 3em); }
+			.sideBarTall { height: calc(100% - 3em); }
+			#entityList {
+				width: 100%;
+				height: calc(100% - 3em);
+				overflow-y: scroll;
+				padding-left: 1em;
+			}
+			.hierarchyEntry {
+				width: 100%;
+				min-height: 24px;
+				color: white;
+				background-color: #1f1f1f;
+				line-height: 24px;
+			}
+			.hierarchyEntry:hover {
+				background-color: #313232;
+			}
+			.hierarchyEntrySelected {
+				background-color: #575757;
+			}
+			.hierarchyEntryDragHover:hover {
+				background-color: #682A2D;
+			}
+			.arrow {
+				height: 24px;
+				text-align: center;
+			}
+			.contentSearchInput {
+				margin-left: 2em;
+				width: calc(100% - 2em);
+				height: 2em;
+			}
+			.hierarchyEntryChild {
+				margin-left: 1em;
+			}
+			#hierarchyDragPreview {
+				position: absolute;
+				width: 2em;
+				height: 2em;
+				z-index: 10;
+			}
+			#dimensionToggle {
+				position: absolute;
+				font-size: 0.6em;
+				top: 2.5em;
+				left: 50%;
+				padding: 0.25em;
+				transform: translateX(-50%);
+				color: white;
+				background-color: #282828;
+				border: 2px solid #AAA;
+			}
+			#dimensionToggle:hover {
+				background-color: #AAA;
+			}
+			#detailsArea {
+				position: absolute;
+				right: 0;
+				top: var(--ed-menu-bar-height);
+				width: 18%;
+				color: white;
+				overflow-y: scroll;
+				border-left: 2px solid black;
+			}
+			.smallInput, .smallerInput {
+				width: 4.3em;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-left: 0.3em;
+			}
+			.smallerInput {
+				width: 3.15em;
+			}
+			.dataTable {
+				width: calc(100% - 0.5em);
+				padding: 5px;
+				font-size: 0.8em;
+			}
+			.entityDataListEntry {
+				width: 100%;
+				background-color: #282828;
+			}
+			.entityDataListEntry:hover {
+				background-color: #353535;
+			}
+			.dataInput {
+				width: 100%;
+				height: 1.2em;
+				font-size: 0.8em;
+				margin-bottom: 0.2em;
+			}
+			.dataCheck {
+				width: 0.8em;
+				height: 0.8em;
+				margin-left: 5px;
+				margin-bottom: 0.2em;
+			}
+			.dataBindingBlock {
+				background-color: #282828;
+				color: white;
+				border: 2px solid #AAA;
+				margin-bottom: 0.2em;
+			}
+			.dataContentId {
+				width: 100%;
+				background-color: #282828;
+				color: #AAA;
+				border: 2px solid black;
+			}
+			.dataContentId .dragHover {
+				background-color: #682A2D;
+			}
+			.center { text-align: center; }
+			.dataControls {
+				width: 4.5em;
+				height: 1.5em;
+				right: 0;
+			}
+			.deleteButton, .copyIcon, .pasteIcon {
+				width: 1.5em;
+				height: 1.5em;
+				font-size: 0.7em;
+			}
+			.copyIcon, .pasteIcon { font-family: 'NotoEmoji-Regular'; }
+		</style>
+	</head>
+	<body>
+		<!-- Floating UI -->
+		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
+		<!-- Hierarchy UI -->
+		<div id="hierarchyArea" class="edPanelBg sideBarStandard" ondrop="hierarchyDrop">
+			<input type="text" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
+			<div id="entityList">
+				<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
+					<span>Name...</span>
+				</div>
+			</div>
+		</div>
+		<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />
+		<!-- Details UI -->
+		<div id="detailsArea" class="edPanelBg sideBarStandard">
+			<div class="detailsBody">
+				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" data-copypaste="entityName" onrightclick="onRightClick" />
+				<div data-copypaste="entityPosition" onrightclick="onRightClick">Position</div>
+				<input id="detailsPosX" class="smallInput" type="text" placeholder="X..." onchange="setPosX" />
+				<input id="detailsPosY" class="smallInput" type="text" placeholder="Y..." onchange="setPosY" />
+				<input id="detailsPosZ" class="smallInput" type="text" placeholder="Z..." onchange="setPosZ" />
+				<div data-copypaste="entityRotation" onrightclick="onRightClick">Rotation</div>
+				<input id="detailsRotX" class="smallInput" type="text" placeholder="X..." onchange="setRotX" />
+				<input id="detailsRotY" class="smallInput" type="text" placeholder="Y..." onchange="setRotY" />
+				<input id="detailsRotZ" class="smallInput" type="text" placeholder="Z..." onchange="setRotZ" />
+				<div data-copypaste="entityScale" onrightclick="onRightClick">Scale</div>
+				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
+				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
+				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+				<div id="detailsMultiSelect">Multiple objects selected...</div>
+				<div id="shaderInstanceData" class="dataTable">
+					<div id="shaderInstanceDataList">
+						<div id="shaderInstanceDataTemplate" class="dataBindingBlock">
+							<div class="center">Shader name...</div>
+							<div class="entityDataField" data-fieldidx="" data-bindidx="">
+								<span>Field name...</span>
+								<!-- Text input -->
+								<div>
+									<input class="dataInput" type="text" placeholder="Input..." onchange="changeShaderData" />
+								</div>
+								<!-- Checkbox input -->
+								<div>
+									<input class="dataCheck" type="checkbox" onchange="changeShaderData" />
+								</div>
+								<!-- Vec2 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+								</div>
+								<!-- Vec3 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+									<input class="smallInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+								</div>
+								<!-- Vec4 -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="X..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="W..." onchange="changeShaderData" />
+								</div>
+								<!-- Color -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="R..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="G..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="B..." onchange="changeShaderData" />
+									<input class="smallerInput" type="text" placeholder="A..." onchange="changeShaderData" />
+								</div>
+								<!-- Select input -->
+								<div>
+									<select class="dataInput" onchange="changeShaderData"></select>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div id="detailsEntityDataTable" class="dataTable">
+					<div id="boundEntityDataList">
+						<div id="boundEntityDataTemplate" class="dataBindingBlock">
+							<div class="dataControls">
+								<button class="pasteIcon" data-bindidx="" onclick="pasteEntityData">📋</button>
+								<button class="copyIcon" data-bindidx="" onclick="copyEntityData">🖨︎</button>
+								<button class="deleteButton" data-bindidx="" onclick="removeEntityData">X</button>
+							</div>
+							<div class="center">Data name...</div>
+							<div class="entityDataField" data-fieldidx="" data-bindidx="">
+								<span>Field name...</span>
+								<!-- Text input -->
+								<div>
+									<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
+								</div>
+								<!-- Checkbox input -->
+								<div>
+									<input class="dataCheck" type="checkbox" onchange="changeData" />
+								</div>
+								<!-- Vec2 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeData" />
+								</div>
+								<!-- Vec3 -->
+								<div>
+									<input class="smallInput" type="text" placeholder="X..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Y..." onchange="changeData" />
+									<input class="smallInput" type="text" placeholder="Z..." onchange="changeData" />
+								</div>
+								<!-- Vec4 -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="X..." onchange="changeData" />
+									<input class="smallerInput" type="text" placeholder="Y..." onchange="changeData" />
+									<input class="smallerInput" type="text" placeholder="Z..." onchange="changeData" />
+									<input class="smallerInput" type="text" placeholder="W..." onchange="changeData" />
+								</div>
+								<!-- Color -->
+								<div>
+									<input class="smallerInput" type="text" placeholder="R..." onchange="changeData" />
+									<input class="smallerInput" type="text" placeholder="G..." onchange="changeData" />
+									<input class="smallerInput" type="text" placeholder="B..." onchange="changeData" />
+									<input class="smallerInput" type="text" placeholder="A..." onchange="changeData" />
+								</div>
+								<!-- Select input -->
+								<div>
+									<select class="dataInput" onchange="changeData"></select>
+								</div>
+								<!-- ContentId input -->
+								<div>
+									<div class="dataContentId" data-type="" onclick="clickSelectContentId" ondrop="contentIdDrop" ondragenter="contentIdDragEnter" ondragleave="contentIdDragExit">empty &lpar;TypeName&rpar;</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div><span>Add data, or </span><button class="pasteIcon" onclick="pasteEntityDataAsNew">📋</button></div>
+					<input type="text" placeholder="Find entity data..." onchange="searchEntityData" />
+					<div id="entityDataList">
+						<div id="entityDataListTemplate" class="entityDataListEntry" onclick="addEntityData">Name...</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Content UI -->
+		<img id="dragPreview" src="editor/textures/icons/file.png" />
+		<div id="contentArea">
+			<div class="left edPanelBg">
+				<input type="text" placeholder="Content search..." onchange="inputFilter" />
+				{{range .Filters}}
+				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
+				{{end}}
+				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
+				<div id="tagFilterList">
+					{{range .Tags}}
+					<span class="filterBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</span>
+					{{end}}
+				</div>
+			</div>
+			<div class="right edPanelBgDark">
+				<span id="entryTemplate" data-type="" group="entry" class="entry" ondblclick="dblClickEntry" ondragstart="entryDragStart" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
+					<img class="preview" src="editor/textures/icons/file.png" />
+					<div>Name...</div>
+					<img class="typeThumb" src="editor/textures/icons/file.png" />
+				</span>
+			</div>
+		</div>
+		<div id="ftdePrompt">
+			<div id="ftdeArrow">^</div>
+			<br />
+			<h1>Welcome to Kaiju!</h1>
+			<p>
+				It looks like this is your first time opening this project. Let's begin by opening up the "Content" workspace and importing some content for your game!
+			</p>
+		</div>
+		<span id="tooltip">Tooltip...</span>
+	</body>
 </html>

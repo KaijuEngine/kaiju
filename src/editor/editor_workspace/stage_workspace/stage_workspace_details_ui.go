@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/codegen"
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/editor_overlay/content_selector"
+	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_stage_manager"
 	"kaiju/editor/editor_stage_manager/data_binding_renderer"
 	"kaiju/engine"
@@ -71,6 +72,8 @@ const (
 
 type copyPasteKind int
 
+const copyPasteDataAttr string = "data-copypaste"
+
 const (
 	entityPosition copyPasteKind = iota
 	entityRotation
@@ -78,11 +81,18 @@ const (
 	entityName
 )
 
-var fieldMap = map[string]copyPasteKind{
+var copyPasteStrToKindMap = map[string]copyPasteKind{
 	"entityPosition": entityPosition,
 	"entityRotation": entityRotation,
 	"entityScale":    entityScale,
 	"entityName":     entityName,
+}
+
+var fieldMap = map[copyPasteKind]reflect.Kind{
+	entityPosition: reflect.TypeFor[matrix.Vec3]().Kind(),
+	entityRotation: reflect.TypeFor[matrix.Vec3]().Kind(),
+	entityScale:    reflect.TypeFor[matrix.Vec3]().Kind(),
+	entityName:     reflect.TypeFor[string]().Kind(),
 }
 
 type WorkspaceDetailsUI struct {
@@ -142,6 +152,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"contentIdDrop":        dui.contentIdDrop,
 		"contentIdDragEnter":   dui.contentIdDragEnter,
 		"contentIdDragExit":    dui.contentIdDragExit,
+		"onRightClick":         dui.onRightClick,
 	}
 }
 
@@ -903,7 +914,6 @@ func (dui *WorkspaceDetailsUI) update() {
 	if len(sel) == 0 {
 		return
 	}
-	// slog.Info("Stage entities", "len", len(sel))
 	e := sel[len(sel)-1]
 	p := e.Transform.Position()
 	r := e.Transform.Rotation()
@@ -1002,7 +1012,7 @@ func toFloat(str string) float64 {
 }
 
 // Prerequisite:
-// document.Element must have a `data-copy` attribute which would represent The
+// document.Element must have a `data-copypaste` attribute which would represent The
 // target attribute which need's to be copied
 func (dui *WorkspaceDetailsUI) copyAttribute(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.copyEntityPosition").End()
@@ -1013,8 +1023,8 @@ func (dui *WorkspaceDetailsUI) copyAttribute(e *document.Element) {
 	}
 	sel := w.stageView.Manager().Selection()
 
-	fieldToCopy := e.Attribute("data-copy")
-	switch fieldMap[fieldToCopy] {
+	fieldToCopy := copyPasteStrToKindMap[e.Attribute(copyPasteDataAttr)]
+	switch fieldToCopy {
 	case entityPosition:
 		dui.copiedAttribute = sel[0].Transform.Position()
 	case entityRotation:
@@ -1029,7 +1039,7 @@ func (dui *WorkspaceDetailsUI) copyAttribute(e *document.Element) {
 }
 
 // Prerequisite:
-// document.Element must have a `data-paste` attribute which would represent The
+// document.Element must have a `data-copypaste` attribute which would represent The
 // target attribute where it needs to be pasted
 func (dui *WorkspaceDetailsUI) pasteAttribute(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.pasteEntityData").End()
@@ -1046,24 +1056,22 @@ func (dui *WorkspaceDetailsUI) pasteAttribute(e *document.Element) {
 	}
 	sel := w.stageView.Manager().Selection()
 
-	valToPaste := reflect.TypeOf(dui.copiedAttribute)
-
-	pasteToField := e.Attribute("data-paste")
-	switch fieldMap[pasteToField] {
+	pasteToField := copyPasteStrToKindMap[e.Attribute(copyPasteDataAttr)]
+	switch pasteToField {
 	case entityPosition:
-		if valToPaste.Kind() == reflect.TypeOf(sel[0].Transform.Position()).Kind() {
+		if fieldMap[pasteToField] == reflect.TypeOf(sel[0].Transform.Position()).Kind() {
 			sel[0].Transform.SetPosition(dui.copiedAttribute.(matrix.Vec3))
 		}
 	case entityRotation:
-		if valToPaste.Kind() == reflect.TypeOf(sel[0].Transform.Rotation()).Kind() {
+		if fieldMap[pasteToField] == reflect.TypeOf(sel[0].Transform.Rotation()).Kind() {
 			sel[0].Transform.SetRotation(dui.copiedAttribute.(matrix.Vec3))
 		}
 	case entityScale:
-		if valToPaste.Kind() == reflect.TypeOf(sel[0].Transform.Scale()).Kind() {
+		if fieldMap[pasteToField] == reflect.TypeOf(sel[0].Transform.Scale()).Kind() {
 			sel[0].Transform.SetScale(dui.copiedAttribute.(matrix.Vec3))
 		}
 	case entityName:
-		if valToPaste.Kind() == reflect.TypeOf(sel[0].Name()).Kind() {
+		if fieldMap[pasteToField] == reflect.TypeOf(sel[0].Name()).Kind() {
 			newName := dui.copiedAttribute.(string)
 			h := &detailSetNameHistory{
 				w:        dui,
@@ -1082,4 +1090,42 @@ func (dui *WorkspaceDetailsUI) pasteAttribute(e *document.Element) {
 	}
 
 	slog.Info("pasting ", "data", dui.copiedAttribute)
+}
+
+func (dui *WorkspaceDetailsUI) onRightClick(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.rightClickContent").End()
+
+	slog.Info("opening option menu")
+
+	valToCopy := e.Attribute(copyPasteDataAttr)
+	options := []context_menu.ContextMenuOption{}
+	if len(valToCopy) > 0 {
+		options = append(options, context_menu.ContextMenuOption{
+			Label: fmt.Sprintf("Copy %s Attribute", valToCopy),
+			Call:  func() { dui.copyAttribute(e) },
+		})
+	}
+
+	if dui.copiedAttribute != nil {
+		kind, ok := copyPasteStrToKindMap[valToCopy]
+		if !ok {
+			slog.Info(fmt.Sprintf("%s is not a registered type", valToCopy))
+		} else {
+			if fieldMap[kind] == reflect.TypeOf(dui.copiedAttribute).Kind() {
+				options = append(options, context_menu.ContextMenuOption{
+					Label: "Paste Attribute",
+					Call:  func() { dui.pasteAttribute(e) },
+				})
+			} else {
+				options = append(options, context_menu.ContextMenuOption{
+					Label: fmt.Sprintf("Paste not possible (Type %s != %s)", fieldMap[kind], reflect.TypeOf(dui.copiedAttribute).Kind()),
+					Call:  func() {},
+				})
+			}
+		}
+	}
+
+	w := dui.workspace.Value()
+	w.ed.BlurInterface()
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)
 }
