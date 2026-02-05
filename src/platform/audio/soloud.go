@@ -138,6 +138,9 @@ func (a *Audio) UnmuteMusic() {
 }
 
 func (a *Audio) LoadMusic(adb assets.Database, key string) (*AudioClip, error) {
+	if key == "" {
+		return nil, errors.New("blank key requeseted to Audio.LoadMusic")
+	}
 	if c, ok := a.bgm[key]; ok {
 		return c, nil
 	}
@@ -152,6 +155,9 @@ func (a *Audio) LoadMusic(adb assets.Database, key string) (*AudioClip, error) {
 }
 
 func (a *Audio) LoadSound(adb assets.Database, key string) (*AudioClip, error) {
+	if key == "" {
+		return nil, errors.New("blank key requeseted to Audio.LoadSound")
+	}
 	if c, ok := a.sfx[key]; ok {
 		return c, nil
 	}
