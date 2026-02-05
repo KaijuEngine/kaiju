@@ -42,30 +42,19 @@ import (
 )
 
 type detailsDataChangeHistory struct {
-	DetailsWorkspace *WorkspaceDetailsUI
-	Value            reflect.Value
-	From             any
-	To               any
+	ValueChangeProcedure func(newVal reflect.Value)
+	From                 any
+	To                   any
 }
 
 func (h *detailsDataChangeHistory) Redo() {
 	defer tracing.NewRegion("DetailsChangeHistory.Redo").End()
-	h.Value.Set(reflect.ValueOf(h.To))
-	if reload, ok := h.DetailsWorkspace.TargetedElementValueReload[h.Value]; ok {
-		reload()
-	} else {
-		h.DetailsWorkspace.reload()
-	}
+	h.ValueChangeProcedure(reflect.ValueOf(h.To))
 }
 
 func (h *detailsDataChangeHistory) Undo() {
 	defer tracing.NewRegion("DetailsChangeHistory.Undo").End()
-	h.Value.Set(reflect.ValueOf(h.From))
-	if reload, ok := h.DetailsWorkspace.TargetedElementValueReload[h.Value]; ok {
-		reload()
-	} else {
-		h.DetailsWorkspace.reload()
-	}
+	h.ValueChangeProcedure(reflect.ValueOf(h.From))
 }
 
 func (h *detailsDataChangeHistory) Delete() {}

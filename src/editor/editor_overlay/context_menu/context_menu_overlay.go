@@ -63,6 +63,16 @@ type ContextMenuOption struct {
 
 func Show(host *engine.Host, options []ContextMenuOption, screenPos matrix.Vec2, onClose func()) (*ContextMenu, error) {
 	defer tracing.NewRegion("context_menu.Show").End()
+
+	if len(options) == 0 {
+		options = append(options, ContextMenuOption{
+			Label: "No Action possible",
+			Call: func() {
+				// do nothing , just consume the event
+			},
+		})
+	}
+
 	// Only allow one context menu open at a time
 	if existing != nil {
 		existing.Close()

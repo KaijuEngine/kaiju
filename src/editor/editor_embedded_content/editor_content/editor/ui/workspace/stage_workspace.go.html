@@ -241,16 +241,16 @@
 		<!-- Details UI -->
 		<div id="detailsArea" class="edPanelBg sideBarStandard">
 			<div class="detailsBody">
-				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" />
-				<div>Position</div>
+				<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" data-copypaste="entityName" onrightclick="onRightClick" />
+				<div data-copypaste="entityPosition" onrightclick="onRightClick">Position</div>
 				<input id="detailsPosX" class="smallInput" type="text" placeholder="X..." onchange="setPosX" />
 				<input id="detailsPosY" class="smallInput" type="text" placeholder="Y..." onchange="setPosY" />
 				<input id="detailsPosZ" class="smallInput" type="text" placeholder="Z..." onchange="setPosZ" />
-				<div>Rotation</div>
+				<div data-copypaste="entityRotation" onrightclick="onRightClick">Rotation</div>
 				<input id="detailsRotX" class="smallInput" type="text" placeholder="X..." onchange="setRotX" />
 				<input id="detailsRotY" class="smallInput" type="text" placeholder="Y..." onchange="setRotY" />
 				<input id="detailsRotZ" class="smallInput" type="text" placeholder="Z..." onchange="setRotZ" />
-				<div>Scale</div>
+				<div data-copypaste="entityScale" onrightclick="onRightClick">Scale</div>
 				<input id="detailsScaleX" class="smallInput" type="text" placeholder="X..." onchange="setScaleX" />
 				<input id="detailsScaleY" class="smallInput" type="text" placeholder="Y..." onchange="setScaleY" />
 				<input id="detailsScaleZ" class="smallInput" type="text" placeholder="Z..." onchange="setScaleZ" />
