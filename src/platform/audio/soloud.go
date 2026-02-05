@@ -48,7 +48,7 @@ import (
 type AudioClip struct {
 	wav     SoloudWav
 	key     string
-	handles []uint32
+	handles []VoiceHandle
 	isSFX   bool
 }
 
@@ -176,11 +176,11 @@ func (a *Audio) Play(clip *AudioClip) VoiceHandle {
 	handle := play(a.soloud, clip.wav)
 	if clip.isSFX {
 		if sfx, ok := a.sfx[clip.key]; ok {
-			sfx.handles = append(sfx.handles, uint32(handle))
+			sfx.handles = append(sfx.handles, handle)
 		}
 	} else {
 		if bgm, ok := a.bgm[clip.key]; ok {
-			bgm.handles = append(bgm.handles, uint32(handle))
+			bgm.handles = append(bgm.handles, handle)
 		}
 	}
 	return handle
@@ -203,19 +203,19 @@ func (a *Audio) Seek(handle VoiceHandle, seconds float64) bool {
 	return seek(a.soloud, handle, seconds) != 0
 }
 
-func (a *Audio) PlaySound(key string) (*AudioClip, uint32) {
+func (a *Audio) PlaySound(key string) (*AudioClip, VoiceHandle) {
 	if sfx, ok := a.sfx[key]; ok {
 		return sfx, play(a.soloud, sfx.wav)
 	}
 	return nil, 0
 }
 
-func (a *Audio) PlayMusic(key string) (*AudioClip, uint32) {
+func (a *Audio) PlayMusic(key string) (*AudioClip, VoiceHandle) {
 	if bgm, ok := a.bgm[key]; ok {
 		handle := play(a.soloud, bgm.wav)
 		setLooping(a.soloud, handle, true)
-		bgm.handles = append(bgm.handles, uint32(handle))
-		return bgm, uint32(handle)
+		bgm.handles = append(bgm.handles, handle)
+		return bgm, handle
 	}
 	return nil, 0
 }
