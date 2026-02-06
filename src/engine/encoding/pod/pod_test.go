@@ -13,28 +13,23 @@ func TestSimpleTypes(t *testing.T) {
 		FloatVal  float32
 		StringVal string
 	}
-
 	// Register the test structure
 	Register(SimpleStruct{})
-
 	original := SimpleStruct{
 		IntVal:    42,
 		FloatVal:  3.14,
 		StringVal: "hello",
 	}
-
 	buf := bytes.NewBuffer([]byte{})
 	encoder := NewEncoder(buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded SimpleStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded != original {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
@@ -58,7 +53,7 @@ func TestAllPrimitiveTypes(t *testing.T) {
 		RuneVal       rune
 		StringVal     string
 	}
-
+	Register(AllTypes{})
 	original := AllTypes{
 		Int8Val:       -8,
 		Int16Val:      -16,
@@ -75,19 +70,16 @@ func TestAllPrimitiveTypes(t *testing.T) {
 		RuneVal:       'A',
 		StringVal:     "test",
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded AllTypes
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded != original {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
@@ -102,7 +94,7 @@ func TestVectorTypes(t *testing.T) {
 		ColorVal matrix.Color
 		QuatVal  matrix.Quaternion
 	}
-
+	Register(VectorStruct{})
 	original := VectorStruct{
 		Vec2Val:  matrix.Vec2{1.5, 2.5},
 		Vec3Val:  matrix.Vec3{1.0, 2.0, 3.0},
@@ -110,19 +102,16 @@ func TestVectorTypes(t *testing.T) {
 		ColorVal: matrix.Color{0.1, 0.2, 0.3, 1.0},
 		QuatVal:  matrix.Quaternion{0.0, 0.0, 0.7071, 0.7071},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded VectorStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded.Vec2Val != original.Vec2Val {
 		t.Errorf("Vec2 mismatch: got %v, want %v", decoded.Vec2Val, original.Vec2Val)
 	}
@@ -147,13 +136,13 @@ func TestNestedStructures(t *testing.T) {
 		Name   string
 		Vector matrix.Vec3
 	}
-
 	type OuterStruct struct {
 		Inner1 InnerStruct
 		Inner2 InnerStruct
 		Count  uint32
 	}
-
+	Register(InnerStruct{})
+	Register(OuterStruct{})
 	original := OuterStruct{
 		Inner1: InnerStruct{
 			Value:  10,
@@ -167,19 +156,16 @@ func TestNestedStructures(t *testing.T) {
 		},
 		Count: 2,
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded OuterStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded != original {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
@@ -192,7 +178,7 @@ func TestArrayTypes(t *testing.T) {
 		StringArray [2]string
 		VectorArray [3]matrix.Vec2
 	}
-
+	Register(ArrayStruct{})
 	original := ArrayStruct{
 		IntArray:    [4]int32{10, 20, 30, 40},
 		StringArray: [2]string{"hello", "world"},
@@ -202,19 +188,16 @@ func TestArrayTypes(t *testing.T) {
 			{5.0, 6.0},
 		},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded ArrayStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded != original {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
@@ -227,7 +210,7 @@ func TestSliceTypes(t *testing.T) {
 		StringSlice []string
 		VectorSlice []matrix.Vec3
 	}
-
+	Register(SliceStruct{})
 	original := SliceStruct{
 		IntSlice:    []int32{1, 2, 3, 4, 5},
 		StringSlice: []string{"foo", "bar", "baz"},
@@ -236,37 +219,31 @@ func TestSliceTypes(t *testing.T) {
 			{4.0, 5.0, 6.0},
 		},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded SliceStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if len(decoded.IntSlice) != len(original.IntSlice) ||
 		len(decoded.StringSlice) != len(original.StringSlice) ||
 		len(decoded.VectorSlice) != len(original.VectorSlice) {
 		t.Errorf("slice length mismatch")
 	}
-
 	for i, v := range original.IntSlice {
 		if decoded.IntSlice[i] != v {
 			t.Errorf("IntSlice[%d] mismatch: got %v, want %v", i, decoded.IntSlice[i], v)
 		}
 	}
-
 	for i, v := range original.StringSlice {
 		if decoded.StringSlice[i] != v {
 			t.Errorf("StringSlice[%d] mismatch: got %v, want %v", i, decoded.StringSlice[i], v)
 		}
 	}
-
 	for i, v := range original.VectorSlice {
 		if decoded.VectorSlice[i] != v {
 			t.Errorf("VectorSlice[%d] mismatch: got %v, want %v", i, decoded.VectorSlice[i], v)
@@ -279,23 +256,20 @@ func TestEmptySlice(t *testing.T) {
 	type SliceStruct struct {
 		IntSlice []int32
 	}
-
+	Register(SliceStruct{})
 	original := SliceStruct{
 		IntSlice: []int32{},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded SliceStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if len(decoded.IntSlice) != 0 {
 		t.Errorf("expected empty slice, got length %d", len(decoded.IntSlice))
 	}
@@ -307,11 +281,11 @@ func TestNestedSlices(t *testing.T) {
 		ID   int32
 		Name string
 	}
-
 	type Container struct {
 		Items []Item
 	}
-
+	Register(Item{})
+	Register(Container{})
 	original := Container{
 		Items: []Item{
 			{ID: 1, Name: "first"},
@@ -319,23 +293,19 @@ func TestNestedSlices(t *testing.T) {
 			{ID: 3, Name: "third"},
 		},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded Container
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if len(decoded.Items) != len(original.Items) {
 		t.Fatalf("slice length mismatch: got %d, want %d", len(decoded.Items), len(original.Items))
 	}
-
 	for i, item := range original.Items {
 		if decoded.Items[i] != item {
 			t.Errorf("Items[%d] mismatch: got %v, want %v", i, decoded.Items[i], item)
@@ -350,7 +320,6 @@ func TestComplexStructure(t *testing.T) {
 		City   string
 		Postal int32
 	}
-
 	type Person struct {
 		Name    string
 		Age     uint8
@@ -359,7 +328,8 @@ func TestComplexStructure(t *testing.T) {
 		Scores  []int32
 		Tags    [3]string
 	}
-
+	Register(Address{})
+	Register(Person{})
 	original := Person{
 		Name:   "Alice",
 		Age:    30,
@@ -372,37 +342,30 @@ func TestComplexStructure(t *testing.T) {
 		Scores: []int32{95, 87, 92},
 		Tags:   [3]string{"engineer", "runner", "reader"},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded Person
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded.Name != original.Name || decoded.Age != original.Age || decoded.Height != original.Height {
 		t.Errorf("basic fields mismatch")
 	}
-
 	if decoded.Address != original.Address {
 		t.Errorf("Address mismatch: got %v, want %v", decoded.Address, original.Address)
 	}
-
 	if len(decoded.Scores) != len(original.Scores) {
 		t.Fatalf("Scores length mismatch")
 	}
-
 	for i, s := range original.Scores {
 		if decoded.Scores[i] != s {
 			t.Errorf("Scores[%d] mismatch: got %d, want %d", i, decoded.Scores[i], s)
 		}
 	}
-
 	if decoded.Tags != original.Tags {
 		t.Errorf("Tags mismatch: got %v, want %v", decoded.Tags, original.Tags)
 	}
@@ -415,35 +378,30 @@ func TestPointersAreSkipped(t *testing.T) {
 		Pointer *int32
 		Name    string
 	}
-
+	Register(WithPointer{})
 	ptrVal := int32(999)
 	original := WithPointer{
 		Value:   42,
 		Pointer: &ptrVal,
 		Name:    "test",
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded WithPointer
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	// The pointer field should not be encoded, so it won't be decoded
 	if decoded.Value != original.Value {
 		t.Errorf("Value mismatch: got %d, want %d", decoded.Value, original.Value)
 	}
-
 	if decoded.Name != original.Name {
 		t.Errorf("Name mismatch: got %s, want %s", decoded.Name, original.Name)
 	}
-
 	// Pointer should remain nil after decoding (it's skipped)
 	if decoded.Pointer != nil {
 		t.Errorf("Pointer should be nil after decode, got %v", *decoded.Pointer)
@@ -457,34 +415,29 @@ func TestInterfacesAreSkipped(t *testing.T) {
 		Interface interface{}
 		Name      string
 	}
-
+	Register(WithInterface{})
 	original := WithInterface{
 		Value:     42,
 		Interface: "some value", // This will not be encoded
 		Name:      "test",
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded WithInterface
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	// The interface field should not be encoded, so it won't be decoded
 	if decoded.Value != original.Value {
 		t.Errorf("Value mismatch: got %d, want %d", decoded.Value, original.Value)
 	}
-
 	if decoded.Name != original.Name {
 		t.Errorf("Name mismatch: got %s, want %s", decoded.Name, original.Name)
 	}
-
 	// Interface should remain nil after decoding (it's skipped)
 	if decoded.Interface != nil {
 		t.Errorf("Interface should be nil after decode, got %v", decoded.Interface)
@@ -497,11 +450,11 @@ func TestArrayOfStructs(t *testing.T) {
 		X float32
 		Y float32
 	}
-
 	type Polygon struct {
 		Points [4]Point
 	}
-
+	Register(Point{})
+	Register(Polygon{})
 	original := Polygon{
 		Points: [4]Point{
 			{0.0, 0.0},
@@ -510,19 +463,16 @@ func TestArrayOfStructs(t *testing.T) {
 			{0.0, 1.0},
 		},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded Polygon
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded != original {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
@@ -533,7 +483,7 @@ func TestSliceOfVectors(t *testing.T) {
 	type Path struct {
 		Points []matrix.Vec2
 	}
-
+	Register(Path{})
 	original := Path{
 		Points: []matrix.Vec2{
 			{0.0, 0.0},
@@ -541,23 +491,19 @@ func TestSliceOfVectors(t *testing.T) {
 			{2.0, 0.0},
 		},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded Path
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if len(decoded.Points) != len(original.Points) {
 		t.Fatalf("Points length mismatch")
 	}
-
 	for i, p := range original.Points {
 		if decoded.Points[i] != p {
 			t.Errorf("Points[%d] mismatch: got %v, want %v", i, decoded.Points[i], p)
@@ -570,17 +516,17 @@ func TestDeepNesting(t *testing.T) {
 	type Level3 struct {
 		Value int32
 	}
-
 	type Level2 struct {
 		L3   Level3
 		Name string
 	}
-
 	type Level1 struct {
 		L2   Level2
 		Flag uint8
 	}
-
+	Register(Level3{})
+	Register(Level2{})
+	Register(Level1{})
 	original := Level1{
 		L2: Level2{
 			L3: Level3{
@@ -590,19 +536,16 @@ func TestDeepNesting(t *testing.T) {
 		},
 		Flag: 1,
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded Level1
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded != original {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
@@ -616,38 +559,32 @@ func TestZeroValues(t *testing.T) {
 		VecVal    matrix.Vec3
 		SliceVal  []int32
 	}
-
+	Register(ZeroStruct{})
 	original := ZeroStruct{
 		IntVal:    0,
 		StringVal: "",
 		VecVal:    matrix.Vec3{0, 0, 0},
 		SliceVal:  []int32{},
 	}
-
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-
 	var decoded ZeroStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
-
 	if decoded.IntVal != 0 {
 		t.Errorf("IntVal should be 0, got %d", decoded.IntVal)
 	}
-
 	if decoded.StringVal != "" {
 		t.Errorf("StringVal should be empty, got %q", decoded.StringVal)
 	}
-
 	if decoded.VecVal != (matrix.Vec3{0, 0, 0}) {
 		t.Errorf("VecVal should be zero, got %v", decoded.VecVal)
 	}
-
 	if len(decoded.SliceVal) != 0 {
 		t.Errorf("SliceVal should be empty, got length %d", len(decoded.SliceVal))
 	}

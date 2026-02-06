@@ -18,6 +18,7 @@ var (
 )
 
 func init() {
+	Register(bool(false))
 	Register(int8(0))
 	Register(int16(0))
 	Register(int32(0))

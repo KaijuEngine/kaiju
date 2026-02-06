@@ -52,6 +52,10 @@ func BinaryWrite(w io.Writer, data any) error {
 	return binary.Write(w, binary.LittleEndian, data)
 }
 
+func BinaryWriteInt(w io.Writer, value int) error {
+	return BinaryWrite(w, int32(value))
+}
+
 func BinaryWriteSliceLen[T any](w io.Writer, data []T) error {
 	return BinaryWrite(w, int32(len(data)))
 }
@@ -113,6 +117,10 @@ func BinaryWriteMap[K comparable, V any](w io.Writer, data map[K]V) error {
 
 func BinaryRead(r io.Reader, data any) error {
 	return binary.Read(r, binary.LittleEndian, data)
+}
+
+func BinaryReadInt(r io.Reader) (int32, error) {
+	return BinaryReadVar[int32](r)
 }
 
 func BinaryReadLen(r io.Reader) (int32, error) {

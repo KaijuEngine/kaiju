@@ -51,18 +51,18 @@ func (d Decoder) decodeValue(val reflect.Value, typeLookup, fieldLookup []string
 
 func (d Decoder) decodeSliceOrArray(val reflect.Value, typeLookup, fieldLookup []string) error {
 	// Read the count of elements
-	var count int
-	if err := klib.BinaryRead(d.r, &count); err != nil {
+	count, err := klib.BinaryReadInt(d.r)
+	if err != nil {
 		return fmt.Errorf("failed to read slice/array count: %w", err)
 	}
 	// For slices, we need to allocate the slice
 	if val.Kind() == reflect.Slice {
-		val.Set(reflect.MakeSlice(val.Type(), count, count))
+		val.Set(reflect.MakeSlice(val.Type(), int(count), int(count)))
 	} else if val.Kind() != reflect.Array {
 		return fmt.Errorf("expected slice or array, got %v", val.Kind())
 	}
 	// Decode each element
-	for i := 0; i < count; i++ {
+	for i := 0; i < int(count); i++ {
 		elemVal := val.Index(i)
 		if err := d.decodeValue(elemVal, typeLookup, fieldLookup); err != nil {
 			return fmt.Errorf("failed to decode element %d: %w", i, err)
@@ -75,7 +75,7 @@ func (d Decoder) decodeFieldsForType(val reflect.Value, typeLookup, fieldLookup 
 	switch val.Kind() {
 	case reflect.Struct:
 		return d.decodeStruct(val, typeLookup, fieldLookup)
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+	case reflect.Bool, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
 		reflect.Complex64, reflect.Complex128,
@@ -118,10 +118,18 @@ func (d Decoder) decodeStruct(val reflect.Value, typeLookup, fieldLookup []strin
 }
 
 func (d Decoder) decodePrimitive(val reflect.Value) error {
-	ptr := reflect.New(val.Type())
-	if err := klib.BinaryRead(d.r, ptr.Interface()); err != nil {
-		return fmt.Errorf("failed to read primitive value: %w", err)
+	if val.Kind() == reflect.String {
+		str, err := klib.BinaryReadString(d.r)
+		if err != nil {
+			return err
+		}
+		val.SetString(str)
+	} else {
+		ptr := reflect.New(val.Type())
+		if err := klib.BinaryRead(d.r, ptr.Interface()); err != nil {
+			return fmt.Errorf("failed to read primitive value: %w", err)
+		}
+		val.Set(ptr.Elem())
 	}
-	val.Set(ptr.Elem())
 	return nil
 }

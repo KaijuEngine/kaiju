@@ -70,11 +70,11 @@ func (e Encoder) encodeTypeId(val reflect.Value, typeLookup []string) error {
 	case reflect.Slice, reflect.Array:
 		kindType = kindTypeSliceArray
 	default:
-		k := uint8(slices.Index(typeLookup, qn))
-		if k < 0 {
+		k := slices.Index(typeLookup, qn)
+		if k < 0 || k > math.MaxUint8 {
 			return fmt.Errorf("encoding type '%s' was never registered with pod", qn)
 		}
-		kindType = k
+		kindType = uint8(k)
 	}
 	return klib.BinaryWrite(e.w, kindType)
 }
@@ -84,7 +84,7 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 	switch val.Kind() {
 	case reflect.Slice, reflect.Array:
 		count := val.Len()
-		if err := klib.BinaryWrite(e.w, count); err != nil {
+		if err := klib.BinaryWriteInt(e.w, count); err != nil {
 			return err
 		}
 		for i := range count {
@@ -100,11 +100,23 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 			return fmt.Errorf("pod encoding only supports up to %d fields per-struct, '%s' has %d", maxFields, qualifiedName(t), count)
 		}
 		fieldCount = uint8(count)
+		for i := range int(fieldCount) {
+			switch val.Field(i).Kind() {
+			case reflect.Pointer, reflect.Interface, reflect.Chan,
+				reflect.Func, reflect.UnsafePointer:
+				fieldCount--
+			}
+		}
 		if err := klib.BinaryWrite(e.w, fieldCount); err != nil {
 			return err
 		}
-		for i := range int(fieldCount) {
+		for i := range count {
 			f := val.Field(i)
+			switch f.Kind() {
+			case reflect.Pointer, reflect.Interface, reflect.Chan,
+				reflect.Func, reflect.UnsafePointer:
+				continue
+			}
 			// First, encode the field lookup id
 			idx := uint16(slices.Index(fieldLookup, t.Field(i).Name))
 			if err := klib.BinaryWrite(e.w, idx); err != nil {
@@ -157,7 +169,17 @@ func collectQualifiedNames(t reflect.Type, set map[string]struct{}) {
 	if name := qualifiedName(t); name != "" {
 		set[name] = struct{}{}
 	}
-	if pullInnerKind(t) != reflect.Struct {
+	kind := pullInnerKind(t)
+	if kind != reflect.Struct {
+		set[kind.String()] = struct{}{}
+		return
+	}
+	switch t.Kind() {
+	case reflect.Slice, reflect.Array:
+		for t.Kind() != reflect.Struct {
+			t = t.Elem()
+		}
+		collectQualifiedNames(t, set)
 		return
 	}
 	for i := 0; i < t.NumField(); i++ {
@@ -174,6 +196,15 @@ func collectQualifiedNames(t reflect.Type, set map[string]struct{}) {
 }
 
 func collectQualifiedFieldNames(t reflect.Type, set map[string]struct{}) {
+	switch t.Kind() {
+	case reflect.Slice, reflect.Array:
+		t = t.Elem()
+		collectQualifiedFieldNames(t, set)
+		return
+	}
+	if t.Kind() != reflect.Struct {
+		return
+	}
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		if f.PkgPath != "" {
@@ -184,9 +215,7 @@ func collectQualifiedFieldNames(t reflect.Type, set map[string]struct{}) {
 			continue
 		}
 		set[f.Name] = struct{}{}
-		if ft.Kind() == reflect.Struct {
-			collectQualifiedFieldNames(ft, set)
-		}
+		collectQualifiedFieldNames(ft, set)
 	}
 }
 
@@ -199,7 +228,7 @@ func collectQualifiedFieldNames(t reflect.Type, set map[string]struct{}) {
 func pullInnerKind(t reflect.Type) reflect.Kind {
 	switch t.Kind() {
 	case reflect.Array, reflect.Slice, reflect.Map:
-		return t.Elem().Kind()
+		return pullInnerKind(t.Elem())
 	default:
 		return t.Kind()
 	}
