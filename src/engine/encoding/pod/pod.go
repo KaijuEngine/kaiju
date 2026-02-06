@@ -55,7 +55,7 @@ func Unregister(layout any) {
 func Register(layout any) error {
 	t := reflect.TypeOf(layout)
 	q := qualifiedName(t)
-	if _, ok := registry.LoadOrStore(q, reflect.TypeOf(layout)); ok {
+	if _, ok := registry.LoadOrStore(q, t); ok {
 		return fmt.Errorf("the name '%s' has already been registered in kob", q)
 	}
 	return nil

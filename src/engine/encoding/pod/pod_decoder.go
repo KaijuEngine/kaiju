@@ -37,16 +37,31 @@ func (d Decoder) Decode(into any) error {
 }
 
 func (d Decoder) decodeValue(val reflect.Value, typeLookup, fieldLookup []string) error {
-	// Read the type ID to determine what type we're decoding
-	var typeID uint8
-	if err := klib.BinaryRead(d.r, &typeID); err != nil {
-		return fmt.Errorf("failed to read type ID: %w", err)
+	// Read the type id to determine what type we're decoding
+	var typeId uint8
+	if err := klib.BinaryRead(d.r, &typeId); err != nil {
+		return fmt.Errorf("failed to read type id: %w", err)
 	}
-	// Decode based on the type ID
-	if typeID == kindTypeSliceArray {
+	// Decode based on the type id
+	if typeId == kindTypeSliceArray {
 		return d.decodeSliceOrArray(val, typeLookup, fieldLookup)
 	}
-	return d.decodeFieldsForType(val, typeLookup, fieldLookup)
+	if val.Kind() == reflect.Interface {
+		key := typeLookup[typeId]
+		if r, ok := registry.Load(key); !ok {
+			return fmt.Errorf("missing registration in POD for '%s'", key)
+		} else {
+			ival := reflect.New(r.(reflect.Type)).Elem()
+			err := d.decodeFieldsForType(ival, typeLookup, fieldLookup)
+			if err != nil {
+				return err
+			}
+			val.Set(ival)
+			return nil
+		}
+	} else {
+		return d.decodeFieldsForType(val, typeLookup, fieldLookup)
+	}
 }
 
 func (d Decoder) decodeSliceOrArray(val reflect.Value, typeLookup, fieldLookup []string) error {

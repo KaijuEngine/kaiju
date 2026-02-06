@@ -16,6 +16,7 @@ func TestSimpleTypes(t *testing.T) {
 	}
 	// Register the test structure
 	Register(SimpleStruct{})
+	defer Unregister(SimpleStruct{})
 	original := SimpleStruct{
 		IntVal:    42,
 		FloatVal:  3.14,
@@ -55,6 +56,7 @@ func TestAllPrimitiveTypes(t *testing.T) {
 		StringVal     string
 	}
 	Register(AllTypes{})
+	defer Unregister(AllTypes{})
 	original := AllTypes{
 		Int8Val:       -8,
 		Int16Val:      -16,
@@ -96,6 +98,7 @@ func TestVectorTypes(t *testing.T) {
 		QuatVal  matrix.Quaternion
 	}
 	Register(VectorStruct{})
+	defer Unregister(VectorStruct{})
 	original := VectorStruct{
 		Vec2Val:  matrix.Vec2{1.5, 2.5},
 		Vec3Val:  matrix.Vec3{1.0, 2.0, 3.0},
@@ -144,6 +147,8 @@ func TestNestedStructures(t *testing.T) {
 	}
 	Register(InnerStruct{})
 	Register(OuterStruct{})
+	defer Unregister(InnerStruct{})
+	defer Unregister(OuterStruct{})
 	original := OuterStruct{
 		Inner1: InnerStruct{
 			Value:  10,
@@ -180,6 +185,7 @@ func TestArrayTypes(t *testing.T) {
 		VectorArray [3]matrix.Vec2
 	}
 	Register(ArrayStruct{})
+	defer Unregister(ArrayStruct{})
 	original := ArrayStruct{
 		IntArray:    [4]int32{10, 20, 30, 40},
 		StringArray: [2]string{"hello", "world"},
@@ -212,6 +218,7 @@ func TestSliceTypes(t *testing.T) {
 		VectorSlice []matrix.Vec3
 	}
 	Register(SliceStruct{})
+	defer Unregister(SliceStruct{})
 	original := SliceStruct{
 		IntSlice:    []int32{1, 2, 3, 4, 5},
 		StringSlice: []string{"foo", "bar", "baz"},
@@ -258,6 +265,7 @@ func TestEmptySlice(t *testing.T) {
 		IntSlice []int32
 	}
 	Register(SliceStruct{})
+	defer Unregister(SliceStruct{})
 	original := SliceStruct{
 		IntSlice: []int32{},
 	}
@@ -287,6 +295,8 @@ func TestNestedSlices(t *testing.T) {
 	}
 	Register(Item{})
 	Register(Container{})
+	defer Unregister(Item{})
+	defer Unregister(Container{})
 	original := Container{
 		Items: []Item{
 			{ID: 1, Name: "first"},
@@ -331,6 +341,8 @@ func TestComplexStructure(t *testing.T) {
 	}
 	Register(Address{})
 	Register(Person{})
+	defer Unregister(Address{})
+	defer Unregister(Person{})
 	original := Person{
 		Name:   "Alice",
 		Age:    30,
@@ -380,6 +392,7 @@ func TestPointersAreSkipped(t *testing.T) {
 		Name    string
 	}
 	Register(WithPointer{})
+	defer Unregister(WithPointer{})
 	ptrVal := int32(999)
 	original := WithPointer{
 		Value:   42,
@@ -417,6 +430,7 @@ func TestInterfacesAreSkipped(t *testing.T) {
 		Name      string
 	}
 	Register(WithInterface{})
+	defer Unregister(WithInterface{})
 	original := WithInterface{
 		Value:     42,
 		Interface: "some value", // This will not be encoded
@@ -456,6 +470,8 @@ func TestArrayOfStructs(t *testing.T) {
 	}
 	Register(Point{})
 	Register(Polygon{})
+	defer Unregister(Point{})
+	defer Unregister(Polygon{})
 	original := Polygon{
 		Points: [4]Point{
 			{0.0, 0.0},
@@ -485,6 +501,7 @@ func TestSliceOfVectors(t *testing.T) {
 		Points []matrix.Vec2
 	}
 	Register(Path{})
+	defer Unregister(Path{})
 	original := Path{
 		Points: []matrix.Vec2{
 			{0.0, 0.0},
@@ -528,6 +545,9 @@ func TestDeepNesting(t *testing.T) {
 	Register(Level3{})
 	Register(Level2{})
 	Register(Level1{})
+	defer Unregister(Level3{})
+	defer Unregister(Level2{})
+	defer Unregister(Level1{})
 	original := Level1{
 		L2: Level2{
 			L3: Level3{
@@ -561,6 +581,7 @@ func TestZeroValues(t *testing.T) {
 		SliceVal  []int32
 	}
 	Register(ZeroStruct{})
+	defer Unregister(ZeroStruct{})
 	original := ZeroStruct{
 		IntVal:    0,
 		StringVal: "",
@@ -593,23 +614,101 @@ func TestZeroValues(t *testing.T) {
 
 // RecursiveType tests encoding/decoding of a recursive slice type
 func TestRecursiveType(t *testing.T) {
-	type Me struct {
-		Inner []Me
+	type RecusiveType struct {
+		Inner []RecusiveType
 	}
-	Register(Me{})
+	Register(RecusiveType{})
+	defer Unregister(RecusiveType{})
 	// Construct a nested recursive structure
-	original := Me{Inner: []Me{{Inner: []Me{}}, {Inner: []Me{{Inner: []Me{}}}}}}
+	original := RecusiveType{Inner: []RecusiveType{{Inner: []RecusiveType{}}, {Inner: []RecusiveType{{Inner: []RecusiveType{}}}}}}
 	buf := bytes.Buffer{}
 	encoder := NewEncoder(&buf)
 	if err := encoder.Encode(original); err != nil {
 		t.Fatalf("encoding failed: %v", err)
 	}
-	var decoded Me
+	var decoded RecusiveType
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)
 	}
 	if !reflect.DeepEqual(decoded, original) {
 		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
+	}
+}
+
+// TestInterfaceDecoding verifies that when decoding into a struct whose field
+// is an interface, the decoder creates the concrete type from the registry.
+// The test encodes a source struct with a concrete field and decodes it into a
+// destination struct where the same field is typed as `any`. The decoder should
+// populate the interface with a pointer to the concrete value.
+func TestInterfaceDecoding(t *testing.T) {
+	type Concrete struct {
+		Value int32
+	}
+	type Src struct {
+		Inner Concrete
+	}
+	type Dst struct {
+		Inner any
+	}
+	Register(Concrete{})
+	Register(Src{})
+	Register(Dst{})
+	defer Unregister(Concrete{})
+	defer Unregister(Src{})
+	defer Unregister(Dst{})
+	// Encode the source.
+	src := Src{Inner: Concrete{Value: 42}}
+	buf := bytes.Buffer{}
+	enc := NewEncoder(&buf)
+	if err := enc.Encode(src); err != nil {
+		t.Fatalf("encoding failed: %v", err)
+	}
+	// Decode into the destination.
+	var dst Dst
+	dec := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := dec.Decode(&dst); err != nil {
+		t.Fatalf("decoding failed: %v", err)
+	}
+	// The interface should contain a *Concrete.
+	cPtr, ok := dst.Inner.(Concrete)
+	if !ok {
+		t.Fatalf("decoded Inner has unexpected type %T, want *Concrete", dst.Inner)
+	}
+	if cPtr.Value != 42 {
+		t.Errorf("Concrete.Value mismatch: got %d, want %d", cPtr.Value, 42)
+	}
+}
+
+// TestEncodeAnyDecodeConcrete verifies that when encoding a struct with an
+// `any` (interface{}) field containing a concrete value, the decoder can
+// populate a destination struct with a concrete field of the same type.
+func TestEncodeAnyDecodeConcrete(t *testing.T) {
+	// Define a concrete type.
+	type Concrete struct {
+		Value int32
+	}
+	// Register all involved types.
+	Register(Concrete{})
+	defer Unregister(Concrete{})
+	// Encode the source.
+	var src any = Concrete{Value: 42}
+	buf := bytes.Buffer{}
+	enc := NewEncoder(&buf)
+	if err := enc.Encode(src); err != nil {
+		t.Fatalf("encoding any failed: %v", err)
+	}
+	// Decode into the destination.
+	var res any
+	dec := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := dec.Decode(&res); err != nil {
+		t.Fatalf("decoding into concrete failed: %v", err)
+	}
+	dst, ok := res.(Concrete)
+	if !ok {
+		t.Fatalf("decoded has unexpected type %T, want Concrete", dst)
+	}
+	if dst.Value != 42 {
+		t.Errorf("Concrete.Value mismatch: got %d, want %d", dst.Value, 42)
 	}
 }
