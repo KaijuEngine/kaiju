@@ -61,7 +61,7 @@ func New() TableOfContents {
 func Deserialize(data []byte) (TableOfContents, error) {
 	var toc TableOfContents
 	var err error
-	if build.Editor {
+	if build.Editor || build.Debug {
 		err = json.Unmarshal(data, &toc)
 	} else {
 		r := bytes.NewReader(data)
