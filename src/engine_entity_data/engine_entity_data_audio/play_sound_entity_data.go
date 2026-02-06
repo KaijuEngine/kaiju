@@ -38,15 +38,23 @@ package engine_entity_data_audio
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine_entity_data/content_id"
 	"log/slog"
 	"time"
 )
 
-const SoundBindingKey = "kaiju.PlaySoundEntityData"
+var soundBindingKey = ""
 
 func init() {
-	engine.RegisterEntityData(SoundBindingKey, PlaySoundEntityData{})
+	engine.RegisterEntityData(PlaySoundEntityData{})
+}
+
+func SoundBindingKey() string {
+	if soundBindingKey == "" {
+		soundBindingKey = pod.QualifiedNameForLayout(PlaySoundEntityData{})
+	}
+	return soundBindingKey
 }
 
 type PlaySoundEntityData struct {

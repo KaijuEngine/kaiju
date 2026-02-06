@@ -159,7 +159,7 @@ func extractUsedRegistryKeys(from any) ([]string, error) {
 
 func extractUsedFieldKeys(from any) []string {
 	unique := make(map[string]struct{})
-	collectQualifiedFieldNames(reflect.TypeOf(from), unique)
+	collectQualifiedFieldNames(reflect.TypeOf(from), make(map[string]struct{}), unique)
 	return klib.MapKeys(unique)
 }
 
@@ -167,6 +167,10 @@ func extractUsedFieldKeys(from any) []string {
 // the qualified name of each exported, non‑pointer, non‑interface field type.
 func collectQualifiedNames(t reflect.Type, set map[string]struct{}) {
 	if name := qualifiedName(t); name != "" {
+		// Recursive
+		if _, ok := set[name]; ok {
+			return
+		}
 		set[name] = struct{}{}
 	}
 	kind := pullInnerKind(t)
@@ -176,9 +180,7 @@ func collectQualifiedNames(t reflect.Type, set map[string]struct{}) {
 	}
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
-		for t.Kind() != reflect.Struct {
-			t = t.Elem()
-		}
+		t = t.Elem()
 		collectQualifiedNames(t, set)
 		return
 	}
@@ -195,16 +197,22 @@ func collectQualifiedNames(t reflect.Type, set map[string]struct{}) {
 	}
 }
 
-func collectQualifiedFieldNames(t reflect.Type, set map[string]struct{}) {
+func collectQualifiedFieldNames(t reflect.Type, recursive, set map[string]struct{}) {
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
 		t = t.Elem()
-		collectQualifiedFieldNames(t, set)
+		collectQualifiedFieldNames(t, recursive, set)
 		return
 	}
 	if t.Kind() != reflect.Struct {
 		return
 	}
+	// Recursive
+	qn := qualifiedName(t)
+	if _, ok := recursive[qn]; ok {
+		return
+	}
+	recursive[qn] = struct{}{}
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		if f.PkgPath != "" {
@@ -215,7 +223,7 @@ func collectQualifiedFieldNames(t reflect.Type, set map[string]struct{}) {
 			continue
 		}
 		set[f.Name] = struct{}{}
-		collectQualifiedFieldNames(ft, set)
+		collectQualifiedFieldNames(ft, recursive, set)
 	}
 }
 

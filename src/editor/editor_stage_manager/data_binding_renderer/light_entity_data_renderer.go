@@ -51,7 +51,7 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_entity_data_light.BindingKey, &LightEntityDataRenderer{
+	AddRenderer(engine_entity_data_light.BindingKey(), &LightEntityDataRenderer{
 		Lights: make(map[*editor_stage_manager.StageEntity]lightEntityDataDrawing),
 	})
 }

@@ -42,7 +42,7 @@ import (
 	"kaiju/editor/codegen/entity_data_binding"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine/assets/content_archive"
-	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine/stages"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -88,7 +88,7 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 		//
 		// This is needed because the JSON serialization doesn't use the correct
 		// types internally, int would be int64 and float32 would be float64. So
-		// this will basically fix the values before serializing with GOB.
+		// this will basically fix the values before serializing with POD.
 		extractShaderData := func() {
 			if desc.Material == "" {
 				return
@@ -137,6 +137,6 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 	}
 	stream := bytes.NewBuffer(rawData)
 	stream.Reset()
-	err := gob.NewEncoder(stream).Encode(s)
+	err := pod.NewEncoder(stream).Encode(s)
 	return stream.Bytes(), err
 }

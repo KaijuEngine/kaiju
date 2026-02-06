@@ -121,6 +121,10 @@ type GameHost struct {
 
 func NewGameHost(host *engine.Host) *GameHost {
 	return &GameHost{}
+}
+	
+func (g *GameHost) MainLoaded() {
+
 }`
 
 const srcGameFileData = `package main
@@ -203,8 +207,10 @@ func (Game) Launch(host *engine.Host) {
 			return
 		}
 	}
-	host.SetGame(game_host.NewGameHost(host))
+	gh := game_host.NewGameHost(host)
+	host.SetGame(gh)
 	s.Load(host)
+	gh.MainLoaded(host)
 }
 
 func getGame() bootstrap.GameInterface { return Game{} }

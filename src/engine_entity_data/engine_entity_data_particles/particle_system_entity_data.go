@@ -38,12 +38,13 @@ package engine_entity_data_particles
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine_entity_data/content_id"
 	"kaiju/rendering/vfx"
 	"log/slog"
 )
 
-const BindingKey = "kaiju.ParticleSystemEntityData"
+var bindingKey = ""
 
 type Shape int
 
@@ -56,7 +57,14 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, ParticleSystemEntityData{})
+	engine.RegisterEntityData(ParticleSystemEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(ParticleSystemEntityData{})
+	}
+	return bindingKey
 }
 
 type ParticleSystemEntityData struct {

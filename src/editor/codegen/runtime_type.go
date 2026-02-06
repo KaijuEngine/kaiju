@@ -37,7 +37,7 @@
 package codegen
 
 import (
-	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/encoding/pod"
 	"kaiju/platform/profiler/tracing"
 	"reflect"
 )
@@ -54,8 +54,8 @@ func (g *GeneratedType) New() RuntimeType {
 		Value:     reflect.New(g.Type),
 	}
 	if !g.registered {
-		gob.UnRegisterName(g.RegisterKey)
-		gob.RegisterNamedType(g.RegisterKey, rt.Value.Type())
+		pod.Unregister(rt.Value.Type())
+		pod.Register(rt.Value.Type())
 		g.registered = true
 	}
 	return rt

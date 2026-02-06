@@ -38,11 +38,12 @@ package engine_entity_data_physics
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine/physics"
 	"kaiju/matrix"
 )
 
-const BindingKey = "kaiju.RigidBodyEntityData"
+var bindingKey = ""
 
 type Shape int
 
@@ -55,7 +56,14 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, RigidBodyEntityData{})
+	engine.RegisterEntityData(RigidBodyEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(RigidBodyEntityData{})
+	}
+	return bindingKey
 }
 
 type RigidBodyEntityData struct {

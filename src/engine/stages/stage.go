@@ -42,7 +42,7 @@ import (
 	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/assets"
-	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/encoding/pod"
 	"kaiju/matrix"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -224,13 +224,13 @@ func (s *Stage) FromMinimized(ss StageJson) {
 
 func ArchiveDeserializer(rawData []byte) (Stage, error) {
 	var s Stage
-	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&s)
+	err := pod.NewDecoder(bytes.NewReader(rawData)).Decode(&s)
 	return s, err
 }
 
 func EntityDescriptionArchiveDeserializer(rawData []byte) (EntityDescription, error) {
 	var desc EntityDescription
-	err := gob.NewDecoder(bytes.NewReader(rawData)).Decode(&desc)
+	err := pod.NewDecoder(bytes.NewReader(rawData)).Decode(&desc)
 	return desc, err
 }
 

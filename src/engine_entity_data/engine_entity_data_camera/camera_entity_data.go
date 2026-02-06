@@ -39,9 +39,10 @@ package engine_entity_data_camera
 import (
 	"kaiju/engine"
 	"kaiju/engine/cameras"
+	"kaiju/engine/encoding/pod"
 )
 
-const BindingKey = "kaiju.CameraEntityData"
+var bindingKey = ""
 
 type CameraType int
 
@@ -52,7 +53,14 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, CameraEntityData{})
+	engine.RegisterEntityData(CameraEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(CameraEntityData{})
+	}
+	return bindingKey
 }
 
 type CameraEntityData struct {

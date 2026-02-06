@@ -38,7 +38,7 @@ package kaiju_font
 
 import (
 	"bytes"
-	"encoding/gob"
+	"kaiju/engine/encoding/pod"
 )
 
 // KaijuFont is a base primitive representing a single font including each
@@ -94,19 +94,19 @@ type FontData struct {
 }
 
 // Serialize will convert a [KaijuFont] into a byte array for saving to the
-// database or later use. This serialization uses the built-in [gob.Encoder]
+// database or later use. This serialization uses the built-in [pod.Encoder]
 func (f *KaijuFont) Serialize() ([]byte, error) {
 	w := bytes.NewBuffer([]byte{})
-	enc := gob.NewEncoder(w)
+	enc := pod.NewEncoder(w)
 	err := enc.Encode(f)
 	return w.Bytes(), err
 }
 
 // Deserialize will construct a [KaijuFont] from the given array of bytes. This
-// deserialization uses the built-in [gob.Decoder]
+// deserialization uses the built-in [pod.Decoder]
 func Deserialize(data []byte) (KaijuFont, error) {
 	r := bytes.NewReader(data)
-	dec := gob.NewDecoder(r)
+	dec := pod.NewDecoder(r)
 	var kf KaijuFont
 	err := dec.Decode(&kf)
 	return kf, err

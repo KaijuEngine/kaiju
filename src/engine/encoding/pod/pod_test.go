@@ -3,6 +3,7 @@ package pod
 import (
 	"bytes"
 	"kaiju/matrix"
+	"reflect"
 	"testing"
 )
 
@@ -587,5 +588,28 @@ func TestZeroValues(t *testing.T) {
 	}
 	if len(decoded.SliceVal) != 0 {
 		t.Errorf("SliceVal should be empty, got length %d", len(decoded.SliceVal))
+	}
+}
+
+// RecursiveType tests encoding/decoding of a recursive slice type
+func TestRecursiveType(t *testing.T) {
+	type Me struct {
+		Inner []Me
+	}
+	Register(Me{})
+	// Construct a nested recursive structure
+	original := Me{Inner: []Me{{Inner: []Me{}}, {Inner: []Me{{Inner: []Me{}}}}}}
+	buf := bytes.Buffer{}
+	encoder := NewEncoder(&buf)
+	if err := encoder.Encode(original); err != nil {
+		t.Fatalf("encoding failed: %v", err)
+	}
+	var decoded Me
+	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := decoder.Decode(&decoded); err != nil {
+		t.Fatalf("decoding failed: %v", err)
+	}
+	if !reflect.DeepEqual(decoded, original) {
+		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
 	}
 }

@@ -37,14 +37,12 @@
 package shader_data_registry
 
 import (
-	"kaiju/engine/runtime/encoding/gob"
 	"kaiju/matrix"
 	"kaiju/rendering"
 	"unsafe"
 )
 
 func init() {
-	gob.Register([4]int32{})
 	register(func() rendering.DrawInstance {
 		return &ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),

@@ -65,7 +65,7 @@ type RigidBodyEntityDataRenderer struct {
 }
 
 func init() {
-	AddRenderer(engine_entity_data_physics.BindingKey, &RigidBodyEntityDataRenderer{
+	AddRenderer(engine_entity_data_physics.BindingKey(), &RigidBodyEntityDataRenderer{
 		Wireframes: make(map[*editor_stage_manager.StageEntity]rigidBodyGizmo),
 	})
 }

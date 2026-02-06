@@ -3,7 +3,7 @@ package {{.FolderName}}
 import "kaiju/engine"
 
 func init() {
-	engine.RegisterEntityData("{{.FolderName}}.{{.StructName}}", {{.StructName}}{})
+	engine.RegisterEntityData({{.StructName}}{})
 }
 
 type {{.StructName}} struct {

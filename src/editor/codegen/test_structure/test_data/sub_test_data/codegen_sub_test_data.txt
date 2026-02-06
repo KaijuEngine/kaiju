@@ -3,7 +3,7 @@ package sub_test_data
 import "kaiju/engine"
 
 func init() {
-	engine.RegisterEntityData("Nothing", Nothing{})
+	engine.RegisterEntityData(Nothing{})
 }
 
 type Nothing struct {

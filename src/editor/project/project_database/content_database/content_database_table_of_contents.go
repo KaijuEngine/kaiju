@@ -41,7 +41,7 @@ import (
 	"kaiju/editor/project/project_file_system"
 	"kaiju/engine/assets/content_archive"
 	"kaiju/engine/assets/table_of_contents"
-	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/encoding/pod"
 	"kaiju/platform/profiler/tracing"
 )
 
@@ -79,7 +79,7 @@ func (TableOfContents) ArchiveSerializer(_ content_archive.FileReader, rawData [
 		return rawData, err
 	}
 	buff := bytes.NewBuffer([]byte{})
-	if err = gob.NewEncoder(buff).Encode(toc); err != nil {
+	if err = pod.NewEncoder(buff).Encode(toc); err != nil {
 		return rawData, err
 	}
 	return buff.Bytes(), nil

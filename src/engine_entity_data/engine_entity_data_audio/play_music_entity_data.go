@@ -38,16 +38,24 @@ package engine_entity_data_audio
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine_entity_data/content_id"
 	"kaiju/platform/audio"
 	"log/slog"
 	"weak"
 )
 
-const MusicBindingKey = "kaiju.PlayMusicEntityData"
+var musicBindingKey = ""
 
 func init() {
-	engine.RegisterEntityData(MusicBindingKey, PlayMusicEntityData{})
+	engine.RegisterEntityData(PlayMusicEntityData{})
+}
+
+func MusicBindingKey() string {
+	if musicBindingKey == "" {
+		musicBindingKey = pod.QualifiedNameForLayout(PlayMusicEntityData{})
+	}
+	return musicBindingKey
 }
 
 type PlayMusicEntityData struct {
@@ -81,7 +89,7 @@ func (c PlayMusicEntityData) Init(e *engine.Entity, host *engine.Host) {
 	if c.Loop {
 		a.SetLooping(player.Handle, c.Loop)
 	}
-	e.AddNamedData(MusicBindingKey, player)
+	e.AddNamedData(MusicBindingKey(), player)
 	e.OnDestroy.Add(player.Stop)
 }
 

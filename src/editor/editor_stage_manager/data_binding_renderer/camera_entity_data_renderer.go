@@ -51,7 +51,7 @@ import (
 )
 
 func init() {
-	AddRenderer(engine_entity_data_camera.BindingKey, &CameraEntityDataRenderer{
+	AddRenderer(engine_entity_data_camera.BindingKey(), &CameraEntityDataRenderer{
 		Frustums: make(map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing),
 	})
 }

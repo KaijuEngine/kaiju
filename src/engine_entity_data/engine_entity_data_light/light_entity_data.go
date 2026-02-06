@@ -38,12 +38,13 @@ package engine_entity_data_light
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine/lighting"
 	"kaiju/matrix"
 	"kaiju/rendering"
 )
 
-const BindingKey = "kaiju.LightEntityData"
+var bindingKey = ""
 
 type LightType int
 
@@ -54,7 +55,14 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, LightEntityData{})
+	engine.RegisterEntityData(LightEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(LightEntityData{})
+	}
+	return bindingKey
 }
 
 type LightEntityData struct {

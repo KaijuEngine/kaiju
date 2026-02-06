@@ -34,17 +34,18 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine_entity_data_physics
+package engine_entity_data_tween_transform
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine/systems/tweening"
 	"kaiju/matrix"
 	"time"
 	"weak"
 )
 
-const BindingKey = "kaiju.TweenTransformEntityData"
+var bindingKey = ""
 
 type Easing int
 type Repeat int
@@ -93,7 +94,14 @@ const (
 )
 
 func init() {
-	engine.RegisterEntityData(BindingKey, TweenTransformEntityData{})
+	engine.RegisterEntityData(TweenTransformEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(TweenTransformEntityData{})
+	}
+	return bindingKey
 }
 
 type TweenTransformEntityData struct {

@@ -38,9 +38,9 @@ package table_of_contents
 
 import (
 	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"kaiju/build"
+	"kaiju/engine/encoding/pod"
 )
 
 type TableOfContents struct {
@@ -65,7 +65,7 @@ func Deserialize(data []byte) (TableOfContents, error) {
 		err = json.Unmarshal(data, &toc)
 	} else {
 		r := bytes.NewReader(data)
-		err = gob.NewDecoder(r).Decode(&toc)
+		err = pod.NewDecoder(r).Decode(&toc)
 	}
 	return toc, err
 }

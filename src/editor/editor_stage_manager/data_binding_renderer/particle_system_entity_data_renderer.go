@@ -58,7 +58,7 @@ type ParticleSystemEntityDataRenderer struct {
 }
 
 func init() {
-	AddRenderer(engine_entity_data_particles.BindingKey, &ParticleSystemEntityDataRenderer{
+	AddRenderer(engine_entity_data_particles.BindingKey(), &ParticleSystemEntityDataRenderer{
 		Systems: make(map[*editor_stage_manager.StageEntity]*particleSystemGizmo),
 	})
 }

@@ -22,7 +22,7 @@ will need to call is `engine.RegisterEntityData`. This will take in your POD
 type and register it for the editor to use. For example:
 ```go
 func init() {
-	engine.RegisterEntityData(&MyModuleStructure{})
+	engine.RegisterEntityData(MyModuleStructure{})
 }
 ```
 

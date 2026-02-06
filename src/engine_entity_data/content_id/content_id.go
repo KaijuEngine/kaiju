@@ -36,7 +36,9 @@
 
 package content_id
 
-import "kaiju/engine/runtime/encoding/gob"
+import (
+	"kaiju/engine/encoding/pod"
+)
 
 type Css string
 type Font string
@@ -55,19 +57,19 @@ type Texture string
 type Stage string
 
 func init() {
-	gob.RegisterName("content_id.Vec2", Css(""))
-	gob.RegisterName("content_id.Font", Font(""))
-	gob.RegisterName("content_id.Html", Html(""))
-	gob.RegisterName("content_id.Material", Material(""))
-	gob.RegisterName("content_id.Mesh", Mesh(""))
-	gob.RegisterName("content_id.Music", Music(""))
-	gob.RegisterName("content_id.ParticleSystem", ParticleSystem(""))
-	gob.RegisterName("content_id.RenderPass", RenderPass(""))
-	gob.RegisterName("content_id.ShaderPipeline", ShaderPipeline(""))
-	gob.RegisterName("content_id.Shader", Shader(""))
-	gob.RegisterName("content_id.Sound", Sound(""))
-	gob.RegisterName("content_id.TableOfContents", TableOfContents(""))
-	gob.RegisterName("content_id.Template", Template(""))
-	gob.RegisterName("content_id.Texture", Texture(""))
-	gob.RegisterName("content_id.Stage", Stage(""))
+	pod.Register(Css(""))
+	pod.Register(Font(""))
+	pod.Register(Html(""))
+	pod.Register(Material(""))
+	pod.Register(Mesh(""))
+	pod.Register(Music(""))
+	pod.Register(ParticleSystem(""))
+	pod.Register(RenderPass(""))
+	pod.Register(ShaderPipeline(""))
+	pod.Register(Shader(""))
+	pod.Register(Sound(""))
+	pod.Register(TableOfContents(""))
+	pod.Register(Template(""))
+	pod.Register(Texture(""))
+	pod.Register(Stage(""))
 }

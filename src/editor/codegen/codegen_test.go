@@ -38,7 +38,7 @@ package codegen
 
 import (
 	"bytes"
-	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/encoding/pod"
 	"os"
 	"reflect"
 	"testing"
@@ -78,12 +78,12 @@ func TestWalk(t *testing.T) {
 	rt.Value.Elem().FieldByName("Age").SetInt(10)
 	thing := []any{rt.Value}
 	s := bytes.NewBuffer([]byte{})
-	enc := gob.NewEncoder(s)
+	enc := pod.NewEncoder(s)
 	if err := enc.Encode(thing); err != nil {
 		t.Error(err)
 	}
 	rt.Value.Elem().FieldByName("Age").SetInt(15)
-	dec := gob.NewDecoder(s)
+	dec := pod.NewDecoder(s)
 	out := []any{}
 	if err := dec.Decode(&out); err != nil {
 		t.Error(err)

@@ -111,7 +111,7 @@ func LoadedResultToKaijuMesh(res load_result.Result) []KaijuMesh {
 }
 
 // Serialize will convert a [KaijuMesh] into a byte array for saving to the
-// database or later use. This serialization uses the built-in [gob.Encoder]
+// database or later use. This serialization uses the built-in [pod.Encoder]
 func (k KaijuMesh) Serialize() ([]byte, error) {
 	w := bytes.NewBuffer([]byte{})
 	enc := gob.NewEncoder(w)
@@ -120,7 +120,7 @@ func (k KaijuMesh) Serialize() ([]byte, error) {
 }
 
 // Deserialize will construct a [KaijuMesh] from the given array of bytes. This
-// deserialization uses the built-in [gob.Decoder]
+// deserialization uses the built-in [pod.Decoder]
 func Deserialize(data []byte) (KaijuMesh, error) {
 	r := bytes.NewReader(data)
 	dec := gob.NewDecoder(r)

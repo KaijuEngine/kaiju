@@ -39,7 +39,7 @@ package engine
 import (
 	"errors"
 	"kaiju/build"
-	"kaiju/engine/runtime/encoding/gob"
+	"kaiju/engine/encoding/pod"
 	"kaiju/matrix"
 	"log/slog"
 	"reflect"
@@ -51,16 +51,16 @@ type EntityData interface {
 	Init(entity *Entity, host *Host)
 }
 
-func RegisterEntityData(name string, value EntityData) error {
+func RegisterEntityData(value EntityData) error {
 	var err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(r.(string))
 		}
 	}()
-	gob.RegisterName(name, value)
+	pod.Register(value)
 	if build.Debug {
-		DebugEntityDataRegistry[name] = value
+		DebugEntityDataRegistry[pod.QualifiedNameForLayout(value)] = value
 	}
 	return err
 }

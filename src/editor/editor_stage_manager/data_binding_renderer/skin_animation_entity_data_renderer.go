@@ -67,7 +67,7 @@ type SkinAnimationEntityDataRenderer struct {
 }
 
 func init() {
-	AddRenderer(engine_entity_data_skin_animation.BindingKey, &SkinAnimationEntityDataRenderer{
+	AddRenderer(engine_entity_data_skin_animation.BindingKey(), &SkinAnimationEntityDataRenderer{
 		Skins: make(map[*editor_stage_manager.StageEntity]*skinAnimationGizmo),
 	})
 }

@@ -68,19 +68,19 @@ func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g
 
 func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewCamera").End()
-	cam, ok := w.createDataBoundEntity("Camera", engine_entity_data_camera.BindingKey)
+	cam, ok := w.createDataBoundEntity("Camera", engine_entity_data_camera.BindingKey())
 	if ok {
 		shouldMakePrimary := true
 		for _, e := range w.stageView.Manager().List() {
 			if e == cam {
 				continue
 			}
-			if len(e.DataBindingsByKey(engine_entity_data_camera.BindingKey)) > 0 {
+			if len(e.DataBindingsByKey(engine_entity_data_camera.BindingKey())) > 0 {
 				shouldMakePrimary = false
 				break
 			}
 		}
-		db := cam.DataBindingsByKey(engine_entity_data_camera.BindingKey)
+		db := cam.DataBindingsByKey(engine_entity_data_camera.BindingKey())
 		if shouldMakePrimary && len(db) > 0 {
 			db[0].SetFieldByName("IsMainCamera", true)
 		}
@@ -96,7 +96,7 @@ func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, b
 
 func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.CreateNewLight").End()
-	return w.createDataBoundEntity("Light", engine_entity_data_light.BindingKey)
+	return w.createDataBoundEntity("Light", engine_entity_data_light.BindingKey())
 }
 
 func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {
@@ -369,7 +369,7 @@ func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent,
 	defer tracing.NewRegion("StageWorkspace.spawnParticleSystem").End()
 	w.ed.History().BeginTransaction()
 	defer w.ed.History().CommitTransaction()
-	bindKey := engine_entity_data_particles.BindingKey
+	bindKey := engine_entity_data_particles.BindingKey()
 	e, _ := w.createDataBoundEntity(cc.Config.Name, bindKey)
 	e.Transform.SetPosition(point)
 	for _, de := range e.DataBindingsByKey(bindKey) {

@@ -38,7 +38,6 @@ package codegen
 
 import (
 	"errors"
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -57,7 +56,7 @@ import (
 )
 
 var (
-	registerRe = regexp.MustCompile(`engine\.RegisterEntityData\(("{0,1}.*?"{0,1}), &{0,}(.*?)\{\}\)`)
+	registerRe = regexp.MustCompile(`engine\.RegisterEntityData\(&{0,}(.*?)\{\}\)`)
 )
 
 type structure struct {
@@ -127,19 +126,14 @@ func readAst(srcRoot *os.Root, file string, registrations *map[string]string, lo
 	}
 	ast, err := parser.ParseFile(fs, "", src, parser.ParseComments)
 	for _, r := range registerRe.FindAllStringSubmatch(string(src), -1) {
-		if len(r) <= 2 {
+		if len(r) <= 1 {
 			continue
 		}
-		key := r[1]
-		if key[0] == '"' {
-			key = strings.Trim(key, `"`)
-		} else {
-			key = findConstValueInAST(ast, key)
-		}
-		typeName := r[2]
-		if key == "" {
-			return nil, fmt.Errorf("the registration key for type name '%s' was empty", typeName)
-		}
+		typeName := r[1]
+		// Determine the package name for the current file.
+		pkgName := ast.Name.Name
+		// Build the registration key as "packageName.typeName".
+		key := pkgName + "." + typeName
 		if _, ok := (*registrations)[key]; ok {
 			continue
 			// return nil, fmt.Errorf("the key '%s' has already been registered", key)

@@ -48,8 +48,8 @@ func init() {
 	Register(collision.Triangle{})
 }
 
-func Unregister(name string) {
-	registry.Delete(name)
+func Unregister(layout any) {
+	registry.Delete(qualifiedName(reflect.TypeOf(layout)))
 }
 
 func Register(layout any) error {
@@ -59,4 +59,8 @@ func Register(layout any) error {
 		return fmt.Errorf("the name '%s' has already been registered in kob", q)
 	}
 	return nil
+}
+
+func QualifiedNameForLayout(layout any) string {
+	return qualifiedName(reflect.TypeOf(layout))
 }

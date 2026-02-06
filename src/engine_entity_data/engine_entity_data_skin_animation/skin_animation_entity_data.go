@@ -38,6 +38,7 @@ package engine_entity_data_skin_animation
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/encoding/pod"
 	"kaiju/engine_entity_data/content_id"
 	"kaiju/framework"
 	"kaiju/klib"
@@ -50,10 +51,17 @@ import (
 	"weak"
 )
 
-const BindingKey = "kaiju.SkinAnimationEntityData"
+var bindingKey = ""
 
 func init() {
-	engine.RegisterEntityData(BindingKey, SkinAnimationEntityData{})
+	engine.RegisterEntityData(SkinAnimationEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(SkinAnimationEntityData{})
+	}
+	return bindingKey
 }
 
 type SkinAnimationEntityData struct {
@@ -96,7 +104,7 @@ func (c SkinAnimationEntityData) Init(e *engine.Entity, host *engine.Host) {
 			h.Updater.RemoveUpdate(&anim.updateId)
 		}
 	})
-	e.AddNamedData(BindingKey, anim)
+	e.AddNamedData(bindingKey, anim)
 	// The shader data hasn't been assigned yet, wait until the next frame to setup
 	host.RunNextFrame(func() { anim.setup(host) })
 }
@@ -116,7 +124,7 @@ func (a *MeshSkinningAnimation) setup(host *engine.Host) {
 	sd := e.ShaderData()
 	skin := sd.SkinningHeader()
 	if skin == nil {
-		e.RemoveNamedData(BindingKey, a)
+		e.RemoveNamedData(bindingKey, a)
 		slog.Error("failed to find skinning shader data on entity for MeshSkinningAnimation", "entity", e.Id())
 		return
 	}
