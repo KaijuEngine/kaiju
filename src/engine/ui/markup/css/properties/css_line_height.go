@@ -51,9 +51,10 @@ func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host
 	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		size := helpers.NumFromLengthWithFont(size, host.Window,
+		height := helpers.NumFromLengthWithFont(size, host.Window,
 			host.FontCache().EMSize(lbl.FontFace()))
-		lbl.SetLineHeight(size)
+		height = elm.Parent.Value().UI.Layout().PixelSize().Y() * height
+		lbl.SetLineHeight(height)
 	} else {
 		for _, child := range elm.Children {
 			setChildrenLineHeight(child, size, host)
