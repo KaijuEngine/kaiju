@@ -57,11 +57,39 @@ func BinaryWriteSliceLen[T any](w io.Writer, data []T) error {
 }
 
 func BinaryWriteSlice[T any](w io.Writer, data []T) error {
-	err := BinaryWriteSliceLen[T](w, data)
+	err := BinaryWriteSliceLen(w, data)
 	if err == nil && len(data) > 0 {
 		return BinaryWrite(w, data)
 	}
 	return err
+}
+
+func BinaryWriteStringSlice(w io.Writer, data []string) error {
+	if err := BinaryWriteSliceLen(w, data); err != nil {
+		return err
+	}
+	for i := range data {
+		if err := BinaryWriteString(w, data[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func BinaryReadStringSlice(r io.Reader) ([]string, error) {
+	l, err := BinaryReadLen(r)
+	if err != nil {
+		return []string{}, err
+	}
+	out := make([]string, 0, l)
+	for range l {
+		s, err := BinaryReadString(r)
+		if err != nil {
+			return out, err
+		}
+		out = append(out, s)
+	}
+	return out, nil
 }
 
 func BinaryWriteMapLen[K comparable, V any](w io.Writer, data map[K]V) error {
@@ -117,7 +145,7 @@ func BinaryReadVarSlice[T any](r io.Reader) ([]T, error) {
 func BinaryWriteString(w io.Writer, str string) error {
 	length := int32(len(str))
 	err := binary.Write(w, binary.LittleEndian, length)
-	if err != nil && length > 0 {
+	if err == nil && length > 0 {
 		return binary.Write(w, binary.LittleEndian, []byte(str))
 	}
 	return err
