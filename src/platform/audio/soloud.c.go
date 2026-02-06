@@ -54,6 +54,8 @@ type SoloudHandle = *C.Soloud
 type SoloudWav = *C.Wav
 type VoiceHandle = uint32
 
+const InvalidVoiceHandle = VoiceHandle(0)
+
 func errToString(soloud SoloudHandle, errCode int) string {
 	return C.GoString(C.Soloud_getErrorString(soloud, C.int(errCode)))
 }
