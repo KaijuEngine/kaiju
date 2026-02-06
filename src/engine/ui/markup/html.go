@@ -94,6 +94,9 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 	}
 	s := rules.NewStyleSheet()
 	s.Parse(css.DefaultCSS, window)
+	if css.OverrideCSS != "" {
+		s.Parse(css.OverrideCSS, window)
+	}
 	s.Parse(cssStr, window)
 	for i := range doc.HeadElements {
 		if doc.HeadElements[i].Data == "style" {
