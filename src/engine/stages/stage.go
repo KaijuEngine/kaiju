@@ -38,11 +38,13 @@ package stages
 
 import (
 	"bytes"
+	"encoding/json"
 	"kaiju/build"
 	"kaiju/debug"
 	"kaiju/engine"
 	"kaiju/engine/assets"
 	"kaiju/engine/encoding/pod"
+	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
@@ -224,6 +226,20 @@ func (s *Stage) FromMinimized(ss StageJson) {
 	}
 	for i := range ss.Entities {
 		proc(&ss.Entities[i], &s.Entities[i])
+	}
+}
+
+func Deserialize(rawData []byte) (Stage, error) {
+	if build.Debug && !klib.IsMobile() {
+		j := StageJson{}
+		if err := json.Unmarshal(rawData, &j); err != nil {
+			return Stage{}, err
+		}
+		s := Stage{}
+		s.FromMinimized(j)
+		return s, nil
+	} else {
+		return ArchiveDeserializer(rawData)
 	}
 }
 
