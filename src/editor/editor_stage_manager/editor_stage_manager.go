@@ -320,6 +320,11 @@ func (m *StageManager) Clear() {
 			m.entities[i].ForceCleanup()
 		}
 	}
+	// Even though we will remove the entity from the m.entities slice when the
+	// destroy event is called on it, we need to manually wipe the slice. This
+	// function is used right before a map load, so having a dirty entity list
+	// at that point is not good.
+	m.entities = klib.WipeSlice(m.entities)
 	m.worldBVH = nil
 }
 
