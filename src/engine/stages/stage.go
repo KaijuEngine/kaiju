@@ -58,6 +58,11 @@ type Stage struct {
 	Entities []EntityDescription
 }
 
+type LoadResult struct {
+	Roots    []*engine.Entity
+	Entities []*engine.Entity
+}
+
 type StageJson struct {
 	Id        string
 	Meshes    []string                `json:",omitempty"`
@@ -234,15 +239,19 @@ func EntityDescriptionArchiveDeserializer(rawData []byte) (EntityDescription, er
 	return desc, err
 }
 
-func (s *Stage) Load(host *engine.Host) {
+func (s *Stage) Load(host *engine.Host) LoadResult {
+	res := LoadResult{}
 	entityBindings := []func(){}
 	var proc func(se *EntityDescription, parent *engine.Entity)
 	proc = func(se *EntityDescription, parent *engine.Entity) {
 		e := engine.NewEntity(host.WorkGroup())
-		e.SetName(se.Name)
+		res.Entities = append(res.Entities, e)
 		if parent != nil {
 			e.SetParent(parent)
+		} else {
+			res.Roots = append(res.Roots, e)
 		}
+		e.SetName(se.Name)
 		e.Transform.SetPosition(se.Position)
 		e.Transform.SetRotation(se.Rotation)
 		e.Transform.SetScale(se.Scale)
@@ -287,6 +296,7 @@ func (s *Stage) Load(host *engine.Host) {
 	for i := range entityBindings {
 		entityBindings[i]()
 	}
+	return res
 }
 
 func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityDescription) (*engine.Entity, error) {
