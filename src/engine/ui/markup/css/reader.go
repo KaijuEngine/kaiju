@@ -117,11 +117,14 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 	lastTargets := []*document.Element{}
 	for _, elm := range elms {
 		lastTargets = append(lastTargets, elm)
+	partsLoop:
 		for _, part := range parts[1:] {
 			switch part.SelectType {
 			case rules.ReadingCondition:
 				if len(parts) > 2 && elm.Attribute(parts[1].Name) == parts[2].Name {
 					targets = klib.AppendUnique(targets, elm)
+				} else {
+					break partsLoop
 				}
 			case rules.ReadingClass:
 				if elm.HasClass(part.Name) {
