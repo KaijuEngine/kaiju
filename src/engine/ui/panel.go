@@ -789,19 +789,18 @@ func (p *Panel) updateScrollBars() {
 	if pd.scrollBarX == nil && pd.scrollBarY == nil {
 		return
 	}
-	bars := [...]*Panel{pd.scrollBarX, pd.scrollBarY}
-	for i := range bars {
-		if bars[i] != nil {
-			if p.flags.hovering() {
-				bars[i].Base().Show()
-			} else {
-				bars[i].Base().Hide()
-			}
+	if !p.flags.hovering() {
+		if pd.scrollBarX != nil {
+			pd.scrollBarX.Base().Hide()
 		}
+		if pd.scrollBarY != nil {
+			pd.scrollBarY.Base().Hide()
+		}
+		return
 	}
 	ps := p.layout.PixelSize()
 	panelW, panelH := ps.X(), ps.Y()
-	if pd.scrollBarX != nil && pd.scrollBarX.Base().IsActive() {
+	if pd.scrollBarX != nil && p.flags.hovering() {
 		y := panelH - scrollBarWidth
 		pd.scrollBarX.layout.SetOffsetY(y)
 		maxX := pd.maxScroll.X()
@@ -827,11 +826,12 @@ func (p *Panel) updateScrollBars() {
 			offsetX := (pd.scroll.X() / maxX) * (panelW - barW)
 			pd.scrollBarX.layout.Scale(barW, 12)
 			pd.scrollBarX.layout.SetOffsetX(offsetX)
+			pd.scrollBarX.Base().Show()
 		} else {
 			pd.scrollBarX.Base().Hide()
 		}
 	}
-	if pd.scrollBarY != nil && pd.scrollBarY.Base().IsActive() {
+	if pd.scrollBarY != nil && p.flags.hovering() {
 		x := panelW - scrollBarWidth
 		pd.scrollBarY.layout.SetOffsetX(x)
 		maxY := pd.maxScroll.Y()
@@ -857,6 +857,7 @@ func (p *Panel) updateScrollBars() {
 			offsetY := (-pd.scroll.Y() / maxY) * (panelH - barH)
 			pd.scrollBarY.layout.Scale(12, barH)
 			pd.scrollBarY.layout.SetOffsetY(offsetY)
+			pd.scrollBarY.Base().Show()
 		} else {
 			pd.scrollBarY.Base().Hide()
 		}
