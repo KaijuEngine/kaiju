@@ -1,0 +1,10 @@
+package loaders // import "kaiju/rendering/loaders"
+
+
+FUNCTIONS
+
+func GLTF(path string, assetDB assets.Database) (load_result.Result, error)
+func OBJ(path string, assetDB assets.Database) (load_result.Result, error)
+func ObjToRaw(objData string) ([]*objBuilder, objLibrary, error)
+func TrySelectResultMesh(mesh *load_result.Mesh,
+	e *engine.Entity, ray collision.Ray) (matrix.Float, bool)

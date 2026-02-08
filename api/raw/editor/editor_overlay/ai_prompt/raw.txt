@@ -1,0 +1,13 @@
+package ai_prompt // import "kaiju/editor/editor_overlay/ai_prompt"
+
+
+TYPES
+
+type AIPrompt struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, onClose func()) (*AIPrompt, error)
+
+func (o *AIPrompt) Close()
+

@@ -1,0 +1,64 @@
+package editor_stage_view // import "kaiju/editor/editor_stage_manager/editor_stage_view"
+
+
+TYPES
+
+type EditorStageViewWorkspaceInterface interface {
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	FocusInterface()
+	BlurInterface()
+	Settings() *editor_settings.Settings
+	StageView() *StageView
+}
+
+type StageView struct {
+	// Has unexported fields.
+}
+
+func (v *StageView) Camera() *editor_controls.EditorCamera
+
+func (v *StageView) Close()
+
+func (v *StageView) DuplicateSelected(proj *project.Project)
+
+func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface)
+
+func (v *StageView) IsView3D() bool
+
+func (v *StageView) LookAtPoint() matrix.Vec3
+
+func (v *StageView) Manager() *editor_stage_manager.StageManager
+
+func (v *StageView) Open()
+
+func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode)
+
+func (v *StageView) Update(deltaTime float64, proj *project.Project) bool
+    Update will update the stage view and return `true` if the view is taking
+    control of the keyboard interactions. It'll return false otherwise. If this
+    returns true, then the caller shouldn't process any hotkeys or other types
+    of keyboard actions.
+
+func (v *StageView) WorkspaceHost() *engine.Host
+
+type ToolState = uint8
+
+const (
+	ToolStateNone ToolState = iota
+	ToolStateMove
+	ToolStateRotate
+	ToolStateScale
+)
+type TransformationManager struct {
+	// Has unexported fields.
+}
+
+func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, snapSettings *editor_settings.SnapSettings)
+
+func (t *TransformationManager) IsBusy() bool
+
+func (t *TransformationManager) Update(host *engine.Host)
+

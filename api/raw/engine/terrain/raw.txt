@@ -1,0 +1,30 @@
+package terrain // import "kaiju/engine/terrain"
+
+
+FUNCTIONS
+
+func Textures(splat, normal, rock, rockNml, ground, groundNml string) [textureCount]string
+
+TYPES
+
+type Terrain struct {
+	Entity *engine.Entity
+
+	// Has unexported fields.
+}
+
+func New(host *engine.Host, size float32, textures [textureCount]string) (Terrain, error)
+
+func (t *Terrain) Destroy(host *engine.Host)
+
+func (t *Terrain) Height(point matrix.Vec3) float32
+
+func (t *Terrain) SetScale(scale float32)
+
+type TerrainShaderData struct {
+	rendering.ShaderDataBase
+	// Has unexported fields.
+}
+
+func (t TerrainShaderData) Size() int
+

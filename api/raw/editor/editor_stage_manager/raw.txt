@@ -1,0 +1,153 @@
+package editor_stage_manager // import "kaiju/editor/editor_stage_manager"
+
+
+TYPES
+
+type EditorUserInterface interface {
+	BlurInterface()
+	FocusInterface()
+}
+
+type StageAlreadyExistsError struct {
+	Id string
+}
+
+func (e StageAlreadyExistsError) Error() string
+
+type StageEntity struct {
+	engine.Entity
+	StageData StageEntityEditorData
+
+	// Has unexported fields.
+}
+
+func EntityToStageEntity(e *engine.Entity) *StageEntity
+
+func (e *StageEntity) AddDataBinding(binding *entity_data_binding.EntityDataEntry)
+
+func (e *StageEntity) AttachDataBinding(binding *entity_data_binding.EntityDataEntry)
+
+func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry
+
+func (e *StageEntity) DataBindingsByKey(key string) []*entity_data_binding.EntityDataEntry
+
+func (e *StageEntity) Depth() int
+
+func (e *StageEntity) DetachDataBinding(binding *entity_data_binding.EntityDataEntry)
+
+func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager)
+
+type StageEntityEditorData struct {
+	Bvh                   *collision.BVH
+	Mesh                  *rendering.Mesh
+	ShaderData            rendering.DrawInstance
+	Description           stages.EntityDescription
+	PendingMaterialChange bool
+}
+    StageEntityEditorData is the structure holding all the uniquely identifiable
+    and linking data about the entity on this stage. That will include things
+    like content linkage, data bindings, etc.
+
+type StageManager struct {
+	OnEntitySpawn         events.EventWithArg[*StageEntity]
+	OnEntityDestroy       events.EventWithArg[*StageEntity]
+	OnEntitySelected      events.EventWithArg[*StageEntity]
+	OnEntityDeselected    events.EventWithArg[*StageEntity]
+	OnEntityChangedParent events.EventWithArg[*StageEntity]
+
+	// Has unexported fields.
+}
+    StageManager represents the current stage in the editor. It contains all of
+    the entities on the stage.
+
+func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform)
+
+func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity
+    AddEntity will generate a new entity for the stage with a new random Id.
+    It will internally just call #AddEntityWithId
+
+func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *StageEntity
+    AddEntityWithId will create an entity for the stage with a specified Id
+    rather than generating one. This entity will have a #StageEntityData
+    automatically added to it as named data named "stage".
+
+func (m *StageManager) AttachEntityData(e *StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry
+
+func (m *StageManager) Clear()
+    Clear will destroy all entities that are managed by this stage manager.
+
+func (m *StageManager) ClearSelection()
+
+func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEvents, proj *project.Project) error
+
+func (m *StageManager) DeselectEntity(e *StageEntity)
+
+func (m *StageManager) DestroySelected()
+
+func (m *StageManager) DuplicateSelected(proj *project.Project)
+
+func (m *StageManager) EntityById(id string) (*StageEntity, bool)
+
+func (m *StageManager) HasSelection() bool
+
+func (m *StageManager) HierarchyRespectiveSelection() []*StageEntity
+
+func (m *StageManager) Initialize(host *engine.Host, history *memento.History, editorUI EditorUserInterface)
+
+func (m *StageManager) IsNew() bool
+
+func (m *StageManager) IsSelected(e *StageEntity) bool
+
+func (m *StageManager) IsSelectedById(id string) bool
+
+func (m *StageManager) LastSelected() *StageEntity
+
+func (m *StageManager) List() []*StageEntity
+    List will return all of the internally held entities for the stage
+
+func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_database.Cache, proj *project.Project) error
+
+func (m *StageManager) NewStage()
+
+func (m *StageManager) RefitBVH(entity *StageEntity)
+
+func (m *StageManager) RefitWorldBVH()
+
+func (m *StageManager) RemoveEntityBVH(e *StageEntity)
+
+func (m *StageManager) SaveStage(cache *content_database.Cache, fs *project_file_system.FileSystem) error
+
+func (m *StageManager) SelectAppendEntityById(id string)
+
+func (m *StageManager) SelectEntity(e *StageEntity)
+
+func (m *StageManager) SelectEntityById(id string)
+
+func (m *StageManager) SelectToggleEntityById(id string)
+
+func (m *StageManager) Selection() []*StageEntity
+
+func (m *StageManager) SelectionBounds() collision.AABB
+
+func (m *StageManager) SelectionCenter() matrix.Vec3
+
+func (m *StageManager) SelectionPivotCenter() matrix.Vec3
+
+func (m *StageManager) SetEntityParent(child, parent *StageEntity)
+
+func (m *StageManager) SetStageId(name string, cache *content_database.Cache) error
+
+func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, cc *content_database.CachedContent, point matrix.Vec3) (*StageEntity, error)
+
+func (m *StageManager) StageId() string
+
+func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool)
+
+func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4)
+
+func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, matrix.Vec3, bool)
+
+func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool)
+
+func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool)
+

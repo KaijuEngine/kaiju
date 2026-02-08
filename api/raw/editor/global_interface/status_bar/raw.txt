@@ -1,0 +1,15 @@
+package status_bar // import "kaiju/editor/global_interface/status_bar"
+
+
+TYPES
+
+type StatusBar struct {
+	// Has unexported fields.
+}
+
+func (b *StatusBar) Blur()
+
+func (b *StatusBar) Focus()
+
+func (b *StatusBar) Initialize(host *engine.Host, logging *editor_logging.Logging, outerInterface common_interfaces.Focusable) error
+

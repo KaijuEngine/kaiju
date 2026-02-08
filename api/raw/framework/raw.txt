@@ -1,0 +1,126 @@
+package framework // import "kaiju/framework"
+
+
+FUNCTIONS
+
+func CreateDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error)
+func CreateDrawingFromMeshUnlitTransparent(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture) (rendering.Drawing, error)
+func RegisterDrawingSpecification(spec DrawingSpecification)
+func SpawnTemplate(id string, host *engine.Host, parent *engine.Entity) (*engine.Entity, error)
+    SpawnTemplate loads an entity template asset identified by `id` from the
+    host's asset database, deserializes it into a `stages.EntityDescription`
+    (using JSON on desktop debug builds or the archive deserializer in other
+    builds), and creates a new entity configured from that description.
+    If `parent` is non-nil the new entity will be parented to it. The created
+    entity is initialized via `stages.SetupEntityFromDescription` and returned,
+    or an error is returned if the asset cannot be read or deserialized.
+
+func SpawnTemplateWithTransform(id string, host *engine.Host, parent *engine.Entity, pos, rot, scale matrix.Vec3) (*engine.Entity, error)
+    SpawnTemplateWithTransform loads an entity template asset identified by
+    `id`, creates a new entity from that template (optionally parented to
+    `parent`), then sets the entity's transform to the provided position,
+    rotation and scale. It is a thin wrapper around `SpawnTemplate` that applies
+    the transform before returning the created entity or any encountered error.
+
+    Parameters:
+      - id: template asset id to load from the host's asset database
+      - host: the engine host used to create the entity and read assets
+      - parent: optional parent entity to attach the new entity to
+      - pos, rot, scale: transform components applied to the new entity
+
+    Returns the newly created entity or a non-nil error if the template could
+    not be read or deserialized.
+
+
+TYPES
+
+type DrawingSpecCreateInfo struct {
+	LoadedMesh    load_result.Result
+	Meshes        []*rendering.Mesh
+	Textures      []*rendering.Texture
+	SkipMatSearch bool
+}
+
+type DrawingSpecification struct {
+	Name       string
+	RenderInfo []DrawingSpecificationRenderInfo
+}
+
+func FindDrawingSpecification(name string) DrawingSpecification
+
+func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpecCreateInfo) (ModelDrawingSlice, error)
+
+func (s DrawingSpecification) IsValid() bool
+
+type DrawingSpecificationRenderInfo struct {
+	Material    string
+	DataFactory func() rendering.DrawInstance
+}
+
+type EncryptedInt32 struct {
+	RawValue int32
+	// Has unexported fields.
+}
+
+func (e *EncryptedInt32) Add(amount int32)
+
+func (e *EncryptedInt32) Decrement()
+
+func (e *EncryptedInt32) Decrypt()
+
+func (e *EncryptedInt32) Encrypt()
+
+func (e *EncryptedInt32) Increment()
+
+func (e *EncryptedInt32) SetValue(value int32)
+
+func (e *EncryptedInt32) Subtract(amount int32)
+
+func (e EncryptedInt32) Value() int32
+
+type ModelDrawing struct {
+	Node     *load_result.Node
+	MeshName string
+	Drawing  rendering.Drawing
+}
+
+type ModelDrawingSlice []ModelDrawing
+
+func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func CreateDrawingsUnlit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func CreateDrawingsUnlitTransparent(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error)
+
+func (s ModelDrawingSlice) AllDrawings() []rendering.Drawing
+
+func (s ModelDrawingSlice) AllForNode(node *load_result.Node) []ModelDrawing
+
+type SkinAnimation struct {
+	Animation kaiju_mesh.KaijuMeshAnimation
+
+	// Has unexported fields.
+}
+
+func NewSkinAnimation(anim kaiju_mesh.KaijuMeshAnimation) SkinAnimation
+
+func (a *SkinAnimation) CurrentFrame() SkinAnimationFrame
+
+func (a *SkinAnimation) FindNextFrameForBone(boneId int32, pathType kaiju_mesh.AnimationPathType) (SkinAnimationFrame, bool)
+
+func (a *SkinAnimation) Interpolate(from, to SkinAnimationFrame) [4]float32
+
+func (a *SkinAnimation) IsValid() bool
+
+func (a *SkinAnimation) NextFrame() SkinAnimationFrame
+
+func (a *SkinAnimation) Update(deltaTime float64)
+
+type SkinAnimationFrame struct {
+	Key     *kaiju_mesh.AnimKeyFrame
+	Bone    *kaiju_mesh.AnimBone
+	AbsTime float64
+}
+

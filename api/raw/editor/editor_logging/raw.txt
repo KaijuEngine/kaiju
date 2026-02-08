@@ -1,0 +1,32 @@
+package editor_logging // import "kaiju/editor/editor_logging"
+
+
+TYPES
+
+type Logging struct {
+	OnNewLog func(msg Message)
+	// Has unexported fields.
+}
+
+func (l *Logging) All() []Message
+
+func (l *Logging) Clear()
+
+func (l *Logging) Errors() []Message
+
+func (l *Logging) Infos() []Message
+
+func (l *Logging) Initialize(host *engine.Host, logStream *logging.LogStream)
+
+func (l *Logging) Warnings() []Message
+
+type Message struct {
+	Time     string
+	Message  string
+	Trace    string
+	Data     map[string]string
+	Category string
+}
+
+func (m *Message) ToString() string
+

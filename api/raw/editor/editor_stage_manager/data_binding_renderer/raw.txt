@@ -1,0 +1,94 @@
+package data_binding_renderer // import "kaiju/editor/editor_stage_manager/data_binding_renderer"
+
+
+FUNCTIONS
+
+func AddRenderer(key string, r DataBindingRenderer)
+func Attached(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity)
+func Detatched(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity)
+func Hide(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity)
+func Show(host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity)
+func ShowSpecific(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity)
+func Updated(data *entity_data_binding.EntityDataEntry, host weak.Pointer[engine.Host], target *editor_stage_manager.StageEntity)
+
+TYPES
+
+type CameraEntityDataRenderer struct {
+	Frustums map[*editor_stage_manager.StageEntity]cameraDataBindingDrawing
+}
+
+func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *CameraEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *CameraEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry)
+
+func (c *CameraEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *CameraEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+type DataBindingRenderer interface {
+	Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+	Hide(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+}
+
+type LightEntityDataRenderer struct {
+	Lights map[*editor_stage_manager.StageEntity]lightEntityDataDrawing
+}
+
+func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *LightEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry)
+
+func (c *LightEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+type ParticleSystemEntityDataRenderer struct {
+	Systems map[*editor_stage_manager.StageEntity]*particleSystemGizmo
+}
+
+func (c *ParticleSystemEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *ParticleSystemEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *ParticleSystemEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry)
+
+func (c *ParticleSystemEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *ParticleSystemEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+type RigidBodyEntityDataRenderer struct {
+	Wireframes map[*editor_stage_manager.StageEntity]rigidBodyGizmo
+}
+
+func (c *RigidBodyEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *RigidBodyEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry)
+
+func (c *RigidBodyEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *RigidBodyEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+type SkinAnimationEntityDataRenderer struct {
+	Skins map[*editor_stage_manager.StageEntity]*skinAnimationGizmo
+	// Has unexported fields.
+}
+
+func (c *SkinAnimationEntityDataRenderer) Attached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *SkinAnimationEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *SkinAnimationEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry)
+
+func (c *SkinAnimationEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+
+func (c *SkinAnimationEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry)
+

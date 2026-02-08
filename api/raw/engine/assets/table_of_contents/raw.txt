@@ -1,0 +1,30 @@
+package table_of_contents // import "kaiju/engine/assets/table_of_contents"
+
+
+TYPES
+
+type TableEntry struct {
+	Id   string
+	Name string
+}
+
+func (t TableEntry) IsValid() bool
+
+type TableOfContents struct {
+	Entries map[string]TableEntry
+}
+
+func Deserialize(data []byte) (TableOfContents, error)
+
+func New() TableOfContents
+
+func (t *TableOfContents) Add(entry TableEntry) bool
+
+func (t *TableOfContents) Remove(key string)
+
+func (t TableOfContents) SelectById(id string) (TableEntry, bool)
+
+func (t TableOfContents) SelectByName(name string) (TableEntry, bool)
+
+func (t TableOfContents) Serialize() ([]byte, error)
+
