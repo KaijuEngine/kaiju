@@ -194,6 +194,7 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 			collision.RemoveAllLeavesMatchingTransform(&m.worldBVH, &e.Transform)
 		}
 		se := we.Value()
+		sm.RemoveEntityBVH(se)
 		for i := range sm.entities {
 			if sm.entities[i] == se {
 				sm.entities = klib.RemoveUnordered(sm.entities, i)
