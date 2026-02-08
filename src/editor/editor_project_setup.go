@@ -104,7 +104,12 @@ func (ed *Editor) openProject(path string) {
 		ed.FocusInterface()
 	}
 	hasEngineSource := ed.project.FileSystem().HasEngineCode()
-	if projectVersion != EditorVersion || !hasEngineSource {
+	// This is a special hidden feature for editor/engine developers to be able
+	// to force updating engine code in projects. This makes it easier than
+	// bumping the engine version to do the same thing (or deleting kaiju src)
+	kb := &ed.host.Window.Keyboard
+	forceReplace := kb.HasShift() || kb.HasCtrl()
+	if projectVersion != EditorVersion || !hasEngineSource || forceReplace {
 		title := "Upgrade project"
 		description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."
 		cancelMsg := "Project upgrade refused, unable to open project"
