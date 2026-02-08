@@ -117,7 +117,7 @@ func (slider *Slider) update(deltaTime float64) {
 	}
 }
 
-func (slider Slider) Delta() float32 {
+func (slider *Slider) Delta() float32 {
 	host := slider.man.Value().Host
 	ww := float32(host.Window.Width())
 	w := slider.entity.Transform.WorldScale().X()
@@ -127,7 +127,7 @@ func (slider Slider) Delta() float32 {
 	return (mp.X() - xPos) / w
 }
 
-func (slider Slider) Value() float32 {
+func (slider *Slider) Value() float32 {
 	return slider.SliderData().value
 }
 
