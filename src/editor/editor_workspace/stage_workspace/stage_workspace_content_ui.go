@@ -64,6 +64,7 @@ type WorkspaceContentUI struct {
 	tagFiltersDisable  []string
 	query              string
 	contentArea        *document.Element
+	contentPreviewArea *document.Element
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
 	dragging           *document.Element
@@ -103,6 +104,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
+	cui.contentPreviewArea, _ = w.Doc.GetElementById("contentPreviewArea")
 	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
 	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
@@ -284,6 +286,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 			e.UI.Hide()
 		}
 	}
+	w.contentUI.contentPreviewArea.UIPanel.ResetScroll()
 	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
