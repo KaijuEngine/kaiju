@@ -53,9 +53,7 @@ func asFloat(valStr string) float32 {
 
 func convertHex(hex string) [4]int {
 	out := [4]int{0, 0, 0, 255}
-	if strings.HasPrefix(hex, "#") {
-		hex = hex[1:]
-	}
+	hex = strings.TrimPrefix(hex, "#")
 	if len(hex) == 3 {
 		hex = hex[0:1] + hex[0:1] + hex[1:2] + hex[1:2] + hex[2:3] + hex[2:3]
 	}
