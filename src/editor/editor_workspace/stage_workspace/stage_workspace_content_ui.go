@@ -270,6 +270,11 @@ func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
 func (cui *WorkspaceContentUI) runFilter() {
 	defer tracing.NewRegion("WorkspaceContentUI.runFilter").End()
 	w := cui.workspace.Value()
+	for _, child := range w.contentUI.contentArea.Children {
+		if child.HasClass("right") {
+			child.UIPanel.ResetScroll()
+		}
+	}
 	entries := w.Doc.GetElementsByGroup("entry")
 	for i := range entries {
 		e := entries[i]
