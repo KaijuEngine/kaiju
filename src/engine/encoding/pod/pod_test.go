@@ -746,3 +746,141 @@ func TestEncodeEmptyInterfaceField(t *testing.T) {
 		t.Errorf("AnyField should be nil after decode, got %v", decoded.AnyField)
 	}
 }
+
+// MapTypes tests encoding/decoding of map types with various key and value types
+func TestMapTypes(t *testing.T) {
+	type MapContainer struct {
+		StringIntMap    map[string]int32
+		IntStringMap    map[int32]string
+		StringVectorMap map[string]matrix.Vec3
+	}
+	Register(MapContainer{})
+	defer Unregister(MapContainer{})
+	original := MapContainer{
+		StringIntMap: map[string]int32{
+			"one":   1,
+			"two":   2,
+			"three": 3,
+		},
+		IntStringMap: map[int32]string{
+			10: "ten",
+			20: "twenty",
+			30: "thirty",
+		},
+		StringVectorMap: map[string]matrix.Vec3{
+			"pos1": {1.0, 2.0, 3.0},
+			"pos2": {4.0, 5.0, 6.0},
+		},
+	}
+	buf := bytes.Buffer{}
+	encoder := NewEncoder(&buf)
+	if err := encoder.Encode(original); err != nil {
+		t.Fatalf("encoding failed: %v", err)
+	}
+	var decoded MapContainer
+	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := decoder.Decode(&decoded); err != nil {
+		t.Fatalf("decoding failed: %v", err)
+	}
+	// Verify StringIntMap
+	if len(decoded.StringIntMap) != len(original.StringIntMap) {
+		t.Fatalf("StringIntMap length mismatch: got %d, want %d", len(decoded.StringIntMap), len(original.StringIntMap))
+	}
+	for k, v := range original.StringIntMap {
+		if decodedVal, ok := decoded.StringIntMap[k]; !ok {
+			t.Errorf("StringIntMap: key '%s' not found in decoded map", k)
+		} else if decodedVal != v {
+			t.Errorf("StringIntMap[%s] mismatch: got %d, want %d", k, decodedVal, v)
+		}
+	}
+	// Verify IntStringMap
+	if len(decoded.IntStringMap) != len(original.IntStringMap) {
+		t.Fatalf("IntStringMap length mismatch: got %d, want %d", len(decoded.IntStringMap), len(original.IntStringMap))
+	}
+	for k, v := range original.IntStringMap {
+		if decodedVal, ok := decoded.IntStringMap[k]; !ok {
+			t.Errorf("IntStringMap: key %d not found in decoded map", k)
+		} else if decodedVal != v {
+			t.Errorf("IntStringMap[%d] mismatch: got %s, want %s", k, decodedVal, v)
+		}
+	}
+	// Verify StringVectorMap
+	if len(decoded.StringVectorMap) != len(original.StringVectorMap) {
+		t.Fatalf("StringVectorMap length mismatch: got %d, want %d", len(decoded.StringVectorMap), len(original.StringVectorMap))
+	}
+	for k, v := range original.StringVectorMap {
+		if decodedVal, ok := decoded.StringVectorMap[k]; !ok {
+			t.Errorf("StringVectorMap: key '%s' not found in decoded map", k)
+		} else if decodedVal != v {
+			t.Errorf("StringVectorMap[%s] mismatch: got %v, want %v", k, decodedVal, v)
+		}
+	}
+}
+
+// MapOfStructs tests encoding/decoding of maps with struct values
+func TestMapOfStructs(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  uint8
+	}
+	type PeopleMap struct {
+		People map[string]Person
+	}
+	Register(Person{})
+	Register(PeopleMap{})
+	defer Unregister(Person{})
+	defer Unregister(PeopleMap{})
+	original := PeopleMap{
+		People: map[string]Person{
+			"alice":   {Name: "Alice", Age: 30},
+			"bob":     {Name: "Bob", Age: 25},
+			"charlie": {Name: "Charlie", Age: 35},
+		},
+	}
+	buf := bytes.Buffer{}
+	encoder := NewEncoder(&buf)
+	if err := encoder.Encode(original); err != nil {
+		t.Fatalf("encoding failed: %v", err)
+	}
+	var decoded PeopleMap
+	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := decoder.Decode(&decoded); err != nil {
+		t.Fatalf("decoding failed: %v", err)
+	}
+	if len(decoded.People) != len(original.People) {
+		t.Fatalf("People map length mismatch: got %d, want %d", len(decoded.People), len(original.People))
+	}
+	for k, v := range original.People {
+		if decodedPerson, ok := decoded.People[k]; !ok {
+			t.Errorf("People: key '%s' not found in decoded map", k)
+		} else if decodedPerson != v {
+			t.Errorf("People[%s] mismatch: got %v, want %v", k, decodedPerson, v)
+		}
+	}
+}
+
+// EmptyMap tests encoding/decoding of empty maps
+func TestEmptyMap(t *testing.T) {
+	type EmptyMapStruct struct {
+		Data map[string]int32
+	}
+	Register(EmptyMapStruct{})
+	defer Unregister(EmptyMapStruct{})
+	original := EmptyMapStruct{
+		Data: make(map[string]int32),
+	}
+	buf := bytes.Buffer{}
+	encoder := NewEncoder(&buf)
+	if err := encoder.Encode(original); err != nil {
+		t.Fatalf("encoding failed: %v", err)
+	}
+	var decoded EmptyMapStruct
+	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := decoder.Decode(&decoded); err != nil {
+		t.Fatalf("decoding failed: %v", err)
+	}
+	// Empty maps are not encoded, so decoded map will be nil
+	if len(decoded.Data) != 0 {
+		t.Errorf("Data should be nil or empty after decode, got %v", decoded.Data)
+	}
+}

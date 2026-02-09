@@ -10,7 +10,9 @@ import (
 
 const (
 	kindTypeSliceArray = uint8(0xFF)
-	// 0x00 - 0xFE are reserved for the registration keys
+	kindTypeMap        = uint8(0xFE)
+	kindTypeLimit      = kindTypeMap
+	// 0x00 - 0xFD are reserved for the registration keys
 )
 
 var (

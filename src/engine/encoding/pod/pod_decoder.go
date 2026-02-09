@@ -42,10 +42,13 @@ func (d Decoder) decodeValue(val reflect.Value, typeLookup, fieldLookup []string
 	if err := klib.BinaryRead(d.r, &typeId); err != nil {
 		return fmt.Errorf("failed to read type id: %w", err)
 	}
-	// Decode based on the type id
-	if typeId == kindTypeSliceArray {
+	switch typeId {
+	case kindTypeSliceArray:
 		return d.decodeSliceOrArray(val, typeLookup, fieldLookup)
+	case kindTypeMap:
+		return d.decodeMap(val, typeLookup, fieldLookup)
 	}
+	// Decode based on the type id
 	if val.Kind() == reflect.Interface {
 		key := typeLookup[typeId]
 		if r, ok := registry.Load(key); !ok {
@@ -62,6 +65,34 @@ func (d Decoder) decodeValue(val reflect.Value, typeLookup, fieldLookup []string
 	} else {
 		return d.decodeFieldsForType(val, typeLookup, fieldLookup)
 	}
+}
+
+func (d Decoder) decodeMap(val reflect.Value, typeLookup, fieldLookup []string) error {
+	// Read the count of key-value pairs
+	count, err := klib.BinaryReadInt(d.r)
+	if err != nil {
+		return fmt.Errorf("failed to read map count: %w", err)
+	}
+	// Create the map
+	val.Set(reflect.MakeMap(val.Type()))
+	// Decode each key-value pair
+	for i := 0; i < int(count); i++ {
+		// Create a zero value for the key type
+		keyVal := reflect.New(val.Type().Key()).Elem()
+		// Decode the key
+		if err := d.decodeValue(keyVal, typeLookup, fieldLookup); err != nil {
+			return fmt.Errorf("failed to decode map key %d: %w", i, err)
+		}
+		// Create a zero value for the value type
+		valueVal := reflect.New(val.Type().Elem()).Elem()
+		// Decode the value
+		if err := d.decodeValue(valueVal, typeLookup, fieldLookup); err != nil {
+			return fmt.Errorf("failed to decode map value %d: %w", i, err)
+		}
+		// Set the key-value pair in the map
+		val.SetMapIndex(keyVal, valueVal)
+	}
+	return nil
 }
 
 func (d Decoder) decodeSliceOrArray(val reflect.Value, typeLookup, fieldLookup []string) error {

@@ -75,6 +75,8 @@ func (e Encoder) encodeTypeId(val reflect.Value, typeLookup []string) error {
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
 		kindType = kindTypeSliceArray
+	case reflect.Map:
+		kindType = kindTypeMap
 	default:
 		qn := qualifiedName(t)
 		k := slices.Index(typeLookup, qn)
@@ -105,6 +107,21 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 				v = v.Elem()
 			}
 			if err := e.encodeValue(v, typeLookup, fieldLookup); err != nil {
+				return err
+			}
+		}
+	case reflect.Map:
+		count := val.Len()
+		if err := klib.BinaryWriteInt(e.w, count); err != nil {
+			return err
+		}
+		for _, k := range val.MapKeys() {
+			// Write the key
+			if err := e.encodeValue(k, typeLookup, fieldLookup); err != nil {
+				return err
+			}
+			// Write the value
+			if err := e.encodeValue(val.MapIndex(k), typeLookup, fieldLookup); err != nil {
 				return err
 			}
 		}
@@ -180,8 +197,8 @@ func extractUsedRegistryKeys(from any) ([]string, error) {
 			return structKeyMap, fmt.Errorf("expected '%s' to have been registered for pod encoding", k)
 		}
 		structKeyMap = append(structKeyMap, k)
-		if len(structKeyMap) == int(kindTypeSliceArray) {
-			return structKeyMap, fmt.Errorf("too many types for pod encoding on '%s', max allowed unique types are %d", k, kindTypeSliceArray-1)
+		if len(structKeyMap) == int(kindTypeLimit) {
+			return structKeyMap, fmt.Errorf("too many types for pod encoding on '%s', max allowed unique types are %d", k, kindTypeLimit-1)
 		}
 	}
 	return structKeyMap, nil
@@ -204,7 +221,6 @@ func collectQualifiedNames(src reflect.Value, set map[string]struct{}) {
 		}
 		// Get the concrete value stored in the interface and recurse.
 		collectQualifiedNames(src.Elem(), set)
-		return
 	case reflect.Slice, reflect.Array:
 		if src.Len() == 0 {
 			// We don't pack empty arrays anyway
@@ -213,7 +229,11 @@ func collectQualifiedNames(src reflect.Value, set map[string]struct{}) {
 		for i := range src.Len() {
 			collectQualifiedNames(src.Index(i), set)
 		}
-		return
+	case reflect.Map:
+		for _, k := range src.MapKeys() {
+			collectQualifiedNames(k, set)
+			collectQualifiedNames(src.MapIndex(k), set)
+		}
 	case reflect.Struct:
 		t := src.Type()
 		qn := qualifiedName(t)
@@ -241,7 +261,6 @@ func collectQualifiedFieldNames(src reflect.Value, set map[string]struct{}) {
 		}
 		// Get the concrete value stored in the interface and recurse.
 		collectQualifiedFieldNames(src.Elem(), set)
-		return
 	case reflect.Slice, reflect.Array:
 		if src.Len() == 0 {
 			// We don't pack empty arrays anyway
@@ -250,7 +269,11 @@ func collectQualifiedFieldNames(src reflect.Value, set map[string]struct{}) {
 		for i := range src.Len() {
 			collectQualifiedFieldNames(src.Index(i), set)
 		}
-		return
+	case reflect.Map:
+		for _, k := range src.MapKeys() {
+			collectQualifiedFieldNames(k, set)
+			collectQualifiedFieldNames(src.MapIndex(k), set)
+		}
 	case reflect.Struct:
 		t := src.Type()
 		for i := 0; i < t.NumField(); i++ {
