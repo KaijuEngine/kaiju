@@ -54,8 +54,8 @@ func (g *GeneratedType) New() RuntimeType {
 		Value:     reflect.New(g.Type),
 	}
 	if !g.registered {
-		pod.Unregister(rt.Value.Type())
-		pod.Register(rt.Value.Type())
+		pod.UnregisterGenerated(g.Pkg, g.Name)
+		pod.RegisterGenerated(g.Pkg, g.Name, rt.Value.Elem().Type())
 		g.registered = true
 	}
 	return rt

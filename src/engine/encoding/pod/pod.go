@@ -19,6 +19,7 @@ var (
 
 func init() {
 	Register(bool(false))
+	Register(int(0))
 	Register(int8(0))
 	Register(int16(0))
 	Register(int32(0))
@@ -52,11 +53,23 @@ func Unregister(layout any) {
 	registry.Delete(qualifiedName(reflect.TypeOf(layout)))
 }
 
+func UnregisterGenerated(pkg, name string) {
+	registry.Delete(pkg + "." + name)
+}
+
 func Register(layout any) error {
 	t := reflect.TypeOf(layout)
 	q := qualifiedName(t)
 	if _, ok := registry.LoadOrStore(q, t); ok {
-		return fmt.Errorf("the name '%s' has already been registered in kob", q)
+		return fmt.Errorf("the name '%s' has already been registered in pod", q)
+	}
+	return nil
+}
+
+func RegisterGenerated(pkg, name string, genType reflect.Type) error {
+	q := pkg + "." + name
+	if _, ok := registry.LoadOrStore(q, genType); ok {
+		return fmt.Errorf("the name '%s' has already been registered in pod", q)
 	}
 	return nil
 }

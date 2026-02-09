@@ -52,6 +52,11 @@ type TableEntry struct {
 	Name string
 }
 
+func init() {
+	pod.Register(TableOfContents{})
+	pod.Register(TableEntry{})
+}
+
 func New() TableOfContents {
 	return TableOfContents{
 		Entries: make(map[string]TableEntry),

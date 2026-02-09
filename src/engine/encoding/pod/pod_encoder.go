@@ -48,6 +48,13 @@ func (e Encoder) Encode(from any) error {
 }
 
 func (e Encoder) encodeValue(val reflect.Value, typeLookup, fieldLookup []string) error {
+	// We don't encode empty arrays, slices, or maps
+	switch val.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Map:
+		if val.Len() == 0 {
+			return nil
+		}
+	}
 	// First, we need to determine what we are about to encode. We use an int
 	// for this identification. Negative numbers are reserved for Go primitives
 	// while 0+ are directly mapped to the typeLookup. We write this type id so
@@ -64,12 +71,12 @@ func (e Encoder) encodeValue(val reflect.Value, typeLookup, fieldLookup []string
 
 func (e Encoder) encodeTypeId(val reflect.Value, typeLookup []string) error {
 	t := val.Type()
-	qn := qualifiedName(t)
 	kindType := uint8(0)
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
 		kindType = kindTypeSliceArray
 	default:
+		qn := qualifiedName(t)
 		k := slices.Index(typeLookup, qn)
 		if k < 0 || k > math.MaxUint8 {
 			return fmt.Errorf("encoding type '%s' was never registered with pod", qn)
@@ -81,6 +88,11 @@ func (e Encoder) encodeTypeId(val reflect.Value, typeLookup []string) error {
 
 func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []string) error {
 	fieldCount := uint8(0)
+	// Detect a generated structure
+	k := val.Kind()
+	if k > reflect.UnsafePointer {
+		val = reflect.Indirect(val)
+	}
 	switch val.Kind() {
 	case reflect.Slice, reflect.Array:
 		count := val.Len()
@@ -88,7 +100,11 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 			return err
 		}
 		for i := range count {
-			if err := e.encodeValue(val.Index(i), typeLookup, fieldLookup); err != nil {
+			v := val.Index(i)
+			for v.Kind() == reflect.Interface || v.Kind() == reflect.Pointer {
+				v = v.Elem()
+			}
+			if err := e.encodeValue(v, typeLookup, fieldLookup); err != nil {
 				return err
 			}
 		}
@@ -101,10 +117,16 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 		}
 		fieldCount = uint8(count)
 		for i := range int(fieldCount) {
-			switch val.Field(i).Kind() {
+			f := val.Field(i)
+			switch f.Kind() {
 			case reflect.Pointer, reflect.Interface, reflect.Chan,
 				reflect.Func, reflect.UnsafePointer:
 				fieldCount--
+			case reflect.Array, reflect.Slice, reflect.Map:
+				// We don't encode empty arrays, slices, or maps
+				if f.Len() == 0 {
+					fieldCount--
+				}
 			}
 		}
 		if err := klib.BinaryWrite(e.w, fieldCount); err != nil {
@@ -116,10 +138,18 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 			case reflect.Pointer, reflect.Interface, reflect.Chan,
 				reflect.Func, reflect.UnsafePointer:
 				continue
+			case reflect.Array, reflect.Slice, reflect.Map:
+				// We don't encode empty arrays, slices, or maps
+				if f.Len() == 0 {
+					continue
+				}
 			}
 			// First, encode the field lookup id
-			idx := uint16(slices.Index(fieldLookup, t.Field(i).Name))
-			if err := klib.BinaryWrite(e.w, idx); err != nil {
+			fidx := slices.Index(fieldLookup, t.Field(i).Name)
+			if fidx < 0 {
+				return fmt.Errorf("field '%s' not found in field lookup", t.Field(i).Name)
+			}
+			if err := klib.BinaryWrite(e.w, uint16(fidx)); err != nil {
 				return err
 			}
 			// Then encode the field value
@@ -132,7 +162,7 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 		case reflect.Int:
 			val = reflect.ValueOf(int32(val.Interface().(int)))
 		case reflect.String:
-			return klib.BinaryWriteString(e.w, val.Interface().(string))
+			return klib.BinaryWriteString(e.w, val.String())
 		}
 		return klib.BinaryWrite(e.w, val.Interface())
 	}
@@ -143,11 +173,11 @@ func (e Encoder) encodeFields(val reflect.Value, typeLookup, fieldLookup []strin
 // argument and uniquely collect all keys that have been registered to pod
 func extractUsedRegistryKeys(from any) ([]string, error) {
 	unique := make(map[string]struct{})
-	collectQualifiedNames(reflect.TypeOf(from), unique)
+	collectQualifiedNames(reflect.ValueOf(from), unique)
 	structKeyMap := make([]string, 0, len(unique))
 	for k := range unique {
 		if _, ok := registry.Load(k); !ok {
-			return structKeyMap, fmt.Errorf("expected '%s' to have been registered for kob encoding", k)
+			return structKeyMap, fmt.Errorf("expected '%s' to have been registered for pod encoding", k)
 		}
 		structKeyMap = append(structKeyMap, k)
 		if len(structKeyMap) == int(kindTypeSliceArray) {
@@ -159,86 +189,79 @@ func extractUsedRegistryKeys(from any) ([]string, error) {
 
 func extractUsedFieldKeys(from any) []string {
 	unique := make(map[string]struct{})
-	collectQualifiedFieldNames(reflect.TypeOf(from), make(map[string]struct{}), unique)
+	collectQualifiedFieldNames(reflect.ValueOf(from), unique)
 	return klib.MapKeys(unique)
 }
 
 // collectQualifiedNames recursively walks through struct fields and records
 // the qualified name of each exported, non‑pointer, non‑interface field type.
-func collectQualifiedNames(t reflect.Type, set map[string]struct{}) {
-	if name := qualifiedName(t); name != "" {
-		// Recursive
-		if _, ok := set[name]; ok {
+func collectQualifiedNames(src reflect.Value, set map[string]struct{}) {
+	switch src.Kind() {
+	case reflect.Interface, reflect.Pointer:
+		// If the interface value is nil, there is nothing to collect.
+		if src.IsNil() {
 			return
 		}
-		set[name] = struct{}{}
-	}
-	kind := pullInnerKind(t)
-	if kind != reflect.Struct {
-		set[kind.String()] = struct{}{}
+		// Get the concrete value stored in the interface and recurse.
+		collectQualifiedNames(src.Elem(), set)
 		return
-	}
-	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
-		t = t.Elem()
-		collectQualifiedNames(t, set)
-		return
-	}
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if f.PkgPath != "" {
-			continue
+		if src.Len() == 0 {
+			// We don't pack empty arrays anyway
+			return
 		}
-		ft := f.Type
-		if ft.Kind() == reflect.Ptr || ft.Kind() == reflect.Interface {
-			continue
+		for i := range src.Len() {
+			collectQualifiedNames(src.Index(i), set)
 		}
-		collectQualifiedNames(ft, set)
-	}
-}
-
-func collectQualifiedFieldNames(t reflect.Type, recursive, set map[string]struct{}) {
-	switch t.Kind() {
-	case reflect.Slice, reflect.Array:
-		t = t.Elem()
-		collectQualifiedFieldNames(t, recursive, set)
 		return
-	}
-	if t.Kind() != reflect.Struct {
-		return
-	}
-	// Recursive
-	qn := qualifiedName(t)
-	if _, ok := recursive[qn]; ok {
-		return
-	}
-	recursive[qn] = struct{}{}
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if f.PkgPath != "" {
-			continue
+	case reflect.Struct:
+		t := src.Type()
+		qn := qualifiedName(t)
+		set[qn] = struct{}{}
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			// Unexported fields are ignored
+			if f.PkgPath != "" {
+				continue
+			}
+			collectQualifiedNames(src.Field(i), set)
 		}
-		ft := f.Type
-		if ft.Kind() == reflect.Ptr || ft.Kind() == reflect.Interface {
-			continue
-		}
-		set[f.Name] = struct{}{}
-		collectQualifiedFieldNames(ft, recursive, set)
-	}
-}
-
-// pullInnerKind returns the underlying element kind for container types.
-// For reflect.Array, reflect.Slice, and reflect.Map, it returns the kind of the
-// element type (t.Elem().Kind()). For all other types, it returns the type's
-// own kind (t.Kind()). This helper is useful when encoding or decoding
-// values that may be wrapped in collection types, allowing callers to work
-// with the primitive kind of the stored elements.
-func pullInnerKind(t reflect.Type) reflect.Kind {
-	switch t.Kind() {
-	case reflect.Array, reflect.Slice, reflect.Map:
-		return pullInnerKind(t.Elem())
 	default:
-		return t.Kind()
+		qn := qualifiedName(src.Type())
+		set[qn] = struct{}{}
+	}
+}
+
+func collectQualifiedFieldNames(src reflect.Value, set map[string]struct{}) {
+	switch src.Kind() {
+	case reflect.Interface, reflect.Pointer:
+		// If the interface value is nil, there is nothing to collect.
+		if src.IsNil() {
+			return
+		}
+		// Get the concrete value stored in the interface and recurse.
+		collectQualifiedFieldNames(src.Elem(), set)
+		return
+	case reflect.Slice, reflect.Array:
+		if src.Len() == 0 {
+			// We don't pack empty arrays anyway
+			return
+		}
+		for i := range src.Len() {
+			collectQualifiedFieldNames(src.Index(i), set)
+		}
+		return
+	case reflect.Struct:
+		t := src.Type()
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			set[f.Name] = struct{}{}
+			// Unexported fields are ignored
+			if f.PkgPath != "" {
+				continue
+			}
+			collectQualifiedFieldNames(src.Field(i), set)
+		}
 	}
 }
 
@@ -259,8 +282,20 @@ func pullInnerKind(t reflect.Type) reflect.Kind {
 //	A string in the form "PackageName.TypeName" when the package path is
 //	present, or just "TypeName" when the package path is empty.
 func qualifiedName(t reflect.Type) string {
-	if path := t.PkgPath(); path == "" {
-		return t.Name()
+	if t.Kind() == reflect.Interface {
+		return ""
+	} else if path := t.PkgPath(); path == "" {
+		name := t.Name()
+		if name == "" {
+			registry.Range(func(k, v any) bool {
+				if v == t {
+					name = k.(string)
+					return false
+				}
+				return true
+			})
+		}
+		return name
 	} else {
 		p := strings.Split(path, "/")
 		return p[len(p)-1] + "." + t.Name()

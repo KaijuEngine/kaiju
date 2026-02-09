@@ -115,6 +115,13 @@ type EntityDataBinding struct {
 	Fields         map[string]any `json:",omitempty"`
 }
 
+func init() {
+	pod.Register(Stage{})
+	pod.Register(EntityDataBinding{})
+	pod.Register(EntityDescription{})
+	pod.Register(EntityDescriptionShaderDataField{})
+}
+
 func debugEnsureStructsMatch() {
 	if build.Debug {
 		ra := reflect.TypeFor[Stage]()
