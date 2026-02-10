@@ -367,7 +367,7 @@
 		<!-- Content UI -->
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
 		<div id="contentArea">
-			<div class="left edPanelBg">
+			<div class="left edPanelBg" id="filterArea">
 				<input type="text" placeholder="Content search..." onchange="inputFilter" />
 				{{range .Filters}}
 				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>

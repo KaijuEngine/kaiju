@@ -146,6 +146,8 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
 	edEvts.OnContentPreviewGenerated.Add(w.contentPreviewGenerated)
+	edEvts.OnNewTagAdded.Add(w.handleNewFilterTag)
+	edEvts.OnTagRemoved.Add(w.handleTagRemoved)
 	edEvts.OnContentAdded.Execute(ids)
 	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
 }
@@ -505,6 +507,21 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 	if !found {
 		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
 	}
+
+	cacheContents := w.cache.List()
+	tagInUse := false
+	for i := range cacheContents {
+		tags := cacheContents[i].Config.Tags
+		show := slices.Contains(tags, tag)
+		if show {
+			tagInUse = true
+			break
+		}
+	}
+	if !tagInUse {
+		w.editor.Events().OnTagRemoved.Execute(tag)
+	}
+
 	w.Doc.RemoveElement(e.Parent.Value())
 }
 
@@ -775,10 +792,7 @@ func (w *ContentWorkspace) addTagToSelected(tag string) {
 			return
 		}
 	}
-	w.pageData.Tags = append(w.pageData.Tags, tag)
-	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
-	elm.InnerLabel().SetText(tag)
-	elm.SetAttribute("data-tag", tag)
+	w.editor.Events().OnNewTagAdded.Execute(tag)
 }
 
 func (w *ContentWorkspace) selectedIds() []string {
@@ -936,4 +950,32 @@ func (w *ContentWorkspace) removeFtde() {
 		w.Doc.RemoveElement(ftde)
 		w.ftde.arrow = nil
 	}
+}
+
+func (w *ContentWorkspace) handleNewFilterTag(newTag string) {
+	w.pageData.Tags = append(w.pageData.Tags, newTag)
+	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
+	elm.InnerLabel().SetText(newTag)
+	elm.SetAttribute("data-tag", newTag)
+}
+
+func (w *ContentWorkspace) handleTagRemoved(removedTag string) {
+	slog.Info("Tag Removed", "tag", removedTag)
+	klib.SlicesRemoveElement(w.pageData.Tags, removedTag)
+	tagElements := w.Doc.GetElementsByGroup("tag")
+	for _, elm := range tagElements {
+		if elm.Attribute("data-tag") == removedTag {
+			w.Doc.RemoveElement(elm)
+			break
+		}
+	}
+
+	temp := make([]string, 0)
+	for _, v := range w.tagFilters {
+		if v != removedTag {
+			temp = append(temp, v)
+		}
+	}
+	w.tagFilters = temp
+	w.runFilter()
 }

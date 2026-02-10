@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/editor_workspace/content_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/engine"
+	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup/document"
 	"kaiju/klib"
 	"kaiju/matrix"
@@ -65,6 +66,7 @@ type WorkspaceContentUI struct {
 	query              string
 	contentArea        *document.Element
 	contentPreviewArea *document.Element
+	filterArea         *document.Element
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
 	dragging           *document.Element
@@ -105,6 +107,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.workspace = weak.Make(w)
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
 	cui.contentPreviewArea, _ = w.Doc.GetElementById("contentPreviewArea")
+	cui.filterArea, _ = w.Doc.GetElementById("filterArea")
 	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
 	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
@@ -112,6 +115,8 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	edEvts.OnContentRemoved.Add(cui.removeContent)
 	edEvts.OnContentRenamed.Add(cui.renameContent)
 	edEvts.OnContentPreviewGenerated.Add(cui.contentPreviewGenerated)
+	edEvts.OnNewTagAdded.Add(cui.handleNewFilterTag)
+	edEvts.OnTagRemoved.Add(cui.handleTagRemoved)
 }
 
 func (cui *WorkspaceContentUI) open() {
@@ -460,4 +465,32 @@ func (cui *WorkspaceContentUI) refreshFilterOnContentChange() {
 	if cui.query != "" || len(cui.typeFilters) > 0 || len(cui.tagFilters) > 0 {
 		cui.runFilter()
 	}
+}
+
+func (cui *WorkspaceContentUI) handleNewFilterTag(newTag string) {
+	slog.Info("New Tag recieved")
+	w := cui.workspace.Value()
+	w.pageData.Tags = append(w.pageData.Tags, newTag)
+	cui.filterArea.UI.SetDirty(ui.DirtyTypeGenerated)
+	cui.filterArea.UI.Clean()
+	tagBtnElms := cui.workspace.Value().Doc.GetElementsByClass("filterBtn")[0]
+	newFilterBtn := cui.workspace.Value().Doc.DuplicateElement(tagBtnElms)
+
+	newFilterBtn.SetAttribute("data-tag", newTag)
+	newFilterBtn.SetAttribute("group", "tag")
+	newFilterBtn.InnerLabel().SetText(newTag)
+}
+
+func (cui *WorkspaceContentUI) handleTagRemoved(removedTag string) {
+	slog.Info("removed Tag recieved")
+	w := cui.workspace.Value()
+	tagElms := w.Doc.GetElementsByClass("filterBtn")
+	for _, elm := range tagElms {
+		if elm.Attribute("data-tag") == removedTag {
+			w.Doc.RemoveElement(elm)
+			break
+		}
+	}
+
+	klib.SlicesRemoveElement(w.pageData.Tags, removedTag)
 }

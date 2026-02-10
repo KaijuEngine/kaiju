@@ -62,4 +62,10 @@ type EditorEvents struct {
 	// been generated. This is primarily used in the background of the editor
 	// for updating any content preview images.
 	OnContentPreviewGenerated events.EventWithArg[string]
+
+	//OnNewTagAdded is called whenever any content is introduced with new tag
+	OnNewTagAdded events.EventWithArg[string]
+
+	//OnTagRemoved is called whenever a tag is no longer used by any content
+	OnTagRemoved events.EventWithArg[string]
 }
