@@ -45,9 +45,7 @@ import (
 	"strings"
 )
 
-const gitignoreAnythingWithExtension = `*.*
-!*.gitignore
-`
+const gitignoreStub = "!*.gitignore\n"
 
 var (
 	srcFolders = []string{
@@ -144,19 +142,19 @@ func (fs *FileSystem) SetupStructure() error {
 		}
 	}
 	for i := range srcFolders {
-		if err := fs.WriteFile(filepath.Join(srcFolders[i], ".gitignore"), []byte("# Nothing to ignore yet\n"), os.ModePerm); err != nil {
+		if err := fs.WriteFile(filepath.Join(srcFolders[i], ".gitignore"), []byte(gitignoreStub), os.ModePerm); err != nil {
 			return err
 		}
 	}
 	for i := range contentStructure {
 		if err := fs.Mkdir(filepath.Join(ContentFolder, contentStructure[i]), os.ModePerm); err != nil {
 			return err
-		} else if err := fs.WriteFile(filepath.Join(ContentFolder, contentStructure[i], ".gitignore"), []byte(gitignoreAnythingWithExtension), os.ModePerm); err != nil {
+		} else if err := fs.WriteFile(filepath.Join(ContentFolder, contentStructure[i], ".gitignore"), []byte(gitignoreStub), os.ModePerm); err != nil {
 			return err
 		}
 		if err := fs.Mkdir(filepath.Join(ContentConfigFolder, contentStructure[i]), os.ModePerm); err != nil {
 			return err
-		} else if err := fs.WriteFile(filepath.Join(ContentConfigFolder, contentStructure[i], ".gitignore"), []byte(gitignoreAnythingWithExtension), os.ModePerm); err != nil {
+		} else if err := fs.WriteFile(filepath.Join(ContentConfigFolder, contentStructure[i], ".gitignore"), []byte(gitignoreStub), os.ModePerm); err != nil {
 			return err
 		}
 	}

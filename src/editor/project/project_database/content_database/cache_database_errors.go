@@ -47,6 +47,9 @@ type ReadDuringBuildError struct{}
 type NotInCacheError struct {
 	Id string
 }
+type DuplicateIdError struct {
+	Id string
+}
 
 func (e ReadDuringBuildError) Error() string {
 	return "the database is currently building, it can't be used until it's done"
@@ -54,4 +57,8 @@ func (e ReadDuringBuildError) Error() string {
 
 func (e NotInCacheError) Error() string {
 	return fmt.Sprintf("the id '%s' was not found in the cache", e.Id)
+}
+
+func (e DuplicateIdError) Error() string {
+	return fmt.Sprintf("the id '%s' already exists in the cache", e.Id)
 }

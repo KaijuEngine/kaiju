@@ -481,6 +481,21 @@ func (p *Project) ExportAsTemplate(path, name string) error {
 	return nil
 }
 
+func (p *Project) ChangeContentGuid(from, to string) error {
+	defer tracing.NewRegion("Project.ChangeContentGuid").End()
+	if err := p.cacheDatabase.ChangeGuid(from, to, &p.fileSystem); err != nil {
+		return err
+	}
+	if err := p.updateReferences(from, to); err != nil {
+		// Revert the name change
+		if rErr := p.cacheDatabase.ChangeGuid(to, from, &p.fileSystem); rErr != nil {
+			slog.Error("Failed to revert id change after reference update failed. This may have left your project in an odd state, please revert changes using your VCS.")
+		}
+		return err
+	}
+	return nil
+}
+
 func (p *Project) reconstruct() {
 	defer tracing.NewRegion("Project.reconstruct").End()
 	*p = Project{}
