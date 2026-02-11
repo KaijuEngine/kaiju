@@ -822,6 +822,7 @@ func (w *ContentWorkspace) runFilter() {
 			e.UI.Hide()
 		}
 	}
+	w.contentList.UIPanel.ResetScroll()
 	w.Host.RunOnMainThread(w.Doc.Clean)
 }
 
