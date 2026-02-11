@@ -369,13 +369,13 @@
 		<div id="contentArea">
 			<div class="left edPanelBg" id="filterArea">
 				<input type="text" placeholder="Content search..." onchange="inputFilter" />
-				{{range .Filters}}
-				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
+				{{range $filter , $count := .Filters}}
+				<span class="filterBtn" data-type="{{$filter}}" onclick="clickFilter">{{$filter}}</span>
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">
-					{{range .Tags}}
-					<span class="filterBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</span>
+					{{range $tag , $count := .Tags}}
+					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter">{{$tag}}</span>
 					{{end}}
 				</div>
 			</div>

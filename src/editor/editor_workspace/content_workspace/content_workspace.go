@@ -66,12 +66,13 @@ type ContentWorkspace struct {
 	pfs                *project_file_system.FileSystem
 	cache              *content_database.Cache
 	editor             ContentWorkspaceEditorInterface
-	typeFilters        []string
-	typeFiltersDisable []string
-	tagFilters         []string
-	tagFiltersDisable  []string
+	typeFilters        klib.Set[string]
+	typeFiltersDisable klib.Set[string]
+	tagFilters         klib.Set[string]
+	tagFiltersDisable  klib.Set[string]
 	query              string
 	contentList        *document.Element
+	tagFilterList      *document.Element
 	entryTemplate      *document.Element
 	tagFilterTemplate  *document.Element
 	addTagbtn          *document.Element
@@ -127,8 +128,14 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"changeAudioPosition": w.changeAudioPosition,
 			"clickOpenInEditor":   w.clickOpenInEditor,
 		})
+	w.tagFilters = klib.NewSet[string]()
+	w.tagFiltersDisable = klib.NewSet[string]()
+	w.typeFilters = klib.NewSet[string]()
+	w.typeFiltersDisable = klib.NewSet[string]()
+
 	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
 	w.contentList, _ = w.Doc.GetElementById("contentList")
+	w.tagFilterList, _ = w.Doc.GetElementById("tagFilterList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
@@ -142,6 +149,7 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
 	w.tooltip, _ = w.Doc.GetElementById("tooltip")
 	w.audio.audioPlayer, _ = w.Doc.GetElementById("audioPlayer")
+
 	edEvts := w.editor.Events()
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
@@ -352,17 +360,17 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	var targetList *[]string
-	var invTargetList *[]string
+	var targetList klib.Set[string]
+	var invTargetList klib.Set[string]
 	var name string
 	if typeName != "" {
-		targetList = &w.typeFilters
-		invTargetList = &w.typeFiltersDisable
+		targetList = w.typeFilters
+		invTargetList = w.typeFiltersDisable
 		name = typeName
 	}
 	if tagName != "" {
-		targetList = &w.tagFilters
-		invTargetList = &w.tagFiltersDisable
+		targetList = w.tagFilters
+		invTargetList = w.tagFiltersDisable
 		name = tagName
 	}
 	if inverted {
@@ -374,13 +382,13 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 			className = "inverted"
 		}
 		w.Doc.SetElementClasses(e, "filterBtn", className)
-		*targetList = append(*targetList, name)
+		targetList.Add(name)
 	} else {
 		w.Doc.SetElementClasses(e, "filterBtn")
-		*targetList = klib.SlicesRemoveElement(*targetList, name)
+		targetList.Remove(name)
 	}
 	// Remove it from inverse list in both cases intentionally
-	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
+	invTargetList.Remove(name)
 	w.runFilter()
 }
 
@@ -508,19 +516,7 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
 	}
 
-	cacheContents := w.cache.List()
-	tagInUse := false
-	for i := range cacheContents {
-		tags := cacheContents[i].Config.Tags
-		show := slices.Contains(tags, tag)
-		if show {
-			tagInUse = true
-			break
-		}
-	}
-	if !tagInUse {
-		w.editor.Events().OnTagRemoved.Execute(tag)
-	}
+	w.editor.Events().OnTagRemoved.Execute(tag)
 
 	w.Doc.RemoveElement(e.Parent.Value())
 }
@@ -535,19 +531,14 @@ func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 		w.info.newTagHint.UI.Hide()
 		return
 	}
-	options := make([]string, 0, len(w.pageData.Tags))
-	for i := range w.pageData.Tags {
-		if strings.Contains(strings.ToLower(w.pageData.Tags[i]), q) {
-			options = append(options, w.pageData.Tags[i])
-		}
-	}
-	if len(options) == 0 {
+	options := w.pageData.Tags[q]
+	if options == 0 {
 		w.info.newTagHint.UI.Hide()
 		return
 	}
-	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, len(options))
+	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, options)
 	for i := range cpys {
-		cpys[i].InnerLabel().SetText(options[i])
+		cpys[i].InnerLabel().SetText(q)
 		cpys[i].UI.Show()
 	}
 	w.info.newTagHint.UI.Show()
@@ -781,17 +772,21 @@ func (w *ContentWorkspace) addTagToSelected(tag string) {
 			w.updateIndexForCachedContent(&cc)
 		}
 	}
-	// Add the tag to the entry details
-	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
-	tagListEntry.Children[0].InnerLabel().SetText(tag)
-	tagListEntry.Children[1].SetAttribute("data-tag", tag)
-	tagListEntry.UI.Show()
-	// Add the tag to the tag filters if it's not already
-	for i := range w.pageData.Tags {
-		if strings.EqualFold(tag, w.pageData.Tags[i]) {
-			return
-		}
+
+	tagsInEntryDetails := w.Doc.GetElementsByClass("entryTag")
+	unique := klib.NewSet[string]()
+	for _, elm := range tagsInEntryDetails {
+		unique.Add(elm.Children[1].Attribute("data-tag"))
 	}
+
+	if _, ok := unique[tag]; !ok {
+		// Add the tag to the entry details
+		tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+		tagListEntry.Children[0].InnerLabel().SetText(tag)
+		tagListEntry.Children[1].SetAttribute("data-tag", tag)
+		tagListEntry.UI.Show()
+	}
+
 	w.editor.Events().OnNewTagAdded.Execute(tag)
 }
 
@@ -953,29 +948,34 @@ func (w *ContentWorkspace) removeFtde() {
 }
 
 func (w *ContentWorkspace) handleNewFilterTag(newTag string) {
-	w.pageData.Tags = append(w.pageData.Tags, newTag)
+	/*
+		TODO: Handle case when multiple content is selected and a new tag is added
+		some might have them already some don't so update the tags responsibly
+	*/
+	w.pageData.Tags[newTag]++
+
 	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
-	elm.InnerLabel().SetText(newTag)
+	elm.InnerLabel().SetText(fmt.Sprintf("%s %d", newTag, w.pageData.Tags[newTag]))
 	elm.SetAttribute("data-tag", newTag)
 }
 
 func (w *ContentWorkspace) handleTagRemoved(removedTag string) {
 	slog.Info("Tag Removed", "tag", removedTag)
-	klib.SlicesRemoveElement(w.pageData.Tags, removedTag)
+	w.pageData.Tags[removedTag]--
+
 	tagElements := w.Doc.GetElementsByGroup("tag")
 	for _, elm := range tagElements {
 		if elm.Attribute("data-tag") == removedTag {
-			w.Doc.RemoveElement(elm)
+			//* tag is no longer in use
+			if w.pageData.Tags[removedTag] == 0 {
+				delete(w.pageData.Tags, removedTag)
+				w.Doc.RemoveElement(elm)
+				delete(w.tagFilters, removedTag)
+			} else {
+				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", removedTag, w.pageData.Tags[removedTag]))
+			}
 			break
 		}
 	}
-
-	temp := make([]string, 0)
-	for _, v := range w.tagFilters {
-		if v != removedTag {
-			temp = append(temp, v)
-		}
-	}
-	w.tagFilters = temp
 	w.runFilter()
 }

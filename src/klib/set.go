@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_workspace_filters.go                                               */
+/* set.go                                                                     */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,67 +34,18 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_workspace
+package klib
 
-import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/platform/profiler/tracing"
-	"strings"
-)
+type Set[T comparable] map[T]struct{}
 
-func ShouldShowContent(query, id string, typeFilters, tagFilters map[string]struct{}, cdb *content_database.Cache) bool {
-	defer tracing.NewRegion("content_workspace.ShouldShowContent").End()
-	cc, err := cdb.Read(id)
-	if err != nil {
-		return false
-	}
-	show := len(typeFilters) == 0 && len(tagFilters) == 0
-	if !show && len(typeFilters) > 0 {
-		_, hasType := typeFilters[cc.Config.Type]
-		show = hasType
-	}
-	if !show || len(tagFilters) > 0 {
-		show = filterThroughTags(&cc, tagFilters)
-	}
-	if show && query != "" {
-		show = runQueryOnContent(&cc, query, tagFilters)
-	}
-	return show
+func NewSet[T comparable]() Set[T] {
+	return make(map[T]struct{})
 }
 
-func ShouldHideContent(id string, typeFilters, tagFilters map[string]struct{}, cdb *content_database.Cache) bool {
-	defer tracing.NewRegion("content_workspace.ShouldHideContent").End()
-	cc, err := cdb.Read(id)
-	if err != nil {
-		return false
-	}
-	_, hasType := typeFilters[cc.Config.Type]
-	hide := hasType ||
-		filterThroughTags(&cc, tagFilters)
-	return hide
+func (s Set[T]) Add(val T) {
+	s[val] = struct{}{}
 }
 
-func filterThroughTags(cc *content_database.CachedContent, tagFilters map[string]struct{}) bool {
-	defer tracing.NewRegion("content_workspace.filterThroughTags").End()
-	for i := range cc.Config.Tags {
-		_, hasTag := tagFilters[cc.Config.Tags[i]]
-		if hasTag {
-			return true
-		}
-	}
-	return false
-}
-
-func runQueryOnContent(cc *content_database.CachedContent, query string, tagFilters map[string]struct{}) bool {
-	defer tracing.NewRegion("content_workspace.runQueryOnContent").End()
-	// TODO:  Use filters like tag:..., type:..., etc.
-	if strings.Contains(cc.Config.NameLower(), query) {
-		return true
-	}
-	for i := range cc.Config.Tags {
-		if _, ok := tagFilters[cc.Config.Tags[i]]; ok {
-			return true
-		}
-	}
-	return false
+func (s Set[T]) Remove(val T) {
+	delete(s, val)
 }
