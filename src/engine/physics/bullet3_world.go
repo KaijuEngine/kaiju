@@ -40,8 +40,8 @@ package physics
 #cgo CXXFLAGS: -std=c++11
 #cgo windows,amd64 LDFLAGS: -L../../libs -lBulletDynamics_win_amd64 -lBulletCollision_win_amd64 -lLinearMath_win_amd64 -lstdc++ -lm
 #cgo linux,amd64 LDFLAGS: -L../../libs -lBulletDynamics_nix_amd64 -lBulletCollision_nix_amd64 -lLinearMath_nix_amd64 -lstdc++ -lm
-#cgo darwin,arm64 LDFLAGS: -L../libs -lBulletDynamics_darwin_arm64 -lBulletCollision_darwin_arm64 -lLinearMath_darwin_arm64 -lstdc++ -lm
-#cgo darwin,amd64 LDFLAGS: -L../libs -lBulletDynamics_darwin_amd64 -lBulletCollision_darwin_amd64 -lLinearMath_darwin_amd64 -lstdc++ -lm
+#cgo darwin,arm64 LDFLAGS: -L../../libs -lBulletDynamics_darwin_arm64 -lBulletCollision_darwin_arm64 -lLinearMath_darwin_arm64 -lstdc++ -lm
+#cgo darwin,amd64 LDFLAGS: -L../../libs -lBulletDynamics_darwin_amd64 -lBulletCollision_darwin_amd64 -lLinearMath_darwin_amd64 -lstdc++ -lm
 #include "bullet3_wrapper.h"
 #cgo noescape new_btDiscreteDynamicsWorld
 #cgo nocallback new_btDiscreteDynamicsWorld

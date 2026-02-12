@@ -89,24 +89,25 @@ type ImportVariant struct {
 
 // ContentPath will return the project file system path for the matching content
 // file for the target content.
-func (r *ImportResult) ContentPath() string {
-	return filepath.Join(project_file_system.ContentFolder, r.Category.Path(), r.Id)
+func (r *ImportResult) ContentPath() project_file_system.ContentPath {
+	return project_file_system.AsContentPath(filepath.Join(
+		project_file_system.ContentFolder, r.Category.Path(), r.Id))
 }
 
 // ConfigPath will return the project file system path for the matching config
 // file for the target content.
-func (r *ImportResult) ConfigPath() string {
-	return filepath.Join(project_file_system.ContentConfigFolder, r.Category.Path(), r.Id)
+func (r *ImportResult) ConfigPath() project_file_system.ConfigPath {
+	return r.ContentPath().ToConfigPath()
 }
 
 func (r *ImportResult) generateUniqueFileId(fs *project_file_system.FileSystem) string {
 	defer tracing.NewRegion("ImportResult.generateUniqueFileId").End()
 	for {
 		r.Id = uuid.NewString()
-		if _, err := fs.Stat(r.ContentPath()); err == nil {
+		if _, err := fs.Stat(r.ContentPath().String()); err == nil {
 			continue
 		}
-		if _, err := fs.Stat(r.ConfigPath()); err == nil {
+		if _, err := fs.Stat(r.ConfigPath().String()); err == nil {
 			continue
 		}
 		return r.Id
@@ -115,8 +116,8 @@ func (r *ImportResult) generateUniqueFileId(fs *project_file_system.FileSystem) 
 
 func (r *ImportResult) failureCleanup(fs *project_file_system.FileSystem) {
 	defer tracing.NewRegion("ImportResult.failureCleanup").End()
-	fs.Remove(r.ContentPath())
-	fs.Remove(r.ConfigPath())
+	fs.Remove(r.ContentPath().String())
+	fs.Remove(r.ConfigPath().String())
 	for i := range r.Dependencies {
 		r.Dependencies[i].failureCleanup(fs)
 	}

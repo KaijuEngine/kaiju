@@ -86,7 +86,8 @@ func New() Cache {
 
 // CachedContent will read the id from the file name and return it as a string
 func (c *CachedContent) Id() string {
-	return filepath.Base(c.Path)
+	contentPath := ToContentPath(c.Path)
+	return filepath.Base(contentPath)
 }
 
 // List will return the internally held cached content slice.
@@ -300,4 +301,42 @@ func (c *Cache) Remove(id string) {
 			}
 		}
 	}
+}
+
+func (c *Cache) ChangeGuid(from, to string, pfs *project_file_system.FileSystem) error {
+	defer tracing.NewRegion("Cache.ChangeGuid").End()
+	// Check if the new id already exists in the cache
+	if _, ok := c.lookup[to]; ok {
+		return DuplicateIdError{Id: to}
+	}
+	// Read the current cached content
+	cc, err := c.Read(from)
+	if err != nil {
+		slog.Error("failed to read cached content for guid change", "from", from, "to", to, "error", err)
+		return err
+	}
+	// Build new paths with the new id
+	dir := filepath.Dir(cc.Path)
+	newConfigPath := filepath.Join(dir, to) + filepath.Ext(cc.Path)
+	oldContentPath := cc.ContentPath()
+	newContentPath := ToContentPath(newConfigPath)
+	// Rename the config file
+	if err := pfs.Rename(cc.Path, newConfigPath); err != nil {
+		slog.Error("failed to rename config file", "from", cc.Path, "to", newConfigPath, "error", err)
+		return err
+	}
+	// Rename the content file
+	if err := pfs.Rename(oldContentPath, newContentPath); err != nil {
+		slog.Error("failed to rename content file", "from", oldContentPath, "to", newContentPath, "error", err)
+		// Attempt to rollback the config file rename
+		if rollbackErr := pfs.Rename(newConfigPath, cc.Path); rollbackErr != nil {
+			slog.Error("failed to rollback config file rename during content file rename error", "error", rollbackErr)
+		}
+		return err
+	}
+	// Update the cache, remove old and add new
+	c.Remove(from)
+	cc.Path = newConfigPath
+	c.IndexCachedContent(cc)
+	return nil
 }

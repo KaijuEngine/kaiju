@@ -43,6 +43,7 @@ import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
+	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -631,7 +632,18 @@ func (w *ContentWorkspace) clickDelete(*document.Element) {
 	})
 }
 
+func (w *ContentWorkspace) removeContentView(id []string) {
+	defer tracing.NewRegion("ContentWorkspace.removeContentView").End()
+	for i := range id {
+		if elm, ok := w.Doc.GetElementById(id[i]); ok {
+			w.Doc.RemoveElementWithoutApplyStyles(elm)
+		}
+	}
+	w.Doc.ApplyStyles()
+}
+
 func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
+	defer tracing.NewRegion("ContentWorkspace.completeDeleteOfSelectedContent").End()
 	ids := w.selectedIds()
 	for _, id := range ids {
 		err := content_database.Delete(id, w.pfs, w.cache)
@@ -707,6 +719,10 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 		{
 			Label: "Create table of contents",
 			Call:  w.requestCreateTableOfContents,
+		},
+		{
+			Label: "Change GUID",
+			Call:  func() { w.requestChangeGuid(id) },
 		},
 	}
 	if cc, err := w.cache.Read(id); err == nil {
@@ -953,18 +969,6 @@ func (w *ContentWorkspace) handleOnTagAdded(payload editor_events.TagEvent) {
 	_, ok := w.pageData.Tags[payload.Tag]
 	w.pageData.Tags[payload.Tag] += len(payload.AffectedContents)
 
-	entryTags := w.Doc.GetElementsByClass("entryTags")
-	isShown := false
-	for _, elm := range entryTags {
-		if elm.Children[1].Attribute("data-tag") == payload.Tag {
-			isShown = true
-			break
-		}
-	}
-	if !isShown {
-		w.addNewEntryTagBtn(payload.Tag)
-	}
-
 	if !ok {
 		w.editor.Events().OnNewTagAdded.Execute(payload.Tag)
 	} else {
@@ -974,6 +978,18 @@ func (w *ContentWorkspace) handleOnTagAdded(payload editor_events.TagEvent) {
 				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", payload.Tag, w.pageData.Tags[payload.Tag]))
 				break
 			}
+		}
+
+		entryTags := w.Doc.GetElementsByClass("entryTag")
+		isShown := false
+		for _, elm := range entryTags {
+			if elm.Children[1].Attribute("data-tag") == payload.Tag {
+				isShown = true
+				break
+			}
+		}
+		if !isShown {
+			w.addNewEntryTagBtn(payload.Tag)
 		}
 	}
 
@@ -1039,4 +1055,36 @@ func (w *ContentWorkspace) addNewTagBtn(tag string) {
 	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
 	elm.InnerLabel().SetText(fmt.Sprintf("%s %d", tag, w.pageData.Tags[tag]))
 	elm.SetAttribute("data-tag", tag)
+}
+
+func (w *ContentWorkspace) requestChangeGuid(id string) {
+	defer tracing.NewRegion("ContentWorkspace.requestChangeGuid").End()
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("requestChangeGuid failed, could not read id in cache", "id", id, "error", err)
+		return
+	}
+	w.editor.BlurInterface()
+	input_prompt.Show(w.Host, input_prompt.Config{
+		Title:       "Change GUID",
+		Description: fmt.Sprintf("Changing the GUID for %s (%s)", cc.Config.Name, cc.Id()),
+		Placeholder: "Guid...",
+		Value:       id,
+		ConfirmText: "Change",
+		CancelText:  "Cancel",
+		OnCancel:    w.editor.FocusInterface,
+		OnConfirm: func(s string) {
+			// Preemptively remove content because when it's removed from the
+			// cache, the rest of the system won't be able to locate it
+			w.removeContentView([]string{id})
+			w.editor.Events().OnContentRemoved.Execute([]string{id})
+			if err := w.editor.Project().ChangeContentGuid(id, s); err == nil {
+				w.editor.Events().OnContentAdded.Execute([]string{s})
+			} else {
+				// GUID change failed, re-add the current one
+				w.editor.Events().OnContentAdded.Execute([]string{id})
+			}
+			w.editor.FocusInterface()
+		},
+	})
 }
