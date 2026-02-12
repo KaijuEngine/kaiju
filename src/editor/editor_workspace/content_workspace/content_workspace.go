@@ -555,6 +555,9 @@ func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 func (w *ContentWorkspace) submitNewTag(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.submitNewTag").End()
 	input := e.UI.ToInput()
+	if !input.IsFocused() {
+		return
+	}
 	txt := input.Text()
 	if strings.TrimSpace(txt) == "" {
 		return
@@ -950,6 +953,18 @@ func (w *ContentWorkspace) handleOnTagAdded(payload editor_events.TagEvent) {
 	_, ok := w.pageData.Tags[payload.Tag]
 	w.pageData.Tags[payload.Tag] += len(payload.AffectedContents)
 
+	entryTags := w.Doc.GetElementsByClass("entryTags")
+	isShown := false
+	for _, elm := range entryTags {
+		if elm.Children[1].Attribute("data-tag") == payload.Tag {
+			isShown = true
+			break
+		}
+	}
+	if !isShown {
+		w.addNewEntryTagBtn(payload.Tag)
+	}
+
 	if !ok {
 		w.editor.Events().OnNewTagAdded.Execute(payload.Tag)
 	} else {
@@ -967,14 +982,8 @@ func (w *ContentWorkspace) handleOnTagAdded(payload editor_events.TagEvent) {
 }
 
 func (w *ContentWorkspace) handleOnNewTagAdded(newTag string) {
-	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
-	elm.InnerLabel().SetText(fmt.Sprintf("%s %d", newTag, w.pageData.Tags[newTag]))
-	elm.SetAttribute("data-tag", newTag)
-
-	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
-	tagListEntry.Children[0].InnerLabel().SetText(newTag)
-	tagListEntry.Children[1].SetAttribute("data-tag", newTag)
-	tagListEntry.UI.Show()
+	w.addNewTagBtn(newTag)
+	w.addNewEntryTagBtn(newTag)
 }
 
 // manages tag states when ever any tag is removed
@@ -1017,4 +1026,17 @@ func (w *ContentWorkspace) handleTagNoLongerInUse(removedTag string) {
 		}
 	}
 	w.runFilter()
+}
+
+func (w *ContentWorkspace) addNewEntryTagBtn(tag string) {
+	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+	tagListEntry.Children[0].InnerLabel().SetText(tag)
+	tagListEntry.Children[1].SetAttribute("data-tag", tag)
+	tagListEntry.UI.Show()
+}
+
+func (w *ContentWorkspace) addNewTagBtn(tag string) {
+	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
+	elm.InnerLabel().SetText(fmt.Sprintf("%s %d", tag, w.pageData.Tags[tag]))
+	elm.SetAttribute("data-tag", tag)
 }
