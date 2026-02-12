@@ -145,10 +145,9 @@ func (c *ContentConfig) RemoveTag(tag string) bool {
 // content path relative to the project file system.
 func ToContentPath(configPath string) string {
 	defer tracing.NewRegion("content_database.ToContentPath").End()
-	configPath = filepath.ToSlash(configPath)
-	if strings.HasPrefix(configPath, project_file_system.ContentConfigFolder) {
-		return strings.Replace(configPath, project_file_system.ContentConfigFolder,
-			project_file_system.ContentFolder, 1)
+	cfgPath := project_file_system.AsConfigPath(configPath)
+	if strings.HasPrefix(cfgPath.String(), project_file_system.ContentConfigFolder) {
+		return cfgPath.ToContentPath().String()
 	}
 	slog.Error("the supplied content config is not valid", "path", configPath)
 	return ""
@@ -178,12 +177,18 @@ func WriteConfig(path string, cfg ContentConfig, fs *project_file_system.FileSys
 func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig, error) {
 	defer tracing.NewRegion("content_database.ReadConfig").End()
 	cfg := ContentConfig{}
-	path = filepath.ToSlash(path)
-	if strings.HasPrefix(path, project_file_system.ContentFolder) {
-		path = strings.Replace(path, project_file_system.ContentFolder,
-			project_file_system.ContentConfigFolder, 1)
+	cfgPath := project_file_system.AsConfigPath(path).String()
+	// TODO:  This upgrade code should be removed at some point
+	// Try and upgrade the config file path, it might still be using
+	// the old configuration file path.
+	if fs.Exists(cfgPath) && !strings.HasSuffix(cfgPath, ".json") {
+		newName := cfgPath + ".json"
+		if err := fs.Rename(cfgPath, newName); err != nil {
+			return cfg, err
+		}
+		cfgPath = newName
 	}
-	f, err := fs.Open(path)
+	f, err := fs.Open(cfgPath)
 	if err != nil {
 		return cfg, err
 	}

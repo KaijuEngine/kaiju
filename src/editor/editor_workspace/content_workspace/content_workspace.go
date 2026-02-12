@@ -42,6 +42,7 @@ import (
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
+	"kaiju/editor/editor_overlay/input_prompt"
 	"kaiju/editor/editor_workspace/common_workspace"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_file_system"
@@ -612,7 +613,18 @@ func (w *ContentWorkspace) clickDelete(*document.Element) {
 	})
 }
 
+func (w *ContentWorkspace) removeContentView(id []string) {
+	defer tracing.NewRegion("ContentWorkspace.removeContentView").End()
+	for i := range id {
+		if elm, ok := w.Doc.GetElementById(id[i]); ok {
+			w.Doc.RemoveElementWithoutApplyStyles(elm)
+		}
+	}
+	w.Doc.ApplyStyles()
+}
+
 func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
+	defer tracing.NewRegion("ContentWorkspace.completeDeleteOfSelectedContent").End()
 	ids := w.selectedIds()
 	for _, id := range ids {
 		err := content_database.Delete(id, w.pfs, w.cache)
@@ -688,6 +700,10 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 		{
 			Label: "Create table of contents",
 			Call:  w.requestCreateTableOfContents,
+		},
+		{
+			Label: "Change GUID",
+			Call:  func() { w.requestChangeGuid(id) },
 		},
 	}
 	if cc, err := w.cache.Read(id); err == nil {
@@ -936,4 +952,36 @@ func (w *ContentWorkspace) removeFtde() {
 		w.Doc.RemoveElement(ftde)
 		w.ftde.arrow = nil
 	}
+}
+
+func (w *ContentWorkspace) requestChangeGuid(id string) {
+	defer tracing.NewRegion("ContentWorkspace.requestChangeGuid").End()
+	cc, err := w.cache.Read(id)
+	if err != nil {
+		slog.Error("requestChangeGuid failed, could not read id in cache", "id", id, "error", err)
+		return
+	}
+	w.editor.BlurInterface()
+	input_prompt.Show(w.Host, input_prompt.Config{
+		Title:       "Change GUID",
+		Description: fmt.Sprintf("Changing the GUID for %s (%s)", cc.Config.Name, cc.Id()),
+		Placeholder: "Guid...",
+		Value:       id,
+		ConfirmText: "Change",
+		CancelText:  "Cancel",
+		OnCancel:    w.editor.FocusInterface,
+		OnConfirm: func(s string) {
+			// Preemptively remove content because when it's removed from the
+			// cache, the rest of the system won't be able to locate it
+			w.removeContentView([]string{id})
+			w.editor.Events().OnContentRemoved.Execute([]string{id})
+			if err := w.editor.Project().ChangeContentGuid(id, s); err == nil {
+				w.editor.Events().OnContentAdded.Execute([]string{s})
+			} else {
+				// GUID change failed, re-add the current one
+				w.editor.Events().OnContentAdded.Execute([]string{id})
+			}
+			w.editor.FocusInterface()
+		},
+	})
 }

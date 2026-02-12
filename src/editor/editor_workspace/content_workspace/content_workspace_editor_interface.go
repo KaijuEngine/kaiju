@@ -41,6 +41,7 @@ import (
 	"kaiju/editor/editor_settings"
 	"kaiju/editor/editor_workspace/shading_workspace"
 	"kaiju/editor/editor_workspace/vfx_workspace"
+	"kaiju/editor/project"
 	"kaiju/editor/project/project_database/content_database"
 	"kaiju/editor/project/project_database/content_previews"
 	"kaiju/editor/project/project_file_system"
@@ -48,6 +49,7 @@ import (
 
 type ContentWorkspaceEditorInterface interface {
 	Settings() *editor_settings.Settings
+	Project() *project.Project
 	Events() *editor_events.EditorEvents
 	ProjectFileSystem() *project_file_system.FileSystem
 	Cache() *content_database.Cache

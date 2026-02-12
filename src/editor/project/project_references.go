@@ -326,3 +326,38 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 	}
 	return refs
 }
+
+func (p *Project) updateReferences(from, to string) error {
+	defer tracing.NewRegion("Project.updateReferences").End()
+	refs, err := p.FindReferences(from)
+	if err != nil {
+		return err
+	}
+	var fixRef func(ref *ContentReference) error
+	fixRef = func(ref *ContentReference) error {
+		cc, err := p.cacheDatabase.Read(ref.Id)
+		if err != nil {
+			return err
+		}
+		data, err := p.fileSystem.ReadFile(cc.ContentPath())
+		if err != nil {
+			return err
+		}
+		str := strings.ReplaceAll(string(data), from, to)
+		if err = p.fileSystem.WriteFile(cc.ContentPath(), []byte(str), os.ModePerm); err != nil {
+			return err
+		}
+		for i := range ref.SubReference {
+			if err := fixRef(&ref.SubReference[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	for i := range refs {
+		if err := fixRef(&refs[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
