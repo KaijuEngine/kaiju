@@ -70,8 +70,15 @@
 				bottom: 0;
 				width: 50%;
 			}
-			.saveBtn {
-				right: 0
+			.saveBtn {right: 0;}
+			.nameInput {
+				height: 1.45em;
+				width: calc(100% - 4em);
+			}
+			.newBtn {
+				position: absolute;
+				right: 0;
+				font-size: 0.75em;
 			}
 			#emitterList {
 				width: 100%;
@@ -90,7 +97,10 @@
 	<body>
 		<div class="leftPanel edPanelBg">
 			<div class="center">Particle system</div>
-			<input id="systemName" class="dataInput" type="text" placeholder="Name..." />
+			<div>
+				<input id="systemName" class="nameInput dataInput" type="text" placeholder="Name..." />
+				<button class="newBtn" onclick="clickNewParticleSystem">New</button>
+			</div>
 			<div id="emitterList">
 				<div id="emitterListEntryTemplate" class="edPanelBgHoverable" onclick="clickSelectEmitter">
 					<span>Name...</span>

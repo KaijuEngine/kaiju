@@ -82,13 +82,14 @@ func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterf
 	w.stageView = ed.StageView()
 	w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/vfx_workspace.go.html", nil, map[string]func(*document.Element){
-			"clickAddEmitter":      w.clickAddEmitter,
-			"clickSaveEmitter":     w.clickSaveEmitter,
-			"clickSelectEmitter":   w.clickSelectEmitter,
-			"clickDeleteEmitter":   w.clickDeleteEmitter,
-			"showColorPicker":      w.showColorPicker,
-			"changeEmitterData":    w.changeEmitterData,
-			"clickSelectContentId": w.clickSelectContentId,
+			"clickNewParticleSystem": w.clickNewParticleSystem,
+			"clickAddEmitter":        w.clickAddEmitter,
+			"clickSaveEmitter":       w.clickSaveEmitter,
+			"clickSelectEmitter":     w.clickSelectEmitter,
+			"clickDeleteEmitter":     w.clickDeleteEmitter,
+			"showColorPicker":        w.showColorPicker,
+			"changeEmitterData":      w.changeEmitterData,
+			"clickSelectContentId":   w.clickSelectContentId,
 		})
 	w.systemName, _ = w.Doc.GetElementById("systemName")
 	w.emitterData, _ = w.Doc.GetElementById("emitterData")
@@ -233,6 +234,27 @@ func (w *VfxWorkspace) clickSaveEmitter(e *document.Element) {
 		w.ed.Events().OnContentAdded.Execute(ids)
 	}
 	slog.Info("particle system successfully saved")
+}
+
+func (w *VfxWorkspace) clickNewParticleSystem(e *document.Element) {
+	defer tracing.NewRegion("VfxWorkspace.clickNewParticleSystem").End()
+	w.ed.BlurInterface()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       "Create new particle system?",
+		Description: "Are you sure you'd like to create a new particle system? Current changes will be lost.",
+		ConfirmText: "New",
+		CancelText:  "Cancel",
+		OnConfirm: func() {
+			w.ed.FocusInterface()
+			w.systemId = ""
+			w.systemName.UI.ToInput().SetText("")
+			w.clear()
+			w.particleSystem.Clear()
+			w.emitter = nil
+			w.emitterData.UI.Hide()
+		},
+		OnCancel: w.ed.FocusInterface,
+	})
 }
 
 func (w *VfxWorkspace) clickSelectEmitter(e *document.Element) {
