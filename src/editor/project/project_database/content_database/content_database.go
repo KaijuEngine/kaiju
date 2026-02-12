@@ -119,8 +119,8 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			linkedId = res[i].Id
 		}
 		configPath := res[i].ConfigPath()
-		fs.MkdirAll(filepath.Dir(configPath), os.ModePerm)
-		f, err := fs.Create(configPath)
+		fs.MkdirAll(filepath.Dir(configPath.String()), os.ModePerm)
+		f, err := fs.Create(configPath.String())
 		if err != nil {
 			return res, err
 		}
@@ -141,8 +141,8 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			return res, err
 		}
 		contentPath := res[i].ContentPath()
-		fs.MkdirAll(filepath.Dir(contentPath), os.ModePerm)
-		if err = fs.WriteFile(contentPath, proc.Variants[i].Data, os.ModePerm); err != nil {
+		fs.MkdirAll(filepath.Dir(contentPath.String()), os.ModePerm)
+		if err = fs.WriteFile(contentPath.String(), proc.Variants[i].Data, os.ModePerm); err != nil {
 			return res, err
 		}
 		res[i].Dependencies = make([]ImportResult, 0, len(proc.Dependencies))
@@ -159,7 +159,7 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 				}
 			}
 		}
-		cache.Index(res[i].ConfigPath(), fs)
+		cache.Index(res[i].ConfigPath().String(), fs)
 		if err = cat.PostImportProcessing(proc, &res[i], fs, cache, linkedId); err != nil {
 			return res, err
 		}
@@ -197,7 +197,7 @@ func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 		Id:       id,
 		Category: cat,
 	}
-	if err = fs.WriteFile(res.ContentPath(), proc.Variants[0].Data, os.ModePerm); err != nil {
+	if err = fs.WriteFile(res.ContentPath().String(), proc.Variants[0].Data, os.ModePerm); err != nil {
 		return res, err
 	}
 	return res, nil

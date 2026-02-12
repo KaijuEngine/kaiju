@@ -129,13 +129,19 @@ func SpvPath(id string) ContentPath {
 	return AsContentPath(filepath.Join(ContentFolder, ContentSpvFolder, id))
 }
 
+func AsConfigPath(path string) ConfigPath {
+	return ConfigPath(filepath.ToSlash(path))
+}
+
 func (p ContentPath) String() string { return string(p) }
 func (p ConfigPath) String() string  { return string(p) }
 
 func (p ContentPath) ToConfigPath() ConfigPath {
-	return ConfigPath(strings.Replace(string(p), ContentFolder, ContentConfigFolder, 1))
+	return ConfigPath(strings.Replace(string(p), ContentFolder, ContentConfigFolder, 1) + configFileExt)
 }
 
 func (p ConfigPath) ToContentPath() ContentPath {
-	return ContentPath(strings.Replace(string(p), ContentConfigFolder, ContentFolder, 1))
+	s := strings.Replace(string(p), ContentConfigFolder, ContentFolder, 1)
+	s = strings.TrimSuffix(s, configFileExt)
+	return ContentPath(s)
 }

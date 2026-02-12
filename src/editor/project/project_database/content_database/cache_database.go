@@ -86,7 +86,8 @@ func New() Cache {
 
 // CachedContent will read the id from the file name and return it as a string
 func (c *CachedContent) Id() string {
-	return filepath.Base(c.Path)
+	contentPath := ToContentPath(c.Path)
+	return filepath.Base(contentPath)
 }
 
 // List will return the internally held cached content slice.

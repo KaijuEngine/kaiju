@@ -45,7 +45,10 @@ import (
 	"strings"
 )
 
-const gitignoreStub = "!*.gitignore\n"
+const (
+	gitignoreStub = "!*.gitignore\n"
+	configFileExt = ".json"
+)
 
 var (
 	srcFolders = []string{
