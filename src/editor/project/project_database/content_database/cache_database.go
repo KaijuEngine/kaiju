@@ -317,7 +317,7 @@ func (c *Cache) ChangeGuid(from, to string, pfs *project_file_system.FileSystem)
 	}
 	// Build new paths with the new id
 	dir := filepath.Dir(cc.Path)
-	newConfigPath := filepath.Join(dir, to)
+	newConfigPath := filepath.Join(dir, to) + filepath.Ext(cc.Path)
 	oldContentPath := cc.ContentPath()
 	newContentPath := ToContentPath(newConfigPath)
 	// Rename the config file
