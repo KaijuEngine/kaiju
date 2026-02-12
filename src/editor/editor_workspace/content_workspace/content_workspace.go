@@ -39,6 +39,7 @@ package content_workspace
 import (
 	"errors"
 	"fmt"
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
@@ -154,8 +155,10 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
 	edEvts.OnContentPreviewGenerated.Add(w.contentPreviewGenerated)
-	edEvts.OnNewTagAdded.Add(w.handleNewFilterTag)
+	edEvts.OnNewTagAdded.Add(w.handleOnNewTagAdded)
+	edEvts.OnTagAdded.Add(w.handleOnTagAdded)
 	edEvts.OnTagRemoved.Add(w.handleTagRemoved)
+	edEvts.OnTagNoLongerInUse.Add(w.handleTagNoLongerInUse)
 	edEvts.OnContentAdded.Execute(ids)
 	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
 }
@@ -501,6 +504,7 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 	ids := w.selectedIds()
 	found := false
 	tag := e.Attribute("data-tag")
+	affectedContents := make([]string, 0)
 	for _, id := range ids {
 		cc, err := w.cache.Read(id)
 		if err != nil {
@@ -509,6 +513,7 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 		}
 		if cc.Config.RemoveTag(tag) {
 			w.updateIndexForCachedContent(&cc)
+			affectedContents = append(affectedContents, cc.Id())
 		}
 		found = true
 	}
@@ -516,9 +521,7 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
 	}
 
-	w.editor.Events().OnTagRemoved.Execute(tag)
-
-	w.Doc.RemoveElement(e.Parent.Value())
+	w.editor.Events().OnTagRemoved.Execute(editor_events.TagEvent{Tag: tag, AffectedContents: affectedContents})
 }
 
 func (w *ContentWorkspace) updateTagHint(e *document.Element) {
@@ -531,14 +534,19 @@ func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 		w.info.newTagHint.UI.Hide()
 		return
 	}
-	options := w.pageData.Tags[q]
-	if options == 0 {
+	options := make([]string, 0)
+	for tag, _ := range w.pageData.Tags {
+		if strings.Contains(tag, q) {
+			options = append(options, tag)
+		}
+	}
+	if len(options) == 0 {
 		w.info.newTagHint.UI.Hide()
 		return
 	}
-	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, options)
+	cpys := w.Doc.DuplicateElementRepeat(w.info.tagHintTemplate, len(options))
 	for i := range cpys {
-		cpys[i].InnerLabel().SetText(q)
+		cpys[i].InnerLabel().SetText(options[i])
 		cpys[i].UI.Show()
 	}
 	w.info.newTagHint.UI.Show()
@@ -761,6 +769,7 @@ func (w *ContentWorkspace) clickOpenInEditor(e *document.Element) {
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
 	defer tracing.NewRegion("ContentWorkspace.addTagToSelected").End()
+	affectedContents := make([]string, 0)
 	for _, id := range w.selectedIds() {
 		cc, err := w.cache.Read(id)
 		if err != nil {
@@ -770,24 +779,14 @@ func (w *ContentWorkspace) addTagToSelected(tag string) {
 		var ok bool
 		if tag, ok = cc.Config.AddTag(tag); ok {
 			w.updateIndexForCachedContent(&cc)
+			affectedContents = append(affectedContents, cc.Id())
 		}
 	}
 
-	tagsInEntryDetails := w.Doc.GetElementsByClass("entryTag")
-	unique := klib.NewSet[string]()
-	for _, elm := range tagsInEntryDetails {
-		unique.Add(elm.Children[1].Attribute("data-tag"))
-	}
-
-	if _, ok := unique[tag]; !ok {
-		// Add the tag to the entry details
-		tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
-		tagListEntry.Children[0].InnerLabel().SetText(tag)
-		tagListEntry.Children[1].SetAttribute("data-tag", tag)
-		tagListEntry.UI.Show()
-	}
-
-	w.editor.Events().OnNewTagAdded.Execute(tag)
+	w.editor.Events().OnTagAdded.Execute(editor_events.TagEvent{
+		Tag:              tag,
+		AffectedContents: affectedContents,
+	})
 }
 
 func (w *ContentWorkspace) selectedIds() []string {
@@ -947,33 +946,73 @@ func (w *ContentWorkspace) removeFtde() {
 	}
 }
 
-func (w *ContentWorkspace) handleNewFilterTag(newTag string) {
-	/*
-		TODO: Handle case when multiple content is selected and a new tag is added
-		some might have them already some don't so update the tags responsibly
-	*/
-	w.pageData.Tags[newTag]++
+func (w *ContentWorkspace) handleOnTagAdded(payload editor_events.TagEvent) {
+	_, ok := w.pageData.Tags[payload.Tag]
+	w.pageData.Tags[payload.Tag] += len(payload.AffectedContents)
 
+	if !ok {
+		w.editor.Events().OnNewTagAdded.Execute(payload.Tag)
+	} else {
+		tagElms := w.Doc.GetElementsByGroup("tag")
+		for _, elm := range tagElms {
+			if elm.Attribute("data-tag") == payload.Tag {
+				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", payload.Tag, w.pageData.Tags[payload.Tag]))
+				break
+			}
+		}
+	}
+
+	slog.Info("Adding Tag", payload.Tag, len(payload.AffectedContents))
+	w.runFilter()
+}
+
+func (w *ContentWorkspace) handleOnNewTagAdded(newTag string) {
 	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
 	elm.InnerLabel().SetText(fmt.Sprintf("%s %d", newTag, w.pageData.Tags[newTag]))
 	elm.SetAttribute("data-tag", newTag)
+
+	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+	tagListEntry.Children[0].InnerLabel().SetText(newTag)
+	tagListEntry.Children[1].SetAttribute("data-tag", newTag)
+	tagListEntry.UI.Show()
 }
 
-func (w *ContentWorkspace) handleTagRemoved(removedTag string) {
+// manages tag states when ever any tag is removed
+func (w *ContentWorkspace) handleTagRemoved(payload editor_events.TagEvent) {
+	w.pageData.Tags[payload.Tag] -= len(payload.AffectedContents)
+
+	// remove tag btn from details panel
+	for _, elm := range w.Doc.GetElementsByClass("entryTag") {
+		if elm.Children[1].Attribute("data-tag") == payload.Tag {
+			w.Doc.RemoveElement(elm)
+			break
+		}
+	}
+
+	if w.pageData.Tags[payload.Tag] <= 0 {
+		w.editor.Events().OnTagNoLongerInUse.Execute(payload.Tag)
+	} else {
+		for _, elm := range w.Doc.GetElementsByGroup("tag") {
+			if elm.Attribute("data-tag") == payload.Tag {
+				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", payload.Tag, w.pageData.Tags[payload.Tag]))
+			}
+		}
+	}
+
+	w.runFilter()
+}
+
+// responsible to remove the tag when it is no longer in use
+func (w *ContentWorkspace) handleTagNoLongerInUse(removedTag string) {
 	slog.Info("Tag Removed", "tag", removedTag)
-	w.pageData.Tags[removedTag]--
 
 	tagElements := w.Doc.GetElementsByGroup("tag")
 	for _, elm := range tagElements {
 		if elm.Attribute("data-tag") == removedTag {
 			//* tag is no longer in use
-			if w.pageData.Tags[removedTag] == 0 {
-				delete(w.pageData.Tags, removedTag)
-				w.Doc.RemoveElement(elm)
-				delete(w.tagFilters, removedTag)
-			} else {
-				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", removedTag, w.pageData.Tags[removedTag]))
-			}
+			delete(w.pageData.Tags, removedTag)
+			delete(w.tagFilters, removedTag)
+			w.Doc.RemoveElement(elm)
 			break
 		}
 	}

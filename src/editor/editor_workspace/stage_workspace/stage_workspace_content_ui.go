@@ -119,7 +119,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	edEvts.OnContentRenamed.Add(cui.renameContent)
 	edEvts.OnContentPreviewGenerated.Add(cui.contentPreviewGenerated)
 	edEvts.OnNewTagAdded.Add(cui.handleNewFilterTag)
-	edEvts.OnTagRemoved.Add(cui.handleTagRemoved)
+	edEvts.OnTagNoLongerInUse.Add(cui.handleTagNoLongerInUse)
 }
 
 func (cui *WorkspaceContentUI) open() {
@@ -475,27 +475,25 @@ func (cui *WorkspaceContentUI) handleNewFilterTag(newTag string) {
 	w := cui.workspace.Value()
 	w.pageData.Tags[newTag]++
 
-	tagBtnElms := cui.workspace.Value().Doc.GetElementsByClass("filterBtn")[0]
-	newFilterBtn := cui.workspace.Value().Doc.DuplicateElement(tagBtnElms)
+	tagBtnElms := w.Doc.GetElementsByClass("filterBtn")[0]
+	newFilterBtn := w.Doc.DuplicateElement(tagBtnElms)
 
 	newFilterBtn.SetAttribute("data-tag", newTag)
 	newFilterBtn.SetAttribute("group", "tag")
 	newFilterBtn.InnerLabel().SetText(newTag)
 }
 
-func (cui *WorkspaceContentUI) handleTagRemoved(removedTag string) {
-	slog.Info("removed Tag recieved")
+func (cui *WorkspaceContentUI) handleTagNoLongerInUse(removedTag string) {
+	slog.Info(fmt.Sprintf("Removing Tag: %s", removedTag))
+
 	w := cui.workspace.Value()
-	w.pageData.Tags[removedTag]--
+	delete(w.pageData.Tags, removedTag)
+
 	tagElms := w.Doc.GetElementsByClass("filterBtn")
 	for _, elm := range tagElms {
 		if elm.Attribute("data-tag") == removedTag {
-			if w.pageData.Tags[removedTag] == 0 {
-				w.Doc.RemoveElement(elm)
-				delete(w.pageData.Tags, removedTag)
-			}
+			w.Doc.RemoveElement(elm)
 			break
 		}
 	}
-
 }

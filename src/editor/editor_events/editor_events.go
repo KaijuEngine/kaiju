@@ -66,6 +66,15 @@ type EditorEvents struct {
 	//OnNewTagAdded is called whenever any content is introduced with new tag
 	OnNewTagAdded events.EventWithArg[string]
 
-	//OnTagRemoved is called whenever a tag is no longer used by any content
-	OnTagRemoved events.EventWithArg[string]
+	//OnTagNoLongerInUse is called whenever a tag is no longer used by any content
+	OnTagNoLongerInUse events.EventWithArg[string]
+
+	OnTagRemoved events.EventWithArg[TagEvent]
+
+	OnTagAdded events.EventWithArg[TagEvent]
+}
+
+type TagEvent struct {
+	Tag              string
+	AffectedContents []string
 }
