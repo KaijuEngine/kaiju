@@ -37,6 +37,8 @@
 package editor
 
 import (
+	"bytes"
+	"image/png"
 	"kaiju/build"
 	"kaiju/editor/editor_embedded_content"
 	"kaiju/engine"
@@ -66,6 +68,22 @@ func (EditorGame) Launch(host *engine.Host) {
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
 	}
+	// goroutine
+	go func() {
+		data, err := host.AssetDatabase().Read("kiaju-icon.png")
+		if err != nil {
+			slog.Error("failed to read the editor application icon", "error", err)
+			return
+		}
+		img, err := png.Decode(bytes.NewReader(data))
+		if err != nil {
+			slog.Error("failed to decode the application icon file", "error", err)
+			return
+		}
+		host.RunOnMainThread(func() {
+			host.Window.SetIcon(img)
+		})
+	}()
 	ed.UpdateSettings()
 	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(512)
