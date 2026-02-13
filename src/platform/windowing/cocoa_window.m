@@ -777,8 +777,9 @@ void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelD
 		@autoreleasepool {
 			// Create CGImage from raw RGBA pixel data
 			CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, pixelData, (size_t)width * height * 4, NULL);
-			if (!provider) return;
-
+			if (!provider) {
+				return;
+			}
 			CGImageRef cgImage = CGImageCreate(
 				(size_t)width,
 				(size_t)height,
@@ -793,12 +794,11 @@ void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelD
 				kCGRenderingIntentDefault
 			);
 			CGDataProviderRelease(provider);
-
-			if (!cgImage) return;
-
+			if (!cgImage) {
+				return;
+			}
 			NSImage* image = [[NSImage alloc] initWithCGImage:cgImage size:NSMakeSize(width, height)];
 			CGImageRelease(cgImage);
-
 			// Set the application dock icon
 			[NSApp setApplicationIconImage:image];
 		}
