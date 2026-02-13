@@ -770,6 +770,7 @@ void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelD
 	if (!nsWindow || !pixelData || width <= 0 || height <= 0) {
 		return;
 	}
+	/*
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
 			NSWindow* window = (__bridge NSWindow*)nsWindow;
@@ -799,4 +800,5 @@ void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelD
 			}
 		}
 	});
+	*/
 }
