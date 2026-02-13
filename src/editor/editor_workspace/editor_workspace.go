@@ -47,4 +47,5 @@ type Workspace interface {
 	Blur()
 	Hotkeys() []common_workspace.HotKey
 	Update(float64)
+	IsFocusedOnInput() bool
 }

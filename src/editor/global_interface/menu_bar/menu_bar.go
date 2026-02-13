@@ -121,6 +121,10 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 func (b *MenuBar) Focus() { b.uiMan.EnableUpdate() }
 func (b *MenuBar) Blur()  { b.uiMan.DisableUpdate() }
 
+func (b *MenuBar) IsFocusedOnInput() bool {
+	return b.uiMan.Group.IsFocusedOnInput()
+}
+
 func (b *MenuBar) SetWorkspaceStage() {
 	t, _ := b.doc.GetElementById("tabStage")
 	b.selectTab(t)

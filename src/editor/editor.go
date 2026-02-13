@@ -145,6 +145,15 @@ func (ed *Editor) BlurInterface() {
 	ed.blurred = true
 }
 
+func (ed *Editor) IsInputFocused() bool {
+	if ed.globalInterfaces.menuBar.IsFocusedOnInput() {
+		return true
+	} else if ed.globalInterfaces.statusBar.IsFocusedOnInput() {
+		return true
+	}
+	return ed.currentWorkspace.IsFocusedOnInput()
+}
+
 func (ed *Editor) earlyLoadUI() {
 	defer tracing.NewRegion("Editor.earlyLoadUI").End()
 	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
@@ -202,7 +211,7 @@ func (ed *Editor) update(deltaTime float64) {
 		return
 	}
 	kb := &ed.host.Window.Keyboard
-	if kb.HasCtrl() {
+	if kb.HasCtrl() && !ed.IsInputFocused() {
 		if kb.KeyDown(hid.KeyboardKeyZ) {
 			if !kb.HasShift() {
 				ed.history.Undo()
