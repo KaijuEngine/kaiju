@@ -765,3 +765,38 @@ bool cocoa_get_caps_lock_toggle_key_state(void) {
         return (flags & NSEventModifierFlagCapsLock) != 0;
     }
 }
+
+void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelData) {
+	if (!nsWindow || !pixelData || width <= 0 || height <= 0) {
+		return;
+	}
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+			NSWindow* window = (__bridge NSWindow*)nsWindow;
+			// Create NSImage from RGBA pixel data
+			NSBitmapImageRep* bitmap = [[NSBitmapImageRep alloc]
+				initWithBitmapData:NULL
+					pixelsWide:width
+					pixelsHigh:height
+					bitsPerSample:8
+					samplesPerPixel:4
+					hasAlpha:YES
+					isPlanar:NO
+					colorSpaceName:NSCalibratedRGBColorSpace
+					bytesPerRow:width * 4
+					bitsPerPixel:32];
+			if (!bitmap) {
+				return;
+			}
+			// Copy pixel data into the bitmap
+			uint8_t* bitmapData = [bitmap bitmapData];
+			memcpy(bitmapData, pixelData, width * height * 4);
+			NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(width, height)];
+			[image addRepresentation:bitmap];
+			// Set the window's icon (macOS 11+)
+			if (@available(macOS 11.0, *)) {
+				window.icon = image;
+			}
+		}
+	});
+}

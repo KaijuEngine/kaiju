@@ -54,6 +54,9 @@ void cocoa_focus_window(void* nsWindow);
 // Get bundle resource path (for reading app assets)
 void cocoa_get_bundle_resource_path(const char* resourceName, void** outPath);
 
+// Window icon
+void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelData);
+
 // Window border manipulation
 void cocoa_remove_border(void* nsWindow);
 void cocoa_add_border(void* nsWindow);

@@ -49,6 +49,7 @@ import "C"
 import (
 	"fmt"
 	"image"
+	"image/draw"
 	"os"
 	"unsafe"
 
@@ -269,7 +270,15 @@ func (w *Window) setCursorPosition(x, y int) {
 }
 
 func (w *Window) setIcon(img image.Image) {
-	klib.NotYetImplemented(626)
+	if w.instance == nil {
+		return
+	}
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	rgba := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.Draw(rgba, rgba.Bounds(), img, bounds.Min, draw.Src)
+	C.cocoa_set_icon(w.instance, C.int(width), C.int(height), (*C.uint8_t)(&rgba.Pix[0]))
 }
 
 // App asset read (private)
