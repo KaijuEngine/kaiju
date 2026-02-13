@@ -95,4 +95,8 @@ func (w *CommonWorkspace) Blur() {
 	w.IsBlurred = true
 }
 
+func (w *CommonWorkspace) IsFocusedOnInput() bool {
+	return w.UiMan.Group.IsFocusedOnInput()
+}
+
 func (w *CommonWorkspace) Update(float64) {}

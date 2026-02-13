@@ -63,6 +63,10 @@ func (s *SelectTool) Init(host *engine.Host, handler ResultHandler) {
 	s.panel.Base().Hide()
 }
 
+func (s *SelectTool) Cancel() {
+	s.panel.Base().Hide()
+}
+
 func (s *SelectTool) Update() {
 	c := &s.uiMan.Host.Window.Cursor
 	if c.Pressed() {

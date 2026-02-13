@@ -86,6 +86,10 @@ func (b *StatusBar) Blur() {
 	b.uiMan.DisableUpdate()
 }
 
+func (b *StatusBar) IsFocusedOnInput() bool {
+	return b.uiMan.Group.IsFocusedOnInput()
+}
+
 func (b *StatusBar) setupUIReferences() {
 	defer tracing.NewRegion("StatusBar.setupUIReferences").End()
 	b.log, _ = b.doc.GetElementById("log")
