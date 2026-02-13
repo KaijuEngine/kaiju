@@ -53,7 +53,6 @@ import (
 	"os"
 	"unsafe"
 
-	"kaiju/klib"
 	"kaiju/platform/hid"
 )
 
