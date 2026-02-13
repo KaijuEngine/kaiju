@@ -2,7 +2,7 @@
 title: Kaiju Engine
 ---
 
-<div style="background-image: url(https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/index.md/kaiju-text-logo.png);width: 100%;height: auto;background-size: cover;background-position: center;background-repeat: no-repeat;aspect-ratio: 2.9 / 1;"></div>
+<div style="background-image: url(https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/index.md/kaiju_engine_text_wide_logo.png);width: 100%;height: auto;background-size: cover;background-position: center;background-repeat: no-repeat;aspect-ratio: 2.9 / 1;"></div>
 
 # Kaiju Engine
 An extremely fast, open source game engine and editor, written in [Go](https://go.dev/) backed by [Vulkan](https://www.vulkan.org/).
