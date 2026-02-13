@@ -48,6 +48,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/XKBlib.h>
+#include <x11.h/Xatom.h>
 
 // Cursor docs
 // https://tronche.com/gui/x/xlib/appendix/b/
@@ -58,7 +59,7 @@
 
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask | StructureNotifyMask
 
-Atom XA_ATOM = 4, XA_STRING = 31;
+// Atom XA_ATOM = 4, XA_STRING = 31;
 
 unsigned int get_toggle_key_state() {
     Display *d = XOpenDisplay(NULL);
@@ -549,7 +550,7 @@ void window_set_icon(void* state, int width, int height, const unsigned char* rg
 		unsigned char a = rgba[i * 4 + 3];
 		iconData[2 + i] = ((unsigned long)a << 24) | ((unsigned long)b << 16) | ((unsigned long)g << 8) | r;
 	}
-	XChangeProperty(s->d, s->w, netWmIcon, XA_CARD32, 32, PropModeReplace, 
+	XChangeProperty(s->d, s->w, netWmIcon, XA_CARDINAL, 32, PropModeReplace, 
 		(unsigned char*)iconData, dataLen);
 	XFlush(s->d);
 	free(iconData);
