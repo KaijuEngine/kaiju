@@ -220,8 +220,8 @@
 				width: 1.5em;
 				height: 1.5em;
 				font-size: 0.7em;
+				font-family: 'MaterialIcons-Regular';
 			}
-			.copyIcon, .pasteIcon { font-family: 'NotoEmoji-Regular'; }
 		</style>
 	</head>
 	<body>
@@ -305,9 +305,9 @@
 					<div id="boundEntityDataList">
 						<div id="boundEntityDataTemplate" class="dataBindingBlock">
 							<div class="dataControls">
-								<button class="pasteIcon" data-bindidx="" onclick="pasteEntityData">📋</button>
-								<button class="copyIcon" data-bindidx="" onclick="copyEntityData">🖨︎</button>
-								<button class="deleteButton" data-bindidx="" onclick="removeEntityData">X</button>
+								<button class="pasteIcon" data-bindidx="" onclick="pasteEntityData">&#xE14F;</button>
+								<button class="copyIcon" data-bindidx="" onclick="copyEntityData">&#xE14D;</button>
+								<button class="deleteButton" data-bindidx="" onclick="removeEntityData">&#xE872;</button>
 							</div>
 							<div class="center">Data name...</div>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
@@ -356,7 +356,7 @@
 							</div>
 						</div>
 					</div>
-					<div><span>Add data, or </span><button class="pasteIcon" onclick="pasteEntityDataAsNew">📋</button></div>
+					<div><span>Add data, or </span><button class="pasteIcon" onclick="pasteEntityDataAsNew">&#xE14F;</button></div>
 					<input type="text" placeholder="Find entity data..." onchange="searchEntityData" />
 					<div id="entityDataList">
 						<div id="entityDataListTemplate" class="entityDataListEntry" onclick="addEntityData">Name...</div>
