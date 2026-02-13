@@ -122,6 +122,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	if v.camera.Update(v.host, deltaTime) {
 		v.updateGridPosition()
 		v.transformTool.Cancel()
+		v.selectTool.Cancel()
 		return true
 	} else {
 		v.processViewportInteractions()
