@@ -767,38 +767,40 @@ bool cocoa_get_caps_lock_toggle_key_state(void) {
 }
 
 void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelData) {
-	if (!nsWindow || !pixelData || width <= 0 || height <= 0) {
+	if (!pixelData || width <= 0 || height <= 0) {
 		return;
 	}
-	/*
+
+	(void)nsWindow; // nsWindow kept for potential future per-window icons
+
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
-			NSWindow* window = (__bridge NSWindow*)nsWindow;
-			// Create NSImage from RGBA pixel data
-			NSBitmapImageRep* bitmap = [[NSBitmapImageRep alloc]
-				initWithBitmapData:NULL
-					pixelsWide:width
-					pixelsHigh:height
-					bitsPerSample:8
-					samplesPerPixel:4
-					hasAlpha:YES
-					isPlanar:NO
-					colorSpaceName:NSCalibratedRGBColorSpace
-					bytesPerRow:width * 4
-					bitsPerPixel:32];
-			if (!bitmap) {
-				return;
-			}
-			// Copy pixel data into the bitmap
-			uint8_t* bitmapData = [bitmap bitmapData];
-			memcpy(bitmapData, pixelData, width * height * 4);
-			NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(width, height)];
-			[image addRepresentation:bitmap];
-			// Set the window's icon (macOS 11+)
-			if (@available(macOS 11.0, *)) {
-				window.icon = image;
-			}
+			// Create CGImage from raw RGBA pixel data
+			CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, pixelData, (size_t)width * height * 4, NULL);
+			if (!provider) return;
+
+			CGImageRef cgImage = CGImageCreate(
+				(size_t)width,
+				(size_t)height,
+				8,                          // bits per component
+				32,                         // bits per pixel
+				(size_t)width * 4,         // bytes per row
+				CGColorSpaceCreateDeviceRGB(),
+				kCGImageAlphaPremultipliedLast,
+				provider,
+				NULL,
+				0,
+				kCGRenderingIntentDefault
+			);
+			CGDataProviderRelease(provider);
+
+			if (!cgImage) return;
+
+			NSImage* image = [[NSImage alloc] initWithCGImage:cgImage size:NSMakeSize(width, height)];
+			CGImageRelease(cgImage);
+
+			// Set the application dock icon
+			[NSApp setApplicationIconImage:image];
 		}
 	});
-	*/
 }
