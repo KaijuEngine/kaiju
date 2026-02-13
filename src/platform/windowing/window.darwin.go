@@ -48,9 +48,11 @@ import "C"
 
 import (
 	"fmt"
+	"image"
 	"os"
 	"unsafe"
 
+	"kaiju/klib"
 	"kaiju/platform/hid"
 )
 
@@ -264,6 +266,10 @@ func (w *Window) setTitle(title string) {
 
 func (w *Window) setCursorPosition(x, y int) {
 	// C.cocoa_set_cursor_position(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) setIcon(img image.Image) {
+	klib.NotYetImplemented(626)
 }
 
 // App asset read (private)

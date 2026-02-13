@@ -74,6 +74,7 @@ package windowing
 import "C"
 import (
 	"errors"
+	"image"
 	"kaiju/klib"
 	"kaiju/platform/hid"
 	"unsafe"
@@ -228,6 +229,10 @@ func (w Window) enableRawMouse()  { /* Don't think this is needed for X11 */ }
 
 func (w *Window) setCursorPosition(x, y int) {
 	C.window_set_cursor_position(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) setIcon(img image.Image) {
+	klib.NotYetImplemented(627)
 }
 
 func (w *Window) readApplicationAsset(path string) ([]byte, error) {

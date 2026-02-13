@@ -38,6 +38,8 @@ package windowing
 
 import (
 	"errors"
+	"image"
+	"image/draw"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"unicode/utf16"
@@ -75,6 +77,7 @@ import (
 #cgo noescape window_disable_raw_mouse
 #cgo noescape window_set_title
 #cgo noescape window_set_cursor_position
+#cgo noescape window_set_icon
 
 #include "windowing.h"
 */
@@ -248,6 +251,22 @@ func (w *Window) setTitle(newTitle string) {
 
 func (w *Window) setCursorPosition(x, y int) {
 	C.window_set_cursor_position(w.handle, C.int(x), C.int(y))
+}
+
+func (w *Window) setIcon(img image.Image) {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	rgba := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.Draw(rgba, rgba.Bounds(), img, bounds.Min, draw.Src)
+	bgra := make([]byte, width*height*4)
+	for i := 0; i < len(rgba.Pix); i += 4 {
+		bgra[i] = rgba.Pix[i+2]
+		bgra[i+1] = rgba.Pix[i+1]
+		bgra[i+2] = rgba.Pix[i]
+		bgra[i+3] = rgba.Pix[i+3]
+	}
+	C.window_set_icon(w.handle, C.int(width), C.int(height), (*C.uint8_t)(&bgra[0]))
 }
 
 func (w *Window) readApplicationAsset(path string) ([]byte, error) {

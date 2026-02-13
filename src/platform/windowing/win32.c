@@ -939,4 +939,36 @@ void window_set_cursor_position(void* hwnd, int x, int y) {
 	set_cursor_position_relative_to_window(sm, x, y);
 }
 
+void window_set_icon(void* hwnd, int width, int height, const uint8_t* pixelData) {
+	// Create BITMAPINFO structure for the icon
+	BITMAPINFO bmi = { 0 };
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = -height; // Negative for top-down DIB
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
+	// Create a device context and allocate memory for the pixel data
+	HDC hdc = GetDC(NULL);
+	HDC memDC = CreateCompatibleDC(hdc);
+	HBITMAP colorBmp = CreateCompatibleBitmap(hdc, width, height);
+	// Set the pixel data into the bitmap
+	SetDIBits(memDC, colorBmp, 0, height, pixelData, &bmi, DIB_RGB_COLORS);
+	// Create ICONINFO structure
+	ICONINFO ii = { 0 };
+	ii.fIcon = TRUE;
+	ii.hbmColor = colorBmp;
+	ii.hbmMask = CreateCompatibleBitmap(hdc, width, height);
+	// Create the icon
+	HICON icon = CreateIconIndirect(&ii);
+	// Set both large (taskbar) and small (title bar) icons
+	SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon);
+	SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icon);
+	// Clean up
+	DeleteObject(ii.hbmMask);
+	DeleteObject(colorBmp);
+	DeleteDC(memDC);
+	ReleaseDC(NULL, hdc);
+}
+
 #endif

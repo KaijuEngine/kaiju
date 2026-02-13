@@ -38,6 +38,7 @@ package windowing
 
 import (
 	"errors"
+	"image"
 	"kaiju/engine/assets"
 	"kaiju/engine/systems/events"
 	"kaiju/klib"
@@ -46,6 +47,7 @@ import (
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"kaiju/rendering"
+	"log/slog"
 	"runtime"
 	"slices"
 	"sync"
@@ -406,6 +408,14 @@ func (w *Window) EnableRawMouseInput()  { w.enableRawMouse() }
 func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
 
 func (w *Window) SetTitle(name string) { w.setTitle(name) }
+
+func (w *Window) SetIcon(img image.Image) {
+	if img == nil {
+		slog.Error("failed to set the window icon, a nil image was supplied")
+		return
+	}
+	w.setIcon(img)
+}
 
 func (w *Window) SetCursorPosition(x, y int) { w.setCursorPosition(x, y) }
 

@@ -40,6 +40,7 @@ package windowing
 
 import (
 	"fmt"
+	"image"
 	"kaiju/klib"
 	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
@@ -177,3 +178,5 @@ func (w *Window) setWindowed(width, height int) {}
 func (w *Window) enableRawMouse()               {}
 func (w *Window) disableRawMouse()              {}
 func (w Window) setTitle(newTitle string)       {}
+func (w *Window) setCursorPosition(x, y int)    {}
+func (w *Window) setIcon(img image.Image)       {}
