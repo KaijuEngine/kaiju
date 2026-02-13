@@ -529,4 +529,30 @@ void window_set_size(void* state, int width, int height) {
 	XResizeWindow(s->d, s->w, width, height);
 }
 
+void window_set_icon(void* state, int width, int height, const unsigned char* rgba) {
+	X11State* s = state;
+	Atom netWmIcon = XInternAtom(s->d, "_NET_WM_ICON", False);
+	if (netWmIcon == None) {
+		return;
+	}
+	int dataLen = 2 + (width * height);
+	unsigned long* iconData = calloc(dataLen, sizeof(unsigned long));
+	if (!iconData) {
+		return;
+	}
+	iconData[0] = width;
+	iconData[1] = height;
+	for (int i = 0; i < width * height; i++) {
+		unsigned char r = rgba[i * 4 + 0];
+		unsigned char g = rgba[i * 4 + 1];
+		unsigned char b = rgba[i * 4 + 2];
+		unsigned char a = rgba[i * 4 + 3];
+		iconData[2 + i] = ((unsigned long)a << 24) | ((unsigned long)b << 16) | ((unsigned long)g << 8) | r;
+	}
+	XChangeProperty(s->d, s->w, netWmIcon, XA_CARD32, 32, PropModeReplace, 
+		(unsigned char*)iconData, dataLen);
+	XFlush(s->d);
+	free(iconData);
+}
+
 #endif
