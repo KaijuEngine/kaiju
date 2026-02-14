@@ -42,6 +42,7 @@ import (
 	"kaiju/engine/ui"
 	"kaiju/engine/ui/markup"
 	"kaiju/engine/ui/markup/document"
+	"kaiju/platform/hid"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
@@ -111,12 +112,24 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np.nameInput, _ = np.doc.GetElementById("nameInput")
 	np.folder, _ = np.doc.GetElementById("folder")
 	np.templatePathElm, _ = np.doc.GetElementById("templatePath")
+
+	// ---- Intercept Escape Key to Prevent default overlay close ---
+	keyCallbackId := np.uiMan.Host.Window.Keyboard.AddKeyCallback(func(keyId int, keyState hid.KeyState) {
+		if keyState == hid.KeyStateUp && keyId == hid.KeyboardKeyEscape {
+			// Consume Escape: do nothing
+		}
+	})
+	np.doc.Elements[0].UI.Entity().OnDestroy.Add(func() {
+		np.uiMan.Host.Window.Keyboard.RemoveKeyCallback(keyCallbackId)
+	})
+	// --- End Escape key handling ---
+
 	return np, err
 }
 
 func (np *NewProject) Close() {
 	defer tracing.NewRegion("NewProject.Close").End()
-	np.doc.Destroy()
+	np.doc.Destroy()	
 }
 
 func (np *NewProject) openProject(e *document.Element) {
