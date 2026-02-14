@@ -1,0 +1,23 @@
+package create_entity_data // import "kaiju/editor/editor_overlay/create_entity_data"
+
+
+TYPES
+
+type Config struct {
+	OnCreate func()
+	OnCancel func()
+}
+
+type CreateEntityDataOverlay struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, fs *project_file_system.FileSystem, config Config) (*CreateEntityDataOverlay, error)
+
+func (c *CreateEntityDataOverlay) Close()
+
+type FileTemplateData struct {
+	FolderName string
+	StructName string
+}
+
