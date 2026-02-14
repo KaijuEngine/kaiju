@@ -153,14 +153,14 @@
 					<span>Import content...</span>
 				</div>
 				<div class="filterBtn" onclick="toggleListView">List view</div>
-				{{range .Filters}}
-				<span class="filterBtn" data-type="{{.}}" onclick="clickFilter">{{.}}</span>
+				{{range $name , $count :=  .Filters}}
+				<span class="filterBtn" data-type="{{$name}}" onclick="clickFilter">{{$name}}</span>
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">
 					<span id="tagFilterTemplate" class="filterBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</span>
-					{{range .Tags}}
-					<span class="filterBtn" group="tag" data-tag="{{.}}" onclick="clickFilter">{{.}}</span>
+					{{range $tag , $count := .Tags}}
+					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter">{{$tag}} {{$count}}</span>
 					{{end}}
 				</div>
 			</div>

@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* editor_events.go                                                           */
+/* set.go                                                                     */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,47 +34,18 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package editor_events
+package klib
 
-import "kaiju/engine/systems/events"
+type Set[T comparable] map[T]struct{}
 
-type EditorEvents struct {
-	// OnContentAdded sends the id of the content that was renamed
-	OnContentRenamed events.EventWithArg[string]
-
-	// OnContentAdded sends list of content ids that have been added
-	OnContentAdded events.EventWithArg[[]string]
-
-	// OnContentRemoved sends list of content ids that have been removed
-	OnContentRemoved events.EventWithArg[[]string]
-
-	// OnFocusContent is raised when a content should be focused wherever we
-	// are in the UI. This was created for the stage right-click context menu
-	// to be able to focus content in the content workspace, but it could be
-	// used in other ways as needed.
-	OnFocusContent events.EventWithArg[string]
-
-	// OnContentChangesSaved is called when content is updated and allows for
-	// other parts of the system to update in order to reflect those changes.
-	OnContentChangesSaved events.EventWithArg[string]
-
-	// OnContentPreviewGenerated is called whenever a content preview image has
-	// been generated. This is primarily used in the background of the editor
-	// for updating any content preview images.
-	OnContentPreviewGenerated events.EventWithArg[string]
-
-	//OnNewTagAdded is called whenever any content is introduced with new tag
-	OnNewTagAdded events.EventWithArg[string]
-
-	//OnTagNoLongerInUse is called whenever a tag is no longer used by any content
-	OnTagNoLongerInUse events.EventWithArg[string]
-
-	OnTagRemoved events.EventWithArg[TagEvent]
-
-	OnTagAdded events.EventWithArg[TagEvent]
+func NewSet[T comparable]() Set[T] {
+	return make(map[T]struct{})
 }
 
-type TagEvent struct {
-	Tag              string
-	AffectedContents []string
+func (s Set[T]) Add(val T) {
+	s[val] = struct{}{}
+}
+
+func (s Set[T]) Remove(val T) {
+	delete(s, val)
 }

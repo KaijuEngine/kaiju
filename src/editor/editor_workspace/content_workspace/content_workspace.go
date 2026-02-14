@@ -39,6 +39,7 @@ package content_workspace
 import (
 	"errors"
 	"fmt"
+	"kaiju/editor/editor_events"
 	"kaiju/editor/editor_overlay/confirm_prompt"
 	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/editor/editor_overlay/file_browser"
@@ -67,12 +68,13 @@ type ContentWorkspace struct {
 	pfs                *project_file_system.FileSystem
 	cache              *content_database.Cache
 	editor             ContentWorkspaceEditorInterface
-	typeFilters        []string
-	typeFiltersDisable []string
-	tagFilters         []string
-	tagFiltersDisable  []string
+	typeFilters        klib.Set[string]
+	typeFiltersDisable klib.Set[string]
+	tagFilters         klib.Set[string]
+	tagFiltersDisable  klib.Set[string]
 	query              string
 	contentList        *document.Element
+	tagFilterList      *document.Element
 	entryTemplate      *document.Element
 	tagFilterTemplate  *document.Element
 	addTagbtn          *document.Element
@@ -128,8 +130,14 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"changeAudioPosition": w.changeAudioPosition,
 			"clickOpenInEditor":   w.clickOpenInEditor,
 		})
+	w.tagFilters = klib.NewSet[string]()
+	w.tagFiltersDisable = klib.NewSet[string]()
+	w.typeFilters = klib.NewSet[string]()
+	w.typeFiltersDisable = klib.NewSet[string]()
+
 	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
 	w.contentList, _ = w.Doc.GetElementById("contentList")
+	w.tagFilterList, _ = w.Doc.GetElementById("tagFilterList")
 	w.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	w.tagFilterTemplate, _ = w.Doc.GetElementById("tagFilterTemplate")
 	w.info.entryTagTemplate, _ = w.Doc.GetElementById("entryTagTemplate")
@@ -143,10 +151,15 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
 	w.tooltip, _ = w.Doc.GetElementById("tooltip")
 	w.audio.audioPlayer, _ = w.Doc.GetElementById("audioPlayer")
+
 	edEvts := w.editor.Events()
 	edEvts.OnContentAdded.Add(w.addContent)
 	edEvts.OnFocusContent.Add(w.focusContent)
 	edEvts.OnContentPreviewGenerated.Add(w.contentPreviewGenerated)
+	edEvts.OnNewTagAdded.Add(w.handleOnNewTagAdded)
+	edEvts.OnTagAdded.Add(w.handleOnTagAdded)
+	edEvts.OnTagRemoved.Add(w.handleTagRemoved)
+	edEvts.OnTagNoLongerInUse.Add(w.handleTagNoLongerInUse)
 	edEvts.OnContentAdded.Execute(ids)
 	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
 }
@@ -351,17 +364,17 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	var targetList *[]string
-	var invTargetList *[]string
+	var targetList klib.Set[string]
+	var invTargetList klib.Set[string]
 	var name string
 	if typeName != "" {
-		targetList = &w.typeFilters
-		invTargetList = &w.typeFiltersDisable
+		targetList = w.typeFilters
+		invTargetList = w.typeFiltersDisable
 		name = typeName
 	}
 	if tagName != "" {
-		targetList = &w.tagFilters
-		invTargetList = &w.tagFiltersDisable
+		targetList = w.tagFilters
+		invTargetList = w.tagFiltersDisable
 		name = tagName
 	}
 	if inverted {
@@ -373,13 +386,13 @@ func (w *ContentWorkspace) clickFilter(e *document.Element) {
 			className = "inverted"
 		}
 		w.Doc.SetElementClasses(e, "filterBtn", className)
-		*targetList = append(*targetList, name)
+		targetList.Add(name)
 	} else {
 		w.Doc.SetElementClasses(e, "filterBtn")
-		*targetList = klib.SlicesRemoveElement(*targetList, name)
+		targetList.Remove(name)
 	}
 	// Remove it from inverse list in both cases intentionally
-	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
+	invTargetList.Remove(name)
 	w.runFilter()
 }
 
@@ -492,6 +505,7 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 	ids := w.selectedIds()
 	found := false
 	tag := e.Attribute("data-tag")
+	affectedContents := make([]string, 0)
 	for _, id := range ids {
 		cc, err := w.cache.Read(id)
 		if err != nil {
@@ -500,13 +514,15 @@ func (w *ContentWorkspace) clickDeleteTag(e *document.Element) {
 		}
 		if cc.Config.RemoveTag(tag) {
 			w.updateIndexForCachedContent(&cc)
+			affectedContents = append(affectedContents, cc.Id())
 		}
 		found = true
 	}
 	if !found {
 		slog.Error("failed to locate the tag that was expected to exist", "tag", tag)
 	}
-	w.Doc.RemoveElement(e.Parent.Value())
+
+	w.editor.Events().OnTagRemoved.Execute(editor_events.TagEvent{Tag: tag, AffectedContents: affectedContents})
 }
 
 func (w *ContentWorkspace) updateTagHint(e *document.Element) {
@@ -519,10 +535,10 @@ func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 		w.info.newTagHint.UI.Hide()
 		return
 	}
-	options := make([]string, 0, len(w.pageData.Tags))
-	for i := range w.pageData.Tags {
-		if strings.Contains(strings.ToLower(w.pageData.Tags[i]), q) {
-			options = append(options, w.pageData.Tags[i])
+	options := make([]string, 0)
+	for tag, _ := range w.pageData.Tags {
+		if strings.Contains(tag, q) {
+			options = append(options, tag)
 		}
 	}
 	if len(options) == 0 {
@@ -540,6 +556,9 @@ func (w *ContentWorkspace) updateTagHint(e *document.Element) {
 func (w *ContentWorkspace) submitNewTag(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.submitNewTag").End()
 	input := e.UI.ToInput()
+	if !input.IsFocused() {
+		return
+	}
 	txt := input.Text()
 	if strings.TrimSpace(txt) == "" {
 		return
@@ -769,6 +788,7 @@ func (w *ContentWorkspace) clickOpenInEditor(e *document.Element) {
 
 func (w *ContentWorkspace) addTagToSelected(tag string) {
 	defer tracing.NewRegion("ContentWorkspace.addTagToSelected").End()
+	affectedContents := make([]string, 0)
 	for _, id := range w.selectedIds() {
 		cc, err := w.cache.Read(id)
 		if err != nil {
@@ -778,23 +798,14 @@ func (w *ContentWorkspace) addTagToSelected(tag string) {
 		var ok bool
 		if tag, ok = cc.Config.AddTag(tag); ok {
 			w.updateIndexForCachedContent(&cc)
+			affectedContents = append(affectedContents, cc.Id())
 		}
 	}
-	// Add the tag to the entry details
-	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
-	tagListEntry.Children[0].InnerLabel().SetText(tag)
-	tagListEntry.Children[1].SetAttribute("data-tag", tag)
-	tagListEntry.UI.Show()
-	// Add the tag to the tag filters if it's not already
-	for i := range w.pageData.Tags {
-		if strings.EqualFold(tag, w.pageData.Tags[i]) {
-			return
-		}
-	}
-	w.pageData.Tags = append(w.pageData.Tags, tag)
-	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
-	elm.InnerLabel().SetText(tag)
-	elm.SetAttribute("data-tag", tag)
+
+	w.editor.Events().OnTagAdded.Execute(editor_events.TagEvent{
+		Tag:              tag,
+		AffectedContents: affectedContents,
+	})
 }
 
 func (w *ContentWorkspace) selectedIds() []string {
@@ -952,6 +963,98 @@ func (w *ContentWorkspace) removeFtde() {
 		w.Doc.RemoveElement(ftde)
 		w.ftde.arrow = nil
 	}
+}
+
+func (w *ContentWorkspace) handleOnTagAdded(payload editor_events.TagEvent) {
+	_, ok := w.pageData.Tags[payload.Tag]
+	w.pageData.Tags[payload.Tag] += len(payload.AffectedContents)
+
+	if !ok {
+		w.editor.Events().OnNewTagAdded.Execute(payload.Tag)
+	} else {
+		tagElms := w.Doc.GetElementsByGroup("tag")
+		for _, elm := range tagElms {
+			if elm.Attribute("data-tag") == payload.Tag {
+				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", payload.Tag, w.pageData.Tags[payload.Tag]))
+				break
+			}
+		}
+
+		entryTags := w.Doc.GetElementsByClass("entryTag")
+		isShown := false
+		for _, elm := range entryTags {
+			if elm.Children[1].Attribute("data-tag") == payload.Tag {
+				isShown = true
+				break
+			}
+		}
+		if !isShown {
+			w.addNewEntryTagBtn(payload.Tag)
+		}
+	}
+
+	slog.Info("Adding Tag", payload.Tag, len(payload.AffectedContents))
+	w.runFilter()
+}
+
+func (w *ContentWorkspace) handleOnNewTagAdded(newTag string) {
+	w.addNewTagBtn(newTag)
+	w.addNewEntryTagBtn(newTag)
+}
+
+// manages tag states when ever any tag is removed
+func (w *ContentWorkspace) handleTagRemoved(payload editor_events.TagEvent) {
+	w.pageData.Tags[payload.Tag] -= len(payload.AffectedContents)
+
+	// remove tag btn from details panel
+	for _, elm := range w.Doc.GetElementsByClass("entryTag") {
+		if elm.Children[1].Attribute("data-tag") == payload.Tag {
+			w.Doc.RemoveElement(elm)
+			break
+		}
+	}
+
+	if w.pageData.Tags[payload.Tag] <= 0 {
+		w.editor.Events().OnTagNoLongerInUse.Execute(payload.Tag)
+	} else {
+		for _, elm := range w.Doc.GetElementsByGroup("tag") {
+			if elm.Attribute("data-tag") == payload.Tag {
+				elm.InnerLabel().SetText(fmt.Sprintf("%s %d", payload.Tag, w.pageData.Tags[payload.Tag]))
+			}
+		}
+	}
+
+	w.runFilter()
+}
+
+// responsible to remove the tag when it is no longer in use
+func (w *ContentWorkspace) handleTagNoLongerInUse(removedTag string) {
+	slog.Info("Tag Removed", "tag", removedTag)
+
+	tagElements := w.Doc.GetElementsByGroup("tag")
+	for _, elm := range tagElements {
+		if elm.Attribute("data-tag") == removedTag {
+			//* tag is no longer in use
+			delete(w.pageData.Tags, removedTag)
+			delete(w.tagFilters, removedTag)
+			w.Doc.RemoveElement(elm)
+			break
+		}
+	}
+	w.runFilter()
+}
+
+func (w *ContentWorkspace) addNewEntryTagBtn(tag string) {
+	tagListEntry := w.Doc.DuplicateElement(w.info.entryTagTemplate)
+	tagListEntry.Children[0].InnerLabel().SetText(tag)
+	tagListEntry.Children[1].SetAttribute("data-tag", tag)
+	tagListEntry.UI.Show()
+}
+
+func (w *ContentWorkspace) addNewTagBtn(tag string) {
+	elm := w.Doc.DuplicateElement(w.tagFilterTemplate)
+	elm.InnerLabel().SetText(fmt.Sprintf("%s %d", tag, w.pageData.Tags[tag]))
+	elm.SetAttribute("data-tag", tag)
 }
 
 func (w *ContentWorkspace) requestChangeGuid(id string) {
