@@ -144,11 +144,12 @@ func (objLib *objLibrary) readVertex(line string) error {
 	var p matrix.Vec3
 	c := matrix.ColorWhite()
 	spaceCount := strings.Count(line, " ")
-	if spaceCount == 3 {
+	switch spaceCount {
+	case 3:
 		fmt.Sscanf(line, "v %f %f %f", p.PX(), p.PY(), p.PZ())
-	} else if spaceCount == 6 {
+	case 6:
 		fmt.Sscanf(line, "v %f %f %f %f %f %f", p.PX(), p.PY(), p.PZ(), c.PR(), c.PG(), c.PB())
-	} else {
+	default:
 		return errors.New("invalid OBJ file")
 	}
 	objLib.points = append(objLib.points, p)
@@ -365,7 +366,6 @@ func ObjToRaw(objData string) ([]*objBuilder, objLibrary, error) {
 			}
 		case objLineTypeNotSupported:
 		case objLineTypeComment:
-			break
 		}
 	}
 	if len(surfaces) > 0 {
