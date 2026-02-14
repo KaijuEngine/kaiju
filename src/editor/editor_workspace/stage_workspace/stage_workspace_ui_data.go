@@ -59,8 +59,8 @@ func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache, cm string) []
 	ids := make([]string, 0, len(list))
 	for i := range list {
 		ids = append(ids, list[i].Id())
-		for j := range list[i].Config.Tags {
-			w.Tags[list[i].Config.Tags[j]]++
+		for tag := range list[i].Config.Tags {
+			w.Tags[tag]++
 		}
 	}
 	w.CameraMode = cm

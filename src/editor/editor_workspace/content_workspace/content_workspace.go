@@ -487,10 +487,12 @@ func (w *ContentWorkspace) showRightPanel() {
 	}
 	w.info.nameInput.UI.ToInput().SetText(cc.Config.Name)
 	cpys := w.Doc.DuplicateElementRepeat(w.info.entryTagTemplate, len(cc.Config.Tags))
-	for i := range cpys {
-		cpys[i].Children[0].InnerLabel().SetText(cc.Config.Tags[i])
-		cpys[i].Children[1].SetAttribute("data-tag", cc.Config.Tags[i])
-		cpys[i].UI.Show()
+	idx := 0
+	for tag := range cc.Config.Tags {
+		cpys[idx].Children[0].InnerLabel().SetText(tag)
+		cpys[idx].Children[1].SetAttribute("data-tag", tag)
+		cpys[idx].UI.Show()
+		idx++
 	}
 	if len(w.selectedContent) > 1 {
 		w.info.multiSelectNote.UI.Show()
@@ -680,7 +682,7 @@ func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
 		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
 	} else {
 		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
-			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags.ToSlice(), ",")))
 	}
 }
 

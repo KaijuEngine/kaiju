@@ -43,7 +43,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"strings"
 )
 
@@ -59,7 +58,7 @@ type ContentConfig struct {
 	// things together. This removes the need for the developer to manage their
 	// own folder structure and allows them to control content without
 	// physically moving things around.
-	Tags []string `json:",omitempty"`
+	Tags klib.Set[string] `json:",omitempty"`
 
 	// Name is a developer-facing friendly name for the content. This is often
 	// set to the same name as the asset that was imported. The developer can
@@ -120,11 +119,14 @@ func (c *ContentConfig) AddTag(tag string) (string, bool) {
 		slog.Warn("the tag name supplied was empty, skipping")
 		return tag, false
 	}
-	if klib.StringsContainsCaseInsensitive(c.Tags, tag) {
+	if c.Tags == nil {
+		c.Tags = make(klib.Set[string])
+	}
+	if c.Tags.Contains(tag) {
 		slog.Warn("the tag is already applied to the content, skipping")
 		return tag, false
 	}
-	c.Tags = append(c.Tags, tag)
+	c.Tags.Add(tag)
 	return tag, true
 }
 
@@ -132,11 +134,13 @@ func (c *ContentConfig) AddTag(tag string) (string, bool) {
 // it finds the tag and removes it, this will return true, otherwise false.
 func (c *ContentConfig) RemoveTag(tag string) bool {
 	defer tracing.NewRegion("ContentConfig.RemoveTag").End()
-	for i := range c.Tags {
-		if strings.EqualFold(c.Tags[i], tag) {
-			c.Tags = slices.Delete(c.Tags, i, i+1)
-			return true
-		}
+	if c.Tags == nil {
+		slog.Warn("Content has no tags")
+		return false
+	}
+	if c.Tags.Contains(tag) {
+		c.Tags.Remove(tag)
+		return true
 	}
 	return false
 }
