@@ -39,6 +39,7 @@ package status_bar
 import (
 	"kaiju/editor/common_interfaces"
 	"kaiju/editor/editor_logging"
+	"kaiju/editor/editor_overlay/context_menu"
 	"kaiju/engine"
 	"kaiju/engine/systems/logging"
 	"kaiju/engine/ui"
@@ -69,8 +70,9 @@ func (b *StatusBar) Initialize(host *engine.Host, logging *editor_logging.Loggin
 	var err error
 	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/status_bar.go.html",
 		nil, map[string]func(*document.Element){
-			"openLogWindow": b.openLogWindow,
-			"closePopup":    b.closePopup,
+			"openLogWindow":      b.openLogWindow,
+			"closePopup":         b.closePopup,
+			"rightClickLogEntry": b.rightClickLogEntry,
 		})
 	b.setupUIReferences()
 	b.bindToSlog()
@@ -154,4 +156,20 @@ func (b *StatusBar) closePopup(*document.Element) {
 	b.logPopup.UI.Hide()
 	b.outerInterface.FocusInterface()
 	b.inPopup = false
+}
+
+func (b *StatusBar) rightClickLogEntry(e *document.Element) {
+	defer tracing.NewRegion("StatusBar.rightClickLogEntry").End()
+	if len(e.Children) == 0 {
+		return
+	}
+	text := e.Children[0].UI.ToLabel().Text()
+	options := []context_menu.ContextMenuOption{
+		{
+			Label: "Copy to clipboard",
+			Call:  func() { b.uiMan.Host.Window.CopyToClipboard(text) },
+		},
+	}
+	pos := b.uiMan.Host.Window.Mouse.ScreenPosition()
+	context_menu.Show(b.uiMan.Host, options, pos, func() {})
 }
