@@ -38,26 +38,28 @@ package content_workspace
 
 import (
 	"kaiju/editor/project/project_database/content_database"
-	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 )
 
 type WorkspaceUIData struct {
-	Filters []string
-	Tags    []string
+	Filters map[string]int
+	Tags    map[string]int
 }
 
 func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache) []string {
 	defer tracing.NewRegion("ContentWorkspaceUIData.SetupUIData").End()
+	w.Filters = make(map[string]int)
+	w.Tags = make(map[string]int)
+
 	for _, cat := range content_database.ContentCategories {
-		w.Filters = append(w.Filters, cat.TypeName())
+		w.Filters[cat.TypeName()]++
 	}
 	list := cdb.List()
 	ids := make([]string, 0, len(list))
 	for i := range list {
 		ids = append(ids, list[i].Id())
-		for j := range list[i].Config.Tags {
-			w.Tags = klib.AppendUnique(w.Tags, list[i].Config.Tags[j])
+		for _, tag := range list[i].Config.Tags {
+			w.Tags[tag]++
 		}
 	}
 	return ids

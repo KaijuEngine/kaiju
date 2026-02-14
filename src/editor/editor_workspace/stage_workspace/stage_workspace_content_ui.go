@@ -58,13 +58,14 @@ import (
 
 type WorkspaceContentUI struct {
 	workspace          weak.Pointer[StageWorkspace]
-	typeFilters        []string
-	typeFiltersDisable []string
-	tagFilters         []string
-	tagFiltersDisable  []string
+	typeFilters        klib.Set[string]
+	typeFiltersDisable klib.Set[string]
+	tagFilters         klib.Set[string]
+	tagFiltersDisable  klib.Set[string]
 	query              string
 	contentArea        *document.Element
 	contentPreviewArea *document.Element
+	filterArea         *document.Element
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
 	dragging           *document.Element
@@ -103,8 +104,13 @@ func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
 func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.EditorEvents) {
 	defer tracing.NewRegion("WorkspaceContentUI.setup").End()
 	cui.workspace = weak.Make(w)
+	cui.typeFilters = klib.NewSet[string]()
+	cui.typeFiltersDisable = klib.NewSet[string]()
+	cui.tagFilters = klib.NewSet[string]()
+	cui.tagFiltersDisable = klib.NewSet[string]()
 	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
 	cui.contentPreviewArea, _ = w.Doc.GetElementById("contentPreviewArea")
+	cui.filterArea, _ = w.Doc.GetElementById("filterArea")
 	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
 	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
 	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
@@ -112,6 +118,8 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	edEvts.OnContentRemoved.Add(cui.removeContent)
 	edEvts.OnContentRenamed.Add(cui.renameContent)
 	edEvts.OnContentPreviewGenerated.Add(cui.contentPreviewGenerated)
+	edEvts.OnNewTagAdded.Add(cui.handleNewFilterTag)
+	edEvts.OnTagNoLongerInUse.Add(cui.handleTagNoLongerInUse)
 }
 
 func (cui *WorkspaceContentUI) open() {
@@ -303,17 +311,17 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
-	var targetList *[]string
-	var invTargetList *[]string
+	var targetList klib.Set[string]
+	var invTargetList klib.Set[string]
 	var name string
 	if typeName != "" {
-		targetList = &cui.typeFilters
-		invTargetList = &cui.typeFiltersDisable
+		targetList = cui.typeFilters
+		invTargetList = cui.typeFiltersDisable
 		name = typeName
 	}
 	if tagName != "" {
-		targetList = &cui.tagFilters
-		invTargetList = &cui.tagFiltersDisable
+		targetList = cui.tagFilters
+		invTargetList = cui.tagFiltersDisable
 		name = tagName
 	}
 	if inverted {
@@ -325,13 +333,13 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 			className = "inverted"
 		}
 		w.Doc.SetElementClasses(e, "filterBtn", className)
-		*targetList = append(*targetList, name)
+		targetList.Add(name)
 	} else {
 		w.Doc.SetElementClasses(e, "filterBtn")
-		*targetList = klib.SlicesRemoveElement(*targetList, name)
+		targetList.Remove(name)
 	}
 	// Remove it from inverse list in both cases intentionally
-	*invTargetList = klib.SlicesRemoveElement(*invTargetList, name)
+	invTargetList.Remove(name)
 	cui.runFilter()
 }
 
@@ -459,5 +467,33 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 func (cui *WorkspaceContentUI) refreshFilterOnContentChange() {
 	if cui.query != "" || len(cui.typeFilters) > 0 || len(cui.tagFilters) > 0 {
 		cui.runFilter()
+	}
+}
+
+func (cui *WorkspaceContentUI) handleNewFilterTag(newTag string) {
+	slog.Info("New Tag recieved")
+	w := cui.workspace.Value()
+	w.pageData.Tags[newTag]++
+
+	tagBtnElms := w.Doc.GetElementsByClass("filterBtn")[0]
+	newFilterBtn := w.Doc.DuplicateElement(tagBtnElms)
+
+	newFilterBtn.SetAttribute("data-tag", newTag)
+	newFilterBtn.SetAttribute("group", "tag")
+	newFilterBtn.InnerLabel().SetText(newTag)
+}
+
+func (cui *WorkspaceContentUI) handleTagNoLongerInUse(removedTag string) {
+	slog.Info(fmt.Sprintf("Removing Tag: %s", removedTag))
+
+	w := cui.workspace.Value()
+	delete(w.pageData.Tags, removedTag)
+
+	tagElms := w.Doc.GetElementsByClass("filterBtn")
+	for _, elm := range tagElms {
+		if elm.Attribute("data-tag") == removedTag {
+			w.Doc.RemoveElement(elm)
+			break
+		}
 	}
 }
