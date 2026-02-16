@@ -81,5 +81,6 @@ void window_set_windowed(void* state, int width, int height);
 void window_lock_cursor(void* state, int x, int y);
 void window_unlock_cursor(void* state);
 void window_set_cursor_position(void* state, int x, int y);
+void window_set_icon(void* state, int width, int height, const unsigned char* rgba);
 
 #endif

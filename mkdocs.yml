@@ -26,7 +26,7 @@ nav:
     - Build from source: engine/build_from_source.md
     - Build tags: engine/build_tags.md
     - Performance profiling: engine/performance_profiling.md
-    - Building new fonts: engine/building_fonts.md
+    - Building new fonts: engine/fonts/building_fonts.md
     - UI:
       - Writing: engine/ui/writing.md
       - Preview: engine/ui/preview.md
