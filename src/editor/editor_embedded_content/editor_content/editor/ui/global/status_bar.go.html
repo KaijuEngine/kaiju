@@ -54,8 +54,8 @@
 				<span id="log" onclick="openLogWindow">No logs</span>
 			</div>
 		</div>
-		<div id="logPopup" onclick="closePopup" onmiss="closePopup">
-			<div id="logEntryTemplate" class="logLine">Logs...</div>
+		<div id="logPopup" onclick="closePopup" onmiss="closePopup" oncontextmenu="rightClickLogEntry">
+			<div id="logEntryTemplate" class="logLine" oncontextmenu="rightClickLogEntry">Logs...</div>
 		</div>
 	</body>
 </html>

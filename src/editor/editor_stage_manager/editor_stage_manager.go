@@ -636,27 +636,6 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 	}
 	for i := range desc.DataBinding {
 		db := &desc.DataBinding[i]
-		// TODO:  Remove this in a week or so
-		{
-			switch db.RegistraionKey {
-			case "kaiju.CameraEntityData":
-				db.RegistraionKey = "engine_entity_data_camera.CameraEntityData"
-			case "kaiju.LightEntityData":
-				db.RegistraionKey = "engine_entity_data_light.LightEntityData"
-			case "kaiju.RigidBodyEntityData":
-				db.RegistraionKey = "engine_entity_data_physics.RigidBodyEntityData"
-			case "kaiju.TweenTransformEntityData", "engine_entity_data_physics.TweenTransformEntityData":
-				db.RegistraionKey = "engine_entity_data_tween_transform.TweenTransformEntityData"
-			case "kaiju.PlayMusicEntityData":
-				db.RegistraionKey = "engine_entity_data_audio.PlayMusicEntityData"
-			case "kaiju.PlaySoundEntityData":
-				db.RegistraionKey = "engine_entity_data_audio.PlaySoundEntityData"
-			case "kaiju.SkinAnimationEntityData":
-				db.RegistraionKey = "engine_entity_data_skin_animation.SkinAnimationEntityData"
-			case "kaiju.ParticleSystemEntityData":
-				db.RegistraionKey = "engine_entity_data_particles.ParticleSystemEntityData"
-			}
-		}
 		g, ok := proj.EntityDataBinding(db.RegistraionKey)
 		if !ok {
 			slog.Error("failed to locate the data binding for entity",

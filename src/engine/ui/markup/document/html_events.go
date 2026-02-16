@@ -71,6 +71,7 @@ func setupEvents(elm *Element, funcMap map[string]func(*Element)) {
 	tryMap("onblur", elm, elm.UI.Event(ui.EventTypeBlur), funcMap)
 	tryMap("onclick", elm, elm.UI.Event(ui.EventTypeClick), funcMap)
 	tryMap("onrightclick", elm, elm.UI.Event(ui.EventTypeRightClick), funcMap)
+	tryMap("oncontextmenu", elm, elm.UI.Event(ui.EventTypeRightClick), funcMap)
 	tryMap("onmiss", elm, elm.UI.Event(ui.EventTypeMiss), funcMap)
 	tryMap("onsubmit", elm, elm.UI.Event(ui.EventTypeSubmit), funcMap)
 	tryMap("onkeydown", elm, elm.UI.Event(ui.EventTypeKeyDown), funcMap)
