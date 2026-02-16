@@ -44,7 +44,6 @@ import (
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync/atomic"
 )
@@ -166,7 +165,7 @@ func (c *Cache) TagFilter(tags []string) []CachedContent {
 	out := []CachedContent{}
 	for i := range c.cache {
 		for j := range tags {
-			if slices.Contains(c.cache[i].Config.Tags, tags[j]) {
+			if c.cache[i].Config.Tags.Contains(tags[j]) {
 				out = append(out, c.cache[i])
 			}
 		}

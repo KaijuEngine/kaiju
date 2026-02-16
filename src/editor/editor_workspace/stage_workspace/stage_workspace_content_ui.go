@@ -381,7 +381,7 @@ func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
 		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
 	} else {
 		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
-			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags.ToSlice(), ",")))
 	}
 }
 

@@ -58,7 +58,7 @@ func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache) []string {
 	ids := make([]string, 0, len(list))
 	for i := range list {
 		ids = append(ids, list[i].Id())
-		for _, tag := range list[i].Config.Tags {
+		for tag := range list[i].Config.Tags {
 			w.Tags[tag]++
 		}
 	}
