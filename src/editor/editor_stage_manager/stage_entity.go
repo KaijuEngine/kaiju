@@ -41,6 +41,7 @@ import (
 	"kaiju/engine"
 	"kaiju/registry/shader_data_registry"
 	"kaiju/rendering"
+	"log/slog"
 	"unsafe"
 )
 
@@ -103,6 +104,15 @@ func (e *StageEntity) Depth() int {
 }
 
 func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager) {
+	if mat == nil {
+		slog.Error("attempting to set the material of the stage entity to a nil material")
+		return
+	}
+	mesh := e.StageData.Mesh
+	if mesh == nil {
+		slog.Error("the entity doesn't currently have a mesh to apply the material to", "entity", e.Name())
+		return
+	}
 	manager.history.Add(&attachMaterialHistory{
 		m:         manager,
 		e:         e,
@@ -118,7 +128,7 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
-		Mesh:       e.StageData.Mesh,
+		Mesh:       mesh,
 		ShaderData: e.StageData.ShaderData,
 		Transform:  &e.Transform,
 		ViewCuller: &manager.host.Cameras.Primary,

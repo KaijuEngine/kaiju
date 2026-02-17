@@ -393,6 +393,10 @@ func (w *StageWorkspace) attachMaterial(cc *content_database.CachedContent, e *e
 	if e.StageData.ShaderData == nil {
 		return
 	}
+	if e.StageData.Mesh == nil {
+		slog.Warn("dropped a material onto an entity that doesn't have a mesh", "entity", e.Name())
+		return
+	}
 	if e.StageData.PendingMaterialChange {
 		slog.Warn("a material is already being compiled to attach to this entity, please wait")
 		return
