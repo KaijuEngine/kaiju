@@ -787,7 +787,7 @@ void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelD
 				32,                         // bits per pixel
 				(size_t)width * 4,         // bytes per row
 				CGColorSpaceCreateDeviceRGB(),
-				kCGImageAlphaPremultipliedLast,
+				(CGBitmapInfo)kCGImageAlphaPremultipliedLast,
 				provider,
 				NULL,
 				0,

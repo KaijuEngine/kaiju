@@ -113,6 +113,7 @@ const srcGameHostFileData = `package game_host
 
 import (
 	"kaiju/engine"
+	"kaiju/engine/stages"
 )
 
 type GameHost struct {
@@ -294,7 +295,7 @@ func (pfs *FileSystem) createCodeProject() error {
 	if err := pfs.WriteFile(ProjectCodeGame, []byte(srcGameFileData), os.ModePerm); err != nil {
 		return err
 	}
-	mains := []string{"main.go", "main.std.go", "main.android.go"}
+	mains := []string{"main.go", "main.std.go", "main.android.go", "main.darwin.go"}
 	for i := range mains {
 		main, err := EngineFS.ReadFile(mains[i])
 		if err != nil {

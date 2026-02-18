@@ -48,6 +48,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/XKBlib.h>
+#include <X11/Xatom.h>
 
 // Cursor docs
 // https://tronche.com/gui/x/xlib/appendix/b/
@@ -58,7 +59,7 @@
 
 #define EVT_MASK	ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | FocusChangeMask | StructureNotifyMask
 
-Atom XA_ATOM = 4, XA_STRING = 31;
+// Atom XA_ATOM = 4, XA_STRING = 31;
 
 unsigned int get_toggle_key_state() {
     Display *d = XOpenDisplay(NULL);
@@ -527,6 +528,32 @@ void window_set_position(void* state, int x, int y) {
 void window_set_size(void* state, int width, int height) {
 	X11State* s = state;
 	XResizeWindow(s->d, s->w, width, height);
+}
+
+void window_set_icon(void* state, int width, int height, const unsigned char* rgba) {
+	X11State* s = state;
+	Atom netWmIcon = XInternAtom(s->d, "_NET_WM_ICON", False);
+	if (netWmIcon == None) {
+		return;
+	}
+	int dataLen = 2 + (width * height);
+	unsigned long* iconData = calloc(dataLen, sizeof(unsigned long));
+	if (!iconData) {
+		return;
+	}
+	iconData[0] = width;
+	iconData[1] = height;
+	for (int i = 0; i < width * height; i++) {
+		unsigned char r = rgba[i * 4 + 0];
+		unsigned char g = rgba[i * 4 + 1];
+		unsigned char b = rgba[i * 4 + 2];
+		unsigned char a = rgba[i * 4 + 3];
+		iconData[2 + i] = ((unsigned long)a << 24) | ((unsigned long)b << 16) | ((unsigned long)g << 8) | r;
+	}
+	XChangeProperty(s->d, s->w, netWmIcon, XA_CARDINAL, 32, PropModeReplace, 
+		(unsigned char*)iconData, dataLen);
+	XFlush(s->d);
+	free(iconData);
 }
 
 #endif

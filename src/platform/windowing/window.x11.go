@@ -67,6 +67,7 @@ package windowing
 #cgo noescape window_lock_cursor
 #cgo noescape window_unlock_cursor
 #cgo noescape window_set_cursor_position
+#cgo noescape window_set_icon
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -232,7 +233,16 @@ func (w *Window) setCursorPosition(x, y int) {
 }
 
 func (w *Window) setIcon(img image.Image) {
-	klib.NotYetImplemented(627)
+	b := img.Bounds()
+	width := b.Dx()
+	height := b.Dy()
+	rgba := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			rgba.Set(x, y, img.At(x+b.Min.X, y+b.Min.Y))
+		}
+	}
+	C.window_set_icon(w.handle, C.int(width), C.int(height), (*C.uchar)(&rgba.Pix[0]))
 }
 
 func (w *Window) readApplicationAsset(path string) ([]byte, error) {

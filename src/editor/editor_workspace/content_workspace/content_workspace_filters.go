@@ -38,6 +38,7 @@ package content_workspace
 
 import (
 	"kaiju/editor/project/project_database/content_database"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	"strings"
 )
@@ -74,10 +75,10 @@ func ShouldHideContent(id string, typeFilters, tagFilters map[string]struct{}, c
 	return hide
 }
 
-func filterThroughTags(cc *content_database.CachedContent, tagFilters map[string]struct{}) bool {
+func filterThroughTags(cc *content_database.CachedContent, tagFilters klib.Set[string]) bool {
 	defer tracing.NewRegion("content_workspace.filterThroughTags").End()
 	for i := range cc.Config.Tags {
-		_, hasTag := tagFilters[cc.Config.Tags[i]]
+		_, hasTag := tagFilters[i]
 		if hasTag {
 			return true
 		}
@@ -85,14 +86,14 @@ func filterThroughTags(cc *content_database.CachedContent, tagFilters map[string
 	return false
 }
 
-func runQueryOnContent(cc *content_database.CachedContent, query string, tagFilters map[string]struct{}) bool {
+func runQueryOnContent(cc *content_database.CachedContent, query string, tagFilters klib.Set[string]) bool {
 	defer tracing.NewRegion("content_workspace.runQueryOnContent").End()
 	// TODO:  Use filters like tag:..., type:..., etc.
 	if strings.Contains(cc.Config.NameLower(), query) {
 		return true
 	}
-	for i := range cc.Config.Tags {
-		if _, ok := tagFilters[cc.Config.Tags[i]]; ok {
+	for tag := range cc.Config.Tags {
+		if _, ok := tagFilters[tag]; ok {
 			return true
 		}
 	}
