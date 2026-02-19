@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Friction - https://friction.graphics -->
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+ <g transform="translate(0 0)">
+  <g transform="translate(63.6949 284.507)">
+   <g transform="rotate(0)">
+    <g transform="scale(1 1)">
+     <g transform="skewX(0) skewY(0)">
+      <g opacity="1" transform="translate(0 0)">
+       <path stroke-linecap="round" stroke="rgba(0, 102, 255, 1)" stroke-linejoin="round" stroke-width="10" fill="rgba(255, 255, 255, 1)" d="M0 0" id="Path">
+        <animate values="M0 0C-7.69141 -88.4512 -99.9884 -171.134 23.0742 -176.902C146.137 -182.671 232.665 -173.057 219.205 -84.6055C205.745 3.84571 117.294 119.217 65.377 98.0655C13.46 76.9141 0 0 0 0Z;M0 0C-7.69141 -88.4512 -99.9884 -171.134 23.0742 -176.902C146.137 -182.671 232.665 -173.057 219.205 -84.6055C205.745 3.84571 117.294 119.217 65.377 98.0655C13.46 76.9141 0 0 0 0Z;M238.434 94.2198C230.742 5.76856 173.057 9.61427 296.119 3.84571C419.182 -1.92285 413.413 -42.3028 399.953 46.1485C386.493 134.6 334.576 215.36 282.659 194.208C230.742 173.057 238.434 94.2198 238.434 94.2198Z" calcMode="spline" repeatCount="indefinite" keyTimes="0;0;1" keySplines="0 0 1 1;0 0 1 1" dur="0.416667s" attributeName="d"/>
+       </path>
+      </g>
+     </g>
+    </g>
+   </g>
+  </g>
+ </g>
+ <g transform="translate(0 0)">
+  <g transform="translate(338.663 65.302)">
+   <g transform="rotate(0)">
+    <g transform="scale(1 1)">
+     <g transform="skewX(0) skewY(0)">
+      <g opacity="1" transform="translate(0 0)">
+       <path stroke-linecap="round" stroke="rgba(0, 102, 255, 1)" stroke-linejoin="round" stroke-width="10" fill="url(#0x00000268ac5e3310)" d="M0 0" id="Path1">
+        <animate values="M0 0C5.76856 32.6885 199.977 74.9913 173.057 23.0742C146.137 -28.8428 71.1456 -38.4571 71.1456 -38.4571C71.1456 -38.4571 0 0 0 0Z;M0 0C5.76856 32.6885 199.977 74.9913 173.057 23.0742C146.137 -28.8428 71.1456 -38.4571 71.1456 -38.4571C71.1456 -38.4571 0 0 0 0Z;M-274.968 140.368C-269.199 173.057 -55.7627 165.365 -82.6827 113.448C-109.603 61.5313 -144.214 -30.7656 -144.214 -30.7656C-403.755 -75.499 -309.4 134.434 -274.968 140.368Z" calcMode="spline" repeatCount="indefinite" keyTimes="0;0;1" keySplines="0 0 1 1;0 0 1 1" dur="0.416667s" attributeName="d"/>
+       </path>
+      </g>
+     </g>
+    </g>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <linearGradient id="0x00000268b26df270">
+   <stop stop-color="rgba(56, 177, 157, 1)" offset="0"/>
+   <stop stop-color="rgba(86, 21, 84, 1)" offset="1"/>
+  </linearGradient>
+  <radialGradient cx="-243.434" r="115.25" xlink:href="#0x00000268b26df270" cy="35.3799" gradientUnits="userSpaceOnUse" id="0x00000268ac5e3310"/>
+ </defs>
+</svg>
+
