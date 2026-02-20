@@ -47,7 +47,7 @@ type SVG struct {
 	XmlnsXLink string   `xml:"xmlns:xlink,attr"`
 	ViewBox    string   `xml:"viewBox,attr"`
 	Groups     []Group  `xml:"g"`
-	Defs       *Defs    `xml:"defs"`
+	Defs       Defs     `xml:"defs"`
 }
 
 // Group represents <g> with transforms
@@ -64,8 +64,8 @@ type Group struct {
 // Path represents <path> elements
 type Path struct {
 	XMLName        xml.Name  `xml:"path"`
-	ID             string    `xml:"id,attr"`
-	D              string    `xml:"d,attr"`
+	Id             string    `xml:"id,attr"`
+	Data           string    `xml:"d,attr"`
 	Stroke         string    `xml:"stroke,attr"`
 	StrokeWidth    float64   `xml:"stroke-width,attr"`
 	Fill           string    `xml:"fill,attr"`
@@ -77,7 +77,7 @@ type Path struct {
 // Ellipse represents <ellipse> elements
 type Ellipse struct {
 	XMLName        xml.Name  `xml:"ellipse"`
-	ID             string    `xml:"id,attr"`
+	Id             string    `xml:"id,attr"`
 	CX             float64   `xml:"cx,attr"`
 	CY             float64   `xml:"cy,attr"`
 	RX             float64   `xml:"rx,attr"`

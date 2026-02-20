@@ -120,23 +120,23 @@ func TestParseBushSVG(t *testing.T) {
 		t.Logf("Found %d paths", len(paths))
 		// Verify path properties
 		for i, path := range paths {
-			if path.ID == "" {
+			if path.Id == "" {
 				t.Errorf("Path %d has no ID", i)
 			}
-			if path.D == "" {
-				t.Errorf("Path %d (ID: %s) has no path data", i, path.ID)
+			if path.Data == "" {
+				t.Errorf("Path %d (ID: %s) has no path data", i, path.Id)
 			}
 			if !strings.HasPrefix(path.Fill, "url(#") {
 				t.Errorf("Path %d (ID: %s) expected fill to be a gradient reference, got '%s'",
-					i, path.ID, path.Fill)
+					i, path.Id, path.Fill)
 			}
 			if path.StrokeWidth != 10 {
 				t.Errorf("Path %d (ID: %s) expected stroke-width 10, got %f",
-					i, path.ID, path.StrokeWidth)
+					i, path.Id, path.StrokeWidth)
 			}
 			if path.StrokeLinecap != "round" {
 				t.Errorf("Path %d (ID: %s) expected stroke-linecap 'round', got '%s'",
-					i, path.ID, path.StrokeLinecap)
+					i, path.Id, path.StrokeLinecap)
 			}
 		}
 	})
@@ -148,8 +148,8 @@ func TestParseBushSVG(t *testing.T) {
 			return
 		}
 		ellipse := ellipses[0]
-		if ellipse.ID != "Circle" {
-			t.Errorf("Expected ellipse ID 'Circle', got '%s'", ellipse.ID)
+		if ellipse.Id != "Circle" {
+			t.Errorf("Expected ellipse ID 'Circle', got '%s'", ellipse.Id)
 		}
 		if ellipse.RX != 37.5091 {
 			t.Errorf("Expected RX 37.5091, got %f", ellipse.RX)
@@ -163,9 +163,6 @@ func TestParseBushSVG(t *testing.T) {
 	})
 	// Test gradients
 	t.Run("Gradients", func(t *testing.T) {
-		if svg.Defs == nil {
-			t.Fatal("Expected defs section")
-		}
 		if len(svg.Defs.LinearGradients) == 0 {
 			t.Error("Expected to find linear gradients")
 			return
@@ -370,11 +367,9 @@ func TestParseBushWiggleSVG(t *testing.T) {
 		}
 		// Note: bush_wiggle.svg has more gradients than bush.svg (18 vs 10)
 		// This is expected as the animated version uses unique gradients for each element
-		if svg.Defs != nil && bush.Defs != nil {
-			wiggleCount := len(svg.Defs.LinearGradients)
-			bushCount := len(bush.Defs.LinearGradients)
-			t.Logf("bush.svg has %d gradients, bush_wiggle.svg has %d gradients", bushCount, wiggleCount)
-		}
+		wiggleCount := len(svg.Defs.LinearGradients)
+		bushCount := len(bush.Defs.LinearGradients)
+		t.Logf("bush.svg has %d gradients, bush_wiggle.svg has %d gradients", bushCount, wiggleCount)
 	})
 }
 
@@ -568,8 +563,8 @@ func TestParseSVGString(t *testing.T) {
 	if len(paths) != 1 {
 		t.Errorf("Expected 1 path, got %d", len(paths))
 	}
-	if paths[0].ID != "testPath" {
-		t.Errorf("Expected path ID 'testPath', got '%s'", paths[0].ID)
+	if paths[0].Id != "testPath" {
+		t.Errorf("Expected path ID 'testPath', got '%s'", paths[0].Id)
 	}
 }
 
@@ -621,9 +616,6 @@ func TestParseBallSVG(t *testing.T) {
 	}
 	// Test radial gradients
 	t.Run("RadialGradients", func(t *testing.T) {
-		if svg.Defs == nil {
-			t.Fatal("Expected defs section")
-		}
 		if len(svg.Defs.RadialGradients) == 0 {
 			t.Error("Expected to find radial gradients")
 			return
@@ -667,17 +659,17 @@ func TestParseBallSVG(t *testing.T) {
 			if strings.HasPrefix(path.Fill, "rgba(") {
 				solidFillFound = true
 				color := ParseColor(path.Fill)
-				t.Logf("Path %s has solid fill: rgba(%f, %f, %f, %f)", path.ID, color.R, color.G, color.B, color.A)
+				t.Logf("Path %s has solid fill: rgba(%f, %f, %f, %f)", path.Id, color.R, color.G, color.B, color.A)
 			}
 			// Check for solid stroke (rgba format)
 			if strings.HasPrefix(path.Stroke, "rgba(") {
 				solidStrokeFound = true
 				color := ParseColor(path.Stroke)
-				t.Logf("Path %s has solid stroke: rgba(%f, %f, %f, %f)", path.ID, color.R, color.G, color.B, color.A)
+				t.Logf("Path %s has solid stroke: rgba(%f, %f, %f, %f)", path.Id, color.R, color.G, color.B, color.A)
 			}
 			// Check for gradient fill
 			if strings.HasPrefix(path.Fill, "url(#") {
-				t.Logf("Path %s has gradient fill: %s", path.ID, path.Fill)
+				t.Logf("Path %s has gradient fill: %s", path.Id, path.Fill)
 			}
 		}
 		if !solidFillFound {
@@ -698,7 +690,7 @@ func TestParseBallSVG(t *testing.T) {
 			for _, anim := range path.Animates {
 				if anim.RepeatCount == "indefinite" {
 					indefiniteFound = true
-					t.Logf("Path %s has animation with repeatCount=indefinite", path.ID)
+					t.Logf("Path %s has animation with repeatCount=indefinite", path.Id)
 				}
 			}
 		}
@@ -714,14 +706,11 @@ func TestParseBallSVG(t *testing.T) {
 		}
 		t.Logf("Found %d paths", len(paths))
 		for i, path := range paths {
-			t.Logf("Path %d: ID=%s, has %d animations", i, path.ID, len(path.Animates))
+			t.Logf("Path %d: ID=%s, has %d animations", i, path.Id, len(path.Animates))
 		}
 	})
 	// Test gradient reference resolution
 	t.Run("GradientResolution", func(t *testing.T) {
-		if svg.Defs == nil {
-			t.Fatal("Expected defs section")
-		}
 		// Test resolving radial gradient that references linear gradient
 		for _, radialGrad := range svg.Defs.RadialGradients {
 			if radialGrad.XLinkHref != "" {
@@ -752,28 +741,26 @@ func TestParseBallSVG(t *testing.T) {
 				gradientID = strings.TrimSuffix(gradientID, ")")
 				// Verify the gradient exists
 				var gradientExists bool
-				if svg.Defs != nil {
-					for _, rg := range svg.Defs.RadialGradients {
-						if rg.ID == gradientID {
+				for _, rg := range svg.Defs.RadialGradients {
+					if rg.ID == gradientID {
+						gradientExists = true
+						break
+					}
+				}
+				if !gradientExists {
+					for _, lg := range svg.Defs.LinearGradients {
+						if lg.ID == gradientID {
 							gradientExists = true
 							break
-						}
-					}
-					if !gradientExists {
-						for _, lg := range svg.Defs.LinearGradients {
-							if lg.ID == gradientID {
-								gradientExists = true
-								break
-							}
 						}
 					}
 				}
 				if !gradientExists {
 					t.Errorf("Path %s references gradient %s but it doesn't exist in defs",
-						path.ID, gradientID)
+						path.Id, gradientID)
 				} else {
 					t.Logf("Path %s is animated and uses gradient %s (gradient will follow path animation)",
-						path.ID, gradientID)
+						path.Id, gradientID)
 				}
 			}
 		}

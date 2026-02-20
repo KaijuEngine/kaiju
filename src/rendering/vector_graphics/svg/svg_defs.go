@@ -42,6 +42,16 @@ import (
 	"strings"
 )
 
+const (
+	// GradientUnitsUserSpaceOnUse uses absolute coordinates
+	GradientUnitsUserSpaceOnUse GradientUnits = "userSpaceOnUse"
+	// GradientUnitsObjectBoundingBox uses relative coordinates (0-1)
+	GradientUnitsObjectBoundingBox GradientUnits = "objectBoundingBox"
+)
+
+// GradientUnits represents the coordinate system for gradients
+type GradientUnits string
+
 // Defs represents the <defs> section containing reusable resources
 type Defs struct {
 	XMLName         xml.Name         `xml:"defs"`
@@ -84,16 +94,6 @@ type RadialGradient struct {
 	SpreadMethod  string   `xml:"spreadMethod,attr"`
 	XLinkHref     string   `xml:"http://www.w3.org/1999/xlink href,attr"`
 }
-
-// GradientUnits represents the coordinate system for gradients
-type GradientUnits string
-
-const (
-	// GradientUnitsUserSpaceOnUse uses absolute coordinates
-	GradientUnitsUserSpaceOnUse GradientUnits = "userSpaceOnUse"
-	// GradientUnitsObjectBoundingBox uses relative coordinates (0-1)
-	GradientUnitsObjectBoundingBox GradientUnits = "objectBoundingBox"
-)
 
 // ColorStop represents a parsed color stop with offset and color values
 type ColorStop struct {

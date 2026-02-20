@@ -45,6 +45,23 @@ import (
 // CalcMode represents animation calculation modes for SVG SMIL animations
 type CalcMode string
 
+// Additive represents additive behavior for animations
+type Additive string
+
+// Accumulate represents accumulation behavior for repeated animations
+type Accumulate string
+
+// FillMode represents the fill behavior when animation completes
+type FillMode string
+
+// RestartMode controls when animations can restart
+type RestartMode string
+
+// AttributeName represents the name of an animatable SVG attribute.
+type AttributeName string
+
+type AttributeType string
+
 const (
 	// CalcModeDiscrete jumps between values without interpolation
 	CalcModeDiscrete CalcMode = "discrete"
@@ -56,18 +73,12 @@ const (
 	CalcModeSpline CalcMode = "spline"
 )
 
-// Additive represents additive behavior for animations
-type Additive string
-
 const (
 	// AdditiveReplace overrides the underlying value (default)
 	AdditiveReplace Additive = "replace"
 	// AdditiveSum adds animation values to underlying value
 	AdditiveSum Additive = "sum"
 )
-
-// Accumulate represents accumulation behavior for repeated animations
-type Accumulate string
 
 const (
 	// AccumulateNone means repeat iterations are not cumulative (default)
@@ -76,18 +87,12 @@ const (
 	AccumulateSum Accumulate = "sum"
 )
 
-// FillMode represents the fill behavior when animation completes
-type FillMode string
-
 const (
 	// FillFreeze keeps the final animation value
 	FillFreeze FillMode = "freeze"
 	// FillRemove reverts to underlying value (default)
 	FillRemove FillMode = "remove"
 )
-
-// RestartMode controls when animations can restart
-type RestartMode string
 
 const (
 	// RestartAlways allows restart at any time (default)
@@ -98,29 +103,103 @@ const (
 	RestartNever RestartMode = "never"
 )
 
+// List of all animatable attribute names for SVG SMIL animations.
+// The list follows the SVG specification's “Animatable attributes” table.
+const (
+	// Geometry / shape attributes
+	AttrX          AttributeName = "x"
+	AttrY          AttributeName = "y"
+	AttrDX         AttributeName = "dx"
+	AttrDY         AttributeName = "dy"
+	AttrWidth      AttributeName = "width"
+	AttrHeight     AttributeName = "height"
+	AttrRX         AttributeName = "rx"
+	AttrRY         AttributeName = "ry"
+	AttrCX         AttributeName = "cx"
+	AttrCY         AttributeName = "cy"
+	AttrR          AttributeName = "r"
+	AttrFX         AttributeName = "fx"
+	AttrFY         AttributeName = "fy"
+	AttrX1         AttributeName = "x1"
+	AttrY1         AttributeName = "y1"
+	AttrX2         AttributeName = "x2"
+	AttrY2         AttributeName = "y2"
+	AttrPoints     AttributeName = "points"
+	AttrD          AttributeName = "d"
+	AttrPathLength AttributeName = "pathLength"
+
+	// Transform attributes (generic)
+	AttrTransform AttributeName = "transform"
+
+	// Presentation attributes
+	AttrFill                AttributeName = "fill"
+	AttrStroke              AttributeName = "stroke"
+	AttrStrokeWidth         AttributeName = "stroke-width"
+	AttrStrokeDasharray     AttributeName = "stroke-dasharray"
+	AttrStrokeDashoffset    AttributeName = "stroke-dashoffset"
+	AttrStrokeOpacity       AttributeName = "stroke-opacity"
+	AttrFillOpacity         AttributeName = "fill-opacity"
+	AttrOpacity             AttributeName = "opacity"
+	AttrVisibility          AttributeName = "visibility"
+	AttrDisplay             AttributeName = "display"
+	AttrColor               AttributeName = "color"
+	AttrFontFamily          AttributeName = "font-family"
+	AttrFontSize            AttributeName = "font-size"
+	AttrFontWeight          AttributeName = "font-weight"
+	AttrFontStyle           AttributeName = "font-style"
+	AttrTextAnchor          AttributeName = "text-anchor"
+	AttrLetterSpacing       AttributeName = "letter-spacing"
+	AttrWordSpacing         AttributeName = "word-spacing"
+	AttrKerning             AttributeName = "kerning"
+	AttrTextLength          AttributeName = "textLength"
+	AttrLengthAdjust        AttributeName = "lengthAdjust"
+	AttrStopColor           AttributeName = "stop-color"
+	AttrStopOpacity         AttributeName = "stop-opacity"
+	AttrOffset              AttributeName = "offset"
+	AttrGradientTransform   AttributeName = "gradientTransform"
+	AttrMask                AttributeName = "mask"
+	AttrClipPath            AttributeName = "clip-path"
+	AttrFilter              AttributeName = "filter"
+	AttrMaskContentUnits    AttributeName = "maskContentUnits"
+	AttrMaskUnits           AttributeName = "maskUnits"
+	AttrClipPathUnits       AttributeName = "clipPathUnits"
+	AttrPatternUnits        AttributeName = "patternUnits"
+	AttrPatternContentUnits AttributeName = "patternContentUnits"
+	AttrPatternTransform    AttributeName = "patternTransform"
+	AttrViewBox             AttributeName = "viewBox"
+	AttrPreserveAspectRatio AttributeName = "preserveAspectRatio"
+	AttrHref                AttributeName = "href"
+	AttrXlinkHref           AttributeName = "xlink:href"
+)
+
+const (
+	AttrXml AttributeType = "XML"
+	AttrCSS AttributeType = "XML"
+)
+
 // Animate represents <animate> element for animating attributes over time
 type Animate struct {
-	XMLName       xml.Name    `xml:"animate"`
-	AttributeName string      `xml:"attributeName,attr"`
-	AttributeType string      `xml:"attributeType,attr"` // "XML" or "CSS"
-	From          string      `xml:"from,attr"`
-	To            string      `xml:"to,attr"`
-	By            string      `xml:"by,attr"`
-	Values        string      `xml:"values,attr"`
-	KeyTimes      string      `xml:"keyTimes,attr"`
-	KeySplines    string      `xml:"keySplines,attr"`
-	CalcMode      CalcMode    `xml:"calcMode,attr"`
-	Dur           string      `xml:"dur,attr"`
-	Begin         string      `xml:"begin,attr"`
-	End           string      `xml:"end,attr"`
-	Min           string      `xml:"min,attr"`
-	Max           string      `xml:"max,attr"`
-	RepeatCount   string      `xml:"repeatCount,attr"`
-	RepeatDur     string      `xml:"repeatDur,attr"`
-	Fill          FillMode    `xml:"fill,attr"`
-	Restart       RestartMode `xml:"restart,attr"`
-	Additive      Additive    `xml:"additive,attr"`
-	Accumulate    Accumulate  `xml:"accumulate,attr"`
+	XMLName       xml.Name      `xml:"animate"`
+	AttributeName AttributeName `xml:"attributeName,attr"`
+	AttributeType AttributeType `xml:"attributeType,attr"` // "XML" or "CSS"
+	From          string        `xml:"from,attr"`
+	To            string        `xml:"to,attr"`
+	By            string        `xml:"by,attr"`
+	Values        string        `xml:"values,attr"`
+	KeyTimes      string        `xml:"keyTimes,attr"`
+	KeySplines    string        `xml:"keySplines,attr"`
+	CalcMode      CalcMode      `xml:"calcMode,attr"`
+	Dur           string        `xml:"dur,attr"`
+	Begin         string        `xml:"begin,attr"`
+	End           string        `xml:"end,attr"`
+	Min           string        `xml:"min,attr"`
+	Max           string        `xml:"max,attr"`
+	RepeatCount   string        `xml:"repeatCount,attr"`
+	RepeatDur     string        `xml:"repeatDur,attr"`
+	Fill          FillMode      `xml:"fill,attr"`
+	Restart       RestartMode   `xml:"restart,attr"`
+	Additive      Additive      `xml:"additive,attr"`
+	Accumulate    Accumulate    `xml:"accumulate,attr"`
 }
 
 // AnimateTransform represents <animateTransform> for animating transformations
