@@ -34,13 +34,20 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package vector_graphics
+package svg
 
 import (
 	"encoding/xml"
 	"strconv"
 	"strings"
 )
+
+// GradientUnits represents the coordinate system for gradients
+type GradientUnits string
+
+// SpreadMethod defines how a gradient is extended beyond its start/end points.
+// It mirrors the SVG `spreadMethod` attribute.
+type SpreadMethod string
 
 const (
 	// GradientUnitsUserSpaceOnUse uses absolute coordinates
@@ -49,8 +56,14 @@ const (
 	GradientUnitsObjectBoundingBox GradientUnits = "objectBoundingBox"
 )
 
-// GradientUnits represents the coordinate system for gradients
-type GradientUnits string
+const (
+	// SpreadMethodPad (default) clamps the gradient colors beyond the bounds.
+	SpreadMethodPad SpreadMethod = "pad"
+	// SpreadMethodReflect mirrors the gradient pattern when it repeats.
+	SpreadMethodReflect SpreadMethod = "reflect"
+	// SpreadMethodRepeat tiles the gradient pattern beyond the bounds.
+	SpreadMethodRepeat SpreadMethod = "repeat"
+)
 
 // Defs represents the <defs> section containing reusable resources
 type Defs struct {
@@ -62,15 +75,29 @@ type Defs struct {
 // LinearGradient represents <linearGradient> element
 type LinearGradient struct {
 	XMLName       xml.Name       `xml:"linearGradient"`
-	ID            string         `xml:"id,attr"`
+	Id            string         `xml:"id,attr"`
 	X1            float64        `xml:"x1,attr"`
 	Y1            float64        `xml:"y1,attr"`
 	X2            float64        `xml:"x2,attr"`
 	Y2            float64        `xml:"y2,attr"`
-	GradientUnits string         `xml:"gradientUnits,attr"`
-	SpreadMethod  string         `xml:"spreadMethod,attr"`
+	GradientUnits GradientUnits  `xml:"gradientUnits,attr"`
+	SpreadMethod  SpreadMethod   `xml:"spreadMethod,attr"`
 	XLinkHref     string         `xml:"http://www.w3.org/1999/xlink href,attr"`
 	Stops         []GradientStop `xml:"stop"`
+}
+
+// RadialGradient represents <radialGradient> element
+type RadialGradient struct {
+	XMLName       xml.Name      `xml:"radialGradient"`
+	Id            string        `xml:"id,attr"`
+	CX            float64       `xml:"cx,attr"`
+	CY            float64       `xml:"cy,attr"`
+	R             float64       `xml:"r,attr"`
+	FX            float64       `xml:"fx,attr"`
+	FY            float64       `xml:"fy,attr"`
+	GradientUnits GradientUnits `xml:"gradientUnits,attr"`
+	SpreadMethod  SpreadMethod  `xml:"spreadMethod,attr"`
+	XLinkHref     string        `xml:"http://www.w3.org/1999/xlink href,attr"`
 }
 
 // GradientStop represents <stop> element for gradients
@@ -79,20 +106,6 @@ type GradientStop struct {
 	Offset      float64  `xml:"offset,attr"`
 	StopColor   string   `xml:"stop-color,attr"`
 	StopOpacity float64  `xml:"stop-opacity,attr"`
-}
-
-// RadialGradient represents <radialGradient> element
-type RadialGradient struct {
-	XMLName       xml.Name `xml:"radialGradient"`
-	ID            string   `xml:"id,attr"`
-	CX            float64  `xml:"cx,attr"`
-	CY            float64  `xml:"cy,attr"`
-	R             float64  `xml:"r,attr"`
-	FX            float64  `xml:"fx,attr"`
-	FY            float64  `xml:"fy,attr"`
-	GradientUnits string   `xml:"gradientUnits,attr"`
-	SpreadMethod  string   `xml:"spreadMethod,attr"`
-	XLinkHref     string   `xml:"http://www.w3.org/1999/xlink href,attr"`
 }
 
 // ColorStop represents a parsed color stop with offset and color values
@@ -172,7 +185,7 @@ func (d *Defs) FindLinearGradientByID(id string) *LinearGradient {
 		return nil
 	}
 	for i := range d.LinearGradients {
-		if d.LinearGradients[i].ID == id {
+		if d.LinearGradients[i].Id == id {
 			return &d.LinearGradients[i]
 		}
 	}
@@ -185,7 +198,7 @@ func (d *Defs) FindRadialGradientByID(id string) *RadialGradient {
 		return nil
 	}
 	for i := range d.RadialGradients {
-		if d.RadialGradients[i].ID == id {
+		if d.RadialGradients[i].Id == id {
 			return &d.RadialGradients[i]
 		}
 	}

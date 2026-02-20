@@ -34,7 +34,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package vector_graphics
+package svg
 
 import (
 	"encoding/xml"
@@ -177,43 +177,17 @@ const (
 	AttrCSS AttributeType = "XML"
 )
 
-// Animate represents <animate> element for animating attributes over time
-type Animate struct {
-	XMLName       xml.Name      `xml:"animate"`
-	AttributeName AttributeName `xml:"attributeName,attr"`
-	AttributeType AttributeType `xml:"attributeType,attr"` // "XML" or "CSS"
-	From          string        `xml:"from,attr"`
-	To            string        `xml:"to,attr"`
-	By            string        `xml:"by,attr"`
-	Values        string        `xml:"values,attr"`
-	KeyTimes      string        `xml:"keyTimes,attr"`
-	KeySplines    string        `xml:"keySplines,attr"`
-	CalcMode      CalcMode      `xml:"calcMode,attr"`
-	Dur           string        `xml:"dur,attr"`
-	Begin         string        `xml:"begin,attr"`
-	End           string        `xml:"end,attr"`
-	Min           string        `xml:"min,attr"`
-	Max           string        `xml:"max,attr"`
-	RepeatCount   string        `xml:"repeatCount,attr"`
-	RepeatDur     string        `xml:"repeatDur,attr"`
-	Fill          FillMode      `xml:"fill,attr"`
-	Restart       RestartMode   `xml:"restart,attr"`
-	Additive      Additive      `xml:"additive,attr"`
-	Accumulate    Accumulate    `xml:"accumulate,attr"`
-}
-
-// AnimateTransform represents <animateTransform> for animating transformations
-type AnimateTransform struct {
-	XMLName     xml.Name    `xml:"animateTransform"`
-	Type        string      `xml:"type,attr"` // "translate", "rotate", "scale", "skewX", "skewY"
-	From        string      `xml:"from,attr"`
-	To          string      `xml:"to,attr"`
-	By          string      `xml:"by,attr"`
-	Values      string      `xml:"values,attr"`
-	KeyTimes    string      `xml:"keyTimes,attr"`
-	KeySplines  string      `xml:"keySplines,attr"`
-	CalcMode    CalcMode    `xml:"calcMode,attr"`
-	Dur         string      `xml:"dur,attr"`
+// SharedAnimation contains fields common to both <animate> and <animateTransform> elements.
+type SharedAnimation struct {
+	From       string   `xml:"from,attr"`
+	To         string   `xml:"to,attr"`
+	By         string   `xml:"by,attr"`
+	Values     string   `xml:"values,attr"`
+	KeyTimes   string   `xml:"keyTimes,attr"`
+	KeySplines string   `xml:"keySplines,attr"`
+	CalcMode   CalcMode `xml:"calcMode,attr"`
+	// Duration corresponds to the "dur" attribute used by both elements.
+	Duration    string      `xml:"dur,attr"`
 	Begin       string      `xml:"begin,attr"`
 	End         string      `xml:"end,attr"`
 	RepeatCount string      `xml:"repeatCount,attr"`
@@ -222,6 +196,23 @@ type AnimateTransform struct {
 	Restart     RestartMode `xml:"restart,attr"`
 	Additive    Additive    `xml:"additive,attr"`
 	Accumulate  Accumulate  `xml:"accumulate,attr"`
+}
+
+// Animate represents <animate> element for animating attributes over time
+type Animate struct {
+	XMLName       xml.Name      `xml:"animate"`
+	AttributeName AttributeName `xml:"attributeName,attr"`
+	AttributeType AttributeType `xml:"attributeType,attr"` // "XML" or "CSS"
+	SharedAnimation
+	Min string `xml:"min,attr"`
+	Max string `xml:"max,attr"`
+}
+
+// AnimateTransform represents <animateTransform> for animating transformations
+type AnimateTransform struct {
+	XMLName xml.Name `xml:"animateTransform"`
+	Type    string   `xml:"type,attr"` // "translate", "rotate", "scale", "skewX", "skewY"
+	SharedAnimation
 }
 
 // KeySpline represents a cubic bezier spline control points for interpolation

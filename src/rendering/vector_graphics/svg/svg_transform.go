@@ -34,7 +34,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package vector_graphics
+package svg
 
 import (
 	"math"

@@ -34,7 +34,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package vector_graphics
+package svg
 
 import (
 	"math"
@@ -175,12 +175,12 @@ func TestParseBushSVG(t *testing.T) {
 				gradientsWithHref++
 				if !strings.HasPrefix(grad.XLinkHref, "#") {
 					t.Errorf("Gradient %s has invalid xlink:href '%s', expected to start with #",
-						grad.ID, grad.XLinkHref)
+						grad.Id, grad.XLinkHref)
 				}
 			}
 			if grad.GradientUnits == "" && grad.XLinkHref == "" {
 				// Base gradients don't need gradientUnits
-				t.Logf("Gradient %s has no gradientUnits (base gradient)", grad.ID)
+				t.Logf("Gradient %s has no gradientUnits (base gradient)", grad.Id)
 			}
 		}
 		if gradientsWithHref == 0 {
@@ -188,7 +188,7 @@ func TestParseBushSVG(t *testing.T) {
 		}
 		// Test gradient lookup
 		if len(svg.Defs.LinearGradients) > 0 {
-			firstID := svg.Defs.LinearGradients[0].ID
+			firstID := svg.Defs.LinearGradients[0].Id
 			found := svg.Defs.FindLinearGradientByID(firstID)
 			if found == nil {
 				t.Errorf("Failed to find gradient by ID: %s", firstID)
@@ -260,9 +260,9 @@ func TestParseBushWiggleSVG(t *testing.T) {
 					t.Errorf("Path %d Animation %d: expected calcMode 'spline', got '%s'",
 						i, j, anim.CalcMode)
 				}
-				if anim.Dur != "0.375s" {
+				if anim.Duration != "0.375s" {
 					t.Errorf("Path %d Animation %d: expected dur '0.375s', got '%s'",
-						i, j, anim.Dur)
+						i, j, anim.Duration)
 				}
 				if anim.Values == "" {
 					t.Errorf("Path %d Animation %d: expected values to be set", i, j)
@@ -623,23 +623,23 @@ func TestParseBallSVG(t *testing.T) {
 		t.Logf("Found %d radial gradients", len(svg.Defs.RadialGradients))
 		// Verify radial gradient properties
 		for i, grad := range svg.Defs.RadialGradients {
-			t.Logf("RadialGradient %d: ID=%s, cx=%f, cy=%f, r=%f", i, grad.ID, grad.CX, grad.CY, grad.R)
-			if grad.ID == "" {
+			t.Logf("RadialGradient %d: ID=%s, cx=%f, cy=%f, r=%f", i, grad.Id, grad.CX, grad.CY, grad.R)
+			if grad.Id == "" {
 				t.Errorf("RadialGradient %d has no ID", i)
 			}
 			if grad.R == 0 {
-				t.Errorf("RadialGradient %s has no radius", grad.ID)
+				t.Errorf("RadialGradient %s has no radius", grad.Id)
 			}
 			if grad.GradientUnits == "" {
-				t.Errorf("RadialGradient %s has no gradientUnits", grad.ID)
+				t.Errorf("RadialGradient %s has no gradientUnits", grad.Id)
 			}
 			if grad.XLinkHref != "" && !strings.HasPrefix(grad.XLinkHref, "#") {
-				t.Errorf("RadialGradient %s has invalid xlink:href: %s", grad.ID, grad.XLinkHref)
+				t.Errorf("RadialGradient %s has invalid xlink:href: %s", grad.Id, grad.XLinkHref)
 			}
 		}
 		// Test radial gradient lookup
 		if len(svg.Defs.RadialGradients) > 0 {
-			firstID := svg.Defs.RadialGradients[0].ID
+			firstID := svg.Defs.RadialGradients[0].Id
 			found := svg.Defs.FindRadialGradientByID(firstID)
 			if found == nil {
 				t.Errorf("Failed to find radial gradient by ID: %s", firstID)
@@ -714,12 +714,12 @@ func TestParseBallSVG(t *testing.T) {
 		// Test resolving radial gradient that references linear gradient
 		for _, radialGrad := range svg.Defs.RadialGradients {
 			if radialGrad.XLinkHref != "" {
-				resolved := svg.Defs.ResolveRadialGradient(radialGrad.ID)
+				resolved := svg.Defs.ResolveRadialGradient(radialGrad.Id)
 				if resolved == nil {
-					t.Errorf("Failed to resolve radial gradient: %s", radialGrad.ID)
+					t.Errorf("Failed to resolve radial gradient: %s", radialGrad.Id)
 					continue
 				}
-				t.Logf("Resolved radial gradient %s -> references %s", radialGrad.ID, radialGrad.XLinkHref)
+				t.Logf("Resolved radial gradient %s -> references %s", radialGrad.Id, radialGrad.XLinkHref)
 			}
 		}
 	})
@@ -742,14 +742,14 @@ func TestParseBallSVG(t *testing.T) {
 				// Verify the gradient exists
 				var gradientExists bool
 				for _, rg := range svg.Defs.RadialGradients {
-					if rg.ID == gradientID {
+					if rg.Id == gradientID {
 						gradientExists = true
 						break
 					}
 				}
 				if !gradientExists {
 					for _, lg := range svg.Defs.LinearGradients {
-						if lg.ID == gradientID {
+						if lg.Id == gradientID {
 							gradientExists = true
 							break
 						}
