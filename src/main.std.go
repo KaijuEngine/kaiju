@@ -48,6 +48,10 @@ import (
 func _main(platformState any) {
 	engine.LoadLaunchParams()
 	game := getGame()
+	if engine.LaunchParams.NewProject != "" {
+		createNewProjectCLI(engine.LaunchParams.NewProject)
+		return
+	}
 	if engine.LaunchParams.Generate != "" {
 		switch engine.LaunchParams.Generate {
 		case "pluginapi":
