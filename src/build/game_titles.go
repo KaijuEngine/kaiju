@@ -47,6 +47,7 @@ type GameTitle string
 
 const (
 	GameTitleEditor    = GameTitle("Editor")
+	GameTitleRawGame   = GameTitle("Kaiju Game")
 	GameTitleGenerator = GameTitle("Generator")
 )
 

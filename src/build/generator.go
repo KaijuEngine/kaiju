@@ -1,4 +1,4 @@
-//go:build !editor && !game && !debug && !test && !shipping
+//go:build generator
 
 /******************************************************************************/
 /* generator.go                                                               */
