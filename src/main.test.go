@@ -96,8 +96,11 @@ func (g *Game) Launch(host *engine.Host) {
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
-	g.ball.OnDestroy.Add(sd.Destroy)
-	host.Updater.AddUpdate(g.update)
+	updateId := host.Updater.AddUpdate(g.update)
+	g.ball.OnDestroy.Add(func() {
+		sd.Destroy()
+		host.Updater.RemoveUpdate(&updateId)
+	})
 }
 
 func (g *Game) update(deltaTime float64) {

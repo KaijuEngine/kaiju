@@ -1,8 +1,8 @@
 ---
-title: Getting Started | Kaiju Engine
+title: Getting Started With Editor | Kaiju Engine
 ---
 
-# Getting started
+# Getting started with the editor
 The best way to get started with the engine is to get the editor up and running and create a project. I'd highly recommend watching through the Sudoku port series I've created on YouTube to learn the basics on how to use the engine/editor.
 
 ## Installing the editor

@@ -7,7 +7,9 @@ repo_url: 'https://github.com/KaijuEngine/kaiju'
 nav:
   - Home: index.md
   - Blog: blog/index.md
-  - Getting started: getting_started/index.md
+  - Getting started:
+    - With editor: getting_started/start_with_editor.md
+    - Without editor: getting_started/start_without_editor.md
   - Kaiju Editor:
     - Stage: editor/stage.md
     - Content:
