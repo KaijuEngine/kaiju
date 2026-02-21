@@ -1,5 +1,7 @@
 ---
 title: Getting Started Without Editor | Kaiju Engine
+description: Guide to building and running a Kaiju game using only Go code, without the graphical editor.
+keywords: Kaiju, getting started, no editor, Go, build, run, engine
 ---
 
 # Getting started without the editor (pure code)

@@ -1,5 +1,8 @@
+
 ---
 title: Settings Workspace | Kaiju Engine Editor
+description: The Settings Workspace provides a centralized interface for configuring project-specific and editor-wide settings in the Kaiju Engine Editor.
+keywords: settings, workspace, editor, kaiju, configuration, project settings, plugin settings
 ---
 
 # Settings Workspace

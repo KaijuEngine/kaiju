@@ -1,5 +1,7 @@
 ---
 title: Getting Started With Editor | Kaiju Engine
+description: Guide to getting started with the Kaiju Engine editor, covering installation, project creation, and editor controls.
+keywords: Kaiju Engine, editor, getting started, installation, tutorial, game development
 ---
 
 # Getting started with the editor

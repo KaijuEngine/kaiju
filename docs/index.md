@@ -1,5 +1,7 @@
 ---
 title: Kaiju Engine
+description: Kaiju Engine is an extremely fast, open source game engine and editor written in Go, powered by Vulkan, supporting 2D/3D, physics, UI, and live shader updates.
+keywords: game engine, Go, Vulkan, 2D, 3D, physics, UI, shader, cross-platform
 ---
 
 <div style="background-image: url(https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/index.md/kaiju_engine_text_wide_logo.png);width: 100%;height: auto;background-size: cover;background-position: center;background-repeat: no-repeat;aspect-ratio: 2.9 / 1;"></div>
