@@ -28,6 +28,27 @@ Back on the project select window, there is a list of existing projects if you h
 
 You will then be loaded into the main editor window.
 
+### Launch parameters
+The editor supports several command-line flags that can be passed when launching from a terminal.
+
+| Flag                | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| `-newproject`       | Create a new blank project at the specified path               |
+| `-projectname`      | Name of the project to create (used with `-newproject`)        |
+| `-projecttemplate`  | Path to a template zip to use (used with `-newproject`)        |
+| `-generate`         | Run a generator, e.g. `pluginapi`                              |
+| `-record_pgo`       | Capture a `default.pgo` profile for this run                   |
+
+For example, to create a new project from the command line:
+```
+kaiju -newproject /path/to/my/project -projectname "My Game"
+```
+
+Or to create a project from a template:
+```
+kaiju -newproject /path/to/my/project -projectname "My Game" -projecttemplate /path/to/template.zip
+```
+
 ## Special terms
 **Stage** - A collection of entities that are to be loaded, others may call it a "map", "scene", "level", etc. Stages help you build out your map in "stages", they can be merged together at runtime. *The term "Stage" is also a throw-back to what we would call maps/levels for games in the 90s*
 
