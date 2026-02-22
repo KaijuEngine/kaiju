@@ -1,0 +1,43 @@
+package navigation // import "kaiju/engine/systems/navigation"
+
+
+TYPES
+
+type Grid [][][]int8
+
+func NewGrid(width, height, depth int) Grid
+
+func (g *Grid) BlockCell(pos matrix.Vec3i, blockType int8)
+
+func (g Grid) BlockedType(pos matrix.Vec3i) int8
+
+func (g Grid) Depth() int
+
+func (g Grid) Height() int
+
+func (g Grid) IsBlocked(pos matrix.Vec3i) bool
+
+func (g Grid) IsValid(pos matrix.Vec3i) bool
+
+func (g Grid) Width() int
+
+type Node struct {
+	// Has unexported fields.
+}
+
+func AStar(grid Grid, start, end matrix.Vec3i) []*Node
+
+func (n Node) XYZ() matrix.Vec3i
+
+type PriorityQueue []*Node
+
+func (pq PriorityQueue) Len() int
+
+func (pq PriorityQueue) Less(i, j int) bool
+
+func (pq *PriorityQueue) Pop() interface{}
+
+func (pq *PriorityQueue) Push(x interface{})
+
+func (pq PriorityQueue) Swap(i, j int)
+

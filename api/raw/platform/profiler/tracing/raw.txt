@@ -1,0 +1,11 @@
+package tracing // import "kaiju/platform/profiler/tracing"
+
+
+TYPES
+
+type TraceRegion struct{}
+
+func NewRegion(name string) TraceRegion
+
+func (t TraceRegion) End()
+

@@ -1,0 +1,15 @@
+package profiler // import "kaiju/platform/profiler"
+
+
+FUNCTIONS
+
+func CleanupProfiler() error
+func ProfileCallWithDefaultProfiler(call func()) error
+func SetupConsole(host *engine.Host)
+func ShowDefaultProfilerInWeb() error
+func StartDefaultProfiler() error
+func StartPGOProfiler() error
+func StartTrace() error
+func StopDefaultProfiler()
+func StopPGOProfiler()
+func StopTrace() error

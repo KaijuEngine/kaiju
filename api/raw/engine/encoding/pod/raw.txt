@@ -1,0 +1,29 @@
+package pod // import "kaiju/engine/encoding/pod"
+
+
+FUNCTIONS
+
+func QualifiedNameForLayout(layout any) string
+func Register(layout any) error
+func RegisterGenerated(pkg, name string, genType reflect.Type) error
+func Unregister(layout any)
+func UnregisterGenerated(pkg, name string)
+
+TYPES
+
+type Decoder struct {
+	// Has unexported fields.
+}
+
+func NewDecoder(r io.Reader) Decoder
+
+func (d Decoder) Decode(into any) error
+
+type Encoder struct {
+	// Has unexported fields.
+}
+
+func NewEncoder(w io.Writer) Encoder
+
+func (e Encoder) Encode(from any) error
+

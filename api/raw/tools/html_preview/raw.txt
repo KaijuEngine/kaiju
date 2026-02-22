@@ -1,0 +1,14 @@
+package html_preview // import "kaiju/tools/html_preview"
+
+
+FUNCTIONS
+
+func New(htmlFile string) (*host_container.Container, error)
+func SetupConsole(host *engine.Host)
+
+TYPES
+
+type Preview struct {
+	// Has unexported fields.
+}
+

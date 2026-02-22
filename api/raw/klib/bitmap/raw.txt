@@ -1,0 +1,50 @@
+package bitmap // import "kaiju/klib/bitmap"
+
+
+FUNCTIONS
+
+func Check(b Bitmap, index int) bool
+func Count(b Bitmap) int
+    Count returns the number of bits that are true.
+
+func CountASM(b Bitmap) int
+func CountASMUsingTable(b Bitmap) int
+func LengthFor(byteCount int) int
+    LengthFor returns the number of bytes needed to represent the specified
+    number of bits.
+
+
+TYPES
+
+type Bitmap []byte
+
+func New(length int) Bitmap
+    New creates a new bitmap of the specified length. A bitmap is a slice of
+    bytes where each bit represents a boolean value. The length is the number of
+    bits that the bitmap will represent. The length is rounded up to the nearest
+    byte.
+
+func NewTrue(length int) Bitmap
+    NewTrue creates a new bitmap of the specified length with all bits true
+
+func (b Bitmap) Assign(index int, value bool)
+    Assign sets the bit at the specified index to the specified value.
+
+func (b Bitmap) Clear()
+    Clear sets all bits to false.
+
+func (b Bitmap) CountInverse() int
+    CountInverse returns the number of bits that are false.
+
+func (b Bitmap) IsSet(index int) bool
+    IsSet will return true if the given bit is set to 1, otherwise false
+
+func (b Bitmap) Reset(index int)
+    Reset sets the bit at the specified index to false.
+
+func (b Bitmap) Set(index int)
+    Set sets the bit at the specified index to true.
+
+func (b Bitmap) Toggle(index int)
+    Toggle flips the value of the bit at the specified index.
+

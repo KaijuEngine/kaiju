@@ -1,0 +1,32 @@
+package collision_system // import "kaiju/engine/collision_system"
+
+
+CONSTANTS
+
+const (
+	ShapeAABB = Shape(iota)
+	ShapeOOBB
+)
+
+TYPES
+
+type CollisionShape struct {
+	Transform *matrix.Transform
+	ShapeData any
+	Shape     Shape
+
+	// Has unexported fields.
+}
+
+func RegisterCollisionShape(man *Manager, transform *matrix.Transform, shape Shape, shapeData any) *CollisionShape
+
+type Manager struct {
+	// Has unexported fields.
+}
+
+func (m *Manager) Remove(shape *CollisionShape)
+
+func (m *Manager) Update(deltaTime float64)
+
+type Shape = int
+

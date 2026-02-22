@@ -1,0 +1,24 @@
+package content_previews // import "kaiju/editor/project/project_database/content_previews"
+
+
+TYPES
+
+type ContentPreviewer struct {
+	// Has unexported fields.
+}
+
+func (p *ContentPreviewer) DeletePreviewImage(id string) error
+
+func (p *ContentPreviewer) GeneratePreviews(ids []string)
+
+func (p *ContentPreviewer) Initialize(ed EditorInterface) error
+
+func (p *ContentPreviewer) LoadPreviewImage(id string) (*rendering.Texture, error)
+
+type EditorInterface interface {
+	Host() *engine.Host
+	Events() *editor_events.EditorEvents
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+}
+

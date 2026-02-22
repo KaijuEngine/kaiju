@@ -1,0 +1,26 @@
+package build // import "kaiju/build"
+
+
+CONSTANTS
+
+const (
+	CompanyName    = "Kaiju Engine"
+	CompanyDirName = "KaijuEngine"
+)
+const (
+	GameTitleEditor    = GameTitle("Editor")
+	GameTitleRawGame   = GameTitle("Kaiju Game")
+	GameTitleGenerator = GameTitle("Generator")
+)
+const Debug = false
+const Editor = false
+const Title = GameTitleRawGame
+
+TYPES
+
+type GameTitle string
+
+func (t GameTitle) AsFilePathString() string
+
+func (t GameTitle) String() string
+

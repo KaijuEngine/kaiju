@@ -1,0 +1,166 @@
+package assets // import "kaiju/engine/assets"
+
+
+CONSTANTS
+
+const (
+	TextureSquare      = "square.png"
+	TextureCube        = "cube.png"
+	TextureBlankSquare = "blank_square.png"
+)
+    Textures
+
+const (
+	MaterialDefinitionGrid                = "grid.material"
+	MaterialDefinitionUnlit               = "unlit.material"
+	MaterialDefinitionUnlitTransparent    = "unlit_transparent.material"
+	MaterialDefinitionBasic               = "basic.material"
+	MaterialDefinitionBasicTransparent    = "basic_transparent.material"
+	MaterialDefinitionPBR                 = "pbr.material"
+	MaterialDefinitionTerrain             = "terrain.material"
+	MaterialDefinitionBasicSkinned        = "basic_skinned.material"
+	MaterialDefinitionText3D              = "text3d.material"
+	MaterialDefinitionText3DTransparent   = "text3d_transparent.material"
+	MaterialDefinitionText                = "text.material"
+	MaterialDefinitionTextTransparent     = "text_transparent.material"
+	MaterialDefinitionCombine             = "combine.material"
+	MaterialDefinitionComposite           = "composite.material"
+	MaterialDefinitionUI                  = "ui.material"
+	MaterialDefinitionUITransparent       = "ui_transparent.material"
+	MaterialDefinitionSprite              = "sprite.material"
+	MaterialDefinitionSpriteTransparent   = "sprite_transparent.material"
+	MaterialDefinitionLightDepth          = "light_depth.material"
+	MaterialDefinitionLightDepthCSM1      = "light_depth_csm1.material"
+	MaterialDefinitionLightDepthCSM2      = "light_depth_csm2.material"
+	MaterialDefinitionLightCubeDepth      = "light_cube_depth.material"
+	MaterialDefinitionParticle            = "particle.material"
+	MaterialDefinitionParticleTransparent = "particle_transparent.material"
+
+	MaterialDefinitionEdTransformWire = "ed_transform_wire.material"
+	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire.material"
+	MaterialDefinitionEdGizmo         = "ed_gizmo.material"
+)
+    Material definitions
+
+const (
+	ShaderTextVert      = "text.vert.spv"
+	ShaderTextFrag      = "text.frag.spv"
+	ShaderText3DVert    = "text3d.vert.spv"
+	ShaderText3DFrag    = ShaderTextFrag
+	ShaderCompositeVert = "composite.vert.spv"
+	ShaderCompositeFrag = "composite.frag.spv"
+	ShaderHdrVert       = "hdr.vert.spv"
+	ShaderHdrFrag       = "hdr.frag.spv"
+	ShaderUIVert        = "ui.vert.spv"
+	ShaderUIFrag        = "ui.frag.spv"
+	ShadersUINineFrag   = "ui_nine.frag.spv"
+)
+    Shaders
+
+
+TYPES
+
+type ArchiveDatabase struct {
+	// Has unexported fields.
+}
+
+func (a *ArchiveDatabase) Cache(key string, data []byte)
+
+func (a *ArchiveDatabase) CacheClear()
+
+func (a *ArchiveDatabase) CacheRemove(key string)
+
+func (a *ArchiveDatabase) Close()
+
+func (a *ArchiveDatabase) Exists(key string) bool
+
+func (a *ArchiveDatabase) PostWindowCreate(windowHandle PostWindowCreateHandle) error
+
+func (a *ArchiveDatabase) Read(key string) ([]byte, error)
+
+func (a *ArchiveDatabase) ReadText(key string) (string, error)
+
+type Database interface {
+	PostWindowCreate(windowHandle PostWindowCreateHandle) error
+	Cache(key string, data []byte)
+	CacheRemove(key string)
+	CacheClear()
+	Read(key string) ([]byte, error)
+	ReadText(key string) (string, error)
+	Exists(key string) bool
+	Close()
+}
+
+func NewArchiveDatabase(archive string, key []byte) (Database, error)
+
+func NewFileDatabase(root string) (Database, error)
+
+type DebugContentDatabase struct{}
+
+func (DebugContentDatabase) Cache(key string, data []byte)
+
+func (DebugContentDatabase) CacheClear()
+
+func (DebugContentDatabase) CacheRemove(key string)
+
+func (DebugContentDatabase) Close()
+
+func (e DebugContentDatabase) Exists(key string) bool
+
+func (DebugContentDatabase) PostWindowCreate(PostWindowCreateHandle) error
+
+func (e DebugContentDatabase) Read(key string) ([]byte, error)
+
+func (e DebugContentDatabase) ReadText(key string) (string, error)
+
+type FileDatabase struct {
+	// Has unexported fields.
+}
+
+func (a *FileDatabase) Cache(key string, data []byte)
+
+func (a *FileDatabase) CacheClear()
+
+func (a *FileDatabase) CacheRemove(key string)
+
+func (a *FileDatabase) Close()
+
+func (a *FileDatabase) Exists(key string) bool
+
+func (a *FileDatabase) PostWindowCreate(PostWindowCreateHandle) error
+
+func (a *FileDatabase) Read(key string) ([]byte, error)
+
+func (a *FileDatabase) ReadText(key string) (string, error)
+
+type MockDatabase struct {
+	// Has unexported fields.
+}
+    MockDatabase implements the assets.Database interface for testing.
+
+func NewMockDB(files map[string][]byte) *MockDatabase
+
+func (m *MockDatabase) AddFile(key string, data []byte)
+
+func (m *MockDatabase) Cache(key string, data []byte)
+
+func (m *MockDatabase) CacheClear()
+
+func (m *MockDatabase) CacheRemove(key string)
+
+func (m *MockDatabase) Close()
+
+func (m *MockDatabase) Exists(key string) bool
+
+func (m *MockDatabase) PostWindowCreate(windowHandle PostWindowCreateHandle) error
+
+func (m *MockDatabase) Read(key string) ([]byte, error)
+
+func (m *MockDatabase) ReadText(key string) (string, error)
+
+func (m *MockDatabase) RemoveFile(key string)
+
+type PostWindowCreateHandle interface {
+	ReadApplicationAsset(path string) ([]byte, error)
+}
+

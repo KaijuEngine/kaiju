@@ -1,0 +1,22 @@
+package confirm_prompt // import "kaiju/editor/editor_overlay/confirm_prompt"
+
+
+TYPES
+
+type Config struct {
+	Title       string
+	Description string
+	ConfirmText string
+	CancelText  string
+	OnConfirm   func()
+	OnCancel    func()
+}
+
+type ConfirmPrompt struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, config Config) (*ConfirmPrompt, error)
+
+func (ip *ConfirmPrompt) Close()
+

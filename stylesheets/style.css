@@ -1,0 +1,125 @@
+/* Feature Grid Styles */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0 3rem 0;
+    max-width: 1200px;
+}
+
+.blog-author {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9rem;
+    color: var(--md-default-fg-color--light);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+    list-style: none;
+    padding-left: 0;
+}
+
+.blog-author .author-name {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.blog-author .author-date {
+    font-style: italic;
+    color: var(--md-default-fg-color--lighter);
+}
+
+.feature-card {
+    border: 1px solid var(--md-default-fg-color--lighter);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+}
+
+.feature-card-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.feature-card-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+    color: inherit;
+}
+
+/* Expanded feature sections */
+.feature-section {
+    margin: 3rem 0;
+    scroll-margin-top: 4rem;
+}
+
+.feature-section h2 {
+    margin-bottom: 1rem;
+}
+
+/* Feature section content - side by side layout */
+.indexHighlight {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.indexHighlight video,
+.indexHighlight img {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+}
+
+.indexHighlight > div:first-child {
+    order: 2;
+}
+
+.indexHighlight > div:last-child {
+    order: 1;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .indexHighlight {
+        grid-template-columns: 1fr;
+    }
+
+    .indexHighlight > div:first-child {
+        order: 1;
+    }
+
+    .indexHighlight > div:last-child {
+        order: 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+[data-md-path=""] .md-sidebar {
+    display: none;
+}

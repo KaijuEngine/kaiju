@@ -1,0 +1,1270 @@
+package matrix // import "kaiju/matrix"
+
+
+CONSTANTS
+
+const (
+	Mat4Row0 = iota
+	Mat4Row1
+	Mat4Row2
+	Mat4Row3
+)
+const (
+	Mat4Col0 = iota
+	Mat4Col1
+	Mat4Col2
+	Mat4Col3
+)
+const (
+	Mat4x0y0 = x0y0
+	Mat4x1y0 = x1y0
+	Mat4x2y0 = x2y0
+	Mat4x3y0 = x3y0
+	Mat4x0y1 = x0y1
+	Mat4x1y1 = x1y1
+	Mat4x2y1 = x2y1
+	Mat4x3y1 = x3y1
+	Mat4x0y2 = x0y2
+	Mat4x1y2 = x1y2
+	Mat4x2y2 = x2y2
+	Mat4x3y2 = x3y2
+	Mat4x0y3 = x0y3
+	Mat4x1y3 = x1y3
+	Mat4x2y3 = x2y3
+	Mat4x3y3 = x3y3
+)
+const (
+	TransformWorkGroup      = "transform"
+	TransformResetWorkGroup = "transformReset"
+)
+const DegToRadVal = (math.Pi / 180.0)
+const FloatMax = Float(math.MaxFloat32)
+const FloatSmallestNonzero = Float(math.SmallestNonzeroFloat32)
+const RadToDegVal = (180.0 / math.Pi)
+const Roughly = 0.001
+const Tiny = 0.0001
+
+FUNCTIONS
+
+func AbsInt(a int) int
+func Approx(a, b Float) bool
+func ApproxTo(a, b, tolerance Float) bool
+func IsInf(x Float, sign int) bool
+func IsNaN(x Float) bool
+func Mat4Approx(a, b Mat4) bool
+func Mat4ApproxTo(a, b Mat4, delta Float) bool
+func QuaternionApprox(a, b Quaternion) bool
+func Vec2Approx(a, b Vec2) bool
+func Vec2ApproxTo(a, b Vec2, delta Float) bool
+func Vec2Nearly(a, b Vec2) bool
+func Vec2Roughly(a, b Vec2) bool
+func Vec3Approx(a, b Vec3) bool
+func Vec3ApproxTo(a, b Vec3, delta Float) bool
+func Vec4Approx(a, b Vec4) bool
+func Vec4ApproxTo(a, b Vec4, delta Float) bool
+func Vec4Roughly(a, b Vec4) bool
+
+TYPES
+
+type Color Vec4
+
+func ColorAqua() Color
+
+func ColorAquamarine() Color
+
+func ColorAzure() Color
+
+func ColorBeige() Color
+
+func ColorBisque() Color
+
+func ColorBlack() Color
+
+func ColorBlanchedAlmond() Color
+
+func ColorBlue() Color
+
+func ColorBlueViolet() Color
+
+func ColorBrown() Color
+
+func ColorBurlyWood() Color
+
+func ColorCadetBlue() Color
+
+func ColorChartreuse() Color
+
+func ColorChocolate() Color
+
+func ColorClear() Color
+
+func ColorCoral() Color
+
+func ColorCornSilk() Color
+
+func ColorCornflowerBlue() Color
+
+func ColorCrimson() Color
+
+func ColorCyan() Color
+
+func ColorDarkBG() Color
+
+func ColorDarkBlue() Color
+
+func ColorDarkCyan() Color
+
+func ColorDarkGoldenrod() Color
+
+func ColorDarkGray() Color
+
+func ColorDarkGreen() Color
+
+func ColorDarkKhaki() Color
+
+func ColorDarkMagenta() Color
+
+func ColorDarkModeGrayBG() Color
+
+func ColorDarkModeGrayFG() Color
+
+func ColorDarkOliveGreen() Color
+
+func ColorDarkOrange() Color
+
+func ColorDarkOrchid() Color
+
+func ColorDarkRed() Color
+
+func ColorDarkSalmon() Color
+
+func ColorDarkSeaGreen() Color
+
+func ColorDarkSlateBlue() Color
+
+func ColorDarkSlateGray() Color
+
+func ColorDarkTurquoise() Color
+
+func ColorDarkViolet() Color
+
+func ColorDeepPink() Color
+
+func ColorDeepSkyBlue() Color
+
+func ColorDimGray() Color
+
+func ColorDodgerBlue() Color
+
+func ColorFirebrick() Color
+
+func ColorFloralWhite() Color
+
+func ColorForestGreen() Color
+
+func ColorFromColor8(c Color8) Color
+
+func ColorFromHexString(str string) (Color, error)
+
+func ColorFromVec3(v Vec3) Color
+
+func ColorFromVec4(v Vec4) Color
+
+func ColorFuchsia() Color
+
+func ColorGainsboro() Color
+
+func ColorGhostWhite() Color
+
+func ColorGold() Color
+
+func ColorGoldenrod() Color
+
+func ColorGray() Color
+
+func ColorGreen() Color
+
+func ColorGreenYellow() Color
+
+func ColorHoneydew() Color
+
+func ColorHotPink() Color
+
+func ColorIndianRed() Color
+
+func ColorIndigo() Color
+
+func ColorIvory() Color
+
+func ColorKhaki() Color
+
+func ColorLavender() Color
+
+func ColorLavenderBlush() Color
+
+func ColorLawnGreen() Color
+
+func ColorLemonChiffon() Color
+
+func ColorLightBlue() Color
+
+func ColorLightCoral() Color
+
+func ColorLightCyan() Color
+
+func ColorLightGoldenrodYellow() Color
+
+func ColorLightGreen() Color
+
+func ColorLightGrey() Color
+
+func ColorLightPink() Color
+
+func ColorLightSalmon() Color
+
+func ColorLightSeaGreen() Color
+
+func ColorLightSkyBlue() Color
+
+func ColorLightSlateGray() Color
+
+func ColorLightSteelBlue() Color
+
+func ColorLightYellow() Color
+
+func ColorLime() Color
+
+func ColorLimeGreen() Color
+
+func ColorLinen() Color
+
+func ColorMagenta() Color
+
+func ColorMaroon() Color
+
+func ColorMediumAquamarine() Color
+
+func ColorMediumBlue() Color
+
+func ColorMediumOrchid() Color
+
+func ColorMediumPurple() Color
+
+func ColorMediumSeaGreen() Color
+
+func ColorMediumSlateBlue() Color
+
+func ColorMediumSpringGreen() Color
+
+func ColorMediumTurquoise() Color
+
+func ColorMediumVioletRed() Color
+
+func ColorMidnightBlue() Color
+
+func ColorMintCream() Color
+
+func ColorMistyRose() Color
+
+func ColorMix(lhs, rhs Color, amount Float) Color
+
+func ColorMoccasin() Color
+
+func ColorNavajoWhite() Color
+
+func ColorNavy() Color
+
+func ColorOldLace() Color
+
+func ColorOlive() Color
+
+func ColorOliveDrab() Color
+
+func ColorOrange() Color
+
+func ColorOrangeRed() Color
+
+func ColorOrchid() Color
+
+func ColorPaleGoldenrod() Color
+
+func ColorPaleGreen() Color
+
+func ColorPaleTurquoise() Color
+
+func ColorPaleVioletred() Color
+
+func ColorPapayaWhip() Color
+
+func ColorPeachPuff() Color
+
+func ColorPeru() Color
+
+func ColorPink() Color
+
+func ColorPlum() Color
+
+func ColorPowderBlue() Color
+
+func ColorPurple() Color
+
+func ColorRGBAInt(r, g, b, a int) Color
+
+func ColorRGBInt(r, g, b int) Color
+
+func ColorRed() Color
+
+func ColorRosyBrown() Color
+
+func ColorRoyalBlue() Color
+
+func ColorSaddleBrown() Color
+
+func ColorSalmon() Color
+
+func ColorSandyBrown() Color
+
+func ColorSeaGreen() Color
+
+func ColorSeashell() Color
+
+func ColorSienna() Color
+
+func ColorSilver() Color
+
+func ColorSky() Color
+
+func ColorSkyBlue() Color
+
+func ColorSlateBlue() Color
+
+func ColorSlateGray() Color
+
+func ColorSlateGrey() Color
+
+func ColorSnow() Color
+
+func ColorSpringGreen() Color
+
+func ColorSteelBlue() Color
+
+func ColorTan() Color
+
+func ColorTeal() Color
+
+func ColorThistle() Color
+
+func ColorTomato() Color
+
+func ColorTransparent() Color
+
+func ColorTurquoise() Color
+
+func ColorViolet() Color
+
+func ColorWheat() Color
+
+func ColorWhite() Color
+
+func ColorWhiteSmoke() Color
+
+func ColorYellow() Color
+
+func ColorYellowGreen() Color
+
+func ColorZero() Color
+
+func NewColor(r, g, b, a Float) Color
+
+func (c Color) A() Float
+
+func (c Color) AsColor8() Color8
+
+func (c Color) B() Float
+
+func (lhs Color) Equals(rhs Color) bool
+
+func (c Color) G() Float
+
+func (c Color) Hex() string
+
+func (c *Color) Inverted() Color
+
+func (c Color) IsZero() bool
+
+func (c *Color) MultiplyAssign(other Color)
+
+func (c *Color) PA() *Float
+
+func (c *Color) PB() *Float
+
+func (c *Color) PG() *Float
+
+func (c *Color) PR() *Float
+
+func (c Color) R() Float
+
+func (c Color) RGBA() (Float, Float, Float, Float)
+
+func (c Color) ScaleWithoutAlpha(scale Float) Color
+
+func (c *Color) SetA(a Float)
+
+func (c *Color) SetB(b Float)
+
+func (c *Color) SetG(g Float)
+
+func (c *Color) SetR(r Float)
+
+type Color8 [4]uint8
+
+func Color8FromBytes(bytes []byte) Color8
+
+func Color8FromColor(c Color) Color8
+
+func Color8FromHexString(str string) (Color8, error)
+
+func NewColor8(r, g, b, a uint8) Color8
+
+func (c Color8) A() uint8
+
+func (c Color8) AsColor() Color
+
+func (c Color8) B() uint8
+
+func (c Color8) Equal(rhs Color8) bool
+
+func (c Color8) G() uint8
+
+func (c Color8) Hex() string
+
+func (c *Color8) PA() *uint8
+
+func (c *Color8) PB() *uint8
+
+func (c *Color8) PG() *uint8
+
+func (c *Color8) PR() *uint8
+
+func (c Color8) R() uint8
+
+func (c Color8) RGBA() (uint8, uint8, uint8, uint8)
+
+func (c *Color8) SetA(a uint8)
+
+func (c *Color8) SetB(b uint8)
+
+func (c *Color8) SetG(g uint8)
+
+func (c *Color8) SetR(r uint8)
+
+func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool
+
+func (c Color8) ToUintRaw() uint32
+
+type ColorComponent = int
+
+const (
+	R ColorComponent = iota
+	G
+	B
+	A
+)
+type Float = float32
+
+func Abs(x Float) Float
+
+func Acos(x Float) Float
+
+func Asin(x Float) Float
+
+func Atan(x Float) Float
+
+func Atan2(y Float, x Float) Float
+
+func Ceil(x Float) Float
+
+func Clamp(current, minimum, maximum Float) Float
+
+func Cos(x Float) Float
+
+func Deg2Rad(degree Float) Float
+
+func Floor(x Float) Float
+
+func Inf(sign int) Float
+
+func Lerp(v0, v1, t Float) Float
+
+func Log2(x Float) Float
+
+func Max(a Float, b Float) Float
+
+func Min(a Float, b Float) Float
+
+func Mod(x Float, y Float) Float
+
+func NaN() Float
+
+func Pow(x Float, y Float) Float
+
+func Rad2Deg(radian Float) Float
+
+func Round(x Float) Float
+
+func Sin(x Float) Float
+
+func Sqrt(x Float) Float
+
+func Tan(x Float) Float
+
+func Vec2Dot(v, other Vec2) Float
+
+func Vec3Dot(v, other Vec3) Float
+
+func Vec4Dot(a, b Vec4) Float
+
+type Mat3 [9]Float
+
+func Mat3FromMat4(m Mat4) Mat3
+
+func Mat3Identity() Mat3
+
+func Mat3Zero() Mat3
+
+func NewMat3() Mat3
+
+func (m Mat3) ColumnVector(col int) Vec3
+
+func (m Mat3) Multiply(rhs Mat3) Mat3
+
+func (m *Mat3) MultiplyAssign(rhs Mat3)
+
+func (m Mat3) MultiplyVec3(v Vec3) Vec3
+
+func (m *Mat3) Reset()
+
+func (m Mat3) RowVector(row int) Vec3
+
+func (m Mat3) ToMat4() Mat4
+
+func (m Mat3) Transpose() Mat3
+
+type Mat4 [16]Float
+
+func Mat4FromSlice(a []Float) Mat4
+
+func Mat4Identity() Mat4
+
+func Mat4LookAt(eye, center, up Vec3) Mat4
+
+func Mat4Multiply(a, b Mat4) Mat4
+
+func Mat4Zero() Mat4
+
+func NewMat4() Mat4
+
+func (m *Mat4) AddAssign(rhs Mat4)
+
+func (m Mat4) At(rowIndex, colIndex int) Float
+
+func (m Mat4) ColumnVector(col int) Vec4
+
+func (m Mat4) Equals(other Mat4) bool
+
+func (m Mat4) ExtractPosition() Vec3
+
+func (m Mat4) ExtractRotation() Quaternion
+
+func (m Mat4) ExtractScale() Vec3
+
+func (m Mat4) Forward() Vec3
+
+func (m *Mat4) Inverse()
+
+func (m Mat4) Inverted() Mat4
+
+func (m Mat4) IsIdentity() bool
+
+func (m *Mat4) LookAt(eye, center, up Vec3)
+
+func (m *Mat4) Mat3() Mat3
+
+func (m Mat4) Mat4ProjToVulkan() Mat4
+
+func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3
+
+func (m Mat4) Mat4UnProject(p Vec3, invViewProj Mat4, viewport Vec4) Vec3
+
+func (a *Mat4) MultiplyAssign(b Mat4)
+
+func (m *Mat4) NegateAssign()
+
+func (m *Mat4) Orthographic(left, right, bottom, top, near, far Float)
+
+func (m *Mat4) Perspective(fovy, aspect, nearVal, farVal Float)
+
+func (m *Mat4) Reset()
+
+func (m Mat4) Right() Vec3
+
+func (m *Mat4) Rotate(rotate Vec3)
+
+func (m *Mat4) RotateAngles(axis Vec3, angle Float)
+
+func (m *Mat4) RotateX(angles Float)
+
+func (m *Mat4) RotateY(angles Float)
+
+func (m *Mat4) RotateZ(angles Float)
+
+func (m Mat4) RowVector(row int) Vec4
+
+func (m *Mat4) Scale(scale Vec3)
+
+func (m *Mat4) SetTranslation(translation Vec3)
+
+func (m *Mat4) SubtractAssign(rhs Mat4)
+
+func (m Mat4) ToQuaternion() Quaternion
+
+func (m Mat4) TransformPoint(point Vec3) Vec3
+
+func (m *Mat4) Translate(translation Vec3)
+
+func (m Mat4) Transpose() Mat4
+
+func (m *Mat4) TransposeAssign()
+
+func (m Mat4) Up() Vec3
+
+func (m *Mat4) Zero()
+
+type Quaternion [4]Float
+
+func NewQuaternion(w, x, y, z Float) Quaternion
+
+func QuatAngleBetween(lhs, rhs Vec3) Quaternion
+
+func QuaternionAxisAngle(axis Vec3, angle Float) Quaternion
+
+func QuaternionFromArray(xyzw [4]Float) Quaternion
+
+func QuaternionFromEuler(v Vec3) Quaternion
+
+func QuaternionFromMat4(m Mat4) Quaternion
+
+func QuaternionFromSlice(xyzw []Float) Quaternion
+
+func QuaternionFromVec4(v Vec4) Quaternion
+
+func QuaternionFromXYZW(xyzw [4]Float) Quaternion
+
+func QuaternionFromXYZWSlice(xyzw []Float) Quaternion
+
+func QuaternionIdentity() Quaternion
+
+func QuaternionLerp(from, to Quaternion, factor Float) Quaternion
+
+func QuaternionLookAt(from, to Vec3) Quaternion
+
+func QuaternionSlerp(from, to Quaternion, factor Float) Quaternion
+
+func (q *Quaternion) AddAssign(rhs Quaternion)
+
+func (q *Quaternion) Conjugate()
+
+func (q *Quaternion) Inverse()
+
+func (q Quaternion) IsZero() bool
+
+func (q Quaternion) Multiply(rhs Quaternion) Quaternion
+
+func (q *Quaternion) MultiplyAssign(rhs Quaternion)
+
+func (q Quaternion) MultiplyVec3(rhs Vec3) Vec3
+
+func (q Quaternion) Normal() Quaternion
+
+func (q *Quaternion) Normalize()
+
+func (q Quaternion) ToEuler() Vec3
+
+func (q Quaternion) ToMat4() Mat4
+
+func (q Quaternion) W() Float
+
+func (q Quaternion) X() Float
+
+func (q Quaternion) Y() Float
+
+func (q Quaternion) Z() Float
+
+type QuaternionComponent = int
+
+const (
+	Qw QuaternionComponent = iota
+	Qx
+	Qy
+	Qz
+)
+type Transform struct {
+	// Has unexported fields.
+}
+
+func (t *Transform) AddPosition(add Vec3)
+
+func (t *Transform) AddRotation(add Vec3)
+
+func (t *Transform) AddScale(add Vec3)
+
+func (t *Transform) ContainsPoint(point Vec3) bool
+
+func (t *Transform) ContainsPoint2D(point Vec2) bool
+
+func (t *Transform) Copy(other Transform)
+
+func (t *Transform) Forward() Vec3
+
+func (t *Transform) Initialize(workGroup *concurrent.WorkGroup)
+
+func (t *Transform) InverseWorldMatrix() Mat4
+
+func (t *Transform) IsDirty() bool
+
+func (t *Transform) LocalPosition() Vec3
+
+func (t *Transform) LookAt(point Vec3)
+
+func (t *Transform) Matrix() Mat4
+
+func (t *Transform) Parent() *Transform
+
+func (t *Transform) Position() Vec3
+
+func (t *Transform) ResetDirty()
+
+func (t *Transform) Right() Vec3
+
+func (t *Transform) Rotation() Vec3
+
+func (t *Transform) Scale() Vec3
+
+func (t *Transform) ScaleWithoutChildren(scale Vec3)
+    ScaleWithoutChildren will scale a transform without changing the world scale
+    of the children of this transform. That is to say, it will update all the
+    child transform scales to return to their original world scale after scaling
+    this transform.
+
+func (t *Transform) SetChildrenOrdered()
+
+func (t *Transform) SetChildrenUnordered()
+
+func (t *Transform) SetDirty()
+
+func (t *Transform) SetLocalPosition(position Vec3)
+
+func (t *Transform) SetParent(parent *Transform)
+
+func (t *Transform) SetPosition(position Vec3)
+
+func (t *Transform) SetRotation(rotation Vec3)
+
+func (t *Transform) SetScale(scale Vec3)
+
+func (t *Transform) SetWorldPosition(position Vec3)
+
+func (t *Transform) SetWorldRotation(rotation Vec3)
+
+func (t *Transform) SetWorldScale(scale Vec3)
+
+func (t *Transform) SetupRawTransform()
+
+func (t *Transform) Up() Vec3
+
+func (t *Transform) WorldMatrix() Mat4
+
+func (t *Transform) WorldPosition() Vec3
+
+func (t *Transform) WorldRotation() Vec3
+
+func (t *Transform) WorldScale() Vec3
+
+func (t *Transform) WorldTransform() (Vec3, Vec3, Vec3)
+
+type Vec2 [2]Float
+
+func NewVec2(x, y Float) Vec2
+
+func Vec2Down() Vec2
+
+func Vec2FromArray(a [2]Float) Vec2
+
+func Vec2FromSlice(a []Float) Vec2
+
+func Vec2FromString(str string) Vec2
+
+func Vec2Half() Vec2
+
+func Vec2Largest() Vec2
+
+func Vec2Left() Vec2
+
+func Vec2Lerp(from, to Vec2, t Float) Vec2
+
+func Vec2Max(a, b Vec2) Vec2
+
+func Vec2MaxAbs(a, b Vec2) Vec2
+
+func Vec2Min(a, b Vec2) Vec2
+
+func Vec2MinAbs(a, b Vec2) Vec2
+
+func Vec2One() Vec2
+
+func Vec2Right() Vec2
+
+func Vec2Up() Vec2
+
+func Vec2Zero() Vec2
+
+func (v Vec2) Abs() Vec2
+
+func (v Vec2) Add(other Vec2) Vec2
+
+func (v *Vec2) AddAssign(other Vec2)
+
+func (v Vec2) Angle(other Vec2) Float
+
+func (v Vec2) AsVec2i() Vec2i
+
+func (v *Vec2) AsVec3() Vec3
+
+func (v Vec2) Distance(other Vec2) Float
+
+func (v Vec2) Divide(other Vec2) Vec2
+
+func (v *Vec2) DivideAssign(other Vec2)
+
+func (v Vec2) Equals(other Vec2) bool
+
+func (v Vec2) Height() Float
+
+func (v *Vec2) Inverse()
+
+func (v Vec2) LargestAxis() Float
+
+func (v Vec2) LargestAxisDelta() Float
+
+func (v Vec2) Length() Float
+
+func (v Vec2) Multiply(other Vec2) Vec2
+
+func (v *Vec2) MultiplyAssign(other Vec2)
+
+func (v Vec2) Negative() Vec2
+
+func (v Vec2) Normal() Vec2
+
+func (v *Vec2) Normalize()
+
+func (v *Vec2) PX() *Float
+
+func (v *Vec2) PY() *Float
+
+func (v Vec2) Scale(scalar Float) Vec2
+
+func (v *Vec2) ScaleAssign(scalar Float)
+
+func (v *Vec2) SetHeight(y Float)
+
+func (v *Vec2) SetWidth(x Float)
+
+func (v *Vec2) SetX(x Float)
+
+func (v *Vec2) SetY(y Float)
+
+func (v Vec2) Shrink(scalar Float) Vec2
+
+func (v *Vec2) ShrinkAssign(scalar Float)
+
+func (v Vec2) String() string
+
+func (v Vec2) Subtract(other Vec2) Vec2
+
+func (v *Vec2) SubtractAssign(other Vec2)
+
+func (v Vec2) Width() Float
+
+func (v Vec2) X() Float
+
+func (v Vec2) XY() (Float, Float)
+
+func (v Vec2) Y() Float
+
+type Vec2i [2]int32
+
+func (v Vec2i) X() int32
+
+func (v Vec2i) Y() int32
+
+type Vec3 [3]Float
+
+func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) (Vec3, bool)
+
+func NewVec3(x, y, z Float) Vec3
+
+func NewVec3XYZ(xyz Float) Vec3
+
+func Vec3Abs(v Vec3) Vec3
+
+func Vec3Backward() Vec3
+
+func Vec3Cross(v, other Vec3) Vec3
+
+func Vec3Down() Vec3
+
+func Vec3Forward() Vec3
+
+func Vec3FromArray(a [3]Float) Vec3
+
+func Vec3FromSlice(a []Float) Vec3
+
+func Vec3FromString(str string) Vec3
+
+func Vec3Half() Vec3
+
+func Vec3Inf(sign int) Vec3
+
+func Vec3Largest() Vec3
+
+func Vec3Left() Vec3
+
+func Vec3Lerp(from, to Vec3, t Float) Vec3
+
+func Vec3Max(v ...Vec3) Vec3
+
+func Vec3MaxAbs(v ...Vec3) Vec3
+
+func Vec3Min(v ...Vec3) Vec3
+
+func Vec3MinAbs(v ...Vec3) Vec3
+
+func Vec3NaN() Vec3
+
+func Vec3One() Vec3
+
+func Vec3Right() Vec3
+
+func Vec3Up() Vec3
+
+func Vec3Zero() Vec3
+
+func (v Vec3) Abs() Vec3
+
+func (v Vec3) Add(other Vec3) Vec3
+
+func (v *Vec3) AddAssign(other Vec3)
+
+func (v *Vec3) AddX(x Float)
+
+func (v *Vec3) AddY(y Float)
+
+func (v *Vec3) AddZ(z Float)
+
+func (v Vec3) Angle(other Vec3) Float
+
+func (v Vec3) AsAligned16() [4]Float
+
+func (v Vec3) AsVec2() Vec2
+
+func (v Vec3) AsVec3i() Vec3i
+
+func (v Vec3) AsVec4() Vec4
+
+func (v Vec3) AsVec4WithW(w Float) Vec4
+
+func (v Vec3) Depth() Float
+
+func (v Vec3) Distance(other Vec3) Float
+
+func (v Vec3) Divide(other Vec3) Vec3
+
+func (v *Vec3) DivideAssign(other Vec3)
+
+func (v Vec3) Equals(other Vec3) bool
+
+func (v Vec3) Height() Float
+
+func (v *Vec3) Inverse()
+
+func (v Vec3) IsInf(sign int) bool
+
+func (v Vec3) IsNaN() bool
+
+func (v Vec3) IsZero() bool
+
+func (v Vec3) LargestAxis() Float
+
+func (v Vec3) LargestAxisDelta() Float
+
+func (v Vec3) Length() Float
+
+func (v Vec3) LengthSquared() Float
+
+func (v Vec3) LongestAxis() int
+
+func (v Vec3) LongestAxisValue() Float
+
+func (v Vec3) Multiply(other Vec3) Vec3
+
+func (v *Vec3) MultiplyAssign(other Vec3)
+
+func (v Vec3) MultiplyMat3(rhs Mat3) Vec3
+
+func (v Vec3) Negative() Vec3
+
+func (v Vec3) Normal() Vec3
+
+func (v *Vec3) Normalize()
+
+func (v Vec3) Orthogonal() Vec3
+
+func (v *Vec3) PX() *Float
+
+func (v *Vec3) PY() *Float
+
+func (v *Vec3) PZ() *Float
+
+func (v Vec3) Scale(scalar Float) Vec3
+
+func (v *Vec3) ScaleAssign(scalar Float)
+
+func (v *Vec3) ScaleX(s Float)
+
+func (v *Vec3) ScaleY(s Float)
+
+func (v *Vec3) ScaleZ(s Float)
+
+func (v *Vec3) SetX(x Float)
+
+func (v *Vec3) SetY(y Float)
+
+func (v *Vec3) SetZ(z Float)
+
+func (v Vec3) Shrink(scalar Float) Vec3
+
+func (v *Vec3) ShrinkAssign(scalar Float)
+
+func (v Vec3) SignedAngle(other Vec3, axis Vec3) Float
+    SignedAngle returns the signed angle (in radians) from v to other around the
+    given axis. The sign is positive for counterclockwise rotation when looking
+    along the axis direction. Assumes non-zero vectors; returns 0 if v or other
+    is zero-length or they are equal. For best precision, normalize v, other,
+    and axis before calling if they aren't already.
+
+func (v Vec3) SquareDistance(b Vec3) Float
+
+func (v Vec3) String() string
+
+func (v Vec3) Subtract(other Vec3) Vec3
+
+func (v *Vec3) SubtractAssign(other Vec3)
+
+func (v Vec3) Width() Float
+
+func (v Vec3) X() Float
+
+func (v Vec3) XY() Vec2
+
+func (v Vec3) XYZ() (Float, Float, Float)
+
+func (v Vec3) XZ() Vec2
+
+func (v Vec3) Y() Float
+
+func (v Vec3) Z() Float
+
+type Vec3MinMax struct {
+	Min Vec3
+	Max Vec3
+}
+
+func NewVec3MinMax() Vec3MinMax
+
+type Vec3i [3]int32
+
+func (v Vec3i) X() int32
+
+func (v Vec3i) Y() int32
+
+func (v Vec3i) Z() int32
+
+type Vec4 [4]Float
+
+func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
+
+func NewVec4(x, y, z, w Float) Vec4
+
+func Vec4Area(xa, ya, xb, yb Float) Vec4
+
+func Vec4FromArray(a [4]Float) Vec4
+
+func Vec4FromSlice(a []Float) Vec4
+
+func Vec4FromString(str string) Vec4
+
+func Vec4Half() Vec4
+
+func Vec4Largest() Vec4
+
+func Vec4Lerp(from, to Vec4, t Float) Vec4
+
+func Vec4Max(a, b Vec4) Vec4
+
+func Vec4MaxAbs(a, b Vec4) Vec4
+
+func Vec4Min(a, b Vec4) Vec4
+
+func Vec4MinAbs(a, b Vec4) Vec4
+
+func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
+
+func Vec4One() Vec4
+
+func Vec4Zero() Vec4
+
+func (v Vec4) Abs() Vec4
+
+func (v Vec4) Add(other Vec4) Vec4
+
+func (v *Vec4) AddAssign(other Vec4)
+
+func (v Vec4) Angle(other Vec4) Float
+
+func (v Vec4) AreaContains(x, y Float) bool
+
+func (v Vec4) AsVec3() Vec3
+
+func (v Vec4) AsVec4i() Vec4i
+
+func (v Vec4) Bottom() Float
+
+func (v Vec4) BoxContains(x, y Float) bool
+
+func (v Vec4) Distance(other Vec4) Float
+
+func (v Vec4) Divide(other Vec4) Vec4
+
+func (v *Vec4) DivideAssign(other Vec4)
+
+func (v Vec4) Equals(other Vec4) bool
+
+func (v Vec4) Height() Float
+
+func (v Vec4) Horizontal() Float
+
+func (v *Vec4) Inverse()
+
+func (v Vec4) LargestAxis() Float
+
+func (v Vec4) LargestAxisDelta() Float
+
+func (v Vec4) Left() Float
+
+func (v Vec4) Length() Float
+
+func (v Vec4) Multiply(other Vec4) Vec4
+
+func (v *Vec4) MultiplyAssign(other Vec4)
+
+func (v Vec4) Negative() Vec4
+
+func (v Vec4) Normal() Vec4
+
+func (v *Vec4) Normalize()
+
+func (v *Vec4) PW() *Float
+
+func (v *Vec4) PX() *Float
+
+func (v *Vec4) PY() *Float
+
+func (v *Vec4) PZ() *Float
+
+func (v Vec4) Right() Float
+
+func (v Vec4) Scale(scalar Float) Vec4
+
+func (v *Vec4) ScaleAssign(scalar Float)
+
+func (v Vec4) ScreenAreaContains(x, y Float) bool
+
+func (v *Vec4) SetBottom(w Float)
+
+func (v *Vec4) SetHeight(w Float)
+
+func (v *Vec4) SetLeft(x Float)
+
+func (v *Vec4) SetRight(z Float)
+
+func (v *Vec4) SetTop(y Float)
+
+func (v *Vec4) SetW(w Float)
+
+func (v *Vec4) SetWidth(z Float)
+
+func (v *Vec4) SetX(x Float)
+
+func (v *Vec4) SetY(y Float)
+
+func (v *Vec4) SetZ(z Float)
+
+func (v Vec4) Shrink(scalar Float) Vec4
+
+func (v *Vec4) ShrinkAssign(scalar Float)
+
+func (v Vec4) String() string
+
+func (v Vec4) Subtract(other Vec4) Vec4
+
+func (v *Vec4) SubtractAssign(other Vec4)
+
+func (v Vec4) Top() Float
+
+func (v Vec4) Vertical() Float
+
+func (v Vec4) W() Float
+
+func (v Vec4) Width() Float
+
+func (v Vec4) X() Float
+
+func (v Vec4) XYZW() (Float, Float, Float, Float)
+
+func (v Vec4) Y() Float
+
+func (v Vec4) Z() Float
+
+type Vec4i [4]int32
+
+func (v Vec4i) Height() int32
+
+func (v Vec4i) W() int32
+
+func (v Vec4i) Width() int32
+
+func (v Vec4i) X() int32
+
+func (v Vec4i) Y() int32
+
+func (v Vec4i) Z() int32
+
+type VectorComponent = int
+
+const (
+	Vx VectorComponent = iota
+	Vy
+	Vz
+	Vw
+)

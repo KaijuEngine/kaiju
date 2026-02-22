@@ -1,0 +1,18 @@
+package glsl // import "kaiju/rendering/glsl"
+
+
+TYPES
+
+type ShaderSource struct {
+	WorkGroups [3]uint32
+	Layouts    []rendering.ShaderLayout
+
+	// Has unexported fields.
+}
+
+func Parse(path string, args string) (ShaderSource, error)
+
+func (s *ShaderSource) IsCompute() bool
+
+func (s *ShaderSource) Type() string
+

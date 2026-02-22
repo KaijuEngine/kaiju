@@ -1,0 +1,90 @@
+package memento // import "kaiju/editor/memento"
+
+
+TYPES
+
+type History struct {
+	// Has unexported fields.
+}
+
+func (h *History) Add(m Memento)
+    Add inserts a new memento into the history. If a transaction is active,
+    the memento is queued instead of being added immediately.
+
+func (h *History) AddOrReplaceLast(m Memento)
+    AddOrReplaceLast inserts a new memento into the history. If the most
+    recent memento (the one at h.position‑1) has the same concrete type as
+    the supplied memento, it is replaced instead of creating a new entry.
+    This is useful for collapsing consecutive operations of the same kind (e.g.
+    repeated brush strokes) into a single undo step.
+
+func (h *History) BeginTransaction()
+    BeginTransaction starts a new transaction. Subsequent Add calls will be
+    queued in the transaction until it is committed or cancelled. If committed
+    all of the undos will be joined together into a single undo/redo operation.
+    You should start a transaction when calling common methods that would create
+    their own internal history.
+
+    For example, when you delete selected entities, the clear function is called
+    on the selection (to update UI, visuals, and other things). This clear call
+    will generate history, thus creating 2 history entries (clear and delete).
+    By starting a transaction, both of those will be within the same undo/redo
+    call.
+
+func (h *History) CancelTransaction()
+    CancelTransaction aborts the current transaction, discarding any queued
+    mementos.
+
+func (h *History) Clear()
+    Clear removes all mementos from the history and resets the position.
+
+func (h *History) CommitTransaction()
+    CommitTransaction finalizes the current transaction, adding all queued
+    mementos to the history as a single atomic operation.
+
+func (h *History) HasPendingChanges() bool
+    HasPendingChanges reports whether the history has changes since the last
+    saved position.
+
+func (h *History) Initialize(limit int)
+    Initialize sets the max number of undo entries that the history will retain.
+
+func (h *History) IsInTransaction() bool
+    IsInTransaction reports whether a history transaction is currently active.
+
+func (h *History) Last() (Memento, bool)
+
+func (h *History) LockAdditions()
+    LockAdditions prevents new mementos from being added to the history.
+
+func (h *History) Redo()
+    Redo reapplies the next memento in the stack, moving the position forward.
+
+func (h *History) SetSavePosition()
+    SetSavePosition records the current position as the saved state.
+
+func (h *History) Undo()
+    Undo reverts the most recent memento, moving the current position back.
+
+func (h *History) UnlockAdditions()
+    UnlockAdditions re-enables adding new mementos after a lock.
+
+type HistoryTransaction struct {
+	// Has unexported fields.
+}
+
+func (h *HistoryTransaction) Delete()
+
+func (h *HistoryTransaction) Exit()
+
+func (h *HistoryTransaction) Redo()
+
+func (h *HistoryTransaction) Undo()
+
+type Memento interface {
+	Redo()   // Called to redo the action
+	Undo()   // Called to undo the action
+	Delete() // Called when the undo state is overridden by new undo data
+	Exit()   // Called when the undo state falls off the history list
+}
+

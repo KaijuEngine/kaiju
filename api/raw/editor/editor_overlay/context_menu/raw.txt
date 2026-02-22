@@ -1,0 +1,18 @@
+package context_menu // import "kaiju/editor/editor_overlay/context_menu"
+
+
+TYPES
+
+type ContextMenu struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, options []ContextMenuOption, screenPos matrix.Vec2, onClose func()) (*ContextMenu, error)
+
+func (o *ContextMenu) Close()
+
+type ContextMenuOption struct {
+	Label string
+	Call  func()
+}
+

@@ -1,0 +1,109 @@
+package transform_tools // import "kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
+
+
+TYPES
+
+type AxisState uint8
+
+const (
+	AxisStateNone AxisState = iota
+	AxisStateX
+	AxisStateY
+	AxisStateZ
+)
+func (a *AxisState) Toggle(axis AxisState)
+
+type RotationTool struct {
+	OnDragStart  events.EventWithArg[matrix.Vec4]
+	OnDragRotate events.EventWithArg[matrix.Vec4]
+	OnDragEnd    events.EventWithArg[matrix.Vec4]
+
+	// Has unexported fields.
+}
+
+func (t *RotationTool) Hide()
+
+func (t *RotationTool) Initialize(host *engine.Host)
+
+func (t *RotationTool) Show(pos matrix.Vec3)
+
+func (t *RotationTool) Update(host *engine.Host, snap bool, snapScale float32) bool
+
+type ScalingTool struct {
+	OnDragStart events.EventWithArg[matrix.Vec3]
+	OnDragScale events.EventWithArg[matrix.Vec3]
+	OnDragEnd   events.EventWithArg[matrix.Vec3]
+
+	// Has unexported fields.
+}
+
+func (t *ScalingTool) Hide()
+
+func (t *ScalingTool) Initialize(host *engine.Host)
+
+func (t *ScalingTool) Show(pos matrix.Vec3)
+
+func (t *ScalingTool) Update(host *engine.Host, snap bool, snapScale float32) bool
+
+type ScalingToolBox struct {
+	// Has unexported fields.
+}
+
+func (a *ScalingToolBox) Initialize(host *engine.Host, vec int)
+
+type StageInterface interface {
+	Camera() *editor_controls.EditorCamera
+	WorkspaceHost() *engine.Host
+	Manager() *editor_stage_manager.StageManager
+}
+
+type ToolState = uint8
+
+const (
+	ToolStateNone ToolState = iota
+	ToolStateMove
+	ToolStateRotate
+	ToolStateScale
+)
+type TransformTool struct {
+	// Has unexported fields.
+}
+
+func (t *TransformTool) Cancel()
+
+func (t *TransformTool) Disable()
+
+func (t *TransformTool) Enable(state ToolState)
+
+func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, history *memento.History, snapSettings *editor_settings.SnapSettings)
+
+func (t *TransformTool) Update() (busy bool)
+
+type TranslationTool struct {
+	OnDragStart events.EventWithArg[matrix.Vec3]
+	OnDragMove  events.EventWithArg[matrix.Vec3]
+	OnDragEnd   events.EventWithArg[matrix.Vec3]
+
+	// Has unexported fields.
+}
+
+func (t *TranslationTool) Hide()
+
+func (t *TranslationTool) Initialize(host *engine.Host)
+
+func (t *TranslationTool) Show(pos matrix.Vec3)
+
+func (t *TranslationTool) Update(host *engine.Host, snap bool, snapScale float32) bool
+
+type TranslationToolArrow struct {
+	// Has unexported fields.
+}
+
+func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int)
+
+type TranslationToolCircle struct {
+	// Has unexported fields.
+}
+
+func (a *TranslationToolCircle) Initialize(host *engine.Host, vec int)
+

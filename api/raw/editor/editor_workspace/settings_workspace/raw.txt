@@ -1,0 +1,31 @@
+package settings_workspace // import "kaiju/editor/editor_workspace/settings_workspace"
+
+
+TYPES
+
+type SettingsWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *SettingsWorkspace) Close()
+
+func (w *SettingsWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspaceEditorInterface)
+
+func (w *SettingsWorkspace) Open()
+
+func (w *SettingsWorkspace) RequestReload()
+
+type SettingsWorkspaceEditorInterface interface {
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	Settings() *editor_settings.Settings
+	UpdateSettings()
+	RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onComplete func(err error)) error
+}
+

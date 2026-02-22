@@ -1,0 +1,85 @@
+package vfx // import "kaiju/rendering/vfx"
+
+
+FUNCTIONS
+
+func EditorReflectionOptions(name string) []string
+func RegisterPathFunc(name string, fn func(t float64) matrix.Vec3)
+
+TYPES
+
+type Emitter struct {
+	Config EmitterConfig
+
+	// Has unexported fields.
+}
+
+func (e *Emitter) Activate()
+
+func (e *Emitter) Deactivate()
+
+func (e *Emitter) Destroy()
+
+func (e *Emitter) ForceReloadConfig(host *engine.Host)
+
+func (e *Emitter) Initialize(host *engine.Host, config EmitterConfig)
+
+func (e *Emitter) IsValid() bool
+
+func (e *Emitter) ReloadConfig(host *engine.Host)
+
+type EmitterConfig struct {
+	Texture          content_id.Texture
+	SpawnRate        float64
+	ParticleLifeSpan float32
+	LifeSpan         float64
+	Offset           matrix.Vec3
+	DirectionMin     matrix.Vec3
+	DirectionMax     matrix.Vec3
+	VelocityMinMax   matrix.Vec2
+	OpacityMinMax    matrix.Vec2
+	Color            matrix.Color
+	PathFuncName     string                      `options:"PathFuncName"`
+	PathFunc         func(t float64) matrix.Vec3 `visible:"hidden"`
+	PathFuncOffset   float64
+	PathFuncScale    float32
+	PathFuncSpeed    float32
+	FadeOutOverLife  bool
+	Burst            bool
+	Repeat           bool
+}
+
+type Particle struct {
+	Transform       particleTransformation
+	Velocity        particleTransformation
+	OpacityVelocity float32
+	LifeSpan        float32
+}
+
+type ParticleSystem struct {
+	Emitters []Emitter
+	// Has unexported fields.
+}
+
+func (p *ParticleSystem) Activate()
+
+func (p *ParticleSystem) AddEmitter(cfg EmitterConfig) *Emitter
+
+func (p *ParticleSystem) Clear()
+
+func (p *ParticleSystem) Deactivate()
+
+func (p *ParticleSystem) Destroy()
+
+func (p *ParticleSystem) Initialize(host *engine.Host, entity *engine.Entity, spec ParticleSystemSpec)
+
+func (p *ParticleSystem) IsValid() bool
+
+func (p *ParticleSystem) LoadSpec(host *engine.Host, spec ParticleSystemSpec)
+
+func (p *ParticleSystem) RemoveEmitter(idx int)
+
+type ParticleSystemSpec []EmitterConfig
+
+func LoadSpec(host *engine.Host, id string) (ParticleSystemSpec, error)
+

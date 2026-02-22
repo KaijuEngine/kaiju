@@ -1,0 +1,25 @@
+package editor_embedded_content // import "kaiju/editor/editor_embedded_content"
+
+
+TYPES
+
+type EditorContent struct {
+	Pfs *project_file_system.FileSystem
+}
+
+func (EditorContent) Cache(key string, data []byte)
+
+func (EditorContent) CacheClear()
+
+func (EditorContent) CacheRemove(key string)
+
+func (EditorContent) Close()
+
+func (e EditorContent) Exists(key string) bool
+
+func (a *EditorContent) PostWindowCreate(assets.PostWindowCreateHandle) error
+
+func (e EditorContent) Read(key string) ([]byte, error)
+
+func (e EditorContent) ReadText(key string) (string, error)
+

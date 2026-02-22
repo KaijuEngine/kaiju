@@ -1,0 +1,14 @@
+package reference_viewer // import "kaiju/editor/editor_overlay/reference_viewer"
+
+
+TYPES
+
+type ReferenceViewer struct {
+	OnClose events.Event
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, project *project.Project, id string) (*ReferenceViewer, error)
+
+func (o *ReferenceViewer) Close()
+

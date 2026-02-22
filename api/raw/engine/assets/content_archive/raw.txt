@@ -1,0 +1,43 @@
+package content_archive // import "kaiju/engine/assets/content_archive"
+
+
+FUNCTIONS
+
+func CreateArchiveFromFiles(reader FileReader, outPath string, files []SourceContent, key []byte) error
+func CreateArchiveFromFolder(reader FileReader, inPath, outPath string, key []byte) error
+
+TYPES
+
+type Archive struct {
+	// Has unexported fields.
+}
+    Archive manages the packed assets.
+
+func OpenArchiveFile(path string, key []byte) (*Archive, error)
+
+func OpenArchiveFromBytes(data []byte, key []byte) (*Archive, error)
+
+func (a *Archive) Exists(name string) bool
+
+func (a *Archive) Read(name string) ([]byte, error)
+
+type Asset struct {
+	Name   string
+	Offset uint64
+	Size   uint32
+	CRC    uint32 // CRC32 of original (deobf) data.
+	Data   []byte // Loaded/cached deobf data.
+}
+    Asset holds metadata.
+
+type FileReader interface {
+	Read(key string) ([]byte, error)
+}
+
+type SourceContent struct {
+	Key              string
+	FullPath         string
+	RawData          []byte
+	CustomSerializer func(reader FileReader, rawData []byte) ([]byte, error)
+}
+

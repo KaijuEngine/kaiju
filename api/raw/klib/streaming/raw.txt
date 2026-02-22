@@ -1,0 +1,7 @@
+package streaming // import "kaiju/klib/streaming"
+
+
+FUNCTIONS
+
+func StreamRead(r io.Reader, outData ...any) error
+func StreamWrite(w io.Writer, data ...any) error

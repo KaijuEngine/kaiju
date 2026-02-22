@@ -1,0 +1,204 @@
+package gltf // import "kaiju/rendering/loaders/gltf"
+
+
+CONSTANTS
+
+const (
+	POSITION   = "POSITION"
+	NORMAL     = "NORMAL"
+	TANGENT    = "TANGENT"
+	TEXCOORD_0 = "TEXCOORD_0"
+	TEXCOORD_1 = "TEXCOORD_1"
+	COLOR_0    = "COLOR_0"
+	COLOR_1    = "COLOR_1"
+	JOINTS_0   = "JOINTS_0"
+	JOINTS_1   = "JOINTS_1"
+	WEIGHTS_0  = "WEIGHTS_0"
+	WEIGHTS_1  = "WEIGHTS_1"
+)
+
+TYPES
+
+type Accessor struct {
+	BufferView    int32         `json:"bufferView"`
+	ComponentType ComponentType `json:"componentType"`
+	Count         int32         `json:"count"`
+	Max           matrix.Vec3   `json:"max"`
+	Min           matrix.Vec3   `json:"min"`
+	Type          AccessorType  `json:"type"`
+}
+
+type AccessorType = string
+
+const (
+	SCALAR AccessorType = "SCALAR"
+	VEC2   AccessorType = "VEC2"
+	VEC3   AccessorType = "VEC3"
+	VEC4   AccessorType = "VEC4"
+	MAT2   AccessorType = "MAT2"
+	MAT3   AccessorType = "MAT3"
+	MAT4   AccessorType = "MAT4"
+)
+type Animation struct {
+	Name     string             `json:"name"`
+	Channels []AnimationChannel `json:"channels"`
+	Samplers []AnimationSampler `json:"samplers"`
+}
+
+type AnimationChannel struct {
+	Sampler int32         `json:"sampler"`
+	Target  ChannelTarget `json:"target"`
+}
+
+type AnimationSampler struct {
+	Input            int32  `json:"input"`
+	InterpolationStr string `json:"interpolation"`
+	Output           int32  `json:"output"`
+}
+
+func (a *AnimationSampler) Interpolation() load_result.AnimationInterpolation
+
+type Asset struct {
+	Generator string `json:"generator"`
+	Version   string `json:"version"`
+	FilePath  string
+}
+
+type Buffer struct {
+	ByteLength int32  `json:"byteLength"`
+	URI        string `json:"uri"`
+}
+
+type BufferView struct {
+	Buffer     int32 `json:"buffer"`
+	ByteLength int32 `json:"byteLength"`
+	ByteOffset int32 `json:"byteOffset"`
+	Target     int32 `json:"target"`
+}
+
+type ChannelTarget struct {
+	Node    int32  `json:"node"`
+	PathStr string `json:"path"`
+}
+
+func (t *ChannelTarget) Path() load_result.AnimationPathType
+
+type ComponentType = int32
+
+const (
+	BYTE           ComponentType = 5120
+	UNSIGNED_BYTE  ComponentType = 5121
+	SHORT          ComponentType = 5122
+	UNSIGNED_SHORT ComponentType = 5123
+	UNSIGNED_INT   ComponentType = 5125
+	FLOAT          ComponentType = 5126
+)
+type GLTF struct {
+	Asset          Asset        `json:"asset"`
+	ExtensionsUsed []string     `json:"extensionsUsed"`
+	Scene          int32        `json:"scene"`
+	Scenes         []Scene      `json:"scenes"`
+	Nodes          []Node       `json:"nodes"`
+	Animations     []Animation  `json:"animations"`
+	Materials      []Material   `json:"materials"`
+	Meshes         []Mesh       `json:"meshes"`
+	Skins          []Skin       `json:"skins"`
+	Textures       []Texture    `json:"textures"`
+	Images         []Image      `json:"images"`
+	Accessors      []Accessor   `json:"accessors"`
+	BufferViews    []BufferView `json:"bufferViews"`
+	Samplers       []Sampler    `json:"samplers"`
+	Buffers        []Buffer     `json:"buffers"`
+}
+
+func LoadGLTF(jsonStr string) (GLTF, error)
+
+type Image struct {
+	Name     string `json:"name"`
+	URI      string `json:"uri"`
+	MimeType string `json:"mimeType"`
+}
+
+type Material struct {
+	Name                 string               `json:"name"`
+	DoubleSided          bool                 `json:"doubleSided"`
+	NormalTexture        *TextureId           `json:"normalTexture"`
+	OcclusionTexture     *TextureId           `json:"occlusionTexture"`
+	EmissiveTexture      *TextureId           `json:"emissiveTexture"`
+	PBRMetallicRoughness PBRMetallicRoughness `json:"pbrMetallicRoughness"`
+}
+
+type Mesh struct {
+	Name       string      `json:"name"`
+	Primitives []Primitive `json:"primitives"`
+}
+
+type Node struct {
+	Name        string         `json:"name"`
+	Children    []int32        `json:"children"`
+	Mesh        *int32         `json:"mesh"`
+	Camera      *int32         `json:"camera"`
+	Skin        *int32         `json:"skin"`
+	Matrix      *matrix.Mat4   `json:"matrix"`
+	Rotation    *matrix.Vec4   `json:"rotation"` // Vec4 because glTF XYZW on quat
+	Scale       *matrix.Vec3   `json:"scale"`
+	Translation *matrix.Vec3   `json:"translation"`
+	Weights     []float32      `json:"weights"`
+	Extras      map[string]any `json:"extras"`
+}
+
+type PBRMetallicRoughness struct {
+	BaseColorTexture         *TextureId    `json:"baseColorTexture"`
+	MetallicRoughnessTexture *TextureId    `json:"metallicRoughnessTexture"`
+	MetallicFactor           float32       `json:"metallicFactor"`
+	RoughnessFactor          float32       `json:"roughnessFactor"`
+	BaseColorFactor          *matrix.Color `json:"baseColorFactor"`
+}
+
+type Primitive struct {
+	Attributes map[string]uint32 `json:"attributes"`
+	Indices    int32             `json:"indices"`
+	Material   *int32            `json:"material"`
+	Mode       int32             `json:"mode"`
+	Targets    []Target          `json:"targets"`
+	Extensions interface{}       `json:"extensions"`
+	Extras     interface{}       `json:"extras"`
+}
+
+type Sampler struct {
+	MagFilter int32 `json:"magFilter"`
+	MinFilter int32 `json:"minFilter"`
+	WrapS     int32 `json:"wrapS"`
+	WrapT     int32 `json:"wrapT"`
+}
+
+type Scene struct {
+	Name  string  `json:"name"`
+	Nodes []int32 `json:"nodes"`
+}
+
+type Skin struct {
+	Name                string  `json:"name"`
+	InverseBindMatrices int32   `json:"inverseBindMatrices"`
+	Joints              []int32 `json:"joints"`
+}
+
+type Target struct {
+	POSITION   *int32 `json:"POSITION"`
+	NORMAL     *int32 `json:"NORMAL"`
+	TANGENT    *int32 `json:"TANGENT"`
+	TEXCOORD_0 *int32 `json:"TEXCOORD_0"`
+	TEXCOORD_1 *int32 `json:"TEXCOORD_1"`
+	COLOR_0    *int32 `json:"COLOR_0"`
+	COLOR_1    *int32 `json:"COLOR_1"`
+}
+
+type Texture struct {
+	Sampler int32 `json:"sampler"`
+	Source  int32 `json:"source"`
+}
+
+type TextureId struct {
+	Index int32 `json:"index"`
+}
+

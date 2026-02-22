@@ -1,0 +1,37 @@
+package new_project // import "kaiju/editor/editor_overlay/new_project"
+
+
+TYPES
+
+type Config struct {
+	// OnCreate will be called when the "Create" button is clicked, it will
+	// return the name that the developer typed in and the path they selected.
+	OnCreate func(name, path, templatePath string)
+
+	// OnOpen will be called when the "Browse" button is clicked, it will return
+	// the path that was selected.
+	OnOpen func(string)
+
+	// Error will be used to print out an error to the developer in the window.
+	Error string
+
+	// RecentProjects is a list of paths to recent projects.
+	RecentProjects []string
+}
+
+type NewProject struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, config Config) (*NewProject, error)
+
+func (np *NewProject) Close()
+
+type OverlayData struct {
+	Error          string
+	RecentProjects []struct {
+		Path  string
+		Label string
+	}
+}
+

@@ -1,0 +1,69 @@
+package lua // import "kaiju/plugins/lua"
+
+
+TYPES
+
+type State struct {
+	// Has unexported fields.
+}
+
+func New() State
+
+func (l *State) Call(args, returns int)
+
+func (l *State) CreateTable(arrLen, fieldLen int)
+
+func (l *State) DoFile(file string) error
+
+func (l *State) DoString(code string) error
+
+func (l *State) Field(idx int, name string)
+
+func (l *State) Global(name string)
+
+func (l *State) IsBoolean(idx int) bool
+
+func (l *State) IsFunction(idx int) bool
+
+func (l *State) IsNumber(idx int) bool
+
+func (l *State) IsString(idx int) bool
+
+func (l *State) IsTable(idx int) bool
+
+func (l *State) IsUserData(idx int) bool
+
+func (l *State) NewTable()
+
+func (l *State) OpenLibraries() error
+
+func (l *State) Pop(idx int)
+
+func (l *State) PushBoolean(value bool)
+
+func (l *State) PushGoFunction(fn func(state *State) int)
+
+func (l *State) PushNumber(value float64)
+
+func (l *State) PushString(value string)
+
+func (l *State) PushUserData(value reflect.Value)
+
+func (l *State) PushValue(idx int)
+
+func (l *State) RemovePinnedPointer(idx int)
+
+func (l *State) SetField(idx int, name string)
+
+func (l *State) SetGlobal(name string)
+
+func (l *State) ToBoolean(idx int) bool
+
+func (l *State) ToNumber(idx int) float64
+
+func (l *State) ToString(idx int) string
+
+func (l *State) ToUserData(idx int) any
+
+func (l *State) Top() int
+

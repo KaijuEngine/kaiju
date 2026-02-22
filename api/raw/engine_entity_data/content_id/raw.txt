@@ -1,0 +1,35 @@
+package content_id // import "kaiju/engine_entity_data/content_id"
+
+
+TYPES
+
+type Css string
+
+type Font string
+
+type Html string
+
+type Material string
+
+type Mesh string
+
+type Music string
+
+type ParticleSystem string
+
+type RenderPass string
+
+type Shader string
+
+type ShaderPipeline string
+
+type Sound string
+
+type Stage string
+
+type TableOfContents string
+
+type Template string
+
+type Texture string
+

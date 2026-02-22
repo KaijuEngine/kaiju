@@ -1,0 +1,45 @@
+package editor_plugin // import "kaiju/editor/editor_plugin"
+
+
+FUNCTIONS
+
+func CreatePluginProject(path string) error
+func IsPluginFolder(path string) bool
+func PluginsFolder() (string, error)
+func UpdatePluginConfigState(info PluginInfo) error
+
+TYPES
+
+type EditorInterface interface {
+	Host() *engine.Host
+	BlurInterface()
+	FocusInterface()
+	Settings() *editor_settings.Settings
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	StageView() *editor_stage_view.StageView
+}
+
+type EditorPlugin interface {
+	Launch(EditorInterface) error
+}
+
+type PluginConfig struct {
+	Name        string
+	PackageName string
+	Description string
+	Version     float64
+	Author      string
+	Website     string
+	Enabled     bool
+}
+
+type PluginInfo struct {
+	Path   string
+	Config PluginConfig
+}
+
+func AvailablePlugins() []PluginInfo
+

@@ -1,0 +1,1520 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="How SIMD assembly on AMD64 and ARM64 dramatically speeds up matrix math in the engine.">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>SIMD Optimizations for Matrix Operations in Kaiju Engine - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#simd-optimizations-for-matrix-operations-in-kaiju-engine" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SIMD Optimizations for Matrix Operations in Kaiju Engine
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/start_with_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    With editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/start_without_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Without editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Content
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/workspace/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content workspace
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/reference_viewer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reference viewer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/table_of_contents/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Table of contents
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_7" id="__nav_4_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_7">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/plugins/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/fonts/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_6" id="__nav_5_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_6">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>SIMD Optimizations for Matrix Operations in Kaiju Engine</h1>
+
+<h2 id="simd-optimizations-for-matrix-operations-in-kaiju-engine">SIMD Optimizations for Matrix Operations in Kaiju Engine</h2>
+<div class="blog-author">
+    <span class="author-name">
+        Brent Farris
+    </span>
+    <span class="author-date">
+        February 3rd, 2026
+    </span>
+</div>
+
+<hr />
+<h2 id="introduction">Introduction</h2>
+<p>Matrix math is at the heart of every 3‑D engine - it powers transforms, camera projections, skinning, and a host of other calculations.  The original Go implementation in Kaiju used plain scalar arithmetic, which was clean but far from optimal on modern CPUs.  By hand‑crafting SIMD assembly for the two platforms we ship on - <strong>AMD64</strong> (Windows) and <strong>ARM64</strong> (macOS/Linux) - we have cut the cost of the most common operations by an order of magnitude.</p>
+<p>The following post walks through the three core functions we accelerated, explains the assembly line‑by‑line, and shows the real‑world benchmark impact.</p>
+<hr />
+<h2 id="benchmark-summary">Benchmark Summary</h2>
+<p>Running the same Go test suite on an AMD Ryzen 9 7900X (amd64) and an Apple M4 (arm64) yields the numbers below.  The <code>SIMD</code> suffix denotes the hand‑written assembly path; the plain version is the original Go implementation.</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Function</th>
+<th>Plain (ns/op)</th>
+<th>SIMD (ns/op)</th>
+<th>Speed‑up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>amd64</td>
+<td>Mat4Multiply</td>
+<td>22.62</td>
+<td><strong>3.51</strong></td>
+<td>6.4×</td>
+</tr>
+<tr>
+<td>amd64</td>
+<td>Mat4MultiplyVec4</td>
+<td>44.95</td>
+<td><strong>2.98</strong></td>
+<td>15.1×</td>
+</tr>
+<tr>
+<td>amd64</td>
+<td>Vec4MultiplyMat4</td>
+<td>45.27</td>
+<td><strong>2.67</strong></td>
+<td>17.0×</td>
+</tr>
+<tr>
+<td>arm64</td>
+<td>Mat4Multiply</td>
+<td>29.85</td>
+<td><strong>3.11</strong></td>
+<td>9.6×</td>
+</tr>
+<tr>
+<td>arm64</td>
+<td>Mat4MultiplyVec4</td>
+<td>14.74</td>
+<td><strong>1.68</strong></td>
+<td>8.8×</td>
+</tr>
+<tr>
+<td>arm64</td>
+<td>Vec4MultiplyMat4</td>
+<td>15.32</td>
+<td><strong>1.86</strong></td>
+<td>8.2×</td>
+</tr>
+</tbody>
+</table>
+<p>These gains translate directly into higher frame rates and lower CPU budgets for physics, animation and UI rendering.</p>
+<hr />
+<h2 id="amd64-assembly-breakdown">AMD64 Assembly Breakdown</h2>
+<p>The AMD64 file lives at <code>src/matrix/matrix.amd64.s</code>.  All three functions share a common pattern: load a row of the left matrix, broadcast each element across an XMM register with <code>SHUFPS</code>, multiply‑accumulate against the four rows of the right matrix, and finally store the result.</p>
+<h3 id="1-mat4multiply">1. <code>Mat4Multiply</code></h3>
+<div class="language-asm highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// func Mat4Multiply(a, b Mat4) Mat4</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nf">TEXT</span><span class="w">   </span><span class="err">·</span><span class="no">Mat4Multiply</span><span class="p">(</span><span class="no">SB</span><span class="p">),</span><span class="no">NOSPLIT</span><span class="p">,</span><span class="no">$0-192</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="c1">// Load b rows (contiguous)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X1</span><span class="w">   </span><span class="c1">// b row0</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">b</span><span class="err">+</span><span class="mi">80</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X2</span><span class="w">   </span><span class="c1">// b row1</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">b</span><span class="err">+</span><span class="mi">96</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X3</span><span class="w">   </span><span class="c1">// b row2</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">b</span><span class="err">+</span><span class="mi">112</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X4</span><span class="w">  </span><span class="c1">// b row3</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="c1">// Compute ret row0 = sum (a row0[k] * b row k for k=0..3)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">a</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X0</span><span class="w">    </span><span class="c1">// a row0: a00 a01 a02 a03</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X0</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nf">SHUFPS</span><span class="w"> </span><span class="no">$0x00</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span><span class="w">  </span><span class="c1">// broadcast a00</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nf">MULPS</span><span class="w">  </span><span class="no">X1</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span><span class="w">         </span><span class="c1">// a00 * b row0</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X0</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nf">SHUFPS</span><span class="w"> </span><span class="no">$0x55</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span><span class="w">  </span><span class="c1">// broadcast a01</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nf">MULPS</span><span class="w">  </span><span class="no">X2</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nf">ADDPS</span><span class="w">  </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X0</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="nf">SHUFPS</span><span class="w"> </span><span class="no">$0xAA</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span><span class="w">  </span><span class="c1">// broadcast a02</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="nf">MULPS</span><span class="w">  </span><span class="no">X3</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="nf">ADDPS</span><span class="w">  </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X0</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span><span class="nf">SHUFPS</span><span class="w"> </span><span class="no">$0xFF</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span><span class="w">  </span><span class="c1">// broadcast a03</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span><span class="nf">MULPS</span><span class="w">  </span><span class="no">X4</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="nf">ADDPS</span><span class="w">  </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">X5</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">128</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="c1">// ... rows 1‑3 repeat the same pattern ...</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="nf">RET</span>
+</span></code></pre></div>
+<p><strong>Explanation</strong>
+* <code>MOVUPS</code> loads an unaligned 128‑bit row of four <code>float32</code> values.
+* <code>SHUFPS</code> with the immediate masks <code>0x00</code>, <code>0x55</code>, <code>0xAA</code>, <code>0xFF</code> replicates a single element of the row across the whole register - this is the classic “broadcast” trick.
+* <code>MULPS</code> performs four parallel single‑precision multiplies, and <code>ADDPS</code> accumulates the partial results.
+* The same sequence is repeated for rows 1‑3, only the source offset (<code>a+16</code>, <code>a+32</code>, <code>a+48</code>) changes.</p>
+<h3 id="2-mat4multiplyvec4">2. <code>Mat4MultiplyVec4</code></h3>
+<div class="language-asm highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nf">TEXT</span><span class="w">   </span><span class="err">·</span><span class="no">Mat4MultiplyVec4</span><span class="p">(</span><span class="no">SB</span><span class="p">),</span><span class="no">NOSPLIT</span><span class="p">,</span><span class="no">$0-96</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">m</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X0</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">m</span><span class="err">+</span><span class="mi">16</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X1</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">m</span><span class="err">+</span><span class="mi">32</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X2</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w"> </span><span class="no">m</span><span class="err">+</span><span class="mi">48</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X3</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X0</span><span class="p">,</span><span class="w"> </span><span class="no">X4</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nf">UNPCKLPS</span><span class="w"> </span><span class="no">X1</span><span class="p">,</span><span class="w"> </span><span class="no">X4</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X0</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nf">UNPCKHPS</span><span class="w"> </span><span class="no">X1</span><span class="p">,</span><span class="w"> </span><span class="no">X5</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X2</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nf">UNPCKLPS</span><span class="w"> </span><span class="no">X3</span><span class="p">,</span><span class="w"> </span><span class="no">X6</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X2</span><span class="p">,</span><span class="w"> </span><span class="no">X7</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nf">UNPCKHPS</span><span class="w"> </span><span class="no">X3</span><span class="p">,</span><span class="w"> </span><span class="no">X7</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X4</span><span class="p">,</span><span class="w"> </span><span class="no">X8</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="nf">MOVLHPS</span><span class="w"> </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X8</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X4</span><span class="p">,</span><span class="w"> </span><span class="no">X9</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="nf">MOVHLPS</span><span class="w"> </span><span class="no">X4</span><span class="p">,</span><span class="w"> </span><span class="no">X9</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X12</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span><span class="nf">MOVHLPS</span><span class="w"> </span><span class="no">X6</span><span class="p">,</span><span class="w"> </span><span class="no">X12</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="nf">MOVLHPS</span><span class="w"> </span><span class="no">X12</span><span class="p">,</span><span class="w"> </span><span class="no">X9</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X5</span><span class="p">,</span><span class="w"> </span><span class="no">X10</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span><span class="nf">MOVLHPS</span><span class="w"> </span><span class="no">X7</span><span class="p">,</span><span class="w"> </span><span class="no">X10</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X5</span><span class="p">,</span><span class="w"> </span><span class="no">X11</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">    </span><span class="nf">MOVHLPS</span><span class="w"> </span><span class="no">X5</span><span class="p">,</span><span class="w"> </span><span class="no">X11</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">    </span><span class="nf">MOVAPS</span><span class="w"> </span><span class="no">X7</span><span class="p">,</span><span class="w"> </span><span class="no">X13</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">    </span><span class="nf">MOVHLPS</span><span class="w"> </span><span class="no">X7</span><span class="p">,</span><span class="w"> </span><span class="no">X13</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span><span class="nf">MOVLHPS</span><span class="w"> </span><span class="no">X13</span><span class="p">,</span><span class="w"> </span><span class="no">X11</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X8</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">80</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">   </span><span class="c1">// x</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X9</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">84</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">   </span><span class="c1">// y</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X10</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">88</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">  </span><span class="c1">// z</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X11</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">92</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">  </span><span class="c1">// w</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">    </span><span class="nf">RET</span>
+</span></code></pre></div>
+<p><strong>Explanation</strong>
+* The macro <code>DOT</code> (defined at the top of the file) computes a dot‑product of a broadcasted scalar (<code>b+64(FP)</code>) with a 4‑component vector stored in an XMM register.
+* The series of <code>UNPCK*</code> and <code>MOV*</code> instructions transpose the 4×4 matrix into column vectors (<code>X8‑X11</code>) so that each column can be dotted with the input vector <code>b</code>.
+* The final four <code>DOT</code> calls write the resulting <code>Vec4</code> back to the stack.</p>
+<h3 id="3-vec4multiplymat4">3. <code>Vec4MultiplyMat4</code></h3>
+<div class="language-asm highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nf">TEXT</span><span class="w">   </span><span class="err">·</span><span class="no">Vec4MultiplyMat4</span><span class="p">(</span><span class="no">SB</span><span class="p">),</span><span class="no">NOSPLIT</span><span class="p">,</span><span class="no">$0-96</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w">    </span><span class="no">b</span><span class="err">+</span><span class="mi">16</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X1</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w">    </span><span class="no">b</span><span class="err">+</span><span class="mi">32</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X2</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w">    </span><span class="no">b</span><span class="err">+</span><span class="mi">48</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X3</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nf">MOVUPS</span><span class="w">    </span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X4</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">a</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X1</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">80</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">    </span><span class="c1">// x</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">a</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X2</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">84</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">    </span><span class="c1">// y</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">a</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X3</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">88</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">    </span><span class="c1">// z</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nf">DOT</span><span class="p">(</span><span class="no">a</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">X4</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">92</span><span class="p">(</span><span class="no">FP</span><span class="p">))</span><span class="w">    </span><span class="c1">// w</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nf">RET</span>
+</span></code></pre></div>
+<p><strong>Explanation</strong>
+* Here the vector <code>a</code> is broadcast once per column of the matrix <code>b</code> using the same <code>DOT</code> macro.
+* Because the matrix rows are already laid out contiguously, we can simply load each row (<code>X1‑X4</code>) and reuse the macro.</p>
+<hr />
+<h2 id="arm64-assembly-breakdown">ARM64 Assembly Breakdown</h2>
+<p>The ARM64 version lives in <code>src/matrix/matrix.arm64.s</code>.  It uses NEON SIMD registers (<code>V0‑V15</code>) and the <code>VDUP</code>/<code>FMOVQ</code> intrinsics to achieve the same broadcast‑multiply‑accumulate pattern.</p>
+<h3 id="1-mat4multiply_1">1. <code>Mat4Multiply</code></h3>
+<div class="language-asm highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">// func Mat4Multiply(a, b Mat4) Mat4</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nf">TEXT</span><span class="w">   </span><span class="err">·</span><span class="no">Mat4Multiply</span><span class="p">(</span><span class="no">SB</span><span class="p">),</span><span class="no">NOSPLIT</span><span class="p">,</span><span class="no">$0-192</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">b_0</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F0</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">b_4</span><span class="err">+</span><span class="mi">80</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F1</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">b_8</span><span class="err">+</span><span class="mi">96</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F2</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">b_12</span><span class="err">+</span><span class="mi">112</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F3</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nf">MULROWWISE</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">128</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nf">MULROWWISE</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="mi">144</span><span class="p">)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nf">MULROWWISE</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">160</span><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nf">MULROWWISE</span><span class="p">(</span><span class="mi">48</span><span class="p">,</span><span class="w"> </span><span class="mi">176</span><span class="p">)</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nf">RET</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1">// macro used above</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1">#define MULROWWISE(inOff, outOff) \</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">a_rI</span><span class="err">+</span><span class="no">inOff</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F4</span><span class="w">      </span><span class="err">\</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="no">V5.S4</span><span class="w">           </span><span class="err">\</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="no">V6.S4</span><span class="w">           </span><span class="err">\</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="w"> </span><span class="no">V7.S4</span><span class="w">           </span><span class="err">\</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="no">V4.S4</span><span class="w">           </span><span class="err">\</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">    </span><span class="nf">MULSUM4ROWS</span><span class="p">()</span><span class="w">                 </span><span class="err">\</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">F14</span><span class="p">,</span><span class="w"> </span><span class="no">ret_rI</span><span class="err">+</span><span class="no">outOff</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="c1">#define MULSUM4ROWS() \</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e24dc08</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="c1">// fmul.4s v8, v0, v4</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e25dc29</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="c1">// fmul.4s v9, v1, v5</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e26dc4a</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="c1">// fmul.4s v10, v2, v6</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e27dc6b</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="c1">// fmul.4s v11, v3, v7</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x4e29d50c</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="c1">// fadd.4s v12, v8, v9</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x4e2ad56d</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="c1">// fadd.4s v13, v11, v10</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x4e2cd5ae</span><span class="w">     </span><span class="c1">// fadd.4s v14, v13, v12</span>
+</span></code></pre></div>
+<p><strong>Explanation</strong>
+* <code>FMOVQ</code> loads a 128‑bit row of the right matrix into a NEON vector register (<code>F0‑F3</code>).
+* <code>VDUP</code> replicates each scalar component of the left‑matrix row (<code>a_rI</code>) into four separate registers (<code>V4‑V7</code>).
+* The <code>MULSUM4ROWS</code> macro performs four parallel <code>fmul.4s</code> operations (one per column) followed by a tree of <code>fadd.4s</code> to accumulate the four products into a single result (<code>v14</code>).
+* The final <code>FMOVQ</code> writes the 128‑bit result back to the stack.</p>
+<h3 id="2-mat4multiplyvec4_1">2. <code>Mat4MultiplyVec4</code></h3>
+<div class="language-asm highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">// func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nf">TEXT</span><span class="w">   </span><span class="err">·</span><span class="no">Mat4MultiplyVec4</span><span class="p">(</span><span class="no">SB</span><span class="p">),</span><span class="no">NOSPLIT</span><span class="p">,</span><span class="no">$0-96</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">a_0</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F0</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">a_4</span><span class="err">+</span><span class="mi">16</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F1</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">a_8</span><span class="err">+</span><span class="mi">32</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F2</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">a_12</span><span class="err">+</span><span class="mi">48</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F3</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">b</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F4</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="no">V5.S4</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="no">V6.S4</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="w"> </span><span class="no">V7.S4</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="nf">VDUP</span><span class="w"> </span><span class="no">V4.S</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="no">V4.S4</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="nf">MULSUM4ROWS</span><span class="p">()</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">F14</span><span class="p">,</span><span class="w"> </span><span class="no">ret</span><span class="err">+</span><span class="mi">80</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="nf">RET</span>
+</span></code></pre></div>
+<p><strong>Explanation</strong>
+* The four rows of matrix <code>a</code> are loaded into <code>F0‑F3</code>.
+* The vector <code>b</code> is broadcast into four registers (<code>V4‑V7</code>) using <code>VDUP</code>.
+* <code>MULSUM4ROWS</code> performs the same multiply‑accumulate as in the matrix‑matrix case, yielding a single <code>Vec4</code> result stored in <code>F14</code>.</p>
+<h3 id="3-vec4multiplymat4_1">3. <code>Vec4MultiplyMat4</code></h3>
+<div class="language-asm highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nf">TEXT</span><span class="w">   </span><span class="err">·</span><span class="no">Vec4MultiplyMat4</span><span class="p">(</span><span class="no">SB</span><span class="p">),</span><span class="no">NOSPLIT</span><span class="p">,</span><span class="no">$0-96</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">m_0</span><span class="err">+</span><span class="mi">16</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F0</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">m_4</span><span class="err">+</span><span class="mi">32</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F1</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">m_8</span><span class="err">+</span><span class="mi">48</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F2</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">m_12</span><span class="err">+</span><span class="mi">64</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F3</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="nf">FMOVQ</span><span class="w"> </span><span class="no">v</span><span class="err">+</span><span class="mi">0</span><span class="p">(</span><span class="no">FP</span><span class="p">),</span><span class="w"> </span><span class="no">F4</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e24dc05</span><span class="w">          </span><span class="c1">// fmul.4s v5, v0, v4</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e24dc26</span><span class="w">          </span><span class="c1">// fmul.4s v6, v1, v4</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e24dc47</span><span class="w">          </span><span class="c1">// fmul.4s v7, v2, v4</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e24dc68</span><span class="w">          </span><span class="c1">// fmul.4s v8, v3, v4</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e25d4a9</span><span class="w">          </span><span class="c1">// faddp.4s v9, v5, v5</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x7e30d920</span><span class="w">          </span><span class="c1">// faddp.2s s0, v9</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e26d4ca</span><span class="w">          </span><span class="c1">// faddp.4s v10, v6, v6</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x7e30d941</span><span class="w">          </span><span class="c1">// faddp.2s s1, v10</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e27d4eb</span><span class="w">          </span><span class="c1">// faddp.4s v11, v7, v7</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x7e30d962</span><span class="w">          </span><span class="c1">// faddp.2s s2, v11</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x6e28d50c</span><span class="w">          </span><span class="c1">// faddp.4s v12, v8, v8</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="w">    </span><span class="nf">WORD</span><span class="w"> </span><span class="no">$0x7e30d983</span><span class="w">          </span><span class="c1">// faddp.2s s3, v12</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="w">    </span><span class="nf">FMOVS</span><span class="w"> </span><span class="no">F0</span><span class="p">,</span><span class="w"> </span><span class="no">ret_0</span><span class="err">+</span><span class="mi">80</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="w">    </span><span class="nf">FMOVS</span><span class="w"> </span><span class="no">F1</span><span class="p">,</span><span class="w"> </span><span class="no">ret_1</span><span class="err">+</span><span class="mi">84</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="w">    </span><span class="nf">FMOVS</span><span class="w"> </span><span class="no">F2</span><span class="p">,</span><span class="w"> </span><span class="no">ret_2</span><span class="err">+</span><span class="mi">88</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="w">    </span><span class="nf">FMOVS</span><span class="w"> </span><span class="no">F3</span><span class="p">,</span><span class="w"> </span><span class="no">ret_3</span><span class="err">+</span><span class="mi">92</span><span class="p">(</span><span class="no">FP</span><span class="p">)</span>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="w">    </span><span class="nf">RET</span>
+</span></code></pre></div>
+<p><strong>Explanation</strong>
+* Each row of the matrix is multiplied by the broadcast vector <code>v</code> using four <code>fmul.4s</code> instructions.
+* A series of <code>faddp</code> (pairwise add) instructions collapse the four products into a single scalar per component, which are then stored with <code>FMOVS</code>.</p>
+<hr />
+<h2 id="results-and-fallback">Results and fallback</h2>
+<p>By moving the hot paths of matrix math into hand‑written SIMD, we have achieved <strong>single‑digit nanosecond</strong> execution times on both major desktop architectures.  The code is deliberately low‑level - we avoid function calls, keep everything in registers, and let the compiler focus on the surrounding Go glue.</p>
+<p>For platforms other that don't support SIMD, or that we've not yet written the assembly for, the compiler will fall back to the traditional Go variants of the matrix math (found in <code>src/matrix/matrix.none.go</code>). Contributors can feel free to write the SIMD assembly code for other platforms as needed, just follow the pattern already set for AMD64 and ARM64.</p>
+<hr />
+<p><em>Credits</em>:
+- AMD64 assembly authored by <a href="https://github.com/brentfarris">Brent Farris</a>
+- ARM64 assembly authored by <a href="https://github.com/rhawrami">rhawrami</a></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.instant", "toc.integrate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+        <script src="../../../javascripts/script.js"></script>
+      
+    
+  </body>
+</html>

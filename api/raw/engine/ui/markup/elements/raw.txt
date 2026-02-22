@@ -1,0 +1,574 @@
+package elements // import "kaiju/engine/ui/markup/elements"
+
+
+VARIABLES
+
+var ElementMap = map[string]Element{
+	"a":          A{},
+	"abbr":       Abbr{},
+	"address":    Address{},
+	"area":       Area{},
+	"article":    Article{},
+	"aside":      Aside{},
+	"audio":      Audio{},
+	"b":          B{},
+	"base":       Base{},
+	"bdi":        Bdi{},
+	"bdo":        Bdo{},
+	"blockquote": Blockquote{},
+	"body":       Body{},
+	"br":         Br{},
+	"button":     Button{},
+	"canvas":     Canvas{},
+	"caption":    Caption{},
+	"cite":       Cite{},
+	"code":       Code{},
+	"col":        Col{},
+	"colgroup":   Colgroup{},
+	"data":       Data{},
+	"datalist":   Datalist{},
+	"dd":         Dd{},
+	"del":        Del{},
+	"details":    Details{},
+	"dfn":        Dfn{},
+	"dialog":     Dialog{},
+	"div":        Div{},
+	"dl":         Dl{},
+	"dt":         Dt{},
+	"em":         Em{},
+	"embed":      Embed{},
+	"fieldset":   Fieldset{},
+	"figcaption": Figcaption{},
+	"figure":     Figure{},
+	"footer":     Footer{},
+	"form":       Form{},
+	"h1":         H1{},
+	"h2":         H2{},
+	"h3":         H3{},
+	"h4":         H4{},
+	"h5":         H5{},
+	"h6":         H6{},
+	"head":       Head{},
+	"header":     Header{},
+	"hgroup":     Hgroup{},
+	"hr":         Hr{},
+	"html":       Html{},
+	"i":          I{},
+	"iframe":     Iframe{},
+	"img":        Img{},
+	"input":      Input{},
+	"ins":        Ins{},
+	"kbd":        Kbd{},
+	"label":      Label{},
+	"legend":     Legend{},
+	"li":         Li{},
+	"link":       Link{},
+	"main":       Main{},
+	"map":        Map{},
+	"mark":       Mark{},
+	"menu":       Menu{},
+	"meta":       Meta{},
+	"meter":      Meter{},
+	"nav":        Nav{},
+	"noscript":   Noscript{},
+	"object":     Object{},
+	"ol":         Ol{},
+	"optgroup":   Optgroup{},
+	"option":     Option{},
+	"output":     Output{},
+	"p":          P{},
+	"picture":    Picture{},
+	"pre":        Pre{},
+	"progress":   Progress{},
+	"q":          Q{},
+	"rp":         Rp{},
+	"rt":         Rt{},
+	"ruby":       Ruby{},
+	"s":          S{},
+	"samp":       Samp{},
+	"script":     Script{},
+	"search":     Search{},
+	"section":    Section{},
+	"select":     Select{},
+	"slot":       Slot{},
+	"small":      Small{},
+	"source":     Source{},
+	"span":       Span{},
+	"strong":     Strong{},
+	"style":      Style{},
+	"sub":        Sub{},
+	"summary":    Summary{},
+	"sup":        Sup{},
+	"table":      Table{},
+	"tbody":      Tbody{},
+	"td":         Td{},
+	"template":   Template{},
+	"textarea":   Textarea{},
+	"tfoot":      Tfoot{},
+	"th":         Th{},
+	"thead":      Thead{},
+	"time":       Time{},
+	"title":      Title{},
+	"tr":         Tr{},
+	"track":      Track{},
+	"u":          U{},
+	"ul":         Ul{},
+	"var":        Var{},
+	"video":      Video{},
+	"wbr":        Wbr{},
+}
+
+TYPES
+
+type A struct{}
+
+func (p A) Key() string
+
+type Abbr struct{}
+
+func (p Abbr) Key() string
+
+type Address struct{}
+
+func (p Address) Key() string
+
+type Area struct{}
+
+func (p Area) Key() string
+
+type Article struct{}
+
+func (p Article) Key() string
+
+type Aside struct{}
+
+func (p Aside) Key() string
+
+type Audio struct{}
+
+func (p Audio) Key() string
+
+type B struct{}
+
+func (p B) Key() string
+
+type Base struct{}
+
+func (p Base) Key() string
+
+type Bdi struct{}
+
+func (p Bdi) Key() string
+
+type Bdo struct{}
+
+func (p Bdo) Key() string
+
+type Blockquote struct{}
+
+func (p Blockquote) Key() string
+
+type Body struct{}
+
+func (p Body) Key() string
+
+type Br struct{}
+
+func (p Br) Key() string
+
+type Button struct{}
+
+func (p Button) Key() string
+
+type Canvas struct{}
+
+func (p Canvas) Key() string
+
+type Caption struct{}
+
+func (p Caption) Key() string
+
+type Cite struct{}
+
+func (p Cite) Key() string
+
+type Code struct{}
+
+func (p Code) Key() string
+
+type Col struct{}
+
+func (p Col) Key() string
+
+type Colgroup struct{}
+
+func (p Colgroup) Key() string
+
+type Data struct{}
+
+func (p Data) Key() string
+
+type Datalist struct{}
+
+func (p Datalist) Key() string
+
+type Dd struct{}
+
+func (p Dd) Key() string
+
+type Del struct{}
+
+func (p Del) Key() string
+
+type Details struct{}
+
+func (p Details) Key() string
+
+type Dfn struct{}
+
+func (p Dfn) Key() string
+
+type Dialog struct{}
+
+func (p Dialog) Key() string
+
+type Div struct{}
+
+func (p Div) Key() string
+
+type Dl struct{}
+
+func (p Dl) Key() string
+
+type Dt struct{}
+
+func (p Dt) Key() string
+
+type Element interface {
+	Key() string
+}
+
+type Em struct{}
+
+func (p Em) Key() string
+
+type Embed struct{}
+
+func (p Embed) Key() string
+
+type Fieldset struct{}
+
+func (p Fieldset) Key() string
+
+type Figcaption struct{}
+
+func (p Figcaption) Key() string
+
+type Figure struct{}
+
+func (p Figure) Key() string
+
+type Footer struct{}
+
+func (p Footer) Key() string
+
+type Form struct{}
+
+func (p Form) Key() string
+
+type H1 struct{}
+
+func (p H1) Key() string
+
+type H2 struct{}
+
+func (p H2) Key() string
+
+type H3 struct{}
+
+func (p H3) Key() string
+
+type H4 struct{}
+
+func (p H4) Key() string
+
+type H5 struct{}
+
+func (p H5) Key() string
+
+type H6 struct{}
+
+func (p H6) Key() string
+
+type Head struct{}
+
+func (p Head) Key() string
+
+type Header struct{}
+
+func (p Header) Key() string
+
+type Hgroup struct{}
+
+func (p Hgroup) Key() string
+
+type Hr struct{}
+
+func (p Hr) Key() string
+
+type Html struct{}
+
+func (p Html) Key() string
+
+type I struct{}
+
+func (p I) Key() string
+
+type Iframe struct{}
+
+func (p Iframe) Key() string
+
+type Img struct{}
+
+func (p Img) Key() string
+
+type Input struct{}
+
+func (p Input) Key() string
+
+type Ins struct{}
+
+func (p Ins) Key() string
+
+type Kbd struct{}
+
+func (p Kbd) Key() string
+
+type Label struct{}
+
+func (p Label) Key() string
+
+type Legend struct{}
+
+func (p Legend) Key() string
+
+type Li struct{}
+
+func (p Li) Key() string
+
+type Link struct{}
+
+func (p Link) Key() string
+
+type Main struct{}
+
+func (p Main) Key() string
+
+type Map struct{}
+
+func (p Map) Key() string
+
+type Mark struct{}
+
+func (p Mark) Key() string
+
+type Menu struct{}
+
+func (p Menu) Key() string
+
+type Meta struct{}
+
+func (p Meta) Key() string
+
+type Meter struct{}
+
+func (p Meter) Key() string
+
+type Nav struct{}
+
+func (p Nav) Key() string
+
+type Noscript struct{}
+
+func (p Noscript) Key() string
+
+type Object struct{}
+
+func (p Object) Key() string
+
+type Ol struct{}
+
+func (p Ol) Key() string
+
+type Optgroup struct{}
+
+func (p Optgroup) Key() string
+
+type Option struct{}
+
+func (p Option) Key() string
+
+type Output struct{}
+
+func (p Output) Key() string
+
+type P struct{}
+
+func (p P) Key() string
+
+type Picture struct{}
+
+func (p Picture) Key() string
+
+type Pre struct{}
+
+func (p Pre) Key() string
+
+type Progress struct{}
+
+func (p Progress) Key() string
+
+type Q struct{}
+
+func (p Q) Key() string
+
+type Rp struct{}
+
+func (p Rp) Key() string
+
+type Rt struct{}
+
+func (p Rt) Key() string
+
+type Ruby struct{}
+
+func (p Ruby) Key() string
+
+type S struct{}
+
+func (p S) Key() string
+
+type Samp struct{}
+
+func (p Samp) Key() string
+
+type Script struct{}
+
+func (p Script) Key() string
+
+type Search struct{}
+
+func (p Search) Key() string
+
+type Section struct{}
+
+func (p Section) Key() string
+
+type Select struct{}
+
+func (p Select) Key() string
+
+type Slot struct{}
+
+func (p Slot) Key() string
+
+type Small struct{}
+
+func (p Small) Key() string
+
+type Source struct{}
+
+func (p Source) Key() string
+
+type Span struct{}
+
+func (p Span) Key() string
+
+type Strong struct{}
+
+func (p Strong) Key() string
+
+type Style struct{}
+
+func (p Style) Key() string
+
+type Sub struct{}
+
+func (p Sub) Key() string
+
+type Summary struct{}
+
+func (p Summary) Key() string
+
+type Sup struct{}
+
+func (p Sup) Key() string
+
+type Table struct{}
+
+func (p Table) Key() string
+
+type Tbody struct{}
+
+func (p Tbody) Key() string
+
+type Td struct{}
+
+func (p Td) Key() string
+
+type Template struct{}
+
+func (p Template) Key() string
+
+type Textarea struct{}
+
+func (p Textarea) Key() string
+
+type Tfoot struct{}
+
+func (p Tfoot) Key() string
+
+type Th struct{}
+
+func (p Th) Key() string
+
+type Thead struct{}
+
+func (p Thead) Key() string
+
+type Time struct{}
+
+func (p Time) Key() string
+
+type Title struct{}
+
+func (p Title) Key() string
+
+type Tr struct{}
+
+func (p Tr) Key() string
+
+type Track struct{}
+
+func (p Track) Key() string
+
+type U struct{}
+
+func (p U) Key() string
+
+type Ul struct{}
+
+func (p Ul) Key() string
+
+type Var struct{}
+
+func (p Var) Key() string
+
+type Video struct{}
+
+func (p Video) Key() string
+
+type Wbr struct{}
+
+func (p Wbr) Key() string
+

@@ -1,0 +1,35 @@
+package events // import "kaiju/engine/systems/events"
+
+
+TYPES
+
+type Event struct {
+	// Has unexported fields.
+}
+
+func (e *Event) Add(call func()) Id
+
+func (e *Event) Clear()
+
+func (e *Event) Execute()
+
+func (e Event) IsEmpty() bool
+
+func (e *Event) Remove(id Id)
+
+type EventWithArg[T any] struct {
+	// Has unexported fields.
+}
+
+func (e *EventWithArg[T]) Add(call func(arg T)) Id
+
+func (e *EventWithArg[T]) Clear()
+
+func (e *EventWithArg[T]) Execute(arg T)
+
+func (e EventWithArg[T]) IsEmpty() bool
+
+func (e *EventWithArg[T]) Remove(id Id)
+
+type Id = int64
+

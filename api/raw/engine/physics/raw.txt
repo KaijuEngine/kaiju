@@ -1,0 +1,139 @@
+package physics // import "kaiju/engine/physics"
+
+
+TYPES
+
+type BoxShape struct{ CollisionShape }
+
+func NewBoxShape(size matrix.Vec3) *BoxShape
+
+type BroadphaseInterface struct {
+	// Has unexported fields.
+}
+
+func NewBroadphaseInterface() *BroadphaseInterface
+
+type CapsuleShape struct{ CollisionShape }
+
+func NewCapsuleShape(radius, height float32) *CapsuleShape
+
+type CollisionDispatcher struct {
+	// Has unexported fields.
+}
+
+func NewCollisionDispatcher(collisionConfig *DefaultCollisionConfiguration) *CollisionDispatcher
+
+type CollisionHit C.HitWrapper
+
+func (c *CollisionHit) IsValid() bool
+
+func (c *CollisionHit) Normal() matrix.Vec3
+
+func (c *CollisionHit) Object() CollisionObject
+
+func (c *CollisionHit) Point() matrix.Vec3
+
+type CollisionObject struct {
+	// Has unexported fields.
+}
+
+type CollisionShape struct {
+	// Has unexported fields.
+}
+
+func (s *CollisionShape) CalculateLocalInertia(mass float32) matrix.Vec3
+
+type CompoundShape struct{ CollisionShape }
+
+func NewCompoundShape(initialChildCapacity int, enableDynamicAABBTree bool) *CompoundShape
+
+type ConeShape struct{ CollisionShape }
+
+func NewConeShape(radius, height float32) *ConeShape
+
+type ConvexHullShape struct{ ConvexShape }
+
+func NewConvexHullShape(points []float32, stride int) *ConvexHullShape
+
+type ConvexShape struct{ CollisionShape }
+
+type CylinderShape struct{ CollisionShape }
+
+func NewCylinderShape(halfExtents matrix.Vec3) *CylinderShape
+
+type DefaultCollisionConfiguration struct {
+	// Has unexported fields.
+}
+
+func NewDefaultCollisionConfiguration() *DefaultCollisionConfiguration
+
+type EmptyShape struct{ CollisionShape }
+
+func NewEmptyShape(size matrix.Vec3) *EmptyShape
+
+type MotionState struct {
+	// Has unexported fields.
+}
+
+func NewDefaultMotionState(rot matrix.Quaternion, centerOfMass matrix.Vec3) *MotionState
+
+type MultiSphereShape struct{ CollisionShape }
+
+func NewMultiSphereShape(positions []matrix.Vec3, radii []float32) *MultiSphereShape
+
+type RigidBody struct {
+	// Has unexported fields.
+}
+
+func NewRigidBody(mass float32, motion *MotionState, shape *CollisionShape, inertia matrix.Vec3) *RigidBody
+
+func (r *RigidBody) ApplyForceAtPoint(force, point matrix.Vec3)
+
+func (r *RigidBody) ApplyImpulseAtPoint(force, point matrix.Vec3)
+
+func (r *RigidBody) IsCollisionObject(obj CollisionObject) bool
+
+func (r *RigidBody) IsStatic() bool
+
+func (r *RigidBody) Position() matrix.Vec3
+
+func (r *RigidBody) Rotation() matrix.Quaternion
+
+func (r *RigidBody) Shape() *CollisionShape
+
+type SequentialImpulseConstraintSolver struct {
+	// Has unexported fields.
+}
+
+func NewSequentialImpulseConstraintSolver() *SequentialImpulseConstraintSolver
+
+type SphereShape struct{ CollisionShape }
+
+func NewSphereShape(radius float32) *SphereShape
+
+type StaticPlaneShape struct{ CollisionShape }
+
+func NewStaticPlaneShape(normal matrix.Vec3, constant float32) *StaticPlaneShape
+
+type UniformScalingShape struct{ CollisionShape }
+
+func NewUniformScalingShape(convexChildShape *ConvexShape, scaleFactor float32) *UniformScalingShape
+
+type World struct {
+	// Has unexported fields.
+}
+
+func NewDiscreteDynamicsWorld(dispatcher *CollisionDispatcher, broadphase *BroadphaseInterface, solver *SequentialImpulseConstraintSolver, collisionConfig *DefaultCollisionConfiguration) *World
+
+func (w *World) AddRigidBody(body *RigidBody)
+
+func (w *World) Raycast(from, to matrix.Vec3) CollisionHit
+
+func (w *World) RemoveRigidBody(body *RigidBody)
+
+func (w *World) SetGravity(v matrix.Vec3)
+
+func (w *World) SphereSweep(from, to matrix.Vec3, radius float32) CollisionHit
+
+func (w *World) StepSimulation(timeStep float32)
+

@@ -1,0 +1,36 @@
+package lighting // import "kaiju/engine/lighting"
+
+
+TYPES
+
+type LightCollection struct {
+	Cache []rendering.Light
+
+	// Has unexported fields.
+}
+
+func (c *LightCollection) Add(transform *matrix.Transform, target rendering.Light) *LightEntry
+
+func (c *LightCollection) Clear()
+
+func (c *LightCollection) HasChanges() bool
+
+func (c *LightCollection) Remove(light *LightEntry)
+
+func (c *LightCollection) UpdateCache(point matrix.Vec3) []rendering.Light
+
+type LightEntry struct {
+	rendering.Light
+	Transform *matrix.Transform
+
+	// Has unexported fields.
+}
+
+type LightingInformation struct {
+	Lights LightCollection
+}
+
+func NewLightingInformation(lightCacheCapacity int) LightingInformation
+
+func (l *LightingInformation) Update(point matrix.Vec3)
+

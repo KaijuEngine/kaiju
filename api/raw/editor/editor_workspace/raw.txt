@@ -1,0 +1,15 @@
+package editor_workspace // import "kaiju/editor/editor_workspace"
+
+
+TYPES
+
+type Workspace interface {
+	Open()
+	Close()
+	Focus()
+	Blur()
+	Hotkeys() []common_workspace.HotKey
+	Update(float64)
+	IsFocusedOnInput() bool
+}
+

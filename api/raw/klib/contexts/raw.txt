@@ -1,0 +1,21 @@
+package contexts // import "kaiju/klib/contexts"
+
+
+TYPES
+
+type Cancellable struct {
+	// Has unexported fields.
+}
+
+func NewCancellable() *Cancellable
+
+func (p *Cancellable) Cancel()
+
+func (p *Cancellable) Deadline() (time.Time, bool)
+
+func (p *Cancellable) Done() <-chan struct{}
+
+func (p *Cancellable) Err() error
+
+func (p *Cancellable) Value(any) any
+
