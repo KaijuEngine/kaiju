@@ -68,7 +68,12 @@ func (Game) PluginRegistry() []reflect.Type {
 
 func (Game) ContentDatabase() (assets.Database, error) {
 	if _, err := os.Stat(gameContentPath); err != nil {
-		gameCopyEditorContent()
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		if err := gameCopyEditorContent(); err != nil {
+			return nil, err
+		}
 	}
 	return assets.NewFileDatabase(gameContentPath)
 }
@@ -112,7 +117,9 @@ func getGame() bootstrap.GameInterface { return &Game{} }
 
 func gameCopyEditorContent() error {
 	slog.Info("copying stock content to the project database")
-	os.MkdirAll(gameContentPath, os.ModePerm)
+	if err := os.MkdirAll(gameContentPath, os.ModePerm); err != nil {
+		return err
+	}
 	top, err := os.ReadDir(rawContentPath)
 	if err != nil {
 		return err

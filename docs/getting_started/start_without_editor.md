@@ -19,7 +19,7 @@ This guide explains how to build and run a Kaiju game **without** using the grap
 ## 1. Clone the repository
 
 ```powershell
-git clone https://github.com/kaijuengine/kaiju.git
+git clone --recurse-submodules https://github.com/kaijuengine/kaiju.git
 cd kaiju/src
 ```
 
