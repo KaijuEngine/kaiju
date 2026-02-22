@@ -1,5 +1,7 @@
+//go:build editor
+
 /******************************************************************************/
-/* launch_params.go                                                           */
+/* main.ed.newproject.go                                                      */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,36 +36,28 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine
+package main
 
 import (
-	"flag"
-	"kaiju/build"
+	"kaiju/editor"
+	"kaiju/editor/project"
+	"kaiju/engine"
+	"log/slog"
 )
 
-var LaunchParams = LaunchParameters{}
-
-type LaunchParameters struct {
-	Generate        string
-	NewProject      string
-	ProjectName     string
-	ProjectTemplate string
-	StartStage      string
-	Trace           bool
-	RecordPGO       bool
-	AutoTest        bool
-}
-
-func LoadLaunchParams() {
-	flag.StringVar(&LaunchParams.Generate, "generate", "", "The generator to run: 'pluginapi'")
-	flag.StringVar(&LaunchParams.NewProject, "newproject", "", "Create a new blank project at the specified path")
-	flag.StringVar(&LaunchParams.ProjectName, "projectname", "", "Name of the project to create (used with -newproject)")
-	flag.StringVar(&LaunchParams.ProjectTemplate, "projecttemplate", "", "Path to a template zip to use (used with -newproject)")
-	if build.Debug {
-		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
-		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")
-		flag.BoolVar(&LaunchParams.AutoTest, "autotest", false, "If supplied, runs automated integration tests and exits")
+func createNewProjectCLI(path string) {
+	proj := project.Project{}
+	templatePath := engine.LaunchParams.ProjectTemplate
+	if err := proj.Initialize(path, templatePath, editor.EditorVersion); err != nil {
+		slog.Error("failed to create the project", "error", err, "path", path)
+		return
 	}
-	flag.BoolVar(&LaunchParams.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
-	flag.Parse()
+	if name := engine.LaunchParams.ProjectName; name != "" {
+		proj.SetName(name)
+	}
+	if err := proj.Close(); err != nil {
+		slog.Error("failed to save the project configuration", "error", err)
+		return
+	}
+	slog.Info("successfully created blank project", "path", path)
 }

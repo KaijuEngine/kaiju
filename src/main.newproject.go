@@ -1,5 +1,7 @@
+//go:build !editor
+
 /******************************************************************************/
-/* launch_params.go                                                           */
+/* main.newproject.go                                                         */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,36 +36,10 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine
+package main
 
-import (
-	"flag"
-	"kaiju/build"
-)
+import "log/slog"
 
-var LaunchParams = LaunchParameters{}
-
-type LaunchParameters struct {
-	Generate        string
-	NewProject      string
-	ProjectName     string
-	ProjectTemplate string
-	StartStage      string
-	Trace           bool
-	RecordPGO       bool
-	AutoTest        bool
-}
-
-func LoadLaunchParams() {
-	flag.StringVar(&LaunchParams.Generate, "generate", "", "The generator to run: 'pluginapi'")
-	flag.StringVar(&LaunchParams.NewProject, "newproject", "", "Create a new blank project at the specified path")
-	flag.StringVar(&LaunchParams.ProjectName, "projectname", "", "Name of the project to create (used with -newproject)")
-	flag.StringVar(&LaunchParams.ProjectTemplate, "projecttemplate", "", "Path to a template zip to use (used with -newproject)")
-	if build.Debug {
-		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
-		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")
-		flag.BoolVar(&LaunchParams.AutoTest, "autotest", false, "If supplied, runs automated integration tests and exits")
-	}
-	flag.BoolVar(&LaunchParams.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
-	flag.Parse()
+func createNewProjectCLI(path string) {
+	slog.Error("the -newproject flag is only available in editor builds")
 }
