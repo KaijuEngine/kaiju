@@ -1,5 +1,7 @@
 ---
 title: Shading | Kaiju Engine Editor
+description: Documentation for shading features in the Kaiju Engine editor, covering techniques and settings.
+keywords: shading, editor, kaiju, graphics, rendering
 ---
 
 # Coming soon!

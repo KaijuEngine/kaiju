@@ -1,5 +1,7 @@
 ---
 title: UI Workspace | Kaiju Engine Editor
+description: Documentation for the UI Workspace in the Kaiju Engine Editor, covering features, usage, and troubleshooting.
+keywords: UI Workspace, Kaiju Engine, editor, UI design, live preview, HTML, CSS, data binding, responsive design
 ---
 
 # UI Workspace

@@ -76,6 +76,7 @@ type RigidBodyEntityData struct {
 }
 
 func (r RigidBodyEntityData) Init(e *engine.Entity, host *engine.Host) {
+	host.StartPhysics()
 	t := &e.Transform
 	scale := t.Scale()
 	var shape *physics.CollisionShape
