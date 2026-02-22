@@ -47,8 +47,8 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
-    - navigation.tabs
-    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.instant
     - toc.integrate
   palette:
     - media: "(prefers-color-scheme)"
