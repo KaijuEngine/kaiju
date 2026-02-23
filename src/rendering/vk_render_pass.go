@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"unsafe"
 	"weak"
 
 	"kaiju/engine/assets"
@@ -54,7 +55,6 @@ type RenderPass struct {
 	Handle       vk.RenderPass
 	Buffer       vk.Framebuffer
 	device       vk.Device
-	dbg          *debugVulkan
 	textures     []Texture
 	construction RenderPassDataCompiled
 	subpasses    []RenderPassSubpass
@@ -264,7 +264,6 @@ func isDepthFormat(format vulkan_const.Format) bool {
 func NewRenderPass(vr *Vulkan, setup *RenderPassDataCompiled) (*RenderPass, error) {
 	p := &RenderPass{
 		device:       vr.device,
-		dbg:          &vr.dbg,
 		construction: *setup,
 		textures:     make([]Texture, 0, len(setup.AttachmentDescriptions)),
 	}
@@ -463,7 +462,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		return errors.New("failed to create the render pass")
 	}
 	p.Handle = handle
-	vr.dbg.add(vk.TypeToUintPtr(p.Handle))
+	vr.app.dbg.track(unsafe.Pointer(p.Handle))
 	for i := range r.Subpass {
 		p.setupSubpass(&r.Subpass[i], vr, vr.caches.AssetDatabase(), i+1)
 	}
@@ -508,10 +507,10 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 		return
 	}
 	vk.DestroyRenderPass(p.device, p.Handle, nil)
-	p.dbg.remove(vk.TypeToUintPtr(p.Handle))
+	vr.app.dbg.remove(unsafe.Pointer(p.Handle))
 	p.Handle = vk.NullRenderPass
 	vk.DestroyFramebuffer(p.device, p.Buffer, nil)
-	p.dbg.remove(vk.TypeToUintPtr(p.Buffer))
+	vr.app.dbg.remove(unsafe.Pointer(p.Buffer))
 	p.Buffer = vk.NullFramebuffer
 	for i := range p.textures {
 		vr.destroyTextureHandle(p.textures[i].RenderId)

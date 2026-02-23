@@ -6,6 +6,7 @@ import (
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
+	"unsafe"
 )
 
 func listPhysicalGpuDevicesImpl(app *GPUApplication) ([]GPUPhysicalDevice, error) {
@@ -20,9 +21,12 @@ func listPhysicalGpuDevicesImpl(app *GPUApplication) ([]GPUPhysicalDevice, error
 	vkDevices := make([]vk.PhysicalDevice, deviceCount)
 	vk.EnumeratePhysicalDevices(vkInstance, &deviceCount, &vkDevices[0])
 	for i := range deviceCount {
+		// Features
 		var supportedFeatures vk.PhysicalDeviceFeatures
 		vk.GetPhysicalDeviceFeatures(vkDevices[i], &supportedFeatures)
+		devices[i].handle = unsafe.Pointer(vkDevices[i])
 		devices[i].Features = mapPhysicalDeviceFeatures(supportedFeatures)
+		// Queue families
 		qfCount := uint32(0)
 		vk.GetPhysicalDeviceQueueFamilyProperties(vkDevices[i], &qfCount, nil)
 		devices[i].QueueFamilies = make([]GPUQueueFamily, qfCount)
@@ -32,10 +36,53 @@ func listPhysicalGpuDevicesImpl(app *GPUApplication) ([]GPUPhysicalDevice, error
 			devices[i].QueueFamilies[j] = mapQueueFamily(queueFamilies[j], j)
 			presentSupport := vk.Bool32(0)
 			vk.GetPhysicalDeviceSurfaceSupport(vkDevices[i], uint32(j), vkSurface, &presentSupport)
-			devices[i].QueueFamilies[j].PresentSupport = presentSupport != 0
-			properties := vk.PhysicalDeviceProperties{}
-			vk.GetPhysicalDeviceProperties(vkDevices[i], &properties)
-			devices[i].Properties = mapPhysicalDeviceProperties(properties)
+			devices[i].QueueFamilies[j].HasPresentSupport = presentSupport != 0
+		}
+		// Properties
+		properties := vk.PhysicalDeviceProperties{}
+		vk.GetPhysicalDeviceProperties(vkDevices[i], &properties)
+		devices[i].Properties = mapPhysicalDeviceProperties(properties)
+		// Extensions
+		var extensionCount uint32
+		vk.EnumerateDeviceExtensionProperties(vkDevices[i], nil, &extensionCount, nil)
+		devices[i].Extensions = make([]GPUPhysicalDeviceExtension, extensionCount)
+		availableExtensions := make([]vk.ExtensionProperties, extensionCount)
+		vk.EnumerateDeviceExtensionProperties(vkDevices[i], nil, &extensionCount, &availableExtensions[0])
+		for j := range availableExtensions {
+			nameBytes := availableExtensions[j].ExtensionName[:]
+			if idx := bytes.IndexByte(nameBytes, 0); idx >= 0 {
+				nameBytes = nameBytes[:idx]
+			}
+			devices[i].Extensions[j] = GPUPhysicalDeviceExtension{
+				Name:    string(nameBytes),
+				Version: availableExtensions[j].SpecVersion,
+			}
+		}
+		// Surface formats
+		details := vkSwapChainSupportDetails{}
+		vkSurface := vk.Surface(app.Surface.handle)
+		vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &details.formatCount, nil)
+		vk.GetPhysicalDeviceSurfaceCapabilities(vkDevices[i], vkSurface, &details.capabilities)
+		if details.formatCount > 0 {
+			devices[i].SurfaceFormats = make([]GPUSurfaceFormat, details.formatCount)
+			details.formats = make([]vk.SurfaceFormat, details.formatCount)
+			vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &details.formatCount, &details.formats[0])
+			for j := range details.formats {
+				devices[i].SurfaceFormats[j] = GPUSurfaceFormat{
+					Format:     formatFromVulkan(details.formats[j].Format),
+					ColorSpace: colorSpaceFromVulkan(details.formats[j].ColorSpace),
+				}
+			}
+		}
+		// Present modes
+		vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &details.presentModeCount, nil)
+		if details.presentModeCount > 0 {
+			devices[i].PresentModes = make([]GPUPresentMode, details.presentModeCount)
+			details.presentModes = make([]vulkan_const.PresentMode, details.presentModeCount)
+			vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &details.presentModeCount, &details.presentModes[0])
+			for j := range details.presentModes {
+				devices[i].PresentModes[j] = presentModeFromVulkan(details.presentModes[j])
+			}
 		}
 	}
 	return devices, nil

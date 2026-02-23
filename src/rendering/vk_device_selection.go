@@ -61,9 +61,7 @@ func isExtensionSupported(device vk.PhysicalDevice, extension string) bool {
 func getMaxUsableSampleCount(device vk.PhysicalDevice) vulkan_const.SampleCountFlagBits {
 	physicalDeviceProperties := vk.PhysicalDeviceProperties{}
 	vk.GetPhysicalDeviceProperties(device, &physicalDeviceProperties)
-
 	counts := vk.SampleCountFlags(physicalDeviceProperties.Limits.FramebufferColorSampleCounts & physicalDeviceProperties.Limits.FramebufferDepthSampleCounts)
-
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount64Bit)) != 0 {
 		return vulkan_const.SampleCount64Bit
 	}
@@ -87,7 +85,7 @@ func getMaxUsableSampleCount(device vk.PhysicalDevice) vulkan_const.SampleCountF
 
 func (vr *Vulkan) createLogicalDevice() bool {
 	slog.Info("creating vulkan logical device")
-	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
+	indices := findQueueFamilies(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), vk.Surface(vr.app.Surface.handle))
 	qFamCount := 1
 	var uniqueQueueFamilies [2]int
 	uniqueQueueFamilies[0] = indices.graphicsFamily
@@ -132,11 +130,11 @@ func (vr *Vulkan) createLogicalDevice() bool {
 	defer createInfo.Free()
 
 	var device vk.Device
-	if vk.CreateDevice(vr.physicalDevice, createInfo, nil, &device) != vulkan_const.Success {
+	if vk.CreateDevice(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), createInfo, nil, &device) != vulkan_const.Success {
 		slog.Error("Failed to create logical device")
 		return false
 	} else {
-		vr.dbg.add(uintptr(unsafe.Pointer(device)))
+		vr.app.dbg.track(unsafe.Pointer(device))
 		// Passing vr.device directly into vk.CreateDevice will cause
 		// cgo argument has Go pointer to Go pointer panic
 		vr.device = device
@@ -149,100 +147,6 @@ func (vr *Vulkan) createLogicalDevice() bool {
 		vr.graphicsQueue = graphicsQueue
 		vr.presentQueue = presentQueue
 		vr.computeQueue = computeQueue
-		return true
-	}
-}
-
-func (vr *Vulkan) isPhysicalDeviceSuitable(device vk.PhysicalDevice) bool {
-	var supportedFeatures vk.PhysicalDeviceFeatures
-	vk.GetPhysicalDeviceFeatures(device, &supportedFeatures)
-	indices := findQueueFamilies(device, vr.surface)
-	exts := requiredDeviceExtensions()
-	hasExtensions := true
-	for i := 0; i < len(exts) && hasExtensions; i++ {
-		hasExtensions = isExtensionSupported(device, exts[i])
-	}
-	swapChainAdequate := false
-	if hasExtensions {
-		swapChainSupport := vr.querySwapChainSupport(device)
-		swapChainAdequate = swapChainSupport.formatCount > 0 && swapChainSupport.presentModeCount > 0
-		//free_swap_chain_support_details(swapChainSupport)
-	}
-	return queueFamilyIndicesValid(indices) && hasExtensions && swapChainAdequate && supportedFeatures.SamplerAnisotropy != 0
-}
-
-func isPhysicalDeviceBetterType(a vulkan_const.PhysicalDeviceType, b vulkan_const.PhysicalDeviceType) bool {
-	type score struct {
-		deviceType vulkan_const.PhysicalDeviceType
-		score      int
-	}
-	scores := []score{
-		{vulkan_const.PhysicalDeviceTypeCpu, 1},
-		{vulkan_const.PhysicalDeviceTypeOther, 1},
-		{vulkan_const.PhysicalDeviceTypeVirtualGpu, 1},
-		{vulkan_const.PhysicalDeviceTypeIntegratedGpu, 2},
-		{vulkan_const.PhysicalDeviceTypeDiscreteGpu, 3},
-	}
-	aScore, bScore := 0, 0
-	for i := 0; i < len(scores); i++ {
-		if scores[i].deviceType == a {
-			aScore += scores[i].score
-		}
-		if scores[i].deviceType == b {
-			bScore += scores[i].score
-		}
-	}
-	return aScore > bScore
-}
-
-func (vr *Vulkan) selectPhysicalDevice() bool {
-	slog.Info("creating vulkan physical device")
-	var deviceCount uint32
-	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, nil)
-	if deviceCount == 0 {
-		slog.Error("Failed to find GPUs with Vulkan support")
-		return false
-	}
-	devices := make([]vk.PhysicalDevice, deviceCount)
-	vk.EnumeratePhysicalDevices(vr.instance, &deviceCount, &devices[0])
-	var currentPhysicalDevice vk.PhysicalDevice = vk.NullPhysicalDevice
-	currentProperties := vk.PhysicalDeviceProperties{}
-	var physicalDevice vk.PhysicalDevice = vk.NullPhysicalDevice
-	properties := vk.PhysicalDeviceProperties{}
-	for i := 0; i < int(deviceCount); i++ {
-		if vr.isPhysicalDeviceSuitable(devices[i]) {
-			currentPhysicalDevice = devices[i]
-		}
-		vk.GetPhysicalDeviceProperties(devices[i], &currentProperties)
-		pick := physicalDevice == vk.NullPhysicalDevice
-		if !pick {
-			t := properties.DeviceType
-			ct := currentProperties.DeviceType
-			m := properties.Limits.MaxComputeSharedMemorySize
-			cm := currentProperties.Limits.MaxComputeSharedMemorySize
-			a := properties.ApiVersion
-			ca := currentProperties.ApiVersion
-			d := properties.DriverVersion
-			cd := currentProperties.DriverVersion
-			if isPhysicalDeviceBetterType(ct, t) {
-				pick = true
-			} else if t == ct {
-				pick = m < cm
-				pick = pick || (m == cm && a < ca)
-				pick = pick || (m == cm && a == ca && d < cd)
-			}
-		}
-		if pick {
-			physicalDevice = currentPhysicalDevice
-			properties = currentProperties
-			vr.msaaSamples = getMaxUsableSampleCount(currentPhysicalDevice)
-		}
-	}
-	if physicalDevice == vk.NullPhysicalDevice {
-		slog.Error("Failed to find a compatible physical device")
-		return false
-	} else {
-		vr.physicalDevice = physicalDevice
 		return true
 	}
 }

@@ -67,9 +67,9 @@ func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, ve
 		} else {
 			vr.CopyBuffer(stagingBuffer, *vertexBuffer, bufferSize)
 			vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
+			vr.app.dbg.remove(unsafe.Pointer(stagingBuffer))
 			vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-			vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
+			vr.app.dbg.remove(unsafe.Pointer(stagingBufferMemory))
 		}
 		return true
 	}
@@ -97,8 +97,8 @@ func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, in
 	}
 	vr.CopyBuffer(stagingBuffer, *indexBuffer, bufferSize)
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(stagingBuffer))
+	vr.app.dbg.remove(unsafe.Pointer(stagingBuffer))
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(stagingBufferMemory))
+	vr.app.dbg.remove(unsafe.Pointer(stagingBufferMemory))
 	return true
 }

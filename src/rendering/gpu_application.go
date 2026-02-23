@@ -1,7 +1,5 @@
 package rendering
 
-import "unsafe"
-
 type GPUApplication struct {
 	Name    string
 	Version struct {
@@ -9,17 +7,10 @@ type GPUApplication struct {
 		Minor int
 		Patch int
 	}
-	Instance GPUInstance
-	Surface  GPUSurface
-	dbg      memoryDebugger
-}
-
-func TEMP(r Renderer) *GPUApplication {
-	vr := r.(*Vulkan)
-	g := &GPUApplication{}
-	g.Instance.handle = unsafe.Pointer(vr.instance)
-	g.Surface.handle = unsafe.Pointer(vr.surface)
-	return g
+	Instance       GPUInstance
+	Surface        GPUSurface
+	PhysicalDevice GPUPhysicalDevice
+	dbg            memoryDebugger
 }
 
 func (g *GPUApplication) ApplicationVersion() (major int, minor int, patch int) {
@@ -34,6 +25,25 @@ func (g *GPUApplication) Create(window RenderingContainer) error {
 	if err := g.Instance.Create(window, g); err != nil {
 		return err
 	}
+	if err := g.Surface.Create(&g.Instance, window); err != nil {
+		return err
+	}
+	// TODO:  Allow passing in the device selection method
+	if err := g.SelectPhysicalDevice(nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *GPUApplication) SelectPhysicalDevice(method func(options []GPUPhysicalDevice) GPUPhysicalDevice) error {
+	devices, err := ListPhysicalGpuDevices(g)
+	if err != nil {
+		return err
+	}
+	if method == nil {
+		method = selectPhysicalDeviceDefaltMethod
+	}
+	g.PhysicalDevice = method(devices)
 	return nil
 }
 

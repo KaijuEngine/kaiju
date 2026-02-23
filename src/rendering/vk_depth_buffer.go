@@ -47,7 +47,7 @@ func (vr *Vulkan) findSupportedFormat(candidates []vulkan_const.Format, tiling v
 	for i := 0; i < len(candidates); i++ {
 		var props vk.FormatProperties
 		format := candidates[i]
-		vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &props)
+		vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), format, &props)
 		if tiling == vulkan_const.ImageTilingLinear && (props.LinearTilingFeatures&features) == features {
 			return format
 		} else if tiling == vulkan_const.ImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {

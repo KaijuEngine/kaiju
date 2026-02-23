@@ -38,6 +38,7 @@ package rendering
 
 import (
 	"errors"
+	"unsafe"
 
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
@@ -67,7 +68,7 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vulkan_const.Success {
 		return layout, errors.New("failed to create descriptor set layout")
 	} else {
-		vr.dbg.add(vk.TypeToUintPtr(layout))
+		vr.app.dbg.track(unsafe.Pointer(layout))
 	}
 	return layout, nil
 }

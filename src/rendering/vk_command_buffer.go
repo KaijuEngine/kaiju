@@ -43,6 +43,7 @@ import (
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
+	"unsafe"
 	"weak"
 )
 
@@ -80,11 +81,10 @@ func NewCommandRecorderSecondary(vr *Vulkan, rp *RenderPass, subpassIdx int) (Co
 
 func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLevel) (CommandRecorder, error) {
 	defer tracing.NewRegion("rendering.createCommandPoolBufferPair").End()
-	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
 	poolInfo := vk.CommandPoolCreateInfo{
 		SType:            vulkan_const.StructureTypeCommandPoolCreateInfo,
 		Flags:            vk.CommandPoolCreateFlags(vulkan_const.CommandPoolCreateResetCommandBufferBit),
-		QueueFamilyIndex: uint32(indices.graphicsFamily),
+		QueueFamilyIndex: uint32(vr.app.PhysicalDevice.FindGraphicsFamiliy().Index),
 	}
 	var pool vk.CommandPool
 	if vk.CreateCommandPool(vr.device, &poolInfo, nil, &pool) != vulkan_const.Success {
@@ -92,7 +92,7 @@ func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLev
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
 	}
-	vr.dbg.add(vk.TypeToUintPtr(pool))
+	vr.app.dbg.track(unsafe.Pointer(pool))
 	buffInfo := vk.CommandBufferAllocateInfo{
 		SType:              vulkan_const.StructureTypeCommandBufferAllocateInfo,
 		Level:              level,
@@ -105,13 +105,13 @@ func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLev
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
 	}
-	vr.dbg.add(vk.TypeToUintPtr(buffer))
+	vr.app.dbg.track(unsafe.Pointer(buffer))
 	cr := CommandRecorder{pool: pool, buffer: buffer}
 	fenceInfo := vk.FenceCreateInfo{
 		SType: vulkan_const.StructureTypeFenceCreateInfo,
 	}
 	vk.CreateFence(vr.device, &fenceInfo, nil, &cr.fence)
-	vr.dbg.add(vk.TypeToUintPtr(cr.fence))
+	vr.app.dbg.track(unsafe.Pointer(cr.fence))
 	return cr, nil
 }
 
@@ -134,11 +134,11 @@ func (c *CommandRecorder) Begin() {
 func (c *CommandRecorder) Destroy(vr *Vulkan) {
 	buff := c.buffer
 	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
-	vr.dbg.remove(vk.TypeToUintPtr(buff))
+	vr.app.dbg.remove(unsafe.Pointer(buff))
 	vk.DestroyCommandPool(vr.device, c.pool, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(c.pool))
+	vr.app.dbg.remove(unsafe.Pointer(c.pool))
 	vk.DestroyFence(vr.device, c.fence, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(c.fence))
+	vr.app.dbg.remove(unsafe.Pointer(c.fence))
 }
 
 func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {

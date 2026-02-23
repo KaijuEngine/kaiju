@@ -38,6 +38,7 @@ package rendering
 
 import (
 	"slices"
+	"unsafe"
 
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
@@ -56,10 +57,10 @@ type bufferTrash struct {
 type bufferDestroyer struct {
 	device vk.Device
 	trash  []bufferTrash
-	dbg    *debugVulkan
+	dbg    *memoryDebugger
 }
 
-func newBufferDestroyer(device vk.Device, dbg *debugVulkan) bufferDestroyer {
+func newBufferDestroyer(device vk.Device, dbg *memoryDebugger) bufferDestroyer {
 	return bufferDestroyer{
 		device: device,
 		dbg:    dbg,
@@ -87,14 +88,14 @@ func (b *bufferDestroyer) Cycle() {
 		if pd.delay == 0 {
 			for j := range maxFramesInFlight {
 				vk.DestroyBuffer(b.device, pd.buffers[j], nil)
-				b.dbg.remove(vk.TypeToUintPtr(pd.buffers[j]))
+				b.dbg.remove(unsafe.Pointer(pd.buffers[j]))
 				vk.FreeMemory(b.device, pd.memories[j], nil)
-				b.dbg.remove(vk.TypeToUintPtr(pd.memories[j]))
+				b.dbg.remove(unsafe.Pointer(pd.memories[j]))
 				for k := range pd.namedBuffers[j] {
 					vk.DestroyBuffer(b.device, pd.namedBuffers[j][k], nil)
-					b.dbg.remove(vk.TypeToUintPtr(pd.namedBuffers[j][k]))
+					b.dbg.remove(unsafe.Pointer(pd.namedBuffers[j][k]))
 					vk.FreeMemory(b.device, pd.namedMemories[j][k], nil)
-					b.dbg.remove(vk.TypeToUintPtr(pd.namedMemories[j][k]))
+					b.dbg.remove(unsafe.Pointer(pd.namedMemories[j][k]))
 				}
 			}
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {

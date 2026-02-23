@@ -40,6 +40,7 @@ import (
 	"kaiju/klib"
 	"log/slog"
 	"math"
+	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
@@ -98,23 +99,24 @@ func chooseSwapExtent(window RenderingContainer, capabilities *vk.SurfaceCapabil
 
 func (vr *Vulkan) querySwapChainSupport(device vk.PhysicalDevice) vkSwapChainSupportDetails {
 	details := vkSwapChainSupportDetails{}
-	vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, nil)
-	vk.GetPhysicalDeviceSurfaceCapabilities(device, vr.surface, &details.capabilities)
+	vkSurface := vk.Surface(vr.app.Surface.handle)
+	vk.GetPhysicalDeviceSurfaceFormats(device, vkSurface, &details.formatCount, nil)
+	vk.GetPhysicalDeviceSurfaceCapabilities(device, vkSurface, &details.capabilities)
 	if details.formatCount > 0 {
 		details.formats = make([]vk.SurfaceFormat, details.formatCount)
-		vk.GetPhysicalDeviceSurfaceFormats(device, vr.surface, &details.formatCount, &details.formats[0])
+		vk.GetPhysicalDeviceSurfaceFormats(device, vkSurface, &details.formatCount, &details.formats[0])
 	}
-	vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, nil)
+	vk.GetPhysicalDeviceSurfacePresentModes(device, vkSurface, &details.presentModeCount, nil)
 	if details.presentModeCount > 0 {
 		details.presentModes = make([]vulkan_const.PresentMode, details.presentModeCount)
-		vk.GetPhysicalDeviceSurfacePresentModes(device, vr.surface, &details.presentModeCount, &details.presentModes[0])
+		vk.GetPhysicalDeviceSurfacePresentModes(device, vkSurface, &details.presentModeCount, &details.presentModes[0])
 	}
 	return details
 }
 
 func (vr *Vulkan) createSwapChain(window RenderingContainer, oldSwapChain vk.Swapchain) bool {
 	defer vr.swapChainDestroy(oldSwapChain)
-	scs := vr.querySwapChainSupport(vr.physicalDevice)
+	scs := vr.querySwapChainSupport(vk.PhysicalDevice(vr.app.PhysicalDevice.handle))
 	surfaceFormat := chooseSwapSurfaceFormat(scs.formats, scs.formatCount)
 	presentMode := chooseSwapPresentMode(scs.presentModes, scs.presentModeCount)
 	extent := chooseSwapExtent(window, &scs.capabilities)
@@ -126,16 +128,17 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer, oldSwapChain vk.Swa
 	if scs.capabilities.MaxImageCount > 0 && imgCount > scs.capabilities.MaxImageCount {
 		imgCount = scs.capabilities.MaxImageCount
 	}
+	vkSurface := vk.Surface(vr.app.Surface.handle)
 	info := vk.SwapchainCreateInfo{}
 	info.SType = vulkan_const.StructureTypeSwapchainCreateInfo
-	info.Surface = vr.surface
+	info.Surface = vkSurface
 	info.MinImageCount = min(uint32(maxFramesInFlight), imgCount)
 	info.ImageFormat = surfaceFormat.Format
 	info.ImageColorSpace = vkColorSpace(surfaceFormat)
 	info.ImageExtent = extent
 	info.ImageArrayLayers = 1
 	info.ImageUsage = vk.ImageUsageFlags(vulkan_const.ImageUsageColorAttachmentBit | vulkan_const.ImageUsageTransferDstBit)
-	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
+	indices := findQueueFamilies(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), vkSurface)
 	queueFamilyIndices := []uint32{uint32(indices.graphicsFamily), uint32(indices.presentFamily)}
 	if indices.graphicsFamily != indices.presentFamily {
 		info.ImageSharingMode = vulkan_const.SharingModeConcurrent
@@ -157,7 +160,7 @@ func (vr *Vulkan) createSwapChain(window RenderingContainer, oldSwapChain vk.Swa
 		slog.Error("Failed to create swap chain")
 		return false
 	} else {
-		vr.dbg.add(vk.TypeToUintPtr(swapChain))
+		vr.app.dbg.track(unsafe.Pointer(swapChain))
 		vr.swapChain = swapChain
 		vk.GetSwapchainImages(vr.device, vr.swapChain, &vr.swapImageCount, nil)
 		vr.swapImages = make([]TextureId, vr.swapImageCount)
@@ -184,11 +187,11 @@ func (vr *Vulkan) swapChainCleanup() {
 	vr.depth = vr.textureIdFree(vr.depth)
 	for i := uint32(0); i < vr.swapChainFrameBufferCount; i++ {
 		vk.DestroyFramebuffer(vr.device, vr.swapChainFrameBuffers[i], nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.swapChainFrameBuffers[i]))
+		vr.app.dbg.remove(unsafe.Pointer(vr.swapChainFrameBuffers[i]))
 	}
 	for i := uint32(0); i < vr.swapChainImageViewCount; i++ {
 		vk.DestroyImageView(vr.device, vr.swapImages[i].View, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(vr.swapImages[i].View))
+		vr.app.dbg.remove(unsafe.Pointer(vr.swapImages[i].View))
 	}
 	if vr.swapChain != vk.NullSwapchain {
 		vr.swapChainDestroy(vr.swapChain)
@@ -199,6 +202,6 @@ func (vr *Vulkan) swapChainCleanup() {
 func (vr *Vulkan) swapChainDestroy(swapChain vk.Swapchain) {
 	if swapChain != vk.NullSwapchain {
 		vk.DestroySwapchain(vr.device, swapChain, nil)
-		vr.dbg.remove(vk.TypeToUintPtr(swapChain))
+		vr.app.dbg.remove(unsafe.Pointer(swapChain))
 	}
 }

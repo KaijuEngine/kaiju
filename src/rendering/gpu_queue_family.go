@@ -10,5 +10,11 @@ type GPUQueueFamily struct {
 	IsTransfer                  bool
 	IsSparseBinding             bool
 	IsProtected                 bool
-	PresentSupport              bool
+	HasPresentSupport           bool
+}
+
+func (g GPUQueueFamily) IsValid() bool { return g.Index >= 0 }
+
+func InvalidGPUQueueFamily() GPUQueueFamily {
+	return GPUQueueFamily{Index: -1}
 }

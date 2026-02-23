@@ -40,7 +40,6 @@ import (
 	"log/slog"
 
 	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 )
 
 func (vr *Vulkan) createSwapChainFrameBuffer() bool {
@@ -59,53 +58,4 @@ func (vr *Vulkan) createSwapChainFrameBuffer() bool {
 			vr.swapChainExtent.Width, vr.swapChainExtent.Height)
 	}
 	return success
-}
-
-func (vr *Vulkan) createVulkanInstance(window RenderingContainer, appInfo vk.ApplicationInfo) bool {
-	slog.Info("creating vulkan instance")
-	windowExtensions := window.GetInstanceExtensions()
-	added := make([]string, 0, 3)
-	if useValidationLayers {
-		added = append(added, vulkan_const.ExtDebugReportExtensionName+"\x00")
-	}
-	//	const char* added[] = {
-	//#ifdef ANDROID
-	//		VK_KHR_SURFACE_EXTENSION_NAME,
-	//		VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
-	//#elif defined(USE_VALIDATION_LAYERS)
-	//		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-	//#endif
-	//	};
-	extensions := make([]string, 0, len(windowExtensions)+len(added))
-	extensions = append(extensions, windowExtensions...)
-	extensions = append(extensions, added...)
-	extensions = append(extensions, vkInstanceExtensions()...)
-	createInfo := vk.InstanceCreateInfo{
-		SType:            vulkan_const.StructureTypeInstanceCreateInfo,
-		PApplicationInfo: &appInfo,
-		Flags:            vkInstanceFlags,
-	}
-	defer createInfo.Free()
-	createInfo.SetEnabledExtensionNames(extensions)
-
-	validationLayers := validationLayers()
-	if len(validationLayers) > 0 {
-		if !checkValidationLayerSupport(validationLayers) {
-			slog.Warn("Expected to have validation layers for debugging, but didn't find them")
-		} else {
-			slog.Info("enabling the validation layers")
-			createInfo.SetEnabledLayerNames(validationLayers)
-		}
-	}
-
-	var instance vk.Instance
-	result := vk.CreateInstance(&createInfo, nil, &instance)
-	if result != vulkan_const.Success {
-		slog.Error("Failed to get the VK instance", slog.Int("code", int(result)))
-		return false
-	} else {
-		vr.instance = instance
-		vk.InitInstance(vr.instance)
-		return true
-	}
 }

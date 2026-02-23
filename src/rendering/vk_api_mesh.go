@@ -40,6 +40,7 @@ import (
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"runtime"
+	"unsafe"
 )
 
 type MeshCleanup struct {
@@ -72,12 +73,12 @@ func (vr *Vulkan) destroyMeshHandle(handle MeshId) MeshId {
 	defer tracing.NewRegion("Vulkan.DestroyMesh").End()
 	vk.DeviceWaitIdle(vr.device)
 	vk.DestroyBuffer(vr.device, handle.indexBuffer, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(handle.indexBuffer))
+	vr.app.dbg.remove(unsafe.Pointer(handle.indexBuffer))
 	vk.FreeMemory(vr.device, handle.indexBufferMemory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(handle.indexBufferMemory))
+	vr.app.dbg.remove(unsafe.Pointer(handle.indexBufferMemory))
 	vk.DestroyBuffer(vr.device, handle.vertexBuffer, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(handle.vertexBuffer))
+	vr.app.dbg.remove(unsafe.Pointer(handle.vertexBuffer))
 	vk.FreeMemory(vr.device, handle.vertexBufferMemory, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(handle.vertexBufferMemory))
+	vr.app.dbg.remove(unsafe.Pointer(handle.vertexBufferMemory))
 	return MeshId{}
 }

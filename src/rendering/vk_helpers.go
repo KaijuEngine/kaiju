@@ -43,7 +43,7 @@ import (
 
 func (vr *Vulkan) formatCanTile(format vulkan_const.Format, tiling vulkan_const.ImageTiling) bool {
 	var formatProps vk.FormatProperties
-	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
+	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), format, &formatProps)
 	if tiling == vulkan_const.ImageTilingOptimal {
 		return (uint32(formatProps.OptimalTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
 
@@ -56,7 +56,7 @@ func (vr *Vulkan) formatCanTile(format vulkan_const.Format, tiling vulkan_const.
 
 func (vr *Vulkan) padBufferSize(size vk.DeviceSize) vk.DeviceSize {
 	// Calculate required alignment based on minimum device offset alignment
-	minUboAlignment := vk.DeviceSize(vr.physicalDeviceProperties.Limits.MinUniformBufferOffsetAlignment)
+	minUboAlignment := vk.DeviceSize(vr.app.PhysicalDevice.Properties.Limits.MinUniformBufferOffsetAlignment)
 	alignedSize := size
 	if minUboAlignment > 0 {
 		alignedSize = (alignedSize + minUboAlignment - 1) & ^(minUboAlignment - 1)
@@ -66,7 +66,7 @@ func (vr *Vulkan) padBufferSize(size vk.DeviceSize) vk.DeviceSize {
 
 func (vr *Vulkan) findMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
 	var memProperties vk.PhysicalDeviceMemoryProperties
-	vk.GetPhysicalDeviceMemoryProperties(vr.physicalDevice, &memProperties)
+	vk.GetPhysicalDeviceMemoryProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), &memProperties)
 	found := -1
 	for i := uint32(0); i < memProperties.MemoryTypeCount && found < 0; i++ {
 		memType := memProperties.MemoryTypes[i]
