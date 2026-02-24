@@ -673,7 +673,7 @@ func formatToVK(val string, vr *Vulkan) vulkan_const.Format {
 	if val == detectDepthFormatKey {
 		return vr.findDepthFormat()
 	} else if val == swapChainFormatKey {
-		return vr.swapImages[0].Format
+		return vr.app.FirstInstance().PrimaryDevice().LogicalDevice.SwapChain.Images[0].Format
 	} else if res, ok := StringVkFormat[val]; ok {
 		return res
 	} else if val != "" {

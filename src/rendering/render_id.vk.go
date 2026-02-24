@@ -81,23 +81,21 @@ func (s ShaderId) IsValid() bool {
 }
 
 type TextureId struct {
-	Image      vk.Image
-	Memory     vk.DeviceMemory
-	View       vk.ImageView
-	Sampler    vk.Sampler
-	Format     vulkan_const.Format
+	Image      GPUImage
+	Memory     GPUDeviceMemory
+	View       GPUImageView
+	Sampler    GPUSampler
+	Format     GPUFormat
 	MipLevels  uint32
-	Layout     vulkan_const.ImageLayout
+	Layout     GPUImageLayout
 	Access     vk.AccessFlags
-	Samples    vulkan_const.SampleCountFlagBits
+	Samples    GPUSampleCountFlags
 	Width      int
 	Height     int
 	LayerCount int
 }
 
-func (t TextureId) IsValid() bool {
-	return t.Image != vk.NullImage
-}
+func (t TextureId) IsValid() bool { return t.Image.IsValid() }
 
 type MeshId struct {
 	vertexCount        uint32

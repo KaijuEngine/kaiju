@@ -1,518 +1,1140 @@
 package rendering
 
-import "kaiju/rendering/vulkan_const"
+import (
+	"kaiju/matrix"
+	"kaiju/platform/profiler/tracing"
+	vk "kaiju/rendering/vulkan"
+	"kaiju/rendering/vulkan_const"
+	"unsafe"
+)
+
+var (
+	gpuFormatToVulkan = map[GPUFormat]vulkan_const.Format{
+		GPUFormatUndefined:                            vulkan_const.FormatUndefined,
+		GPUFormatR4g4UnormPack8:                       vulkan_const.FormatR4g4UnormPack8,
+		GPUFormatR4g4b4a4UnormPack16:                  vulkan_const.FormatR4g4b4a4UnormPack16,
+		GPUFormatB4g4r4a4UnormPack16:                  vulkan_const.FormatB4g4r4a4UnormPack16,
+		GPUFormatR5g6b5UnormPack16:                    vulkan_const.FormatR5g6b5UnormPack16,
+		GPUFormatB5g6r5UnormPack16:                    vulkan_const.FormatB5g6r5UnormPack16,
+		GPUFormatR5g5b5a1UnormPack16:                  vulkan_const.FormatR5g5b5a1UnormPack16,
+		GPUFormatB5g5r5a1UnormPack16:                  vulkan_const.FormatB5g5r5a1UnormPack16,
+		GPUFormatA1r5g5b5UnormPack16:                  vulkan_const.FormatA1r5g5b5UnormPack16,
+		GPUFormatR8Unorm:                              vulkan_const.FormatR8Unorm,
+		GPUFormatR8Snorm:                              vulkan_const.FormatR8Snorm,
+		GPUFormatR8Uscaled:                            vulkan_const.FormatR8Uscaled,
+		GPUFormatR8Sscaled:                            vulkan_const.FormatR8Sscaled,
+		GPUFormatR8Uint:                               vulkan_const.FormatR8Uint,
+		GPUFormatR8Sint:                               vulkan_const.FormatR8Sint,
+		GPUFormatR8Srgb:                               vulkan_const.FormatR8Srgb,
+		GPUFormatR8g8Unorm:                            vulkan_const.FormatR8g8Unorm,
+		GPUFormatR8g8Snorm:                            vulkan_const.FormatR8g8Snorm,
+		GPUFormatR8g8Uscaled:                          vulkan_const.FormatR8g8Uscaled,
+		GPUFormatR8g8Sscaled:                          vulkan_const.FormatR8g8Sscaled,
+		GPUFormatR8g8Uint:                             vulkan_const.FormatR8g8Uint,
+		GPUFormatR8g8Sint:                             vulkan_const.FormatR8g8Sint,
+		GPUFormatR8g8Srgb:                             vulkan_const.FormatR8g8Srgb,
+		GPUFormatR8g8b8Unorm:                          vulkan_const.FormatR8g8b8Unorm,
+		GPUFormatR8g8b8Snorm:                          vulkan_const.FormatR8g8b8Snorm,
+		GPUFormatR8g8b8Uscaled:                        vulkan_const.FormatR8g8b8Uscaled,
+		GPUFormatR8g8b8Sscaled:                        vulkan_const.FormatR8g8b8Sscaled,
+		GPUFormatR8g8b8Uint:                           vulkan_const.FormatR8g8b8Uint,
+		GPUFormatR8g8b8Sint:                           vulkan_const.FormatR8g8b8Sint,
+		GPUFormatR8g8b8Srgb:                           vulkan_const.FormatR8g8b8Srgb,
+		GPUFormatB8g8r8Unorm:                          vulkan_const.FormatB8g8r8Unorm,
+		GPUFormatB8g8r8Snorm:                          vulkan_const.FormatB8g8r8Snorm,
+		GPUFormatB8g8r8Uscaled:                        vulkan_const.FormatB8g8r8Uscaled,
+		GPUFormatB8g8r8Sscaled:                        vulkan_const.FormatB8g8r8Sscaled,
+		GPUFormatB8g8r8Uint:                           vulkan_const.FormatB8g8r8Uint,
+		GPUFormatB8g8r8Sint:                           vulkan_const.FormatB8g8r8Sint,
+		GPUFormatB8g8r8Srgb:                           vulkan_const.FormatB8g8r8Srgb,
+		GPUFormatR8g8b8a8Unorm:                        vulkan_const.FormatR8g8b8a8Unorm,
+		GPUFormatR8g8b8a8Snorm:                        vulkan_const.FormatR8g8b8a8Snorm,
+		GPUFormatR8g8b8a8Uscaled:                      vulkan_const.FormatR8g8b8a8Uscaled,
+		GPUFormatR8g8b8a8Sscaled:                      vulkan_const.FormatR8g8b8a8Sscaled,
+		GPUFormatR8g8b8a8Uint:                         vulkan_const.FormatR8g8b8a8Uint,
+		GPUFormatR8g8b8a8Sint:                         vulkan_const.FormatR8g8b8a8Sint,
+		GPUFormatR8g8b8a8Srgb:                         vulkan_const.FormatR8g8b8a8Srgb,
+		GPUFormatB8g8r8a8Unorm:                        vulkan_const.FormatB8g8r8a8Unorm,
+		GPUFormatB8g8r8a8Snorm:                        vulkan_const.FormatB8g8r8a8Snorm,
+		GPUFormatB8g8r8a8Uscaled:                      vulkan_const.FormatB8g8r8a8Uscaled,
+		GPUFormatB8g8r8a8Sscaled:                      vulkan_const.FormatB8g8r8a8Sscaled,
+		GPUFormatB8g8r8a8Uint:                         vulkan_const.FormatB8g8r8a8Uint,
+		GPUFormatB8g8r8a8Sint:                         vulkan_const.FormatB8g8r8a8Sint,
+		GPUFormatB8g8r8a8Srgb:                         vulkan_const.FormatB8g8r8a8Srgb,
+		GPUFormatA8b8g8r8UnormPack32:                  vulkan_const.FormatA8b8g8r8UnormPack32,
+		GPUFormatA8b8g8r8SnormPack32:                  vulkan_const.FormatA8b8g8r8SnormPack32,
+		GPUFormatA8b8g8r8UscaledPack32:                vulkan_const.FormatA8b8g8r8UscaledPack32,
+		GPUFormatA8b8g8r8SscaledPack32:                vulkan_const.FormatA8b8g8r8SscaledPack32,
+		GPUFormatA8b8g8r8UintPack32:                   vulkan_const.FormatA8b8g8r8UintPack32,
+		GPUFormatA8b8g8r8SintPack32:                   vulkan_const.FormatA8b8g8r8SintPack32,
+		GPUFormatA8b8g8r8SrgbPack32:                   vulkan_const.FormatA8b8g8r8SrgbPack32,
+		GPUFormatA2r10g10b10UnormPack32:               vulkan_const.FormatA2r10g10b10UnormPack32,
+		GPUFormatA2r10g10b10SnormPack32:               vulkan_const.FormatA2r10g10b10SnormPack32,
+		GPUFormatA2r10g10b10UscaledPack32:             vulkan_const.FormatA2r10g10b10UscaledPack32,
+		GPUFormatA2r10g10b10SscaledPack32:             vulkan_const.FormatA2r10g10b10SscaledPack32,
+		GPUFormatA2r10g10b10UintPack32:                vulkan_const.FormatA2r10g10b10UintPack32,
+		GPUFormatA2r10g10b10SintPack32:                vulkan_const.FormatA2r10g10b10SintPack32,
+		GPUFormatA2b10g10r10UnormPack32:               vulkan_const.FormatA2b10g10r10UnormPack32,
+		GPUFormatA2b10g10r10SnormPack32:               vulkan_const.FormatA2b10g10r10SnormPack32,
+		GPUFormatA2b10g10r10UscaledPack32:             vulkan_const.FormatA2b10g10r10UscaledPack32,
+		GPUFormatA2b10g10r10SscaledPack32:             vulkan_const.FormatA2b10g10r10SscaledPack32,
+		GPUFormatA2b10g10r10UintPack32:                vulkan_const.FormatA2b10g10r10UintPack32,
+		GPUFormatA2b10g10r10SintPack32:                vulkan_const.FormatA2b10g10r10SintPack32,
+		GPUFormatR16Unorm:                             vulkan_const.FormatR16Unorm,
+		GPUFormatR16Snorm:                             vulkan_const.FormatR16Snorm,
+		GPUFormatR16Uscaled:                           vulkan_const.FormatR16Uscaled,
+		GPUFormatR16Sscaled:                           vulkan_const.FormatR16Sscaled,
+		GPUFormatR16Uint:                              vulkan_const.FormatR16Uint,
+		GPUFormatR16Sint:                              vulkan_const.FormatR16Sint,
+		GPUFormatR16Sfloat:                            vulkan_const.FormatR16Sfloat,
+		GPUFormatR16g16Unorm:                          vulkan_const.FormatR16g16Unorm,
+		GPUFormatR16g16Snorm:                          vulkan_const.FormatR16g16Snorm,
+		GPUFormatR16g16Uscaled:                        vulkan_const.FormatR16g16Uscaled,
+		GPUFormatR16g16Sscaled:                        vulkan_const.FormatR16g16Sscaled,
+		GPUFormatR16g16Uint:                           vulkan_const.FormatR16g16Uint,
+		GPUFormatR16g16Sint:                           vulkan_const.FormatR16g16Sint,
+		GPUFormatR16g16Sfloat:                         vulkan_const.FormatR16g16Sfloat,
+		GPUFormatR16g16b16Unorm:                       vulkan_const.FormatR16g16b16Unorm,
+		GPUFormatR16g16b16Snorm:                       vulkan_const.FormatR16g16b16Snorm,
+		GPUFormatR16g16b16Uscaled:                     vulkan_const.FormatR16g16b16Uscaled,
+		GPUFormatR16g16b16Sscaled:                     vulkan_const.FormatR16g16b16Sscaled,
+		GPUFormatR16g16b16Uint:                        vulkan_const.FormatR16g16b16Uint,
+		GPUFormatR16g16b16Sint:                        vulkan_const.FormatR16g16b16Sint,
+		GPUFormatR16g16b16Sfloat:                      vulkan_const.FormatR16g16b16Sfloat,
+		GPUFormatR16g16b16a16Unorm:                    vulkan_const.FormatR16g16b16a16Unorm,
+		GPUFormatR16g16b16a16Snorm:                    vulkan_const.FormatR16g16b16a16Snorm,
+		GPUFormatR16g16b16a16Uscaled:                  vulkan_const.FormatR16g16b16a16Uscaled,
+		GPUFormatR16g16b16a16Sscaled:                  vulkan_const.FormatR16g16b16a16Sscaled,
+		GPUFormatR16g16b16a16Uint:                     vulkan_const.FormatR16g16b16a16Uint,
+		GPUFormatR16g16b16a16Sint:                     vulkan_const.FormatR16g16b16a16Sint,
+		GPUFormatR16g16b16a16Sfloat:                   vulkan_const.FormatR16g16b16a16Sfloat,
+		GPUFormatR32Uint:                              vulkan_const.FormatR32Uint,
+		GPUFormatR32Sint:                              vulkan_const.FormatR32Sint,
+		GPUFormatR32Sfloat:                            vulkan_const.FormatR32Sfloat,
+		GPUFormatR32g32Uint:                           vulkan_const.FormatR32g32Uint,
+		GPUFormatR32g32Sint:                           vulkan_const.FormatR32g32Sint,
+		GPUFormatR32g32Sfloat:                         vulkan_const.FormatR32g32Sfloat,
+		GPUFormatR32g32b32Uint:                        vulkan_const.FormatR32g32b32Uint,
+		GPUFormatR32g32b32Sint:                        vulkan_const.FormatR32g32b32Sint,
+		GPUFormatR32g32b32Sfloat:                      vulkan_const.FormatR32g32b32Sfloat,
+		GPUFormatR32g32b32a32Uint:                     vulkan_const.FormatR32g32b32a32Uint,
+		GPUFormatR32g32b32a32Sint:                     vulkan_const.FormatR32g32b32a32Sint,
+		GPUFormatR32g32b32a32Sfloat:                   vulkan_const.FormatR32g32b32a32Sfloat,
+		GPUFormatR64Uint:                              vulkan_const.FormatR64Uint,
+		GPUFormatR64Sint:                              vulkan_const.FormatR64Sint,
+		GPUFormatR64Sfloat:                            vulkan_const.FormatR64Sfloat,
+		GPUFormatR64g64Uint:                           vulkan_const.FormatR64g64Uint,
+		GPUFormatR64g64Sint:                           vulkan_const.FormatR64g64Sint,
+		GPUFormatR64g64Sfloat:                         vulkan_const.FormatR64g64Sfloat,
+		GPUFormatR64g64b64Uint:                        vulkan_const.FormatR64g64b64Uint,
+		GPUFormatR64g64b64Sint:                        vulkan_const.FormatR64g64b64Sint,
+		GPUFormatR64g64b64Sfloat:                      vulkan_const.FormatR64g64b64Sfloat,
+		GPUFormatR64g64b64a64Uint:                     vulkan_const.FormatR64g64b64a64Uint,
+		GPUFormatR64g64b64a64Sint:                     vulkan_const.FormatR64g64b64a64Sint,
+		GPUFormatR64g64b64a64Sfloat:                   vulkan_const.FormatR64g64b64a64Sfloat,
+		GPUFormatB10g11r11UfloatPack32:                vulkan_const.FormatB10g11r11UfloatPack32,
+		GPUFormatE5b9g9r9UfloatPack32:                 vulkan_const.FormatE5b9g9r9UfloatPack32,
+		GPUFormatD16Unorm:                             vulkan_const.FormatD16Unorm,
+		GPUFormatX8D24UnormPack32:                     vulkan_const.FormatX8D24UnormPack32,
+		GPUFormatD32Sfloat:                            vulkan_const.FormatD32Sfloat,
+		GPUFormatS8Uint:                               vulkan_const.FormatS8Uint,
+		GPUFormatD16UnormS8Uint:                       vulkan_const.FormatD16UnormS8Uint,
+		GPUFormatD24UnormS8Uint:                       vulkan_const.FormatD24UnormS8Uint,
+		GPUFormatD32SfloatS8Uint:                      vulkan_const.FormatD32SfloatS8Uint,
+		GPUFormatBc1RgbUnormBlock:                     vulkan_const.FormatBc1RgbUnormBlock,
+		GPUFormatBc1RgbSrgbBlock:                      vulkan_const.FormatBc1RgbSrgbBlock,
+		GPUFormatBc1RgbaUnormBlock:                    vulkan_const.FormatBc1RgbaUnormBlock,
+		GPUFormatBc1RgbaSrgbBlock:                     vulkan_const.FormatBc1RgbaSrgbBlock,
+		GPUFormatBc2UnormBlock:                        vulkan_const.FormatBc2UnormBlock,
+		GPUFormatBc2SrgbBlock:                         vulkan_const.FormatBc2SrgbBlock,
+		GPUFormatBc3UnormBlock:                        vulkan_const.FormatBc3UnormBlock,
+		GPUFormatBc3SrgbBlock:                         vulkan_const.FormatBc3SrgbBlock,
+		GPUFormatBc4UnormBlock:                        vulkan_const.FormatBc4UnormBlock,
+		GPUFormatBc4SnormBlock:                        vulkan_const.FormatBc4SnormBlock,
+		GPUFormatBc5UnormBlock:                        vulkan_const.FormatBc5UnormBlock,
+		GPUFormatBc5SnormBlock:                        vulkan_const.FormatBc5SnormBlock,
+		GPUFormatBc6hUfloatBlock:                      vulkan_const.FormatBc6hUfloatBlock,
+		GPUFormatBc6hSfloatBlock:                      vulkan_const.FormatBc6hSfloatBlock,
+		GPUFormatBc7UnormBlock:                        vulkan_const.FormatBc7UnormBlock,
+		GPUFormatBc7SrgbBlock:                         vulkan_const.FormatBc7SrgbBlock,
+		GPUFormatEtc2R8g8b8UnormBlock:                 vulkan_const.FormatEtc2R8g8b8UnormBlock,
+		GPUFormatEtc2R8g8b8SrgbBlock:                  vulkan_const.FormatEtc2R8g8b8SrgbBlock,
+		GPUFormatEtc2R8g8b8a1UnormBlock:               vulkan_const.FormatEtc2R8g8b8a1UnormBlock,
+		GPUFormatEtc2R8g8b8a1SrgbBlock:                vulkan_const.FormatEtc2R8g8b8a1SrgbBlock,
+		GPUFormatEtc2R8g8b8a8UnormBlock:               vulkan_const.FormatEtc2R8g8b8a8UnormBlock,
+		GPUFormatEtc2R8g8b8a8SrgbBlock:                vulkan_const.FormatEtc2R8g8b8a8SrgbBlock,
+		GPUFormatEacR11UnormBlock:                     vulkan_const.FormatEacR11UnormBlock,
+		GPUFormatEacR11SnormBlock:                     vulkan_const.FormatEacR11SnormBlock,
+		GPUFormatEacR11g11UnormBlock:                  vulkan_const.FormatEacR11g11UnormBlock,
+		GPUFormatEacR11g11SnormBlock:                  vulkan_const.FormatEacR11g11SnormBlock,
+		GPUFormatAstc4x4UnormBlock:                    vulkan_const.FormatAstc4x4UnormBlock,
+		GPUFormatAstc4x4SrgbBlock:                     vulkan_const.FormatAstc4x4SrgbBlock,
+		GPUFormatAstc5x4UnormBlock:                    vulkan_const.FormatAstc5x4UnormBlock,
+		GPUFormatAstc5x4SrgbBlock:                     vulkan_const.FormatAstc5x4SrgbBlock,
+		GPUFormatAstc5x5UnormBlock:                    vulkan_const.FormatAstc5x5UnormBlock,
+		GPUFormatAstc5x5SrgbBlock:                     vulkan_const.FormatAstc5x5SrgbBlock,
+		GPUFormatAstc6x5UnormBlock:                    vulkan_const.FormatAstc6x5UnormBlock,
+		GPUFormatAstc6x5SrgbBlock:                     vulkan_const.FormatAstc6x5SrgbBlock,
+		GPUFormatAstc6x6UnormBlock:                    vulkan_const.FormatAstc6x6UnormBlock,
+		GPUFormatAstc6x6SrgbBlock:                     vulkan_const.FormatAstc6x6SrgbBlock,
+		GPUFormatAstc8x5UnormBlock:                    vulkan_const.FormatAstc8x5UnormBlock,
+		GPUFormatAstc8x5SrgbBlock:                     vulkan_const.FormatAstc8x5SrgbBlock,
+		GPUFormatAstc8x6UnormBlock:                    vulkan_const.FormatAstc8x6UnormBlock,
+		GPUFormatAstc8x6SrgbBlock:                     vulkan_const.FormatAstc8x6SrgbBlock,
+		GPUFormatAstc8x8UnormBlock:                    vulkan_const.FormatAstc8x8UnormBlock,
+		GPUFormatAstc8x8SrgbBlock:                     vulkan_const.FormatAstc8x8SrgbBlock,
+		GPUFormatAstc10x5UnormBlock:                   vulkan_const.FormatAstc10x5UnormBlock,
+		GPUFormatAstc10x5SrgbBlock:                    vulkan_const.FormatAstc10x5SrgbBlock,
+		GPUFormatAstc10x6UnormBlock:                   vulkan_const.FormatAstc10x6UnormBlock,
+		GPUFormatAstc10x6SrgbBlock:                    vulkan_const.FormatAstc10x6SrgbBlock,
+		GPUFormatAstc10x8UnormBlock:                   vulkan_const.FormatAstc10x8UnormBlock,
+		GPUFormatAstc10x8SrgbBlock:                    vulkan_const.FormatAstc10x8SrgbBlock,
+		GPUFormatAstc10x10UnormBlock:                  vulkan_const.FormatAstc10x10UnormBlock,
+		GPUFormatAstc10x10SrgbBlock:                   vulkan_const.FormatAstc10x10SrgbBlock,
+		GPUFormatAstc12x10UnormBlock:                  vulkan_const.FormatAstc12x10UnormBlock,
+		GPUFormatAstc12x10SrgbBlock:                   vulkan_const.FormatAstc12x10SrgbBlock,
+		GPUFormatAstc12x12UnormBlock:                  vulkan_const.FormatAstc12x12UnormBlock,
+		GPUFormatAstc12x12SrgbBlock:                   vulkan_const.FormatAstc12x12SrgbBlock,
+		GPUFormatG8b8g8r8422Unorm:                     vulkan_const.FormatG8b8g8r8422Unorm,
+		GPUFormatB8g8r8g8422Unorm:                     vulkan_const.FormatB8g8r8g8422Unorm,
+		GPUFormatG8B8R83plane420Unorm:                 vulkan_const.FormatG8B8R83plane420Unorm,
+		GPUFormatG8B8r82plane420Unorm:                 vulkan_const.FormatG8B8r82plane420Unorm,
+		GPUFormatG8B8R83plane422Unorm:                 vulkan_const.FormatG8B8R83plane422Unorm,
+		GPUFormatG8B8r82plane422Unorm:                 vulkan_const.FormatG8B8r82plane422Unorm,
+		GPUFormatG8B8R83plane444Unorm:                 vulkan_const.FormatG8B8R83plane444Unorm,
+		GPUFormatR10x6UnormPack16:                     vulkan_const.FormatR10x6UnormPack16,
+		GPUFormatR10x6g10x6Unorm2pack16:               vulkan_const.FormatR10x6g10x6Unorm2pack16,
+		GPUFormatR10x6g10x6b10x6a10x6Unorm4pack16:     vulkan_const.FormatR10x6g10x6b10x6a10x6Unorm4pack16,
+		GPUFormatG10x6b10x6g10x6r10x6422Unorm4pack16:  vulkan_const.FormatG10x6b10x6g10x6r10x6422Unorm4pack16,
+		GPUFormatB10x6g10x6r10x6g10x6422Unorm4pack16:  vulkan_const.FormatB10x6g10x6r10x6g10x6422Unorm4pack16,
+		GPUFormatG10x6B10x6R10x63plane420Unorm3pack16: vulkan_const.FormatG10x6B10x6R10x63plane420Unorm3pack16,
+		GPUFormatG10x6B10x6r10x62plane420Unorm3pack16: vulkan_const.FormatG10x6B10x6r10x62plane420Unorm3pack16,
+		GPUFormatG10x6B10x6R10x63plane422Unorm3pack16: vulkan_const.FormatG10x6B10x6R10x63plane422Unorm3pack16,
+		GPUFormatG10x6B10x6r10x62plane422Unorm3pack16: vulkan_const.FormatG10x6B10x6r10x62plane422Unorm3pack16,
+		GPUFormatG10x6B10x6R10x63plane444Unorm3pack16: vulkan_const.FormatG10x6B10x6R10x63plane444Unorm3pack16,
+		GPUFormatR12x4UnormPack16:                     vulkan_const.FormatR12x4UnormPack16,
+		GPUFormatR12x4g12x4Unorm2pack16:               vulkan_const.FormatR12x4g12x4Unorm2pack16,
+		GPUFormatR12x4g12x4b12x4a12x4Unorm4pack16:     vulkan_const.FormatR12x4g12x4b12x4a12x4Unorm4pack16,
+		GPUFormatG12x4b12x4g12x4r12x4422Unorm4pack16:  vulkan_const.FormatG12x4b12x4g12x4r12x4422Unorm4pack16,
+		GPUFormatB12x4g12x4r12x4g12x4422Unorm4pack16:  vulkan_const.FormatB12x4g12x4r12x4g12x4422Unorm4pack16,
+		GPUFormatG12x4B12x4R12x43plane420Unorm3pack16: vulkan_const.FormatG12x4B12x4R12x43plane420Unorm3pack16,
+		GPUFormatG12x4B12x4r12x42plane420Unorm3pack16: vulkan_const.FormatG12x4B12x4r12x42plane420Unorm3pack16,
+		GPUFormatG12x4B12x4R12x43plane422Unorm3pack16: vulkan_const.FormatG12x4B12x4R12x43plane422Unorm3pack16,
+		GPUFormatG12x4B12x4r12x42plane422Unorm3pack16: vulkan_const.FormatG12x4B12x4r12x42plane422Unorm3pack16,
+		GPUFormatG12x4B12x4R12x43plane444Unorm3pack16: vulkan_const.FormatG12x4B12x4R12x43plane444Unorm3pack16,
+		GPUFormatG16b16g16r16422Unorm:                 vulkan_const.FormatG16b16g16r16422Unorm,
+		GPUFormatB16g16r16g16422Unorm:                 vulkan_const.FormatB16g16r16g16422Unorm,
+		GPUFormatG16B16R163plane420Unorm:              vulkan_const.FormatG16B16R163plane420Unorm,
+		GPUFormatG16B16r162plane420Unorm:              vulkan_const.FormatG16B16r162plane420Unorm,
+		GPUFormatG16B16R163plane422Unorm:              vulkan_const.FormatG16B16R163plane422Unorm,
+		GPUFormatG16B16r162plane422Unorm:              vulkan_const.FormatG16B16r162plane422Unorm,
+		GPUFormatG16B16R163plane444Unorm:              vulkan_const.FormatG16B16R163plane444Unorm,
+		GPUFormatPvrtc12bppUnormBlockImg:              vulkan_const.FormatPvrtc12bppUnormBlockImg,
+		GPUFormatPvrtc14bppUnormBlockImg:              vulkan_const.FormatPvrtc14bppUnormBlockImg,
+		GPUFormatPvrtc22bppUnormBlockImg:              vulkan_const.FormatPvrtc22bppUnormBlockImg,
+		GPUFormatPvrtc24bppUnormBlockImg:              vulkan_const.FormatPvrtc24bppUnormBlockImg,
+		GPUFormatPvrtc12bppSrgbBlockImg:               vulkan_const.FormatPvrtc12bppSrgbBlockImg,
+		GPUFormatPvrtc14bppSrgbBlockImg:               vulkan_const.FormatPvrtc14bppSrgbBlockImg,
+		GPUFormatPvrtc22bppSrgbBlockImg:               vulkan_const.FormatPvrtc22bppSrgbBlockImg,
+		GPUFormatPvrtc24bppSrgbBlockImg:               vulkan_const.FormatPvrtc24bppSrgbBlockImg,
+	}
+	gpuFormatFromVulkan = map[vulkan_const.Format]GPUFormat{
+		vulkan_const.FormatUndefined:                            GPUFormatUndefined,
+		vulkan_const.FormatR4g4UnormPack8:                       GPUFormatR4g4UnormPack8,
+		vulkan_const.FormatR4g4b4a4UnormPack16:                  GPUFormatR4g4b4a4UnormPack16,
+		vulkan_const.FormatB4g4r4a4UnormPack16:                  GPUFormatB4g4r4a4UnormPack16,
+		vulkan_const.FormatR5g6b5UnormPack16:                    GPUFormatR5g6b5UnormPack16,
+		vulkan_const.FormatB5g6r5UnormPack16:                    GPUFormatB5g6r5UnormPack16,
+		vulkan_const.FormatR5g5b5a1UnormPack16:                  GPUFormatR5g5b5a1UnormPack16,
+		vulkan_const.FormatB5g5r5a1UnormPack16:                  GPUFormatB5g5r5a1UnormPack16,
+		vulkan_const.FormatA1r5g5b5UnormPack16:                  GPUFormatA1r5g5b5UnormPack16,
+		vulkan_const.FormatR8Unorm:                              GPUFormatR8Unorm,
+		vulkan_const.FormatR8Snorm:                              GPUFormatR8Snorm,
+		vulkan_const.FormatR8Uscaled:                            GPUFormatR8Uscaled,
+		vulkan_const.FormatR8Sscaled:                            GPUFormatR8Sscaled,
+		vulkan_const.FormatR8Uint:                               GPUFormatR8Uint,
+		vulkan_const.FormatR8Sint:                               GPUFormatR8Sint,
+		vulkan_const.FormatR8Srgb:                               GPUFormatR8Srgb,
+		vulkan_const.FormatR8g8Unorm:                            GPUFormatR8g8Unorm,
+		vulkan_const.FormatR8g8Snorm:                            GPUFormatR8g8Snorm,
+		vulkan_const.FormatR8g8Uscaled:                          GPUFormatR8g8Uscaled,
+		vulkan_const.FormatR8g8Sscaled:                          GPUFormatR8g8Sscaled,
+		vulkan_const.FormatR8g8Uint:                             GPUFormatR8g8Uint,
+		vulkan_const.FormatR8g8Sint:                             GPUFormatR8g8Sint,
+		vulkan_const.FormatR8g8Srgb:                             GPUFormatR8g8Srgb,
+		vulkan_const.FormatR8g8b8Unorm:                          GPUFormatR8g8b8Unorm,
+		vulkan_const.FormatR8g8b8Snorm:                          GPUFormatR8g8b8Snorm,
+		vulkan_const.FormatR8g8b8Uscaled:                        GPUFormatR8g8b8Uscaled,
+		vulkan_const.FormatR8g8b8Sscaled:                        GPUFormatR8g8b8Sscaled,
+		vulkan_const.FormatR8g8b8Uint:                           GPUFormatR8g8b8Uint,
+		vulkan_const.FormatR8g8b8Sint:                           GPUFormatR8g8b8Sint,
+		vulkan_const.FormatR8g8b8Srgb:                           GPUFormatR8g8b8Srgb,
+		vulkan_const.FormatB8g8r8Unorm:                          GPUFormatB8g8r8Unorm,
+		vulkan_const.FormatB8g8r8Snorm:                          GPUFormatB8g8r8Snorm,
+		vulkan_const.FormatB8g8r8Uscaled:                        GPUFormatB8g8r8Uscaled,
+		vulkan_const.FormatB8g8r8Sscaled:                        GPUFormatB8g8r8Sscaled,
+		vulkan_const.FormatB8g8r8Uint:                           GPUFormatB8g8r8Uint,
+		vulkan_const.FormatB8g8r8Sint:                           GPUFormatB8g8r8Sint,
+		vulkan_const.FormatB8g8r8Srgb:                           GPUFormatB8g8r8Srgb,
+		vulkan_const.FormatR8g8b8a8Unorm:                        GPUFormatR8g8b8a8Unorm,
+		vulkan_const.FormatR8g8b8a8Snorm:                        GPUFormatR8g8b8a8Snorm,
+		vulkan_const.FormatR8g8b8a8Uscaled:                      GPUFormatR8g8b8a8Uscaled,
+		vulkan_const.FormatR8g8b8a8Sscaled:                      GPUFormatR8g8b8a8Sscaled,
+		vulkan_const.FormatR8g8b8a8Uint:                         GPUFormatR8g8b8a8Uint,
+		vulkan_const.FormatR8g8b8a8Sint:                         GPUFormatR8g8b8a8Sint,
+		vulkan_const.FormatR8g8b8a8Srgb:                         GPUFormatR8g8b8a8Srgb,
+		vulkan_const.FormatB8g8r8a8Unorm:                        GPUFormatB8g8r8a8Unorm,
+		vulkan_const.FormatB8g8r8a8Snorm:                        GPUFormatB8g8r8a8Snorm,
+		vulkan_const.FormatB8g8r8a8Uscaled:                      GPUFormatB8g8r8a8Uscaled,
+		vulkan_const.FormatB8g8r8a8Sscaled:                      GPUFormatB8g8r8a8Sscaled,
+		vulkan_const.FormatB8g8r8a8Uint:                         GPUFormatB8g8r8a8Uint,
+		vulkan_const.FormatB8g8r8a8Sint:                         GPUFormatB8g8r8a8Sint,
+		vulkan_const.FormatB8g8r8a8Srgb:                         GPUFormatB8g8r8a8Srgb,
+		vulkan_const.FormatA8b8g8r8UnormPack32:                  GPUFormatA8b8g8r8UnormPack32,
+		vulkan_const.FormatA8b8g8r8SnormPack32:                  GPUFormatA8b8g8r8SnormPack32,
+		vulkan_const.FormatA8b8g8r8UscaledPack32:                GPUFormatA8b8g8r8UscaledPack32,
+		vulkan_const.FormatA8b8g8r8SscaledPack32:                GPUFormatA8b8g8r8SscaledPack32,
+		vulkan_const.FormatA8b8g8r8UintPack32:                   GPUFormatA8b8g8r8UintPack32,
+		vulkan_const.FormatA8b8g8r8SintPack32:                   GPUFormatA8b8g8r8SintPack32,
+		vulkan_const.FormatA8b8g8r8SrgbPack32:                   GPUFormatA8b8g8r8SrgbPack32,
+		vulkan_const.FormatA2r10g10b10UnormPack32:               GPUFormatA2r10g10b10UnormPack32,
+		vulkan_const.FormatA2r10g10b10SnormPack32:               GPUFormatA2r10g10b10SnormPack32,
+		vulkan_const.FormatA2r10g10b10UscaledPack32:             GPUFormatA2r10g10b10UscaledPack32,
+		vulkan_const.FormatA2r10g10b10SscaledPack32:             GPUFormatA2r10g10b10SscaledPack32,
+		vulkan_const.FormatA2r10g10b10UintPack32:                GPUFormatA2r10g10b10UintPack32,
+		vulkan_const.FormatA2r10g10b10SintPack32:                GPUFormatA2r10g10b10SintPack32,
+		vulkan_const.FormatA2b10g10r10UnormPack32:               GPUFormatA2b10g10r10UnormPack32,
+		vulkan_const.FormatA2b10g10r10SnormPack32:               GPUFormatA2b10g10r10SnormPack32,
+		vulkan_const.FormatA2b10g10r10UscaledPack32:             GPUFormatA2b10g10r10UscaledPack32,
+		vulkan_const.FormatA2b10g10r10SscaledPack32:             GPUFormatA2b10g10r10SscaledPack32,
+		vulkan_const.FormatA2b10g10r10UintPack32:                GPUFormatA2b10g10r10UintPack32,
+		vulkan_const.FormatA2b10g10r10SintPack32:                GPUFormatA2b10g10r10SintPack32,
+		vulkan_const.FormatR16Unorm:                             GPUFormatR16Unorm,
+		vulkan_const.FormatR16Snorm:                             GPUFormatR16Snorm,
+		vulkan_const.FormatR16Uscaled:                           GPUFormatR16Uscaled,
+		vulkan_const.FormatR16Sscaled:                           GPUFormatR16Sscaled,
+		vulkan_const.FormatR16Uint:                              GPUFormatR16Uint,
+		vulkan_const.FormatR16Sint:                              GPUFormatR16Sint,
+		vulkan_const.FormatR16Sfloat:                            GPUFormatR16Sfloat,
+		vulkan_const.FormatR16g16Unorm:                          GPUFormatR16g16Unorm,
+		vulkan_const.FormatR16g16Snorm:                          GPUFormatR16g16Snorm,
+		vulkan_const.FormatR16g16Uscaled:                        GPUFormatR16g16Uscaled,
+		vulkan_const.FormatR16g16Sscaled:                        GPUFormatR16g16Sscaled,
+		vulkan_const.FormatR16g16Uint:                           GPUFormatR16g16Uint,
+		vulkan_const.FormatR16g16Sint:                           GPUFormatR16g16Sint,
+		vulkan_const.FormatR16g16Sfloat:                         GPUFormatR16g16Sfloat,
+		vulkan_const.FormatR16g16b16Unorm:                       GPUFormatR16g16b16Unorm,
+		vulkan_const.FormatR16g16b16Snorm:                       GPUFormatR16g16b16Snorm,
+		vulkan_const.FormatR16g16b16Uscaled:                     GPUFormatR16g16b16Uscaled,
+		vulkan_const.FormatR16g16b16Sscaled:                     GPUFormatR16g16b16Sscaled,
+		vulkan_const.FormatR16g16b16Uint:                        GPUFormatR16g16b16Uint,
+		vulkan_const.FormatR16g16b16Sint:                        GPUFormatR16g16b16Sint,
+		vulkan_const.FormatR16g16b16Sfloat:                      GPUFormatR16g16b16Sfloat,
+		vulkan_const.FormatR16g16b16a16Unorm:                    GPUFormatR16g16b16a16Unorm,
+		vulkan_const.FormatR16g16b16a16Snorm:                    GPUFormatR16g16b16a16Snorm,
+		vulkan_const.FormatR16g16b16a16Uscaled:                  GPUFormatR16g16b16a16Uscaled,
+		vulkan_const.FormatR16g16b16a16Sscaled:                  GPUFormatR16g16b16a16Sscaled,
+		vulkan_const.FormatR16g16b16a16Uint:                     GPUFormatR16g16b16a16Uint,
+		vulkan_const.FormatR16g16b16a16Sint:                     GPUFormatR16g16b16a16Sint,
+		vulkan_const.FormatR16g16b16a16Sfloat:                   GPUFormatR16g16b16a16Sfloat,
+		vulkan_const.FormatR32Uint:                              GPUFormatR32Uint,
+		vulkan_const.FormatR32Sint:                              GPUFormatR32Sint,
+		vulkan_const.FormatR32Sfloat:                            GPUFormatR32Sfloat,
+		vulkan_const.FormatR32g32Uint:                           GPUFormatR32g32Uint,
+		vulkan_const.FormatR32g32Sint:                           GPUFormatR32g32Sint,
+		vulkan_const.FormatR32g32Sfloat:                         GPUFormatR32g32Sfloat,
+		vulkan_const.FormatR32g32b32Uint:                        GPUFormatR32g32b32Uint,
+		vulkan_const.FormatR32g32b32Sint:                        GPUFormatR32g32b32Sint,
+		vulkan_const.FormatR32g32b32Sfloat:                      GPUFormatR32g32b32Sfloat,
+		vulkan_const.FormatR32g32b32a32Uint:                     GPUFormatR32g32b32a32Uint,
+		vulkan_const.FormatR32g32b32a32Sint:                     GPUFormatR32g32b32a32Sint,
+		vulkan_const.FormatR32g32b32a32Sfloat:                   GPUFormatR32g32b32a32Sfloat,
+		vulkan_const.FormatR64Uint:                              GPUFormatR64Uint,
+		vulkan_const.FormatR64Sint:                              GPUFormatR64Sint,
+		vulkan_const.FormatR64Sfloat:                            GPUFormatR64Sfloat,
+		vulkan_const.FormatR64g64Uint:                           GPUFormatR64g64Uint,
+		vulkan_const.FormatR64g64Sint:                           GPUFormatR64g64Sint,
+		vulkan_const.FormatR64g64Sfloat:                         GPUFormatR64g64Sfloat,
+		vulkan_const.FormatR64g64b64Uint:                        GPUFormatR64g64b64Uint,
+		vulkan_const.FormatR64g64b64Sint:                        GPUFormatR64g64b64Sint,
+		vulkan_const.FormatR64g64b64Sfloat:                      GPUFormatR64g64b64Sfloat,
+		vulkan_const.FormatR64g64b64a64Uint:                     GPUFormatR64g64b64a64Uint,
+		vulkan_const.FormatR64g64b64a64Sint:                     GPUFormatR64g64b64a64Sint,
+		vulkan_const.FormatR64g64b64a64Sfloat:                   GPUFormatR64g64b64a64Sfloat,
+		vulkan_const.FormatB10g11r11UfloatPack32:                GPUFormatB10g11r11UfloatPack32,
+		vulkan_const.FormatE5b9g9r9UfloatPack32:                 GPUFormatE5b9g9r9UfloatPack32,
+		vulkan_const.FormatD16Unorm:                             GPUFormatD16Unorm,
+		vulkan_const.FormatX8D24UnormPack32:                     GPUFormatX8D24UnormPack32,
+		vulkan_const.FormatD32Sfloat:                            GPUFormatD32Sfloat,
+		vulkan_const.FormatS8Uint:                               GPUFormatS8Uint,
+		vulkan_const.FormatD16UnormS8Uint:                       GPUFormatD16UnormS8Uint,
+		vulkan_const.FormatD24UnormS8Uint:                       GPUFormatD24UnormS8Uint,
+		vulkan_const.FormatD32SfloatS8Uint:                      GPUFormatD32SfloatS8Uint,
+		vulkan_const.FormatBc1RgbUnormBlock:                     GPUFormatBc1RgbUnormBlock,
+		vulkan_const.FormatBc1RgbSrgbBlock:                      GPUFormatBc1RgbSrgbBlock,
+		vulkan_const.FormatBc1RgbaUnormBlock:                    GPUFormatBc1RgbaUnormBlock,
+		vulkan_const.FormatBc1RgbaSrgbBlock:                     GPUFormatBc1RgbaSrgbBlock,
+		vulkan_const.FormatBc2UnormBlock:                        GPUFormatBc2UnormBlock,
+		vulkan_const.FormatBc2SrgbBlock:                         GPUFormatBc2SrgbBlock,
+		vulkan_const.FormatBc3UnormBlock:                        GPUFormatBc3UnormBlock,
+		vulkan_const.FormatBc3SrgbBlock:                         GPUFormatBc3SrgbBlock,
+		vulkan_const.FormatBc4UnormBlock:                        GPUFormatBc4UnormBlock,
+		vulkan_const.FormatBc4SnormBlock:                        GPUFormatBc4SnormBlock,
+		vulkan_const.FormatBc5UnormBlock:                        GPUFormatBc5UnormBlock,
+		vulkan_const.FormatBc5SnormBlock:                        GPUFormatBc5SnormBlock,
+		vulkan_const.FormatBc6hUfloatBlock:                      GPUFormatBc6hUfloatBlock,
+		vulkan_const.FormatBc6hSfloatBlock:                      GPUFormatBc6hSfloatBlock,
+		vulkan_const.FormatBc7UnormBlock:                        GPUFormatBc7UnormBlock,
+		vulkan_const.FormatBc7SrgbBlock:                         GPUFormatBc7SrgbBlock,
+		vulkan_const.FormatEtc2R8g8b8UnormBlock:                 GPUFormatEtc2R8g8b8UnormBlock,
+		vulkan_const.FormatEtc2R8g8b8SrgbBlock:                  GPUFormatEtc2R8g8b8SrgbBlock,
+		vulkan_const.FormatEtc2R8g8b8a1UnormBlock:               GPUFormatEtc2R8g8b8a1UnormBlock,
+		vulkan_const.FormatEtc2R8g8b8a1SrgbBlock:                GPUFormatEtc2R8g8b8a1SrgbBlock,
+		vulkan_const.FormatEtc2R8g8b8a8UnormBlock:               GPUFormatEtc2R8g8b8a8UnormBlock,
+		vulkan_const.FormatEtc2R8g8b8a8SrgbBlock:                GPUFormatEtc2R8g8b8a8SrgbBlock,
+		vulkan_const.FormatEacR11UnormBlock:                     GPUFormatEacR11UnormBlock,
+		vulkan_const.FormatEacR11SnormBlock:                     GPUFormatEacR11SnormBlock,
+		vulkan_const.FormatEacR11g11UnormBlock:                  GPUFormatEacR11g11UnormBlock,
+		vulkan_const.FormatEacR11g11SnormBlock:                  GPUFormatEacR11g11SnormBlock,
+		vulkan_const.FormatAstc4x4UnormBlock:                    GPUFormatAstc4x4UnormBlock,
+		vulkan_const.FormatAstc4x4SrgbBlock:                     GPUFormatAstc4x4SrgbBlock,
+		vulkan_const.FormatAstc5x4UnormBlock:                    GPUFormatAstc5x4UnormBlock,
+		vulkan_const.FormatAstc5x4SrgbBlock:                     GPUFormatAstc5x4SrgbBlock,
+		vulkan_const.FormatAstc5x5UnormBlock:                    GPUFormatAstc5x5UnormBlock,
+		vulkan_const.FormatAstc5x5SrgbBlock:                     GPUFormatAstc5x5SrgbBlock,
+		vulkan_const.FormatAstc6x5UnormBlock:                    GPUFormatAstc6x5UnormBlock,
+		vulkan_const.FormatAstc6x5SrgbBlock:                     GPUFormatAstc6x5SrgbBlock,
+		vulkan_const.FormatAstc6x6UnormBlock:                    GPUFormatAstc6x6UnormBlock,
+		vulkan_const.FormatAstc6x6SrgbBlock:                     GPUFormatAstc6x6SrgbBlock,
+		vulkan_const.FormatAstc8x5UnormBlock:                    GPUFormatAstc8x5UnormBlock,
+		vulkan_const.FormatAstc8x5SrgbBlock:                     GPUFormatAstc8x5SrgbBlock,
+		vulkan_const.FormatAstc8x6UnormBlock:                    GPUFormatAstc8x6UnormBlock,
+		vulkan_const.FormatAstc8x6SrgbBlock:                     GPUFormatAstc8x6SrgbBlock,
+		vulkan_const.FormatAstc8x8UnormBlock:                    GPUFormatAstc8x8UnormBlock,
+		vulkan_const.FormatAstc8x8SrgbBlock:                     GPUFormatAstc8x8SrgbBlock,
+		vulkan_const.FormatAstc10x5UnormBlock:                   GPUFormatAstc10x5UnormBlock,
+		vulkan_const.FormatAstc10x5SrgbBlock:                    GPUFormatAstc10x5SrgbBlock,
+		vulkan_const.FormatAstc10x6UnormBlock:                   GPUFormatAstc10x6UnormBlock,
+		vulkan_const.FormatAstc10x6SrgbBlock:                    GPUFormatAstc10x6SrgbBlock,
+		vulkan_const.FormatAstc10x8UnormBlock:                   GPUFormatAstc10x8UnormBlock,
+		vulkan_const.FormatAstc10x8SrgbBlock:                    GPUFormatAstc10x8SrgbBlock,
+		vulkan_const.FormatAstc10x10UnormBlock:                  GPUFormatAstc10x10UnormBlock,
+		vulkan_const.FormatAstc10x10SrgbBlock:                   GPUFormatAstc10x10SrgbBlock,
+		vulkan_const.FormatAstc12x10UnormBlock:                  GPUFormatAstc12x10UnormBlock,
+		vulkan_const.FormatAstc12x10SrgbBlock:                   GPUFormatAstc12x10SrgbBlock,
+		vulkan_const.FormatAstc12x12UnormBlock:                  GPUFormatAstc12x12UnormBlock,
+		vulkan_const.FormatAstc12x12SrgbBlock:                   GPUFormatAstc12x12SrgbBlock,
+		vulkan_const.FormatG8b8g8r8422Unorm:                     GPUFormatG8b8g8r8422Unorm,
+		vulkan_const.FormatB8g8r8g8422Unorm:                     GPUFormatB8g8r8g8422Unorm,
+		vulkan_const.FormatG8B8R83plane420Unorm:                 GPUFormatG8B8R83plane420Unorm,
+		vulkan_const.FormatG8B8r82plane420Unorm:                 GPUFormatG8B8r82plane420Unorm,
+		vulkan_const.FormatG8B8R83plane422Unorm:                 GPUFormatG8B8R83plane422Unorm,
+		vulkan_const.FormatG8B8r82plane422Unorm:                 GPUFormatG8B8r82plane422Unorm,
+		vulkan_const.FormatG8B8R83plane444Unorm:                 GPUFormatG8B8R83plane444Unorm,
+		vulkan_const.FormatR10x6UnormPack16:                     GPUFormatR10x6UnormPack16,
+		vulkan_const.FormatR10x6g10x6Unorm2pack16:               GPUFormatR10x6g10x6Unorm2pack16,
+		vulkan_const.FormatR10x6g10x6b10x6a10x6Unorm4pack16:     GPUFormatR10x6g10x6b10x6a10x6Unorm4pack16,
+		vulkan_const.FormatG10x6b10x6g10x6r10x6422Unorm4pack16:  GPUFormatG10x6b10x6g10x6r10x6422Unorm4pack16,
+		vulkan_const.FormatB10x6g10x6r10x6g10x6422Unorm4pack16:  GPUFormatB10x6g10x6r10x6g10x6422Unorm4pack16,
+		vulkan_const.FormatG10x6B10x6R10x63plane420Unorm3pack16: GPUFormatG10x6B10x6R10x63plane420Unorm3pack16,
+		vulkan_const.FormatG10x6B10x6r10x62plane420Unorm3pack16: GPUFormatG10x6B10x6r10x62plane420Unorm3pack16,
+		vulkan_const.FormatG10x6B10x6R10x63plane422Unorm3pack16: GPUFormatG10x6B10x6R10x63plane422Unorm3pack16,
+		vulkan_const.FormatG10x6B10x6r10x62plane422Unorm3pack16: GPUFormatG10x6B10x6r10x62plane422Unorm3pack16,
+		vulkan_const.FormatG10x6B10x6R10x63plane444Unorm3pack16: GPUFormatG10x6B10x6R10x63plane444Unorm3pack16,
+		vulkan_const.FormatR12x4UnormPack16:                     GPUFormatR12x4UnormPack16,
+		vulkan_const.FormatR12x4g12x4Unorm2pack16:               GPUFormatR12x4g12x4Unorm2pack16,
+		vulkan_const.FormatR12x4g12x4b12x4a12x4Unorm4pack16:     GPUFormatR12x4g12x4b12x4a12x4Unorm4pack16,
+		vulkan_const.FormatG12x4b12x4g12x4r12x4422Unorm4pack16:  GPUFormatG12x4b12x4g12x4r12x4422Unorm4pack16,
+		vulkan_const.FormatB12x4g12x4r12x4g12x4422Unorm4pack16:  GPUFormatB12x4g12x4r12x4g12x4422Unorm4pack16,
+		vulkan_const.FormatG12x4B12x4R12x43plane420Unorm3pack16: GPUFormatG12x4B12x4R12x43plane420Unorm3pack16,
+		vulkan_const.FormatG12x4B12x4r12x42plane420Unorm3pack16: GPUFormatG12x4B12x4r12x42plane420Unorm3pack16,
+		vulkan_const.FormatG12x4B12x4R12x43plane422Unorm3pack16: GPUFormatG12x4B12x4R12x43plane422Unorm3pack16,
+		vulkan_const.FormatG12x4B12x4r12x42plane422Unorm3pack16: GPUFormatG12x4B12x4r12x42plane422Unorm3pack16,
+		vulkan_const.FormatG12x4B12x4R12x43plane444Unorm3pack16: GPUFormatG12x4B12x4R12x43plane444Unorm3pack16,
+		vulkan_const.FormatG16b16g16r16422Unorm:                 GPUFormatG16b16g16r16422Unorm,
+		vulkan_const.FormatB16g16r16g16422Unorm:                 GPUFormatB16g16r16g16422Unorm,
+		vulkan_const.FormatG16B16R163plane420Unorm:              GPUFormatG16B16R163plane420Unorm,
+		vulkan_const.FormatG16B16r162plane420Unorm:              GPUFormatG16B16r162plane420Unorm,
+		vulkan_const.FormatG16B16R163plane422Unorm:              GPUFormatG16B16R163plane422Unorm,
+		vulkan_const.FormatG16B16r162plane422Unorm:              GPUFormatG16B16r162plane422Unorm,
+		vulkan_const.FormatG16B16R163plane444Unorm:              GPUFormatG16B16R163plane444Unorm,
+		vulkan_const.FormatPvrtc12bppUnormBlockImg:              GPUFormatPvrtc12bppUnormBlockImg,
+		vulkan_const.FormatPvrtc14bppUnormBlockImg:              GPUFormatPvrtc14bppUnormBlockImg,
+		vulkan_const.FormatPvrtc22bppUnormBlockImg:              GPUFormatPvrtc22bppUnormBlockImg,
+		vulkan_const.FormatPvrtc24bppUnormBlockImg:              GPUFormatPvrtc24bppUnormBlockImg,
+		vulkan_const.FormatPvrtc12bppSrgbBlockImg:               GPUFormatPvrtc12bppSrgbBlockImg,
+		vulkan_const.FormatPvrtc14bppSrgbBlockImg:               GPUFormatPvrtc14bppSrgbBlockImg,
+		vulkan_const.FormatPvrtc22bppSrgbBlockImg:               GPUFormatPvrtc22bppSrgbBlockImg,
+		vulkan_const.FormatPvrtc24bppSrgbBlockImg:               GPUFormatPvrtc24bppSrgbBlockImg,
+	}
+)
+
+func (g GPUFormat) toVulkan() vulkan_const.Format {
+	return gpuFormatToVulkan[g]
+}
+
+func (g *GPUFormat) fromVulkan(from vulkan_const.Format) {
+	*g = gpuFormatFromVulkan[from]
+}
+
+var (
+	gpuColorSpaceToVulkan = map[GPUColorSpace]vulkan_const.ColorSpace{
+		GPUColorSpaceSrgbNonlinear:         vulkan_const.ColorSpaceSrgbNonlinear,
+		GPUColorSpaceDisplayP3Nonlinear:    vulkan_const.ColorSpaceDisplayP3Nonlinear,
+		GPUColorSpaceExtendedSrgbLinear:    vulkan_const.ColorSpaceExtendedSrgbLinear,
+		GPUColorSpaceDciP3Linear:           vulkan_const.ColorSpaceDciP3Linear,
+		GPUColorSpaceDciP3Nonlinear:        vulkan_const.ColorSpaceDciP3Nonlinear,
+		GPUColorSpaceBt709Linear:           vulkan_const.ColorSpaceBt709Linear,
+		GPUColorSpaceBt709Nonlinear:        vulkan_const.ColorSpaceBt709Nonlinear,
+		GPUColorSpaceBt2020Linear:          vulkan_const.ColorSpaceBt2020Linear,
+		GPUColorSpaceHdr10St2084:           vulkan_const.ColorSpaceHdr10St2084,
+		GPUColorSpaceDolbyvision:           vulkan_const.ColorSpaceDolbyvision,
+		GPUColorSpaceHdr10Hlg:              vulkan_const.ColorSpaceHdr10Hlg,
+		GPUColorSpaceAdobergbLinear:        vulkan_const.ColorSpaceAdobergbLinear,
+		GPUColorSpaceAdobergbNonlinear:     vulkan_const.ColorSpaceAdobergbNonlinear,
+		GPUColorSpacePassThrough:           vulkan_const.ColorSpacePassThrough,
+		GPUColorSpaceExtendedSrgbNonlinear: vulkan_const.ColorSpaceExtendedSrgbNonlinear,
+	}
+	gpuColorSpaceFromVulkan = map[vulkan_const.ColorSpace]GPUColorSpace{
+		vulkan_const.ColorSpaceSrgbNonlinear:         GPUColorSpaceSrgbNonlinear,
+		vulkan_const.ColorSpaceDisplayP3Nonlinear:    GPUColorSpaceDisplayP3Nonlinear,
+		vulkan_const.ColorSpaceExtendedSrgbLinear:    GPUColorSpaceExtendedSrgbLinear,
+		vulkan_const.ColorSpaceDciP3Linear:           GPUColorSpaceDciP3Linear,
+		vulkan_const.ColorSpaceDciP3Nonlinear:        GPUColorSpaceDciP3Nonlinear,
+		vulkan_const.ColorSpaceBt709Linear:           GPUColorSpaceBt709Linear,
+		vulkan_const.ColorSpaceBt709Nonlinear:        GPUColorSpaceBt709Nonlinear,
+		vulkan_const.ColorSpaceBt2020Linear:          GPUColorSpaceBt2020Linear,
+		vulkan_const.ColorSpaceHdr10St2084:           GPUColorSpaceHdr10St2084,
+		vulkan_const.ColorSpaceDolbyvision:           GPUColorSpaceDolbyvision,
+		vulkan_const.ColorSpaceHdr10Hlg:              GPUColorSpaceHdr10Hlg,
+		vulkan_const.ColorSpaceAdobergbLinear:        GPUColorSpaceAdobergbLinear,
+		vulkan_const.ColorSpaceAdobergbNonlinear:     GPUColorSpaceAdobergbNonlinear,
+		vulkan_const.ColorSpacePassThrough:           GPUColorSpacePassThrough,
+		vulkan_const.ColorSpaceExtendedSrgbNonlinear: GPUColorSpaceExtendedSrgbNonlinear,
+	}
+)
+
+var (
+	gpuPresentModeToVulkan = map[GPUPresentMode]vulkan_const.PresentMode{
+		GPUPresentModeImmediate:               vulkan_const.PresentModeImmediate,
+		GPUPresentModeMailbox:                 vulkan_const.PresentModeMailbox,
+		GPUPresentModeFifo:                    vulkan_const.PresentModeFifo,
+		GPUPresentModeFifoRelaxed:             vulkan_const.PresentModeFifoRelaxed,
+		GPUPresentModeSharedDemandRefresh:     vulkan_const.PresentModeSharedDemandRefresh,
+		GPUPresentModeSharedContinuousRefresh: vulkan_const.PresentModeSharedContinuousRefresh,
+	}
+	gpuPresentModeFromVulkan = map[vulkan_const.PresentMode]GPUPresentMode{
+		vulkan_const.PresentModeImmediate:               GPUPresentModeImmediate,
+		vulkan_const.PresentModeMailbox:                 GPUPresentModeMailbox,
+		vulkan_const.PresentModeFifo:                    GPUPresentModeFifo,
+		vulkan_const.PresentModeFifoRelaxed:             GPUPresentModeFifoRelaxed,
+		vulkan_const.PresentModeSharedDemandRefresh:     GPUPresentModeSharedDemandRefresh,
+		vulkan_const.PresentModeSharedContinuousRefresh: GPUPresentModeSharedContinuousRefresh,
+	}
+)
+
+var (
+	gpuPhysicalDeviceTypeToVulkan = map[GPUPhysicalDeviceType]vulkan_const.PhysicalDeviceType{
+		GPUPhysicalDeviceTypeOther:         vulkan_const.PhysicalDeviceTypeOther,
+		GPUPhysicalDeviceTypeIntegratedGpu: vulkan_const.PhysicalDeviceTypeIntegratedGpu,
+		GPUPhysicalDeviceTypeDiscreteGpu:   vulkan_const.PhysicalDeviceTypeDiscreteGpu,
+		GPUPhysicalDeviceTypeVirtualGpu:    vulkan_const.PhysicalDeviceTypeVirtualGpu,
+		GPUPhysicalDeviceTypeCpu:           vulkan_const.PhysicalDeviceTypeCpu,
+	}
+	gpuPhysicalDeviceTypeFromVulkan = map[vulkan_const.PhysicalDeviceType]GPUPhysicalDeviceType{
+		vulkan_const.PhysicalDeviceTypeOther:         GPUPhysicalDeviceTypeOther,
+		vulkan_const.PhysicalDeviceTypeIntegratedGpu: GPUPhysicalDeviceTypeIntegratedGpu,
+		vulkan_const.PhysicalDeviceTypeDiscreteGpu:   GPUPhysicalDeviceTypeDiscreteGpu,
+		vulkan_const.PhysicalDeviceTypeVirtualGpu:    GPUPhysicalDeviceTypeVirtualGpu,
+		vulkan_const.PhysicalDeviceTypeCpu:           GPUPhysicalDeviceTypeCpu,
+	}
+)
+
+var (
+	gpuImageLayoutToVulkan = map[GPUImageLayout]vulkan_const.ImageLayout{
+		GPUImageLayoutUndefined:                             vulkan_const.ImageLayoutUndefined,
+		GPUImageLayoutGeneral:                               vulkan_const.ImageLayoutGeneral,
+		GPUImageLayoutColorAttachmentOptimal:                vulkan_const.ImageLayoutColorAttachmentOptimal,
+		GPUImageLayoutDepthStencilAttachmentOptimal:         vulkan_const.ImageLayoutDepthStencilAttachmentOptimal,
+		GPUImageLayoutDepthStencilReadOnlyOptimal:           vulkan_const.ImageLayoutDepthStencilReadOnlyOptimal,
+		GPUImageLayoutShaderReadOnlyOptimal:                 vulkan_const.ImageLayoutShaderReadOnlyOptimal,
+		GPUImageLayoutTransferSrcOptimal:                    vulkan_const.ImageLayoutTransferSrcOptimal,
+		GPUImageLayoutTransferDstOptimal:                    vulkan_const.ImageLayoutTransferDstOptimal,
+		GPUImageLayoutPreinitialized:                        vulkan_const.ImageLayoutPreinitialized,
+		GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal: vulkan_const.ImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal: vulkan_const.ImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		GPUImageLayoutPresentSrc:                            vulkan_const.ImageLayoutPresentSrc,
+		GPUImageLayoutSharedPresent:                         vulkan_const.ImageLayoutSharedPresent,
+		GPUImageLayoutShadingRateOptimalNv:                  vulkan_const.ImageLayoutShadingRateOptimalNv,
+	}
+	gpuImageLayoutFromVulkan = map[vulkan_const.ImageLayout]GPUImageLayout{
+		vulkan_const.ImageLayoutUndefined:                             GPUImageLayoutUndefined,
+		vulkan_const.ImageLayoutGeneral:                               GPUImageLayoutGeneral,
+		vulkan_const.ImageLayoutColorAttachmentOptimal:                GPUImageLayoutColorAttachmentOptimal,
+		vulkan_const.ImageLayoutDepthStencilAttachmentOptimal:         GPUImageLayoutDepthStencilAttachmentOptimal,
+		vulkan_const.ImageLayoutDepthStencilReadOnlyOptimal:           GPUImageLayoutDepthStencilReadOnlyOptimal,
+		vulkan_const.ImageLayoutShaderReadOnlyOptimal:                 GPUImageLayoutShaderReadOnlyOptimal,
+		vulkan_const.ImageLayoutTransferSrcOptimal:                    GPUImageLayoutTransferSrcOptimal,
+		vulkan_const.ImageLayoutTransferDstOptimal:                    GPUImageLayoutTransferDstOptimal,
+		vulkan_const.ImageLayoutPreinitialized:                        GPUImageLayoutPreinitialized,
+		vulkan_const.ImageLayoutDepthReadOnlyStencilAttachmentOptimal: GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		vulkan_const.ImageLayoutDepthAttachmentStencilReadOnlyOptimal: GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		vulkan_const.ImageLayoutPresentSrc:                            GPUImageLayoutPresentSrc,
+		vulkan_const.ImageLayoutSharedPresent:                         GPUImageLayoutSharedPresent,
+		vulkan_const.ImageLayoutShadingRateOptimalNv:                  GPUImageLayoutShadingRateOptimalNv,
+	}
+)
+
+func (g GPUImageLayout) toVulkan() vulkan_const.ImageLayout {
+	defer tracing.NewRegion("GPUImageLayout.toVulkan").End()
+	out, ok := gpuImageLayoutToVulkan[g]
+	if ok {
+		panic("invalid format supplied")
+	}
+	return out
+}
+
+func (g *GPUImageLayout) fromVulkan(val vulkan_const.ImageLayout) {
+	defer tracing.NewRegion("GPUImageLayout.fromVulkan").End()
+	out, ok := gpuImageLayoutFromVulkan[val]
+	if ok {
+		panic("invalid format supplied")
+	}
+	*g = out
+}
 
 func formatFromVulkan(val vulkan_const.Format) GPUFormat {
-	switch val {
-	case vulkan_const.FormatUndefined:
-		return FormatUndefined
-	case vulkan_const.FormatR4g4UnormPack8:
-		return FormatR4g4UnormPack8
-	case vulkan_const.FormatR4g4b4a4UnormPack16:
-		return FormatR4g4b4a4UnormPack16
-	case vulkan_const.FormatB4g4r4a4UnormPack16:
-		return FormatB4g4r4a4UnormPack16
-	case vulkan_const.FormatR5g6b5UnormPack16:
-		return FormatR5g6b5UnormPack16
-	case vulkan_const.FormatB5g6r5UnormPack16:
-		return FormatB5g6r5UnormPack16
-	case vulkan_const.FormatR5g5b5a1UnormPack16:
-		return FormatR5g5b5a1UnormPack16
-	case vulkan_const.FormatB5g5r5a1UnormPack16:
-		return FormatB5g5r5a1UnormPack16
-	case vulkan_const.FormatA1r5g5b5UnormPack16:
-		return FormatA1r5g5b5UnormPack16
-	case vulkan_const.FormatR8Unorm:
-		return FormatR8Unorm
-	case vulkan_const.FormatR8Snorm:
-		return FormatR8Snorm
-	case vulkan_const.FormatR8Uscaled:
-		return FormatR8Uscaled
-	case vulkan_const.FormatR8Sscaled:
-		return FormatR8Sscaled
-	case vulkan_const.FormatR8Uint:
-		return FormatR8Uint
-	case vulkan_const.FormatR8Sint:
-		return FormatR8Sint
-	case vulkan_const.FormatR8Srgb:
-		return FormatR8Srgb
-	case vulkan_const.FormatR8g8Unorm:
-		return FormatR8g8Unorm
-	case vulkan_const.FormatR8g8Snorm:
-		return FormatR8g8Snorm
-	case vulkan_const.FormatR8g8Uscaled:
-		return FormatR8g8Uscaled
-	case vulkan_const.FormatR8g8Sscaled:
-		return FormatR8g8Sscaled
-	case vulkan_const.FormatR8g8Uint:
-		return FormatR8g8Uint
-	case vulkan_const.FormatR8g8Sint:
-		return FormatR8g8Sint
-	case vulkan_const.FormatR8g8Srgb:
-		return FormatR8g8Srgb
-	case vulkan_const.FormatR8g8b8Unorm:
-		return FormatR8g8b8Unorm
-	case vulkan_const.FormatR8g8b8Snorm:
-		return FormatR8g8b8Snorm
-	case vulkan_const.FormatR8g8b8Uscaled:
-		return FormatR8g8b8Uscaled
-	case vulkan_const.FormatR8g8b8Sscaled:
-		return FormatR8g8b8Sscaled
-	case vulkan_const.FormatR8g8b8Uint:
-		return FormatR8g8b8Uint
-	case vulkan_const.FormatR8g8b8Sint:
-		return FormatR8g8b8Sint
-	case vulkan_const.FormatR8g8b8Srgb:
-		return FormatR8g8b8Srgb
-	case vulkan_const.FormatB8g8r8Unorm:
-		return FormatB8g8r8Unorm
-	case vulkan_const.FormatB8g8r8Snorm:
-		return FormatB8g8r8Snorm
-	case vulkan_const.FormatB8g8r8Uscaled:
-		return FormatB8g8r8Uscaled
-	case vulkan_const.FormatB8g8r8Sscaled:
-		return FormatB8g8r8Sscaled
-	case vulkan_const.FormatB8g8r8Uint:
-		return FormatB8g8r8Uint
-	case vulkan_const.FormatB8g8r8Sint:
-		return FormatB8g8r8Sint
-	case vulkan_const.FormatB8g8r8Srgb:
-		return FormatB8g8r8Srgb
-	case vulkan_const.FormatR8g8b8a8Unorm:
-		return FormatR8g8b8a8Unorm
-	case vulkan_const.FormatR8g8b8a8Snorm:
-		return FormatR8g8b8a8Snorm
-	case vulkan_const.FormatR8g8b8a8Uscaled:
-		return FormatR8g8b8a8Uscaled
-	case vulkan_const.FormatR8g8b8a8Sscaled:
-		return FormatR8g8b8a8Sscaled
-	case vulkan_const.FormatR8g8b8a8Uint:
-		return FormatR8g8b8a8Uint
-	case vulkan_const.FormatR8g8b8a8Sint:
-		return FormatR8g8b8a8Sint
-	case vulkan_const.FormatR8g8b8a8Srgb:
-		return FormatR8g8b8a8Srgb
-	case vulkan_const.FormatB8g8r8a8Unorm:
-		return FormatB8g8r8a8Unorm
-	case vulkan_const.FormatB8g8r8a8Snorm:
-		return FormatB8g8r8a8Snorm
-	case vulkan_const.FormatB8g8r8a8Uscaled:
-		return FormatB8g8r8a8Uscaled
-	case vulkan_const.FormatB8g8r8a8Sscaled:
-		return FormatB8g8r8a8Sscaled
-	case vulkan_const.FormatB8g8r8a8Uint:
-		return FormatB8g8r8a8Uint
-	case vulkan_const.FormatB8g8r8a8Sint:
-		return FormatB8g8r8a8Sint
-	case vulkan_const.FormatB8g8r8a8Srgb:
-		return FormatB8g8r8a8Srgb
-	case vulkan_const.FormatA8b8g8r8UnormPack32:
-		return FormatA8b8g8r8UnormPack32
-	case vulkan_const.FormatA8b8g8r8SnormPack32:
-		return FormatA8b8g8r8SnormPack32
-	case vulkan_const.FormatA8b8g8r8UscaledPack32:
-		return FormatA8b8g8r8UscaledPack32
-	case vulkan_const.FormatA8b8g8r8SscaledPack32:
-		return FormatA8b8g8r8SscaledPack32
-	case vulkan_const.FormatA8b8g8r8UintPack32:
-		return FormatA8b8g8r8UintPack32
-	case vulkan_const.FormatA8b8g8r8SintPack32:
-		return FormatA8b8g8r8SintPack32
-	case vulkan_const.FormatA8b8g8r8SrgbPack32:
-		return FormatA8b8g8r8SrgbPack32
-	case vulkan_const.FormatA2r10g10b10UnormPack32:
-		return FormatA2r10g10b10UnormPack32
-	case vulkan_const.FormatA2r10g10b10SnormPack32:
-		return FormatA2r10g10b10SnormPack32
-	case vulkan_const.FormatA2r10g10b10UscaledPack32:
-		return FormatA2r10g10b10UscaledPack32
-	case vulkan_const.FormatA2r10g10b10SscaledPack32:
-		return FormatA2r10g10b10SscaledPack32
-	case vulkan_const.FormatA2r10g10b10UintPack32:
-		return FormatA2r10g10b10UintPack32
-	case vulkan_const.FormatA2r10g10b10SintPack32:
-		return FormatA2r10g10b10SintPack32
-	case vulkan_const.FormatA2b10g10r10UnormPack32:
-		return FormatA2b10g10r10UnormPack32
-	case vulkan_const.FormatA2b10g10r10SnormPack32:
-		return FormatA2b10g10r10SnormPack32
-	case vulkan_const.FormatA2b10g10r10UscaledPack32:
-		return FormatA2b10g10r10UscaledPack32
-	case vulkan_const.FormatA2b10g10r10SscaledPack32:
-		return FormatA2b10g10r10SscaledPack32
-	case vulkan_const.FormatA2b10g10r10UintPack32:
-		return FormatA2b10g10r10UintPack32
-	case vulkan_const.FormatA2b10g10r10SintPack32:
-		return FormatA2b10g10r10SintPack32
-	case vulkan_const.FormatR16Unorm:
-		return FormatR16Unorm
-	case vulkan_const.FormatR16Snorm:
-		return FormatR16Snorm
-	case vulkan_const.FormatR16Uscaled:
-		return FormatR16Uscaled
-	case vulkan_const.FormatR16Sscaled:
-		return FormatR16Sscaled
-	case vulkan_const.FormatR16Uint:
-		return FormatR16Uint
-	case vulkan_const.FormatR16Sint:
-		return FormatR16Sint
-	case vulkan_const.FormatR16Sfloat:
-		return FormatR16Sfloat
-	case vulkan_const.FormatR16g16Unorm:
-		return FormatR16g16Unorm
-	case vulkan_const.FormatR16g16Snorm:
-		return FormatR16g16Snorm
-	case vulkan_const.FormatR16g16Uscaled:
-		return FormatR16g16Uscaled
-	case vulkan_const.FormatR16g16Sscaled:
-		return FormatR16g16Sscaled
-	case vulkan_const.FormatR16g16Uint:
-		return FormatR16g16Uint
-	case vulkan_const.FormatR16g16Sint:
-		return FormatR16g16Sint
-	case vulkan_const.FormatR16g16Sfloat:
-		return FormatR16g16Sfloat
-	case vulkan_const.FormatR16g16b16Unorm:
-		return FormatR16g16b16Unorm
-	case vulkan_const.FormatR16g16b16Snorm:
-		return FormatR16g16b16Snorm
-	case vulkan_const.FormatR16g16b16Uscaled:
-		return FormatR16g16b16Uscaled
-	case vulkan_const.FormatR16g16b16Sscaled:
-		return FormatR16g16b16Sscaled
-	case vulkan_const.FormatR16g16b16Uint:
-		return FormatR16g16b16Uint
-	case vulkan_const.FormatR16g16b16Sint:
-		return FormatR16g16b16Sint
-	case vulkan_const.FormatR16g16b16Sfloat:
-		return FormatR16g16b16Sfloat
-	case vulkan_const.FormatR16g16b16a16Unorm:
-		return FormatR16g16b16a16Unorm
-	case vulkan_const.FormatR16g16b16a16Snorm:
-		return FormatR16g16b16a16Snorm
-	case vulkan_const.FormatR16g16b16a16Uscaled:
-		return FormatR16g16b16a16Uscaled
-	case vulkan_const.FormatR16g16b16a16Sscaled:
-		return FormatR16g16b16a16Sscaled
-	case vulkan_const.FormatR16g16b16a16Uint:
-		return FormatR16g16b16a16Uint
-	case vulkan_const.FormatR16g16b16a16Sint:
-		return FormatR16g16b16a16Sint
-	case vulkan_const.FormatR16g16b16a16Sfloat:
-		return FormatR16g16b16a16Sfloat
-	case vulkan_const.FormatR32Uint:
-		return FormatR32Uint
-	case vulkan_const.FormatR32Sint:
-		return FormatR32Sint
-	case vulkan_const.FormatR32Sfloat:
-		return FormatR32Sfloat
-	case vulkan_const.FormatR32g32Uint:
-		return FormatR32g32Uint
-	case vulkan_const.FormatR32g32Sint:
-		return FormatR32g32Sint
-	case vulkan_const.FormatR32g32Sfloat:
-		return FormatR32g32Sfloat
-	case vulkan_const.FormatR32g32b32Uint:
-		return FormatR32g32b32Uint
-	case vulkan_const.FormatR32g32b32Sint:
-		return FormatR32g32b32Sint
-	case vulkan_const.FormatR32g32b32Sfloat:
-		return FormatR32g32b32Sfloat
-	case vulkan_const.FormatR32g32b32a32Uint:
-		return FormatR32g32b32a32Uint
-	case vulkan_const.FormatR32g32b32a32Sint:
-		return FormatR32g32b32a32Sint
-	case vulkan_const.FormatR32g32b32a32Sfloat:
-		return FormatR32g32b32a32Sfloat
-	case vulkan_const.FormatR64Uint:
-		return FormatR64Uint
-	case vulkan_const.FormatR64Sint:
-		return FormatR64Sint
-	case vulkan_const.FormatR64Sfloat:
-		return FormatR64Sfloat
-	case vulkan_const.FormatR64g64Uint:
-		return FormatR64g64Uint
-	case vulkan_const.FormatR64g64Sint:
-		return FormatR64g64Sint
-	case vulkan_const.FormatR64g64Sfloat:
-		return FormatR64g64Sfloat
-	case vulkan_const.FormatR64g64b64Uint:
-		return FormatR64g64b64Uint
-	case vulkan_const.FormatR64g64b64Sint:
-		return FormatR64g64b64Sint
-	case vulkan_const.FormatR64g64b64Sfloat:
-		return FormatR64g64b64Sfloat
-	case vulkan_const.FormatR64g64b64a64Uint:
-		return FormatR64g64b64a64Uint
-	case vulkan_const.FormatR64g64b64a64Sint:
-		return FormatR64g64b64a64Sint
-	case vulkan_const.FormatR64g64b64a64Sfloat:
-		return FormatR64g64b64a64Sfloat
-	case vulkan_const.FormatB10g11r11UfloatPack32:
-		return FormatB10g11r11UfloatPack32
-	case vulkan_const.FormatE5b9g9r9UfloatPack32:
-		return FormatE5b9g9r9UfloatPack32
-	case vulkan_const.FormatD16Unorm:
-		return FormatD16Unorm
-	case vulkan_const.FormatX8D24UnormPack32:
-		return FormatX8D24UnormPack32
-	case vulkan_const.FormatD32Sfloat:
-		return FormatD32Sfloat
-	case vulkan_const.FormatS8Uint:
-		return FormatS8Uint
-	case vulkan_const.FormatD16UnormS8Uint:
-		return FormatD16UnormS8Uint
-	case vulkan_const.FormatD24UnormS8Uint:
-		return FormatD24UnormS8Uint
-	case vulkan_const.FormatD32SfloatS8Uint:
-		return FormatD32SfloatS8Uint
-	case vulkan_const.FormatBc1RgbUnormBlock:
-		return FormatBc1RgbUnormBlock
-	case vulkan_const.FormatBc1RgbSrgbBlock:
-		return FormatBc1RgbSrgbBlock
-	case vulkan_const.FormatBc1RgbaUnormBlock:
-		return FormatBc1RgbaUnormBlock
-	case vulkan_const.FormatBc1RgbaSrgbBlock:
-		return FormatBc1RgbaSrgbBlock
-	case vulkan_const.FormatBc2UnormBlock:
-		return FormatBc2UnormBlock
-	case vulkan_const.FormatBc2SrgbBlock:
-		return FormatBc2SrgbBlock
-	case vulkan_const.FormatBc3UnormBlock:
-		return FormatBc3UnormBlock
-	case vulkan_const.FormatBc3SrgbBlock:
-		return FormatBc3SrgbBlock
-	case vulkan_const.FormatBc4UnormBlock:
-		return FormatBc4UnormBlock
-	case vulkan_const.FormatBc4SnormBlock:
-		return FormatBc4SnormBlock
-	case vulkan_const.FormatBc5UnormBlock:
-		return FormatBc5UnormBlock
-	case vulkan_const.FormatBc5SnormBlock:
-		return FormatBc5SnormBlock
-	case vulkan_const.FormatBc6hUfloatBlock:
-		return FormatBc6hUfloatBlock
-	case vulkan_const.FormatBc6hSfloatBlock:
-		return FormatBc6hSfloatBlock
-	case vulkan_const.FormatBc7UnormBlock:
-		return FormatBc7UnormBlock
-	case vulkan_const.FormatBc7SrgbBlock:
-		return FormatBc7SrgbBlock
-	case vulkan_const.FormatEtc2R8g8b8UnormBlock:
-		return FormatEtc2R8g8b8UnormBlock
-	case vulkan_const.FormatEtc2R8g8b8SrgbBlock:
-		return FormatEtc2R8g8b8SrgbBlock
-	case vulkan_const.FormatEtc2R8g8b8a1UnormBlock:
-		return FormatEtc2R8g8b8a1UnormBlock
-	case vulkan_const.FormatEtc2R8g8b8a1SrgbBlock:
-		return FormatEtc2R8g8b8a1SrgbBlock
-	case vulkan_const.FormatEtc2R8g8b8a8UnormBlock:
-		return FormatEtc2R8g8b8a8UnormBlock
-	case vulkan_const.FormatEtc2R8g8b8a8SrgbBlock:
-		return FormatEtc2R8g8b8a8SrgbBlock
-	case vulkan_const.FormatEacR11UnormBlock:
-		return FormatEacR11UnormBlock
-	case vulkan_const.FormatEacR11SnormBlock:
-		return FormatEacR11SnormBlock
-	case vulkan_const.FormatEacR11g11UnormBlock:
-		return FormatEacR11g11UnormBlock
-	case vulkan_const.FormatEacR11g11SnormBlock:
-		return FormatEacR11g11SnormBlock
-	case vulkan_const.FormatAstc4x4UnormBlock:
-		return FormatAstc4x4UnormBlock
-	case vulkan_const.FormatAstc4x4SrgbBlock:
-		return FormatAstc4x4SrgbBlock
-	case vulkan_const.FormatAstc5x4UnormBlock:
-		return FormatAstc5x4UnormBlock
-	case vulkan_const.FormatAstc5x4SrgbBlock:
-		return FormatAstc5x4SrgbBlock
-	case vulkan_const.FormatAstc5x5UnormBlock:
-		return FormatAstc5x5UnormBlock
-	case vulkan_const.FormatAstc5x5SrgbBlock:
-		return FormatAstc5x5SrgbBlock
-	case vulkan_const.FormatAstc6x5UnormBlock:
-		return FormatAstc6x5UnormBlock
-	case vulkan_const.FormatAstc6x5SrgbBlock:
-		return FormatAstc6x5SrgbBlock
-	case vulkan_const.FormatAstc6x6UnormBlock:
-		return FormatAstc6x6UnormBlock
-	case vulkan_const.FormatAstc6x6SrgbBlock:
-		return FormatAstc6x6SrgbBlock
-	case vulkan_const.FormatAstc8x5UnormBlock:
-		return FormatAstc8x5UnormBlock
-	case vulkan_const.FormatAstc8x5SrgbBlock:
-		return FormatAstc8x5SrgbBlock
-	case vulkan_const.FormatAstc8x6UnormBlock:
-		return FormatAstc8x6UnormBlock
-	case vulkan_const.FormatAstc8x6SrgbBlock:
-		return FormatAstc8x6SrgbBlock
-	case vulkan_const.FormatAstc8x8UnormBlock:
-		return FormatAstc8x8UnormBlock
-	case vulkan_const.FormatAstc8x8SrgbBlock:
-		return FormatAstc8x8SrgbBlock
-	case vulkan_const.FormatAstc10x5UnormBlock:
-		return FormatAstc10x5UnormBlock
-	case vulkan_const.FormatAstc10x5SrgbBlock:
-		return FormatAstc10x5SrgbBlock
-	case vulkan_const.FormatAstc10x6UnormBlock:
-		return FormatAstc10x6UnormBlock
-	case vulkan_const.FormatAstc10x6SrgbBlock:
-		return FormatAstc10x6SrgbBlock
-	case vulkan_const.FormatAstc10x8UnormBlock:
-		return FormatAstc10x8UnormBlock
-	case vulkan_const.FormatAstc10x8SrgbBlock:
-		return FormatAstc10x8SrgbBlock
-	case vulkan_const.FormatAstc10x10UnormBlock:
-		return FormatAstc10x10UnormBlock
-	case vulkan_const.FormatAstc10x10SrgbBlock:
-		return FormatAstc10x10SrgbBlock
-	case vulkan_const.FormatAstc12x10UnormBlock:
-		return FormatAstc12x10UnormBlock
-	case vulkan_const.FormatAstc12x10SrgbBlock:
-		return FormatAstc12x10SrgbBlock
-	case vulkan_const.FormatAstc12x12UnormBlock:
-		return FormatAstc12x12UnormBlock
-	case vulkan_const.FormatAstc12x12SrgbBlock:
-		return FormatAstc12x12SrgbBlock
-	case vulkan_const.FormatG8b8g8r8422Unorm:
-		return FormatG8b8g8r8422Unorm
-	case vulkan_const.FormatB8g8r8g8422Unorm:
-		return FormatB8g8r8g8422Unorm
-	case vulkan_const.FormatG8B8R83plane420Unorm:
-		return FormatG8B8R83plane420Unorm
-	case vulkan_const.FormatG8B8r82plane420Unorm:
-		return FormatG8B8r82plane420Unorm
-	case vulkan_const.FormatG8B8R83plane422Unorm:
-		return FormatG8B8R83plane422Unorm
-	case vulkan_const.FormatG8B8r82plane422Unorm:
-		return FormatG8B8r82plane422Unorm
-	case vulkan_const.FormatG8B8R83plane444Unorm:
-		return FormatG8B8R83plane444Unorm
-	case vulkan_const.FormatR10x6UnormPack16:
-		return FormatR10x6UnormPack16
-	case vulkan_const.FormatR10x6g10x6Unorm2pack16:
-		return FormatR10x6g10x6Unorm2pack16
-	case vulkan_const.FormatR10x6g10x6b10x6a10x6Unorm4pack16:
-		return FormatR10x6g10x6b10x6a10x6Unorm4pack16
-	case vulkan_const.FormatG10x6b10x6g10x6r10x6422Unorm4pack16:
-		return FormatG10x6b10x6g10x6r10x6422Unorm4pack16
-	case vulkan_const.FormatB10x6g10x6r10x6g10x6422Unorm4pack16:
-		return FormatB10x6g10x6r10x6g10x6422Unorm4pack16
-	case vulkan_const.FormatG10x6B10x6R10x63plane420Unorm3pack16:
-		return FormatG10x6B10x6R10x63plane420Unorm3pack16
-	case vulkan_const.FormatG10x6B10x6r10x62plane420Unorm3pack16:
-		return FormatG10x6B10x6r10x62plane420Unorm3pack16
-	case vulkan_const.FormatG10x6B10x6R10x63plane422Unorm3pack16:
-		return FormatG10x6B10x6R10x63plane422Unorm3pack16
-	case vulkan_const.FormatG10x6B10x6r10x62plane422Unorm3pack16:
-		return FormatG10x6B10x6r10x62plane422Unorm3pack16
-	case vulkan_const.FormatG10x6B10x6R10x63plane444Unorm3pack16:
-		return FormatG10x6B10x6R10x63plane444Unorm3pack16
-	case vulkan_const.FormatR12x4UnormPack16:
-		return FormatR12x4UnormPack16
-	case vulkan_const.FormatR12x4g12x4Unorm2pack16:
-		return FormatR12x4g12x4Unorm2pack16
-	case vulkan_const.FormatR12x4g12x4b12x4a12x4Unorm4pack16:
-		return FormatR12x4g12x4b12x4a12x4Unorm4pack16
-	case vulkan_const.FormatG12x4b12x4g12x4r12x4422Unorm4pack16:
-		return FormatG12x4b12x4g12x4r12x4422Unorm4pack16
-	case vulkan_const.FormatB12x4g12x4r12x4g12x4422Unorm4pack16:
-		return FormatB12x4g12x4r12x4g12x4422Unorm4pack16
-	case vulkan_const.FormatG12x4B12x4R12x43plane420Unorm3pack16:
-		return FormatG12x4B12x4R12x43plane420Unorm3pack16
-	case vulkan_const.FormatG12x4B12x4r12x42plane420Unorm3pack16:
-		return FormatG12x4B12x4r12x42plane420Unorm3pack16
-	case vulkan_const.FormatG12x4B12x4R12x43plane422Unorm3pack16:
-		return FormatG12x4B12x4R12x43plane422Unorm3pack16
-	case vulkan_const.FormatG12x4B12x4r12x42plane422Unorm3pack16:
-		return FormatG12x4B12x4r12x42plane422Unorm3pack16
-	case vulkan_const.FormatG12x4B12x4R12x43plane444Unorm3pack16:
-		return FormatG12x4B12x4R12x43plane444Unorm3pack16
-	case vulkan_const.FormatG16b16g16r16422Unorm:
-		return FormatG16b16g16r16422Unorm
-	case vulkan_const.FormatB16g16r16g16422Unorm:
-		return FormatB16g16r16g16422Unorm
-	case vulkan_const.FormatG16B16R163plane420Unorm:
-		return FormatG16B16R163plane420Unorm
-	case vulkan_const.FormatG16B16r162plane420Unorm:
-		return FormatG16B16r162plane420Unorm
-	case vulkan_const.FormatG16B16R163plane422Unorm:
-		return FormatG16B16R163plane422Unorm
-	case vulkan_const.FormatG16B16r162plane422Unorm:
-		return FormatG16B16r162plane422Unorm
-	case vulkan_const.FormatG16B16R163plane444Unorm:
-		return FormatG16B16R163plane444Unorm
-	case vulkan_const.FormatPvrtc12bppUnormBlockImg:
-		return FormatPvrtc12bppUnormBlockImg
-	case vulkan_const.FormatPvrtc14bppUnormBlockImg:
-		return FormatPvrtc14bppUnormBlockImg
-	case vulkan_const.FormatPvrtc22bppUnormBlockImg:
-		return FormatPvrtc22bppUnormBlockImg
-	case vulkan_const.FormatPvrtc24bppUnormBlockImg:
-		return FormatPvrtc24bppUnormBlockImg
-	case vulkan_const.FormatPvrtc12bppSrgbBlockImg:
-		return FormatPvrtc12bppSrgbBlockImg
-	case vulkan_const.FormatPvrtc14bppSrgbBlockImg:
-		return FormatPvrtc14bppSrgbBlockImg
-	case vulkan_const.FormatPvrtc22bppSrgbBlockImg:
-		return FormatPvrtc22bppSrgbBlockImg
-	case vulkan_const.FormatPvrtc24bppSrgbBlockImg:
-		return FormatPvrtc24bppSrgbBlockImg
+	defer tracing.NewRegion("rendering.formatFromVulkan").End()
+	out, ok := gpuFormatFromVulkan[val]
+	if ok {
+		panic("invalid format supplied")
 	}
-	panic("invalid format supplied")
+	return out
+}
+
+func formatToVulkan(val GPUFormat) vulkan_const.Format {
+	defer tracing.NewRegion("rendering.formatToVulkan").End()
+	out, ok := gpuFormatToVulkan[val]
+	if ok {
+		panic("invalid format supplied")
+	}
+	return out
 }
 
 func colorSpaceFromVulkan(val vulkan_const.ColorSpace) GPUColorSpace {
-	switch val {
-	case vulkan_const.ColorSpaceSrgbNonlinear:
-		return ColorSpaceSrgbNonlinear
-	case vulkan_const.ColorSpaceDisplayP3Nonlinear:
-		return ColorSpaceDisplayP3Nonlinear
-	case vulkan_const.ColorSpaceExtendedSrgbLinear:
-		return ColorSpaceExtendedSrgbLinear
-	case vulkan_const.ColorSpaceDciP3Linear:
-		return ColorSpaceDciP3Linear
-	case vulkan_const.ColorSpaceDciP3Nonlinear:
-		return ColorSpaceDciP3Nonlinear
-	case vulkan_const.ColorSpaceBt709Linear:
-		return ColorSpaceBt709Linear
-	case vulkan_const.ColorSpaceBt709Nonlinear:
-		return ColorSpaceBt709Nonlinear
-	case vulkan_const.ColorSpaceBt2020Linear:
-		return ColorSpaceBt2020Linear
-	case vulkan_const.ColorSpaceHdr10St2084:
-		return ColorSpaceHdr10St2084
-	case vulkan_const.ColorSpaceDolbyvision:
-		return ColorSpaceDolbyvision
-	case vulkan_const.ColorSpaceHdr10Hlg:
-		return ColorSpaceHdr10Hlg
-	case vulkan_const.ColorSpaceAdobergbLinear:
-		return ColorSpaceAdobergbLinear
-	case vulkan_const.ColorSpaceAdobergbNonlinear:
-		return ColorSpaceAdobergbNonlinear
-	case vulkan_const.ColorSpacePassThrough:
-		return ColorSpacePassThrough
-	case vulkan_const.ColorSpaceExtendedSrgbNonlinear:
-		return ColorSpaceExtendedSrgbNonlinear
+	defer tracing.NewRegion("rendering.colorSpaceFromVulkan").End()
+	out, ok := gpuColorSpaceFromVulkan[val]
+	if !ok {
+		panic("invalid color space supplied")
 	}
-	panic("invalid color space supplied")
+	return out
 }
 
 func presentModeFromVulkan(val vulkan_const.PresentMode) GPUPresentMode {
-	switch val {
-	case vulkan_const.PresentModeImmediate:
-		return PresentModeImmediate
-	case vulkan_const.PresentModeMailbox:
-		return PresentModeMailbox
-	case vulkan_const.PresentModeFifo:
-		return PresentModeFifo
-	case vulkan_const.PresentModeFifoRelaxed:
-		return PresentModeFifoRelaxed
-	case vulkan_const.PresentModeSharedDemandRefresh:
-		return PresentModeSharedDemandRefresh
-	case vulkan_const.PresentModeSharedContinuousRefresh:
-		return PresentModeSharedContinuousRefresh
+	defer tracing.NewRegion("rendering.presentModeFromVulkan").End()
+	out, ok := gpuPresentModeFromVulkan[val]
+	if !ok {
+		return -1 // TODO:  Wut...
+		// panic("invalid present mode supplied")
 	}
-	return -1 // TODO:  Wut...
-	// panic("invalid present mode supplied")
+	return out
+}
+
+var (
+	gpuFormatFeatureFlagBits = [...]GPUFormatFeatureFlags{
+		GPUFormatFeatureSampledImageBit,
+		GPUFormatFeatureStorageImageBit,
+		GPUFormatFeatureStorageImageAtomicBit,
+		GPUFormatFeatureUniformTexelBufferBit,
+		GPUFormatFeatureStorageTexelBufferBit,
+		GPUFormatFeatureStorageTexelBufferAtomicBit,
+		GPUFormatFeatureVertexBufferBit,
+		GPUFormatFeatureColorAttachmentBit,
+		GPUFormatFeatureColorAttachmentBlendBit,
+		GPUFormatFeatureDepthStencilAttachmentBit,
+		GPUFormatFeatureBlitSrcBit,
+		GPUFormatFeatureBlitDstBit,
+		GPUFormatFeatureSampledImageFilterLinearBit,
+		GPUFormatFeatureTransferSrcBit,
+		GPUFormatFeatureTransferDstBit,
+		GPUFormatFeatureMidpointChromaSamplesBit,
+		GPUFormatFeatureSampledImageYcbcrConversionLinearFilterBit,
+		GPUFormatFeatureSampledImageYcbcrConversionSeparateReconstructionFilterBit,
+		GPUFormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitBit,
+		GPUFormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitForceableBit,
+		GPUFormatFeatureDisjointBit,
+		GPUFormatFeatureCositedChromaSamplesBit,
+		GPUFormatFeatureSampledImageFilterCubicBitImg,
+		GPUFormatFeatureSampledImageFilterMinmaxBit,
+	}
+	vkFormatFeatureFlagBits = [...]vulkan_const.FormatFeatureFlagBits{
+		vulkan_const.FormatFeatureSampledImageBit,
+		vulkan_const.FormatFeatureStorageImageBit,
+		vulkan_const.FormatFeatureStorageImageAtomicBit,
+		vulkan_const.FormatFeatureUniformTexelBufferBit,
+		vulkan_const.FormatFeatureStorageTexelBufferBit,
+		vulkan_const.FormatFeatureStorageTexelBufferAtomicBit,
+		vulkan_const.FormatFeatureVertexBufferBit,
+		vulkan_const.FormatFeatureColorAttachmentBit,
+		vulkan_const.FormatFeatureColorAttachmentBlendBit,
+		vulkan_const.FormatFeatureDepthStencilAttachmentBit,
+		vulkan_const.FormatFeatureBlitSrcBit,
+		vulkan_const.FormatFeatureBlitDstBit,
+		vulkan_const.FormatFeatureSampledImageFilterLinearBit,
+		vulkan_const.FormatFeatureTransferSrcBit,
+		vulkan_const.FormatFeatureTransferDstBit,
+		vulkan_const.FormatFeatureMidpointChromaSamplesBit,
+		vulkan_const.FormatFeatureSampledImageYcbcrConversionLinearFilterBit,
+		vulkan_const.FormatFeatureSampledImageYcbcrConversionSeparateReconstructionFilterBit,
+		vulkan_const.FormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitBit,
+		vulkan_const.FormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitForceableBit,
+		vulkan_const.FormatFeatureDisjointBit,
+		vulkan_const.FormatFeatureCositedChromaSamplesBit,
+		vulkan_const.FormatFeatureSampledImageFilterCubicBitImg,
+		vulkan_const.FormatFeatureSampledImageFilterMinmaxBit,
+	}
+	_ = [unsafe.Sizeof(gpuFormatFeatureFlagBits) - unsafe.Sizeof(vkFormatFeatureFlagBits)]struct{}{}
+)
+
+func (g *GPUFormatFeatureFlags) fromVulkan(val vk.FormatFeatureFlags) {
+	defer tracing.NewRegion("GPUFormatFeatureFlags.fromVulkan").End()
+	var flags GPUFormatFeatureFlags
+	for i := range vkFormatFeatureFlagBits {
+		if val&vk.FormatFeatureFlags(vkFormatFeatureFlagBits[i]) != 0 {
+			flags |= gpuFormatFeatureFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUFormatFeatureFlags) toVulkan() vk.FormatFeatureFlags {
+	defer tracing.NewRegion("GPUFormatFeatureFlags.toVulkan").End()
+	val := *g
+	var flags vk.FormatFeatureFlags
+	for i := range gpuFormatFeatureFlagBits {
+		if val&gpuFormatFeatureFlagBits[i] != 0 {
+			flags |= vk.FormatFeatureFlags(vkFormatFeatureFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuSurfaceTransformFlagBits = [...]GPUSurfaceTransformFlags{
+		GPUSurfaceTransformIdentityBit,
+		GPUSurfaceTransformRotate90Bit,
+		GPUSurfaceTransformRotate180Bit,
+		GPUSurfaceTransformRotate270Bit,
+		GPUSurfaceTransformHorizontalMirrorBit,
+		GPUSurfaceTransformHorizontalMirrorRotate90Bit,
+		GPUSurfaceTransformHorizontalMirrorRotate180Bit,
+		GPUSurfaceTransformHorizontalMirrorRotate270Bit,
+		GPUSurfaceTransformInheritBit,
+	}
+	vkSurfaceTransformFlagBits = [...]vulkan_const.SurfaceTransformFlagBits{
+		vulkan_const.SurfaceTransformIdentityBit,
+		vulkan_const.SurfaceTransformRotate90Bit,
+		vulkan_const.SurfaceTransformRotate180Bit,
+		vulkan_const.SurfaceTransformRotate270Bit,
+		vulkan_const.SurfaceTransformHorizontalMirrorBit,
+		vulkan_const.SurfaceTransformHorizontalMirrorRotate90Bit,
+		vulkan_const.SurfaceTransformHorizontalMirrorRotate180Bit,
+		vulkan_const.SurfaceTransformHorizontalMirrorRotate270Bit,
+		vulkan_const.SurfaceTransformInheritBit,
+	}
+	_ = [unsafe.Sizeof(gpuSurfaceTransformFlagBits) - unsafe.Sizeof(vkSurfaceTransformFlagBits)]struct{}{}
+)
+
+func (g *GPUSurfaceTransformFlags) fromVulkan(val vk.SurfaceTransformFlags) {
+	defer tracing.NewRegion("GPUSurfaceTransformFlags.fromVulkan").End()
+	var flags GPUSurfaceTransformFlags
+	for i := range vkSurfaceTransformFlagBits {
+		if val&vk.SurfaceTransformFlags(vkSurfaceTransformFlagBits[i]) != 0 {
+			flags |= gpuSurfaceTransformFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUSurfaceTransformFlags) toVulkan() vk.SurfaceTransformFlags {
+	defer tracing.NewRegion("GPUSurfaceTransformFlags.toVulkan").End()
+	val := *g
+	var flags vk.SurfaceTransformFlags
+	for i := range gpuSurfaceTransformFlagBits {
+		if val&gpuSurfaceTransformFlagBits[i] != 0 {
+			flags |= vk.SurfaceTransformFlags(vkSurfaceTransformFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuCompositeAlphaFlagBits = [...]GPUCompositeAlphaFlags{
+		GPUCompositeAlphaOpaqueBit,
+		GPUCompositeAlphaPreMultipliedBit,
+		GPUCompositeAlphaPostMultipliedBit,
+		GPUCompositeAlphaInheritBit,
+	}
+	vkCompositeAlphaFlagBits = [...]vulkan_const.CompositeAlphaFlagBits{
+		vulkan_const.CompositeAlphaOpaqueBit,
+		vulkan_const.CompositeAlphaPreMultipliedBit,
+		vulkan_const.CompositeAlphaPostMultipliedBit,
+		vulkan_const.CompositeAlphaInheritBit,
+	}
+	_ = [unsafe.Sizeof(gpuCompositeAlphaFlagBits) - unsafe.Sizeof(vkCompositeAlphaFlagBits)]struct{}{}
+)
+
+func (g *GPUCompositeAlphaFlags) fromVulkan(val vk.CompositeAlphaFlags) {
+	defer tracing.NewRegion("GPUCompositeAlphaFlags.fromVulkan").End()
+	var flags GPUCompositeAlphaFlags
+	for i := range vkCompositeAlphaFlagBits {
+		if val&vk.CompositeAlphaFlags(vkCompositeAlphaFlagBits[i]) != 0 {
+			flags |= gpuCompositeAlphaFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUCompositeAlphaFlags) toVulkan() vk.CompositeAlphaFlags {
+	defer tracing.NewRegion("GPUCompositeAlphaFlags.toVulkan").End()
+	val := *g
+	var flags vk.CompositeAlphaFlags
+	for i := range gpuCompositeAlphaFlagBits {
+		if val&gpuCompositeAlphaFlagBits[i] != 0 {
+			flags |= vk.CompositeAlphaFlags(vkCompositeAlphaFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuImageUsageFlagBits = [...]GPUImageUsageFlags{
+		GPUImageUsageTransferSrcBit,
+		GPUImageUsageTransferDstBit,
+		GPUImageUsageSampledBit,
+		GPUImageUsageStorageBit,
+		GPUImageUsageColorAttachmentBit,
+		GPUImageUsageDepthStencilAttachmentBit,
+		GPUImageUsageTransientAttachmentBit,
+		GPUImageUsageInputAttachmentBit,
+		GPUImageUsageShadingRateImageBitNv,
+	}
+	vkImageUsageFlagBits = [...]vulkan_const.ImageUsageFlagBits{
+		vulkan_const.ImageUsageTransferSrcBit,
+		vulkan_const.ImageUsageTransferDstBit,
+		vulkan_const.ImageUsageSampledBit,
+		vulkan_const.ImageUsageStorageBit,
+		vulkan_const.ImageUsageColorAttachmentBit,
+		vulkan_const.ImageUsageDepthStencilAttachmentBit,
+		vulkan_const.ImageUsageTransientAttachmentBit,
+		vulkan_const.ImageUsageInputAttachmentBit,
+		vulkan_const.ImageUsageShadingRateImageBitNv,
+	}
+	_ = [unsafe.Sizeof(gpuImageUsageFlagBits) - unsafe.Sizeof(vkImageUsageFlagBits)]struct{}{}
+)
+
+func (g *GPUImageUsageFlags) fromVulkan(val vk.ImageUsageFlags) {
+	defer tracing.NewRegion("GPUImageUsageFlags.fromVulkan").End()
+	var flags GPUImageUsageFlags
+	for i := range vkImageUsageFlagBits {
+		if val&vk.ImageUsageFlags(vkImageUsageFlagBits[i]) != 0 {
+			flags |= gpuImageUsageFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g GPUImageUsageFlags) toVulkan() vk.ImageUsageFlags {
+	defer tracing.NewRegion("GPUImageUsageFlags.toVulkan").End()
+	val := g
+	var flags vk.ImageUsageFlags
+	for i := range gpuImageUsageFlagBits {
+		if val&gpuImageUsageFlagBits[i] != 0 {
+			flags |= vk.ImageUsageFlags(vkImageUsageFlagBits[i])
+		}
+	}
+	return flags
+}
+
+func (g *GPUSurfaceCapabilities) fromVulkan(capabilities vk.SurfaceCapabilities) {
+	g.MinImageCount = capabilities.MinImageCount
+	g.MaxImageCount = capabilities.MaxImageCount
+	g.CurrentExtent = matrix.Vec2i{
+		int32(capabilities.CurrentExtent.Width),
+		int32(capabilities.CurrentExtent.Height),
+	}
+	g.MinImageExtent = matrix.Vec2i{
+		int32(capabilities.MinImageExtent.Width),
+		int32(capabilities.MinImageExtent.Height),
+	}
+	g.MaxImageExtent = matrix.Vec2i{
+		int32(capabilities.MaxImageExtent.Width),
+		int32(capabilities.MaxImageExtent.Height),
+	}
+	g.MaxImageArrayLayers = capabilities.MaxImageArrayLayers
+	g.SupportedTransforms.fromVulkan(capabilities.SupportedTransforms)
+	g.CurrentTransform.fromVulkan(vk.SurfaceTransformFlags(capabilities.CurrentTransform))
+	g.SupportedCompositeAlpha.fromVulkan(capabilities.SupportedCompositeAlpha)
+	g.SupportedUsageFlags.fromVulkan(capabilities.SupportedUsageFlags)
+}
+
+var (
+	gpuImageAspectFlagBits = [...]GPUImageAspectFlags{
+		GPUImageAspectColorBit,
+		GPUImageAspectDepthBit,
+		GPUImageAspectStencilBit,
+		GPUImageAspectMetadataBit,
+		GPUImageAspectPlane0Bit,
+		GPUImageAspectPlane1Bit,
+		GPUImageAspectPlane2Bit,
+		GPUImageAspectMemoryPlane0Bit,
+		GPUImageAspectMemoryPlane1Bit,
+		GPUImageAspectMemoryPlane2Bit,
+		GPUImageAspectMemoryPlane3Bit,
+	}
+	vkImageAspectFlagBits = [...]vulkan_const.ImageAspectFlagBits{
+		vulkan_const.ImageAspectColorBit,
+		vulkan_const.ImageAspectDepthBit,
+		vulkan_const.ImageAspectStencilBit,
+		vulkan_const.ImageAspectMetadataBit,
+		vulkan_const.ImageAspectPlane0Bit,
+		vulkan_const.ImageAspectPlane1Bit,
+		vulkan_const.ImageAspectPlane2Bit,
+		vulkan_const.ImageAspectMemoryPlane0Bit,
+		vulkan_const.ImageAspectMemoryPlane1Bit,
+		vulkan_const.ImageAspectMemoryPlane2Bit,
+		vulkan_const.ImageAspectMemoryPlane3Bit,
+	}
+	_ = [unsafe.Sizeof(gpuImageAspectFlagBits)/unsafe.Sizeof(gpuImageAspectFlagBits[0]) - unsafe.Sizeof(vkImageAspectFlagBits)/unsafe.Sizeof(vkImageAspectFlagBits[0])]struct{}{}
+)
+
+func (g *GPUImageAspectFlags) fromVulkan(val vk.ImageAspectFlags) {
+	defer tracing.NewRegion("GPUImageAspectFlags.fromVulkan").End()
+	var flags GPUImageAspectFlags
+	for i := range vkImageAspectFlagBits {
+		if val&vk.ImageAspectFlags(vkImageAspectFlagBits[i]) != 0 {
+			flags |= gpuImageAspectFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUImageAspectFlags) toVulkan() vk.ImageAspectFlags {
+	defer tracing.NewRegion("GPUImageAspectFlags.toVulkan").End()
+	val := *g
+	var flags vk.ImageAspectFlags
+	for i := range gpuImageAspectFlagBits {
+		if val&gpuImageAspectFlagBits[i] != 0 {
+			flags |= vk.ImageAspectFlags(vkImageAspectFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuImageViewTypeToVulkan = map[GPUImageViewType]vulkan_const.ImageViewType{
+		GPUImageViewType1d:        vulkan_const.ImageViewType1d,
+		GPUImageViewType2d:        vulkan_const.ImageViewType2d,
+		GPUImageViewType3d:        vulkan_const.ImageViewType3d,
+		GPUImageViewTypeCube:      vulkan_const.ImageViewTypeCube,
+		GPUImageViewType1dArray:   vulkan_const.ImageViewType1dArray,
+		GPUImageViewType2dArray:   vulkan_const.ImageViewType2dArray,
+		GPUImageViewTypeCubeArray: vulkan_const.ImageViewTypeCubeArray,
+	}
+	gpuImageViewTypeFromVulkan = map[vulkan_const.ImageViewType]GPUImageViewType{
+		vulkan_const.ImageViewType1d:        GPUImageViewType1d,
+		vulkan_const.ImageViewType2d:        GPUImageViewType2d,
+		vulkan_const.ImageViewType3d:        GPUImageViewType3d,
+		vulkan_const.ImageViewTypeCube:      GPUImageViewTypeCube,
+		vulkan_const.ImageViewType1dArray:   GPUImageViewType1dArray,
+		vulkan_const.ImageViewType2dArray:   GPUImageViewType2dArray,
+		vulkan_const.ImageViewTypeCubeArray: GPUImageViewTypeCubeArray,
+	}
+)
+
+func (g GPUImageViewType) toVulkan() vulkan_const.ImageViewType {
+	return gpuImageViewTypeToVulkan[g]
+}
+
+func (g *GPUImageViewType) fromVulkan(from vulkan_const.ImageViewType) {
+	*g = gpuImageViewTypeFromVulkan[from]
+}
+
+var (
+	gpuImageTilingToVulkan = map[GPUImageTiling]vulkan_const.ImageTiling{
+		GPUImageTilingOptimal:           vulkan_const.ImageTilingOptimal,
+		GPUImageTilingLinear:            vulkan_const.ImageTilingLinear,
+		GPUImageTilingDrmFormatModifier: vulkan_const.ImageTilingDrmFormatModifier,
+	}
+	gpuImageTilingFromVulkan = map[vulkan_const.ImageTiling]GPUImageTiling{
+		vulkan_const.ImageTilingOptimal:           GPUImageTilingOptimal,
+		vulkan_const.ImageTilingLinear:            GPUImageTilingLinear,
+		vulkan_const.ImageTilingDrmFormatModifier: GPUImageTilingDrmFormatModifier,
+	}
+)
+
+func (g GPUImageTiling) toVulkan() vulkan_const.ImageTiling {
+	return gpuImageTilingToVulkan[g]
+}
+
+func (g *GPUImageTiling) fromVulkan(from vulkan_const.ImageTiling) {
+	*g = gpuImageTilingFromVulkan[from]
+}
+
+var (
+	gpuMemoryPropertyFlagBits = [...]GPUMemoryPropertyFlags{
+		GPUMemoryPropertyDeviceLocalBit,
+		GPUMemoryPropertyHostVisibleBit,
+		GPUMemoryPropertyHostCoherentBit,
+		GPUMemoryPropertyHostCachedBit,
+		GPUMemoryPropertyLazilyAllocatedBit,
+		GPUMemoryPropertyProtectedBit,
+	}
+	vkMemoryPropertyFlagBits = [...]vulkan_const.MemoryPropertyFlagBits{
+		vulkan_const.MemoryPropertyDeviceLocalBit,
+		vulkan_const.MemoryPropertyHostVisibleBit,
+		vulkan_const.MemoryPropertyHostCoherentBit,
+		vulkan_const.MemoryPropertyHostCachedBit,
+		vulkan_const.MemoryPropertyLazilyAllocatedBit,
+		vulkan_const.MemoryPropertyProtectedBit,
+	}
+	_ = [unsafe.Sizeof(gpuMemoryPropertyFlagBits)/unsafe.Sizeof(gpuMemoryPropertyFlagBits[0]) - unsafe.Sizeof(vkMemoryPropertyFlagBits)/unsafe.Sizeof(vkMemoryPropertyFlagBits[0])]struct{}{}
+)
+
+func (g *GPUMemoryPropertyFlags) fromVulkan(val vk.MemoryPropertyFlags) {
+	defer tracing.NewRegion("GPUMemoryPropertyFlags.fromVulkan").End()
+	var flags GPUMemoryPropertyFlags
+	for i := range vkMemoryPropertyFlagBits {
+		if val&vk.MemoryPropertyFlags(vkMemoryPropertyFlagBits[i]) != 0 {
+			flags |= gpuMemoryPropertyFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUMemoryPropertyFlags) toVulkan() vk.MemoryPropertyFlags {
+	defer tracing.NewRegion("GPUMemoryPropertyFlags.toVulkan").End()
+	val := *g
+	var flags vk.MemoryPropertyFlags
+	for i := range gpuMemoryPropertyFlagBits {
+		if val&gpuMemoryPropertyFlagBits[i] != 0 {
+			flags |= vk.MemoryPropertyFlags(vkMemoryPropertyFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuMemoryHeapFlagBits = [...]GPUMemoryHeapFlags{
+		GPUMemoryHeapDeviceLocalBit,
+		GPUMemoryHeapMultiInstanceBit,
+	}
+	vkMemoryHeapFlagBits = [...]vulkan_const.MemoryHeapFlagBits{
+		vulkan_const.MemoryHeapDeviceLocalBit,
+		vulkan_const.MemoryHeapMultiInstanceBit,
+	}
+	_ = [unsafe.Sizeof(gpuMemoryHeapFlagBits)/unsafe.Sizeof(gpuMemoryHeapFlagBits[0]) - unsafe.Sizeof(vkMemoryHeapFlagBits)/unsafe.Sizeof(vkMemoryHeapFlagBits[0])]struct{}{}
+)
+
+func (g *GPUMemoryHeapFlags) fromVulkan(val vk.MemoryHeapFlags) {
+	defer tracing.NewRegion("GPUMemoryHeapFlags.fromVulkan").End()
+	var flags GPUMemoryHeapFlags
+	for i := range vkMemoryHeapFlagBits {
+		if val&vk.MemoryHeapFlags(vkMemoryHeapFlagBits[i]) != 0 {
+			flags |= gpuMemoryHeapFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUMemoryHeapFlags) toVulkan() vk.MemoryHeapFlags {
+	defer tracing.NewRegion("GPUMemoryHeapFlags.toVulkan").End()
+	val := *g
+	var flags vk.MemoryHeapFlags
+	for i := range gpuMemoryHeapFlagBits {
+		if val&gpuMemoryHeapFlagBits[i] != 0 {
+			flags |= vk.MemoryHeapFlags(vkMemoryHeapFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuImageTypeToVulkan = map[GPUImageType]vulkan_const.ImageType{
+		GPUImageType1d: vulkan_const.ImageType1d,
+		GPUImageType2d: vulkan_const.ImageType2d,
+		GPUImageType3d: vulkan_const.ImageType3d,
+	}
+	gpuImageTypeFromVulkan = map[vulkan_const.ImageType]GPUImageType{
+		vulkan_const.ImageType1d: GPUImageType1d,
+		vulkan_const.ImageType2d: GPUImageType2d,
+		vulkan_const.ImageType3d: GPUImageType3d,
+	}
+)
+
+func (g GPUImageType) toVulkan() vulkan_const.ImageType {
+	return gpuImageTypeToVulkan[g]
+}
+
+func (g *GPUImageType) fromVulkan(from vulkan_const.ImageType) {
+	*g = gpuImageTypeFromVulkan[from]
+}
+
+var (
+	gpuImageCreateFlagBits = [...]GPUImageCreateFlags{
+		GPUImageCreateSparseBindingBit,
+		GPUImageCreateSparseResidencyBit,
+		GPUImageCreateSparseAliasedBit,
+		GPUImageCreateMutableFormatBit,
+		GPUImageCreateCubeCompatibleBit,
+		GPUImageCreateAliasBit,
+		GPUImageCreateSplitInstanceBindRegionsBit,
+		GPUImageCreate2dArrayCompatibleBit,
+		GPUImageCreateBlockTexelViewCompatibleBit,
+		GPUImageCreateExtendedUsageBit,
+		GPUImageCreateProtectedBit,
+		GPUImageCreateDisjointBit,
+		GPUImageCreateCornerSampledBitNv,
+		GPUImageCreateSampleLocationsCompatibleDepthBit,
+	}
+	vkImageCreateFlagBits = [...]vulkan_const.ImageCreateFlagBits{
+		vulkan_const.ImageCreateSparseBindingBit,
+		vulkan_const.ImageCreateSparseResidencyBit,
+		vulkan_const.ImageCreateSparseAliasedBit,
+		vulkan_const.ImageCreateMutableFormatBit,
+		vulkan_const.ImageCreateCubeCompatibleBit,
+		vulkan_const.ImageCreateAliasBit,
+		vulkan_const.ImageCreateSplitInstanceBindRegionsBit,
+		vulkan_const.ImageCreate2dArrayCompatibleBit,
+		vulkan_const.ImageCreateBlockTexelViewCompatibleBit,
+		vulkan_const.ImageCreateExtendedUsageBit,
+		vulkan_const.ImageCreateProtectedBit,
+		vulkan_const.ImageCreateDisjointBit,
+		vulkan_const.ImageCreateCornerSampledBitNv,
+		vulkan_const.ImageCreateSampleLocationsCompatibleDepthBit,
+	}
+	_ = [unsafe.Sizeof(gpuImageCreateFlagBits)/unsafe.Sizeof(gpuImageCreateFlagBits[0]) - unsafe.Sizeof(vkImageCreateFlagBits)/unsafe.Sizeof(vkImageCreateFlagBits[0])]struct{}{}
+)
+
+func (g *GPUImageCreateFlags) fromVulkan(val vk.ImageCreateFlags) {
+	defer tracing.NewRegion("GPUImageCreateFlags.fromVulkan").End()
+	var flags GPUImageCreateFlags
+	for i := range vkImageCreateFlagBits {
+		if val&vk.ImageCreateFlags(vkImageCreateFlagBits[i]) != 0 {
+			flags |= gpuImageCreateFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUImageCreateFlags) toVulkan() vk.ImageCreateFlags {
+	defer tracing.NewRegion("GPUImageCreateFlags.toVulkan").End()
+	val := *g
+	var flags vk.ImageCreateFlags
+	for i := range gpuImageCreateFlagBits {
+		if val&gpuImageCreateFlagBits[i] != 0 {
+			flags |= vk.ImageCreateFlags(vkImageCreateFlagBits[i])
+		}
+	}
+	return flags
 }

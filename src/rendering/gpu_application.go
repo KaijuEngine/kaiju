@@ -1,5 +1,13 @@
 package rendering
 
+import "log/slog"
+
+const (
+	engineVersionMajor = int(1)
+	engineVersionMinor = int(0)
+	engineVersionPatch = int(0)
+)
+
 type GPUApplication struct {
 	Name    string
 	Version struct {
@@ -7,10 +15,24 @@ type GPUApplication struct {
 		Minor int
 		Patch int
 	}
-	Instance       GPUInstance
-	Surface        GPUSurface
-	PhysicalDevice GPUPhysicalDevice
-	dbg            memoryDebugger
+	Instances []GPUApplicationInstance
+}
+
+func (g *GPUApplication) FirstInstance() *GPUApplicationInstance {
+	return &g.Instances[0]
+}
+
+// TODO:  This function will likely go away with other refactors
+func (g *GPUApplication) Dbg() *memoryDebugger {
+	return &g.FirstInstance().dbg
+}
+
+func (g *GPUApplication) Instance(index int) (*GPUApplicationInstance, bool) {
+	if index < 0 || index > len(g.Instances) {
+		slog.Error("index out of range for the instances", "has", len(g.Instances), "wants", index)
+		return nil, false
+	}
+	return &g.Instances[index], true
 }
 
 func (g *GPUApplication) ApplicationVersion() (major int, minor int, patch int) {
@@ -21,33 +43,13 @@ func (g *GPUApplication) EngineVersion() (major int, minor int, patch int) {
 	return engineVersionMajor, engineVersionMinor, engineVersionPatch
 }
 
-func (g *GPUApplication) Create(window RenderingContainer) error {
-	if err := g.Instance.Create(window, g); err != nil {
-		return err
-	}
-	if err := g.Surface.Create(&g.Instance, window); err != nil {
-		return err
-	}
-	// TODO:  Allow passing in the device selection method
-	if err := g.SelectPhysicalDevice(nil); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (g *GPUApplication) SelectPhysicalDevice(method func(options []GPUPhysicalDevice) GPUPhysicalDevice) error {
-	devices, err := ListPhysicalGpuDevices(g)
-	if err != nil {
-		return err
-	}
-	if method == nil {
-		method = selectPhysicalDeviceDefaltMethod
-	}
-	g.PhysicalDevice = method(devices)
-	return nil
+func (g *GPUApplication) CreateInstance(window RenderingContainer) error {
+	g.Instances = append(g.Instances, GPUApplicationInstance{})
+	return g.Instances[len(g.Instances)-1].Initialize(window, g)
 }
 
 func (g *GPUApplication) Destroy() {
-	g.Surface.Destroy(g)
-	g.Instance.Destroy(g)
+	for i := range g.Instances {
+		g.Instances[i].Destroy()
+	}
 }

@@ -229,7 +229,7 @@ func (vr *Vulkan) createComputeShader(shader *Shader, assetDB assets.Database) e
 		slog.Error("Failed to create pipeline layout")
 		return errors.New("failed to create pipeline layout")
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(pLayout))
+		vr.app.Dbg().track(unsafe.Pointer(pLayout))
 	}
 	shader.RenderId.pipelineLayout = pLayout
 	pipelineInfo := vk.ComputePipelineCreateInfo{
@@ -242,7 +242,7 @@ func (vr *Vulkan) createComputeShader(shader *Shader, assetDB assets.Database) e
 		slog.Error("Failed to create compute pipeline")
 		return errors.New("failed to create compute pipeline")
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(pipelines[0]))
+		vr.app.Dbg().track(unsafe.Pointer(pipelines[0]))
 	}
 	id.computePipeline = pipelines[0]
 	return nil
@@ -259,7 +259,7 @@ func (vr *Vulkan) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 		slog.Error("Failed to create shader module", slog.String("module", string(mem)))
 		return outModule, false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(outModule))
+		vr.app.Dbg().track(unsafe.Pointer(outModule))
 		return outModule, true
 	}
 }
@@ -268,31 +268,31 @@ func (vr *Vulkan) destroyShaderHandle(id ShaderId) {
 	defer tracing.NewRegion("Vulkan.DestroyShader").End()
 	vk.DeviceWaitIdle(vr.device)
 	vk.DestroyPipeline(vr.device, id.graphicsPipeline, nil)
-	vr.app.dbg.remove(unsafe.Pointer(id.graphicsPipeline))
+	vr.app.Dbg().remove(unsafe.Pointer(id.graphicsPipeline))
 	vk.DestroyPipeline(vr.device, id.computePipeline, nil)
-	vr.app.dbg.remove(unsafe.Pointer(id.computePipeline))
+	vr.app.Dbg().remove(unsafe.Pointer(id.computePipeline))
 	vk.DestroyPipelineLayout(vr.device, id.pipelineLayout, nil)
-	vr.app.dbg.remove(unsafe.Pointer(id.pipelineLayout))
+	vr.app.Dbg().remove(unsafe.Pointer(id.pipelineLayout))
 	vk.DestroyShaderModule(vr.device, id.vertModule, nil)
-	vr.app.dbg.remove(unsafe.Pointer(id.vertModule))
+	vr.app.Dbg().remove(unsafe.Pointer(id.vertModule))
 	vk.DestroyShaderModule(vr.device, id.fragModule, nil)
-	vr.app.dbg.remove(unsafe.Pointer(id.fragModule))
+	vr.app.Dbg().remove(unsafe.Pointer(id.fragModule))
 	if id.geomModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, id.geomModule, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.geomModule))
+		vr.app.Dbg().remove(unsafe.Pointer(id.geomModule))
 	}
 	if id.tescModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, id.tescModule, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.tescModule))
+		vr.app.Dbg().remove(unsafe.Pointer(id.tescModule))
 	}
 	if id.teseModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, id.teseModule, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.teseModule))
+		vr.app.Dbg().remove(unsafe.Pointer(id.teseModule))
 	}
 	if id.compModule != vk.ShaderModule(vk.NullHandle) {
 		vk.DestroyShaderModule(vr.device, id.compModule, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.compModule))
+		vr.app.Dbg().remove(unsafe.Pointer(id.compModule))
 	}
 	vk.DestroyDescriptorSetLayout(vr.device, id.descriptorSetLayout, nil)
-	vr.app.dbg.remove(unsafe.Pointer(id.descriptorSetLayout))
+	vr.app.Dbg().remove(unsafe.Pointer(id.descriptorSetLayout))
 }

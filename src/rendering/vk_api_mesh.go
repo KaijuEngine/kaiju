@@ -73,12 +73,12 @@ func (vr *Vulkan) destroyMeshHandle(handle MeshId) MeshId {
 	defer tracing.NewRegion("Vulkan.DestroyMesh").End()
 	vk.DeviceWaitIdle(vr.device)
 	vk.DestroyBuffer(vr.device, handle.indexBuffer, nil)
-	vr.app.dbg.remove(unsafe.Pointer(handle.indexBuffer))
+	vr.app.Dbg().remove(unsafe.Pointer(handle.indexBuffer))
 	vk.FreeMemory(vr.device, handle.indexBufferMemory, nil)
-	vr.app.dbg.remove(unsafe.Pointer(handle.indexBufferMemory))
+	vr.app.Dbg().remove(unsafe.Pointer(handle.indexBufferMemory))
 	vk.DestroyBuffer(vr.device, handle.vertexBuffer, nil)
-	vr.app.dbg.remove(unsafe.Pointer(handle.vertexBuffer))
+	vr.app.Dbg().remove(unsafe.Pointer(handle.vertexBuffer))
 	vk.FreeMemory(vr.device, handle.vertexBufferMemory, nil)
-	vr.app.dbg.remove(unsafe.Pointer(handle.vertexBufferMemory))
+	vr.app.Dbg().remove(unsafe.Pointer(handle.vertexBufferMemory))
 	return MeshId{}
 }

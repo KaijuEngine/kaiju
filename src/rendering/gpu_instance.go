@@ -6,12 +6,6 @@ import (
 	"unsafe"
 )
 
-const (
-	engineVersionMajor = int(1)
-	engineVersionMinor = int(0)
-	engineVersionPatch = int(0)
-)
-
 type GPUInstance struct {
 	handle unsafe.Pointer
 }
@@ -24,7 +18,7 @@ func (g *GPUInstance) Create(window RenderingContainer, app *GPUApplication) err
 	return g.createImpl(window, app)
 }
 
-func (g *GPUInstance) Destroy(app *GPUApplication) {
+func (g *GPUInstance) Destroy() {
 	defer tracing.NewRegion("rendering.Destroy").End()
-	g.destroyImpl(app)
+	g.destroyImpl()
 }

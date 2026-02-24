@@ -462,7 +462,7 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		return errors.New("failed to create the render pass")
 	}
 	p.Handle = handle
-	vr.app.dbg.track(unsafe.Pointer(p.Handle))
+	vr.app.Dbg().track(unsafe.Pointer(p.Handle))
 	for i := range r.Subpass {
 		p.setupSubpass(&r.Subpass[i], vr, vr.caches.AssetDatabase(), i+1)
 	}
@@ -507,10 +507,10 @@ func (p *RenderPass) Destroy(vr *Vulkan) {
 		return
 	}
 	vk.DestroyRenderPass(p.device, p.Handle, nil)
-	vr.app.dbg.remove(unsafe.Pointer(p.Handle))
+	vr.app.Dbg().remove(unsafe.Pointer(p.Handle))
 	p.Handle = vk.NullRenderPass
 	vk.DestroyFramebuffer(p.device, p.Buffer, nil)
-	vr.app.dbg.remove(unsafe.Pointer(p.Buffer))
+	vr.app.Dbg().remove(unsafe.Pointer(p.Buffer))
 	p.Buffer = vk.NullFramebuffer
 	for i := range p.textures {
 		vr.destroyTextureHandle(p.textures[i].RenderId)

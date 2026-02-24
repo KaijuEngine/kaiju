@@ -55,8 +55,9 @@ var accessMaskPipelineStageFlagsDefault = uint32(vulkan_const.PipelineStageVerte
 
 func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vulkan_const.Format, texWidth, texHeight, mipLevels uint32, filter vulkan_const.Filter) bool {
 	defer tracing.NewRegion("Vulkan.generateMipmaps").End()
+	pd := vr.app.FirstInstance().PhysicalDevice()
 	var fp vk.FormatProperties
-	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), imageFormat, &fp)
+	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(pd.handle), imageFormat, &fp)
 	if (uint32(fp.OptimalTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) == 0 {
 		slog.Error("Texture image format does not support linear blitting")
 		return false
@@ -144,30 +145,17 @@ func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags
 		slog.Error("Failed to create texture image view")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(idView))
+		vr.app.Dbg().track(unsafe.Pointer(idView))
 	}
 	id.View = idView
 	return true
 }
 
-func (vr *Vulkan) createImageViews() bool {
-	defer tracing.NewRegion("Vulkan.createImageViews").End()
-	slog.Info("creating vulkan image views")
-	vr.swapChainImageViewCount = vr.swapImageCount
-	success := true
-	for i := uint32(0); i < vr.swapChainImageViewCount && success; i++ {
-		if !vr.createImageView(&vr.swapImages[i], vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), vulkan_const.ImageViewType2d) {
-			slog.Error("Failed to create image views")
-			success = false
-		}
-	}
-	return success
-}
-
 func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, filter vulkan_const.Filter) bool {
 	defer tracing.NewRegion("Vulkan.createTextureSampler").End()
 	properties := vk.PhysicalDeviceProperties{}
-	vk.GetPhysicalDeviceProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), &properties)
+	pd := vr.app.FirstInstance().PhysicalDevice()
+	vk.GetPhysicalDeviceProperties(vk.PhysicalDevice(pd.handle), &properties)
 	samplerInfo := vk.SamplerCreateInfo{}
 	samplerInfo.SType = vulkan_const.StructureTypeSamplerCreateInfo
 	samplerInfo.MagFilter = filter
@@ -198,7 +186,7 @@ func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, fi
 		slog.Error("Failed to create texture sampler")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(localSampler))
+		vr.app.Dbg().track(unsafe.Pointer(localSampler))
 	}
 	*sampler = localSampler
 	return true
@@ -394,22 +382,22 @@ func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
 	defer tracing.NewRegion("Vulkan.textureIdFree").End()
 	if id.View != vk.NullImageView {
 		vk.DestroyImageView(vr.device, id.View, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.View))
+		vr.app.Dbg().remove(unsafe.Pointer(id.View))
 		id.View = vk.NullImageView
 	}
 	if id.Image != vk.NullImage {
 		vk.DestroyImage(vr.device, id.Image, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.Image))
+		vr.app.Dbg().remove(unsafe.Pointer(id.Image))
 		id.Image = vk.NullImage
 	}
 	if id.Memory != vk.NullDeviceMemory {
 		vk.FreeMemory(vr.device, id.Memory, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.Memory))
+		vr.app.Dbg().remove(unsafe.Pointer(id.Memory))
 		id.Memory = vk.NullDeviceMemory
 	}
 	if id.Sampler != vk.NullSampler {
 		vk.DestroySampler(vr.device, id.Sampler, nil)
-		vr.app.dbg.remove(unsafe.Pointer(id.Sampler))
+		vr.app.Dbg().remove(unsafe.Pointer(id.Sampler))
 		id.Sampler = vk.NullSampler
 	}
 	return id
@@ -417,13 +405,13 @@ func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
 
 func (vr *Vulkan) FormatIsTileable(format vulkan_const.Format, tiling vulkan_const.ImageTiling) bool {
 	defer tracing.NewRegion("Vulkan.FormatIsTileable").End()
-	var formatProps vk.FormatProperties
-	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), format, &formatProps)
+	pd := vr.app.FirstInstance().PhysicalDevice()
+	props := pd.FormatProperties(formatFromVulkan(format))
 	switch tiling {
 	case vulkan_const.ImageTilingOptimal:
-		return (formatProps.OptimalTilingFeatures & vk.FormatFeatureFlags(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
+		return (props.OptimalTilingFeatures & FormatFeatureSampledImageFilterLinearBit) != 0
 	case vulkan_const.ImageTilingLinear:
-		return (formatProps.LinearTilingFeatures & vk.FormatFeatureFlags(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
+		return (props.LinearTilingFeatures & FormatFeatureSampledImageFilterLinearBit) != 0
 	default:
 		return false
 	}

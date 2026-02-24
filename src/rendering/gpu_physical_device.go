@@ -9,35 +9,21 @@ import (
 	"unsafe"
 )
 
-type GPUPhysicalDeviceType uint8
-type GPUSampleCountFlags uint8
-
-const (
-	GPUPhysicalDeviceTypeOther GPUPhysicalDeviceType = iota
-	GPUPhysicalDeviceTypeIntegratedGpu
-	GPUPhysicalDeviceTypeDiscreteGpu
-	GPUPhysicalDeviceTypeVirtualGpu
-	GPUPhysicalDeviceTypeCpu
-)
-
-const (
-	GPUSampleCount1Bit GPUSampleCountFlags = (1 << iota)
-	GPUSampleCount2Bit
-	GPUSampleCount4Bit
-	GPUSampleCount8Bit
-	GPUSampleCount16Bit
-	GPUSampleCount32Bit
-	GPUSampleCount64Bit
-)
-
 type GPUPhysicalDevice struct {
-	handle         unsafe.Pointer
-	Features       GPUPhysicalDeviceFeatures
-	Properties     GPUPhysicalDeviceProperties
-	QueueFamilies  []GPUQueueFamily
-	Extensions     []GPUPhysicalDeviceExtension
-	SurfaceFormats []GPUSurfaceFormat
-	PresentModes   []GPUPresentMode
+	index               int
+	handle              unsafe.Pointer
+	Features            GPUPhysicalDeviceFeatures
+	Properties          GPUPhysicalDeviceProperties
+	QueueFamilies       []GPUQueueFamily
+	Extensions          []GPUPhysicalDeviceExtension
+	SurfaceFormats      []GPUSurfaceFormat
+	PresentModes        []GPUPresentMode
+	SurfaceCapabilities GPUSurfaceCapabilities
+}
+
+type GPUPhysicalDeviceMemoryProperties struct {
+	MemoryTypes []GPUMemoryType
+	MemoryHeaps []GPUMemoryHeap
 }
 
 type GPUPhysicalDeviceExtension struct {
@@ -232,14 +218,15 @@ type GPUPhysicalDeviceSparseProperties struct {
 	ResidencyNonResidentStrict               bool
 }
 
-func ListPhysicalGpuDevices(app *GPUApplication) ([]GPUPhysicalDevice, error) {
+func ListPhysicalGpuDevices(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
 	defer tracing.NewRegion("rendering.ListPhysicalGpuDevices").End()
-	return listPhysicalGpuDevicesImpl(app)
+	return listPhysicalGpuDevicesImpl(inst)
 }
 
 func (g *GPUPhysicalDevice) IsValid() bool { return g.handle != nil }
 
 func (g *GPUPhysicalDevice) FindGraphicsFamiliy() GPUQueueFamily {
+	defer tracing.NewRegion("GPUPhysicalDevice.FindGraphicsFamiliy").End()
 	for i := range g.QueueFamilies {
 		if g.QueueFamilies[i].IsGraphics {
 			return g.QueueFamilies[i]
@@ -249,6 +236,7 @@ func (g *GPUPhysicalDevice) FindGraphicsFamiliy() GPUQueueFamily {
 }
 
 func (g *GPUPhysicalDevice) FindComputeFamiliy() GPUQueueFamily {
+	defer tracing.NewRegion("GPUPhysicalDevice.FindComputeFamiliy").End()
 	for i := range g.QueueFamilies {
 		if g.QueueFamilies[i].IsCompute {
 			return g.QueueFamilies[i]
@@ -257,7 +245,8 @@ func (g *GPUPhysicalDevice) FindComputeFamiliy() GPUQueueFamily {
 	return InvalidGPUQueueFamily()
 }
 
-func (g *GPUPhysicalDevice) FindPresentFamiliy() GPUQueueFamily {
+func (g *GPUPhysicalDevice) FindPresentFamily() GPUQueueFamily {
+	defer tracing.NewRegion("GPUPhysicalDevice.FindPresentFamily").End()
 	for i := range g.QueueFamilies {
 		if g.QueueFamilies[i].HasPresentSupport {
 			return g.QueueFamilies[i]
@@ -267,6 +256,7 @@ func (g *GPUPhysicalDevice) FindPresentFamiliy() GPUQueueFamily {
 }
 
 func (g *GPUPhysicalDevice) IsExtensionSupported(extension string) bool {
+	defer tracing.NewRegion("GPUPhysicalDevice.IsExtensionSupported").End()
 	for i := range g.Extensions {
 		if strings.EqualFold(g.Extensions[i].Name, extension) {
 			return true
@@ -276,6 +266,7 @@ func (g *GPUPhysicalDevice) IsExtensionSupported(extension string) bool {
 }
 
 func (g *GPUPhysicalDevice) MaxUsableSampleCount() GPUSampleCountFlags {
+	defer tracing.NewRegion("GPUPhysicalDevice.MaxUsableSampleCount").End()
 	counts := vk.SampleCountFlags(g.Properties.Limits.FramebufferColorSampleCounts & g.Properties.Limits.FramebufferDepthSampleCounts)
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount64Bit)) != 0 {
 		return GPUSampleCount64Bit
@@ -298,10 +289,58 @@ func (g *GPUPhysicalDevice) MaxUsableSampleCount() GPUSampleCountFlags {
 	return GPUSampleCount1Bit
 }
 
-func selectPhysicalDeviceDefaltMethod(options []GPUPhysicalDevice) GPUPhysicalDevice {
+func (g *GPUPhysicalDevice) FormatProperties(format GPUFormat) GPUFormatProperties {
+	defer tracing.NewRegion("GPUPhysicalDevice.FormatProperties").End()
+	return g.formatPropertiesImpl(format)
+}
+
+func (g *GPUPhysicalDevice) FindSupportedFormat(candidates []GPUFormat, tiling GPUImageTiling, features GPUFormatFeatureFlags) GPUFormat {
+	for i := 0; i < len(candidates); i++ {
+		format := candidates[i]
+		props := g.FormatProperties(format)
+		if tiling == GPUImageTilingLinear && (props.LinearTilingFeatures&features) == features {
+			return format
+		} else if tiling == GPUImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
+			return format
+		}
+	}
+	slog.Error("Failed to find supported format")
+	// TODO:  Return an error too
+	return candidates[0]
+}
+
+func (g *GPUPhysicalDevice) FindMemoryType(typeFilter uint32, properties GPUMemoryPropertyFlags) int {
+	defer tracing.NewRegion("GPUPhysicalDevice.FindMemoryType").End()
+	return g.findMemoryTypeImpl(typeFilter, properties)
+}
+
+func (g *GPUPhysicalDevice) isPhysicalDeviceSuitableForRendering() bool {
+	defer tracing.NewRegion("GPUPhysicalDevice.isPhysicalDeviceSuitableForRendering").End()
+	exts := requiredDeviceExtensions()
+	hasExtensions := true
+	for i := 0; i < len(exts) && hasExtensions; i++ {
+		// TODO:  This is temp, the extensions are probably going to change
+		// with the new GPU implementation
+		exts[i] = strings.TrimRight(exts[i], "\x00")
+		hasExtensions = g.IsExtensionSupported(exts[i])
+	}
+	swapChainAdequate := false
+	if hasExtensions {
+		swapChainAdequate = len(g.SurfaceFormats) > 0 && len(g.PresentModes) > 0
+	}
+	graphicsFam := g.FindGraphicsFamiliy()
+	presentFam := g.FindPresentFamily()
+	return graphicsFam.IsValid() && presentFam.IsValid() &&
+		hasExtensions && swapChainAdequate &&
+		g.Features.SamplerAnisotropy
+}
+
+func selectPhysicalDeviceDefaltMethod(options []GPUPhysicalDevice) int {
+	defer tracing.NewRegion("rendering.selectPhysicalDeviceDefaltMethod").End()
 	slog.Info("creating vulkan physical device")
 	var currentPhysicalDevice GPUPhysicalDevice
 	var physicalDevice GPUPhysicalDevice
+	selectedIndex := -1
 	for i := range options {
 		g := options[i]
 		if g.isPhysicalDeviceSuitableForRendering() {
@@ -327,36 +366,18 @@ func selectPhysicalDeviceDefaltMethod(options []GPUPhysicalDevice) GPUPhysicalDe
 		}
 		if pick {
 			physicalDevice = currentPhysicalDevice
+			selectedIndex = i
 		}
 	}
 	if !physicalDevice.IsValid() {
 		slog.Error("Failed to find a compatible physical device")
-		return GPUPhysicalDevice{}
+		return -1
 	}
-	return physicalDevice
-}
-
-func (g *GPUPhysicalDevice) isPhysicalDeviceSuitableForRendering() bool {
-	exts := requiredDeviceExtensions()
-	hasExtensions := true
-	for i := 0; i < len(exts) && hasExtensions; i++ {
-		// TODO:  This is temp, the extensions are probably going to change
-		// with the new GPU implementation
-		exts[i] = strings.TrimRight(exts[i], "\x00")
-		hasExtensions = g.IsExtensionSupported(exts[i])
-	}
-	swapChainAdequate := false
-	if hasExtensions {
-		swapChainAdequate = len(g.SurfaceFormats) > 0 && len(g.PresentModes) > 0
-	}
-	graphicsFam := g.FindGraphicsFamiliy()
-	presentFam := g.FindPresentFamiliy()
-	return graphicsFam.IsValid() && presentFam.IsValid() &&
-		hasExtensions && swapChainAdequate &&
-		g.Features.SamplerAnisotropy
+	return selectedIndex
 }
 
 func isPhysicalDeviceBetterType(a GPUPhysicalDeviceType, b GPUPhysicalDeviceType) bool {
+	defer tracing.NewRegion("rendering.isPhysicalDeviceBetterType").End()
 	type score struct {
 		deviceType GPUPhysicalDeviceType
 		score      int

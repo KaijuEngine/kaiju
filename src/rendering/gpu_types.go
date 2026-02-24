@@ -1,267 +1,499 @@
 package rendering
 
+import (
+	"kaiju/matrix"
+	"unsafe"
+)
+
 type GPUFormat int32
 type GPUColorSpace int32
 type GPUPresentMode int32
+type GPUFormatFeatureFlags int32
+type GPUSurfaceTransformFlags int32
+type GPUCompositeAlphaFlags int32
+type GPUImageUsageFlags int32
+type GPUPhysicalDeviceType uint8
+type GPUSampleCountFlags uint8
+type GPUImageLayout uint16
+type GPUImageAspectFlags uint16
+type GPUImageViewType uint8
+type GPUImageTiling uint8
+type GPUMemoryPropertyFlags uint8
+type GPUMemoryHeapFlags uint8
+type GPUImageType uint8
+type GPUImageCreateFlags uint16
+
+type GPUHandle struct{ handle unsafe.Pointer }
+
+func (g *GPUHandle) IsValid() bool { return g.handle == nil }
+func (g *GPUHandle) Reset()        { g.handle = nil }
+
+type GPUFence struct{ GPUHandle }
+type GPUImage struct{ GPUHandle }
+type GPUImageView struct{ GPUHandle }
+type GPUDeviceMemory struct{ GPUHandle }
+type GPUSampler struct{ GPUHandle }
+type GPUFrameBuffer struct{ GPUHandle }
+
+type GPUMemoryRequirements struct {
+	Size           uintptr
+	Alignment      uintptr
+	MemoryTypeBits uint32
+}
 
 type GPUSurfaceFormat struct {
 	Format     GPUFormat
 	ColorSpace GPUColorSpace
 }
 
+type GPUSurfaceCapabilities struct {
+	MinImageCount           uint32
+	MaxImageCount           uint32
+	CurrentExtent           matrix.Vec2i
+	MinImageExtent          matrix.Vec2i
+	MaxImageExtent          matrix.Vec2i
+	MaxImageArrayLayers     uint32
+	SupportedTransforms     GPUSurfaceTransformFlags
+	CurrentTransform        GPUSurfaceTransformFlags
+	SupportedCompositeAlpha GPUCompositeAlphaFlags
+	SupportedUsageFlags     GPUImageUsageFlags
+}
+
+type GPUFormatProperties struct {
+	LinearTilingFeatures  GPUFormatFeatureFlags
+	OptimalTilingFeatures GPUFormatFeatureFlags
+	BufferFeatures        GPUFormatFeatureFlags
+}
+
+type GPUSwapChainSupportDetails struct {
+	capabilities GPUSurfaceCapabilities
+	formats      []GPUSurfaceFormat
+	presentModes []GPUPresentMode
+}
+
+type GPUMemoryType struct {
+	PropertyFlags GPUMemoryPropertyFlags
+	HeapIndex     uint32
+}
+
+type GPUMemoryHeap struct {
+	Size  uintptr
+	Flags GPUMemoryHeapFlags
+}
+
 const (
-	FormatUndefined GPUFormat = iota
-	FormatR4g4UnormPack8
-	FormatR4g4b4a4UnormPack16
-	FormatB4g4r4a4UnormPack16
-	FormatR5g6b5UnormPack16
-	FormatB5g6r5UnormPack16
-	FormatR5g5b5a1UnormPack16
-	FormatB5g5r5a1UnormPack16
-	FormatA1r5g5b5UnormPack16
-	FormatR8Unorm
-	FormatR8Snorm
-	FormatR8Uscaled
-	FormatR8Sscaled
-	FormatR8Uint
-	FormatR8Sint
-	FormatR8Srgb
-	FormatR8g8Unorm
-	FormatR8g8Snorm
-	FormatR8g8Uscaled
-	FormatR8g8Sscaled
-	FormatR8g8Uint
-	FormatR8g8Sint
-	FormatR8g8Srgb
-	FormatR8g8b8Unorm
-	FormatR8g8b8Snorm
-	FormatR8g8b8Uscaled
-	FormatR8g8b8Sscaled
-	FormatR8g8b8Uint
-	FormatR8g8b8Sint
-	FormatR8g8b8Srgb
-	FormatB8g8r8Unorm
-	FormatB8g8r8Snorm
-	FormatB8g8r8Uscaled
-	FormatB8g8r8Sscaled
-	FormatB8g8r8Uint
-	FormatB8g8r8Sint
-	FormatB8g8r8Srgb
-	FormatR8g8b8a8Unorm
-	FormatR8g8b8a8Snorm
-	FormatR8g8b8a8Uscaled
-	FormatR8g8b8a8Sscaled
-	FormatR8g8b8a8Uint
-	FormatR8g8b8a8Sint
-	FormatR8g8b8a8Srgb
-	FormatB8g8r8a8Unorm
-	FormatB8g8r8a8Snorm
-	FormatB8g8r8a8Uscaled
-	FormatB8g8r8a8Sscaled
-	FormatB8g8r8a8Uint
-	FormatB8g8r8a8Sint
-	FormatB8g8r8a8Srgb
-	FormatA8b8g8r8UnormPack32
-	FormatA8b8g8r8SnormPack32
-	FormatA8b8g8r8UscaledPack32
-	FormatA8b8g8r8SscaledPack32
-	FormatA8b8g8r8UintPack32
-	FormatA8b8g8r8SintPack32
-	FormatA8b8g8r8SrgbPack32
-	FormatA2r10g10b10UnormPack32
-	FormatA2r10g10b10SnormPack32
-	FormatA2r10g10b10UscaledPack32
-	FormatA2r10g10b10SscaledPack32
-	FormatA2r10g10b10UintPack32
-	FormatA2r10g10b10SintPack32
-	FormatA2b10g10r10UnormPack32
-	FormatA2b10g10r10SnormPack32
-	FormatA2b10g10r10UscaledPack32
-	FormatA2b10g10r10SscaledPack32
-	FormatA2b10g10r10UintPack32
-	FormatA2b10g10r10SintPack32
-	FormatR16Unorm
-	FormatR16Snorm
-	FormatR16Uscaled
-	FormatR16Sscaled
-	FormatR16Uint
-	FormatR16Sint
-	FormatR16Sfloat
-	FormatR16g16Unorm
-	FormatR16g16Snorm
-	FormatR16g16Uscaled
-	FormatR16g16Sscaled
-	FormatR16g16Uint
-	FormatR16g16Sint
-	FormatR16g16Sfloat
-	FormatR16g16b16Unorm
-	FormatR16g16b16Snorm
-	FormatR16g16b16Uscaled
-	FormatR16g16b16Sscaled
-	FormatR16g16b16Uint
-	FormatR16g16b16Sint
-	FormatR16g16b16Sfloat
-	FormatR16g16b16a16Unorm
-	FormatR16g16b16a16Snorm
-	FormatR16g16b16a16Uscaled
-	FormatR16g16b16a16Sscaled
-	FormatR16g16b16a16Uint
-	FormatR16g16b16a16Sint
-	FormatR16g16b16a16Sfloat
-	FormatR32Uint
-	FormatR32Sint
-	FormatR32Sfloat
-	FormatR32g32Uint
-	FormatR32g32Sint
-	FormatR32g32Sfloat
-	FormatR32g32b32Uint
-	FormatR32g32b32Sint
-	FormatR32g32b32Sfloat
-	FormatR32g32b32a32Uint
-	FormatR32g32b32a32Sint
-	FormatR32g32b32a32Sfloat
-	FormatR64Uint
-	FormatR64Sint
-	FormatR64Sfloat
-	FormatR64g64Uint
-	FormatR64g64Sint
-	FormatR64g64Sfloat
-	FormatR64g64b64Uint
-	FormatR64g64b64Sint
-	FormatR64g64b64Sfloat
-	FormatR64g64b64a64Uint
-	FormatR64g64b64a64Sint
-	FormatR64g64b64a64Sfloat
-	FormatB10g11r11UfloatPack32
-	FormatE5b9g9r9UfloatPack32
-	FormatD16Unorm
-	FormatX8D24UnormPack32
-	FormatD32Sfloat
-	FormatS8Uint
-	FormatD16UnormS8Uint
-	FormatD24UnormS8Uint
-	FormatD32SfloatS8Uint
-	FormatBc1RgbUnormBlock
-	FormatBc1RgbSrgbBlock
-	FormatBc1RgbaUnormBlock
-	FormatBc1RgbaSrgbBlock
-	FormatBc2UnormBlock
-	FormatBc2SrgbBlock
-	FormatBc3UnormBlock
-	FormatBc3SrgbBlock
-	FormatBc4UnormBlock
-	FormatBc4SnormBlock
-	FormatBc5UnormBlock
-	FormatBc5SnormBlock
-	FormatBc6hUfloatBlock
-	FormatBc6hSfloatBlock
-	FormatBc7UnormBlock
-	FormatBc7SrgbBlock
-	FormatEtc2R8g8b8UnormBlock
-	FormatEtc2R8g8b8SrgbBlock
-	FormatEtc2R8g8b8a1UnormBlock
-	FormatEtc2R8g8b8a1SrgbBlock
-	FormatEtc2R8g8b8a8UnormBlock
-	FormatEtc2R8g8b8a8SrgbBlock
-	FormatEacR11UnormBlock
-	FormatEacR11SnormBlock
-	FormatEacR11g11UnormBlock
-	FormatEacR11g11SnormBlock
-	FormatAstc4x4UnormBlock
-	FormatAstc4x4SrgbBlock
-	FormatAstc5x4UnormBlock
-	FormatAstc5x4SrgbBlock
-	FormatAstc5x5UnormBlock
-	FormatAstc5x5SrgbBlock
-	FormatAstc6x5UnormBlock
-	FormatAstc6x5SrgbBlock
-	FormatAstc6x6UnormBlock
-	FormatAstc6x6SrgbBlock
-	FormatAstc8x5UnormBlock
-	FormatAstc8x5SrgbBlock
-	FormatAstc8x6UnormBlock
-	FormatAstc8x6SrgbBlock
-	FormatAstc8x8UnormBlock
-	FormatAstc8x8SrgbBlock
-	FormatAstc10x5UnormBlock
-	FormatAstc10x5SrgbBlock
-	FormatAstc10x6UnormBlock
-	FormatAstc10x6SrgbBlock
-	FormatAstc10x8UnormBlock
-	FormatAstc10x8SrgbBlock
-	FormatAstc10x10UnormBlock
-	FormatAstc10x10SrgbBlock
-	FormatAstc12x10UnormBlock
-	FormatAstc12x10SrgbBlock
-	FormatAstc12x12UnormBlock
-	FormatAstc12x12SrgbBlock
-	FormatG8b8g8r8422Unorm
-	FormatB8g8r8g8422Unorm
-	FormatG8B8R83plane420Unorm
-	FormatG8B8r82plane420Unorm
-	FormatG8B8R83plane422Unorm
-	FormatG8B8r82plane422Unorm
-	FormatG8B8R83plane444Unorm
-	FormatR10x6UnormPack16
-	FormatR10x6g10x6Unorm2pack16
-	FormatR10x6g10x6b10x6a10x6Unorm4pack16
-	FormatG10x6b10x6g10x6r10x6422Unorm4pack16
-	FormatB10x6g10x6r10x6g10x6422Unorm4pack16
-	FormatG10x6B10x6R10x63plane420Unorm3pack16
-	FormatG10x6B10x6r10x62plane420Unorm3pack16
-	FormatG10x6B10x6R10x63plane422Unorm3pack16
-	FormatG10x6B10x6r10x62plane422Unorm3pack16
-	FormatG10x6B10x6R10x63plane444Unorm3pack16
-	FormatR12x4UnormPack16
-	FormatR12x4g12x4Unorm2pack16
-	FormatR12x4g12x4b12x4a12x4Unorm4pack16
-	FormatG12x4b12x4g12x4r12x4422Unorm4pack16
-	FormatB12x4g12x4r12x4g12x4422Unorm4pack16
-	FormatG12x4B12x4R12x43plane420Unorm3pack16
-	FormatG12x4B12x4r12x42plane420Unorm3pack16
-	FormatG12x4B12x4R12x43plane422Unorm3pack16
-	FormatG12x4B12x4r12x42plane422Unorm3pack16
-	FormatG12x4B12x4R12x43plane444Unorm3pack16
-	FormatG16b16g16r16422Unorm
-	FormatB16g16r16g16422Unorm
-	FormatG16B16R163plane420Unorm
-	FormatG16B16r162plane420Unorm
-	FormatG16B16R163plane422Unorm
-	FormatG16B16r162plane422Unorm
-	FormatG16B16R163plane444Unorm
-	FormatPvrtc12bppUnormBlockImg
-	FormatPvrtc14bppUnormBlockImg
-	FormatPvrtc22bppUnormBlockImg
-	FormatPvrtc24bppUnormBlockImg
-	FormatPvrtc12bppSrgbBlockImg
-	FormatPvrtc14bppSrgbBlockImg
-	FormatPvrtc22bppSrgbBlockImg
-	FormatPvrtc24bppSrgbBlockImg
+	GPUFormatUndefined GPUFormat = iota
+	GPUFormatR4g4UnormPack8
+	GPUFormatR4g4b4a4UnormPack16
+	GPUFormatB4g4r4a4UnormPack16
+	GPUFormatR5g6b5UnormPack16
+	GPUFormatB5g6r5UnormPack16
+	GPUFormatR5g5b5a1UnormPack16
+	GPUFormatB5g5r5a1UnormPack16
+	GPUFormatA1r5g5b5UnormPack16
+	GPUFormatR8Unorm
+	GPUFormatR8Snorm
+	GPUFormatR8Uscaled
+	GPUFormatR8Sscaled
+	GPUFormatR8Uint
+	GPUFormatR8Sint
+	GPUFormatR8Srgb
+	GPUFormatR8g8Unorm
+	GPUFormatR8g8Snorm
+	GPUFormatR8g8Uscaled
+	GPUFormatR8g8Sscaled
+	GPUFormatR8g8Uint
+	GPUFormatR8g8Sint
+	GPUFormatR8g8Srgb
+	GPUFormatR8g8b8Unorm
+	GPUFormatR8g8b8Snorm
+	GPUFormatR8g8b8Uscaled
+	GPUFormatR8g8b8Sscaled
+	GPUFormatR8g8b8Uint
+	GPUFormatR8g8b8Sint
+	GPUFormatR8g8b8Srgb
+	GPUFormatB8g8r8Unorm
+	GPUFormatB8g8r8Snorm
+	GPUFormatB8g8r8Uscaled
+	GPUFormatB8g8r8Sscaled
+	GPUFormatB8g8r8Uint
+	GPUFormatB8g8r8Sint
+	GPUFormatB8g8r8Srgb
+	GPUFormatR8g8b8a8Unorm
+	GPUFormatR8g8b8a8Snorm
+	GPUFormatR8g8b8a8Uscaled
+	GPUFormatR8g8b8a8Sscaled
+	GPUFormatR8g8b8a8Uint
+	GPUFormatR8g8b8a8Sint
+	GPUFormatR8g8b8a8Srgb
+	GPUFormatB8g8r8a8Unorm
+	GPUFormatB8g8r8a8Snorm
+	GPUFormatB8g8r8a8Uscaled
+	GPUFormatB8g8r8a8Sscaled
+	GPUFormatB8g8r8a8Uint
+	GPUFormatB8g8r8a8Sint
+	GPUFormatB8g8r8a8Srgb
+	GPUFormatA8b8g8r8UnormPack32
+	GPUFormatA8b8g8r8SnormPack32
+	GPUFormatA8b8g8r8UscaledPack32
+	GPUFormatA8b8g8r8SscaledPack32
+	GPUFormatA8b8g8r8UintPack32
+	GPUFormatA8b8g8r8SintPack32
+	GPUFormatA8b8g8r8SrgbPack32
+	GPUFormatA2r10g10b10UnormPack32
+	GPUFormatA2r10g10b10SnormPack32
+	GPUFormatA2r10g10b10UscaledPack32
+	GPUFormatA2r10g10b10SscaledPack32
+	GPUFormatA2r10g10b10UintPack32
+	GPUFormatA2r10g10b10SintPack32
+	GPUFormatA2b10g10r10UnormPack32
+	GPUFormatA2b10g10r10SnormPack32
+	GPUFormatA2b10g10r10UscaledPack32
+	GPUFormatA2b10g10r10SscaledPack32
+	GPUFormatA2b10g10r10UintPack32
+	GPUFormatA2b10g10r10SintPack32
+	GPUFormatR16Unorm
+	GPUFormatR16Snorm
+	GPUFormatR16Uscaled
+	GPUFormatR16Sscaled
+	GPUFormatR16Uint
+	GPUFormatR16Sint
+	GPUFormatR16Sfloat
+	GPUFormatR16g16Unorm
+	GPUFormatR16g16Snorm
+	GPUFormatR16g16Uscaled
+	GPUFormatR16g16Sscaled
+	GPUFormatR16g16Uint
+	GPUFormatR16g16Sint
+	GPUFormatR16g16Sfloat
+	GPUFormatR16g16b16Unorm
+	GPUFormatR16g16b16Snorm
+	GPUFormatR16g16b16Uscaled
+	GPUFormatR16g16b16Sscaled
+	GPUFormatR16g16b16Uint
+	GPUFormatR16g16b16Sint
+	GPUFormatR16g16b16Sfloat
+	GPUFormatR16g16b16a16Unorm
+	GPUFormatR16g16b16a16Snorm
+	GPUFormatR16g16b16a16Uscaled
+	GPUFormatR16g16b16a16Sscaled
+	GPUFormatR16g16b16a16Uint
+	GPUFormatR16g16b16a16Sint
+	GPUFormatR16g16b16a16Sfloat
+	GPUFormatR32Uint
+	GPUFormatR32Sint
+	GPUFormatR32Sfloat
+	GPUFormatR32g32Uint
+	GPUFormatR32g32Sint
+	GPUFormatR32g32Sfloat
+	GPUFormatR32g32b32Uint
+	GPUFormatR32g32b32Sint
+	GPUFormatR32g32b32Sfloat
+	GPUFormatR32g32b32a32Uint
+	GPUFormatR32g32b32a32Sint
+	GPUFormatR32g32b32a32Sfloat
+	GPUFormatR64Uint
+	GPUFormatR64Sint
+	GPUFormatR64Sfloat
+	GPUFormatR64g64Uint
+	GPUFormatR64g64Sint
+	GPUFormatR64g64Sfloat
+	GPUFormatR64g64b64Uint
+	GPUFormatR64g64b64Sint
+	GPUFormatR64g64b64Sfloat
+	GPUFormatR64g64b64a64Uint
+	GPUFormatR64g64b64a64Sint
+	GPUFormatR64g64b64a64Sfloat
+	GPUFormatB10g11r11UfloatPack32
+	GPUFormatE5b9g9r9UfloatPack32
+	GPUFormatD16Unorm
+	GPUFormatX8D24UnormPack32
+	GPUFormatD32Sfloat
+	GPUFormatS8Uint
+	GPUFormatD16UnormS8Uint
+	GPUFormatD24UnormS8Uint
+	GPUFormatD32SfloatS8Uint
+	GPUFormatBc1RgbUnormBlock
+	GPUFormatBc1RgbSrgbBlock
+	GPUFormatBc1RgbaUnormBlock
+	GPUFormatBc1RgbaSrgbBlock
+	GPUFormatBc2UnormBlock
+	GPUFormatBc2SrgbBlock
+	GPUFormatBc3UnormBlock
+	GPUFormatBc3SrgbBlock
+	GPUFormatBc4UnormBlock
+	GPUFormatBc4SnormBlock
+	GPUFormatBc5UnormBlock
+	GPUFormatBc5SnormBlock
+	GPUFormatBc6hUfloatBlock
+	GPUFormatBc6hSfloatBlock
+	GPUFormatBc7UnormBlock
+	GPUFormatBc7SrgbBlock
+	GPUFormatEtc2R8g8b8UnormBlock
+	GPUFormatEtc2R8g8b8SrgbBlock
+	GPUFormatEtc2R8g8b8a1UnormBlock
+	GPUFormatEtc2R8g8b8a1SrgbBlock
+	GPUFormatEtc2R8g8b8a8UnormBlock
+	GPUFormatEtc2R8g8b8a8SrgbBlock
+	GPUFormatEacR11UnormBlock
+	GPUFormatEacR11SnormBlock
+	GPUFormatEacR11g11UnormBlock
+	GPUFormatEacR11g11SnormBlock
+	GPUFormatAstc4x4UnormBlock
+	GPUFormatAstc4x4SrgbBlock
+	GPUFormatAstc5x4UnormBlock
+	GPUFormatAstc5x4SrgbBlock
+	GPUFormatAstc5x5UnormBlock
+	GPUFormatAstc5x5SrgbBlock
+	GPUFormatAstc6x5UnormBlock
+	GPUFormatAstc6x5SrgbBlock
+	GPUFormatAstc6x6UnormBlock
+	GPUFormatAstc6x6SrgbBlock
+	GPUFormatAstc8x5UnormBlock
+	GPUFormatAstc8x5SrgbBlock
+	GPUFormatAstc8x6UnormBlock
+	GPUFormatAstc8x6SrgbBlock
+	GPUFormatAstc8x8UnormBlock
+	GPUFormatAstc8x8SrgbBlock
+	GPUFormatAstc10x5UnormBlock
+	GPUFormatAstc10x5SrgbBlock
+	GPUFormatAstc10x6UnormBlock
+	GPUFormatAstc10x6SrgbBlock
+	GPUFormatAstc10x8UnormBlock
+	GPUFormatAstc10x8SrgbBlock
+	GPUFormatAstc10x10UnormBlock
+	GPUFormatAstc10x10SrgbBlock
+	GPUFormatAstc12x10UnormBlock
+	GPUFormatAstc12x10SrgbBlock
+	GPUFormatAstc12x12UnormBlock
+	GPUFormatAstc12x12SrgbBlock
+	GPUFormatG8b8g8r8422Unorm
+	GPUFormatB8g8r8g8422Unorm
+	GPUFormatG8B8R83plane420Unorm
+	GPUFormatG8B8r82plane420Unorm
+	GPUFormatG8B8R83plane422Unorm
+	GPUFormatG8B8r82plane422Unorm
+	GPUFormatG8B8R83plane444Unorm
+	GPUFormatR10x6UnormPack16
+	GPUFormatR10x6g10x6Unorm2pack16
+	GPUFormatR10x6g10x6b10x6a10x6Unorm4pack16
+	GPUFormatG10x6b10x6g10x6r10x6422Unorm4pack16
+	GPUFormatB10x6g10x6r10x6g10x6422Unorm4pack16
+	GPUFormatG10x6B10x6R10x63plane420Unorm3pack16
+	GPUFormatG10x6B10x6r10x62plane420Unorm3pack16
+	GPUFormatG10x6B10x6R10x63plane422Unorm3pack16
+	GPUFormatG10x6B10x6r10x62plane422Unorm3pack16
+	GPUFormatG10x6B10x6R10x63plane444Unorm3pack16
+	GPUFormatR12x4UnormPack16
+	GPUFormatR12x4g12x4Unorm2pack16
+	GPUFormatR12x4g12x4b12x4a12x4Unorm4pack16
+	GPUFormatG12x4b12x4g12x4r12x4422Unorm4pack16
+	GPUFormatB12x4g12x4r12x4g12x4422Unorm4pack16
+	GPUFormatG12x4B12x4R12x43plane420Unorm3pack16
+	GPUFormatG12x4B12x4r12x42plane420Unorm3pack16
+	GPUFormatG12x4B12x4R12x43plane422Unorm3pack16
+	GPUFormatG12x4B12x4r12x42plane422Unorm3pack16
+	GPUFormatG12x4B12x4R12x43plane444Unorm3pack16
+	GPUFormatG16b16g16r16422Unorm
+	GPUFormatB16g16r16g16422Unorm
+	GPUFormatG16B16R163plane420Unorm
+	GPUFormatG16B16r162plane420Unorm
+	GPUFormatG16B16R163plane422Unorm
+	GPUFormatG16B16r162plane422Unorm
+	GPUFormatG16B16R163plane444Unorm
+	GPUFormatPvrtc12bppUnormBlockImg
+	GPUFormatPvrtc14bppUnormBlockImg
+	GPUFormatPvrtc22bppUnormBlockImg
+	GPUFormatPvrtc24bppUnormBlockImg
+	GPUFormatPvrtc12bppSrgbBlockImg
+	GPUFormatPvrtc14bppSrgbBlockImg
+	GPUFormatPvrtc22bppSrgbBlockImg
+	GPUFormatPvrtc24bppSrgbBlockImg
 )
 
 const (
-	ColorSpaceSrgbNonlinear GPUColorSpace = iota
-	ColorSpaceDisplayP3Nonlinear
-	ColorSpaceExtendedSrgbLinear
-	ColorSpaceDciP3Linear
-	ColorSpaceDciP3Nonlinear
-	ColorSpaceBt709Linear
-	ColorSpaceBt709Nonlinear
-	ColorSpaceBt2020Linear
-	ColorSpaceHdr10St2084
-	ColorSpaceDolbyvision
-	ColorSpaceHdr10Hlg
-	ColorSpaceAdobergbLinear
-	ColorSpaceAdobergbNonlinear
-	ColorSpacePassThrough
-	ColorSpaceExtendedSrgbNonlinear
+	GPUColorSpaceSrgbNonlinear GPUColorSpace = iota
+	GPUColorSpaceDisplayP3Nonlinear
+	GPUColorSpaceExtendedSrgbLinear
+	GPUColorSpaceDciP3Linear
+	GPUColorSpaceDciP3Nonlinear
+	GPUColorSpaceBt709Linear
+	GPUColorSpaceBt709Nonlinear
+	GPUColorSpaceBt2020Linear
+	GPUColorSpaceHdr10St2084
+	GPUColorSpaceDolbyvision
+	GPUColorSpaceHdr10Hlg
+	GPUColorSpaceAdobergbLinear
+	GPUColorSpaceAdobergbNonlinear
+	GPUColorSpacePassThrough
+	GPUColorSpaceExtendedSrgbNonlinear
 )
 
 const (
-	PresentModeImmediate GPUPresentMode = iota
-	PresentModeMailbox
-	PresentModeFifo
-	PresentModeFifoRelaxed
-	PresentModeSharedDemandRefresh
-	PresentModeSharedContinuousRefresh
+	GPUPresentModeImmediate GPUPresentMode = iota
+	GPUPresentModeMailbox
+	GPUPresentModeFifo
+	GPUPresentModeFifoRelaxed
+	GPUPresentModeSharedDemandRefresh
+	GPUPresentModeSharedContinuousRefresh
+)
+
+const (
+	GPUFormatFeatureSampledImageBit GPUFormatFeatureFlags = iota
+	GPUFormatFeatureStorageImageBit
+	GPUFormatFeatureStorageImageAtomicBit
+	GPUFormatFeatureUniformTexelBufferBit
+	GPUFormatFeatureStorageTexelBufferBit
+	GPUFormatFeatureStorageTexelBufferAtomicBit
+	GPUFormatFeatureVertexBufferBit
+	GPUFormatFeatureColorAttachmentBit
+	GPUFormatFeatureColorAttachmentBlendBit
+	GPUFormatFeatureDepthStencilAttachmentBit
+	GPUFormatFeatureBlitSrcBit
+	GPUFormatFeatureBlitDstBit
+	GPUFormatFeatureSampledImageFilterLinearBit
+	GPUFormatFeatureTransferSrcBit
+	GPUFormatFeatureTransferDstBit
+	GPUFormatFeatureMidpointChromaSamplesBit
+	GPUFormatFeatureSampledImageYcbcrConversionLinearFilterBit
+	GPUFormatFeatureSampledImageYcbcrConversionSeparateReconstructionFilterBit
+	GPUFormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitBit
+	GPUFormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitForceableBit
+	GPUFormatFeatureDisjointBit
+	GPUFormatFeatureCositedChromaSamplesBit
+	GPUFormatFeatureSampledImageFilterCubicBitImg
+	GPUFormatFeatureSampledImageFilterMinmaxBit
+)
+
+const (
+	GPUSurfaceTransformIdentityBit GPUSurfaceTransformFlags = (1 << iota)
+	GPUSurfaceTransformRotate90Bit
+	GPUSurfaceTransformRotate180Bit
+	GPUSurfaceTransformRotate270Bit
+	GPUSurfaceTransformHorizontalMirrorBit
+	GPUSurfaceTransformHorizontalMirrorRotate90Bit
+	GPUSurfaceTransformHorizontalMirrorRotate180Bit
+	GPUSurfaceTransformHorizontalMirrorRotate270Bit
+	GPUSurfaceTransformInheritBit
+)
+
+const (
+	GPUCompositeAlphaOpaqueBit GPUCompositeAlphaFlags = (1 << iota)
+	GPUCompositeAlphaPreMultipliedBit
+	GPUCompositeAlphaPostMultipliedBit
+	GPUCompositeAlphaInheritBit
+)
+
+const (
+	GPUImageUsageTransferSrcBit GPUImageUsageFlags = (1 << iota)
+	GPUImageUsageTransferDstBit
+	GPUImageUsageSampledBit
+	GPUImageUsageStorageBit
+	GPUImageUsageColorAttachmentBit
+	GPUImageUsageDepthStencilAttachmentBit
+	GPUImageUsageTransientAttachmentBit
+	GPUImageUsageInputAttachmentBit
+	GPUImageUsageShadingRateImageBitNv
+)
+
+const (
+	GPUPhysicalDeviceTypeOther GPUPhysicalDeviceType = iota
+	GPUPhysicalDeviceTypeIntegratedGpu
+	GPUPhysicalDeviceTypeDiscreteGpu
+	GPUPhysicalDeviceTypeVirtualGpu
+	GPUPhysicalDeviceTypeCpu
+)
+
+const (
+	GPUSampleCount1Bit GPUSampleCountFlags = (1 << iota)
+	GPUSampleCount2Bit
+	GPUSampleCount4Bit
+	GPUSampleCount8Bit
+	GPUSampleCount16Bit
+	GPUSampleCount32Bit
+	GPUSampleCount64Bit
+)
+
+const (
+	GPUImageLayoutUndefined GPUImageLayout = iota
+	GPUImageLayoutGeneral
+	GPUImageLayoutColorAttachmentOptimal
+	GPUImageLayoutDepthStencilAttachmentOptimal
+	GPUImageLayoutDepthStencilReadOnlyOptimal
+	GPUImageLayoutShaderReadOnlyOptimal
+	GPUImageLayoutTransferSrcOptimal
+	GPUImageLayoutTransferDstOptimal
+	GPUImageLayoutPreinitialized
+	GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal
+	GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal
+	GPUImageLayoutPresentSrc
+	GPUImageLayoutSharedPresent
+	GPUImageLayoutShadingRateOptimalNv
+)
+
+const (
+	GPUImageAspectColorBit GPUImageAspectFlags = (1 << iota)
+	GPUImageAspectDepthBit
+	GPUImageAspectStencilBit
+	GPUImageAspectMetadataBit
+	GPUImageAspectPlane0Bit
+	GPUImageAspectPlane1Bit
+	GPUImageAspectPlane2Bit
+	GPUImageAspectMemoryPlane0Bit
+	GPUImageAspectMemoryPlane1Bit
+	GPUImageAspectMemoryPlane2Bit
+	GPUImageAspectMemoryPlane3Bit
+)
+
+const (
+	GPUImageViewType1d GPUImageViewType = iota
+	GPUImageViewType2d
+	GPUImageViewType3d
+	GPUImageViewTypeCube
+	GPUImageViewType1dArray
+	GPUImageViewType2dArray
+	GPUImageViewTypeCubeArray
+)
+
+const (
+	GPUImageTilingOptimal GPUImageTiling = iota
+	GPUImageTilingLinear
+	GPUImageTilingDrmFormatModifier
+)
+
+const (
+	GPUMemoryPropertyDeviceLocalBit GPUMemoryPropertyFlags = (1 << iota)
+	GPUMemoryPropertyHostVisibleBit
+	GPUMemoryPropertyHostCoherentBit
+	GPUMemoryPropertyHostCachedBit
+	GPUMemoryPropertyLazilyAllocatedBit
+	GPUMemoryPropertyProtectedBit
+)
+
+const (
+	GPUMemoryHeapDeviceLocalBit GPUMemoryHeapFlags = (1 << iota)
+	GPUMemoryHeapMultiInstanceBit
+)
+
+const (
+	GPUImageType1d GPUImageType = iota
+	GPUImageType2d
+	GPUImageType3d
+)
+
+const (
+	GPUImageCreateSparseBindingBit GPUImageCreateFlags = (1 << iota)
+	GPUImageCreateSparseResidencyBit
+	GPUImageCreateSparseAliasedBit
+	GPUImageCreateMutableFormatBit
+	GPUImageCreateCubeCompatibleBit
+	GPUImageCreateAliasBit
+	GPUImageCreateSplitInstanceBindRegionsBit
+	GPUImageCreate2dArrayCompatibleBit
+	GPUImageCreateBlockTexelViewCompatibleBit
+	GPUImageCreateExtendedUsageBit
+	GPUImageCreateProtectedBit
+	GPUImageCreateDisjointBit
+	GPUImageCreateCornerSampledBitNv
+	GPUImageCreateSampleLocationsCompatibleDepthBit
 )

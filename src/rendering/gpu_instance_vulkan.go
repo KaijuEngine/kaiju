@@ -51,7 +51,6 @@ func (g *GPUInstance) createImpl(window RenderingContainer, app *GPUApplication)
 		return fmt.Errorf("failed to get the VK instance, code: %d", int(result))
 	}
 	g.handle = unsafe.Pointer(instance)
-	app.dbg.track(g.handle)
 	vk.InitInstance(instance)
 	return nil
 }
@@ -70,7 +69,6 @@ func gatherInstanceExtensions(window RenderingContainer) []string {
 	return extensions
 }
 
-func (g *GPUInstance) destroyImpl(app *GPUApplication) {
+func (g *GPUInstance) destroyImpl() {
 	vk.DestroyInstance(vk.Instance(g.handle), nil)
-	app.dbg.remove(g.handle)
 }

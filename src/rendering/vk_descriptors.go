@@ -68,7 +68,7 @@ func (vr *Vulkan) createDescriptorSetLayout(device vk.Device, structure Descript
 	if vk.CreateDescriptorSetLayout(device, &info, nil, &layout) != vulkan_const.Success {
 		return layout, errors.New("failed to create descriptor set layout")
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(layout))
+		vr.app.Dbg().track(unsafe.Pointer(layout))
 	}
 	return layout, nil
 }

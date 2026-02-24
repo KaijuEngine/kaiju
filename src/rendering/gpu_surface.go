@@ -16,7 +16,7 @@ func (g *GPUSurface) Create(instance *GPUInstance, window RenderingContainer) er
 	return g.createImpl(instance, window)
 }
 
-func (g *GPUSurface) Destroy(app *GPUApplication) {
+func (g *GPUSurface) Destroy(inst *GPUApplicationInstance) {
 	defer tracing.NewRegion("GPUSurface.Destroy").End()
-	g.destroyImpl(app)
+	g.destroyImpl(inst)
 }

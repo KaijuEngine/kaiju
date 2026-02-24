@@ -55,12 +55,12 @@ type bufferTrash struct {
 }
 
 type bufferDestroyer struct {
-	device vk.Device
+	device *GPULogicalDevice
 	trash  []bufferTrash
 	dbg    *memoryDebugger
 }
 
-func newBufferDestroyer(device vk.Device, dbg *memoryDebugger) bufferDestroyer {
+func newBufferDestroyer(device *GPULogicalDevice, dbg *memoryDebugger) bufferDestroyer {
 	return bufferDestroyer{
 		device: device,
 		dbg:    dbg,
@@ -82,26 +82,27 @@ func (b *bufferDestroyer) Cycle() {
 	if len(b.trash) == 0 {
 		return
 	}
+	deviceHandle := vk.Device(b.device.handle)
 	for i := len(b.trash) - 1; i >= 0; i-- {
 		pd := &b.trash[i]
 		pd.delay--
 		if pd.delay == 0 {
 			for j := range maxFramesInFlight {
-				vk.DestroyBuffer(b.device, pd.buffers[j], nil)
+				vk.DestroyBuffer(deviceHandle, pd.buffers[j], nil)
 				b.dbg.remove(unsafe.Pointer(pd.buffers[j]))
-				vk.FreeMemory(b.device, pd.memories[j], nil)
+				vk.FreeMemory(deviceHandle, pd.memories[j], nil)
 				b.dbg.remove(unsafe.Pointer(pd.memories[j]))
 				for k := range pd.namedBuffers[j] {
-					vk.DestroyBuffer(b.device, pd.namedBuffers[j][k], nil)
+					vk.DestroyBuffer(deviceHandle, pd.namedBuffers[j][k], nil)
 					b.dbg.remove(unsafe.Pointer(pd.namedBuffers[j][k]))
-					vk.FreeMemory(b.device, pd.namedMemories[j][k], nil)
+					vk.FreeMemory(deviceHandle, pd.namedMemories[j][k], nil)
 					b.dbg.remove(unsafe.Pointer(pd.namedMemories[j][k]))
 				}
 			}
 			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
 				// TODO:  This is temp to fix close crash
 				var tmp [maxFramesInFlight]vk.DescriptorSet = pd.sets
-				vk.FreeDescriptorSets(b.device, pd.pool, uint32(len(pd.sets)), &tmp[0])
+				vk.FreeDescriptorSets(deviceHandle, pd.pool, uint32(len(pd.sets)), &tmp[0])
 			}
 			// TODO:  Does this need to be ordered delete?
 			b.trash = slices.Delete(b.trash, i, i+1)

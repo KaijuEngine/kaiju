@@ -37,41 +37,9 @@
 package rendering
 
 import (
-	"log/slog"
-
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 )
-
-func (vr *Vulkan) findSupportedFormat(candidates []vulkan_const.Format, tiling vulkan_const.ImageTiling, features vk.FormatFeatureFlags) vulkan_const.Format {
-	for i := 0; i < len(candidates); i++ {
-		var props vk.FormatProperties
-		format := candidates[i]
-		vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(vr.app.PhysicalDevice.handle), format, &props)
-		if tiling == vulkan_const.ImageTilingLinear && (props.LinearTilingFeatures&features) == features {
-			return format
-		} else if tiling == vulkan_const.ImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
-			return format
-		}
-	}
-	slog.Error("Failed to find supported format")
-	// TODO:  Return an error too
-	return candidates[0]
-}
-
-func depthFormatCandidates() []vulkan_const.Format {
-	return []vulkan_const.Format{vulkan_const.FormatX8D24UnormPack32,
-		vulkan_const.FormatD24UnormS8Uint, vulkan_const.FormatD32Sfloat,
-		vulkan_const.FormatD32SfloatS8Uint, vulkan_const.FormatD16Unorm,
-		vulkan_const.FormatD16UnormS8Uint,
-	}
-}
-
-func depthStencilFormatCandidates() []vulkan_const.Format {
-	return []vulkan_const.Format{vulkan_const.FormatD24UnormS8Uint,
-		vulkan_const.FormatD32SfloatS8Uint, vulkan_const.FormatD16UnormS8Uint,
-	}
-}
 
 func (vr *Vulkan) findDepthFormat() vulkan_const.Format {
 	// TODO:  Pass in vk.ImageTiling
@@ -83,24 +51,4 @@ func (vr *Vulkan) findDepthStencilFormat() vulkan_const.Format {
 	// TODO:  Pass in vk.ImageTiling
 	candidates := depthStencilFormatCandidates()
 	return vr.findSupportedFormat(candidates, vulkan_const.ImageTilingOptimal, vk.FormatFeatureFlags(vulkan_const.FormatFeatureDepthStencilAttachmentBit))
-}
-
-func (vr *Vulkan) createDepthResources() bool {
-	slog.Info("creating vulkan depth resources")
-	vr.CreateImage(&vr.depth, vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit),
-		vk.ImageCreateInfo{
-			ImageType: vulkan_const.ImageType2d,
-			Extent: vk.Extent3D{
-				Width:  uint32(vr.swapChainExtent.Width),
-				Height: uint32(vr.swapChainExtent.Height),
-			},
-			MipLevels:   uint32(1),
-			ArrayLayers: uint32(1),
-			Format:      vr.findDepthFormat(),
-			Tiling:      vulkan_const.ImageTilingOptimal,
-			Usage:       vk.ImageUsageFlags(vulkan_const.ImageUsageDepthStencilAttachmentBit),
-			Samples:     vr.msaaSamples,
-		})
-	return vr.createImageView(&vr.depth,
-		vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit), vulkan_const.ImageViewType2d)
 }

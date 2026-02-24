@@ -630,7 +630,7 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		slog.Error("Failed to create pipeline layout")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(pLayout))
+		vr.app.Dbg().track(unsafe.Pointer(pLayout))
 	}
 	shader.RenderId.pipelineLayout = pLayout
 	bDesc := vertexGetBindingDescription(shader)
@@ -780,7 +780,7 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		success = false
 		slog.Error("Failed to create graphics pipeline")
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(pipelines[0]))
+		vr.app.Dbg().track(unsafe.Pointer(pipelines[0]))
 	}
 	shader.RenderId.graphicsPipeline = pipelines[0]
 	return success

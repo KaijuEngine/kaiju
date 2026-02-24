@@ -3,15 +3,44 @@ package rendering
 import (
 	"bytes"
 	"errors"
+	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 )
 
-func listPhysicalGpuDevicesImpl(app *GPUApplication) ([]GPUPhysicalDevice, error) {
-	vkInstance := vk.Instance(app.Instance.handle)
-	vkSurface := vk.Surface(app.Surface.handle)
+func (g *GPUPhysicalDevice) formatPropertiesImpl(format GPUFormat) GPUFormatProperties {
+	defer tracing.NewRegion("GPUPhysicalDevice.formatPropertiesImpl").End()
+	var formatProps vk.FormatProperties
+	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(g.handle),
+		gpuFormatToVulkan[format], &formatProps)
+	props := GPUFormatProperties{}
+	props.LinearTilingFeatures.fromVulkan(formatProps.LinearTilingFeatures)
+	props.OptimalTilingFeatures.fromVulkan(formatProps.OptimalTilingFeatures)
+	props.BufferFeatures.fromVulkan(formatProps.BufferFeatures)
+	return props
+}
+
+func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties GPUMemoryPropertyFlags) int {
+	defer tracing.NewRegion("GPUPhysicalDevice.findMemoryTypeImpl").End()
+	var memProperties vk.PhysicalDeviceMemoryProperties
+	vk.GetPhysicalDeviceMemoryProperties(vk.PhysicalDevice(g.handle), &memProperties)
+	found := -1
+	vkProperties := properties.toVulkan()
+	for i := uint32(0); i < memProperties.MemoryTypeCount && found < 0; i++ {
+		memType := memProperties.MemoryTypes[i]
+		propMatch := (memType.PropertyFlags & vkProperties) == vkProperties
+		if (typeFilter&(1<<i)) != 0 && propMatch {
+			found = int(i)
+		}
+	}
+	return found
+}
+
+func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
+	vkInstance := vk.Instance(inst.handle)
+	vkSurface := vk.Surface(inst.handle)
 	var deviceCount uint32
 	vk.EnumeratePhysicalDevices(vkInstance, &deviceCount, nil)
 	if deviceCount == 0 {
@@ -58,30 +87,34 @@ func listPhysicalGpuDevicesImpl(app *GPUApplication) ([]GPUPhysicalDevice, error
 				Version: availableExtensions[j].SpecVersion,
 			}
 		}
+		// Surface capabilities
+		var capabilities vk.SurfaceCapabilities
+		vk.GetPhysicalDeviceSurfaceCapabilities(vkDevices[i], vkSurface, &capabilities)
+		devices[i].SurfaceCapabilities.fromVulkan(capabilities)
 		// Surface formats
-		details := vkSwapChainSupportDetails{}
-		vkSurface := vk.Surface(app.Surface.handle)
-		vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &details.formatCount, nil)
-		vk.GetPhysicalDeviceSurfaceCapabilities(vkDevices[i], vkSurface, &details.capabilities)
-		if details.formatCount > 0 {
-			devices[i].SurfaceFormats = make([]GPUSurfaceFormat, details.formatCount)
-			details.formats = make([]vk.SurfaceFormat, details.formatCount)
-			vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &details.formatCount, &details.formats[0])
-			for j := range details.formats {
+		var formatCount uint32
+		vkSurface := vk.Surface(inst.handle)
+		vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &formatCount, nil)
+		if formatCount > 0 {
+			devices[i].SurfaceFormats = make([]GPUSurfaceFormat, formatCount)
+			formats := make([]vk.SurfaceFormat, formatCount)
+			vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &formatCount, &formats[0])
+			for j := range formats {
 				devices[i].SurfaceFormats[j] = GPUSurfaceFormat{
-					Format:     formatFromVulkan(details.formats[j].Format),
-					ColorSpace: colorSpaceFromVulkan(details.formats[j].ColorSpace),
+					Format:     formatFromVulkan(formats[j].Format),
+					ColorSpace: colorSpaceFromVulkan(formats[j].ColorSpace),
 				}
 			}
 		}
 		// Present modes
-		vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &details.presentModeCount, nil)
-		if details.presentModeCount > 0 {
-			devices[i].PresentModes = make([]GPUPresentMode, details.presentModeCount)
-			details.presentModes = make([]vulkan_const.PresentMode, details.presentModeCount)
-			vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &details.presentModeCount, &details.presentModes[0])
-			for j := range details.presentModes {
-				devices[i].PresentModes[j] = presentModeFromVulkan(details.presentModes[j])
+		var presentModeCount uint32
+		vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &presentModeCount, nil)
+		if presentModeCount > 0 {
+			devices[i].PresentModes = make([]GPUPresentMode, presentModeCount)
+			presentModes := make([]vulkan_const.PresentMode, presentModeCount)
+			vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &presentModeCount, &presentModes[0])
+			for j := range presentModes {
+				devices[i].PresentModes[j] = presentModeFromVulkan(presentModes[j])
 			}
 		}
 	}

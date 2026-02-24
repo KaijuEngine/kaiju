@@ -473,7 +473,7 @@ func (vr *Vulkan) resizeBuffers(material *Material, group *DrawInstanceGroup) {
 				group.boundBuffers[j] = nb
 			}
 		}
-		vr.bufferTrash.Add(pd)
+		vr.app.FirstInstance().bufferTrash.Add(pd)
 	}
 	if currentCount > 0 {
 		group.generateInstanceDriverData(vr, material)

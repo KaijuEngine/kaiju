@@ -58,7 +58,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 		slog.Error("Failed to create vertex buffer")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(localBuffer))
+		vr.app.Dbg().track(unsafe.Pointer(localBuffer))
 	}
 	*buffer = localBuffer
 	var memRequirements vk.MemoryRequirements
@@ -77,7 +77,7 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 		slog.Error("Failed to allocate vertex buffer memory")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(localBufferMemory))
+		vr.app.Dbg().track(unsafe.Pointer(localBufferMemory))
 	}
 	*bufferMemory = localBufferMemory
 	vk.BindBufferMemory(vr.device, *buffer, *bufferMemory, 0)
@@ -87,8 +87,8 @@ func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, pr
 func (vr *Vulkan) DestroyBuffer(buffer vk.Buffer, bufferMemory vk.DeviceMemory) {
 	vk.DestroyBuffer(vr.device, buffer, nil)
 	vk.FreeMemory(vr.device, bufferMemory, nil)
-	vr.app.dbg.remove(unsafe.Pointer(buffer))
-	vr.app.dbg.remove(unsafe.Pointer(bufferMemory))
+	vr.app.Dbg().remove(unsafe.Pointer(buffer))
+	vr.app.Dbg().remove(unsafe.Pointer(bufferMemory))
 }
 
 func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.DeviceSize) {

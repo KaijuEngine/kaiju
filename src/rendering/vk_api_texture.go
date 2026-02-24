@@ -66,7 +66,7 @@ func (vr *Vulkan) CreateImage(textureId *TextureId, properties vk.MemoryProperty
 		slog.Error("Failed to create image")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(image))
+		vr.app.Dbg().track(unsafe.Pointer(image))
 	}
 	textureId.Image = image
 	var memRequirements vk.MemoryRequirements
@@ -85,7 +85,7 @@ func (vr *Vulkan) CreateImage(textureId *TextureId, properties vk.MemoryProperty
 		slog.Error("Failed to allocate image memory")
 		return false
 	} else {
-		vr.app.dbg.track(unsafe.Pointer(tidMemory))
+		vr.app.Dbg().track(unsafe.Pointer(tidMemory))
 	}
 	textureId.Memory = tidMemory
 	vk.BindImageMemory(vr.device, textureId.Image, textureId.Memory, 0)
@@ -264,9 +264,9 @@ func (vr *Vulkan) CreateTexture(texture *Texture, data *TextureData) {
 	vr.copyBufferToImage(stagingBuffer, texture.RenderId.Image,
 		uint32(width), uint32(height), layerCount)
 	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-	vr.app.dbg.remove(unsafe.Pointer(stagingBuffer))
+	vr.app.Dbg().remove(unsafe.Pointer(stagingBuffer))
 	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.app.dbg.remove(unsafe.Pointer(stagingBufferMemory))
+	vr.app.Dbg().remove(unsafe.Pointer(stagingBufferMemory))
 	vr.generateMipmaps(&texture.RenderId, format,
 		uint32(width), uint32(height), uint32(mip), filter)
 	vr.createImageView(&texture.RenderId,
@@ -374,9 +374,9 @@ func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
 	var pixelData unsafe.Pointer
 	if vk.MapMemory(vr.device, stagingMem, 0, vk.DeviceSize(4), 0, &pixelData) != vulkan_const.Success {
 		vk.DestroyBuffer(vr.device, stagingBuf, nil)
-		vr.app.dbg.remove(unsafe.Pointer(stagingBuf))
+		vr.app.Dbg().remove(unsafe.Pointer(stagingBuf))
 		vk.FreeMemory(vr.device, stagingMem, nil)
-		vr.app.dbg.remove(unsafe.Pointer(stagingMem))
+		vr.app.Dbg().remove(unsafe.Pointer(stagingMem))
 		if origLayout != transferSrcLayout {
 			vr.transitionImageLayout(id, origLayout,
 				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
@@ -386,9 +386,9 @@ func (vr *Vulkan) TextureReadPixel(texture *Texture, x, y int) matrix.Color {
 	raw := *(*[4]byte)(pixelData)
 	vk.UnmapMemory(vr.device, stagingMem)
 	vk.DestroyBuffer(vr.device, stagingBuf, nil)
-	vr.app.dbg.remove(unsafe.Pointer(stagingBuf))
+	vr.app.Dbg().remove(unsafe.Pointer(stagingBuf))
 	vk.FreeMemory(vr.device, stagingMem, nil)
-	vr.app.dbg.remove(unsafe.Pointer(stagingMem))
+	vr.app.Dbg().remove(unsafe.Pointer(stagingMem))
 	if origLayout != transferSrcLayout {
 		vr.transitionImageLayout(id, origLayout,
 			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
@@ -450,9 +450,9 @@ func (vr *Vulkan) TextureRead(texture *Texture) ([]byte, error) {
 	var mapped unsafe.Pointer
 	if vk.MapMemory(vr.device, stagingMem, 0, bufferSize, 0, &mapped) != vulkan_const.Success {
 		vk.DestroyBuffer(vr.device, stagingBuf, nil)
-		vr.app.dbg.remove(unsafe.Pointer(stagingBuf))
+		vr.app.Dbg().remove(unsafe.Pointer(stagingBuf))
 		vk.FreeMemory(vr.device, stagingMem, nil)
-		vr.app.dbg.remove(unsafe.Pointer(stagingMem))
+		vr.app.Dbg().remove(unsafe.Pointer(stagingMem))
 		if origLayout != transferSrcLayout {
 			vr.transitionImageLayout(id, origLayout,
 				vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
@@ -464,9 +464,9 @@ func (vr *Vulkan) TextureRead(texture *Texture) ([]byte, error) {
 	copy(data, src)
 	vk.UnmapMemory(vr.device, stagingMem)
 	vk.DestroyBuffer(vr.device, stagingBuf, nil)
-	vr.app.dbg.remove(unsafe.Pointer(stagingBuf))
+	vr.app.Dbg().remove(unsafe.Pointer(stagingBuf))
 	vk.FreeMemory(vr.device, stagingMem, nil)
-	vr.app.dbg.remove(unsafe.Pointer(stagingMem))
+	vr.app.Dbg().remove(unsafe.Pointer(stagingMem))
 	if origLayout != transferSrcLayout {
 		vr.transitionImageLayout(id, origLayout,
 			vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit), id.Access, nil)
