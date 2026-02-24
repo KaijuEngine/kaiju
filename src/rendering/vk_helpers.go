@@ -55,17 +55,6 @@ func (vr *Vulkan) formatCanTile(format vulkan_const.Format, tiling vulkan_const.
 	}
 }
 
-func (vr *Vulkan) padBufferSize(size vk.DeviceSize) vk.DeviceSize {
-	pd := vr.app.FirstInstance().PhysicalDevice()
-	// Calculate required alignment based on minimum device offset alignment
-	minUboAlignment := vk.DeviceSize(pd.Properties.Limits.MinUniformBufferOffsetAlignment)
-	alignedSize := size
-	if minUboAlignment > 0 {
-		alignedSize = (alignedSize + minUboAlignment - 1) & ^(minUboAlignment - 1)
-	}
-	return alignedSize
-}
-
 func (vr *Vulkan) findMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
 	pd := vr.app.FirstInstance().PhysicalDevice()
 	var memProperties vk.PhysicalDeviceMemoryProperties

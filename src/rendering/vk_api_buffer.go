@@ -37,59 +37,8 @@
 package rendering
 
 import (
-	"log/slog"
-	"unsafe"
-
 	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 )
-
-func (vr *Vulkan) CreateBuffer(size vk.DeviceSize, usage vk.BufferUsageFlags, properties vk.MemoryPropertyFlags, buffer *vk.Buffer, bufferMemory *vk.DeviceMemory) bool {
-	if size == 0 {
-		panic("Buffer size is 0")
-	}
-	bufferInfo := vk.BufferCreateInfo{}
-	bufferInfo.SType = vulkan_const.StructureTypeBufferCreateInfo
-	bufferInfo.Size = vr.padBufferSize(size)
-	bufferInfo.Usage = usage
-	bufferInfo.SharingMode = vulkan_const.SharingModeExclusive
-	var localBuffer vk.Buffer
-	if vk.CreateBuffer(vr.device, &bufferInfo, nil, &localBuffer) != vulkan_const.Success {
-		slog.Error("Failed to create vertex buffer")
-		return false
-	} else {
-		vr.app.Dbg().track(unsafe.Pointer(localBuffer))
-	}
-	*buffer = localBuffer
-	var memRequirements vk.MemoryRequirements
-	vk.GetBufferMemoryRequirements(vr.device, *buffer, &memRequirements)
-	aInfo := vk.MemoryAllocateInfo{}
-	aInfo.SType = vulkan_const.StructureTypeMemoryAllocateInfo
-	aInfo.AllocationSize = memRequirements.Size
-	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
-	if memType == -1 {
-		slog.Error("Failed to find suitable memory type")
-		return false
-	}
-	aInfo.MemoryTypeIndex = uint32(memType)
-	var localBufferMemory vk.DeviceMemory
-	if vk.AllocateMemory(vr.device, &aInfo, nil, &localBufferMemory) != vulkan_const.Success {
-		slog.Error("Failed to allocate vertex buffer memory")
-		return false
-	} else {
-		vr.app.Dbg().track(unsafe.Pointer(localBufferMemory))
-	}
-	*bufferMemory = localBufferMemory
-	vk.BindBufferMemory(vr.device, *buffer, *bufferMemory, 0)
-	return true
-}
-
-func (vr *Vulkan) DestroyBuffer(buffer vk.Buffer, bufferMemory vk.DeviceMemory) {
-	vk.DestroyBuffer(vr.device, buffer, nil)
-	vk.FreeMemory(vr.device, bufferMemory, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(buffer))
-	vr.app.Dbg().remove(unsafe.Pointer(bufferMemory))
-}
 
 func (vr *Vulkan) CopyBuffer(srcBuffer vk.Buffer, dstBuffer vk.Buffer, size vk.DeviceSize) {
 	cmd := vr.beginSingleTimeCommands()

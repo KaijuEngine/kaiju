@@ -74,11 +74,11 @@ func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplication
 	g.Images = make([]TextureId, swapImgCount)
 	swapImageList := make([]vk.Image, swapImgCount)
 	for i := uint32(0); i < swapImgCount; i++ {
-		swapImageList[i] = g.Images[i].Image
+		swapImageList[i] = vk.Image(g.Images[i].Image.handle)
 	}
 	vk.GetSwapchainImages(vk.Device(ld.handle), vk.Swapchain(g.handle), &swapImgCount, &swapImageList[0])
 	for i := range swapImgCount {
-		g.Images[i].Image = swapImageList[i]
+		g.Images[i].Image.handle = unsafe.Pointer(swapImageList[i])
 		g.Images[i].Width = int(extent.Width())
 		g.Images[i].Height = int(extent.Height())
 		g.Images[i].LayerCount = 1
@@ -106,7 +106,7 @@ func (g *GPUSwapChain) createColorImpl(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.createColorImpl").End()
 	slog.Info("creating swap chain color resources")
 	colorFormat := g.Images[0].Format
-	err := device.LogicalDevice.CreateImage(&g.Color, GPUMemoryPropertyDeviceLocalBit,
+	err := device.CreateImage(&g.Color, GPUMemoryPropertyDeviceLocalBit,
 		GPUImageCreateRequest{
 			ImageType:   GPUImageType2d,
 			MipLevels:   uint32(1),
@@ -133,7 +133,7 @@ func (g *GPUSwapChain) createDepthImpl(device *GPUDevice) error {
 	slog.Info("creating vulkan depth resources")
 	fmt := device.PhysicalDevice.FindSupportedFormat(depthFormatCandidates(),
 		GPUImageTilingOptimal, GPUFormatFeatureDepthStencilAttachmentBit)
-	err := device.LogicalDevice.CreateImage(&g.Depth, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+	err := device.CreateImage(&g.Depth, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
 		ImageType:   GPUImageType2d,
 		MipLevels:   uint32(1),
 		ArrayLayers: uint32(1),
@@ -149,19 +149,34 @@ func (g *GPUSwapChain) createDepthImpl(device *GPUDevice) error {
 		GPUImageAspectDepthBit, GPUImageViewType2d)
 }
 
-func (s *GPUSwapChain) destroyImpl(device *GPUDevice) {
+func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
+	defer tracing.NewRegion("GPUSwapChain.destroyImpl").End()
 	vkDevice := vk.Device(device.LogicalDevice.handle)
 	dbg := device.LogicalDevice.dbg
-	for i := range s.FrameBuffers {
-		vk.DestroyFramebuffer(vkDevice, vk.Framebuffer(s.FrameBuffers[i].handle), nil)
-		dbg.remove(s.FrameBuffers[i].handle)
+	for i := range g.FrameBuffers {
+		vk.DestroyFramebuffer(vkDevice, vk.Framebuffer(g.FrameBuffers[i].handle), nil)
+		dbg.remove(g.FrameBuffers[i].handle)
 	}
-	for i := range s.Images {
-		vk.DestroyImageView(vkDevice, vk.ImageView(s.Images[i].View.handle), nil)
-		dbg.remove(s.Images[i].View.handle)
+	for i := range g.Images {
+		vk.DestroyImageView(vkDevice, vk.ImageView(g.Images[i].View.handle), nil)
+		dbg.remove(g.Images[i].View.handle)
 	}
-	if s.IsValid() {
-		vk.DestroySwapchain(vk.Device(device.LogicalDevice.handle), vk.Swapchain(s.handle), nil)
-		dbg.remove(s.handle)
+	if g.IsValid() {
+		vk.DestroySwapchain(vk.Device(device.LogicalDevice.handle), vk.Swapchain(g.handle), nil)
+		dbg.remove(g.handle)
 	}
+}
+
+func (g *GPUSwapChain) createFrameBufferImpl(device *GPUDevice) error {
+	defer tracing.NewRegion("GPUSwapChain.createFrameBufferImpl").End()
+	slog.Info("creating vulkan swap chain frame buffer")
+	g.FrameBuffers = make([]GPUFrameBuffer, len(g.Images))
+	var err error
+	for i := range g.FrameBuffers {
+		attachments := []GPUImageView{g.Color.View, g.Depth.View, g.Images[i].View}
+		g.FrameBuffers[i], err = device.CreateFrameBuffer(
+			g.renderPass, attachments,
+			g.Extent.Width(), g.Extent.Height())
+	}
+	return err
 }

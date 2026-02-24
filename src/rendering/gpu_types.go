@@ -22,16 +22,24 @@ type GPUMemoryPropertyFlags uint8
 type GPUMemoryHeapFlags uint8
 type GPUImageType uint8
 type GPUImageCreateFlags uint16
+type GPUMemoryFlags uint16
+type GPUBufferUsageFlags uint16
+type GPUFilter uint8
+type GPUAccessFlags uint32
+type GPUAttachmentLoadOp uint8
+type GPUAttachmentStoreOp uint8
 
 type GPUHandle struct{ handle unsafe.Pointer }
 
-func (g *GPUHandle) IsValid() bool { return g.handle == nil }
-func (g *GPUHandle) Reset()        { g.handle = nil }
+func (g *GPUHandle) Reset()                     { g.handle = nil }
+func (g *GPUHandle) IsValid() bool              { return g.handle == nil }
+func (g *GPUHandle) HandleAddr() unsafe.Pointer { return unsafe.Pointer(&g.handle) }
 
 type GPUFence struct{ GPUHandle }
 type GPUImage struct{ GPUHandle }
 type GPUImageView struct{ GPUHandle }
 type GPUDeviceMemory struct{ GPUHandle }
+type GPUBuffer struct{ GPUHandle }
 type GPUSampler struct{ GPUHandle }
 type GPUFrameBuffer struct{ GPUHandle }
 
@@ -412,6 +420,7 @@ const (
 	GPUSampleCount16Bit
 	GPUSampleCount32Bit
 	GPUSampleCount64Bit
+	GPUSampleSwapChainCount
 )
 
 const (
@@ -496,4 +505,71 @@ const (
 	GPUImageCreateDisjointBit
 	GPUImageCreateCornerSampledBitNv
 	GPUImageCreateSampleLocationsCompatibleDepthBit
+)
+
+const (
+	GPUMemoryMapPlacedBit GPUMemoryFlags = (1 << iota)
+)
+
+const (
+	GPUBufferUsageTransferSrcBit GPUBufferUsageFlags = (1 << iota)
+	GPUBufferUsageTransferDstBit
+	GPUBufferUsageUniformTexelBufferBit
+	GPUBufferUsageStorageTexelBufferBit
+	GPUBufferUsageUniformBufferBit
+	GPUBufferUsageStorageBufferBit
+	GPUBufferUsageIndexBufferBit
+	GPUBufferUsageVertexBufferBit
+	GPUBufferUsageIndirectBufferBit
+	GPUBufferUsageTransformFeedbackBufferBit
+	GPUBufferUsageTransformFeedbackCounterBufferBit
+	GPUBufferUsageConditionalRenderingBit
+	GPUBufferUsageRaytracingBitNvx
+)
+
+const (
+	GPUFilterNearest GPUFilter = iota
+	GPUFilterLinear
+	GPUFilterCubicImg
+)
+
+const (
+	GPUAccessIndirectCommandReadBit GPUAccessFlags = (1 << iota)
+	GPUAccessIndexReadBit
+	GPUAccessVertexAttributeReadBit
+	GPUAccessUniformReadBit
+	GPUAccessInputAttachmentReadBit
+	GPUAccessShaderReadBit
+	GPUAccessShaderWriteBit
+	GPUAccessColorAttachmentReadBit
+	GPUAccessColorAttachmentWriteBit
+	GPUAccessDepthStencilAttachmentReadBit
+	GPUAccessDepthStencilAttachmentWriteBit
+	GPUAccessTransferReadBit
+	GPUAccessTransferWriteBit
+	GPUAccessHostReadBit
+	GPUAccessHostWriteBit
+	GPUAccessMemoryReadBit
+	GPUAccessMemoryWriteBit
+	GPUAccessTransformFeedbackWriteBit
+	GPUAccessTransformFeedbackCounterReadBit
+	GPUAccessTransformFeedbackCounterWriteBit
+	GPUAccessConditionalRenderingReadBit
+	GPUAccessCommandProcessReadBitNvx
+	GPUAccessCommandProcessWriteBitNvx
+	GPUAccessColorAttachmentReadNoncoherentBit
+	GPUAccessShadingRateImageReadBitNv
+	GPUAccessAccelerationStructureReadBitNvx
+	GPUAccessAccelerationStructureWriteBitNvx
+)
+
+const (
+	GPUAttachmentLoadOpLoad GPUAttachmentLoadOp = iota
+	GPUAttachmentLoadOpClear
+	GPUAttachmentLoadOpDontCare
+)
+
+const (
+	GPUAttachmentStoreOpStore GPUAttachmentStoreOp = iota
+	GPUAttachmentStoreOpDontCare
 )

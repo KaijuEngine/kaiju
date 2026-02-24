@@ -91,66 +91,6 @@ func (g *GPULogicalDevice) waitForFencesImpl(fences []GPUFence) {
 	vk.WaitForFences(vk.Device(g.handle), uint32(len(vkFences)), &vkFences[0], vulkan_const.True, math.MaxUint64)
 }
 
-func (g *GPULogicalDevice) createImageImpl(id *TextureId, properties GPUMemoryPropertyFlags, req GPUImageCreateRequest) error {
-	defer tracing.NewRegion("GPULogicalDevice.createImageImpl").End()
-	id.Layout.fromVulkan(vulkan_const.ImageLayoutUndefined)
-	info := vk.ImageCreateInfo{
-		SType:         vulkan_const.StructureTypeImageCreateInfo,
-		InitialLayout: vulkan_const.ImageLayoutUndefined,
-		SharingMode:   vulkan_const.SharingModeExclusive,
-		Flags:         req.Flags,
-		ImageType:     req.ImageType,
-		Format:        req.Format.toVulkan(),
-		MipLevels:     req.MipLevels,
-		ArrayLayers:   req.ArrayLayers,
-		Samples:       req.Samples.toVulkan(),
-		Tiling:        req.Tiling.toVulkan(),
-		Usage:         req.Usage.toVulkan(),
-		Extent: vk.Extent3D{
-			Width:  uint32(req.Extent.Width()),
-			Height: uint32(req.Extent.Height()),
-			Depth:  max(uint32(req.Extent.Depth()), 1),
-		},
-	}
-	var image vk.Image
-	res := vk.CreateImage(vk.Device(g.handle), &info, nil, &image)
-	if res != vulkan_const.Success {
-		slog.Error("Failed to create image", "code", res)
-		return fmt.Errorf("failed to create image: %d", res)
-	}
-	id.Image.handle = unsafe.Pointer(image)
-	g.dbg.track(id.Image.handle)
-	memRequirements := g.ImageMemoryRequirements(id.Image)
-
-	aInfo := vk.MemoryAllocateInfo{
-		SType:          vulkan_const.StructureTypeMemoryAllocateInfo,
-		AllocationSize: vk.DeviceSize(memRequirements.Size),
-	}
-	memType := vr.findMemoryType(memRequirements.MemoryTypeBits, properties)
-	if memType == -1 {
-		slog.Error("Failed to find suitable memory type")
-		return false
-	}
-	aInfo.MemoryTypeIndex = uint32(memType)
-	var tidMemory vk.DeviceMemory
-	if vk.AllocateMemory(vr.device, &aInfo, nil, &tidMemory) != vulkan_const.Success {
-		slog.Error("Failed to allocate image memory")
-		return false
-	} else {
-		vr.app.Dbg().track(unsafe.Pointer(tidMemory))
-	}
-	id.Memory = tidMemory
-	vk.BindImageMemory(vr.device, id.Image, id.Memory, 0)
-	id.Access = 0
-	id.Format = imageInfo.Format
-	id.Width = int(imageInfo.Extent.Width)
-	id.Height = int(imageInfo.Extent.Height)
-	id.LayerCount = 1
-	id.MipLevels = imageInfo.MipLevels
-	id.Samples = imageInfo.Samples
-	return true
-}
-
 func (g *GPULogicalDevice) imageMemoryRequirementsImpl(image GPUImage) GPUMemoryRequirements {
 	defer tracing.NewRegion("GPULogicalDevice.imageMemoryRequirementsImpl").End()
 	var memRequirements vk.MemoryRequirements

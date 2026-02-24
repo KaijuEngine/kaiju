@@ -314,6 +314,16 @@ func (g *GPUPhysicalDevice) FindMemoryType(typeFilter uint32, properties GPUMemo
 	return g.findMemoryTypeImpl(typeFilter, properties)
 }
 
+func (g *GPUPhysicalDevice) PadBufferSize(size uintptr) uintptr {
+	// Calculate required alignment based on minimum device offset alignment
+	minUboAlignment := g.Properties.Limits.MinUniformBufferOffsetAlignment
+	alignedSize := size
+	if minUboAlignment > 0 {
+		alignedSize = (alignedSize + minUboAlignment - 1) & ^(minUboAlignment - 1)
+	}
+	return alignedSize
+}
+
 func (g *GPUPhysicalDevice) isPhysicalDeviceSuitableForRendering() bool {
 	defer tracing.NewRegion("GPUPhysicalDevice.isPhysicalDeviceSuitableForRendering").End()
 	exts := requiredDeviceExtensions()

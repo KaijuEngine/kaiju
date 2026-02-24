@@ -52,11 +52,6 @@ func (g *GPULogicalDevice) SetupDebug(inst *GPUApplicationInstance) {
 	}
 }
 
-func (g *GPULogicalDevice) CreateImage(id *TextureId, properties GPUMemoryPropertyFlags, req GPUImageCreateRequest) error {
-	defer tracing.NewRegion("GPULogicalDevice.CreateImage").End()
-	return g.createImageImpl(id, properties, req)
-}
-
 func (g *GPULogicalDevice) ImageMemoryRequirements(image GPUImage) GPUMemoryRequirements {
 	defer tracing.NewRegion("GPULogicalDevice.ImageMemoryRequirements").End()
 	return g.imageMemoryRequirementsImpl(image)

@@ -13,6 +13,7 @@ type GPUSwapChain struct {
 	Depth        TextureId
 	Color        TextureId
 	FrameBuffers []GPUFrameBuffer
+	renderPass   *RenderPass
 }
 
 func (g *GPUSwapChain) Setup(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
@@ -40,6 +41,11 @@ func (g *GPUSwapChain) CreateColor(device *GPUDevice) error {
 func (g *GPUSwapChain) CreateDepth(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.CreateDepth").End()
 	return g.createDepthImpl(device)
+}
+
+func (g *GPUSwapChain) CreateFrameBuffer(device *GPUDevice) error {
+	defer tracing.NewRegion("GPUSwapChain.CreateFrameBuffer").End()
+	return g.createFrameBufferImpl(device)
 }
 
 func (g *GPUSwapChain) SelectSurfaceFormat(device *GPUPhysicalDevice) GPUSurfaceFormat {

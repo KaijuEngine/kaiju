@@ -38,9 +38,7 @@ package rendering
 
 import (
 	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
 	"runtime"
-	"unsafe"
 )
 
 type MeshCleanup struct {
@@ -49,7 +47,7 @@ type MeshCleanup struct {
 }
 
 func (vr *Vulkan) MeshIsReady(mesh Mesh) bool {
-	return mesh.MeshId.vertexBuffer != vk.Buffer(vk.NullHandle)
+	return mesh.MeshId.vertexBuffer.IsValid()
 }
 
 func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
@@ -59,8 +57,8 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	iNum := uint32(len(indices))
 	id.indexCount = iNum
 	id.vertexCount = vNum
-	vr.createVertexBuffer(verts, &id.vertexBuffer, &id.vertexBufferMemory)
-	vr.createIndexBuffer(indices, &id.indexBuffer, &id.indexBufferMemory)
+	id.vertexBuffer, id.vertexBufferMemory, _ = vr.createVertexBuffer(verts) // TODO:  Don't discard
+	id.indexBuffer, id.indexBufferMemory, _ = vr.createIndexBuffer(indices)  // TODO:  Don't discard
 	runtime.AddCleanup(mesh, func(state MeshCleanup) {
 		v := state.renderer.(*Vulkan)
 		v.preRuns = append(v.preRuns, func() {
@@ -71,14 +69,15 @@ func (vr *Vulkan) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 
 func (vr *Vulkan) destroyMeshHandle(handle MeshId) MeshId {
 	defer tracing.NewRegion("Vulkan.DestroyMesh").End()
-	vk.DeviceWaitIdle(vr.device)
-	vk.DestroyBuffer(vr.device, handle.indexBuffer, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(handle.indexBuffer))
-	vk.FreeMemory(vr.device, handle.indexBufferMemory, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(handle.indexBufferMemory))
-	vk.DestroyBuffer(vr.device, handle.vertexBuffer, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(handle.vertexBuffer))
-	vk.FreeMemory(vr.device, handle.vertexBufferMemory, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(handle.vertexBufferMemory))
+	device := vr.app.FirstInstance().PrimaryDevice()
+	device.LogicalDevice.WaitIdle()
+	device.DestroyBuffer(handle.indexBuffer)
+	device.LogicalDevice.dbg.remove(handle.indexBuffer.handle)
+	device.FreeMemory(handle.indexBufferMemory)
+	device.LogicalDevice.dbg.remove(handle.indexBufferMemory.handle)
+	device.DestroyBuffer(handle.vertexBuffer)
+	device.LogicalDevice.dbg.remove(handle.vertexBuffer.handle)
+	device.FreeMemory(handle.vertexBufferMemory)
+	device.LogicalDevice.dbg.remove(handle.vertexBufferMemory.handle)
 	return MeshId{}
 }

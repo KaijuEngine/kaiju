@@ -37,68 +37,82 @@
 package rendering
 
 import (
+	"errors"
 	"kaiju/klib"
 	"log/slog"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 )
 
-func (vr *Vulkan) createVertexBuffer(verts []Vertex, vertexBuffer *vk.Buffer, vertexBufferMemory *vk.DeviceMemory) bool {
+func (vr *Vulkan) createVertexBuffer(verts []Vertex) (GPUBuffer, GPUDeviceMemory, error) {
+	var vertexBuffer GPUBuffer
+	var vertexBufferMemory GPUDeviceMemory
 	vertBuff := klib.StructSliceToByteArray(verts)
-	bufferSize := vk.DeviceSize(len(vertBuff))
-	if bufferSize <= 0 {
-		panic("Buffer size is 0")
+	if len(vertBuff) <= 0 {
+		return vertexBuffer, vertexBufferMemory, errors.New("buffer size is 0")
 	}
-	var stagingBuffer vk.Buffer
-	var stagingBufferMemory vk.DeviceMemory
-	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
+	inst := vr.app.FirstInstance()
+	device := inst.PrimaryDevice()
+	bufferSize := uintptr(len(vertBuff))
+	stagingBuffer, stagingBufferMemory, err := device.CreateBuffer(
+		bufferSize, GPUBufferUsageTransferSrcBit,
+		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+	if err != nil {
 		slog.Error("Failed to create the staging buffer for the verts")
-		return false
-	} else {
-		var data unsafe.Pointer
-		vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
-		vk.Memcopy(data, vertBuff)
-		vk.UnmapMemory(vr.device, stagingBufferMemory)
-		if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageVertexBufferBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), vertexBuffer, vertexBufferMemory) {
-			slog.Error("Failed to create from staging buffer for the verts")
-			return false
-		} else {
-			vr.CopyBuffer(stagingBuffer, *vertexBuffer, bufferSize)
-			vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-			vr.app.Dbg().remove(unsafe.Pointer(stagingBuffer))
-			vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-			vr.app.Dbg().remove(unsafe.Pointer(stagingBufferMemory))
-		}
-		return true
-	}
-}
-
-func (vr *Vulkan) createIndexBuffer(indices []uint32, indexBuffer *vk.Buffer, indexBufferMemory *vk.DeviceMemory) bool {
-	indexBuff := klib.StructSliceToByteArray(indices)
-	bufferSize := vk.DeviceSize(len(indexBuff))
-	if bufferSize <= 0 {
-		panic("Buffer size is 0")
-	}
-	var stagingBuffer vk.Buffer
-	var stagingBufferMemory vk.DeviceMemory
-	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit), &stagingBuffer, &stagingBufferMemory) {
-		slog.Error("Failed to create the staging index buffer")
-		return false
+		return vertexBuffer, vertexBufferMemory, err
 	}
 	var data unsafe.Pointer
-	vk.MapMemory(vr.device, stagingBufferMemory, 0, bufferSize, 0, &data)
-	vk.Memcopy(data, indexBuff)
-	vk.UnmapMemory(vr.device, stagingBufferMemory)
-	if !vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit|vulkan_const.BufferUsageTransferDstBit|vulkan_const.BufferUsageIndexBufferBit), vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyDeviceLocalBit), indexBuffer, indexBufferMemory) {
-		slog.Error("Failed to create the index buffer")
-		return false
+	device.MapMemory(stagingBufferMemory, 0, uintptr(bufferSize), 0, &data)
+	device.Memcopy(data, vertBuff)
+	device.UnmapMemory(stagingBufferMemory)
+	useFlags := GPUBufferUsageTransferSrcBit | GPUBufferUsageTransferDstBit | GPUBufferUsageVertexBufferBit
+	vertexBuffer, vertexBufferMemory, err = device.CreateBuffer(
+		bufferSize, useFlags, GPUMemoryPropertyDeviceLocalBit)
+	if err != nil {
+		slog.Error("Failed to create from staging buffer for the verts")
+		return vertexBuffer, vertexBufferMemory, err
 	}
-	vr.CopyBuffer(stagingBuffer, *indexBuffer, bufferSize)
-	vk.DestroyBuffer(vr.device, stagingBuffer, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(stagingBuffer))
-	vk.FreeMemory(vr.device, stagingBufferMemory, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(stagingBufferMemory))
-	return true
+	vr.CopyBuffer(vk.Buffer(stagingBuffer.handle), vk.Buffer(vertexBuffer.handle), vk.DeviceSize(bufferSize))
+	device.DestroyBuffer(stagingBuffer)
+	inst.dbg.remove(stagingBuffer.handle)
+	device.FreeMemory(stagingBufferMemory)
+	inst.dbg.remove(stagingBufferMemory.handle)
+	return vertexBuffer, vertexBufferMemory, nil
+}
+
+func (vr *Vulkan) createIndexBuffer(indices []uint32) (GPUBuffer, GPUDeviceMemory, error) {
+	var indexBuffer GPUBuffer
+	var indexBufferMemory GPUDeviceMemory
+	indexBuff := klib.StructSliceToByteArray(indices)
+	if len(indexBuff) <= 0 {
+		return indexBuffer, indexBufferMemory, errors.New("buffer size is 0")
+	}
+	bufferSize := uintptr(len(indexBuff))
+	inst := vr.app.FirstInstance()
+	device := inst.PrimaryDevice()
+	stagingBuffer, stagingBufferMemory, err := device.CreateBuffer(
+		bufferSize, GPUBufferUsageTransferSrcBit,
+		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+	if err != nil {
+		slog.Error("Failed to create the staging index buffer")
+		return indexBuffer, indexBufferMemory, err
+	}
+	var data unsafe.Pointer
+	device.MapMemory(stagingBufferMemory, 0, bufferSize, 0, &data)
+	device.Memcopy(data, indexBuff)
+	device.UnmapMemory(stagingBufferMemory)
+	indexBuffer, indexBufferMemory, err = device.CreateBuffer(bufferSize,
+		GPUBufferUsageTransferSrcBit|GPUBufferUsageTransferDstBit|GPUBufferUsageIndexBufferBit,
+		GPUMemoryPropertyDeviceLocalBit)
+	if err != nil {
+		slog.Error("Failed to create the index buffer")
+		return indexBuffer, indexBufferMemory, err
+	}
+	vr.CopyBuffer(vk.Buffer(stagingBuffer.handle), vk.Buffer(indexBuffer.handle), vk.DeviceSize(bufferSize))
+	device.DestroyBuffer(stagingBuffer)
+	inst.dbg.remove(stagingBuffer.handle)
+	device.FreeMemory(stagingBufferMemory)
+	inst.dbg.remove(stagingBufferMemory.handle)
+	return indexBuffer, indexBufferMemory, nil
 }

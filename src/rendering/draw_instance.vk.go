@@ -48,8 +48,8 @@ type InstanceGroupSkinningData struct {
 type ShaderBuffer struct {
 	bindingId int
 	size      vk.DeviceSize
-	buffers   [maxFramesInFlight]vk.Buffer
-	memories  [maxFramesInFlight]vk.DeviceMemory
+	buffers   [maxFramesInFlight]GPUBuffer
+	memories  [maxFramesInFlight]GPUDeviceMemory
 	stride    int
 	capacity  int
 }
@@ -71,12 +71,16 @@ type InstanceDriverData struct {
 	generatedSets     bool
 }
 
-func (b *ComputeShaderBuffer) Initialize(renderer Renderer, size vk.DeviceSize, usage vk.BufferUsageFlags, properties vk.MemoryPropertyFlags) error {
+func (b *ComputeShaderBuffer) Initialize(renderer Renderer, size uintptr, usage GPUBufferUsageFlags, properties GPUMemoryPropertyFlags) error {
 	vr := renderer.(*Vulkan)
-	for i := range b.buffers {
-		vr.CreateBuffer(size, usage, properties, &b.buffers[i], &b.memories[i])
-	}
+	device := vr.app.FirstInstance().PrimaryDevice()
 	var err error
+	for i := range b.buffers {
+		b.buffers[i], b.memories[i], err = device.CreateBuffer(size, usage, properties)
+		if err != nil {
+			return err
+		}
+	}
 	b.sets, b.pool, err = vr.createDescriptorSet(b.Shader.RenderId.descriptorSetLayout, 0)
 	if err != nil {
 		return err
@@ -87,7 +91,7 @@ func (b *ComputeShaderBuffer) Initialize(renderer Renderer, size vk.DeviceSize, 
 func (b *ComputeShaderBuffer) WriteDescriptors(renderer Renderer) {
 	vr := renderer.(*Vulkan)
 	bufferInfo := vk.DescriptorBufferInfo{
-		Buffer: b.buffers[vr.currentFrame],
+		Buffer: vk.Buffer(b.buffers[vr.currentFrame].handle),
 		Offset: 0,
 		Range:  vk.DeviceSize(vulkan_const.WholeSize),
 	}
@@ -100,7 +104,7 @@ func (b *ComputeShaderBuffer) WriteDescriptors(renderer Renderer) {
 		DescriptorType:  vulkan_const.DescriptorTypeStorageBuffer,
 		PBufferInfo:     &bufferInfo,
 	}
-	vk.UpdateDescriptorSets(vr.device, 1, &write, 0, nil)
+	vk.UpdateDescriptorSets(vk.Device(vr.app.FirstInstance().PrimaryDevice().LogicalDevice.handle), 1, &write, 0, nil)
 }
 
 func (d *DrawInstanceGroup) generateInstanceDriverData(renderer Renderer, material *Material) {

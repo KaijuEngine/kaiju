@@ -551,6 +551,53 @@ var (
 )
 
 var (
+	gpuSampleCountFlagBits = [...]GPUSampleCountFlags{
+		GPUSampleCount1Bit,
+		GPUSampleCount2Bit,
+		GPUSampleCount4Bit,
+		GPUSampleCount8Bit,
+		GPUSampleCount16Bit,
+		GPUSampleCount32Bit,
+		GPUSampleCount64Bit,
+		GPUSampleSwapChainCount,
+	}
+	vkSampleCountFlagBits = [...]vulkan_const.SampleCountFlagBits{
+		vulkan_const.SampleCount1Bit,
+		vulkan_const.SampleCount2Bit,
+		vulkan_const.SampleCount4Bit,
+		vulkan_const.SampleCount8Bit,
+		vulkan_const.SampleCount16Bit,
+		vulkan_const.SampleCount32Bit,
+		vulkan_const.SampleCount64Bit,
+		vulkan_const.SampleCountFlagBitsMaxEnum,
+	}
+	_ = [unsafe.Sizeof(gpuSampleCountFlagBits)/unsafe.Sizeof(gpuSampleCountFlagBits[0]) - unsafe.Sizeof(vkSampleCountFlagBits)/unsafe.Sizeof(vkSampleCountFlagBits[0])]struct{}{}
+)
+
+func (g *GPUSampleCountFlags) fromVulkan(val vk.SampleCountFlags) {
+	defer tracing.NewRegion("GPUSampleCountFlags.fromVulkan").End()
+	var flags GPUSampleCountFlags
+	for i := range vkSampleCountFlagBits {
+		if val&vk.SampleCountFlags(vkSampleCountFlagBits[i]) != 0 {
+			flags |= gpuSampleCountFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g GPUSampleCountFlags) toVulkan() vk.SampleCountFlags {
+	defer tracing.NewRegion("GPUSampleCountFlags.toVulkan").End()
+	val := g
+	var flags vk.SampleCountFlags
+	for i := range gpuSampleCountFlagBits {
+		if val&gpuSampleCountFlagBits[i] != 0 {
+			flags |= vk.SampleCountFlags(vkSampleCountFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
 	gpuImageLayoutToVulkan = map[GPUImageLayout]vulkan_const.ImageLayout{
 		GPUImageLayoutUndefined:                             vulkan_const.ImageLayoutUndefined,
 		GPUImageLayoutGeneral:                               vulkan_const.ImageLayoutGeneral,
@@ -1137,4 +1184,240 @@ func (g *GPUImageCreateFlags) toVulkan() vk.ImageCreateFlags {
 		}
 	}
 	return flags
+}
+
+var (
+	gpuMemoryMapPlacedBits = [...]GPUMemoryFlags{
+		GPUMemoryMapPlacedBit,
+	}
+	vkMemoryMapPlacedBits = [...]int32{ // TODO:  Vulkan may expand upon this
+		1,
+	}
+	_ = [unsafe.Sizeof(gpuMemoryMapPlacedBits)/unsafe.Sizeof(gpuMemoryMapPlacedBits[0]) - unsafe.Sizeof(vkMemoryMapPlacedBits)/unsafe.Sizeof(vkMemoryMapPlacedBits[0])]struct{}{}
+)
+
+func (g *GPUMemoryFlags) fromVulkan(val int32) {
+	defer tracing.NewRegion("GPUMemoryFlags.fromVulkan").End()
+	var flags GPUMemoryFlags
+	for i := range vkMemoryMapPlacedBits {
+		if val&int32(vkMemoryMapPlacedBits[i]) != 0 {
+			flags |= gpuMemoryMapPlacedBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g *GPUMemoryFlags) toVulkan() int32 {
+	defer tracing.NewRegion("GPUMemoryFlags.toVulkan").End()
+	val := *g
+	var flags int32
+	for i := range gpuMemoryMapPlacedBits {
+		if val&gpuMemoryMapPlacedBits[i] != 0 {
+			flags |= int32(vkMemoryMapPlacedBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuBufferUsageFlagBits = [...]GPUBufferUsageFlags{
+		GPUBufferUsageTransferSrcBit,
+		GPUBufferUsageTransferDstBit,
+		GPUBufferUsageUniformTexelBufferBit,
+		GPUBufferUsageStorageTexelBufferBit,
+		GPUBufferUsageUniformBufferBit,
+		GPUBufferUsageStorageBufferBit,
+		GPUBufferUsageIndexBufferBit,
+		GPUBufferUsageVertexBufferBit,
+		GPUBufferUsageIndirectBufferBit,
+		GPUBufferUsageTransformFeedbackBufferBit,
+		GPUBufferUsageTransformFeedbackCounterBufferBit,
+		GPUBufferUsageConditionalRenderingBit,
+		GPUBufferUsageRaytracingBitNvx,
+	}
+	vkBufferUsageFlagBits = [...]vulkan_const.BufferUsageFlagBits{
+		vulkan_const.BufferUsageTransferSrcBit,
+		vulkan_const.BufferUsageTransferDstBit,
+		vulkan_const.BufferUsageUniformTexelBufferBit,
+		vulkan_const.BufferUsageStorageTexelBufferBit,
+		vulkan_const.BufferUsageUniformBufferBit,
+		vulkan_const.BufferUsageStorageBufferBit,
+		vulkan_const.BufferUsageIndexBufferBit,
+		vulkan_const.BufferUsageVertexBufferBit,
+		vulkan_const.BufferUsageIndirectBufferBit,
+		vulkan_const.BufferUsageTransformFeedbackBufferBit,
+		vulkan_const.BufferUsageTransformFeedbackCounterBufferBit,
+		vulkan_const.BufferUsageConditionalRenderingBit,
+		vulkan_const.BufferUsageRaytracingBitNvx,
+	}
+	_ = [unsafe.Sizeof(gpuBufferUsageFlagBits)/unsafe.Sizeof(gpuBufferUsageFlagBits[0]) - unsafe.Sizeof(vkBufferUsageFlagBits)/unsafe.Sizeof(vkBufferUsageFlagBits[0])]struct{}{}
+)
+
+func (g *GPUBufferUsageFlags) fromVulkan(val vk.BufferUsageFlags) {
+	defer tracing.NewRegion("GPUBufferUsageFlags.fromVulkan").End()
+	var flags GPUBufferUsageFlags
+	for i := range vkBufferUsageFlagBits {
+		if val&vk.BufferUsageFlags(vkBufferUsageFlagBits[i]) != 0 {
+			flags |= gpuBufferUsageFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g GPUBufferUsageFlags) toVulkan() vk.BufferUsageFlags {
+	defer tracing.NewRegion("GPUBufferUsageFlags.toVulkan").End()
+	val := g
+	var flags vk.BufferUsageFlags
+	for i := range gpuBufferUsageFlagBits {
+		if val&gpuBufferUsageFlagBits[i] != 0 {
+			flags |= vk.BufferUsageFlags(vkBufferUsageFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuFilterToVulkan = map[GPUFilter]vulkan_const.Filter{
+		GPUFilterNearest:  vulkan_const.FilterNearest,
+		GPUFilterLinear:   vulkan_const.FilterLinear,
+		GPUFilterCubicImg: vulkan_const.FilterCubicImg,
+	}
+	gpuFilterFromVulkan = map[vulkan_const.Filter]GPUFilter{
+		vulkan_const.FilterNearest:  GPUFilterNearest,
+		vulkan_const.FilterLinear:   GPUFilterLinear,
+		vulkan_const.FilterCubicImg: GPUFilterCubicImg,
+	}
+)
+
+func (g GPUFilter) toVulkan() vulkan_const.Filter {
+	return gpuFilterToVulkan[g]
+}
+
+func (g *GPUFilter) fromVulkan(from vulkan_const.Filter) {
+	*g = gpuFilterFromVulkan[from]
+}
+
+var (
+	gpuAccessFlagBits = [...]GPUAccessFlags{
+		GPUAccessIndirectCommandReadBit,
+		GPUAccessIndexReadBit,
+		GPUAccessVertexAttributeReadBit,
+		GPUAccessUniformReadBit,
+		GPUAccessInputAttachmentReadBit,
+		GPUAccessShaderReadBit,
+		GPUAccessShaderWriteBit,
+		GPUAccessColorAttachmentReadBit,
+		GPUAccessColorAttachmentWriteBit,
+		GPUAccessDepthStencilAttachmentReadBit,
+		GPUAccessDepthStencilAttachmentWriteBit,
+		GPUAccessTransferReadBit,
+		GPUAccessTransferWriteBit,
+		GPUAccessHostReadBit,
+		GPUAccessHostWriteBit,
+		GPUAccessMemoryReadBit,
+		GPUAccessMemoryWriteBit,
+		GPUAccessTransformFeedbackWriteBit,
+		GPUAccessTransformFeedbackCounterReadBit,
+		GPUAccessTransformFeedbackCounterWriteBit,
+		GPUAccessConditionalRenderingReadBit,
+		GPUAccessCommandProcessReadBitNvx,
+		GPUAccessCommandProcessWriteBitNvx,
+		GPUAccessColorAttachmentReadNoncoherentBit,
+		GPUAccessShadingRateImageReadBitNv,
+		GPUAccessAccelerationStructureReadBitNvx,
+		GPUAccessAccelerationStructureWriteBitNvx,
+	}
+	vkAccessFlagBits = [...]vulkan_const.AccessFlagBits{
+		vulkan_const.AccessIndirectCommandReadBit,
+		vulkan_const.AccessIndexReadBit,
+		vulkan_const.AccessVertexAttributeReadBit,
+		vulkan_const.AccessUniformReadBit,
+		vulkan_const.AccessInputAttachmentReadBit,
+		vulkan_const.AccessShaderReadBit,
+		vulkan_const.AccessShaderWriteBit,
+		vulkan_const.AccessColorAttachmentReadBit,
+		vulkan_const.AccessColorAttachmentWriteBit,
+		vulkan_const.AccessDepthStencilAttachmentReadBit,
+		vulkan_const.AccessDepthStencilAttachmentWriteBit,
+		vulkan_const.AccessTransferReadBit,
+		vulkan_const.AccessTransferWriteBit,
+		vulkan_const.AccessHostReadBit,
+		vulkan_const.AccessHostWriteBit,
+		vulkan_const.AccessMemoryReadBit,
+		vulkan_const.AccessMemoryWriteBit,
+		vulkan_const.AccessTransformFeedbackWriteBit,
+		vulkan_const.AccessTransformFeedbackCounterReadBit,
+		vulkan_const.AccessTransformFeedbackCounterWriteBit,
+		vulkan_const.AccessConditionalRenderingReadBit,
+		vulkan_const.AccessCommandProcessReadBitNvx,
+		vulkan_const.AccessCommandProcessWriteBitNvx,
+		vulkan_const.AccessColorAttachmentReadNoncoherentBit,
+		vulkan_const.AccessShadingRateImageReadBitNv,
+		vulkan_const.AccessAccelerationStructureReadBitNvx,
+		vulkan_const.AccessAccelerationStructureWriteBitNvx,
+	}
+	_ = [unsafe.Sizeof(gpuAccessFlagBits)/unsafe.Sizeof(gpuAccessFlagBits[0]) - unsafe.Sizeof(vkAccessFlagBits)/unsafe.Sizeof(vkAccessFlagBits[0])]struct{}{}
+)
+
+func (g *GPUAccessFlags) fromVulkan(val vk.AccessFlags) {
+	defer tracing.NewRegion("GPUAccessFlags.fromVulkan").End()
+	var flags GPUAccessFlags
+	for i := range vkAccessFlagBits {
+		if val&vk.AccessFlags(vkAccessFlagBits[i]) != 0 {
+			flags |= gpuAccessFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g GPUAccessFlags) toVulkan() vk.AccessFlags {
+	defer tracing.NewRegion("GPUAccessFlags.toVulkan").End()
+	val := g
+	var flags vk.AccessFlags
+	for i := range gpuAccessFlagBits {
+		if val&gpuAccessFlagBits[i] != 0 {
+			flags |= vk.AccessFlags(vkAccessFlagBits[i])
+		}
+	}
+	return flags
+}
+
+var (
+	gpuAttachmentLoadOpToVulkan = map[GPUAttachmentLoadOp]vulkan_const.AttachmentLoadOp{
+		GPUAttachmentLoadOpLoad:     vulkan_const.AttachmentLoadOpLoad,
+		GPUAttachmentLoadOpClear:    vulkan_const.AttachmentLoadOpClear,
+		GPUAttachmentLoadOpDontCare: vulkan_const.AttachmentLoadOpDontCare,
+	}
+	gpuAttachmentLoadOpFromVulkan = map[vulkan_const.AttachmentLoadOp]GPUAttachmentLoadOp{
+		vulkan_const.AttachmentLoadOpLoad:     GPUAttachmentLoadOpLoad,
+		vulkan_const.AttachmentLoadOpClear:    GPUAttachmentLoadOpClear,
+		vulkan_const.AttachmentLoadOpDontCare: GPUAttachmentLoadOpDontCare,
+	}
+)
+
+func (g GPUAttachmentLoadOp) toVulkan() vulkan_const.AttachmentLoadOp {
+	return gpuAttachmentLoadOpToVulkan[g]
+}
+
+func (g *GPUAttachmentLoadOp) fromVulkan(from vulkan_const.AttachmentLoadOp) {
+	*g = gpuAttachmentLoadOpFromVulkan[from]
+}
+
+var (
+	gpuAttachmentStoreOpToVulkan = map[GPUAttachmentStoreOp]vulkan_const.AttachmentStoreOp{
+		GPUAttachmentStoreOpStore:    vulkan_const.AttachmentStoreOpStore,
+		GPUAttachmentStoreOpDontCare: vulkan_const.AttachmentStoreOpDontCare,
+	}
+	gpuAttachmentStoreOpFromVulkan = map[vulkan_const.AttachmentStoreOp]GPUAttachmentStoreOp{
+		vulkan_const.AttachmentStoreOpStore:    GPUAttachmentStoreOpStore,
+		vulkan_const.AttachmentStoreOpDontCare: GPUAttachmentStoreOpDontCare,
+	}
+)
+
+func (g GPUAttachmentStoreOp) toVulkan() vulkan_const.AttachmentStoreOp {
+	return gpuAttachmentStoreOpToVulkan[g]
+}
+
+func (g *GPUAttachmentStoreOp) fromVulkan(from vulkan_const.AttachmentStoreOp) {
+	*g = gpuAttachmentStoreOpFromVulkan[from]
 }

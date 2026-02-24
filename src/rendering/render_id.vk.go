@@ -100,15 +100,14 @@ func (t TextureId) IsValid() bool { return t.Image.IsValid() }
 type MeshId struct {
 	vertexCount        uint32
 	indexCount         uint32
-	vertexBuffer       vk.Buffer
-	vertexBufferMemory vk.DeviceMemory
-	indexBuffer        vk.Buffer
-	indexBufferMemory  vk.DeviceMemory
+	vertexBuffer       GPUBuffer
+	vertexBufferMemory GPUDeviceMemory
+	indexBuffer        GPUBuffer
+	indexBufferMemory  GPUDeviceMemory
 }
 
 func (m MeshId) IsValid() bool {
-	return m.vertexBuffer != vk.Buffer(vk.NullHandle) &&
-		m.indexBuffer != vk.Buffer(vk.NullHandle)
+	return m.vertexBuffer.IsValid() && m.indexBuffer.IsValid()
 }
 
 func (d *ShaderDriverData) setup(sd *ShaderDataCompiled) {

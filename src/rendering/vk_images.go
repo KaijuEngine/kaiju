@@ -37,7 +37,6 @@
 package rendering
 
 import (
-	"fmt"
 	"log/slog"
 	"unsafe"
 
@@ -64,15 +63,18 @@ func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vulkan_const.For
 	}
 	cmd := vr.beginSingleTimeCommands()
 	defer vr.endSingleTimeCommands(cmd)
-	barrier := vk.ImageMemoryBarrier{}
-	barrier.SType = vulkan_const.StructureTypeImageMemoryBarrier
-	barrier.Image = texId.Image
-	barrier.SrcQueueFamilyIndex = vulkan_const.QueueFamilyIgnored
-	barrier.DstQueueFamilyIndex = vulkan_const.QueueFamilyIgnored
-	barrier.SubresourceRange.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
-	barrier.SubresourceRange.BaseArrayLayer = 0
-	barrier.SubresourceRange.LayerCount = uint32(texId.LayerCount)
-	barrier.SubresourceRange.LevelCount = 1
+	barrier := vk.ImageMemoryBarrier{
+		SType:               vulkan_const.StructureTypeImageMemoryBarrier,
+		Image:               vk.Image(texId.Image.handle),
+		SrcQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
+		DstQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
+		SubresourceRange: vk.ImageSubresourceRange{
+			AspectMask:     vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
+			BaseArrayLayer: 0,
+			LayerCount:     uint32(texId.LayerCount),
+			LevelCount:     1,
+		},
+	}
 	mipWidth := texWidth
 	mipHeight := texHeight
 	for i := uint32(1); i < mipLevels; i++ {
@@ -102,8 +104,9 @@ func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vulkan_const.For
 		blit.DstSubresource.MipLevel = i
 		blit.DstSubresource.BaseArrayLayer = 0
 		blit.DstSubresource.LayerCount = uint32(texId.LayerCount)
-		vk.CmdBlitImage(cmd.buffer, texId.Image, vulkan_const.ImageLayoutTransferSrcOptimal,
-			texId.Image, vulkan_const.ImageLayoutTransferDstOptimal, 1, &blit, filter)
+		vk.CmdBlitImage(cmd.buffer, vk.Image(texId.Image.handle),
+			vulkan_const.ImageLayoutTransferSrcOptimal, vk.Image(texId.Image.handle),
+			vulkan_const.ImageLayoutTransferDstOptimal, 1, &blit, filter)
 		barrier.OldLayout = vulkan_const.ImageLayoutTransferSrcOptimal
 		barrier.NewLayout = vulkan_const.ImageLayoutShaderReadOnlyOptimal
 		barrier.SrcAccessMask = vk.AccessFlags(vulkan_const.AccessTransferReadBit)
@@ -124,71 +127,7 @@ func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vulkan_const.For
 	barrier.DstAccessMask = vk.AccessFlags(vulkan_const.AccessShaderReadBit)
 	vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vulkan_const.PipelineStageTransferBit),
 		vk.PipelineStageFlags(vulkan_const.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
-	texId.Layout = barrier.NewLayout
-	return true
-}
-
-func (vr *Vulkan) createImageView(id *TextureId, aspectFlags vk.ImageAspectFlags, viewType vulkan_const.ImageViewType) bool {
-	defer tracing.NewRegion("Vulkan.createImageView").End()
-	viewInfo := vk.ImageViewCreateInfo{}
-	viewInfo.SType = vulkan_const.StructureTypeImageViewCreateInfo
-	viewInfo.Image = id.Image
-	viewInfo.ViewType = viewType
-	viewInfo.Format = id.Format
-	viewInfo.SubresourceRange.AspectMask = aspectFlags
-	viewInfo.SubresourceRange.BaseMipLevel = 0
-	viewInfo.SubresourceRange.LevelCount = id.MipLevels
-	viewInfo.SubresourceRange.BaseArrayLayer = 0
-	viewInfo.SubresourceRange.LayerCount = uint32(id.LayerCount)
-	var idView vk.ImageView
-	if vk.CreateImageView(vr.device, &viewInfo, nil, &idView) != vulkan_const.Success {
-		slog.Error("Failed to create texture image view")
-		return false
-	} else {
-		vr.app.Dbg().track(unsafe.Pointer(idView))
-	}
-	id.View = idView
-	return true
-}
-
-func (vr *Vulkan) createTextureSampler(sampler *vk.Sampler, mipLevels uint32, filter vulkan_const.Filter) bool {
-	defer tracing.NewRegion("Vulkan.createTextureSampler").End()
-	properties := vk.PhysicalDeviceProperties{}
-	pd := vr.app.FirstInstance().PhysicalDevice()
-	vk.GetPhysicalDeviceProperties(vk.PhysicalDevice(pd.handle), &properties)
-	samplerInfo := vk.SamplerCreateInfo{}
-	samplerInfo.SType = vulkan_const.StructureTypeSamplerCreateInfo
-	samplerInfo.MagFilter = filter
-	samplerInfo.MinFilter = filter
-	switch filter {
-	case vulkan_const.FilterNearest:
-		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeNearest
-		samplerInfo.AnisotropyEnable = vulkan_const.False
-	case vulkan_const.FilterCubicImg:
-		fallthrough
-	case vulkan_const.FilterLinear:
-		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeLinear
-		samplerInfo.AnisotropyEnable = vulkan_const.True
-	}
-	samplerInfo.AddressModeU = vulkan_const.SamplerAddressModeRepeat
-	samplerInfo.AddressModeV = vulkan_const.SamplerAddressModeRepeat
-	samplerInfo.AddressModeW = vulkan_const.SamplerAddressModeRepeat
-	samplerInfo.MaxAnisotropy = properties.Limits.MaxSamplerAnisotropy
-	samplerInfo.BorderColor = vulkan_const.BorderColorIntOpaqueBlack
-	samplerInfo.UnnormalizedCoordinates = vulkan_const.False
-	samplerInfo.CompareEnable = vulkan_const.False
-	samplerInfo.CompareOp = vulkan_const.CompareOpAlways
-	samplerInfo.MipLodBias = 0.0
-	samplerInfo.MinLod = 0.0
-	samplerInfo.MaxLod = float32(mipLevels + 1)
-	var localSampler vk.Sampler
-	if vk.CreateSampler(vr.device, &samplerInfo, nil, &localSampler) != vulkan_const.Success {
-		slog.Error("Failed to create texture sampler")
-		return false
-	} else {
-		vr.app.Dbg().track(unsafe.Pointer(localSampler))
-	}
-	*sampler = localSampler
+	texId.Layout.fromVulkan(barrier.NewLayout)
 	return true
 }
 
@@ -253,7 +192,7 @@ func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vulkan_const.Pipeli
 
 func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vulkan_const.ImageLayout, aspectMask vk.ImageAspectFlags, newAccess vk.AccessFlags, cmd *CommandRecorder) bool {
 	defer tracing.NewRegion("Vulkan.transitionImageLayout").End()
-	if vt.Layout == newLayout {
+	if vt.Layout.toVulkan() == newLayout {
 		return true
 	}
 	// Note that in larger applications, we could batch together pipeline
@@ -261,7 +200,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vulkan_const.Im
 	if aspectMask == 0 {
 		if newLayout == vulkan_const.ImageLayoutDepthStencilAttachmentOptimal {
 			aspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectDepthBit)
-			if vt.Format == vulkan_const.FormatD32SfloatS8Uint || vt.Format == vulkan_const.FormatD24UnormS8Uint {
+			if vt.Format == GPUFormatD32SfloatS8Uint || vt.Format == GPUFormatD24UnormS8Uint {
 				aspectMask |= vk.ImageAspectFlags(vulkan_const.ImageAspectStencilBit)
 			}
 		} else {
@@ -275,11 +214,11 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vulkan_const.Im
 	}
 	barrier := vk.ImageMemoryBarrier{
 		SType:               vulkan_const.StructureTypeImageMemoryBarrier,
-		OldLayout:           vt.Layout,
+		OldLayout:           vt.Layout.toVulkan(),
 		NewLayout:           newLayout,
 		SrcQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
 		DstQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
-		Image:               vt.Image,
+		Image:               vk.Image(vt.Image.handle),
 		SubresourceRange: vk.ImageSubresourceRange{
 			AspectMask:     aspectMask,
 			BaseMipLevel:   0,
@@ -293,7 +232,7 @@ func (vr *Vulkan) transitionImageLayout(vt *TextureId, newLayout vulkan_const.Im
 	sourceStage := makeAccessMaskPipelineStageFlags(vt.Access)
 	destinationStage := makeAccessMaskPipelineStageFlags(newAccess)
 	vk.CmdPipelineBarrier(commandBuffer.buffer, vk.PipelineStageFlags(sourceStage), vk.PipelineStageFlags(destinationStage), 0, 0, nil, 0, nil, 1, &barrier)
-	vt.Layout = newLayout
+	vt.Layout.fromVulkan(newLayout)
 	vt.Access = newAccess
 	return true
 }
@@ -322,30 +261,29 @@ func (vr *Vulkan) copyBufferToImage(buffer vk.Buffer, image vk.Image, width, hei
 func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, requests []GPUImageWriteRequest) error {
 	defer tracing.NewRegion("Vulkan.writeBufferToImageRegion").End()
 	// TODO:  Might need to match up the color here...
-	memLen := vk.DeviceSize(0)
+	memLen := uintptr(0)
 	for i := range requests {
-		memLen += vk.DeviceSize(requests[i].Region.Width()) * vk.DeviceSize(requests[i].Region.Height()) * BytesInPixel
+		memLen += uintptr(requests[i].Region.Width()) * uintptr(requests[i].Region.Height()) * BytesInPixel
 	}
-	var stagingBuffer vk.Buffer
-	var stagingBufferMemory vk.DeviceMemory
-	ok := vr.CreateBuffer(memLen, vk.BufferUsageFlags(vulkan_const.BufferUsageTransferSrcBit),
-		vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
-		&stagingBuffer, &stagingBufferMemory)
-	if !ok {
-		return fmt.Errorf("failed to create the buffer with size %d", memLen)
+	device := vr.app.FirstInstance().PrimaryDevice()
+	stagingBuffer, stagingBufferMemory, err := device.CreateBuffer(memLen,
+		GPUBufferUsageTransferSrcBit, GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+	if err != nil {
+		return err
 	}
-	defer vr.DestroyBuffer(stagingBuffer, stagingBufferMemory)
+	defer device.DestroyBuffer(stagingBuffer)
+	defer device.FreeMemory(stagingBufferMemory)
 	var stageData unsafe.Pointer
-	res := vk.MapMemory(vr.device, stagingBufferMemory, 0, memLen, 0, &stageData)
-	if res != vulkan_const.Success {
-		return fmt.Errorf("failed to map the staging memory with size %d", memLen)
+	err = device.MapMemory(stagingBufferMemory, 0, memLen, 0, &stageData)
+	if err != nil {
+		return err
 	}
 	offset := uintptr(0)
 	for i := range requests {
-		vk.Memcopy(unsafe.Pointer(uintptr(stageData)+offset), requests[i].Pixels)
+		device.Memcopy(unsafe.Pointer(uintptr(stageData)+offset), requests[i].Pixels)
 		offset += uintptr(requests[i].Region.Width()) * uintptr(requests[i].Region.Height()) * BytesInPixel
 	}
-	vk.UnmapMemory(vr.device, stagingBufferMemory)
+	device.UnmapMemory(stagingBufferMemory)
 	cmd := vr.beginSingleTimeCommands()
 	defer vr.endSingleTimeCommands(cmd)
 	regions := make([]vk.BufferImageCopy, len(requests))
@@ -372,35 +310,10 @@ func (vr *Vulkan) writeBufferToImageRegion(image vk.Image, requests []GPUImageWr
 			},
 		}
 	}
-	vk.CmdCopyBufferToImage(cmd.buffer, stagingBuffer, image,
+	vk.CmdCopyBufferToImage(cmd.buffer, vk.Buffer(stagingBuffer.handle), image,
 		vulkan_const.ImageLayoutTransferDstOptimal, uint32(len(regions)), &regions[0])
 	// TODO:  Generate mips?
 	return nil
-}
-
-func (vr *Vulkan) textureIdFree(id TextureId) TextureId {
-	defer tracing.NewRegion("Vulkan.textureIdFree").End()
-	if id.View != vk.NullImageView {
-		vk.DestroyImageView(vr.device, id.View, nil)
-		vr.app.Dbg().remove(unsafe.Pointer(id.View))
-		id.View = vk.NullImageView
-	}
-	if id.Image != vk.NullImage {
-		vk.DestroyImage(vr.device, id.Image, nil)
-		vr.app.Dbg().remove(unsafe.Pointer(id.Image))
-		id.Image = vk.NullImage
-	}
-	if id.Memory != vk.NullDeviceMemory {
-		vk.FreeMemory(vr.device, id.Memory, nil)
-		vr.app.Dbg().remove(unsafe.Pointer(id.Memory))
-		id.Memory = vk.NullDeviceMemory
-	}
-	if id.Sampler != vk.NullSampler {
-		vk.DestroySampler(vr.device, id.Sampler, nil)
-		vr.app.Dbg().remove(unsafe.Pointer(id.Sampler))
-		id.Sampler = vk.NullSampler
-	}
-	return id
 }
 
 func (vr *Vulkan) FormatIsTileable(format vulkan_const.Format, tiling vulkan_const.ImageTiling) bool {
@@ -409,9 +322,9 @@ func (vr *Vulkan) FormatIsTileable(format vulkan_const.Format, tiling vulkan_con
 	props := pd.FormatProperties(formatFromVulkan(format))
 	switch tiling {
 	case vulkan_const.ImageTilingOptimal:
-		return (props.OptimalTilingFeatures & FormatFeatureSampledImageFilterLinearBit) != 0
+		return (props.OptimalTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) != 0
 	case vulkan_const.ImageTilingLinear:
-		return (props.LinearTilingFeatures & FormatFeatureSampledImageFilterLinearBit) != 0
+		return (props.LinearTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) != 0
 	default:
 		return false
 	}

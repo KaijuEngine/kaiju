@@ -75,7 +75,6 @@ type Vulkan struct {
 	caches                     RenderCaches
 	graphicsQueue              vk.Queue
 	presentQueue               vk.Queue
-	swapChainRenderPass        *RenderPass
 	imageIndex                 [maxFramesInFlight]uint32
 	descriptorPools            []vk.DescriptorPool
 	globalUniformBuffers       [maxFramesInFlight]vk.Buffer
@@ -290,7 +289,7 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 	if err := swapChain.CreateDepth(device); err != nil {
 		return nil, err
 	}
-	if !vr.createSwapChainFrameBuffer() {
+	if err := swapChain.CreateFrameBuffer(device); err != nil {
 		return nil, errors.New("failed to create default frame buffer")
 	}
 	vr.createGlobalUniformBuffers()
@@ -649,39 +648,21 @@ func (vr *Vulkan) AddPreRun(preRun func()) {
 
 func (vr *Vulkan) DestroyGroup(group *DrawInstanceGroup) {
 	defer tracing.NewRegion("Vulkan.DestroyGroup").End()
-	vk.DeviceWaitIdle(vr.device)
+	device := vr.app.FirstInstance().PrimaryDevice().LogicalDevice
+	device.WaitIdle()
 	pd := bufferTrash{delay: maxFramesInFlight}
 	pd.pool = group.descriptorPool
 	for i := 0; i < maxFramesInFlight; i++ {
-		pd.buffers[i] = group.instanceBuffer.buffers[i]
-		pd.memories[i] = group.instanceBuffer.memories[i]
+		pd.buffers[i] = vk.Buffer(group.instanceBuffer.buffers[i].handle)
+		pd.memories[i] = vk.DeviceMemory(group.instanceBuffer.memories[i].handle)
 		pd.sets[i] = group.descriptorSets[i]
 		for k := range group.boundBuffers {
-			pd.namedBuffers[i] = append(pd.namedBuffers[i], group.boundBuffers[k].buffers[i])
-			pd.namedMemories[i] = append(pd.namedMemories[i], group.boundBuffers[k].memories[i])
+			pd.namedBuffers[i] = append(pd.namedBuffers[i], vk.Buffer(group.boundBuffers[k].buffers[i].handle))
+			pd.namedMemories[i] = append(pd.namedMemories[i], vk.DeviceMemory(group.boundBuffers[k].memories[i].handle))
 		}
 	}
 	clear(group.boundBuffers)
-	vr.app.FirstInstance().bufferTrash.Add(pd)
-}
-
-func (vr *Vulkan) CreateFrameBuffer(renderPass *RenderPass, attachments []vk.ImageView, width, height uint32) (vk.Framebuffer, bool) {
-	framebufferInfo := vk.FramebufferCreateInfo{}
-	framebufferInfo.SType = vulkan_const.StructureTypeFramebufferCreateInfo
-	framebufferInfo.RenderPass = renderPass.Handle
-	framebufferInfo.AttachmentCount = uint32(len(attachments))
-	framebufferInfo.PAttachments = &attachments[0]
-	framebufferInfo.Width = width
-	framebufferInfo.Height = height
-	framebufferInfo.Layers = 1
-	var fb vk.Framebuffer
-	if vk.CreateFramebuffer(vr.device, &framebufferInfo, nil, &fb) != vulkan_const.Success {
-		slog.Error("Failed to create framebuffer")
-		return vk.NullFramebuffer, false
-	} else {
-		vr.app.Dbg().track(unsafe.Pointer(fb))
-	}
-	return fb, true
+	device.bufferTrash.Add(pd)
 }
 
 func (vr *Vulkan) QueueCompute(buffer *ComputeShaderBuffer) {

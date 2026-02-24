@@ -24,7 +24,7 @@ func (g *GPUApplication) FirstInstance() *GPUApplicationInstance {
 
 // TODO:  This function will likely go away with other refactors
 func (g *GPUApplication) Dbg() *memoryDebugger {
-	return &g.FirstInstance().dbg
+	return g.FirstInstance().PrimaryDevice().LogicalDevice.dbg
 }
 
 func (g *GPUApplication) Instance(index int) (*GPUApplicationInstance, bool) {

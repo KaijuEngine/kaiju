@@ -87,8 +87,9 @@ func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLev
 		Flags:            vk.CommandPoolCreateFlags(vulkan_const.CommandPoolCreateResetCommandBufferBit),
 		QueueFamilyIndex: uint32(pd.FindGraphicsFamiliy().Index),
 	}
+	vkDevice := vk.Device(vr.app.FirstInstance().PrimaryDevice().LogicalDevice.handle)
 	var pool vk.CommandPool
-	if vk.CreateCommandPool(vr.device, &poolInfo, nil, &pool) != vulkan_const.Success {
+	if vk.CreateCommandPool(vkDevice, &poolInfo, nil, &pool) != vulkan_const.Success {
 		const e = "Failed to create command pool"
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
@@ -101,7 +102,7 @@ func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLev
 		CommandPool:        pool,
 	}
 	var buffer vk.CommandBuffer
-	if vk.AllocateCommandBuffers(vr.device, &buffInfo, &buffer) != vulkan_const.Success {
+	if vk.AllocateCommandBuffers(vkDevice, &buffInfo, &buffer) != vulkan_const.Success {
 		const e = "Failed to allocate command buffers"
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
@@ -111,7 +112,7 @@ func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLev
 	fenceInfo := vk.FenceCreateInfo{
 		SType: vulkan_const.StructureTypeFenceCreateInfo,
 	}
-	vk.CreateFence(vr.device, &fenceInfo, nil, &cr.fence)
+	vk.CreateFence(vkDevice, &fenceInfo, nil, &cr.fence)
 	vr.app.Dbg().track(unsafe.Pointer(cr.fence))
 	return cr, nil
 }
@@ -134,12 +135,14 @@ func (c *CommandRecorder) Begin() {
 
 func (c *CommandRecorder) Destroy(vr *Vulkan) {
 	buff := c.buffer
-	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
-	vr.app.Dbg().remove(unsafe.Pointer(buff))
-	vk.DestroyCommandPool(vr.device, c.pool, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(c.pool))
-	vk.DestroyFence(vr.device, c.fence, nil)
-	vr.app.Dbg().remove(unsafe.Pointer(c.fence))
+	inst := vr.app.FirstInstance()
+	vkDevice := vk.Device(inst.PrimaryDevice().LogicalDevice.handle)
+	vk.FreeCommandBuffers(vkDevice, c.pool, 1, &buff)
+	inst.dbg.remove(unsafe.Pointer(buff))
+	vk.DestroyCommandPool(vkDevice, c.pool, nil)
+	inst.dbg.remove(unsafe.Pointer(c.pool))
+	vk.DestroyFence(vkDevice, c.fence, nil)
+	inst.dbg.remove(unsafe.Pointer(c.fence))
 }
 
 func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {
@@ -187,9 +190,10 @@ func (vr *Vulkan) endSingleTimeCommands(cmd *CommandRecorder) {
 		PCommandBuffers:    &buff,
 	}
 	vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, cmd.fence)
-	result := vk.WaitForFences(vr.device, 1, &cmd.fence, vulkan_const.True, 1e9)
+	vkDevice := vk.Device(vr.app.FirstInstance().PrimaryDevice().LogicalDevice.handle)
+	result := vk.WaitForFences(vkDevice, 1, &cmd.fence, vulkan_const.True, 1e9)
 	if result == vulkan_const.Success {
-		vk.ResetFences(vr.device, 1, &cmd.fence)
+		vk.ResetFences(vkDevice, 1, &cmd.fence)
 	} else {
 		slog.Error("failed to wait for fence", "result", result)
 	}
