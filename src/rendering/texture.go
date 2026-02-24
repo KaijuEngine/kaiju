@@ -373,7 +373,7 @@ func (t *Texture) DelayedCreate(renderer Renderer) {
 	if t.RenderId.IsValid() {
 		return
 	}
-	renderer.CreateTexture(t, t.pendingData)
+	renderer.(*Vulkan).app.FirstInstance().PrimaryDevice().SetupTexture(t, t.pendingData)
 	t.pendingData = nil
 }
 

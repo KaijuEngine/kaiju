@@ -415,12 +415,12 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 	return isDepth
 }
 
-func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
-	vr := renderer.(*Vulkan)
-	if pass, ok := vr.renderPassCache[r.Name]; ok {
+func (r *RenderPassDataCompiled) ConstructRenderPass(inst *GPUApplicationInstance) (*RenderPass, bool) {
+	ld := inst.PrimaryDevice().LogicalDevice
+	if pass, ok := ld.renderPassCache[r.Name]; ok {
 		return pass, true
 	}
-	pass, err := NewRenderPass(vr, r)
+	pass, err := NewRenderPass(inst, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
 		return nil, false

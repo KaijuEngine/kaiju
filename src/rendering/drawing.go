@@ -206,7 +206,7 @@ func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
 	shadowIdx := 0
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		if rp.Buffer == nil {
+		if !rp.Buffer.IsValid() {
 			rp.Recontstruct(renderer.(*Vulkan))
 		}
 		passes = append(passes, rp)

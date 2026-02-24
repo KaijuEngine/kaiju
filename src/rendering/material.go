@@ -164,10 +164,12 @@ func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, cop
 		return c, err
 	}
 	c.shaderInfo = sd.Compile()
-	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
+	inst := vr.app.FirstInstance()
+	lp := inst.PrimaryDevice().LogicalDevice
+	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
 		rpc := rp.Compile(vr)
-		if p, ok := rpc.ConstructRenderPass(vr); ok {
-			vr.renderPassCache[rp.Name] = p
+		if p, ok := rpc.ConstructRenderPass(inst); ok {
+			lp.renderPassCache[rp.Name] = p
 			c.renderPass = p
 		} else {
 			slog.Error("failed to load the render pass for the material", "renderPass", rp.Name)

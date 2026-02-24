@@ -312,10 +312,11 @@ func (l *Light) setupRenderPass(assets assets.Database) {
 		slog.Error("failed to load light_depth.renderpass")
 		return
 	}
-	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
+	lp := vr.app.FirstInstance().PrimaryDevice().LogicalDevice
+	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
 		rpc := rp.Compile(vr)
-		if p, ok := rpc.ConstructRenderPass(vr); ok {
-			vr.renderPassCache[rp.Name] = p
+		if p, ok := rpc.ConstructRenderPass(vr.app.FirstInstance()); ok {
+			lp.renderPassCache[rp.Name] = p
 			l.renderPass = p
 		} else {
 			slog.Error("failed to load the render pass for the light", "renderPass", rp.Name)

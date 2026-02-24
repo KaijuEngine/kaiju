@@ -15,11 +15,11 @@ type GPUApplication struct {
 		Minor int
 		Patch int
 	}
-	Instances []GPUApplicationInstance
+	Instances []*GPUApplicationInstance
 }
 
 func (g *GPUApplication) FirstInstance() *GPUApplicationInstance {
-	return &g.Instances[0]
+	return g.Instances[0]
 }
 
 // TODO:  This function will likely go away with other refactors
@@ -32,7 +32,7 @@ func (g *GPUApplication) Instance(index int) (*GPUApplicationInstance, bool) {
 		slog.Error("index out of range for the instances", "has", len(g.Instances), "wants", index)
 		return nil, false
 	}
-	return &g.Instances[index], true
+	return g.Instances[index], true
 }
 
 func (g *GPUApplication) ApplicationVersion() (major int, minor int, patch int) {
@@ -44,7 +44,7 @@ func (g *GPUApplication) EngineVersion() (major int, minor int, patch int) {
 }
 
 func (g *GPUApplication) CreateInstance(window RenderingContainer) error {
-	g.Instances = append(g.Instances, GPUApplicationInstance{})
+	g.Instances = append(g.Instances, &GPUApplicationInstance{})
 	return g.Instances[len(g.Instances)-1].Initialize(window, g)
 }
 

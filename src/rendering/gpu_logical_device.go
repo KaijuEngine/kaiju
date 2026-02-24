@@ -4,17 +4,19 @@ import (
 	"kaiju/build"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"sort"
 	"unsafe"
 )
 
 type GPULogicalDevice struct {
 	GPUHandle
-	graphicsQueue unsafe.Pointer
-	computeQueue  unsafe.Pointer
-	presentQueue  unsafe.Pointer
-	SwapChain     GPUSwapChain
-	bufferTrash   bufferDestroyer
-	dbg           *memoryDebugger
+	graphicsQueue   unsafe.Pointer
+	computeQueue    unsafe.Pointer
+	presentQueue    unsafe.Pointer
+	SwapChain       GPUSwapChain
+	bufferTrash     bufferDestroyer
+	dbg             *memoryDebugger
+	renderPassCache map[string]*RenderPass
 }
 
 type GPUImageCreateRequest struct {
@@ -31,6 +33,7 @@ type GPUImageCreateRequest struct {
 
 func (g *GPULogicalDevice) Setup(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error {
 	defer tracing.NewRegion("GPULogicalDevice.Setup").End()
+	g.renderPassCache = make(map[string]*RenderPass)
 	return g.setupImpl(inst, physicalDevice)
 }
 
@@ -65,4 +68,22 @@ func (g *GPULogicalDevice) CreateImageView(id *TextureId, aspectFlags GPUImageAs
 func (g *GPULogicalDevice) FreeTexture(texId *TextureId) {
 	defer tracing.NewRegion("GPULogicalDevice.FreeTexture").End()
 	g.freeTextureImpl(texId)
+}
+
+func (g *GPULogicalDevice) RemakeSwapChain(inst *GPUApplicationInstance) error {
+	passes := make([]*RenderPass, 0, len(g.renderPassCache))
+	for _, v := range g.renderPassCache {
+		passes = append(passes, v)
+	}
+	// We need to sort the passes because some passes require resources from
+	// others and need to be re-constructed afterwords
+	sort.Slice(passes, func(i, j int) bool {
+		return passes[i].construction.Sort < passes[j].construction.Sort
+	})
+	for i := range len(passes) {
+		if err := passes[i].Recontstruct(inst); err != nil {
+			return err
+		}
+	}
+	return nil
 }

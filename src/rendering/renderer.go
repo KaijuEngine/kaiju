@@ -48,7 +48,6 @@ type Renderer interface {
 		uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool
 	CreateShader(shader *Shader, assetDatabase assets.Database) error
 	CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
-	CreateTexture(texture *Texture, textureData *TextureData)
 	TextureReadPixel(texture *Texture, x, y int) matrix.Color
 	TextureRead(texture *Texture) ([]byte, error)
 	TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)

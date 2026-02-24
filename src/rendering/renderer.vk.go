@@ -41,14 +41,12 @@ import (
 	"kaiju/engine/assets"
 	"kaiju/engine/cameras"
 	"kaiju/engine/collision"
-	"kaiju/engine/pooling"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"math"
 	"runtime"
-	"sort"
 	"unsafe"
 
 	vk "kaiju/rendering/vulkan"
@@ -70,37 +68,31 @@ type vkSwapChainSupportDetails struct {
 }
 
 type Vulkan struct {
-	app                        GPUApplication
-	renderFinishedSemaphores   []vk.Semaphore
-	caches                     RenderCaches
-	graphicsQueue              vk.Queue
-	presentQueue               vk.Queue
-	imageIndex                 [maxFramesInFlight]uint32
-	descriptorPools            []vk.DescriptorPool
-	globalUniformBuffers       [maxFramesInFlight]vk.Buffer
-	globalUniformBuffersMemory [maxFramesInFlight]vk.DeviceMemory
-	depth                      TextureId
-	color                      TextureId
-	imageSemaphores            [maxFramesInFlight]vk.Semaphore
-	renderFences               [maxFramesInFlight]vk.Fence
-	swapImageCount             uint32
-	swapChainImageViewCount    uint32
-	swapChainFrameBufferCount  uint32
-	acquireImageResult         vulkan_const.Result
-	currentFrame               int
-	msaaSamples                vulkan_const.SampleCountFlagBits
-	combinedDrawings           Drawings
-	combinedDrawingCuller      combinedDrawingCuller
-	preRuns                    []func()
-	renderPassCache            map[string]*RenderPass
-	writtenCommands            []CommandRecorder
-	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
-	combineCmds                [maxFramesInFlight]CommandRecorder
-	blitCmds                   [maxFramesInFlight]CommandRecorder
-	fallbackShadowMap          *Texture
-	fallbackCubeShadowMap      *Texture
-	computeTasks               []ComputeTask
-	computeQueue               vk.Queue
+	app                       GPUApplication
+	renderFinishedSemaphores  []vk.Semaphore
+	caches                    RenderCaches
+	graphicsQueue             vk.Queue
+	presentQueue              vk.Queue
+	imageIndex                [maxFramesInFlight]uint32
+	descriptorPools           []vk.DescriptorPool
+	imageSemaphores           [maxFramesInFlight]vk.Semaphore
+	renderFences              [maxFramesInFlight]vk.Fence
+	swapImageCount            uint32
+	swapChainImageViewCount   uint32
+	swapChainFrameBufferCount uint32
+	acquireImageResult        vulkan_const.Result
+	currentFrame              int
+	msaaSamples               vulkan_const.SampleCountFlagBits
+	combinedDrawings          Drawings
+	combinedDrawingCuller     combinedDrawingCuller
+	preRuns                   []func()
+	writtenCommands           []CommandRecorder
+	combineCmds               [maxFramesInFlight]CommandRecorder
+	blitCmds                  [maxFramesInFlight]CommandRecorder
+	fallbackShadowMap         *Texture
+	fallbackCubeShadowMap     *Texture
+	computeTasks              []ComputeTask
+	computeQueue              vk.Queue
 }
 
 type ComputeTask struct {
@@ -128,16 +120,6 @@ func (vr *Vulkan) WaitForRender() {
 		fences[i].handle = unsafe.Pointer(vr.renderFences[i])
 	}
 	device.WaitForFences(fences[:])
-}
-
-func (vr *Vulkan) createGlobalUniformBuffers() {
-	slog.Info("creating vulkan global uniform buffers")
-	bufferSize := vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))
-	for i := uint64(0); i < uint64(vr.swapImageCount); i++ {
-		vr.CreateBuffer(bufferSize, vk.BufferUsageFlags(vulkan_const.BufferUsageUniformBufferBit),
-			vk.MemoryPropertyFlags(vulkan_const.MemoryPropertyHostVisibleBit|vulkan_const.MemoryPropertyHostCoherentBit),
-			&vr.globalUniformBuffers[i], &vr.globalUniformBuffersMemory[i])
-	}
 }
 
 func (vr *Vulkan) createDescriptorPool(counts uint32) bool {
@@ -251,7 +233,6 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 	vr := &Vulkan{
 		msaaSamples:      vulkan_const.SampleCountFlagBits(vulkan_const.SampleCount1Bit),
 		combinedDrawings: NewDrawings(),
-		renderPassCache:  make(map[string]*RenderPass),
 	}
 	slog.Info("creating vulkan application info")
 	appInfo := vk.ApplicationInfo{}
@@ -292,7 +273,9 @@ func NewVKRenderer(window RenderingContainer, applicationName string, assets ass
 	if err := swapChain.CreateFrameBuffer(device); err != nil {
 		return nil, errors.New("failed to create default frame buffer")
 	}
-	vr.createGlobalUniformBuffers()
+	if err := device.createGlobalUniforms(); err != nil {
+		return nil, err
+	}
 	if !vr.createDescriptorPool(1000) {
 		return nil, errors.New("failed to create descriptor pool")
 	}
@@ -323,16 +306,16 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	return nil
 }
 
-func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
+func (vr *Vulkan) remakeSwapChain(window RenderingContainer) error {
 	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
-	device := vr.app.FirstInstance().PrimaryDevice()
+	inst := vr.app.FirstInstance()
+	device := inst.PrimaryDevice()
 	oldSwapChain := device.LogicalDevice.SwapChain
-
 	vr.swapChain = vk.NullSwapchain
 	if vr.hasSwapChain {
 		vr.WaitForRender()
 		vr.swapChainCleanup()
-		vkDevice := vk.Device(vr.app.FirstInstance().PrimaryDevice().LogicalDevice.handle)
+		vkDevice := vk.Device(device.LogicalDevice.handle)
 		// Destroy the previous swap sync objects
 		for i := 0; i < int(vr.swapImageCount); i++ {
 			vk.DestroySemaphore(vkDevice, vr.imageSemaphores[i], nil)
@@ -340,17 +323,11 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 			vk.DestroyFence(vkDevice, vr.renderFences[i], nil)
 			vr.app.Dbg().remove(unsafe.Pointer(vr.renderFences[i]))
 		}
-		// Destroy the previous global uniform buffers
-		for i := 0; i < maxFramesInFlight; i++ {
-			vk.DestroyBuffer(vkDevice, vr.globalUniformBuffers[i], nil)
-			vr.app.Dbg().remove(unsafe.Pointer(vr.globalUniformBuffers[i]))
-			vk.FreeMemory(vkDevice, vr.globalUniformBuffersMemory[i], nil)
-			vr.app.Dbg().remove(unsafe.Pointer(vr.globalUniformBuffersMemory[i]))
-		}
+		device.destroyGlobalUniforms()
 	}
-	vr.app.FirstInstance().PrimaryDevice().CreateSwapChain(window, oldSwapChain)
+	device.CreateSwapChain(window, oldSwapChain)
 	if !vr.hasSwapChain {
-		return
+		return nil // TODO:  Is this correct?
 	}
 	slog.Info("recreated vulkan swap chain")
 	vr.createImageViews()
@@ -358,20 +335,14 @@ func (vr *Vulkan) remakeSwapChain(window RenderingContainer) {
 	vr.createColorResources()
 	vr.createDepthResources()
 	vr.createSwapChainFrameBuffer()
-	vr.createGlobalUniformBuffers()
+	if err := device.createGlobalUniforms(); err != nil {
+		return err
+	}
 	vr.createSyncObjects()
-	passes := make([]*RenderPass, 0, len(vr.renderPassCache))
-	for _, v := range vr.renderPassCache {
-		passes = append(passes, v)
+	if err := device.LogicalDevice.RemakeSwapChain(inst); err != nil {
+		return err
 	}
-	// We need to sort the passes because some passes require resources from
-	// others and need to be re-constructed afterwords
-	sort.Slice(passes, func(i, j int) bool {
-		return passes[i].construction.Sort < passes[j].construction.Sort
-	})
-	for i := range len(passes) {
-		passes[i].Recontstruct(vr)
-	}
+	return nil
 }
 
 func (vr *Vulkan) createSyncObjects() bool {
@@ -582,7 +553,8 @@ func (vr *Vulkan) Destroy() {
 	defer tracing.NewRegion("Vulkan.Destroy").End()
 	vr.WaitForRender()
 	vr.combinedDrawings.Destroy(vr)
-	vr.app.FirstInstance().bufferTrash.Purge()
+	device := vr.app.FirstInstance().PrimaryDevice()
+	device.LogicalDevice.bufferTrash.Purge()
 	for k := range vr.renderPassCache {
 		vr.renderPassCache[k].Destroy(vr)
 	}
@@ -618,12 +590,7 @@ func (vr *Vulkan) Destroy() {
 			vk.DestroyFence(vr.device, vr.renderFences[i], nil)
 			vr.app.Dbg().remove(unsafe.Pointer(vr.renderFences[i]))
 		}
-		for i := 0; i < maxFramesInFlight; i++ {
-			vk.DestroyBuffer(vr.device, vr.globalUniformBuffers[i], nil)
-			vr.app.Dbg().remove(unsafe.Pointer(vr.globalUniformBuffers[i]))
-			vk.FreeMemory(vr.device, vr.globalUniformBuffersMemory[i], nil)
-			vr.app.Dbg().remove(unsafe.Pointer(vr.globalUniformBuffersMemory[i]))
-		}
+		device.destroyGlobalUniforms()
 		for i := range vr.descriptorPools {
 			vk.DestroyDescriptorPool(vr.device, vr.descriptorPools[i], nil)
 			vr.app.Dbg().remove(unsafe.Pointer(vr.descriptorPools[i]))
