@@ -59,3 +59,8 @@ func (g *GPUDevice) CreateFrameBuffer(renderPass *RenderPass, attachments []GPUI
 	defer tracing.NewRegion("GPULogicalDevice.CreateFrameBuffer").End()
 	return g.createFrameBufferImpl(renderPass, attachments, width, height)
 }
+
+func (g *GPUDevice) DestroyFrameBuffer(frameBuffer GPUFrameBuffer) {
+	defer tracing.NewRegion("GPULogicalDevice.DestroyFrameBuffer").End()
+	g.destroyFrameBufferImpl(frameBuffer)
+}

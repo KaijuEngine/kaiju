@@ -215,3 +215,8 @@ func (g *GPUDevice) createFrameBufferImpl(renderPass *RenderPass, attachments []
 	g.LogicalDevice.dbg.track(frameBuffer.handle)
 	return frameBuffer, nil
 }
+
+func (g *GPUDevice) destroyFrameBufferImpl(frameBuffer GPUFrameBuffer) {
+	defer tracing.NewRegion("GPULogicalDevice.destroyFrameBufferImpl").End()
+	vk.DestroyFramebuffer(vk.Device(g.LogicalDevice.handle), vk.Framebuffer(frameBuffer.handle), nil)
+}
