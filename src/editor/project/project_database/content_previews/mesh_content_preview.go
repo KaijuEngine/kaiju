@@ -34,7 +34,7 @@ func (p *ContentPreviewer) renderMesh(id string) {
 	}
 	host.Drawings.AddDrawing(draw)
 	host.RunBeforeRender(func() {
-		mesh.DelayedCreate(host.Window.Renderer)
+		mesh.DelayedCreate(host.Window.GpuInstance.PrimaryDevice())
 		host.RunAfterFrames(1, func() {
 			p.readRenderPass(host, sd, id)
 		})

@@ -4,19 +4,21 @@ import (
 	"kaiju/build"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
-	"sort"
 	"unsafe"
 )
 
 type GPULogicalDevice struct {
 	GPUHandle
-	graphicsQueue   unsafe.Pointer
-	computeQueue    unsafe.Pointer
-	presentQueue    unsafe.Pointer
-	SwapChain       GPUSwapChain
-	bufferTrash     bufferDestroyer
-	dbg             *memoryDebugger
-	renderPassCache map[string]*RenderPass
+	graphicsQueue            unsafe.Pointer
+	computeQueue             unsafe.Pointer
+	presentQueue             unsafe.Pointer
+	SwapChain                GPUSwapChain
+	bufferTrash              bufferDestroyer
+	dbg                      *memoryDebugger
+	renderPassCache          map[string]*RenderPass
+	imageSemaphores          [maxFramesInFlight]GPUSemaphore
+	renderFences             [maxFramesInFlight]GPUFence
+	renderFinishedSemaphores []GPUSemaphore
 }
 
 type GPUImageCreateRequest struct {
@@ -42,16 +44,26 @@ func (g *GPULogicalDevice) WaitIdle() {
 	g.waitIdleImpl()
 }
 
+func (g *GPULogicalDevice) WaitForRender(device *GPUDevice) {
+	defer tracing.NewRegion("GPULogicalDevice.WaitForRender").End()
+	g.WaitIdle()
+	fences := [maxFramesInFlight]GPUFence{}
+	for i := range fences {
+		fences[i].handle = unsafe.Pointer(device.LogicalDevice.renderFences[i].handle)
+	}
+	g.WaitForFences(fences[:])
+}
+
 func (g *GPULogicalDevice) WaitForFences(fences []GPUFence) {
 	defer tracing.NewRegion("GPULogicalDevice.WaitForFences").End()
 	g.waitForFencesImpl(fences)
 }
 
-func (g *GPULogicalDevice) SetupDebug(inst *GPUApplicationInstance) {
+func (g *GPULogicalDevice) SetupDebug(device *GPUDevice) {
 	if build.Debug {
 		defer tracing.NewRegion("GPULogicalDevice.SetupDebug").End()
-		g.dbg = inst.dbg
-		g.bufferTrash = newBufferDestroyer(g, g.dbg)
+		g.dbg = device.LogicalDevice.dbg
+		g.bufferTrash = newBufferDestroyer(device, g.dbg)
 	}
 }
 
@@ -67,23 +79,29 @@ func (g *GPULogicalDevice) CreateImageView(id *TextureId, aspectFlags GPUImageAs
 
 func (g *GPULogicalDevice) FreeTexture(texId *TextureId) {
 	defer tracing.NewRegion("GPULogicalDevice.FreeTexture").End()
+	g.WaitIdle()
 	g.freeTextureImpl(texId)
 }
 
-func (g *GPULogicalDevice) RemakeSwapChain(inst *GPUApplicationInstance) error {
-	passes := make([]*RenderPass, 0, len(g.renderPassCache))
-	for _, v := range g.renderPassCache {
-		passes = append(passes, v)
-	}
-	// We need to sort the passes because some passes require resources from
-	// others and need to be re-constructed afterwords
-	sort.Slice(passes, func(i, j int) bool {
-		return passes[i].construction.Sort < passes[j].construction.Sort
-	})
-	for i := range len(passes) {
-		if err := passes[i].Recontstruct(inst); err != nil {
-			return err
+func (g *GPULogicalDevice) RemakeSwapChain(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
+	defer tracing.NewRegion("GPULogicalDevice.RemakeSwapChain").End()
+	return g.remakeSwapChainImpl(window, inst, device)
+}
+
+func (g *GPULogicalDevice) DestroyGroup(group *DrawInstanceGroup) {
+	defer tracing.NewRegion("Vulkan.DestroyGroup").End()
+	g.WaitIdle()
+	pd := bufferTrash{delay: maxFramesInFlight}
+	pd.pool = group.descriptorPool
+	for i := 0; i < maxFramesInFlight; i++ {
+		pd.buffers[i] = group.instanceBuffer.buffers[i]
+		pd.memories[i] = group.instanceBuffer.memories[i]
+		pd.sets[i] = group.descriptorSets[i]
+		for k := range group.boundBuffers {
+			pd.namedBuffers[i] = append(pd.namedBuffers[i], group.boundBuffers[k].buffers[i])
+			pd.namedMemories[i] = append(pd.namedMemories[i], group.boundBuffers[k].memories[i])
 		}
 	}
-	return nil
+	clear(group.boundBuffers)
+	g.bufferTrash.Add(pd)
 }

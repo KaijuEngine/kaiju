@@ -18,6 +18,8 @@ type GPUApplication struct {
 	Instances []*GPUApplicationInstance
 }
 
+func (g *GPUApplication) IsValid() bool { return len(g.Instances) > 0 }
+
 func (g *GPUApplication) FirstInstance() *GPUApplicationInstance {
 	return g.Instances[0]
 }
@@ -43,9 +45,12 @@ func (g *GPUApplication) EngineVersion() (major int, minor int, patch int) {
 	return engineVersionMajor, engineVersionMinor, engineVersionPatch
 }
 
-func (g *GPUApplication) CreateInstance(window RenderingContainer) error {
+func (g *GPUApplication) CreateInstance(window RenderingContainer) (*GPUApplicationInstance, error) {
 	g.Instances = append(g.Instances, &GPUApplicationInstance{})
-	return g.Instances[len(g.Instances)-1].Initialize(window, g)
+	if err := g.Instances[len(g.Instances)-1].Initialize(window, g); err != nil {
+		return nil, err
+	}
+	return g.Instances[len(g.Instances)-1], nil
 }
 
 func (g *GPUApplication) Destroy() {

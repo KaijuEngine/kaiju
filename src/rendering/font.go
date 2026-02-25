@@ -116,7 +116,7 @@ type FontCache struct {
 	textOrthoMaterial            *Material
 	textMaterialTransparent      *Material
 	textOrthoMaterialTransparent *Material
-	renderer                     Renderer
+	device                       *GPUDevice
 	renderCaches                 RenderCaches
 	assetDb                      assets.Database
 	fontFaces                    map[string]fontBin
@@ -164,7 +164,7 @@ func (cache *FontCache) requireFace(face FontFace) {
 		cache.FaceMutex.RUnlock()
 		cache.FaceMutex.Lock()
 		defer cache.FaceMutex.Unlock()
-		cache.initFont(face, cache.renderer, cache.assetDb)
+		cache.initFont(face, cache.assetDb)
 	} else {
 		cache.FaceMutex.RUnlock()
 	}
@@ -180,10 +180,10 @@ func (cache *FontCache) EMSize(face FontFace) float32 {
 	return cache.fontFaces[face.string()].metrics.EMSize * DefaultFontEMSize
 }
 
-func NewFontCache(renderer Renderer, assetDb assets.Database) FontCache {
+func NewFontCache(device *GPUDevice, assetDb assets.Database) FontCache {
 	defer tracing.NewRegion("rendering.NewFontCache").End()
 	return FontCache{
-		renderer:  renderer,
+		device:    device,
 		assetDb:   assetDb,
 		fontFaces: make(map[string]fontBin),
 	}
@@ -303,7 +303,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	font.cachedOrthoLetters[key] = &clmCpy
 }
 
-func (cache *FontCache) initFont(face FontFace, renderer Renderer, adb assets.Database) bool {
+func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
 	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
@@ -366,7 +366,7 @@ func (cache *FontCache) initFont(face FontFace, renderer Renderer, adb assets.Da
 	return true
 }
 
-func (cache *FontCache) Init(renderer Renderer, adb assets.Database, caches RenderCaches) error {
+func (cache *FontCache) Init(caches RenderCaches) error {
 	defer tracing.NewRegion("FontCache.Init").End()
 	var err error
 	mc := caches.MaterialCache()

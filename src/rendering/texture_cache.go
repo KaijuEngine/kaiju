@@ -44,17 +44,17 @@ import (
 )
 
 type TextureCache struct {
-	renderer        Renderer
+	device          *GPUDevice
 	assetDatabase   assets.Database
 	textures        [TextureFilterMax]map[string]*Texture
 	pendingTextures []*Texture
 	mutex           sync.Mutex
 }
 
-func NewTextureCache(renderer Renderer, assetDatabase assets.Database) TextureCache {
+func NewTextureCache(device *GPUDevice, assetDatabase assets.Database) TextureCache {
 	defer tracing.NewRegion("rendering.NewTextureCache").End()
 	tc := TextureCache{
-		renderer:        renderer,
+		device:          device,
 		assetDatabase:   assetDatabase,
 		pendingTextures: make([]*Texture, 0),
 		mutex:           sync.Mutex{},
@@ -72,7 +72,7 @@ func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Textur
 	if texture, ok := t.textures[filter][textureKey]; ok {
 		return texture, nil
 	} else {
-		if texture, err := NewTexture(t.renderer, t.assetDatabase, textureKey, filter); err == nil {
+		if texture, err := NewTexture(t.assetDatabase, textureKey, filter); err == nil {
 			t.pendingTextures = append(t.pendingTextures, texture)
 			t.textures[filter][textureKey] = texture
 			return texture, nil
@@ -87,8 +87,8 @@ func (t *TextureCache) ReloadTexture(textureKey string, filter TextureFilter) er
 	if !ok {
 		return nil
 	}
-	t.renderer.(*Vulkan).destroyTextureHandle(texture.RenderId)
-	if err := texture.Reload(t.renderer, t.assetDatabase); err != nil {
+	t.device.LogicalDevice.FreeTexture(&texture.RenderId)
+	if err := texture.Reload(t.assetDatabase); err != nil {
 		return err
 	}
 	t.pendingTextures = append(t.pendingTextures, texture)
@@ -133,7 +133,7 @@ func (t *TextureCache) CreatePending() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	for _, texture := range t.pendingTextures {
-		texture.DelayedCreate(t.renderer)
+		texture.DelayedCreate(t.device)
 	}
 	t.pendingTextures = klib.WipeSlice(t.pendingTextures)
 }

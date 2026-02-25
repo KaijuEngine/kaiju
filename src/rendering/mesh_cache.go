@@ -44,16 +44,16 @@ import (
 )
 
 type MeshCache struct {
-	renderer      Renderer
+	device        *GPUDevice
 	assetDatabase assets.Database
 	meshes        map[string]*Mesh
 	pendingMeshes []*Mesh
 	mutex         sync.Mutex
 }
 
-func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache {
+func NewMeshCache(device *GPUDevice, assetDatabase assets.Database) MeshCache {
 	return MeshCache{
-		renderer:      renderer,
+		device:        device,
 		assetDatabase: assetDatabase,
 		meshes:        make(map[string]*Mesh),
 		pendingMeshes: make([]*Mesh, 0),
@@ -106,7 +106,7 @@ func (m *MeshCache) CreatePending() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for _, mesh := range m.pendingMeshes {
-		mesh.DelayedCreate(m.renderer)
+		mesh.DelayedCreate(m.device)
 	}
 	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
 }

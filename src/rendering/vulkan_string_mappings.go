@@ -658,9 +658,9 @@ func imageLayoutToVK(val string) GPUImageLayout {
 	return 0
 }
 
-func sampleCountToVK(val string, vr *Vulkan) GPUSampleCountFlags {
+func sampleCountToVK(val string, device *GPUPhysicalDevice) GPUSampleCountFlags {
 	if val == swapChainSampleCountKey {
-		return vr.app.FirstInstance().PhysicalDevice().MaxUsableSampleCount()
+		return device.MaxUsableSampleCount()
 	} else if res, ok := StringVkSampleCountFlagBits[val]; ok {
 		return res
 	} else if val != "" {
@@ -669,12 +669,12 @@ func sampleCountToVK(val string, vr *Vulkan) GPUSampleCountFlags {
 	return 0
 }
 
-func formatToVK(val string, vr *Vulkan) GPUFormat {
+func formatToVK(val string, device *GPUDevice) GPUFormat {
 	if val == detectDepthFormatKey {
-		return vr.app.FirstInstance().PhysicalDevice().FindSupportedFormat(
+		return device.PhysicalDevice.FindSupportedFormat(
 			depthFormatCandidates(), GPUImageTilingOptimal, GPUFormatFeatureDepthStencilAttachmentBit)
 	} else if val == swapChainFormatKey {
-		return vr.app.FirstInstance().PrimaryDevice().LogicalDevice.SwapChain.Images[0].Format
+		return device.LogicalDevice.SwapChain.Images[0].Format
 	} else if res, ok := StringVkFormat[val]; ok {
 		var fmt GPUFormat
 		fmt.fromVulkan(res)

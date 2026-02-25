@@ -42,7 +42,7 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 	}
 	host.Drawings.AddDrawing(draw)
 	host.RunBeforeRender(func() {
-		mat.Shader.DelayedCreate(host.Window.Renderer, host.AssetDatabase())
+		mat.Shader.DelayedCreate(host.Window.GpuInstance.PrimaryDevice(), host.AssetDatabase())
 		host.RunAfterFrames(1, func() {
 			p.readRenderPass(host, sd, id)
 		})
@@ -91,7 +91,7 @@ func readMaterial(id string, ed EditorInterface) (*rendering.Material, error) {
 	materialData.RenderPass = "ed_thumb_preview_mesh.renderpass"
 	materialData.ShaderPipeline = "ed_thumb_preview_mesh.shaderpipeline"
 	host := ed.Host()
-	mat, err := materialData.CompileExt(host.AssetDatabase(), host.Window.Renderer, true)
+	mat, err := materialData.CompileExt(host.AssetDatabase(), host.Window.GpuInstance.PrimaryDevice(), true)
 	if err != nil {
 		return nil, err
 	}

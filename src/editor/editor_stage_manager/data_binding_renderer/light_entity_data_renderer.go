@@ -73,7 +73,7 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 		return
 	}
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
-	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+	l := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
 		host.AssetDatabase(), host.MaterialCache(), lightType)
 	l.SetPosition(target.Transform.WorldPosition())
 	l.SetDirection(target.Transform.Up().Negative())
@@ -144,7 +144,7 @@ func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage
 	l := c.Lights[target]
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	if l.light.Type() != lightType {
-		l.light.Light = rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+		l.light.Light = rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
 			host.AssetDatabase(), host.MaterialCache(), lightType)
 	}
 	l.light.Light.SetPosition(l.light.Transform.WorldPosition())

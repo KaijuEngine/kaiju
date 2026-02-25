@@ -45,7 +45,6 @@ import (
 	"unsafe"
 	"weak"
 
-	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
 	vk "kaiju/rendering/vulkan"
@@ -68,8 +67,8 @@ type RenderPass struct {
 type RenderPassSubpass struct {
 	shader         *Shader
 	shaderPipeline ShaderPipelineDataCompiled
-	descriptorSets [maxFramesInFlight]vk.DescriptorSet
-	descriptorPool vk.DescriptorPool
+	descriptorSets [maxFramesInFlight]GPUDescriptorSet
+	descriptorPool GPUDescriptorPool
 	sampledImages  []int
 	renderQuad     *Mesh
 	cmd            [maxFramesInFlight]CommandRecorderSecondary
@@ -96,8 +95,8 @@ func (r *RenderPass) ExecuteSecondaryCommands() {
 	vk.CmdExecuteCommands(r.cmd[r.frame].buffer, uint32(len(buffs)), &buffs[0])
 }
 
-func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
-	sc := &vr.app.FirstInstance().PrimaryDevice().LogicalDevice.SwapChain
+func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture {
+	sc := &device.LogicalDevice.SwapChain
 	targetFormat := sc.Images[0].Format
 	var fallback *Texture
 	for i := range r.construction.AttachmentDescriptions {
@@ -117,7 +116,7 @@ func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
 		a := &r.construction.AttachmentDescriptions[i]
 		if a.Format == targetFormat {
 			if a.Image.ExistingImage != "" {
-				for _, p := range vr.renderPassCache {
+				for _, p := range device.LogicalDevice.renderPassCache {
 					if t, ok := p.findTextureByName(a.Image.ExistingImage); ok {
 						return t
 					}
@@ -137,7 +136,7 @@ func (r *RenderPass) SelectOutputAttachment(vr *Vulkan) *Texture {
 	return nil
 }
 
-func (r *RenderPass) SelectOutputAttachmentWithSuffix(vr *Vulkan, suffix string) (*Texture, bool) {
+func (r *RenderPass) SelectOutputAttachmentWithSuffix(suffix string) (*Texture, bool) {
 	for i := range r.construction.AttachmentDescriptions {
 		if strings.HasSuffix(r.construction.AttachmentDescriptions[i].Image.Name, suffix) {
 			return &r.textures[i], true
@@ -155,9 +154,10 @@ func (r *RenderPass) findTextureByName(name string) (*Texture, bool) {
 	return nil, false
 }
 
-func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, assets assets.Database, index int) error {
+func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUDevice, index int) error {
 	r.subpasses = klib.WipeSlice(r.subpasses)
 	sp := RenderPassSubpass{}
+	assets := device.Painter.caches.AssetDatabase()
 	// TODO:  This is copied from Material.Compile
 	{
 		shaderConfig, err := assets.ReadText(c.Shader)
@@ -176,16 +176,15 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 		if err := json.Unmarshal([]byte(shaderConfig), &rawSD); err != nil {
 			return err
 		}
-		sp.shaderPipeline = pipe.Compile(vr)
-		shaderCache := vr.caches.ShaderCache()
+		sp.shaderPipeline = pipe.Compile(&device.PhysicalDevice)
+		shaderCache := device.Painter.caches.ShaderCache()
 		sp.shader, _ = shaderCache.Shader(rawSD.Compile())
 		sp.shader.pipelineInfo = &sp.shaderPipeline
 		sp.shader.renderPass = weak.Make(r)
 		shaderCache.CreatePending()
 	}
 	sp.descriptorSets, sp.descriptorPool = klib.MustReturn2(
-		vr.createDescriptorSet(sp.shader.RenderId.descriptorSetLayout, 0))
-	device := vr.app.FirstInstance().PrimaryDevice()
+		device.createDescriptorSet(sp.shader.RenderId.descriptorSetLayout, 0))
 	var err error
 	for i := range c.SampledImages {
 		t := &r.textures[c.SampledImages[i]].RenderId
@@ -197,10 +196,10 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, vr *Vulkan, 
 		}
 	}
 	sp.sampledImages = append(sp.sampledImages, c.SampledImages...)
-	sp.renderQuad = NewMeshUnitQuad(vr.caches.MeshCache())
-	vr.caches.MeshCache().CreatePending()
+	sp.renderQuad = NewMeshUnitQuad(device.Painter.caches.MeshCache())
+	device.Painter.caches.MeshCache().CreatePending()
 	for i := range len(sp.cmd) {
-		if sp.cmd[i], err = NewCommandRecorderSecondary(vr, r, index); err != nil {
+		if sp.cmd[i], err = NewCommandRecorderSecondary(device, r, index); err != nil {
 			return err
 		}
 	}
@@ -266,7 +265,7 @@ func isDepthFormat(format vulkan_const.Format) bool {
 	return false
 }
 
-func NewRenderPass(vr *Vulkan, setup *RenderPassDataCompiled) (*RenderPass, error) {
+func NewRenderPass(device *GPUDevice, setup *RenderPassDataCompiled) (*RenderPass, error) {
 	p := &RenderPass{
 		construction: *setup,
 		textures:     make([]Texture, 0, len(setup.AttachmentDescriptions)),
@@ -283,25 +282,24 @@ func NewRenderPass(vr *Vulkan, setup *RenderPassDataCompiled) (*RenderPass, erro
 		}
 		p.textures = append(p.textures, Texture{Key: k})
 	}
-	return p, p.Recontstruct(vr)
+	return p, p.Recontstruct(device)
 }
 
-func (p *RenderPass) Recontstruct(vr *Vulkan) error {
-	p.Destroy(vr)
+func (p *RenderPass) Recontstruct(device *GPUDevice) error {
+	p.Destroy(device)
 	r := &p.construction
 	var err error
 	for i := range len(p.cmd) {
-		if p.cmd[i], err = NewCommandRecorder(vr); err != nil {
+		if p.cmd[i], err = NewCommandRecorder(device); err != nil {
 			return err
 		}
 	}
 	for i := range len(p.cmdSecondary) {
-		if p.cmdSecondary[i], err = NewCommandRecorderSecondary(vr, p, 0); err != nil {
+		if p.cmdSecondary[i], err = NewCommandRecorderSecondary(device, p, 0); err != nil {
 			return nil
 		}
 	}
 	{
-		device := vr.app.FirstInstance().PrimaryDevice()
 		sc := &device.LogicalDevice.SwapChain
 		w := sc.Extent.Width()
 		h := sc.Extent.Height()
@@ -351,19 +349,9 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
 				return err
 			}
-			success := true
 			if a.InitialLayout != 0 {
-				success = vr.transitionImageLayout(&p.textures[i].RenderId,
-					a.InitialLayout.toVulkan(), img.Aspect.toVulkan(),
-					img.Access.toVulkan(), nil)
-			}
-			if !success {
-				const e = "failed to transition image layout for render pass attachment"
-				for j := range i + 1 {
-					device.LogicalDevice.FreeTexture(&p.textures[j].RenderId)
-				}
-				slog.Error(e, "attachmentIndex", i)
-				return errors.New(e)
+				device.TransitionImageLayout(&p.textures[i].RenderId,
+					a.InitialLayout, img.Aspect, img.Access, nil)
 			}
 		}
 	}
@@ -460,21 +448,20 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 		info.PDependencies = &selfDependencies[0]
 	}
 	var handle vk.RenderPass
-	device := vr.app.FirstInstance().PrimaryDevice()
 	if vk.CreateRenderPass(vk.Device(device.LogicalDevice.handle), &info, nil, &handle) != vulkan_const.Success {
 		return errors.New("failed to create the render pass")
 	}
 	p.Handle = handle
-	vr.app.Dbg().track(unsafe.Pointer(p.Handle))
+	device.LogicalDevice.dbg.track(unsafe.Pointer(p.Handle))
 	for i := range r.Subpass {
-		p.setupSubpass(&r.Subpass[i], vr, vr.caches.AssetDatabase(), i+1)
+		p.setupSubpass(&r.Subpass[i], device, i+1)
 	}
 	imageViews := make([]GPUImageView, 0, len(p.textures))
 	for i := range len(r.AttachmentDescriptions) {
 		a := &r.AttachmentDescriptions[i]
 		if a.Image.IsInvalid() {
 			if a.Image.ExistingImage != "" {
-				for _, v := range vr.renderPassCache {
+				for _, v := range device.LogicalDevice.renderPassCache {
 					if t, ok := v.findTextureByName(a.Image.ExistingImage); ok {
 						imageViews = append(imageViews, t.RenderId.View)
 						break
@@ -495,32 +482,30 @@ func (p *RenderPass) Recontstruct(vr *Vulkan) error {
 	return nil
 }
 
-func (p *RenderPass) Destroy(vr *Vulkan) {
+func (p *RenderPass) Destroy(device *GPUDevice) {
 	if p.Handle == vk.NullRenderPass {
 		return
 	}
-	inst := vr.app.FirstInstance()
-	device := inst.PrimaryDevice()
 	vk.DestroyRenderPass(vk.Device(device.LogicalDevice.handle), p.Handle, nil)
-	inst.dbg.remove(unsafe.Pointer(p.Handle))
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(p.Handle))
 	p.Handle = vk.NullRenderPass
 	device.DestroyFrameBuffer(p.Buffer)
-	inst.dbg.remove(p.Buffer.handle)
+	device.LogicalDevice.dbg.remove(p.Buffer.handle)
 	p.Buffer.Reset()
 	for i := range p.textures {
-		vr.destroyTextureHandle(p.textures[i].RenderId)
+		device.LogicalDevice.FreeTexture(&p.textures[i].RenderId)
 		p.textures[i].RenderId = TextureId{}
 	}
 	for i := range p.subpasses {
 		for j := range len(p.subpasses[i].cmd) {
-			p.subpasses[i].cmd[j].Destroy(vr)
+			p.subpasses[i].cmd[j].Destroy(device)
 		}
 	}
 	p.subpasses = klib.WipeSlice(p.subpasses)
 	for i := range p.cmd {
-		p.cmd[i].Destroy(vr)
+		p.cmd[i].Destroy(device)
 	}
 	for i := range p.cmdSecondary {
-		p.cmdSecondary[i].Destroy(vr)
+		p.cmdSecondary[i].Destroy(device)
 	}
 }

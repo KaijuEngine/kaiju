@@ -153,7 +153,7 @@ func (p *ContentPreviewer) writePreviewFile(id string, data []byte) error {
 
 func (p *ContentPreviewer) readRenderPass(host *engine.Host, sd rendering.DrawInstance, id string) {
 	defer p.completeProc()
-	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(host.Window.Renderer)
+	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(&host.Window.GpuHost)
 	sd.Destroy()
 	if err != nil {
 		slog.Error("failed to read the mesh preview image from GPU", "id", id, "error", err)

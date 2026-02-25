@@ -64,21 +64,19 @@ func NewShaderDriverData() ShaderDriverData {
 type ShaderId struct {
 	instanceCount       int
 	currentUBSizes      [maxFramesInFlight]uint64
-	graphicsPipeline    vk.Pipeline
-	computePipeline     vk.Pipeline
-	pipelineLayout      vk.PipelineLayout
-	descriptorSetLayout vk.DescriptorSetLayout
-	vertModule          vk.ShaderModule
-	fragModule          vk.ShaderModule
-	geomModule          vk.ShaderModule
-	tescModule          vk.ShaderModule
-	teseModule          vk.ShaderModule
-	compModule          vk.ShaderModule
+	graphicsPipeline    GPUPipeline
+	computePipeline     GPUPipeline
+	pipelineLayout      GPUPipelineLayout
+	descriptorSetLayout GPUDescriptorSetLayout
+	vertModule          GPUShaderModule
+	fragModule          GPUShaderModule
+	geomModule          GPUShaderModule
+	tescModule          GPUShaderModule
+	teseModule          GPUShaderModule
+	compModule          GPUShaderModule
 }
 
-func (s ShaderId) IsValid() bool {
-	return s.graphicsPipeline != vk.NullPipeline
-}
+func (s ShaderId) IsValid() bool { return s.graphicsPipeline.IsValid() }
 
 type TextureId struct {
 	Image      GPUImage
@@ -88,7 +86,7 @@ type TextureId struct {
 	Format     GPUFormat
 	MipLevels  uint32
 	Layout     GPUImageLayout
-	Access     vk.AccessFlags
+	Access     GPUAccessFlags
 	Samples    GPUSampleCountFlags
 	Width      int
 	Height     int

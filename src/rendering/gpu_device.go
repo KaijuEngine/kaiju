@@ -10,6 +10,7 @@ import (
 type GPUDevice struct {
 	PhysicalDevice             GPUPhysicalDevice
 	LogicalDevice              GPULogicalDevice
+	Painter                    GPUPainter
 	globalUniformBuffers       [maxFramesInFlight]GPUBuffer
 	globalUniformBuffersMemory [maxFramesInFlight]GPUDeviceMemory
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
@@ -18,21 +19,6 @@ type GPUDevice struct {
 func (g *GPUDevice) CreateSwapChain(window RenderingContainer, inst *GPUApplicationInstance) error {
 	defer tracing.NewRegion("GPUDevice.CreateSwapChain").End()
 	return g.LogicalDevice.SwapChain.Setup(window, inst, g)
-}
-
-func (g *GPUDevice) CreateImage(id *TextureId, properties GPUMemoryPropertyFlags, req GPUImageCreateRequest) error {
-	defer tracing.NewRegion("GPUDevice.CreateImage").End()
-	return g.createImageImpl(id, properties, req)
-}
-
-func (g *GPUDevice) SetupTexture(texture *Texture, data *TextureData) error {
-	defer tracing.NewRegion("GPUDevice.SetupTexture").End()
-	return g.setupTextureImpl(texture, data)
-}
-
-func (g *GPUDevice) GenerateMipMaps(texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {
-	defer tracing.NewRegion("GPUDevice.GenerateMipMaps").End()
-	return g.generateMipMapsImpl(texId, imageFormat, texWidth, texHeight, mipLevels, filter)
 }
 
 func (g *GPUDevice) MapMemory(memory GPUDeviceMemory, offset uintptr, size uintptr, flags GPUMemoryFlags, out *unsafe.Pointer) error {
@@ -63,11 +49,6 @@ func (g *GPUDevice) DestroyBuffer(buffer GPUBuffer) {
 func (g *GPUDevice) FreeMemory(memory GPUDeviceMemory) {
 	defer tracing.NewRegion("GPUDevice.FreeMemory").End()
 	g.freeMemoryImpl(memory)
-}
-
-func (g *GPUDevice) CreateTextureSampler(mipLevels uint32, filter GPUFilter) (GPUSampler, error) {
-	defer tracing.NewRegion("GPULogicalDevice.CreateTextureSampler").End()
-	return g.createTextureSamplerImpl(mipLevels, filter)
 }
 
 func (g *GPUDevice) CreateFrameBuffer(renderPass *RenderPass, attachments []GPUImageView, width, height int32) (GPUFrameBuffer, error) {
@@ -118,4 +99,12 @@ func (g *GPUDevice) beginSingleTimeCommands() *CommandRecorder {
 func (g *GPUDevice) endSingleTimeCommands(cmd *CommandRecorder) {
 	defer tracing.NewRegion("GPUDevice.endSingleTimeCommands").End()
 	g.endSingleTimeCommandsImpl(cmd)
+}
+
+func (g *GPUDevice) SwapFrame(window RenderingContainer, inst *GPUApplicationInstance, width, height int32) bool {
+	defer tracing.NewRegion("Vulkan.SwapFrame").End()
+	if !g.LogicalDevice.SwapChain.IsValid() || len(g.Painter.writtenCommands) == 0 {
+		return false
+	}
+	return g.swapFrameImpl(window, inst, width, height)
 }

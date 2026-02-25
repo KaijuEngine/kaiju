@@ -132,16 +132,15 @@ func (c *CommandRecorder) Begin() {
 	}
 }
 
-func (c *CommandRecorder) Destroy(vr *Vulkan) {
+func (c *CommandRecorder) Destroy(device *GPUDevice) {
 	buff := c.buffer
-	inst := vr.app.FirstInstance()
-	vkDevice := vk.Device(inst.PrimaryDevice().LogicalDevice.handle)
+	vkDevice := vk.Device(device.LogicalDevice.handle)
 	vk.FreeCommandBuffers(vkDevice, c.pool, 1, &buff)
-	inst.dbg.remove(unsafe.Pointer(buff))
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(buff))
 	vk.DestroyCommandPool(vkDevice, c.pool, nil)
-	inst.dbg.remove(unsafe.Pointer(c.pool))
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(c.pool))
 	vk.DestroyFence(vkDevice, c.fence, nil)
-	inst.dbg.remove(unsafe.Pointer(c.fence))
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(c.fence))
 }
 
 func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {

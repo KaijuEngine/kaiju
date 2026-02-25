@@ -208,7 +208,7 @@ func NewRenderPassData(src string) (RenderPassData, error) {
 	return rp, err
 }
 
-func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
+func (d *RenderPassData) Compile(device *GPUDevice) RenderPassDataCompiled {
 	c := RenderPassDataCompiled{
 		Name:                   d.Name,
 		Sort:                   d.Sort,
@@ -223,8 +223,8 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	for i := range d.AttachmentDescriptions {
 		a := &c.AttachmentDescriptions[i]
 		b := &d.AttachmentDescriptions[i]
-		a.Format = b.FormatToVK(vr)
-		a.Samples = b.SamplesToVK(vr)
+		a.Format = b.FormatToVK(device)
+		a.Samples = b.SamplesToVK(&device.PhysicalDevice)
 		a.LoadOp = b.LoadOpToVK()
 		a.StoreOp = b.StoreOpToVK()
 		a.StencilLoadOp = b.StencilLoadOpToVK()
@@ -346,12 +346,12 @@ func (ai *RenderPassAttachmentImage) AccessToVK() GPUAccessFlags {
 	return accessFlagsToVK(ai.Access)
 }
 
-func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) GPUFormat {
-	return formatToVK(ad.Format, vr)
+func (ad *RenderPassAttachmentDescription) FormatToVK(device *GPUDevice) GPUFormat {
+	return formatToVK(ad.Format, device)
 }
 
-func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) GPUSampleCountFlags {
-	return sampleCountToVK(ad.Samples, vr)
+func (ad *RenderPassAttachmentDescription) SamplesToVK(device *GPUPhysicalDevice) GPUSampleCountFlags {
+	return sampleCountToVK(ad.Samples, device)
 }
 
 func (ad *RenderPassAttachmentDescription) LoadOpToVK() GPUAttachmentLoadOp {
@@ -415,12 +415,12 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 	return isDepth
 }
 
-func (r *RenderPassDataCompiled) ConstructRenderPass(inst *GPUApplicationInstance) (*RenderPass, bool) {
-	ld := inst.PrimaryDevice().LogicalDevice
+func (r *RenderPassDataCompiled) ConstructRenderPass(device *GPUDevice) (*RenderPass, bool) {
+	ld := device.LogicalDevice
 	if pass, ok := ld.renderPassCache[r.Name]; ok {
 		return pass, true
 	}
-	pass, err := NewRenderPass(inst, r)
+	pass, err := NewRenderPass(device, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
 		return nil, false

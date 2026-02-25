@@ -1,5 +1,9 @@
 package rendering
 
+const (
+	GPUWholeSize = (^uintptr(0))
+)
+
 func depthFormatCandidates() []GPUFormat {
 	return []GPUFormat{GPUFormatX8D24UnormPack32,
 		GPUFormatD24UnormS8Uint, GPUFormatD32Sfloat,

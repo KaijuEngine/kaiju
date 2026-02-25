@@ -46,16 +46,16 @@ import (
 )
 
 type MaterialCache struct {
-	renderer       Renderer
+	device         *GPUDevice
 	assetDatabase  assets.Database
 	materials      map[string]*Material
 	mutex          sync.Mutex
 	loadingPrepass bool
 }
 
-func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) MaterialCache {
+func NewMaterialCache(device *GPUDevice, assetDatabase assets.Database) MaterialCache {
 	return MaterialCache{
-		renderer:      renderer,
+		device:        device,
 		assetDatabase: assetDatabase,
 		materials:     make(map[string]*Material),
 	}
@@ -102,7 +102,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 			slog.Error("failed to read the material", "material", key, "error", err)
 			return nil, err
 		}
-		material, err := materialData.Compile(m.assetDatabase, m.renderer)
+		material, err := materialData.Compile(m.assetDatabase, m.device)
 		if err != nil {
 			slog.Error("failed to compile the material", "material", key, "error", err)
 			return nil, err
@@ -126,7 +126,7 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 func (m *MaterialCache) Destroy() {
 	defer tracing.NewRegion("MaterialCache.Destroy").End()
 	for _, mat := range m.materials {
-		mat.Destroy(m.renderer)
+		mat.Destroy(m.device)
 	}
 	m.materials = make(map[string]*Material)
 }

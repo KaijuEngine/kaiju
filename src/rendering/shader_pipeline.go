@@ -224,8 +224,7 @@ type ShaderPipelineColorBlendAttachmentsCompiled struct {
 	ColorWriteMask      vk.ColorComponentFlags
 }
 
-func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompiled {
-	vr := renderer.(*Vulkan)
+func (d *ShaderPipelineData) Compile(device *GPUPhysicalDevice) ShaderPipelineDataCompiled {
 	c := ShaderPipelineDataCompiled{
 		Name: d.Name,
 		InputAssembly: ShaderPipelineInputAssemblyCompiled{
@@ -245,7 +244,7 @@ func (d *ShaderPipelineData) Compile(renderer Renderer) ShaderPipelineDataCompil
 			LineWidth:               d.Rasterization.LineWidth,
 		},
 		Multisample: ShaderPipelinePipelineMultisampleCompiled{
-			RasterizationSamples:  vulkan_const.SampleCountFlagBits(d.Multisample.RasterizationSamplesToVK(vr).toVulkan()),
+			RasterizationSamples:  vulkan_const.SampleCountFlagBits(d.Multisample.RasterizationSamplesToVK(device).toVulkan()),
 			SampleShadingEnable:   boolToVkBool(d.Multisample.SampleShadingEnable),
 			MinSampleShading:      d.Multisample.MinSampleShading,
 			AlphaToCoverageEnable: boolToVkBool(d.Multisample.AlphaToCoverageEnable),
@@ -533,8 +532,8 @@ func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vulkan_const.Front
 	return vulkan_const.FrontFaceClockwise
 }
 
-func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK(vr *Vulkan) GPUSampleCountFlags {
-	return sampleCountToVK(s.RasterizationSamples, vr)
+func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK(device *GPUPhysicalDevice) GPUSampleCountFlags {
+	return sampleCountToVK(s.RasterizationSamples, device)
 }
 
 func (s *ShaderPipelineColorBlend) LogicOpToVK() vulkan_const.LogicOp {
@@ -606,14 +605,14 @@ func (s *ShaderPipelinePushConstant) ShaderStageFlagsToVK() vk.ShaderStageFlags 
 	return vk.ShaderStageFlags(mask)
 }
 
-func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
+func (s *ShaderPipelineDataCompiled) ConstructPipeline(device *GPUDevice, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool {
 	defer tracing.NewRegion("ShaderPipelineDataCompiled.ConstructPipeline").End()
-	vr := renderer.(*Vulkan)
+	pSetLayout := vk.DescriptorSetLayout(shader.RenderId.descriptorSetLayout.handle)
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:          vulkan_const.StructureTypePipelineLayoutCreateInfo,
 		Flags:          0, // PipelineLayoutCreateFlags
 		SetLayoutCount: 1,
-		PSetLayouts:    &shader.RenderId.descriptorSetLayout,
+		PSetLayouts:    &pSetLayout,
 	}
 	if s.PushConstant.Size > 0 {
 		pushRanges := [1]vk.PushConstantRange{{
@@ -624,15 +623,14 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		pipelineLayoutInfo.PushConstantRangeCount = 1
 		pipelineLayoutInfo.PPushConstantRanges = &pushRanges[0]
 	}
-	device := vr.app.FirstInstance().PrimaryDevice()
 	var pLayout vk.PipelineLayout
 	if vk.CreatePipelineLayout(vk.Device(device.LogicalDevice.handle), &pipelineLayoutInfo, nil, &pLayout) != vulkan_const.Success {
 		slog.Error("Failed to create pipeline layout")
 		return false
 	} else {
-		vr.app.Dbg().track(unsafe.Pointer(pLayout))
+		device.LogicalDevice.dbg.track(unsafe.Pointer(pLayout))
 	}
-	shader.RenderId.pipelineLayout = pLayout
+	shader.RenderId.pipelineLayout.handle = unsafe.Pointer(pLayout)
 	bDesc := vertexGetBindingDescription(shader)
 	bDescCount := uint32(len(bDesc))
 	for i := uint32(1); i < bDescCount; i++ {
@@ -744,7 +742,7 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		PMultisampleState:   &multisampling,
 		PColorBlendState:    &colorBlending,
 		PDynamicState:       &dynamicState,
-		Layout:              shader.RenderId.pipelineLayout,
+		Layout:              vk.PipelineLayout(shader.RenderId.pipelineLayout.handle),
 		RenderPass:          renderPass.Handle,
 		BasePipelineHandle:  vk.Pipeline(vk.NullHandle),
 		Subpass:             s.GraphicsPipeline.Subpass,
@@ -784,8 +782,8 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(renderer Renderer, shader
 		success = false
 		slog.Error("Failed to create graphics pipeline")
 	} else {
-		vr.app.Dbg().track(unsafe.Pointer(pipelines[0]))
+		device.LogicalDevice.dbg.track(unsafe.Pointer(pipelines[0]))
 	}
-	shader.RenderId.graphicsPipeline = pipelines[0]
+	shader.RenderId.graphicsPipeline.handle = unsafe.Pointer(pipelines[0])
 	return success
 }

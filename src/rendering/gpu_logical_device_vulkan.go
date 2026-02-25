@@ -8,6 +8,7 @@ import (
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"math"
+	"sort"
 	"unsafe"
 )
 
@@ -151,4 +152,129 @@ func (g *GPULogicalDevice) freeTextureImpl(texId *TextureId) {
 		g.dbg.remove(texId.Sampler.handle)
 		texId.Sampler.Reset()
 	}
+}
+
+func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
+	defer tracing.NewRegion("GPULogicalDevice.remakeSwapChainImpl").End()
+	oldSwapChain := g.SwapChain
+	g.SwapChain.Reset()
+	if oldSwapChain.IsValid() {
+		g.WaitForRender(device)
+		oldSwapChain.Destroy(device)
+		vkDevice := vk.Device(g.handle)
+		// Destroy the previous swap sync objects
+		for i := range len(g.SwapChain.Images) {
+			vk.DestroySemaphore(vkDevice, vk.Semaphore(g.imageSemaphores[i].handle), nil)
+			g.dbg.remove(g.imageSemaphores[i].handle)
+			vk.DestroyFence(vkDevice, vk.Fence(g.renderFences[i].handle), nil)
+			g.dbg.remove(g.renderFences[i].handle)
+		}
+		device.destroyGlobalUniforms()
+	}
+	defer oldSwapChain.Destroy(device)
+	device.CreateSwapChain(window, inst)
+	if !g.SwapChain.IsValid() {
+		return nil // TODO:  Is this correct?
+	}
+	slog.Info("recreated vulkan swap chain")
+	if err := g.SwapChain.SetupImageViews(device); err != nil {
+		return err
+	}
+	if err := g.SwapChain.CreateColor(device); err != nil {
+		return err
+	}
+	if err := g.SwapChain.CreateDepth(device); err != nil {
+		return err
+	}
+	if err := g.SwapChain.CreateFrameBuffer(device); err != nil {
+		return err
+	}
+	if err := device.createGlobalUniforms(); err != nil {
+		return err
+	}
+	g.createSyncObjects()
+	if err := device.LogicalDevice.RemakeSwapChain(window, inst, device); err != nil {
+		return err
+	}
+	passes := make([]*RenderPass, 0, len(g.renderPassCache))
+	for _, v := range g.renderPassCache {
+		passes = append(passes, v)
+	}
+	// We need to sort the passes because some passes require resources from
+	// others and need to be re-constructed afterwords
+	sort.Slice(passes, func(i, j int) bool {
+		return passes[i].construction.Sort < passes[j].construction.Sort
+	})
+	for i := range len(passes) {
+		if err := passes[i].Recontstruct(device); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (g *GPULogicalDevice) createSyncObjects() bool {
+	slog.Info("creating vulkan sync objects")
+	sInfo := vk.SemaphoreCreateInfo{
+		SType: vulkan_const.StructureTypeSemaphoreCreateInfo,
+	}
+	fInfo := vk.FenceCreateInfo{
+		SType: vulkan_const.StructureTypeFenceCreateInfo,
+		Flags: vk.FenceCreateFlags(vulkan_const.FenceCreateSignaledBit),
+	}
+	success := true
+	vkDevice := vk.Device(g.handle)
+	swapImgCount := len(g.SwapChain.Images)
+	for i := 0; i < swapImgCount && success; i++ {
+		var imgSemaphore vk.Semaphore
+		var rdrSemaphore vk.Semaphore
+		var fence vk.Fence
+		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success ||
+			vk.CreateSemaphore(vkDevice, &sInfo, nil, &rdrSemaphore) != vulkan_const.Success ||
+			vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
+			success = false
+			slog.Error("Failed to create semaphores")
+		} else {
+			g.dbg.track(unsafe.Pointer(imgSemaphore))
+			g.dbg.track(unsafe.Pointer(rdrSemaphore))
+			g.dbg.track(unsafe.Pointer(fence))
+		}
+		g.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
+		g.renderFences[i].handle = unsafe.Pointer(fence)
+	}
+	if success {
+		g.renderFinishedSemaphores = make([]GPUSemaphore, swapImgCount)
+		for i := range g.SwapChain.Images {
+			var finishedSemaphore vk.Semaphore
+			g.renderFinishedSemaphores[i].Reset()
+			if vk.CreateSemaphore(vk.Device(g.handle), &sInfo, nil, &finishedSemaphore) != vulkan_const.Success {
+				success = false
+				slog.Error("Failed to create render finished semaphores")
+			} else {
+				g.dbg.track(unsafe.Pointer(finishedSemaphore))
+				g.renderFinishedSemaphores[i].handle = unsafe.Pointer(finishedSemaphore)
+			}
+		}
+		if !success {
+			for i := range g.SwapChain.Images {
+				if g.renderFinishedSemaphores[i].IsValid() {
+					vk.DestroySemaphore(vkDevice, vk.Semaphore(g.renderFinishedSemaphores[i].handle), nil)
+					g.dbg.remove(g.renderFinishedSemaphores[i].handle)
+					g.renderFinishedSemaphores[i].Reset()
+				}
+			}
+			g.renderFinishedSemaphores = []GPUSemaphore{}
+		}
+	}
+	if !success {
+		for i := 0; i < swapImgCount && success; i++ {
+			vk.DestroySemaphore(vkDevice, vk.Semaphore(g.imageSemaphores[i].handle), nil)
+			g.dbg.remove(g.imageSemaphores[i].handle)
+			vk.DestroyFence(vkDevice, vk.Fence(g.renderFences[i].handle), nil)
+			g.dbg.remove(g.renderFences[i].handle)
+			g.imageSemaphores[i].Reset()
+			g.renderFences[i].Reset()
+		}
+	}
+	return success
 }

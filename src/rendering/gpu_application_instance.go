@@ -79,7 +79,7 @@ func (g *GPUApplicationInstance) SetupDebug() {
 	if build.Debug {
 		for i := range g.Devices {
 			if g.Devices[i].LogicalDevice.IsValid() {
-				g.Devices[i].LogicalDevice.SetupDebug(g)
+				g.Devices[i].LogicalDevice.SetupDebug(g.PrimaryDevice())
 			}
 		}
 	}

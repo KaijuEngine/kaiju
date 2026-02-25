@@ -1421,3 +1421,82 @@ func (g GPUAttachmentStoreOp) toVulkan() vulkan_const.AttachmentStoreOp {
 func (g *GPUAttachmentStoreOp) fromVulkan(from vulkan_const.AttachmentStoreOp) {
 	*g = gpuAttachmentStoreOpFromVulkan[from]
 }
+
+var (
+	gpuPipelineStageFlagBits = [...]GPUPipelineStageFlags{
+		GPUPipelineStageTopOfPipeBit,
+		GPUPipelineStageDrawIndirectBit,
+		GPUPipelineStageVertexInputBit,
+		GPUPipelineStageVertexShaderBit,
+		GPUPipelineStageTessellationControlShaderBit,
+		GPUPipelineStageTessellationEvaluationShaderBit,
+		GPUPipelineStageGeometryShaderBit,
+		GPUPipelineStageFragmentShaderBit,
+		GPUPipelineStageEarlyFragmentTestsBit,
+		GPUPipelineStageLateFragmentTestsBit,
+		GPUPipelineStageColorAttachmentOutputBit,
+		GPUPipelineStageComputeShaderBit,
+		GPUPipelineStageTransferBit,
+		GPUPipelineStageBottomOfPipeBit,
+		GPUPipelineStageHostBit,
+		GPUPipelineStageAllGraphicsBit,
+		GPUPipelineStageAllCommandsBit,
+		GPUPipelineStageTransformFeedbackBit,
+		GPUPipelineStageConditionalRenderingBit,
+		GPUPipelineStageCommandProcessBitNvx,
+		GPUPipelineStageShadingRateImageBitNv,
+		GPUPipelineStageRaytracingBitNvx,
+		GPUPipelineStageTaskShaderBitNv,
+		GPUPipelineStageMeshShaderBitNv,
+	}
+	vkPipelineStageFlagBits = [...]vulkan_const.PipelineStageFlagBits{
+		vulkan_const.PipelineStageTopOfPipeBit,
+		vulkan_const.PipelineStageDrawIndirectBit,
+		vulkan_const.PipelineStageVertexInputBit,
+		vulkan_const.PipelineStageVertexShaderBit,
+		vulkan_const.PipelineStageTessellationControlShaderBit,
+		vulkan_const.PipelineStageTessellationEvaluationShaderBit,
+		vulkan_const.PipelineStageGeometryShaderBit,
+		vulkan_const.PipelineStageFragmentShaderBit,
+		vulkan_const.PipelineStageEarlyFragmentTestsBit,
+		vulkan_const.PipelineStageLateFragmentTestsBit,
+		vulkan_const.PipelineStageColorAttachmentOutputBit,
+		vulkan_const.PipelineStageComputeShaderBit,
+		vulkan_const.PipelineStageTransferBit,
+		vulkan_const.PipelineStageBottomOfPipeBit,
+		vulkan_const.PipelineStageHostBit,
+		vulkan_const.PipelineStageAllGraphicsBit,
+		vulkan_const.PipelineStageAllCommandsBit,
+		vulkan_const.PipelineStageTransformFeedbackBit,
+		vulkan_const.PipelineStageConditionalRenderingBit,
+		vulkan_const.PipelineStageCommandProcessBitNvx,
+		vulkan_const.PipelineStageShadingRateImageBitNv,
+		vulkan_const.PipelineStageRaytracingBitNvx,
+		vulkan_const.PipelineStageTaskShaderBitNv,
+		vulkan_const.PipelineStageMeshShaderBitNv,
+	}
+	_ = [unsafe.Sizeof(gpuPipelineStageFlagBits)/unsafe.Sizeof(gpuPipelineStageFlagBits[0]) - unsafe.Sizeof(vkPipelineStageFlagBits)/unsafe.Sizeof(vkPipelineStageFlagBits[0])]struct{}{}
+)
+
+func (g *GPUPipelineStageFlags) fromVulkan(val vk.PipelineStageFlags) {
+	defer tracing.NewRegion("GPUAccessFlags.fromVulkan").End()
+	var flags GPUPipelineStageFlags
+	for i := range vkPipelineStageFlagBits {
+		if val&vk.PipelineStageFlags(vkPipelineStageFlagBits[i]) != 0 {
+			flags |= gpuPipelineStageFlagBits[i]
+		}
+	}
+	*g = flags
+}
+
+func (g GPUPipelineStageFlags) toVulkan() vk.PipelineStageFlags {
+	defer tracing.NewRegion("GPUAccessFlags.toVulkan").End()
+	val := g
+	var flags vk.PipelineStageFlags
+	for i := range gpuPipelineStageFlagBits {
+		if val&gpuPipelineStageFlagBits[i] != 0 {
+			flags |= vk.PipelineStageFlags(vkPipelineStageFlagBits[i])
+		}
+	}
+	return flags
+}

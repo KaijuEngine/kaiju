@@ -28,6 +28,7 @@ type GPUFilter uint8
 type GPUAccessFlags uint32
 type GPUAttachmentLoadOp uint8
 type GPUAttachmentStoreOp uint8
+type GPUPipelineStageFlags uint32
 
 type GPUHandle struct{ handle unsafe.Pointer }
 
@@ -36,12 +37,26 @@ func (g *GPUHandle) IsValid() bool              { return g.handle == nil }
 func (g *GPUHandle) HandleAddr() unsafe.Pointer { return unsafe.Pointer(&g.handle) }
 
 type GPUFence struct{ GPUHandle }
+type GPUQueue struct{ GPUHandle }
+type GPUSemaphore struct{ GPUHandle }
+type GPUDescriptorPool struct{ GPUHandle }
+type GPUDescriptorSet struct{ GPUHandle }
 type GPUImage struct{ GPUHandle }
 type GPUImageView struct{ GPUHandle }
 type GPUDeviceMemory struct{ GPUHandle }
 type GPUBuffer struct{ GPUHandle }
 type GPUSampler struct{ GPUHandle }
 type GPUFrameBuffer struct{ GPUHandle }
+type GPUPipeline struct{ GPUHandle }
+type GPUPipelineLayout struct{ GPUHandle }
+type GPUDescriptorSetLayout struct{ GPUHandle }
+type GPUShaderModule struct{ GPUHandle }
+
+type GPUDescriptorImageInfo struct {
+	Sampler     GPUSampler
+	ImageView   GPUImageView
+	ImageLayout GPUImageLayout
+}
 
 type GPUMemoryRequirements struct {
 	Size           uintptr
@@ -572,4 +587,31 @@ const (
 const (
 	GPUAttachmentStoreOpStore GPUAttachmentStoreOp = iota
 	GPUAttachmentStoreOpDontCare
+)
+
+const (
+	GPUPipelineStageTopOfPipeBit GPUPipelineStageFlags = (1 << iota)
+	GPUPipelineStageDrawIndirectBit
+	GPUPipelineStageVertexInputBit
+	GPUPipelineStageVertexShaderBit
+	GPUPipelineStageTessellationControlShaderBit
+	GPUPipelineStageTessellationEvaluationShaderBit
+	GPUPipelineStageGeometryShaderBit
+	GPUPipelineStageFragmentShaderBit
+	GPUPipelineStageEarlyFragmentTestsBit
+	GPUPipelineStageLateFragmentTestsBit
+	GPUPipelineStageColorAttachmentOutputBit
+	GPUPipelineStageComputeShaderBit
+	GPUPipelineStageTransferBit
+	GPUPipelineStageBottomOfPipeBit
+	GPUPipelineStageHostBit
+	GPUPipelineStageAllGraphicsBit
+	GPUPipelineStageAllCommandsBit
+	GPUPipelineStageTransformFeedbackBit
+	GPUPipelineStageConditionalRenderingBit
+	GPUPipelineStageCommandProcessBitNvx
+	GPUPipelineStageShadingRateImageBitNv
+	GPUPipelineStageRaytracingBitNvx
+	GPUPipelineStageTaskShaderBitNv
+	GPUPipelineStageMeshShaderBitNv
 )

@@ -38,7 +38,6 @@ package rendering
 
 import (
 	"slices"
-	"unsafe"
 
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
@@ -46,21 +45,21 @@ import (
 
 type bufferTrash struct {
 	delay         int
-	pool          vk.DescriptorPool
-	sets          [maxFramesInFlight]vk.DescriptorSet
-	buffers       [maxFramesInFlight]vk.Buffer
-	memories      [maxFramesInFlight]vk.DeviceMemory
-	namedBuffers  [maxFramesInFlight][]vk.Buffer
-	namedMemories [maxFramesInFlight][]vk.DeviceMemory
+	pool          GPUDescriptorPool
+	sets          [maxFramesInFlight]GPUDescriptorSet
+	buffers       [maxFramesInFlight]GPUBuffer
+	memories      [maxFramesInFlight]GPUDeviceMemory
+	namedBuffers  [maxFramesInFlight][]GPUBuffer
+	namedMemories [maxFramesInFlight][]GPUDeviceMemory
 }
 
 type bufferDestroyer struct {
-	device *GPULogicalDevice
+	device *GPUDevice
 	trash  []bufferTrash
 	dbg    *memoryDebugger
 }
 
-func newBufferDestroyer(device *GPULogicalDevice, dbg *memoryDebugger) bufferDestroyer {
+func newBufferDestroyer(device *GPUDevice, dbg *memoryDebugger) bufferDestroyer {
 	return bufferDestroyer{
 		device: device,
 		dbg:    dbg,
@@ -82,27 +81,30 @@ func (b *bufferDestroyer) Cycle() {
 	if len(b.trash) == 0 {
 		return
 	}
-	deviceHandle := vk.Device(b.device.handle)
+	deviceHandle := vk.Device(b.device.LogicalDevice.handle)
 	for i := len(b.trash) - 1; i >= 0; i-- {
 		pd := &b.trash[i]
 		pd.delay--
 		if pd.delay == 0 {
 			for j := range maxFramesInFlight {
-				vk.DestroyBuffer(deviceHandle, pd.buffers[j], nil)
-				b.dbg.remove(unsafe.Pointer(pd.buffers[j]))
-				vk.FreeMemory(deviceHandle, pd.memories[j], nil)
-				b.dbg.remove(unsafe.Pointer(pd.memories[j]))
+				b.device.DestroyBuffer(pd.buffers[j])
+				b.dbg.remove(pd.buffers[j].handle)
+				b.device.FreeMemory(pd.memories[j])
+				b.dbg.remove(pd.memories[j].handle)
 				for k := range pd.namedBuffers[j] {
-					vk.DestroyBuffer(deviceHandle, pd.namedBuffers[j][k], nil)
-					b.dbg.remove(unsafe.Pointer(pd.namedBuffers[j][k]))
-					vk.FreeMemory(deviceHandle, pd.namedMemories[j][k], nil)
-					b.dbg.remove(unsafe.Pointer(pd.namedMemories[j][k]))
+					b.device.DestroyBuffer(pd.namedBuffers[j][k])
+					b.dbg.remove(pd.namedBuffers[j][k].handle)
+					b.device.FreeMemory(pd.namedMemories[j][k])
+					b.dbg.remove(pd.namedMemories[j][k].handle)
 				}
 			}
-			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
+			if pd.pool.IsValid() {
 				// TODO:  This is temp to fix close crash
-				var tmp [maxFramesInFlight]vk.DescriptorSet = pd.sets
-				vk.FreeDescriptorSets(deviceHandle, pd.pool, uint32(len(pd.sets)), &tmp[0])
+				var tmp [maxFramesInFlight]vk.DescriptorSet
+				for j := range pd.sets {
+					tmp[j] = vk.DescriptorSet(pd.sets[j].handle)
+				}
+				vk.FreeDescriptorSets(deviceHandle, vk.DescriptorPool(pd.pool.handle), uint32(len(pd.sets)), &tmp[0])
 			}
 			// TODO:  Does this need to be ordered delete?
 			b.trash = slices.Delete(b.trash, i, i+1)

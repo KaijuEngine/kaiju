@@ -240,9 +240,9 @@ func (s *Shader) Reload(shaderData ShaderDataCompiled) {
 	s.DriverData = NewShaderDriverData()
 }
 
-func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase assets.Database) {
-	renderer.CreateShader(s, assetDatabase)
+func (s *Shader) DelayedCreate(device *GPUDevice, assetDatabase assets.Database) {
+	device.CreateShader(s, assetDatabase)
 	for _, ss := range s.subShaders {
-		renderer.CreateShader(ss, assetDatabase)
+		device.CreateShader(ss, assetDatabase)
 	}
 }

@@ -410,3 +410,16 @@ func isPhysicalDeviceBetterType(a GPUPhysicalDeviceType, b GPUPhysicalDeviceType
 	}
 	return aScore > bScore
 }
+
+func (g *GPUPhysicalDevice) FormatIsTileable(format GPUFormat, tiling GPUImageTiling) bool {
+	defer tracing.NewRegion("GPUPhysicalDevice.FormatIsTileable").End()
+	props := g.FormatProperties(format)
+	switch tiling {
+	case GPUImageTilingOptimal:
+		return (props.OptimalTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) != 0
+	case GPUImageTilingLinear:
+		return (props.LinearTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) != 0
+	default:
+		return false
+	}
+}
