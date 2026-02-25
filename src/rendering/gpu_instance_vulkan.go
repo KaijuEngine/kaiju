@@ -14,7 +14,7 @@ import (
 */
 import "C"
 
-func (g *GPUInstance) createImpl(window RenderingContainer, app *GPUApplication) error {
+func (g *GPUInstance) setupImpl(window RenderingContainer, app *GPUApplication) error {
 	extensions := gatherInstanceExtensions(window)
 	appName := C.CString(app.Name)
 	defer C.free(unsafe.Pointer(appName))

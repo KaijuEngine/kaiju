@@ -9,16 +9,15 @@ import (
 
 type GPULogicalDevice struct {
 	GPUHandle
-	graphicsQueue            unsafe.Pointer
-	computeQueue             unsafe.Pointer
-	presentQueue             unsafe.Pointer
-	SwapChain                GPUSwapChain
-	bufferTrash              bufferDestroyer
-	dbg                      *memoryDebugger
-	renderPassCache          map[string]*RenderPass
-	imageSemaphores          [maxFramesInFlight]GPUSemaphore
-	renderFences             [maxFramesInFlight]GPUFence
-	renderFinishedSemaphores []GPUSemaphore
+	graphicsQueue   unsafe.Pointer
+	computeQueue    unsafe.Pointer
+	presentQueue    unsafe.Pointer
+	SwapChain       GPUSwapChain
+	bufferTrash     bufferDestroyer
+	dbg             *memoryDebugger
+	renderPassCache map[string]*RenderPass
+	imageSemaphores [maxFramesInFlight]GPUSemaphore
+	renderFences    [maxFramesInFlight]GPUFence
 }
 
 type GPUImageCreateRequest struct {
@@ -104,4 +103,19 @@ func (g *GPULogicalDevice) DestroyGroup(group *DrawInstanceGroup) {
 	}
 	clear(group.boundBuffers)
 	g.bufferTrash.Add(pd)
+}
+
+func (g *GPULogicalDevice) DestroySemaphore(semaphore *GPUSemaphore) {
+	defer tracing.NewRegion("GPULogicalDevice.DestroySemaphore").End()
+	g.destroySemaphoreImpl(semaphore)
+}
+
+func (g *GPULogicalDevice) DestroyFence(fence *GPUFence) {
+	defer tracing.NewRegion("GPULogicalDevice.DestroyFence").End()
+	g.destroyFenceImpl(fence)
+}
+
+func (g *GPULogicalDevice) Destroy() {
+	defer tracing.NewRegion("GPULogicalDevice.Destroy").End()
+	g.destroyImpl()
 }

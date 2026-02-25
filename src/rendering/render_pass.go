@@ -38,6 +38,7 @@ package rendering
 
 import (
 	"encoding/json"
+	"errors"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
@@ -415,15 +416,15 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 	return isDepth
 }
 
-func (r *RenderPassDataCompiled) ConstructRenderPass(device *GPUDevice) (*RenderPass, bool) {
+func (r *RenderPassDataCompiled) ConstructRenderPass(device *GPUDevice) (*RenderPass, error) {
 	ld := device.LogicalDevice
 	if pass, ok := ld.renderPassCache[r.Name]; ok {
-		return pass, true
+		return pass, errors.New("the render pass already exists in the cache")
 	}
 	pass, err := NewRenderPass(device, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
-		return nil, false
+		return nil, err
 	}
-	return pass, true
+	return pass, nil
 }

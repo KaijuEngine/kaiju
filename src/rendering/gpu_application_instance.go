@@ -3,7 +3,10 @@ package rendering
 import (
 	"errors"
 	"kaiju/build"
+	"kaiju/engine/assets"
 	"kaiju/platform/profiler/tracing"
+	vk "kaiju/rendering/vulkan"
+	"runtime"
 )
 
 type GPUApplicationInstance struct {
@@ -31,10 +34,10 @@ func (g *GPUApplicationInstance) PhysicalDevice() *GPUPhysicalDevice {
 	return &g.PrimaryDevice().PhysicalDevice
 }
 
-func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUApplication) error {
+func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUApplication, assets assets.Database) error {
 	defer tracing.NewRegion("GPUApplicationInstance.Initialize").End()
 	g.dbg = &memoryDebugger{}
-	if err := g.Create(window, app); err != nil {
+	if err := g.Setup(window, app); err != nil {
 		return err
 	}
 	g.dbg.track(g.handle)
@@ -45,16 +48,120 @@ func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUA
 	if err := g.SelectPhysicalDevice(nil); err != nil {
 		return err
 	}
+
+	if err := g.SetupLogicalDevice(0); err != nil {
+		return err
+	}
+	g.SetupDebug()
+	device := g.PrimaryDevice()
+	if err := device.CreateSwapChain(window, g); err != nil {
+		return err
+	}
+	swapChain := &device.LogicalDevice.SwapChain
+	if err := swapChain.SetupImageViews(device); err != nil {
+		return err
+	}
+	if err := swapChain.SetupRenderPass(device, assets); err != nil {
+		return err
+	}
+	if err := swapChain.CreateColor(device); err != nil {
+		return err
+	}
+	if err := swapChain.CreateDepth(device); err != nil {
+		return err
+	}
+	if err := swapChain.CreateFrameBuffer(device); err != nil {
+		return err
+	}
+	if err := device.createGlobalUniforms(); err != nil {
+		return err
+	}
+	if err := device.createDescriptorPool(1000); err != nil {
+		return err
+	}
+	if err := swapChain.SetupSyncObjects(device); err != nil {
+		return err
+	}
+	var err error
+	for i := range len(device.Painter.combineCmds) {
+		if device.Painter.combineCmds[i], err = NewCommandRecorder(device); err != nil {
+			return err
+		}
+	}
+	for i := range len(device.Painter.blitCmds) {
+		if device.Painter.blitCmds[i], err = NewCommandRecorder(device); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
+func (g *GPUApplicationInstance) SetupCaches(caches RenderCaches, width, height int32) error {
+	defer tracing.NewRegion("GPUApplicationInstance.SetupCaches").End()
+	device := g.PrimaryDevice()
+	device.Painter.caches = caches
+	var err error
+	device.Painter.fallbackShadowMap, err = caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
+	if err != nil {
+		return err
+	}
+	device.Painter.fallbackCubeShadowMap, err = caches.TextureCache().Texture(assets.TextureCube, TextureFilterLinear)
+	if err != nil {
+		return err
+	}
+	device.Painter.fallbackCubeShadowMap.SetPendingDataDimensions(TextureDimensionsCube)
+	caches.TextureCache().CreatePending()
+	return err
+}
+
 func (g *GPUApplicationInstance) Destroy() {
+	defer tracing.NewRegion("GPUApplicationInstance.Destroy").End()
 	g.Surface.Destroy(g)
 	g.GPUInstance.Destroy()
 	g.dbg.remove(g.handle)
+	for i := range g.Devices {
+		device := &g.Devices[i]
+		if !device.LogicalDevice.IsValid() {
+			continue
+		}
+		device.LogicalDevice.WaitForRender(device)
+		device.Painter.combinedDrawings.Destroy(device)
+		device.LogicalDevice.bufferTrash.Purge()
+		for k := range device.LogicalDevice.renderPassCache {
+			device.LogicalDevice.renderPassCache[k].Destroy(device)
+		}
+		device.LogicalDevice.renderPassCache = make(map[string]*RenderPass)
+		runtime.GC()
+		for i := range device.Painter.preRuns {
+			if device.Painter.preRuns[i] != nil {
+				device.Painter.preRuns[i]()
+			}
+		}
+		device.Painter.preRuns = make([]func(), 0)
+		device.Painter.caches = nil
+		for i := range device.Painter.combineCmds {
+			device.Painter.combineCmds[i].Destroy(device)
+		}
+		for i := range device.Painter.blitCmds {
+			device.Painter.blitCmds[i].Destroy(device)
+		}
+		device.singleTimeCommandPool.All(func(elm *CommandRecorder) {
+			if elm.buffer != vk.NullCommandBuffer {
+				elm.Destroy(device)
+			}
+		})
+		device.LogicalDevice.SwapChain.Destroy(device)
+		device.destroyGlobalUniforms()
+		device.Painter.DestroyDescriptorPools(device)
+		device.LogicalDevice.SwapChain.renderPass.Destroy(device)
+		device.LogicalDevice.Destroy()
+		g.dbg.print()
+	}
 }
 
 func (g *GPUApplicationInstance) SelectPhysicalDevice(method func(options []GPUPhysicalDevice) int) error {
+	defer tracing.NewRegion("GPUApplicationInstance.SelectPhysicalDevice").End()
 	devices, err := ListPhysicalGpuDevices(g)
 	if err != nil {
 		return err

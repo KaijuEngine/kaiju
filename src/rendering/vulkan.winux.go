@@ -58,7 +58,7 @@ func vkDeviceExtensions() []string {
 	return []string{}
 }
 
-func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
+func preTransform(scs GPUSwapChainSupportDetails) GPUSurfaceTransformFlags {
 	return scs.capabilities.CurrentTransform
 }
 

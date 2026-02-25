@@ -140,7 +140,7 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 	}
 	adb.PostWindowCreate(w)
 	var err error
-	if w.GpuInstance, err = w.GpuHost.CreateInstance(w); err != nil {
+	if w.GpuInstance, err = w.GpuHost.CreateInstance(w, adb); err != nil {
 		return w, err
 	}
 	w.x, w.y = w.position()

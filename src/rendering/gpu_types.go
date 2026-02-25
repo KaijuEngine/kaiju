@@ -5,6 +5,7 @@ import (
 	"unsafe"
 )
 
+type GPUResult int32
 type GPUFormat int32
 type GPUColorSpace int32
 type GPUPresentMode int32
@@ -103,6 +104,39 @@ type GPUMemoryHeap struct {
 	Size  uintptr
 	Flags GPUMemoryHeapFlags
 }
+
+const (
+	GPUSuccess = iota
+	GPUNotReady
+	GPUTimeout
+	GPUEventSet
+	GPUEventReset
+	GPUIncomplete
+	GPUErrorOutOfHostMemory
+	GPUErrorOutOfDeviceMemory
+	GPUErrorInitializationFailed
+	GPUErrorDeviceLost
+	GPUErrorMemoryMapFailed
+	GPUErrorLayerNotPresent
+	GPUErrorExtensionNotPresent
+	GPUErrorFeatureNotPresent
+	GPUErrorIncompatibleDriver
+	GPUErrorTooManyObjects
+	GPUErrorFormatNotSupported
+	GPUErrorFragmentedPool
+	GPUErrorOutOfPoolMemory
+	GPUErrorInvalidExternalHandle
+	GPUErrorSurfaceLost
+	GPUErrorNativeWindowInUse
+	GPUSuboptimal
+	GPUErrorOutOfDate
+	GPUErrorIncompatibleDisplay
+	GPUErrorValidationFailed
+	GPUErrorInvalidShaderNv
+	GPUErrorInvalidDrmFormatModifierPlaneLayout
+	GPUErrorFragmentation
+	GPUErrorNotPermitted
+)
 
 const (
 	GPUFormatUndefined GPUFormat = iota

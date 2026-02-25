@@ -153,6 +153,11 @@ func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
 	defer tracing.NewRegion("GPUSwapChain.destroyImpl").End()
 	vkDevice := vk.Device(device.LogicalDevice.handle)
 	dbg := device.LogicalDevice.dbg
+	for i := range g.Images {
+		vk.DestroySemaphore(vkDevice, vk.Semaphore(g.renderFinishedSemaphores[i].handle), nil)
+		dbg.remove(g.renderFinishedSemaphores[i].handle)
+	}
+	g.renderFinishedSemaphores = []GPUSemaphore{}
 	for i := range g.FrameBuffers {
 		vk.DestroyFramebuffer(vkDevice, vk.Framebuffer(g.FrameBuffers[i].handle), nil)
 		dbg.remove(g.FrameBuffers[i].handle)
@@ -178,5 +183,54 @@ func (g *GPUSwapChain) createFrameBufferImpl(device *GPUDevice) error {
 			g.renderPass, attachments,
 			g.Extent.Width(), g.Extent.Height())
 	}
+	return err
+}
+
+func (g *GPUSwapChain) setupSyncObjectsImpl(device *GPUDevice) error {
+	defer tracing.NewRegion("GPUSwapChain.setupSyncObjectsImpl")
+	var err error
+	dbg := device.LogicalDevice.dbg
+	sInfo := vk.SemaphoreCreateInfo{
+		SType: vulkan_const.StructureTypeSemaphoreCreateInfo,
+	}
+	fInfo := vk.FenceCreateInfo{
+		SType: vulkan_const.StructureTypeFenceCreateInfo,
+		Flags: vk.FenceCreateFlags(vulkan_const.FenceCreateSignaledBit),
+	}
+	vkDevice := vk.Device(g.handle)
+	swapImgCount := len(g.Images)
+	for i := range swapImgCount {
+		var imgSemaphore vk.Semaphore
+		var rdrSemaphore vk.Semaphore
+		var fence vk.Fence
+		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success || vk.CreateSemaphore(vkDevice, &sInfo, nil, &rdrSemaphore) != vulkan_const.Success || vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
+			slog.Error("Failed to create semaphores")
+			return errors.New("failed to create semaphores")
+		}
+		dbg.track(unsafe.Pointer(imgSemaphore))
+		dbg.track(unsafe.Pointer(rdrSemaphore))
+		dbg.track(unsafe.Pointer(fence))
+		device.LogicalDevice.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
+		device.LogicalDevice.renderFences[i].handle = unsafe.Pointer(fence)
+	}
+	g.renderFinishedSemaphores = make([]GPUSemaphore, len(g.Images))
+	for i := range g.Images {
+		var finishedSemaphore vk.Semaphore
+		g.renderFinishedSemaphores[i].Reset()
+		if vk.CreateSemaphore(vk.Device(g.handle), &sInfo, nil, &finishedSemaphore) != vulkan_const.Success {
+			slog.Error("Failed to create render finished semaphores")
+			return errors.New("failed to create render finished semaphores")
+		}
+		dbg.track(unsafe.Pointer(finishedSemaphore))
+		g.renderFinishedSemaphores[i].handle = unsafe.Pointer(finishedSemaphore)
+	}
+	for i := range g.Images {
+		if g.renderFinishedSemaphores[i].IsValid() {
+			vk.DestroySemaphore(vk.Device(device.LogicalDevice.handle), vk.Semaphore(g.renderFinishedSemaphores[i].handle), nil)
+			dbg.remove(g.renderFinishedSemaphores[i].handle)
+			g.renderFinishedSemaphores[i].Reset()
+		}
+	}
+	g.renderFinishedSemaphores = []GPUSemaphore{}
 	return err
 }

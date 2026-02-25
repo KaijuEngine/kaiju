@@ -314,7 +314,7 @@ func (l *Light) setupRenderPass(assets assets.Database) {
 	lp := l.device.LogicalDevice
 	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
 		rpc := rp.Compile(l.device)
-		if p, ok := rpc.ConstructRenderPass(l.device); ok {
+		if p, err := rpc.ConstructRenderPass(l.device); err == nil {
 			lp.renderPassCache[rp.Name] = p
 			l.renderPass = p
 		} else {

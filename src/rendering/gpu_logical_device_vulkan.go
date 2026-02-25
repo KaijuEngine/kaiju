@@ -192,7 +192,7 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 	if err := device.createGlobalUniforms(); err != nil {
 		return err
 	}
-	g.createSyncObjects()
+	g.SwapChain.SetupSyncObjects(device)
 	if err := device.LogicalDevice.RemakeSwapChain(window, inst, device); err != nil {
 		return err
 	}
@@ -213,68 +213,20 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 	return nil
 }
 
-func (g *GPULogicalDevice) createSyncObjects() bool {
-	slog.Info("creating vulkan sync objects")
-	sInfo := vk.SemaphoreCreateInfo{
-		SType: vulkan_const.StructureTypeSemaphoreCreateInfo,
-	}
-	fInfo := vk.FenceCreateInfo{
-		SType: vulkan_const.StructureTypeFenceCreateInfo,
-		Flags: vk.FenceCreateFlags(vulkan_const.FenceCreateSignaledBit),
-	}
-	success := true
-	vkDevice := vk.Device(g.handle)
-	swapImgCount := len(g.SwapChain.Images)
-	for i := 0; i < swapImgCount && success; i++ {
-		var imgSemaphore vk.Semaphore
-		var rdrSemaphore vk.Semaphore
-		var fence vk.Fence
-		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success ||
-			vk.CreateSemaphore(vkDevice, &sInfo, nil, &rdrSemaphore) != vulkan_const.Success ||
-			vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
-			success = false
-			slog.Error("Failed to create semaphores")
-		} else {
-			g.dbg.track(unsafe.Pointer(imgSemaphore))
-			g.dbg.track(unsafe.Pointer(rdrSemaphore))
-			g.dbg.track(unsafe.Pointer(fence))
-		}
-		g.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
-		g.renderFences[i].handle = unsafe.Pointer(fence)
-	}
-	if success {
-		g.renderFinishedSemaphores = make([]GPUSemaphore, swapImgCount)
-		for i := range g.SwapChain.Images {
-			var finishedSemaphore vk.Semaphore
-			g.renderFinishedSemaphores[i].Reset()
-			if vk.CreateSemaphore(vk.Device(g.handle), &sInfo, nil, &finishedSemaphore) != vulkan_const.Success {
-				success = false
-				slog.Error("Failed to create render finished semaphores")
-			} else {
-				g.dbg.track(unsafe.Pointer(finishedSemaphore))
-				g.renderFinishedSemaphores[i].handle = unsafe.Pointer(finishedSemaphore)
-			}
-		}
-		if !success {
-			for i := range g.SwapChain.Images {
-				if g.renderFinishedSemaphores[i].IsValid() {
-					vk.DestroySemaphore(vkDevice, vk.Semaphore(g.renderFinishedSemaphores[i].handle), nil)
-					g.dbg.remove(g.renderFinishedSemaphores[i].handle)
-					g.renderFinishedSemaphores[i].Reset()
-				}
-			}
-			g.renderFinishedSemaphores = []GPUSemaphore{}
-		}
-	}
-	if !success {
-		for i := 0; i < swapImgCount && success; i++ {
-			vk.DestroySemaphore(vkDevice, vk.Semaphore(g.imageSemaphores[i].handle), nil)
-			g.dbg.remove(g.imageSemaphores[i].handle)
-			vk.DestroyFence(vkDevice, vk.Fence(g.renderFences[i].handle), nil)
-			g.dbg.remove(g.renderFences[i].handle)
-			g.imageSemaphores[i].Reset()
-			g.renderFences[i].Reset()
-		}
-	}
-	return success
+func (g *GPULogicalDevice) destroySemaphoreImpl(semaphore *GPUSemaphore) {
+	defer tracing.NewRegion("GPULogicalDevice.destroySemaphoreImpl").End()
+	vk.DestroySemaphore(vk.Device(g.handle), vk.Semaphore(semaphore.handle), nil)
+	semaphore.Reset()
+}
+
+func (g *GPULogicalDevice) destroyFenceImpl(fence *GPUFence) {
+	defer tracing.NewRegion("GPULogicalDevice.destroyFenceImpl").End()
+	vk.DestroyFence(vk.Device(g.handle), vk.Fence(fence.handle), nil)
+	fence.Reset()
+}
+
+func (g *GPULogicalDevice) destroyImpl() {
+	defer tracing.NewRegion("GPULogicalDevice.Destroy").End()
+	vk.DestroyDevice(vk.Device(g.handle), nil)
+	g.dbg.remove(g.handle)
 }

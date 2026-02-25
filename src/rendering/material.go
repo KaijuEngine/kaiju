@@ -166,7 +166,7 @@ func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, cop
 	lp := device.LogicalDevice
 	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
 		rpc := rp.Compile(device)
-		if p, ok := rpc.ConstructRenderPass(device); ok {
+		if p, err := rpc.ConstructRenderPass(device); err == nil {
 			lp.renderPassCache[rp.Name] = p
 			c.renderPass = p
 		} else {

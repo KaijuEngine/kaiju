@@ -57,8 +57,8 @@ func (vr *Vulkan) createSurface(window RenderingContainer) bool {
 	return result == vulkan_const.Success
 }
 
-func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
-	return vulkan_const.SurfaceTransformIdentityBit
+func preTransform(scs GPUSwapChainSupportDetails) GPUSurfaceTransformFlags {
+	return GPUSurfaceTransformIdentityBit
 }
 
 func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {

@@ -3,10 +3,13 @@ package rendering
 import (
 	"errors"
 	"fmt"
+	"kaiju/engine/cameras"
+	"kaiju/klib"
 	"kaiju/platform/profiler/tracing"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
+	"math"
 	"unsafe"
 )
 
@@ -278,7 +281,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	}
 	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)}
 	signalSemaphores := [...]vk.Semaphore{
-		vk.Semaphore(g.LogicalDevice.renderFinishedSemaphores[g.Painter.imageIndex[g.Painter.currentFrame]].handle),
+		vk.Semaphore(g.LogicalDevice.SwapChain.renderFinishedSemaphores[g.Painter.imageIndex[g.Painter.currentFrame]].handle),
 	}
 	// TODO:  Make this better when adding more stages, this is just for shadows
 	// at the moment
@@ -338,12 +341,51 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	presentInfo.PResults = nil // Optional
 	vk.QueuePresent(vk.Queue(g.Painter.presentQueue.handle), &presentInfo)
 	qPresent.End()
-	if g.Painter.acquireImageResult == vulkan_const.ErrorOutOfDate || g.Painter.acquireImageResult == vulkan_const.Suboptimal {
+	if g.Painter.acquireImageResult == GPUErrorOutOfDate || g.Painter.acquireImageResult == GPUSuboptimal {
 		g.LogicalDevice.RemakeSwapChain(window, inst, g)
-	} else if g.Painter.acquireImageResult != vulkan_const.Success {
+	} else if g.Painter.acquireImageResult != GPUSuccess {
 		slog.Error("Failed to present swap chain image")
 		return false
 	}
 	g.Painter.currentFrame = (g.Painter.currentFrame + 1) % int(len(g.LogicalDevice.SwapChain.Images))
+	return true
+}
+
+func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool {
+	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
+	painter := &g.Painter
+	ld := &g.LogicalDevice
+	fences := [...]GPUFence{ld.renderFences[painter.currentFrame]}
+	ld.WaitForFences(fences[:])
+	frame := painter.currentFrame
+	res := vk.AcquireNextImage(vk.Device(ld.handle),
+		vk.Swapchain(ld.SwapChain.handle),
+		math.MaxUint64, vk.Semaphore(ld.imageSemaphores[frame].handle),
+		vk.Fence(vk.NullHandle), &painter.imageIndex[frame])
+	painter.acquireImageResult.fromVulkan(res)
+	if painter.acquireImageResult == GPUErrorOutOfDate {
+		ld.RemakeSwapChain(window, inst, g)
+		return false
+	} else if painter.acquireImageResult != GPUSuccess {
+		slog.Error("Failed to present swap chain image")
+		if ld.SwapChain.IsValid() {
+			// TODO:  This is a bit strange...
+			ld.SwapChain.Destroy(g)
+			slog.Error("There is a swap chain, but no swap chain is expected at this point")
+		}
+		return false
+	}
+	vkFences := [...]vk.Fence{vk.Fence(fences[0].handle)}
+	vk.ResetFences(vk.Device(ld.handle), 1, &vkFences[0])
+	ld.bufferTrash.Cycle()
+	err := g.updateGlobalUniformBuffer(camera, uiCamera, lights, runtime)
+	if err != nil {
+		return false
+	}
+	for _, r := range painter.preRuns {
+		r()
+	}
+	painter.preRuns = klib.WipeSlice(painter.preRuns)
+	painter.executeCompute(g)
 	return true
 }

@@ -225,7 +225,7 @@ func (host *Host) StartPhysics() {
 
 func (host *Host) InitializeRenderer() error {
 	w, h := int32(host.Window.Width()), int32(host.Window.Height())
-	if err := host.Window.GpuHost.Initialize(host, w, h); err != nil {
+	if err := host.Window.GpuInstance.SetupCaches(host, w, h); err != nil {
 		slog.Error("failed to initialize the renderer", "error", err)
 		return err
 	}
@@ -408,7 +408,7 @@ func (host *Host) Render() {
 		}
 		host.lighting.Update(host.PrimaryCamera().Position())
 		gpuInstance := host.Window.GpuInstance
-		if gpuInstance.ReadyFrame(host.Window,
+		if gpuInstance.PrimaryDevice().ReadyFrame(gpuInstance, host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
 			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)

@@ -1,6 +1,9 @@
 package rendering
 
-import "log/slog"
+import (
+	"kaiju/engine/assets"
+	"log/slog"
+)
 
 const (
 	engineVersionMajor = int(1)
@@ -9,13 +12,20 @@ const (
 )
 
 type GPUApplication struct {
-	Name    string
-	Version struct {
-		Major int
-		Minor int
-		Patch int
-	}
+	Name      string
+	Version   GPUApplicationVersion
 	Instances []*GPUApplicationInstance
+}
+
+type GPUApplicationVersion struct {
+	Major int
+	Minor int
+	Patch int
+}
+
+func (g *GPUApplication) Setup(name string, version GPUApplicationVersion) {
+	g.Name = name
+	g.Version = version
 }
 
 func (g *GPUApplication) IsValid() bool { return len(g.Instances) > 0 }
@@ -45,9 +55,9 @@ func (g *GPUApplication) EngineVersion() (major int, minor int, patch int) {
 	return engineVersionMajor, engineVersionMinor, engineVersionPatch
 }
 
-func (g *GPUApplication) CreateInstance(window RenderingContainer) (*GPUApplicationInstance, error) {
+func (g *GPUApplication) CreateInstance(window RenderingContainer, assets assets.Database) (*GPUApplicationInstance, error) {
 	g.Instances = append(g.Instances, &GPUApplicationInstance{})
-	if err := g.Instances[len(g.Instances)-1].Initialize(window, g); err != nil {
+	if err := g.Instances[len(g.Instances)-1].Initialize(window, g, assets); err != nil {
 		return nil, err
 	}
 	return g.Instances[len(g.Instances)-1], nil

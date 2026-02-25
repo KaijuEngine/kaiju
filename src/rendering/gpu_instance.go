@@ -12,10 +12,10 @@ type GPUInstance struct {
 
 func (g *GPUInstance) IsValid() bool { return g.handle != nil }
 
-func (g *GPUInstance) Create(window RenderingContainer, app *GPUApplication) error {
+func (g *GPUInstance) Setup(window RenderingContainer, app *GPUApplication) error {
 	defer tracing.NewRegion("GPUInstance.Create").End()
 	slog.Info("creating kaiju gpu instance")
-	return g.createImpl(window, app)
+	return g.setupImpl(window, app)
 }
 
 func (g *GPUInstance) Destroy() {

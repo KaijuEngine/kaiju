@@ -10,12 +10,13 @@ import (
 
 type GPUSwapChain struct {
 	GPUHandle
-	Images       []TextureId
-	Extent       matrix.Vec2i
-	Depth        TextureId
-	Color        TextureId
-	FrameBuffers []GPUFrameBuffer
-	renderPass   *RenderPass
+	Images                   []TextureId
+	Extent                   matrix.Vec2i
+	Depth                    TextureId
+	Color                    TextureId
+	FrameBuffers             []GPUFrameBuffer
+	renderPass               *RenderPass
+	renderFinishedSemaphores []GPUSemaphore
 }
 
 func (g *GPUSwapChain) Setup(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
@@ -103,21 +104,38 @@ func (g *GPUSwapChain) SelectExtent(window RenderingContainer, device *GPUPhysic
 	}
 }
 
-func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database) bool {
+func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database) error {
 	slog.Info("creating vulkan swap chain render pass")
 	rpSpec, err := assets.ReadText("swapchain.renderpass")
 	if err != nil {
-		return false
+		return err
 	}
 	rp, err := NewRenderPassData(rpSpec)
 	if err != nil {
-		return false
+		return err
 	}
 	compiled := rp.Compile(device)
-	p, ok := compiled.ConstructRenderPass(device)
-	if !ok {
-		return false
+	p, err := compiled.ConstructRenderPass(device)
+	if err != nil {
+		return err
 	}
 	g.renderPass = p
-	return true
+	return nil
+}
+
+func (g *GPUSwapChain) SetupSyncObjects(device *GPUDevice) error {
+	defer tracing.NewRegion("GPUSwapChain.SetupSyncObjects")
+	err := g.setupSyncObjectsImpl(device)
+	if err != nil {
+		ld := device.LogicalDevice
+		for i := range len(g.Images) {
+			ld.DestroySemaphore(&ld.imageSemaphores[i])
+			ld.dbg.remove(ld.imageSemaphores[i].handle)
+			ld.DestroyFence(&ld.renderFences[i])
+			ld.dbg.remove(ld.renderFences[i].handle)
+			ld.imageSemaphores[i].Reset()
+			ld.renderFences[i].Reset()
+		}
+	}
+	return err
 }

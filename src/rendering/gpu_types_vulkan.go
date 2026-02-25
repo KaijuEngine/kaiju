@@ -9,6 +9,81 @@ import (
 )
 
 var (
+	gpuResultToVulkan = map[GPUResult]vulkan_const.Result{
+		GPUSuccess:                                  vulkan_const.Success,
+		GPUNotReady:                                 vulkan_const.NotReady,
+		GPUTimeout:                                  vulkan_const.Timeout,
+		GPUEventSet:                                 vulkan_const.EventSet,
+		GPUEventReset:                               vulkan_const.EventReset,
+		GPUIncomplete:                               vulkan_const.Incomplete,
+		GPUErrorOutOfHostMemory:                     vulkan_const.ErrorOutOfHostMemory,
+		GPUErrorOutOfDeviceMemory:                   vulkan_const.ErrorOutOfDeviceMemory,
+		GPUErrorInitializationFailed:                vulkan_const.ErrorInitializationFailed,
+		GPUErrorDeviceLost:                          vulkan_const.ErrorDeviceLost,
+		GPUErrorMemoryMapFailed:                     vulkan_const.ErrorMemoryMapFailed,
+		GPUErrorLayerNotPresent:                     vulkan_const.ErrorLayerNotPresent,
+		GPUErrorExtensionNotPresent:                 vulkan_const.ErrorExtensionNotPresent,
+		GPUErrorFeatureNotPresent:                   vulkan_const.ErrorFeatureNotPresent,
+		GPUErrorIncompatibleDriver:                  vulkan_const.ErrorIncompatibleDriver,
+		GPUErrorTooManyObjects:                      vulkan_const.ErrorTooManyObjects,
+		GPUErrorFormatNotSupported:                  vulkan_const.ErrorFormatNotSupported,
+		GPUErrorFragmentedPool:                      vulkan_const.ErrorFragmentedPool,
+		GPUErrorOutOfPoolMemory:                     vulkan_const.ErrorOutOfPoolMemory,
+		GPUErrorInvalidExternalHandle:               vulkan_const.ErrorInvalidExternalHandle,
+		GPUErrorSurfaceLost:                         vulkan_const.ErrorSurfaceLost,
+		GPUErrorNativeWindowInUse:                   vulkan_const.ErrorNativeWindowInUse,
+		GPUSuboptimal:                               vulkan_const.Suboptimal,
+		GPUErrorOutOfDate:                           vulkan_const.ErrorOutOfDate,
+		GPUErrorIncompatibleDisplay:                 vulkan_const.ErrorIncompatibleDisplay,
+		GPUErrorValidationFailed:                    vulkan_const.ErrorValidationFailed,
+		GPUErrorInvalidShaderNv:                     vulkan_const.ErrorInvalidShaderNv,
+		GPUErrorInvalidDrmFormatModifierPlaneLayout: vulkan_const.ErrorInvalidDrmFormatModifierPlaneLayout,
+		GPUErrorFragmentation:                       vulkan_const.ErrorFragmentation,
+		GPUErrorNotPermitted:                        vulkan_const.ErrorNotPermitted,
+	}
+	gpuResultFromVulkan = map[vulkan_const.Result]GPUResult{
+		vulkan_const.Success:                                  GPUSuccess,
+		vulkan_const.NotReady:                                 GPUNotReady,
+		vulkan_const.Timeout:                                  GPUTimeout,
+		vulkan_const.EventSet:                                 GPUEventSet,
+		vulkan_const.EventReset:                               GPUEventReset,
+		vulkan_const.Incomplete:                               GPUIncomplete,
+		vulkan_const.ErrorOutOfHostMemory:                     GPUErrorOutOfHostMemory,
+		vulkan_const.ErrorOutOfDeviceMemory:                   GPUErrorOutOfDeviceMemory,
+		vulkan_const.ErrorInitializationFailed:                GPUErrorInitializationFailed,
+		vulkan_const.ErrorDeviceLost:                          GPUErrorDeviceLost,
+		vulkan_const.ErrorMemoryMapFailed:                     GPUErrorMemoryMapFailed,
+		vulkan_const.ErrorLayerNotPresent:                     GPUErrorLayerNotPresent,
+		vulkan_const.ErrorExtensionNotPresent:                 GPUErrorExtensionNotPresent,
+		vulkan_const.ErrorFeatureNotPresent:                   GPUErrorFeatureNotPresent,
+		vulkan_const.ErrorIncompatibleDriver:                  GPUErrorIncompatibleDriver,
+		vulkan_const.ErrorTooManyObjects:                      GPUErrorTooManyObjects,
+		vulkan_const.ErrorFormatNotSupported:                  GPUErrorFormatNotSupported,
+		vulkan_const.ErrorFragmentedPool:                      GPUErrorFragmentedPool,
+		vulkan_const.ErrorOutOfPoolMemory:                     GPUErrorOutOfPoolMemory,
+		vulkan_const.ErrorInvalidExternalHandle:               GPUErrorInvalidExternalHandle,
+		vulkan_const.ErrorSurfaceLost:                         GPUErrorSurfaceLost,
+		vulkan_const.ErrorNativeWindowInUse:                   GPUErrorNativeWindowInUse,
+		vulkan_const.Suboptimal:                               GPUSuboptimal,
+		vulkan_const.ErrorOutOfDate:                           GPUErrorOutOfDate,
+		vulkan_const.ErrorIncompatibleDisplay:                 GPUErrorIncompatibleDisplay,
+		vulkan_const.ErrorValidationFailed:                    GPUErrorValidationFailed,
+		vulkan_const.ErrorInvalidShaderNv:                     GPUErrorInvalidShaderNv,
+		vulkan_const.ErrorInvalidDrmFormatModifierPlaneLayout: GPUErrorInvalidDrmFormatModifierPlaneLayout,
+		vulkan_const.ErrorFragmentation:                       GPUErrorFragmentation,
+		vulkan_const.ErrorNotPermitted:                        GPUErrorNotPermitted,
+	}
+)
+
+func (g GPUResult) toVulkan() vulkan_const.Result {
+	return gpuResultToVulkan[g]
+}
+
+func (g *GPUResult) fromVulkan(from vulkan_const.Result) {
+	*g = gpuResultFromVulkan[from]
+}
+
+var (
 	gpuFormatToVulkan = map[GPUFormat]vulkan_const.Format{
 		GPUFormatUndefined:                            vulkan_const.FormatUndefined,
 		GPUFormatR4g4UnormPack8:                       vulkan_const.FormatR4g4UnormPack8,
