@@ -480,6 +480,17 @@ func viewTypeFromDimensions(data *TextureData) GPUImageViewType {
 	}
 }
 
+func (g *GPUDevice) copyBufferImpl(srcBuffer GPUBuffer, dstBuffer GPUBuffer, size uintptr) {
+	defer tracing.NewRegion("GPULogicalDevice.copyBufferImpl").End()
+	cmd := g.beginSingleTimeCommands()
+	defer g.endSingleTimeCommands(cmd)
+	copyRegion := vk.BufferCopy{
+		Size: vk.DeviceSize(size),
+	}
+	vk.CmdCopyBuffer(cmd.buffer, vk.Buffer(srcBuffer.handle),
+		vk.Buffer(dstBuffer.handle), 1, &copyRegion)
+}
+
 func (g *GPUDevice) beginSingleTimeCommandsImpl() *CommandRecorder {
 	defer tracing.NewRegion("GPUDevice.beginSingleTimeCommandsImpl").End()
 	cmd, pool, elm := g.singleTimeCommandPool.Add()

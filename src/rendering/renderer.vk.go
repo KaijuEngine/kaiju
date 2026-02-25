@@ -648,9 +648,10 @@ func (vr *Vulkan) executeCompute() {
 	if len(vr.computeTasks) == 0 {
 		return
 	}
+	device := vr.app.FirstInstance().PrimaryDevice()
 	// TODO:  Cache this for reuse on subsequent calls
 	ds := [1]vk.DescriptorSet{}
-	computeCmd := vr.beginSingleTimeCommands()
+	computeCmd := device.beginSingleTimeCommands()
 	for _, task := range vr.computeTasks {
 		vk.CmdBindPipeline(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, task.Shader.RenderId.computePipeline)
 		ds[0] = task.DescriptorSets[vr.currentFrame]
@@ -668,6 +669,6 @@ func (vr *Vulkan) executeCompute() {
 		vk.PipelineStageFlags(vulkan_const.PipelineStageComputeShaderBit),
 		vk.PipelineStageFlags(vulkan_const.PipelineStageVertexInputBit|vulkan_const.PipelineStageVertexShaderBit|vulkan_const.PipelineStageFragmentShaderBit),
 		0, 1, &barrier, 0, nil, 0, nil)
-	vr.endSingleTimeCommands(computeCmd)
+	device.endSingleTimeCommands(computeCmd)
 	vr.computeTasks = vr.computeTasks[:0]
 }

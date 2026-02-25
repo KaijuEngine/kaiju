@@ -37,7 +37,6 @@
 package rendering
 
 import (
-	"log/slog"
 	"unsafe"
 
 	"kaiju/platform/profiler/tracing"
@@ -51,85 +50,6 @@ var accessMaskPipelineStageFlagsDefault = uint32(vulkan_const.PipelineStageVerte
 	vulkan_const.PipelineStageGeometryShaderBit |
 	vulkan_const.PipelineStageFragmentShaderBit |
 	vulkan_const.PipelineStageComputeShaderBit)
-
-func (vr *Vulkan) generateMipmaps(texId *TextureId, imageFormat vulkan_const.Format, texWidth, texHeight, mipLevels uint32, filter vulkan_const.Filter) bool {
-	defer tracing.NewRegion("Vulkan.generateMipmaps").End()
-	pd := vr.app.FirstInstance().PhysicalDevice()
-	var fp vk.FormatProperties
-	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(pd.handle), imageFormat, &fp)
-	if (uint32(fp.OptimalTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) == 0 {
-		slog.Error("Texture image format does not support linear blitting")
-		return false
-	}
-	cmd := vr.beginSingleTimeCommands()
-	defer vr.endSingleTimeCommands(cmd)
-	barrier := vk.ImageMemoryBarrier{
-		SType:               vulkan_const.StructureTypeImageMemoryBarrier,
-		Image:               vk.Image(texId.Image.handle),
-		SrcQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
-		DstQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
-		SubresourceRange: vk.ImageSubresourceRange{
-			AspectMask:     vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit),
-			BaseArrayLayer: 0,
-			LayerCount:     uint32(texId.LayerCount),
-			LevelCount:     1,
-		},
-	}
-	mipWidth := texWidth
-	mipHeight := texHeight
-	for i := uint32(1); i < mipLevels; i++ {
-		barrier.SubresourceRange.BaseMipLevel = i - 1
-		barrier.OldLayout = vulkan_const.ImageLayoutTransferDstOptimal
-		barrier.NewLayout = vulkan_const.ImageLayoutTransferSrcOptimal
-		barrier.SrcAccessMask = vk.AccessFlags(vulkan_const.AccessTransferWriteBit)
-		barrier.DstAccessMask = vk.AccessFlags(vulkan_const.AccessTransferReadBit)
-		vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vulkan_const.PipelineStageTransferBit),
-			vk.PipelineStageFlags(vulkan_const.PipelineStageTransferBit), 0, 0, nil, 0, nil, 1, &barrier)
-		blit := vk.ImageBlit{}
-		blit.SrcOffsets[0] = vk.Offset3D{X: 0, Y: 0, Z: 0}
-		blit.SrcOffsets[1] = vk.Offset3D{X: int32(mipWidth), Y: int32(mipHeight), Z: 1}
-		blit.SrcSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
-		blit.SrcSubresource.MipLevel = i - 1
-		blit.SrcSubresource.BaseArrayLayer = 0
-		blit.SrcSubresource.LayerCount = uint32(texId.LayerCount)
-		blit.DstOffsets[0] = vk.Offset3D{X: 0, Y: 0, Z: 0}
-		blit.DstOffsets[1] = vk.Offset3D{X: 1, Y: 1, Z: 1}
-		if mipWidth > 1 {
-			blit.DstOffsets[1].X = int32(mipWidth / 2)
-		}
-		if mipHeight > 1 {
-			blit.DstOffsets[1].Y = int32(mipHeight / 2)
-		}
-		blit.DstSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
-		blit.DstSubresource.MipLevel = i
-		blit.DstSubresource.BaseArrayLayer = 0
-		blit.DstSubresource.LayerCount = uint32(texId.LayerCount)
-		vk.CmdBlitImage(cmd.buffer, vk.Image(texId.Image.handle),
-			vulkan_const.ImageLayoutTransferSrcOptimal, vk.Image(texId.Image.handle),
-			vulkan_const.ImageLayoutTransferDstOptimal, 1, &blit, filter)
-		barrier.OldLayout = vulkan_const.ImageLayoutTransferSrcOptimal
-		barrier.NewLayout = vulkan_const.ImageLayoutShaderReadOnlyOptimal
-		barrier.SrcAccessMask = vk.AccessFlags(vulkan_const.AccessTransferReadBit)
-		barrier.DstAccessMask = vk.AccessFlags(vulkan_const.AccessShaderReadBit)
-		vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vulkan_const.PipelineStageTransferBit),
-			vk.PipelineStageFlags(vulkan_const.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
-		if mipWidth > 1 {
-			mipWidth /= 2
-		}
-		if mipHeight > 1 {
-			mipHeight /= 2
-		}
-	}
-	barrier.SubresourceRange.BaseMipLevel = mipLevels - 1
-	barrier.OldLayout = vulkan_const.ImageLayoutTransferDstOptimal
-	barrier.NewLayout = vulkan_const.ImageLayoutShaderReadOnlyOptimal
-	barrier.SrcAccessMask = vk.AccessFlags(vulkan_const.AccessTransferWriteBit)
-	barrier.DstAccessMask = vk.AccessFlags(vulkan_const.AccessShaderReadBit)
-	vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vulkan_const.PipelineStageTransferBit),
-		vk.PipelineStageFlags(vulkan_const.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
-	texId.Layout.fromVulkan(barrier.NewLayout)
-	return true
-}
 
 func makeAccessMaskPipelineStageFlags(access vk.AccessFlags) vulkan_const.PipelineStageFlagBits {
 	defer tracing.NewRegion("rendering.makeAccessMaskPipelineStageFlags").End()

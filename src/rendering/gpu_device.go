@@ -80,6 +80,11 @@ func (g *GPUDevice) DestroyFrameBuffer(frameBuffer GPUFrameBuffer) {
 	g.destroyFrameBufferImpl(frameBuffer)
 }
 
+func (g *GPUDevice) CopyBuffer(srcBuffer GPUBuffer, dstBuffer GPUBuffer, size uintptr) {
+	defer tracing.NewRegion("GPULogicalDevice.CreateFrameBuffer").End()
+	g.copyBufferImpl(srcBuffer, dstBuffer, size)
+}
+
 func (g *GPUDevice) createGlobalUniforms() error {
 	slog.Info("creating global uniform buffers")
 	bufferSize := unsafe.Sizeof(*(*GlobalShaderData)(nil))
