@@ -239,64 +239,6 @@ func (vr *Vulkan) Initialize(caches RenderCaches, width, height int32) error {
 	return nil
 }
 
-func (vr *Vulkan) remakeSwapChain(window RenderingContainer) error {
-	defer tracing.NewRegion("Vulkan.remakeSwapChain").End()
-	inst := vr.app.FirstInstance()
-	device := inst.PrimaryDevice()
-	oldSwapChain := device.LogicalDevice.SwapChain
-	vr.swapChain = vk.NullSwapchain
-	if vr.hasSwapChain {
-		vr.WaitForRender()
-		vr.swapChainCleanup()
-		vkDevice := vk.Device(device.LogicalDevice.handle)
-		// Destroy the previous swap sync objects
-		for i := 0; i < int(vr.swapImageCount); i++ {
-			vk.DestroySemaphore(vkDevice, vr.imageSemaphores[i], nil)
-			vr.app.Dbg().remove(unsafe.Pointer(vr.imageSemaphores[i]))
-			vk.DestroyFence(vkDevice, vr.renderFences[i], nil)
-			vr.app.Dbg().remove(unsafe.Pointer(vr.renderFences[i]))
-		}
-		device.destroyGlobalUniforms()
-	}
-	device.CreateSwapChain(window, oldSwapChain)
-	if !vr.hasSwapChain {
-		return nil // TODO:  Is this correct?
-	}
-	slog.Info("recreated vulkan swap chain")
-	vr.createImageViews()
-	//vr.createRenderPass()
-	vr.createColorResources()
-	vr.createDepthResources()
-	vr.createSwapChainFrameBuffer()
-	if err := device.createGlobalUniforms(); err != nil {
-		return err
-	}
-	vr.createSyncObjects()
-	if err := device.LogicalDevice.RemakeSwapChain(window, inst, inst.PrimaryDevice()); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (vr *Vulkan) createSwapChainRenderPass(assets assets.Database) bool {
-	slog.Info("creating vulkan swap chain render pass")
-	rpSpec, err := assets.ReadText("swapchain.renderpass")
-	if err != nil {
-		return false
-	}
-	rp, err := NewRenderPassData(rpSpec)
-	if err != nil {
-		return false
-	}
-	compiled := rp.Compile(vr)
-	p, ok := compiled.ConstructRenderPass(vr)
-	if !ok {
-		return false
-	}
-	vr.swapChainRenderPass = p
-	return true
-}
-
 func (vr *Vulkan) ReadyFrame(window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	if !vr.hasSwapChain {
@@ -386,15 +328,6 @@ func (vr *Vulkan) Destroy() {
 	}
 	vr.app.Destroy()
 	vr.app.Dbg().print()
-}
-
-func (vr *Vulkan) Resize(window RenderingContainer, width, height int) {
-	defer tracing.NewRegion("Vulkan.Resize").End()
-	vr.remakeSwapChain(window)
-}
-
-func (vr *Vulkan) AddPreRun(preRun func()) {
-	vr.preRuns = append(vr.preRuns, preRun)
 }
 
 func (vr *Vulkan) QueueCompute(buffer *ComputeShaderBuffer) {

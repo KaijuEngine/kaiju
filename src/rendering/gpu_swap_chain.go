@@ -1,9 +1,11 @@
 package rendering
 
 import (
+	"kaiju/engine/assets"
 	"kaiju/klib"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 )
 
 type GPUSwapChain struct {
@@ -99,4 +101,23 @@ func (g *GPUSwapChain) SelectExtent(window RenderingContainer, device *GPUPhysic
 		}
 		return actualExtent
 	}
+}
+
+func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database) bool {
+	slog.Info("creating vulkan swap chain render pass")
+	rpSpec, err := assets.ReadText("swapchain.renderpass")
+	if err != nil {
+		return false
+	}
+	rp, err := NewRenderPassData(rpSpec)
+	if err != nil {
+		return false
+	}
+	compiled := rp.Compile(device)
+	p, ok := compiled.ConstructRenderPass(device)
+	if !ok {
+		return false
+	}
+	g.renderPass = p
+	return true
 }

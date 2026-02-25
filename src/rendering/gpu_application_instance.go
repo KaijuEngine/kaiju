@@ -84,3 +84,12 @@ func (g *GPUApplicationInstance) SetupDebug() {
 		}
 	}
 }
+
+func (g *GPUApplicationInstance) Resize(window RenderingContainer, width, height int) {
+	defer tracing.NewRegion("GPUApplicationInstance.Resize").End()
+	for i := range g.Devices {
+		if g.Devices[i].LogicalDevice.IsValid() {
+			g.Devices[i].LogicalDevice.RemakeSwapChain(window, g, &g.Devices[i])
+		}
+	}
+}

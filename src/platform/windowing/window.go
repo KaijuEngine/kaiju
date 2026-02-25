@@ -201,7 +201,7 @@ func (w *Window) Poll() {
 	if w.resizedFromNativeAPI {
 		w.resizedFromNativeAPI = false
 		if w.GpuHost.IsValid() {
-			w.GpuInstance.PrimaryDevice().Resize(w, w.width, w.height)
+			w.GpuInstance.Resize(w, w.width, w.height)
 		}
 		w.OnResize.Execute()
 	}
