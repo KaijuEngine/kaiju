@@ -40,7 +40,7 @@ func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties GPU
 
 func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
 	vkInstance := vk.Instance(inst.handle)
-	vkSurface := vk.Surface(inst.handle)
+	vkSurface := vk.Surface(inst.Surface.handle)
 	var deviceCount uint32
 	vk.EnumeratePhysicalDevices(vkInstance, &deviceCount, nil)
 	if deviceCount == 0 {
@@ -61,7 +61,7 @@ func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevi
 		devices[i].QueueFamilies = make([]GPUQueueFamily, qfCount)
 		queueFamilies := make([]vk.QueueFamilyProperties, qfCount)
 		vk.GetPhysicalDeviceQueueFamilyProperties(vkDevices[i], &qfCount, &queueFamilies[0])
-		for j := range devices[i].QueueFamilies {
+		for j := range queueFamilies {
 			devices[i].QueueFamilies[j] = mapQueueFamily(queueFamilies[j], j)
 			presentSupport := vk.Bool32(0)
 			vk.GetPhysicalDeviceSurfaceSupport(vkDevices[i], uint32(j), vkSurface, &presentSupport)
@@ -93,7 +93,6 @@ func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevi
 		devices[i].SurfaceCapabilities.fromVulkan(capabilities)
 		// Surface formats
 		var formatCount uint32
-		vkSurface := vk.Surface(inst.handle)
 		vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &formatCount, nil)
 		if formatCount > 0 {
 			devices[i].SurfaceFormats = make([]GPUSurfaceFormat, formatCount)

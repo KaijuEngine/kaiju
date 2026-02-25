@@ -48,7 +48,6 @@ func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUA
 	if err := g.SelectPhysicalDevice(nil); err != nil {
 		return err
 	}
-
 	if err := g.SetupLogicalDevice(0); err != nil {
 		return err
 	}
@@ -172,7 +171,7 @@ func (g *GPUApplicationInstance) SelectPhysicalDevice(method func(options []GPUP
 	g.primaryDeviceIndex = method(devices)
 	if g.primaryDeviceIndex < 0 {
 		return errors.New("invalid primary physical device index: negative")
-	} else if g.primaryDeviceIndex >= len(g.Devices) {
+	} else if g.primaryDeviceIndex >= len(devices) {
 		return errors.New("invalid primary physical device index: out of range")
 	}
 	g.Devices = make([]GPUDevice, len(devices))

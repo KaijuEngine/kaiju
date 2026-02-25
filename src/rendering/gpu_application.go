@@ -34,11 +34,6 @@ func (g *GPUApplication) FirstInstance() *GPUApplicationInstance {
 	return g.Instances[0]
 }
 
-// TODO:  This function will likely go away with other refactors
-func (g *GPUApplication) Dbg() *memoryDebugger {
-	return g.FirstInstance().PrimaryDevice().LogicalDevice.dbg
-}
-
 func (g *GPUApplication) Instance(index int) (*GPUApplicationInstance, bool) {
 	if index < 0 || index > len(g.Instances) {
 		slog.Error("index out of range for the instances", "has", len(g.Instances), "wants", index)

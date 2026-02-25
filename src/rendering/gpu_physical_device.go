@@ -10,7 +10,6 @@ import (
 )
 
 type GPUPhysicalDevice struct {
-	index               int
 	handle              unsafe.Pointer
 	Features            GPUPhysicalDeviceFeatures
 	Properties          GPUPhysicalDeviceProperties

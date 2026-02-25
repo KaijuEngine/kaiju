@@ -1,7 +1,6 @@
 package rendering
 
 import (
-	"kaiju/build"
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
 	"unsafe"
@@ -14,7 +13,7 @@ type GPULogicalDevice struct {
 	presentQueue    unsafe.Pointer
 	SwapChain       GPUSwapChain
 	bufferTrash     bufferDestroyer
-	dbg             *memoryDebugger
+	dbg             memoryDebugger
 	renderPassCache map[string]*RenderPass
 	imageSemaphores [maxFramesInFlight]GPUSemaphore
 	renderFences    [maxFramesInFlight]GPUFence
@@ -59,11 +58,8 @@ func (g *GPULogicalDevice) WaitForFences(fences []GPUFence) {
 }
 
 func (g *GPULogicalDevice) SetupDebug(device *GPUDevice) {
-	if build.Debug {
-		defer tracing.NewRegion("GPULogicalDevice.SetupDebug").End()
-		g.dbg = device.LogicalDevice.dbg
-		g.bufferTrash = newBufferDestroyer(device, g.dbg)
-	}
+	defer tracing.NewRegion("GPULogicalDevice.SetupDebug").End()
+	g.bufferTrash = newBufferDestroyer(device, &g.dbg)
 }
 
 func (g *GPULogicalDevice) ImageMemoryRequirements(image GPUImage) GPUMemoryRequirements {

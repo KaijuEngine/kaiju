@@ -710,7 +710,7 @@ var (
 func (g GPUImageLayout) toVulkan() vulkan_const.ImageLayout {
 	defer tracing.NewRegion("GPUImageLayout.toVulkan").End()
 	out, ok := gpuImageLayoutToVulkan[g]
-	if ok {
+	if !ok {
 		panic("invalid format supplied")
 	}
 	return out
@@ -719,7 +719,7 @@ func (g GPUImageLayout) toVulkan() vulkan_const.ImageLayout {
 func (g *GPUImageLayout) fromVulkan(val vulkan_const.ImageLayout) {
 	defer tracing.NewRegion("GPUImageLayout.fromVulkan").End()
 	out, ok := gpuImageLayoutFromVulkan[val]
-	if ok {
+	if !ok {
 		panic("invalid format supplied")
 	}
 	*g = out
@@ -728,7 +728,7 @@ func (g *GPUImageLayout) fromVulkan(val vulkan_const.ImageLayout) {
 func formatFromVulkan(val vulkan_const.Format) GPUFormat {
 	defer tracing.NewRegion("rendering.formatFromVulkan").End()
 	out, ok := gpuFormatFromVulkan[val]
-	if ok {
+	if !ok {
 		panic("invalid format supplied")
 	}
 	return out
@@ -737,7 +737,7 @@ func formatFromVulkan(val vulkan_const.Format) GPUFormat {
 func formatToVulkan(val GPUFormat) vulkan_const.Format {
 	defer tracing.NewRegion("rendering.formatToVulkan").End()
 	out, ok := gpuFormatToVulkan[val]
-	if ok {
+	if !ok {
 		panic("invalid format supplied")
 	}
 	return out

@@ -13,13 +13,14 @@ import (
 
 func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
 	oldSwapChain := GPUSwapChain{GPUHandle: GPUHandle{g.handle}}
-	defer oldSwapChain.Destroy(device)
+	if oldSwapChain.IsValid() {
+		defer oldSwapChain.Destroy(device)
+	}
 	pd := &device.PhysicalDevice
 	surfaceFormat := g.SelectSurfaceFormat(pd)
 	presentMode := g.SelectPresentMode(pd)
 	extent := g.SelectExtent(window, pd)
-	hasSwapChain := extent.Width() <= 0 && extent.Height() <= 0
-	if !hasSwapChain {
+	if extent.Width() <= 0 && extent.Height() <= 0 {
 		return fmt.Errorf("invalid extent supplied for swap chain: width=%d, height=%d", extent.Width(), extent.Height())
 	}
 	capabilities := pd.SurfaceCapabilities
