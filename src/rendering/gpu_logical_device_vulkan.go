@@ -13,7 +13,6 @@ import (
 )
 
 func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error {
-	slog.Info("creating vulkan logical device")
 	qFamCount := 1
 	var uniqueQueueFamilies [2]GPUQueueFamily
 	uniqueQueueFamilies[0] = physicalDevice.FindGraphicsFamiliy()

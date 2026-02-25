@@ -92,7 +92,6 @@ func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplication
 
 func (g *GPUSwapChain) setupImageViewsImpl(device *GPUDevice) error {
 	defer tracing.NewRegion("Vulkan.createImageViews").End()
-	slog.Info("creating vulkan image views")
 	for i := range g.Images {
 		err := device.LogicalDevice.CreateImageView(&g.Images[i], GPUImageAspectColorBit, GPUImageViewType2d)
 		if err != nil {

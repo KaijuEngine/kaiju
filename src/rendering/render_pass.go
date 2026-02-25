@@ -417,7 +417,7 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 }
 
 func (r *RenderPassDataCompiled) ConstructRenderPass(device *GPUDevice) (*RenderPass, error) {
-	ld := device.LogicalDevice
+	ld := &device.LogicalDevice
 	if pass, ok := ld.renderPassCache[r.Name]; ok {
 		return pass, errors.New("the render pass already exists in the cache")
 	}

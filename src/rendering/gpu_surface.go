@@ -12,7 +12,7 @@ type GPUSurface struct {
 
 func (g *GPUSurface) Create(instance *GPUInstance, window RenderingContainer) error {
 	defer tracing.NewRegion("GPUSurface.Create").End()
-	slog.Info("creating vulkan surface")
+	slog.Info("creating gpu surface")
 	return g.createImpl(instance, window)
 }
 

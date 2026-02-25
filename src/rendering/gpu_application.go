@@ -51,6 +51,7 @@ func (g *GPUApplication) EngineVersion() (major int, minor int, patch int) {
 }
 
 func (g *GPUApplication) CreateInstance(window RenderingContainer, assets assets.Database) (*GPUApplicationInstance, error) {
+	slog.Info("creating kaiju gpu instance")
 	g.Instances = append(g.Instances, &GPUApplicationInstance{})
 	if err := g.Instances[len(g.Instances)-1].Initialize(window, g, assets); err != nil {
 		return nil, err

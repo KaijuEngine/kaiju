@@ -33,6 +33,7 @@ func (g *GPUSwapChain) Destroy(device *GPUDevice) {
 
 func (g *GPUSwapChain) SetupImageViews(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.SetupImageViews").End()
+	slog.Info("creating swap chain image views")
 	return g.setupImageViewsImpl(device)
 }
 
@@ -105,7 +106,7 @@ func (g *GPUSwapChain) SelectExtent(window RenderingContainer, device *GPUPhysic
 }
 
 func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database) error {
-	slog.Info("creating vulkan swap chain render pass")
+	slog.Info("creating swap chain render pass")
 	rpSpec, err := assets.ReadText("swapchain.renderpass")
 	if err != nil {
 		return err

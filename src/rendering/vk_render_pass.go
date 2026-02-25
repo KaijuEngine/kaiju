@@ -342,7 +342,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				return errors.New(e)
 			}
 			p.textures[i].RenderId.Sampler, err = device.CreateTextureSampler(img.MipLevels, img.Filter)
-			if err == nil {
+			if err != nil {
 				for j := range i + 1 {
 					device.LogicalDevice.FreeTexture(&p.textures[j].RenderId)
 				}

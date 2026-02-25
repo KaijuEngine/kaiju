@@ -3,6 +3,7 @@ package rendering
 import (
 	"kaiju/matrix"
 	"kaiju/platform/profiler/tracing"
+	"log/slog"
 	"unsafe"
 )
 
@@ -33,6 +34,7 @@ type GPUImageCreateRequest struct {
 
 func (g *GPULogicalDevice) Setup(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error {
 	defer tracing.NewRegion("GPULogicalDevice.Setup").End()
+	slog.Info("creating a logical graphics device")
 	g.renderPassCache = make(map[string]*RenderPass)
 	return g.setupImpl(inst, physicalDevice)
 }

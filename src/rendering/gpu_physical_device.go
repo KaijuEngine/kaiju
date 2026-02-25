@@ -346,7 +346,7 @@ func (g *GPUPhysicalDevice) isPhysicalDeviceSuitableForRendering() bool {
 
 func selectPhysicalDeviceDefaltMethod(options []GPUPhysicalDevice) int {
 	defer tracing.NewRegion("rendering.selectPhysicalDeviceDefaltMethod").End()
-	slog.Info("creating vulkan physical device")
+	slog.Info("locating suitable physical graphics device")
 	var currentPhysicalDevice GPUPhysicalDevice
 	var physicalDevice GPUPhysicalDevice
 	selectedIndex := -1
