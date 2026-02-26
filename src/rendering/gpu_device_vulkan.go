@@ -314,7 +314,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 			submitInfo.PSignalSemaphores = &signalSemaphores[0]
 			fence = vk.Fence(g.LogicalDevice.renderFences[g.Painter.currentFrame].handle)
 		}
-		eCode := vk.QueueSubmit(vk.Queue(g.Painter.graphicsQueue.handle), 1, &submitInfo, fence)
+		eCode := vk.QueueSubmit(vk.Queue(g.LogicalDevice.graphicsQueue), 1, &submitInfo, fence)
 		if eCode != vulkan_const.Success {
 			slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
 			return false
@@ -339,7 +339,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	presentInfo.PSwapchains = &swapChains[0]
 	presentInfo.PImageIndices = &g.Painter.imageIndex[g.Painter.currentFrame]
 	presentInfo.PResults = nil // Optional
-	vk.QueuePresent(vk.Queue(g.Painter.presentQueue.handle), &presentInfo)
+	vk.QueuePresent(vk.Queue(g.LogicalDevice.presentQueue), &presentInfo)
 	qPresent.End()
 	if g.Painter.acquireImageResult == GPUErrorOutOfDate || g.Painter.acquireImageResult == GPUSuboptimal {
 		g.LogicalDevice.RemakeSwapChain(window, inst, g)

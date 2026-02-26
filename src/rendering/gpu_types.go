@@ -34,7 +34,7 @@ type GPUPipelineStageFlags uint32
 type GPUHandle struct{ handle unsafe.Pointer }
 
 func (g *GPUHandle) Reset()                     { g.handle = nil }
-func (g *GPUHandle) IsValid() bool              { return g.handle == nil }
+func (g *GPUHandle) IsValid() bool              { return g.handle != nil }
 func (g *GPUHandle) HandleAddr() unsafe.Pointer { return unsafe.Pointer(&g.handle) }
 
 type GPUFence struct{ GPUHandle }

@@ -7,8 +7,6 @@ import (
 
 type GPUPainter struct {
 	caches                RenderCaches
-	graphicsQueue         GPUQueue
-	presentQueue          GPUQueue
 	imageIndex            [maxFramesInFlight]uint32
 	descriptorPools       []GPUDescriptorPool
 	acquireImageResult    GPUResult

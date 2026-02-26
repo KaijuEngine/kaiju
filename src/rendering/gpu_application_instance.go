@@ -92,7 +92,6 @@ func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUA
 			return err
 		}
 	}
-
 	return nil
 }
 

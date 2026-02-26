@@ -192,9 +192,6 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 		return err
 	}
 	g.SwapChain.SetupSyncObjects(device)
-	if err := device.LogicalDevice.RemakeSwapChain(window, inst, device); err != nil {
-		return err
-	}
 	passes := make([]*RenderPass, 0, len(g.renderPassCache))
 	for _, v := range g.renderPassCache {
 		passes = append(passes, v)

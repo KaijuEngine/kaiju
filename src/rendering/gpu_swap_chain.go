@@ -128,7 +128,7 @@ func (g *GPUSwapChain) SetupSyncObjects(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.SetupSyncObjects")
 	err := g.setupSyncObjectsImpl(device)
 	if err != nil {
-		ld := device.LogicalDevice
+		ld := &device.LogicalDevice
 		for i := range len(g.Images) {
 			ld.DestroySemaphore(&ld.imageSemaphores[i])
 			ld.dbg.remove(ld.imageSemaphores[i].handle)
@@ -136,6 +136,14 @@ func (g *GPUSwapChain) SetupSyncObjects(device *GPUDevice) error {
 			ld.dbg.remove(ld.renderFences[i].handle)
 			ld.imageSemaphores[i].Reset()
 			ld.renderFences[i].Reset()
+			for i := range g.Images {
+				if g.renderFinishedSemaphores[i].IsValid() {
+					ld.DestroySemaphore(&g.renderFinishedSemaphores[i])
+					ld.dbg.remove(g.renderFinishedSemaphores[i].handle)
+					g.renderFinishedSemaphores[i].Reset()
+				}
+			}
+			g.renderFinishedSemaphores = []GPUSemaphore{}
 		}
 	}
 	return err

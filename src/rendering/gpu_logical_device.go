@@ -47,8 +47,9 @@ func (g *GPULogicalDevice) WaitIdle() {
 func (g *GPULogicalDevice) WaitForRender(device *GPUDevice) {
 	defer tracing.NewRegion("GPULogicalDevice.WaitForRender").End()
 	g.WaitIdle()
-	fences := [maxFramesInFlight]GPUFence{}
-	for i := range fences {
+	fenceCount := len(g.SwapChain.Images)
+	fences := make([]GPUFence, fenceCount)
+	for i := range fenceCount {
 		fences[i].handle = unsafe.Pointer(device.LogicalDevice.renderFences[i].handle)
 	}
 	g.WaitForFences(fences[:])

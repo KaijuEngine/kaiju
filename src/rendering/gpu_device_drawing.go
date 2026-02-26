@@ -48,7 +48,7 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) 
 	}
 	defer tracing.NewRegion("Vulkan.resizeUniformBuffer.DoResize").End()
 	for i := range maxFramesInFlight {
-		if !group.instanceBuffer.memories[i].IsValid() {
+		if group.instanceBuffer.memories[i].IsValid() {
 			g.UnmapMemory(group.instanceBuffer.memories[i])
 		}
 		group.rawData.byteMapping[i] = nil
@@ -56,14 +56,14 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) 
 	for k := range group.boundBuffers {
 		nid := group.boundInstanceData[k]
 		for i := range maxFramesInFlight {
-			if !group.boundBuffers[k].memories[i].IsValid() {
+			if group.boundBuffers[k].memories[i].IsValid() {
 				g.UnmapMemory(group.boundBuffers[k].memories[i])
 			}
 			nid.byteMapping[i] = nil
 		}
 		group.boundInstanceData[k] = nid
 	}
-	if !group.instanceBuffer.buffers[0].IsValid() {
+	if group.instanceBuffer.buffers[0].IsValid() {
 		pd := bufferTrash{delay: maxFramesInFlight}
 		for i := 0; i < maxFramesInFlight; i++ {
 			pd.buffers[i] = group.instanceBuffer.buffers[i]
