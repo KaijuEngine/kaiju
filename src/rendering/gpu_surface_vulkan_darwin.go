@@ -3,6 +3,7 @@
 package rendering
 
 import (
+	"fmt"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"unsafe"
@@ -12,10 +13,10 @@ import (
 func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer) error {
 	nsView := window.PlatformWindow() // unsafe.Pointer to NSView*
 	var surface vk.Surface
-	res := vk.CreateSurfaceFromNSView(vk.Instance(instance.handle), nsView, &surface)
-	if res != vulkan_const.Success {
-		return false
+	result := vk.CreateSurfaceFromNSView(vk.Instance(instance.handle), nsView, &surface)
+	if result != vulkan_const.Success {
+		return fmt.Errorf("failed to create the vulkan surface, result: %d", int(result))
 	}
 	g.handle = unsafe.Pointer(surface)
-	return true
+	return nil
 }
