@@ -53,4 +53,5 @@ func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer
 	if result != vulkan_const.Success {
 		return fmt.Errorf("failed to create the vulkan surface, result: %d", int(result))
 	}
+	return nil
 }
