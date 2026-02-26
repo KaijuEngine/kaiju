@@ -115,8 +115,6 @@ func (g *GPUApplicationInstance) SetupCaches(caches RenderCaches, width, height 
 
 func (g *GPUApplicationInstance) Destroy() {
 	defer tracing.NewRegion("GPUApplicationInstance.Destroy").End()
-	g.Surface.Destroy(g)
-	g.GPUInstance.Destroy()
 	g.dbg.remove(g.handle)
 	for i := range g.Devices {
 		device := &g.Devices[i]
@@ -149,13 +147,15 @@ func (g *GPUApplicationInstance) Destroy() {
 				elm.Destroy(device)
 			}
 		})
-		device.LogicalDevice.SwapChain.Destroy(device)
 		device.destroyGlobalUniforms()
 		device.Painter.DestroyDescriptorPools(device)
 		device.LogicalDevice.SwapChain.renderPass.Destroy(device)
+		device.LogicalDevice.SwapChain.Destroy(device)
 		device.LogicalDevice.Destroy()
-		g.dbg.print()
 	}
+	g.Surface.Destroy(g)
+	g.GPUInstance.Destroy()
+	g.dbg.print()
 }
 
 func (g *GPUApplicationInstance) SelectPhysicalDevice(method func(options []GPUPhysicalDevice) int) error {

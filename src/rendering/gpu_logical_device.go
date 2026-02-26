@@ -107,14 +107,17 @@ func (g *GPULogicalDevice) DestroyGroup(group *DrawInstanceGroup) {
 func (g *GPULogicalDevice) DestroySemaphore(semaphore *GPUSemaphore) {
 	defer tracing.NewRegion("GPULogicalDevice.DestroySemaphore").End()
 	g.destroySemaphoreImpl(semaphore)
+	semaphore.Reset()
 }
 
 func (g *GPULogicalDevice) DestroyFence(fence *GPUFence) {
 	defer tracing.NewRegion("GPULogicalDevice.DestroyFence").End()
 	g.destroyFenceImpl(fence)
+	fence.Reset()
 }
 
 func (g *GPULogicalDevice) Destroy() {
 	defer tracing.NewRegion("GPULogicalDevice.Destroy").End()
 	g.destroyImpl()
+	g.Reset()
 }
