@@ -99,10 +99,11 @@ func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevi
 			formats := make([]vk.SurfaceFormat, formatCount)
 			vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &formatCount, &formats[0])
 			for j := range formats {
-				devices[i].SurfaceFormats[j] = GPUSurfaceFormat{
-					Format:     formatFromVulkan(formats[j].Format),
-					ColorSpace: colorSpaceFromVulkan(formats[j].ColorSpace),
+				sf := GPUSurfaceFormat{
+					Format: formatFromVulkan(formats[j].Format),
 				}
+				sf.ColorSpace.fromVulkan(formats[j].ColorSpace)
+				devices[i].SurfaceFormats[j] = sf
 			}
 		}
 		// Present modes
