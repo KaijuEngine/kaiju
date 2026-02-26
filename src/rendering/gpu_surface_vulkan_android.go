@@ -41,6 +41,7 @@ package rendering
 import (
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
+	"unsafe"
 )
 
 const (
@@ -49,11 +50,11 @@ const (
 	vkInstanceFlags       = 0
 )
 
-func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer) error {
 	// TODO:  Fill in the nil args
 	var surface vk.Surface
-	result := vk.CreateAndroidSurfaceHelper(window.PlatformInstance(), vr.instance, &surface)
-	vr.surface = surface
+	result := vk.CreateAndroidSurfaceHelper(window.PlatformInstance(), vk.Instance(instance.handle), &surface)
+	g.handle = unsafe.Pointer(surface)
 	return result == vulkan_const.Success
 }
 

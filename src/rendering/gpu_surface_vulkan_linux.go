@@ -41,12 +41,13 @@ package rendering
 import (
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
+	"unsafe"
 )
 
-func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer) error {
 	var surface vk.Surface
 	result := vk.XlibSurfaceCreateInfoKHRHelper(
-		window.PlatformWindow(), window.PlatformInstance(), vr.instance, &surface)
-	vr.surface = surface
+		window.PlatformWindow(), window.PlatformInstance(), vk.Instance(instance.handle), &surface)
+	g.handle = unsafe.Pointer(surface)
 	return result == vulkan_const.Success
 }

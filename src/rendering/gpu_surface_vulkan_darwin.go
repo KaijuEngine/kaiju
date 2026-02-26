@@ -5,16 +5,17 @@ package rendering
 import (
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
+	"unsafe"
 )
 
 // macOS-specific Vulkan surface creation using NSView
-func (vr *Vulkan) createSurface(window RenderingContainer) bool {
+func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer) error {
 	nsView := window.PlatformWindow() // unsafe.Pointer to NSView*
 	var surface vk.Surface
-	res := vk.CreateSurfaceFromNSView(vr.instance, nsView, &surface)
+	res := vk.CreateSurfaceFromNSView(vk.Instance(instance.handle), nsView, &surface)
 	if res != vulkan_const.Success {
 		return false
 	}
-	vr.surface = surface
+	g.handle = unsafe.Pointer(surface)
 	return true
 }
