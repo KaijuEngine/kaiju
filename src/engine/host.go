@@ -211,12 +211,15 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, host.assetDatabase)
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
-	// TODO:  This is tempoarary for testing, it should only be started if a
-	// stage has rigidbodies requested to be spawned (issue: #513)
-	if !build.Editor {
-		host.physics.Start()
-	}
 	return nil
+}
+
+func (host *Host) StartPhysics() {
+	if !build.Editor {
+		if !host.physics.IsActive() {
+			host.physics.Start()
+		}
+	}
 }
 
 func (host *Host) InitializeRenderer() error {

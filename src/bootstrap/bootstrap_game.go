@@ -69,8 +69,8 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 			profiler.SetupConsole(container.Host)
 			html_preview.SetupConsole(container.Host)
 		}
-		game.Launch(container.Host)
 		plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
+		game.Launch(container.Host)
 		if build.Debug {
 			runtime.AddCleanup(container, func(s struct{}) { containerCleanedUp = true }, struct{}{})
 			runtime.AddCleanup(container.Host, func(s struct{}) { hostCleanedUp = true }, struct{}{})

@@ -7,6 +7,7 @@
 *.dll
 *.so
 *.dylib
+*.exe[0-9]*
 
 # Test binary, built with `go test -c`
 *.test
@@ -39,5 +40,8 @@ kaiju_android.so
 # GoLand
 .idea/
 
-#Mac
+# Mac
 .DS_Store
+
+# Game generated files
+game_content/
