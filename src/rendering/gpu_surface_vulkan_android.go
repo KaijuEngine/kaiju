@@ -62,11 +62,11 @@ func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer
 	return nil
 }
 
-func preTransform(scs GPUSwapChainSupportDetails) GPUSurfaceTransformFlags {
-	return GPUSurfaceTransformIdentityBit
+func preTransform(_ GPUSwapChainSupportDetails) vk.SurfaceTransformFlags {
+	return vk.SurfaceTransformFlags(GPUSurfaceTransformIdentityBit)
 }
 
-func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
+func vkColorSpace(_ GPUSurfaceFormat) vulkan_const.ColorSpace {
 	return vulkan_const.ColorSpaceSrgbNonlinear
 }
 

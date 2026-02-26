@@ -49,11 +49,11 @@ const vkGeometryShaderValid = vulkan_const.False
 const vkInstanceFlags = 1
 const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
 
-func preTransform(_ vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
-	return vulkan_const.SurfaceTransformIdentityBit
+func preTransform(_ GPUSwapChainSupportDetails) vk.SurfaceTransformFlags {
+	return vk.SurfaceTransformFlags(vulkan_const.SurfaceTransformIdentityBit)
 }
 
-func vkColorSpace(_ vk.SurfaceFormat) vulkan_const.ColorSpace {
+func vkColorSpace(_ GPUSurfaceFormat) vulkan_const.ColorSpace {
 	return vulkan_const.ColorSpaceSrgbNonlinear
 }
 

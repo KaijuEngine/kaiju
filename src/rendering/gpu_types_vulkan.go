@@ -589,6 +589,24 @@ var (
 	}
 )
 
+func (g *GPUColorSpace) fromVulkan(val vulkan_const.ColorSpace) {
+	defer tracing.NewRegion("rendering.colorSpaceFromVulkan").End()
+	out, ok := gpuColorSpaceFromVulkan[val]
+	if !ok {
+		panic("invalid color space supplied")
+	}
+	*g = out
+}
+
+func (g GPUColorSpace) toVulkan() vulkan_const.ColorSpace {
+	defer tracing.NewRegion("rendering.colorSpaceFromVulkan").End()
+	out, ok := gpuColorSpaceToVulkan[g]
+	if !ok {
+		panic("invalid color space supplied")
+	}
+	return out
+}
+
 var (
 	gpuPresentModeToVulkan = map[GPUPresentMode]vulkan_const.PresentMode{
 		GPUPresentModeImmediate:               vulkan_const.PresentModeImmediate,
@@ -739,15 +757,6 @@ func formatToVulkan(val GPUFormat) vulkan_const.Format {
 	out, ok := gpuFormatToVulkan[val]
 	if !ok {
 		panic("invalid format supplied")
-	}
-	return out
-}
-
-func colorSpaceFromVulkan(val vulkan_const.ColorSpace) GPUColorSpace {
-	defer tracing.NewRegion("rendering.colorSpaceFromVulkan").End()
-	out, ok := gpuColorSpaceFromVulkan[val]
-	if !ok {
-		panic("invalid color space supplied")
 	}
 	return out
 }
