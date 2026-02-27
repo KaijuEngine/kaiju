@@ -248,3 +248,55 @@ func mapStrokeLinejoin(s string) StrokeLinejoin {
 		return StrokeLinejoinMiter
 	}
 }
+
+// ToVerts will Generate vertices for both the fill and the outline (stroke).
+// The fill uses the ellipse's radius, while the outline creates an inner
+// and outer ring based on the stroke width.
+//
+// A good starting value for `segments` is 32
+func (e Ellipse) ToVerts(segments int) []rendering.Vertex {
+	// Capacity includes fill vertices plus inner and outer outline vertices.
+	verts := make([]rendering.Vertex, 0, (segments+1)*3)
+	// Helper to generate a ring of vertices given radii.
+	addRing := func(radiusX, radiusY float32) {
+		for i := 0; i <= segments; i++ {
+			angle := float32(i) * 2.0 * math.Pi / matrix.Float(segments)
+			x := float32(math.Cos(float64(angle))) * radiusX
+			y := float32(math.Sin(float64(angle))) * radiusY
+			position := matrix.Vec3{x, y, 0}
+			normal := matrix.Vec3{x / radiusX, y / radiusY, 0}.Normal()
+			uv := matrix.Vec2{float32(i) / matrix.Float(segments), 0}
+			verts = append(verts, rendering.Vertex{
+				Position:     position,
+				Normal:       normal,
+				Tangent:      matrix.Vec4{0, 0, 0, 1},
+				UV0:          uv,
+				Color:        matrix.ColorWhite(),
+				JointIds:     matrix.Vec4i{},
+				JointWeights: matrix.Vec4{},
+				MorphTarget:  matrix.Vec3{},
+			})
+		}
+	}
+	// Fill ring (original radius).
+	addRing(float32(e.Radius.X()), float32(e.Radius.Y()))
+	// Outline rings if stroke width is greater than zero.
+	if e.StrokeWidth > 0 {
+		half := float32(e.StrokeWidth) / 2.0
+		// Outer ring expands outward.
+		outerX := float32(e.Radius.X()) + half
+		outerY := float32(e.Radius.Y()) + half
+		// Inner ring contracts inward, clamped to non‑negative.
+		innerX := float32(e.Radius.X()) - half
+		if innerX < 0 {
+			innerX = 0
+		}
+		innerY := float32(e.Radius.Y()) - half
+		if innerY < 0 {
+			innerY = 0
+		}
+		addRing(outerX, outerY)
+		addRing(innerX, innerY)
+	}
+	return verts
+}
