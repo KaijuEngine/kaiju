@@ -38,7 +38,7 @@ package rules
 
 import (
 	"bytes"
-	"kaiju/engine/ui/markup/css/helpers"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"slices"
 	"strings"
 

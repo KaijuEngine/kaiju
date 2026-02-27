@@ -37,9 +37,9 @@
 package transform_tools
 
 import (
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type toolHistory struct {

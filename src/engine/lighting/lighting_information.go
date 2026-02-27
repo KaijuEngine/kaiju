@@ -37,8 +37,8 @@
 package lighting
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
 type LightingInformation struct {

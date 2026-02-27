@@ -37,9 +37,9 @@
 package engine_entity_data_camera
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/cameras"
-	"kaiju/engine/encoding/pod"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/encoding/pod"
 )
 
 var bindingKey = ""

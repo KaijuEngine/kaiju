@@ -38,8 +38,8 @@ package network
 
 import (
 	"fmt"
-	"kaiju/engine"
-	"kaiju/platform/concurrent"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/platform/concurrent"
 	"log/slog"
 	"net"
 	"sort"

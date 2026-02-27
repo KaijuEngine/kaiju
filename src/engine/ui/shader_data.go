@@ -37,8 +37,8 @@
 package ui
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 	"unsafe"
 )
 

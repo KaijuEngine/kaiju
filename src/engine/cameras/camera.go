@@ -37,8 +37,8 @@
 package cameras
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/matrix"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/matrix"
 )
 
 type Camera interface {

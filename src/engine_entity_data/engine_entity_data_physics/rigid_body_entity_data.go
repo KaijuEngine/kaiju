@@ -37,10 +37,10 @@
 package engine_entity_data_physics
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/encoding/pod"
-	"kaiju/engine/physics"
-	"kaiju/matrix"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine/physics"
+	"kaijuengine.com/matrix"
 )
 
 var bindingKey = ""

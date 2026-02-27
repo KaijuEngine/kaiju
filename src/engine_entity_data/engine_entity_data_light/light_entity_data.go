@@ -37,11 +37,11 @@
 package engine_entity_data_light
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/encoding/pod"
-	"kaiju/engine/lighting"
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine/lighting"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
 var bindingKey = ""

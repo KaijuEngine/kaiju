@@ -37,14 +37,14 @@
 package rendering
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 	"unsafe"
 
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 const (

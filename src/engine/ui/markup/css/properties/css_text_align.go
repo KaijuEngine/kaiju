@@ -38,11 +38,11 @@ package properties
 
 import (
 	"fmt"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/rendering"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/rendering"
 )
 
 // left|right|center|justify|initial|inherit

@@ -37,9 +37,9 @@
 package ui
 
 import (
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 	"slices"
 	"unicode/utf8"
 )

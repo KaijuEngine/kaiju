@@ -37,7 +37,7 @@
 package concurrent
 
 import (
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"sync"
 )
 

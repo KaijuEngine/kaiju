@@ -37,10 +37,10 @@
 package document
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/ui"
-	"kaiju/matrix"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/matrix"
 	"slices"
 	"strings"
 	"weak"

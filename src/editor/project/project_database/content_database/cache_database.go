@@ -38,10 +38,10 @@ package content_database
 
 import (
 	"io/fs"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
 	"strings"

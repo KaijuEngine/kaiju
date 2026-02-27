@@ -37,12 +37,12 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 	"strings"
 	"weak"
 )

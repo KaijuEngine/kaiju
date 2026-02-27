@@ -37,8 +37,8 @@
 package reflect_helpers
 
 import (
-	"kaiju/klib"
-	"kaiju/matrix"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"log/slog"
 	"strconv"
 	"strings"

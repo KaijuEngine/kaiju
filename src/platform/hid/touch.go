@@ -37,7 +37,7 @@
 package hid
 
 import (
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"slices"
 )
 

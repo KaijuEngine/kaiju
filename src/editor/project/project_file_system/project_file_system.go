@@ -38,7 +38,7 @@ package project_file_system
 
 import (
 	"errors"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"

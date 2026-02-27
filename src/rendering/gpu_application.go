@@ -1,7 +1,7 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
+	"kaijuengine.com/engine/assets"
 	"log/slog"
 )
 

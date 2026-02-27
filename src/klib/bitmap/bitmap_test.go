@@ -37,7 +37,7 @@
 package bitmap
 
 import (
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"math/rand/v2"
 	"slices"
 	"testing"

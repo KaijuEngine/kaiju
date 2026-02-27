@@ -1,10 +1,10 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 )
 

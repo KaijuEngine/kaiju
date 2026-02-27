@@ -37,8 +37,8 @@
 package tweening
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type Easing int

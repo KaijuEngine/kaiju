@@ -38,11 +38,11 @@ package common_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/codegen/reflect_helpers"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/rendering"
+	"kaijuengine.com/editor/codegen/reflect_helpers"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/rendering"
 	"reflect"
 	"regexp"
 	"slices"

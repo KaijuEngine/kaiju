@@ -38,8 +38,8 @@ package shader_data_registry
 
 import (
 	"fmt"
-	"kaiju/debug"
-	"kaiju/rendering"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/rendering"
 	"log/slog"
 )
 

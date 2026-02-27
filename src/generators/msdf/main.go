@@ -41,7 +41,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"os"
 	"os/exec"
 	"path/filepath"

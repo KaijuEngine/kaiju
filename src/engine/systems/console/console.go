@@ -37,14 +37,14 @@
 package console
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 	"strings"
 	"weak"
 )

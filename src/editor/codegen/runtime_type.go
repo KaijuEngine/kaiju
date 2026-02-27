@@ -37,8 +37,8 @@
 package codegen
 
 import (
-	"kaiju/engine/encoding/pod"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/platform/profiler/tracing"
 	"reflect"
 )
 

@@ -1,8 +1,8 @@
 package rendering
 
 import (
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func (g *GPUDevice) SetupTexture(texture *Texture, data *TextureData) error {

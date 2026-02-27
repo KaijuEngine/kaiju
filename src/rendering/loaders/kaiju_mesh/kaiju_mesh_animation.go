@@ -37,8 +37,8 @@
 package kaiju_mesh
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering/loaders/load_result"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/loaders/load_result"
 )
 
 type KaijuMeshJoint struct {

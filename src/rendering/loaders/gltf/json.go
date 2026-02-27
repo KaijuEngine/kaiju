@@ -38,8 +38,8 @@ package gltf
 
 import (
 	"encoding/json"
-	"kaiju/matrix"
-	"kaiju/rendering/loaders/load_result"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/loaders/load_result"
 	"strings"
 )
 

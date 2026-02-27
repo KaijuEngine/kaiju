@@ -38,8 +38,8 @@ package assets
 
 import (
 	"io/fs"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 )

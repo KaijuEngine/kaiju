@@ -37,10 +37,10 @@
 package master_server
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/network"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/network"
 	"log/slog"
 	"maps"
 	"time"

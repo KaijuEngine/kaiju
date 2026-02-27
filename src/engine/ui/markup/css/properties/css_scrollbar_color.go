@@ -38,10 +38,10 @@ package properties
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 )
 
 func (p ScrollbarColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {

@@ -39,7 +39,7 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"log"
 	"os"
 	"os/exec"

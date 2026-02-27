@@ -2,10 +2,10 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/build"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
 	"runtime"
 )
 

@@ -37,12 +37,12 @@
 package main
 
 import (
-	"kaiju/bootstrap"
-	"kaiju/engine"
-	_ "kaiju/engine/ui/markup/css/properties" // Run init functions
-	_ "kaiju/engine_entity_data/content_id"   // Run the content id init
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
+	"kaijuengine.com/bootstrap"
+	"kaijuengine.com/engine"
+	_ "kaijuengine.com/engine/ui/markup/css/properties" // Run init functions
+	_ "kaijuengine.com/engine_entity_data/content_id"   // Run the content id init
+	"kaijuengine.com/platform/profiler"
+	"kaijuengine.com/plugins"
 )
 
 func _main(platformState any) {

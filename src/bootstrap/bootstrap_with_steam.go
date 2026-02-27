@@ -39,8 +39,8 @@
 package bootstrap
 
 import (
-	"kaiju/engine"
-	"kaiju/platform/steam"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/platform/steam"
 )
 
 func initExternalGameService() {

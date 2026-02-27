@@ -1,7 +1,7 @@
 package main
 
 import (
-	"kaiju/platform/filesystem"
+	"kaijuengine.com/platform/filesystem"
 	"os"
 	"path/filepath"
 	"runtime"

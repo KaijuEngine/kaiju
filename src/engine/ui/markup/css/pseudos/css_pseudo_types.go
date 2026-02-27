@@ -36,7 +36,7 @@
 
 package pseudos
 
-import "kaiju/engine/ui/markup/css/rules"
+import "kaijuengine.com/engine/ui/markup/css/rules"
 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:active
 type Active struct{}

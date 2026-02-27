@@ -37,9 +37,9 @@
 package assets
 
 import (
-	"kaiju/engine/assets/content_archive"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/assets/content_archive"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 	"runtime"
 )
 

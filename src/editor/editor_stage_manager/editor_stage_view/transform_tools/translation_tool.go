@@ -37,13 +37,13 @@
 package transform_tools
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/engine/systems/events"
-	"kaiju/matrix"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 const (

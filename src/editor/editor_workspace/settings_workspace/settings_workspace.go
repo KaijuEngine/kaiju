@@ -37,16 +37,16 @@
 package settings_workspace
 
 import (
-	"kaiju/editor/editor_plugin"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/project"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_plugin"
+	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"strconv"
 )

@@ -37,9 +37,9 @@
 package shader_designer
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
 )
 
 type ShaderDesignerEditorInterface interface {

@@ -38,10 +38,10 @@ package properties
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 )
 
 // block|inline|inline-block|flex|inline-flex|grid|inline-grid|flow-root|none|contents|block flex|block flow|block flow-root|block grid|inline flex|inline flow|inline flow-root|inline grid|table|table-row|list-item|inherit|initial|revert|revert-layer|unset

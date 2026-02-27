@@ -39,11 +39,11 @@ package editor
 import (
 	"errors"
 	"fmt"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/new_project"
-	"kaiju/editor/project"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
+	"kaijuengine.com/editor/editor_overlay/new_project"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 )
 

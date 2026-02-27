@@ -37,14 +37,14 @@
 package ui
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/pooling"
-	"kaiju/engine/systems/events"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
-	"kaiju/rendering"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/pooling"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
+	"kaijuengine.com/rendering"
 	"weak"
 )
 

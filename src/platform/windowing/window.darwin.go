@@ -53,7 +53,7 @@ import (
 	"os"
 	"unsafe"
 
-	"kaiju/platform/hid"
+	"kaijuengine.com/platform/hid"
 )
 
 //export goProcessEvents

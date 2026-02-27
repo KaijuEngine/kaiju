@@ -37,13 +37,13 @@
 package data_binding_renderer
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/engine_entity_data/engine_entity_data_particles"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
-	"kaiju/rendering/vfx"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_particles"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/vfx"
 	"log/slog"
 )
 

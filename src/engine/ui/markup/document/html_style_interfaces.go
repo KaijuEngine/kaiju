@@ -37,7 +37,7 @@
 package document
 
 import (
-	"kaiju/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/css/rules"
 )
 
 type Stylizer interface {

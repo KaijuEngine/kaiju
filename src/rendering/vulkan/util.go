@@ -39,7 +39,7 @@ package vulkan
 import (
 	"bytes"
 	"fmt"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/rendering/vulkan_const"
 	"unsafe"
 )
 

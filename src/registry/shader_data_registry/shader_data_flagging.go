@@ -37,7 +37,7 @@
 package shader_data_registry
 
 import (
-	"kaiju/rendering"
+	"kaijuengine.com/rendering"
 	"reflect"
 	"unsafe"
 )

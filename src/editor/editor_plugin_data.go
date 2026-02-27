@@ -40,10 +40,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"kaiju/build"
-	"kaiju/editor/editor_plugin"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/filesystem"
+	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_plugin"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/filesystem"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -90,7 +90,7 @@ func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onCom
 		dstName := plugins[i].Config.PackageName
 		dst := filepath.Join(to, "editor/editor_plugin/developer_plugins", dstName)
 		filesystem.CopyDirectory(plugins[i].Path, dst)
-		registry.WriteString(fmt.Sprintf("\t_ \"kaiju/editor/editor_plugin/developer_plugins/%s\"\n", dstName))
+		registry.WriteString(fmt.Sprintf("\t_ \"kaijuengine.com/editor/editor_plugin/developer_plugins/%s\"\n", dstName))
 		if err = editor_plugin.UpdatePluginConfigState(plugins[i]); err != nil {
 			slog.Warn("failed to update the enabled state of the plugin",
 				"name", plugins[i].Config.Name, "package", plugins[i].Config.PackageName, "error", err)

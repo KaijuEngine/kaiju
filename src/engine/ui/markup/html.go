@@ -37,12 +37,12 @@
 package markup
 
 import (
-	"kaiju/build"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 	"log/slog"
 	"strings"
 	"weak"

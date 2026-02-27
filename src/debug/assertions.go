@@ -38,7 +38,7 @@ package debug
 
 import (
 	"errors"
-	"kaiju/build"
+	"kaijuengine.com/build"
 	"log/slog"
 	"runtime"
 )

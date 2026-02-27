@@ -37,7 +37,7 @@
 package rendering
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"unsafe"
 )
 

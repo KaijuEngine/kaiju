@@ -37,12 +37,12 @@
 package shading_workspace
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
 )
 
 type ShadingWorkspaceEditorInterface interface {

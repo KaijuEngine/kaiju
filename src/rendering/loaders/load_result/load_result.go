@@ -37,8 +37,8 @@
 package load_result
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 	"log/slog"
 )
 

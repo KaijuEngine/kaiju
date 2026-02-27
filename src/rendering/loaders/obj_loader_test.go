@@ -1,8 +1,8 @@
 package loaders
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/matrix"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
 	"testing"
 )
 

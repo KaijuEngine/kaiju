@@ -37,13 +37,13 @@
 package vfx
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine_entity_data/content_id"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 	"log/slog"
 	"math/rand/v2"
 	"time"

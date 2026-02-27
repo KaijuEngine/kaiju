@@ -66,12 +66,12 @@ The file provides a minimal, fully‑functional game implementation. Below is a 
 
 ```go
 import (
-	"kaiju/bootstrap"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/bootstrap"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 	"log/slog"
 	"math"
 	"os"

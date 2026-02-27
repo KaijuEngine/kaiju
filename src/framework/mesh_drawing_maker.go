@@ -37,10 +37,10 @@
 package framework
 
 import (
-	"kaiju/engine"
-	"kaiju/matrix"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 func createDrawingFromMeshUnlit(host *engine.Host, mesh *rendering.Mesh, textures []*rendering.Texture, isTransparent bool) (rendering.Drawing, error) {

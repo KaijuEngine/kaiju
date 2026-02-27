@@ -39,9 +39,9 @@
 package bootstrap
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/systems/logging"
-	"kaiju/network/master_server"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/logging"
+	"kaijuengine.com/network/master_server"
 	"time"
 )
 

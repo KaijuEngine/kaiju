@@ -38,11 +38,11 @@ package content_database
 
 import (
 	"bytes"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/assets/content_archive"
-	"kaiju/engine/assets/table_of_contents"
-	"kaiju/engine/encoding/pod"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/assets/content_archive"
+	"kaijuengine.com/engine/assets/table_of_contents"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func init() { addCategory(TableOfContents{}) }

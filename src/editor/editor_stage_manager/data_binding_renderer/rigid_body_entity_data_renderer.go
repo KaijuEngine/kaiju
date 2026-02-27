@@ -38,15 +38,15 @@ package data_binding_renderer
 
 import (
 	"errors"
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine_entity_data/engine_entity_data_physics"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 	"log/slog"
 )
 

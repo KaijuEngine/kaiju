@@ -37,8 +37,8 @@
 package pseudos
 
 import (
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 )
 
 type Pseudo interface {

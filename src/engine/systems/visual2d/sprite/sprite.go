@@ -37,12 +37,12 @@
 package sprite
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/rendering"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 	"log/slog"
 	"weak"
 )

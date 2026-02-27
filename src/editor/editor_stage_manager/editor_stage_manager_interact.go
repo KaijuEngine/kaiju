@@ -37,11 +37,11 @@
 package editor_stage_manager
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
 	"slices"
 )
 

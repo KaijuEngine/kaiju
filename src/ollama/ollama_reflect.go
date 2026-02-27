@@ -39,7 +39,7 @@ package ollama
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
 	"regexp"

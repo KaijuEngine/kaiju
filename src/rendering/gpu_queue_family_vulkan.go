@@ -1,9 +1,9 @@
 package rendering
 
 import (
-	"kaiju/matrix"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/matrix"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 func mapQueueFamily(prop vk.QueueFamilyProperties, index int) GPUQueueFamily {

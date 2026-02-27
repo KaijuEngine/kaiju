@@ -37,13 +37,13 @@
 package ai_prompt
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/ollama"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/ollama"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"strings"
 )

@@ -37,9 +37,9 @@
 package matrix
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/concurrent"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/platform/profiler/tracing"
 	"slices"
 	"sync"
 )

@@ -36,7 +36,7 @@
 
 package editor
 
-import "kaiju/platform/profiler/tracing"
+import "kaijuengine.com/platform/profiler/tracing"
 
 type WorkspaceState = uint8
 

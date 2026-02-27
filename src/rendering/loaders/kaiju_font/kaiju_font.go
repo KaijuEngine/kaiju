@@ -38,7 +38,7 @@ package kaiju_font
 
 import (
 	"bytes"
-	"kaiju/engine/encoding/pod"
+	"kaijuengine.com/engine/encoding/pod"
 )
 
 // KaijuFont is a base primitive representing a single font including each

@@ -40,8 +40,8 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"kaiju/klib"
-	"kaiju/platform/filesystem"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/filesystem"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -211,7 +211,7 @@ func writePackage(md io.StringWriter, dir, line string) {
 	md.WriteString("# ")
 	md.WriteString(parts[0])
 	md.WriteString("\n```go\n")
-	md.WriteString(`import "kaiju/` + strings.ReplaceAll(dir, "\\", "/") + `"`)
+	md.WriteString(`import "kaijuengine.com/` + strings.ReplaceAll(dir, "\\", "/") + `"`)
 	md.WriteString("\n```\n\n")
 }
 

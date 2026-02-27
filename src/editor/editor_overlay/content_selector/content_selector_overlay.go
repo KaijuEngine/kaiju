@@ -37,14 +37,14 @@
 package content_selector
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"strings"
 )

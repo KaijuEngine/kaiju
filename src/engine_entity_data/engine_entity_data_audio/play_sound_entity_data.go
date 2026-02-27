@@ -37,9 +37,9 @@
 package engine_entity_data_audio
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/encoding/pod"
-	"kaiju/engine_entity_data/content_id"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine_entity_data/content_id"
 	"log/slog"
 	"time"
 )

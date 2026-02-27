@@ -39,7 +39,7 @@ package vulkan
 import (
 	"errors"
 	"fmt"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 func Error(result vulkan_const.Result) error {

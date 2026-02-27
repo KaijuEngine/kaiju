@@ -38,8 +38,8 @@ package pseudos
 
 import (
 	"errors"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 )
 
 func (p Empty) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {

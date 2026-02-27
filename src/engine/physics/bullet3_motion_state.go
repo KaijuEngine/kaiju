@@ -50,7 +50,7 @@ package physics
 */
 import "C"
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"runtime"
 )
 

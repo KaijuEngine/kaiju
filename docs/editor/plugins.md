@@ -47,8 +47,8 @@ When a new plugin project is created via **Create Plugin Project** (see below) a
 package rename_me
 
 import (
-		"kaiju/editor"
-		"kaiju/editor/editor_plugin"
+	"kaijuengine.com/editor"
+	"kaijuengine.com/editor/editor_plugin"
 )
 
 // A unique key for the plugin – you can use a URL or any string that will not clash with other plugins.
@@ -97,7 +97,7 @@ The editor UI provides a **Create plugin project** command (found under the *Kai
 You can also invoke the function programmatically:
 
 ```go
-import "kaiju/editor/editor_plugin"
+import "kaijuengine.com/editor/editor_plugin"
 
 err := editor_plugin.CreatePluginProject("C:/path/to/your/plugin")
 ```
@@ -125,8 +125,8 @@ package hello
 
 import (
 		"fmt"
-		"kaiju/editor"
-		"kaiju/editor/editor_plugin"
+		"kaijuengine.com/editor"
+		"kaijuengine.com/editor/editor_plugin"
 )
 
 const pluginKey = "github.com/yourname/kaiju-hello"

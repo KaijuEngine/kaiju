@@ -38,9 +38,9 @@ package font_to_msdf
 
 import (
 	"encoding/json"
-	"kaiju/build"
-	"kaiju/klib"
-	"kaiju/rendering/loaders/kaiju_font"
+	"kaijuengine.com/build"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/rendering/loaders/kaiju_font"
 	"os"
 	"os/exec"
 	"runtime"

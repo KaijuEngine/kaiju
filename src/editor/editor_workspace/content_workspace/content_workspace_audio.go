@@ -38,11 +38,11 @@ package content_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/audio"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/audio"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"weak"
 )

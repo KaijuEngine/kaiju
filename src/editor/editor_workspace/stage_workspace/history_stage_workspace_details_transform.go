@@ -37,8 +37,8 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/matrix"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/matrix"
 )
 
 type transformHistoryType = int

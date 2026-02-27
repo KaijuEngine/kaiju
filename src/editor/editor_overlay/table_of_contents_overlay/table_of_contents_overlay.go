@@ -37,12 +37,12 @@
 package table_of_contents_overlay
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/assets/table_of_contents"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets/table_of_contents"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type TableOfContentsOverlay struct {

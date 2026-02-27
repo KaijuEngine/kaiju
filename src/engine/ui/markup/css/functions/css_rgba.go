@@ -37,10 +37,10 @@
 package functions
 
 import (
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"strconv"
 )
 

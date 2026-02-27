@@ -37,10 +37,10 @@
 package data_binding_renderer
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/platform/profiler/tracing"
 	"weak"
 )
 

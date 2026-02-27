@@ -39,8 +39,8 @@ package rendering
 import (
 	"slices"
 
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
 )
 
 type bufferTrash struct {

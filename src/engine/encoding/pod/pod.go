@@ -2,8 +2,8 @@ package pod
 
 import (
 	"fmt"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/matrix"
 	"reflect"
 	"sync"
 )

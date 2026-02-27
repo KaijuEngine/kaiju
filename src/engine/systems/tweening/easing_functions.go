@@ -37,7 +37,7 @@
 package tweening
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"math"
 )
 

@@ -37,8 +37,8 @@
 package content_database
 
 import (
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func init() { addCategory(ParticleSystem{}) }

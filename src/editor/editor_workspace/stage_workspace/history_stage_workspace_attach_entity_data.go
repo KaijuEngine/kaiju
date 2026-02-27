@@ -37,10 +37,10 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
+	"kaijuengine.com/platform/profiler/tracing"
 	"weak"
 )
 

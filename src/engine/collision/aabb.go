@@ -37,7 +37,7 @@
 package collision
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"math"
 )
 

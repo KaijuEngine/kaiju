@@ -37,10 +37,10 @@
 package engine_entity_data_tween_transform
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/encoding/pod"
-	"kaiju/engine/systems/tweening"
-	"kaiju/matrix"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine/systems/tweening"
+	"kaijuengine.com/matrix"
 	"time"
 	"weak"
 )

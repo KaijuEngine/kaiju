@@ -37,15 +37,15 @@
 package status_bar
 
 import (
-	"kaiju/editor/common_interfaces"
-	"kaiju/editor/editor_logging"
-	"kaiju/editor/editor_overlay/context_menu"
-	"kaiju/engine"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/common_interfaces"
+	"kaijuengine.com/editor/editor_logging"
+	"kaijuengine.com/editor/editor_overlay/context_menu"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/logging"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/profiler/tracing"
 	"weak"
 )
 

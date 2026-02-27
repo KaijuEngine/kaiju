@@ -38,9 +38,9 @@ package stage_workspace
 
 import (
 	"errors"
-	"kaiju/matrix"
-	"kaiju/ollama"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/ollama"
+	"kaijuengine.com/platform/profiler/tracing"
 	"weak"
 )
 

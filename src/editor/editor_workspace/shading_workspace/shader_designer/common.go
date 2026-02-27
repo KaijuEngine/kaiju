@@ -37,8 +37,8 @@
 package shader_designer
 
 import (
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
 )
 
 type FileExtension = string

@@ -37,9 +37,9 @@
 package ui
 
 import (
-	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"sort"
 	"sync"

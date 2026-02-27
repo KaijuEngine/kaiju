@@ -37,16 +37,16 @@
 package stage_workspace
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 )
 
 const maxContentDropDistance = 10

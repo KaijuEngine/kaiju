@@ -38,9 +38,9 @@ package vfx
 
 import (
 	"encoding/json"
-	"kaiju/engine"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"slices"
 )
 

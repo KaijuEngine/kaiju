@@ -39,7 +39,7 @@
 package main
 
 import (
-	"kaiju/platform/windowing"
+	"kaijuengine.com/platform/windowing"
 	"runtime"
 )
 

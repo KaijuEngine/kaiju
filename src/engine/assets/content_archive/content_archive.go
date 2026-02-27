@@ -42,8 +42,8 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 	"unsafe"
 )
 

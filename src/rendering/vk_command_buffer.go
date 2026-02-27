@@ -38,10 +38,10 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/engine/pooling"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/engine/pooling"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 	"weak"
