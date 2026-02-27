@@ -312,7 +312,7 @@ func (d *DrawInstanceGroup) updateBoundData(index, bindingId int, instance DrawI
 	}
 }
 
-func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights LightsForRender) {
+func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
@@ -352,12 +352,12 @@ func (d *DrawInstanceGroup) UpdateData(renderer Renderer, frame int, lights Ligh
 	}
 	d.bindInstanceDriverData()
 	if len(d.Instances) == 0 {
-		renderer.DestroyGroup(d)
+		device.LogicalDevice.DestroyGroup(d)
 		d.destroyed = true
 	}
 }
 
-func (d *DrawInstanceGroup) Clear(renderer Renderer) {
+func (d *DrawInstanceGroup) Clear() {
 	if d.destroyed {
 		return
 	}
@@ -366,13 +366,13 @@ func (d *DrawInstanceGroup) Clear(renderer Renderer) {
 	}
 }
 
-func (d *DrawInstanceGroup) Destroy(renderer Renderer) {
+func (d *DrawInstanceGroup) Destroy(device *GPUDevice) {
 	if d.destroyed {
 		return
 	}
-	d.Clear(renderer)
+	d.Clear()
 	d.Instances = klib.WipeSlice(d.Instances)
 	d.Mesh = nil
 	d.MaterialInstance = nil
-	renderer.DestroyGroup(d)
+	device.LogicalDevice.DestroyGroup(d)
 }

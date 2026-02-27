@@ -72,16 +72,16 @@ func (s *ShaderDraw) Filter(filter func(*DrawInstanceGroup) bool) []*DrawInstanc
 	return selected
 }
 
-func (s *ShaderDraw) Destroy(renderer Renderer) {
+func (s *ShaderDraw) Destroy(device *GPUDevice) {
 	for i := range s.instanceGroups {
-		s.instanceGroups[i].Destroy(renderer)
+		s.instanceGroups[i].Destroy(device)
 	}
 	s.material = nil
 	s.instanceGroups = klib.WipeSlice(s.instanceGroups)
 }
 
-func (s *ShaderDraw) Clear(renderer Renderer) {
+func (s *ShaderDraw) Clear() {
 	for i := range s.instanceGroups {
-		s.instanceGroups[i].Clear(renderer)
+		s.instanceGroups[i].Clear()
 	}
 }

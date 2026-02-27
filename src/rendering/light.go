@@ -106,7 +106,7 @@ type LightsForRender struct {
 }
 
 type Light struct {
-	renderer         *Vulkan
+	device           *GPUDevice
 	texture          *Texture
 	camera           cameras.Camera
 	renderPass       *RenderPass
@@ -165,7 +165,7 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 	return nil
 }
 
-func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
+func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
 	light := Light{
 		ambient:     matrix.NewVec3(0.1, 0.1, 0.1),
 		diffuse:     matrix.Vec3One(),
@@ -179,7 +179,7 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 		cutoff:      matrix.Cos(matrix.Deg2Rad(32.5)),
 		outerCutoff: matrix.Cos(matrix.Deg2Rad(50.5)),
 		reset:       true,
-		renderer:    vr,
+		device:      device,
 	}
 	for i := range cubeMapSides {
 		light.lightSpaceMatrix[i].Reset()
@@ -212,7 +212,7 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 func (l *Light) FrameDirty() bool { return l.reset }
 
 func (l *Light) Type() LightType { return l.lightType }
-func (l *Light) IsValid() bool   { return l.renderer != nil }
+func (l *Light) IsValid() bool   { return l.device != nil }
 
 func lightTransformDrawingToDepth(drawing *Drawing, cascades uint8) Drawing {
 	copy := *drawing
@@ -306,16 +306,16 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 }
 
 func (l *Light) setupRenderPass(assets assets.Database) {
-	vr := l.renderer
 	rp := RenderPassData{}
 	if err := unmarshallJsonFile(assets, "light_depth.renderpass", &rp); err != nil {
 		slog.Error("failed to load light_depth.renderpass")
 		return
 	}
-	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
-		rpc := rp.Compile(vr)
-		if p, ok := rpc.ConstructRenderPass(vr); ok {
-			vr.renderPassCache[rp.Name] = p
+	lp := l.device.LogicalDevice
+	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
+		rpc := rp.Compile(l.device)
+		if p, err := rpc.ConstructRenderPass(l.device); err == nil {
+			lp.renderPassCache[rp.Name] = p
 			l.renderPass = p
 		} else {
 			slog.Error("failed to load the render pass for the light", "renderPass", rp.Name)

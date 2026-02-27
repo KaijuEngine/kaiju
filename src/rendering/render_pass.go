@@ -38,6 +38,7 @@ package rendering
 
 import (
 	"encoding/json"
+	"errors"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
@@ -146,14 +147,14 @@ type RenderPassSubpassDataCompiled struct {
 }
 
 type RenderPassAttachmentDescriptionCompiled struct {
-	Format         vulkan_const.Format
-	Samples        vulkan_const.SampleCountFlagBits
-	LoadOp         vulkan_const.AttachmentLoadOp
-	StoreOp        vulkan_const.AttachmentStoreOp
-	StencilLoadOp  vulkan_const.AttachmentLoadOp
-	StencilStoreOp vulkan_const.AttachmentStoreOp
-	InitialLayout  vulkan_const.ImageLayout
-	FinalLayout    vulkan_const.ImageLayout
+	Format         GPUFormat
+	Samples        GPUSampleCountFlags
+	LoadOp         GPUAttachmentLoadOp
+	StoreOp        GPUAttachmentStoreOp
+	StencilLoadOp  GPUAttachmentLoadOp
+	StencilStoreOp GPUAttachmentStoreOp
+	InitialLayout  GPUImageLayout
+	FinalLayout    GPUImageLayout
 	Image          RenderPassAttachmentImageCompiled
 }
 
@@ -170,12 +171,12 @@ type RenderPassAttachmentImageCompiled struct {
 	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
-	Tiling         vulkan_const.ImageTiling
-	Filter         vulkan_const.Filter
-	Usage          vk.ImageUsageFlags
-	MemoryProperty vk.MemoryPropertyFlags
-	Aspect         vk.ImageAspectFlags
-	Access         vk.AccessFlags
+	Tiling         GPUImageTiling
+	Filter         GPUFilter
+	Usage          GPUImageUsageFlags
+	MemoryProperty GPUMemoryPropertyFlags
+	Aspect         GPUImageAspectFlags
+	Access         GPUAccessFlags
 }
 
 type RenderPassSubpassDescriptionCompiled struct {
@@ -208,7 +209,7 @@ func NewRenderPassData(src string) (RenderPassData, error) {
 	return rp, err
 }
 
-func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
+func (d *RenderPassData) Compile(device *GPUDevice) RenderPassDataCompiled {
 	c := RenderPassDataCompiled{
 		Name:                   d.Name,
 		Sort:                   d.Sort,
@@ -223,8 +224,8 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	for i := range d.AttachmentDescriptions {
 		a := &c.AttachmentDescriptions[i]
 		b := &d.AttachmentDescriptions[i]
-		a.Format = b.FormatToVK(vr)
-		a.Samples = b.SamplesToVK(vr)
+		a.Format = b.FormatToVK(device)
+		a.Samples = b.SamplesToVK(&device.PhysicalDevice)
 		a.LoadOp = b.LoadOpToVK()
 		a.StoreOp = b.StoreOpToVK()
 		a.StencilLoadOp = b.StencilLoadOpToVK()
@@ -261,22 +262,22 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		a.ColorAttachmentReferences = make([]RenderPassAttachmentReferenceCompiled, len(b.ColorAttachmentReferences))
 		for j := range b.ColorAttachmentReferences {
 			a.ColorAttachmentReferences[j].Attachment = b.ColorAttachmentReferences[j].Attachment
-			a.ColorAttachmentReferences[j].Layout = b.ColorAttachmentReferences[j].LayoutToVK()
+			a.ColorAttachmentReferences[j].Layout = b.ColorAttachmentReferences[j].LayoutToVK().toVulkan()
 		}
 		a.InputAttachmentReferences = make([]RenderPassAttachmentReferenceCompiled, len(b.InputAttachmentReferences))
 		for j := range b.InputAttachmentReferences {
 			a.InputAttachmentReferences[j].Attachment = b.InputAttachmentReferences[j].Attachment
-			a.InputAttachmentReferences[j].Layout = b.InputAttachmentReferences[j].LayoutToVK()
+			a.InputAttachmentReferences[j].Layout = b.InputAttachmentReferences[j].LayoutToVK().toVulkan()
 		}
 		a.ResolveAttachments = make([]RenderPassAttachmentReferenceCompiled, len(b.ResolveAttachments))
 		for j := range b.ResolveAttachments {
 			a.ResolveAttachments[j].Attachment = b.ResolveAttachments[j].Attachment
-			a.ResolveAttachments[j].Layout = b.ResolveAttachments[j].LayoutToVK()
+			a.ResolveAttachments[j].Layout = b.ResolveAttachments[j].LayoutToVK().toVulkan()
 		}
 		a.DepthStencilAttachment = make([]RenderPassAttachmentReferenceCompiled, len(b.DepthStencilAttachment))
 		for j := range b.DepthStencilAttachment {
 			a.DepthStencilAttachment[j].Attachment = b.DepthStencilAttachment[j].Attachment
-			a.DepthStencilAttachment[j].Layout = b.DepthStencilAttachment[j].LayoutToVK()
+			a.DepthStencilAttachment[j].Layout = b.DepthStencilAttachment[j].LayoutToVK().toVulkan()
 		}
 		a.PreserveAttachments = make([]uint32, len(b.PreserveAttachments))
 		copy(a.PreserveAttachments, b.PreserveAttachments)
@@ -312,8 +313,8 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 		}
 		a.SrcStageMask = b.SrcStageMaskToVK()
 		a.DstStageMask = b.DstStageMaskToVK()
-		a.SrcAccessMask = b.SrcAccessMaskToVK()
-		a.DstAccessMask = b.DstAccessMaskToVK()
+		a.SrcAccessMask = b.SrcAccessMaskToVK().toVulkan()
+		a.DstAccessMask = b.DstAccessMaskToVK().toVulkan()
 		a.DependencyFlags = b.DependencyFlagsToVK()
 	}
 	if len(c.Subpass) != len(d.SubpassDescriptions)-1 {
@@ -322,63 +323,63 @@ func (d *RenderPassData) Compile(vr *Vulkan) RenderPassDataCompiled {
 	return c
 }
 
-func (ai *RenderPassAttachmentImage) TilingToVK() vulkan_const.ImageTiling {
+func (ai *RenderPassAttachmentImage) TilingToVK() GPUImageTiling {
 	return imageTilingToVK(ai.Tiling)
 }
 
-func (ai *RenderPassAttachmentImage) FilterToVK() vulkan_const.Filter {
+func (ai *RenderPassAttachmentImage) FilterToVK() GPUFilter {
 	return filterToVK(ai.Filter)
 }
 
-func (ai *RenderPassAttachmentImage) UsageToVK() vk.ImageUsageFlags {
+func (ai *RenderPassAttachmentImage) UsageToVK() GPUImageUsageFlags {
 	return imageUsageFlagsToVK(ai.Usage)
 }
 
-func (ai *RenderPassAttachmentImage) MemoryPropertyToVK() vk.MemoryPropertyFlags {
+func (ai *RenderPassAttachmentImage) MemoryPropertyToVK() GPUMemoryPropertyFlags {
 	return memoryPropertyFlagsToVK(ai.MemoryProperty)
 }
 
-func (ai *RenderPassAttachmentImage) AspectToVK() vk.ImageAspectFlags {
+func (ai *RenderPassAttachmentImage) AspectToVK() GPUImageAspectFlags {
 	return imageAspectFlagsToVK(ai.Aspect)
 }
 
-func (ai *RenderPassAttachmentImage) AccessToVK() vk.AccessFlags {
+func (ai *RenderPassAttachmentImage) AccessToVK() GPUAccessFlags {
 	return accessFlagsToVK(ai.Access)
 }
 
-func (ad *RenderPassAttachmentDescription) FormatToVK(vr *Vulkan) vulkan_const.Format {
-	return formatToVK(ad.Format, vr)
+func (ad *RenderPassAttachmentDescription) FormatToVK(device *GPUDevice) GPUFormat {
+	return formatToVK(ad.Format, device)
 }
 
-func (ad *RenderPassAttachmentDescription) SamplesToVK(vr *Vulkan) vulkan_const.SampleCountFlagBits {
-	return sampleCountToVK(ad.Samples, vr)
+func (ad *RenderPassAttachmentDescription) SamplesToVK(device *GPUPhysicalDevice) GPUSampleCountFlags {
+	return sampleCountToVK(ad.Samples, device)
 }
 
-func (ad *RenderPassAttachmentDescription) LoadOpToVK() vulkan_const.AttachmentLoadOp {
+func (ad *RenderPassAttachmentDescription) LoadOpToVK() GPUAttachmentLoadOp {
 	return attachmentLoadOpToVK(ad.LoadOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StoreOpToVK() vulkan_const.AttachmentStoreOp {
+func (ad *RenderPassAttachmentDescription) StoreOpToVK() GPUAttachmentStoreOp {
 	return attachmentStoreOpToVK(ad.StoreOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() vulkan_const.AttachmentLoadOp {
+func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() GPUAttachmentLoadOp {
 	return attachmentLoadOpToVK(ad.StencilLoadOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() vulkan_const.AttachmentStoreOp {
+func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() GPUAttachmentStoreOp {
 	return attachmentStoreOpToVK(ad.StencilStoreOp)
 }
 
-func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() vulkan_const.ImageLayout {
+func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() GPUImageLayout {
 	return imageLayoutToVK(ad.InitialLayout)
 }
 
-func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() vulkan_const.ImageLayout {
+func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() GPUImageLayout {
 	return imageLayoutToVK(ad.FinalLayout)
 }
 
-func (ad *RenderPassAttachmentReference) LayoutToVK() vulkan_const.ImageLayout {
+func (ad *RenderPassAttachmentReference) LayoutToVK() GPUImageLayout {
 	return imageLayoutToVK(ad.Layout)
 }
 
@@ -394,11 +395,11 @@ func (sd *RenderPassSubpassDependency) DstStageMaskToVK() vk.PipelineStageFlags 
 	return pipelineStageFlagsToVK(sd.DstStageMask)
 }
 
-func (sd *RenderPassSubpassDependency) SrcAccessMaskToVK() vk.AccessFlags {
+func (sd *RenderPassSubpassDependency) SrcAccessMaskToVK() GPUAccessFlags {
 	return accessFlagsToVK(sd.SrcAccessMask)
 }
 
-func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() vk.AccessFlags {
+func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() GPUAccessFlags {
 	return accessFlagsToVK(sd.DstAccessMask)
 }
 
@@ -415,15 +416,15 @@ func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool {
 	return isDepth
 }
 
-func (r *RenderPassDataCompiled) ConstructRenderPass(renderer Renderer) (*RenderPass, bool) {
-	vr := renderer.(*Vulkan)
-	if pass, ok := vr.renderPassCache[r.Name]; ok {
-		return pass, true
+func (r *RenderPassDataCompiled) ConstructRenderPass(device *GPUDevice) (*RenderPass, error) {
+	ld := &device.LogicalDevice
+	if pass, ok := ld.renderPassCache[r.Name]; ok {
+		return pass, errors.New("the render pass already exists in the cache")
 	}
-	pass, err := NewRenderPass(vr, r)
+	pass, err := NewRenderPass(device, r)
 	if err != nil {
 		slog.Error("failed to create the render pass", "error", err)
-		return nil, false
+		return nil, err
 	}
-	return pass, true
+	return pass, nil
 }

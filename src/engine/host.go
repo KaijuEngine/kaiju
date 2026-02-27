@@ -204,11 +204,12 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	host.uiThreads.Start()
 	host.Cameras.Primary.Camera.ViewportChanged(float32(width), float32(height))
 	host.Cameras.UI.Camera.ViewportChanged(float32(width), float32(height))
-	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, host.assetDatabase)
-	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, host.assetDatabase)
-	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, host.assetDatabase)
-	host.fontCache = rendering.NewFontCache(host.Window.Renderer, host.assetDatabase)
-	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, host.assetDatabase)
+	gpuDevice := host.Window.GpuInstance.PrimaryDevice()
+	host.shaderCache = rendering.NewShaderCache(gpuDevice, host.assetDatabase)
+	host.textureCache = rendering.NewTextureCache(gpuDevice, host.assetDatabase)
+	host.meshCache = rendering.NewMeshCache(gpuDevice, host.assetDatabase)
+	host.fontCache = rendering.NewFontCache(gpuDevice, host.assetDatabase)
+	host.materialCache = rendering.NewMaterialCache(gpuDevice, host.assetDatabase)
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
 	return nil
@@ -224,11 +225,11 @@ func (host *Host) StartPhysics() {
 
 func (host *Host) InitializeRenderer() error {
 	w, h := int32(host.Window.Width()), int32(host.Window.Height())
-	if err := host.Window.Renderer.Initialize(host, w, h); err != nil {
+	if err := host.Window.GpuInstance.SetupCaches(host, w, h); err != nil {
 		slog.Error("failed to initialize the renderer", "error", err)
 		return err
 	}
-	if err := host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), host); err != nil {
+	if err := host.FontCache().Init(host); err != nil {
 		slog.Error("failed to initialize the font cache", "error", err)
 		return err
 	}
@@ -406,10 +407,11 @@ func (host *Host) Render() {
 			lights.HasChanges = lights.Lights[i].ResetFrameDirty()
 		}
 		host.lighting.Update(host.PrimaryCamera().Position())
-		if host.Window.Renderer.ReadyFrame(host.Window,
+		gpuInstance := host.Window.GpuInstance
+		if gpuInstance.PrimaryDevice().ReadyFrame(gpuInstance, host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
-			host.Drawings.Render(host.Window.Renderer, lights)
+			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)
 		}
 	}
 	host.Window.SwapBuffers()
@@ -482,14 +484,15 @@ func (host *Host) RunAfterTime(wait time.Duration, call func()) {
 // Teardown will destroy the host and all of its resources. This will also
 // execute the OnClose event. This will also signal the CloseSignal channel.
 func (host *Host) Teardown() {
-	host.Window.Renderer.WaitForRender()
+	gpuDevice := host.Window.GpuInstance.PrimaryDevice()
+	gpuDevice.LogicalDevice.WaitForRender(gpuDevice)
 	host.OnClose.Execute()
 	host.processDestroyedEntities()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
-	host.Drawings.Destroy(host.Window.Renderer)
+	host.Drawings.Destroy(gpuDevice)
 	host.textureCache.Destroy()
 	host.meshCache.Destroy()
 	host.shaderCache.Destroy()

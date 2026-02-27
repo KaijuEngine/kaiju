@@ -133,7 +133,11 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 		return
 	}
 	_, rule.SelfDestruct = selfDestructingRules[rule.Property]
-	rule.Sort = LinkedPropertyMap[rule.Property].Sort()
+	p, ok := LinkedPropertyMap[rule.Property]
+	if !ok {
+		return
+	}
+	rule.Sort = p.Sort()
 	s.styleRules = append(s.styleRules, rule)
 	switch rule.Invocation {
 	case rules.RuleInvokeHover:

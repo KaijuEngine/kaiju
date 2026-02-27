@@ -314,7 +314,7 @@ func (t *Texture) create(imgBuff []byte) {
 	t.Height = data.Height
 }
 
-func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
+func NewTexture(assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
 	key = selectKey(key)
 	tex := &Texture{Key: key, Filter: filter}
@@ -332,7 +332,7 @@ func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter T
 	}
 }
 
-func (t *Texture) Reload(renderer Renderer, assetDb assets.Database) error {
+func (t *Texture) Reload(assetDb assets.Database) error {
 	t.RenderId = TextureId{}
 	if assetDb.Exists(t.Key) {
 		if imgBuff, err := assetDb.Read(t.Key); err != nil {
@@ -368,12 +368,12 @@ func (t *Texture) ReadPendingDataForTransparency() bool {
 	return t.hasTransparency == transparencyReadStateFound
 }
 
-func (t *Texture) DelayedCreate(renderer Renderer) {
+func (t *Texture) DelayedCreate(device *GPUDevice) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
 	if t.RenderId.IsValid() {
 		return
 	}
-	renderer.CreateTexture(t, t.pendingData)
+	device.SetupTexture(t, t.pendingData)
 	t.pendingData = nil
 }
 
@@ -398,19 +398,19 @@ func NewTextureFromMemory(key string, data []byte, width, height int, filter Tex
 	return tex, nil
 }
 
-func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color {
+func (t *Texture) ReadPixel(app *GPUApplication, x, y int) matrix.Color {
 	defer tracing.NewRegion("Texture.ReadPixel").End()
-	return renderer.TextureReadPixel(t, x, y)
+	return app.FirstInstance().PrimaryDevice().TextureReadPixel(t, x, y)
 }
 
-func (t *Texture) ReadAllPixels(renderer Renderer) ([]byte, error) {
+func (t *Texture) ReadAllPixels(app *GPUApplication) ([]byte, error) {
 	defer tracing.NewRegion("Texture.ReadPixel").End()
-	return renderer.TextureRead(t)
+	return app.FirstInstance().PrimaryDevice().TextureRead(t)
 }
 
-func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest) {
+func (t *Texture) WritePixels(device *GPUDevice, requests []GPUImageWriteRequest) {
 	defer tracing.NewRegion("Texture.WritePixels").End()
-	renderer.TextureWritePixels(t, requests)
+	device.TextureWritePixels(t, requests)
 }
 
 func (t Texture) Size() matrix.Vec2 {

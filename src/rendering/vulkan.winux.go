@@ -46,8 +46,12 @@ import (
 const vkGeometryShaderValid = vulkan_const.True
 const vkInstanceFlags = 0
 
-func vkColorSpace(sf vk.SurfaceFormat) vulkan_const.ColorSpace {
-	return sf.ColorSpace
+func preTransform(scs GPUSwapChainSupportDetails) vk.SurfaceTransformFlags {
+	return scs.capabilities.CurrentTransform.toVulkan()
+}
+
+func vkColorSpace(sf GPUSurfaceFormat) vulkan_const.ColorSpace {
+	return sf.ColorSpace.toVulkan()
 }
 
 func vkInstanceExtensions() []string {
@@ -56,10 +60,6 @@ func vkInstanceExtensions() []string {
 
 func vkDeviceExtensions() []string {
 	return []string{}
-}
-
-func preTransform(scs vkSwapChainSupportDetails) vulkan_const.SurfaceTransformFlagBits {
-	return scs.capabilities.CurrentTransform
 }
 
 const compositeAlpha = vulkan_const.CompositeAlphaOpaqueBit

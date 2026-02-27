@@ -43,6 +43,7 @@ import (
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
 	"log/slog"
+	"unsafe"
 	"weak"
 )
 
@@ -62,12 +63,12 @@ type CommandRecorderSecondary struct {
 	subpassIdx uint32
 }
 
-func NewCommandRecorder(vr *Vulkan) (CommandRecorder, error) {
-	return createCommandPoolBufferPair(vr, vulkan_const.CommandBufferLevelPrimary)
+func NewCommandRecorder(device *GPUDevice) (CommandRecorder, error) {
+	return createCommandPoolBufferPair(device, vulkan_const.CommandBufferLevelPrimary)
 }
 
-func NewCommandRecorderSecondary(vr *Vulkan, rp *RenderPass, subpassIdx int) (CommandRecorderSecondary, error) {
-	c, err := createCommandPoolBufferPair(vr, vulkan_const.CommandBufferLevelSecondary)
+func NewCommandRecorderSecondary(device *GPUDevice, rp *RenderPass, subpassIdx int) (CommandRecorderSecondary, error) {
+	c, err := createCommandPoolBufferPair(device, vulkan_const.CommandBufferLevelSecondary)
 	if err != nil {
 		return CommandRecorderSecondary{}, err
 	}
@@ -78,21 +79,21 @@ func NewCommandRecorderSecondary(vr *Vulkan, rp *RenderPass, subpassIdx int) (Co
 	}, err
 }
 
-func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLevel) (CommandRecorder, error) {
+func createCommandPoolBufferPair(device *GPUDevice, level vulkan_const.CommandBufferLevel) (CommandRecorder, error) {
 	defer tracing.NewRegion("rendering.createCommandPoolBufferPair").End()
-	indices := findQueueFamilies(vr.physicalDevice, vr.surface)
 	poolInfo := vk.CommandPoolCreateInfo{
 		SType:            vulkan_const.StructureTypeCommandPoolCreateInfo,
 		Flags:            vk.CommandPoolCreateFlags(vulkan_const.CommandPoolCreateResetCommandBufferBit),
-		QueueFamilyIndex: uint32(indices.graphicsFamily),
+		QueueFamilyIndex: uint32(device.PhysicalDevice.FindGraphicsFamiliy().Index),
 	}
+	vkDevice := vk.Device(device.LogicalDevice.handle)
 	var pool vk.CommandPool
-	if vk.CreateCommandPool(vr.device, &poolInfo, nil, &pool) != vulkan_const.Success {
+	if vk.CreateCommandPool(vkDevice, &poolInfo, nil, &pool) != vulkan_const.Success {
 		const e = "Failed to create command pool"
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
 	}
-	vr.dbg.add(vk.TypeToUintPtr(pool))
+	device.LogicalDevice.dbg.track(unsafe.Pointer(pool))
 	buffInfo := vk.CommandBufferAllocateInfo{
 		SType:              vulkan_const.StructureTypeCommandBufferAllocateInfo,
 		Level:              level,
@@ -100,18 +101,18 @@ func createCommandPoolBufferPair(vr *Vulkan, level vulkan_const.CommandBufferLev
 		CommandPool:        pool,
 	}
 	var buffer vk.CommandBuffer
-	if vk.AllocateCommandBuffers(vr.device, &buffInfo, &buffer) != vulkan_const.Success {
+	if vk.AllocateCommandBuffers(vkDevice, &buffInfo, &buffer) != vulkan_const.Success {
 		const e = "Failed to allocate command buffers"
 		slog.Error(e)
 		return CommandRecorder{}, errors.New(e)
 	}
-	vr.dbg.add(vk.TypeToUintPtr(buffer))
+	device.LogicalDevice.dbg.track(unsafe.Pointer(buffer))
 	cr := CommandRecorder{pool: pool, buffer: buffer}
 	fenceInfo := vk.FenceCreateInfo{
 		SType: vulkan_const.StructureTypeFenceCreateInfo,
 	}
-	vk.CreateFence(vr.device, &fenceInfo, nil, &cr.fence)
-	vr.dbg.add(vk.TypeToUintPtr(cr.fence))
+	vk.CreateFence(vkDevice, &fenceInfo, nil, &cr.fence)
+	device.LogicalDevice.dbg.track(unsafe.Pointer(cr.fence))
 	return cr, nil
 }
 
@@ -131,14 +132,15 @@ func (c *CommandRecorder) Begin() {
 	}
 }
 
-func (c *CommandRecorder) Destroy(vr *Vulkan) {
+func (c *CommandRecorder) Destroy(device *GPUDevice) {
 	buff := c.buffer
-	vk.FreeCommandBuffers(vr.device, c.pool, 1, &buff)
-	vr.dbg.remove(vk.TypeToUintPtr(buff))
-	vk.DestroyCommandPool(vr.device, c.pool, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(c.pool))
-	vk.DestroyFence(vr.device, c.fence, nil)
-	vr.dbg.remove(vk.TypeToUintPtr(c.fence))
+	vkDevice := vk.Device(device.LogicalDevice.handle)
+	vk.FreeCommandBuffers(vkDevice, c.pool, 1, &buff)
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(buff))
+	vk.DestroyCommandPool(vkDevice, c.pool, nil)
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(c.pool))
+	vk.DestroyFence(vkDevice, c.fence, nil)
+	device.LogicalDevice.dbg.remove(unsafe.Pointer(c.fence))
 }
 
 func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D) {
@@ -159,38 +161,4 @@ func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D
 	}
 	vk.CmdSetViewport(c.buffer, 0, 1, &viewport)
 	vk.CmdSetScissor(c.buffer, 0, 1, &scissor)
-}
-
-func (vr *Vulkan) beginSingleTimeCommands() *CommandRecorder {
-	defer tracing.NewRegion("Vulkan.beginSingleTimeCommands").End()
-	cmd, pool, elm := vr.singleTimeCommandPool.Add()
-	if cmd.buffer == vk.NullCommandBuffer {
-		*cmd, _ = createCommandPoolBufferPair(vr, vulkan_const.CommandBufferLevelPrimary)
-		cmd.poolingId = pool
-		cmd.elmId = elm
-		cmd.pooled = true
-	} else {
-		cmd.Reset()
-	}
-	cmd.Begin()
-	return cmd
-}
-
-func (vr *Vulkan) endSingleTimeCommands(cmd *CommandRecorder) {
-	defer tracing.NewRegion("Vulkan.endSingleTimeCommands").End()
-	cmd.End()
-	buff := cmd.buffer
-	submitInfo := vk.SubmitInfo{
-		SType:              vulkan_const.StructureTypeSubmitInfo,
-		CommandBufferCount: 1,
-		PCommandBuffers:    &buff,
-	}
-	vk.QueueSubmit(vr.graphicsQueue, 1, &submitInfo, cmd.fence)
-	result := vk.WaitForFences(vr.device, 1, &cmd.fence, vulkan_const.True, 1e9)
-	if result == vulkan_const.Success {
-		vk.ResetFences(vr.device, 1, &cmd.fence)
-	} else {
-		slog.Error("failed to wait for fence", "result", result)
-	}
-	vr.singleTimeCommandPool.Remove(cmd.poolingId, cmd.elmId)
 }

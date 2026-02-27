@@ -1,5 +1,7 @@
+//go:build android
+
 /******************************************************************************/
-/* vk_helpers.go                                                              */
+/* vulkan.android.go                                                          */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -37,43 +39,41 @@
 package rendering
 
 import (
+	"fmt"
 	vk "kaiju/rendering/vulkan"
 	"kaiju/rendering/vulkan_const"
+	"unsafe"
 )
 
-func (vr *Vulkan) formatCanTile(format vulkan_const.Format, tiling vulkan_const.ImageTiling) bool {
-	var formatProps vk.FormatProperties
-	vk.GetPhysicalDeviceFormatProperties(vr.physicalDevice, format, &formatProps)
-	if tiling == vulkan_const.ImageTilingOptimal {
-		return (uint32(formatProps.OptimalTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
+const (
+	vkGeometryShaderValid = vulkan_const.True
+	compositeAlpha        = vulkan_const.CompositeAlphaInheritBit
+	vkInstanceFlags       = 0
+)
 
-	} else if tiling == vulkan_const.ImageTilingLinear {
-		return (uint32(formatProps.LinearTilingFeatures) & uint32(vulkan_const.FormatFeatureSampledImageFilterLinearBit)) != 0
-	} else {
-		return false
+func (g *GPUSurface) createImpl(instance *GPUInstance, window RenderingContainer) error {
+	// TODO:  Fill in the nil args
+	var surface vk.Surface
+	result := vk.CreateAndroidSurfaceHelper(window.PlatformInstance(), vk.Instance(instance.handle), &surface)
+	g.handle = unsafe.Pointer(surface)
+	if result != vulkan_const.Success {
+		return fmt.Errorf("failed to create the vulkan surface, result: %d", int(result))
 	}
+	return nil
 }
 
-func (vr *Vulkan) padBufferSize(size vk.DeviceSize) vk.DeviceSize {
-	// Calculate required alignment based on minimum device offset alignment
-	minUboAlignment := vk.DeviceSize(vr.physicalDeviceProperties.Limits.MinUniformBufferOffsetAlignment)
-	alignedSize := size
-	if minUboAlignment > 0 {
-		alignedSize = (alignedSize + minUboAlignment - 1) & ^(minUboAlignment - 1)
-	}
-	return alignedSize
+func preTransform(_ GPUSwapChainSupportDetails) vk.SurfaceTransformFlags {
+	return vk.SurfaceTransformFlags(GPUSurfaceTransformIdentityBit)
 }
 
-func (vr *Vulkan) findMemoryType(typeFilter uint32, properties vk.MemoryPropertyFlags) int {
-	var memProperties vk.PhysicalDeviceMemoryProperties
-	vk.GetPhysicalDeviceMemoryProperties(vr.physicalDevice, &memProperties)
-	found := -1
-	for i := uint32(0); i < memProperties.MemoryTypeCount && found < 0; i++ {
-		memType := memProperties.MemoryTypes[i]
-		propMatch := (memType.PropertyFlags & properties) == properties
-		if (typeFilter&(1<<i)) != 0 && propMatch {
-			found = int(i)
-		}
-	}
-	return found
+func vkColorSpace(_ GPUSurfaceFormat) vulkan_const.ColorSpace {
+	return vulkan_const.ColorSpaceSrgbNonlinear
+}
+
+func vkInstanceExtensions() []string {
+	return []string{}
+}
+
+func vkDeviceExtensions() []string {
+	return []string{}
 }

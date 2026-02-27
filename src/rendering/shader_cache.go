@@ -44,16 +44,16 @@ import (
 )
 
 type ShaderCache struct {
-	renderer       Renderer
+	device         *GPUDevice
 	assetDatabase  assets.Database
 	shaders        map[string]*Shader
 	pendingShaders []*Shader
 	mutex          sync.Mutex
 }
 
-func NewShaderCache(renderer Renderer, assetDatabase assets.Database) ShaderCache {
+func NewShaderCache(device *GPUDevice, assetDatabase assets.Database) ShaderCache {
 	return ShaderCache{
-		renderer:       renderer,
+		device:         device,
 		assetDatabase:  assetDatabase,
 		shaders:        make(map[string]*Shader),
 		pendingShaders: make([]*Shader, 0),
@@ -100,7 +100,7 @@ func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled) {
 		for _, v := range target.subShaders {
 			destroyHandle(v)
 		}
-		s.renderer.(*Vulkan).destroyShaderHandle(target.RenderId)
+		s.device.DestroyShaderHandle(target.RenderId)
 	}
 	shader.Reload(shaderData)
 	s.pendingShaders = append(s.pendingShaders, shader)
@@ -111,7 +111,7 @@ func (s *ShaderCache) CreatePending() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	for _, shader := range s.pendingShaders {
-		shader.DelayedCreate(s.renderer, s.assetDatabase)
+		shader.DelayedCreate(s.device, s.assetDatabase)
 	}
 	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
 }

@@ -71,7 +71,8 @@ type Window struct {
 	Stylus                   hid.Stylus
 	Controller               hid.Controller
 	Cursor                   hid.Cursor
-	Renderer                 rendering.Renderer
+	GpuHost                  rendering.GPUApplication
+	GpuInstance              *rendering.GPUApplicationInstance
 	OnResize                 events.Event
 	OnMove                   events.Event
 	OnActivate               events.Event
@@ -139,13 +140,11 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 	}
 	adb.PostWindowCreate(w)
 	var err error
-	w.Renderer, err = selectRenderer(w, windowName, adb)
+	if w.GpuInstance, err = w.GpuHost.CreateInstance(w, adb); err != nil {
+		return w, err
+	}
 	w.x, w.y = w.position()
-	return w, err
-}
-
-func NewBinding(ptr unsafe.Pointer, assets assets.Database) {
-
+	return w, nil
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
@@ -201,8 +200,8 @@ func (w *Window) Poll() {
 	w.poll()
 	if w.resizedFromNativeAPI {
 		w.resizedFromNativeAPI = false
-		if w.Renderer != nil {
-			w.Renderer.Resize(w, w.width, w.height)
+		if w.GpuHost.IsValid() {
+			w.GpuInstance.Resize(w, w.width, w.height)
 		}
 		w.OnResize.Execute()
 	}
@@ -228,7 +227,8 @@ func (w *Window) EndUpdate() {
 
 func (w *Window) SwapBuffers() {
 	defer tracing.NewRegion("Window.SwapBuffers").End()
-	if w.Renderer.SwapFrame(w, int32(w.Width()), int32(w.Height())) {
+	inst := w.GpuHost.FirstInstance()
+	if inst.PrimaryDevice().SwapFrame(w, inst, int32(w.Width()), int32(w.Height())) {
 		swapBuffers(w.handle)
 	}
 }
@@ -313,7 +313,7 @@ func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
 	w.isClosed = true
 	w.removeFromActiveWindows()
-	w.Renderer.Destroy()
+	w.GpuHost.Destroy()
 	// TODO:  Pass both to not have this if statement
 	if runtime.GOOS == "darwin" {
 		destroyWindow(w.instance)

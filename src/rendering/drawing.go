@@ -196,7 +196,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 	}
 }
 
-func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
+func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
 	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
@@ -206,8 +206,8 @@ func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
 	shadowIdx := 0
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		if rp.Buffer == nil {
-			rp.Recontstruct(renderer.(*Vulkan))
+		if !rp.Buffer.IsValid() {
+			rp.Recontstruct(device)
 		}
 		passes = append(passes, rp)
 		if rp.IsShadowPass() {
@@ -220,27 +220,27 @@ func (d *Drawings) Render(renderer Renderer, lights LightsForRender) {
 	})
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
-		renderer.Draw(rp, d.renderPassGroups[i].draws, lights, shadows[:])
+		device.Draw(rp, d.renderPassGroups[i].draws, lights, shadows[:])
 	}
 	if len(passes) > 0 {
-		renderer.BlitTargets(passes)
+		device.BlitTargets(passes)
 	}
 }
 
-func (d *Drawings) Destroy(renderer Renderer) {
+func (d *Drawings) Destroy(device *GPUDevice) {
 	for i := range d.renderPassGroups {
 		for j := range d.renderPassGroups[i].draws {
-			d.renderPassGroups[i].draws[j].Destroy(renderer)
+			d.renderPassGroups[i].draws[j].Destroy(device)
 		}
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)
 	d.renderPassGroups = klib.WipeSlice(d.renderPassGroups)
 }
 
-func (d *Drawings) Clear(renderer Renderer) {
+func (d *Drawings) Clear() {
 	for i := range d.renderPassGroups {
 		for j := range d.renderPassGroups[i].draws {
-			d.renderPassGroups[i].draws[j].Clear(renderer)
+			d.renderPassGroups[i].draws[j].Clear()
 		}
 	}
 }

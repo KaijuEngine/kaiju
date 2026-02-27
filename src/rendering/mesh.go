@@ -103,10 +103,10 @@ func (m *Mesh) SetKey(key string) {
 	m.key = key
 }
 
-func (m *Mesh) DelayedCreate(renderer Renderer) {
+func (m *Mesh) DelayedCreate(device *GPUDevice) {
 	defer tracing.NewRegion("Mesh.DelayedCreate").End()
 	if len(m.pendingVerts) > 0 {
-		renderer.CreateMesh(m, m.pendingVerts, m.pendingIndexes)
+		device.CreateMesh(m, m.pendingVerts, m.pendingIndexes)
 		m.pendingVerts = make([]Vertex, 0)
 		m.pendingIndexes = make([]uint32, 0)
 	}

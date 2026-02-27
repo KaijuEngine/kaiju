@@ -742,7 +742,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	m.AddBVH(e.StageData.Bvh, &e.Transform)
 	host.RunOnMainThread(func() {
 		for i := range texs {
-			texs[i].DelayedCreate(host.Window.Renderer)
+			texs[i].DelayedCreate(host.Window.GpuInstance.PrimaryDevice())
 		}
 		draw := rendering.Drawing{
 			Material:   mat,

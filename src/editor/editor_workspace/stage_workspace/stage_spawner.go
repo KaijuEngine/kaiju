@@ -301,7 +301,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 		}
 	}
 	w.Host.RunOnMainThread(func() {
-		tex.DelayedCreate(w.Host.Window.Renderer)
+		tex.DelayedCreate(w.Host.Window.GpuInstance.PrimaryDevice())
 		draw := rendering.Drawing{
 			Material:   mat,
 			Mesh:       e.StageData.Mesh,

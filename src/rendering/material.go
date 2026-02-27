@@ -136,14 +136,13 @@ func (d *MaterialTextureData) FilterToVK() TextureFilter {
 	}
 }
 
-func (d *MaterialData) Compile(assets assets.Database, renderer Renderer) (*Material, error) {
+func (d *MaterialData) Compile(assets assets.Database, device *GPUDevice) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.Compile").End()
-	return d.CompileExt(assets, renderer, false)
+	return d.CompileExt(assets, device, false)
 }
 
-func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, copyShader bool) (*Material, error) {
+func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, copyShader bool) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.CompileExt").End()
-	vr := renderer.(*Vulkan)
 	c := &Material{
 		Textures:        make([]*Texture, len(d.Textures)),
 		Instances:       make(map[string]*Material),
@@ -164,10 +163,11 @@ func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, cop
 		return c, err
 	}
 	c.shaderInfo = sd.Compile()
-	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
-		rpc := rp.Compile(vr)
-		if p, ok := rpc.ConstructRenderPass(vr); ok {
-			vr.renderPassCache[rp.Name] = p
+	lp := device.LogicalDevice
+	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
+		rpc := rp.Compile(device)
+		if p, err := rpc.ConstructRenderPass(device); err == nil {
+			lp.renderPassCache[rp.Name] = p
 			c.renderPass = p
 		} else {
 			slog.Error("failed to load the render pass for the material", "renderPass", rp.Name)
@@ -175,7 +175,7 @@ func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, cop
 	} else {
 		c.renderPass = pass
 	}
-	c.pipelineInfo = sp.Compile(vr)
+	c.pipelineInfo = sp.Compile(&device.PhysicalDevice)
 	shaderConfig, err := assets.ReadText(d.Shader)
 	if err != nil {
 		return c, err
@@ -187,12 +187,12 @@ func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, cop
 	if copyShader {
 		c.Shader = NewShader(rawSD.Compile())
 	} else {
-		c.Shader, _ = vr.caches.ShaderCache().Shader(rawSD.Compile())
+		c.Shader, _ = device.Painter.caches.ShaderCache().Shader(rawSD.Compile())
 	}
 	c.Shader.pipelineInfo = &c.pipelineInfo
 	c.Shader.renderPass = weak.Make(c.renderPass)
 	for i := range d.Textures {
-		tex, err := vr.caches.TextureCache().Texture(
+		tex, err := device.Painter.caches.TextureCache().Texture(
 			d.Textures[i].Texture, d.Textures[i].FilterToVK())
 		if err != nil {
 			return c, err
@@ -202,10 +202,9 @@ func (d *MaterialData) CompileExt(assets assets.Database, renderer Renderer, cop
 	return c, nil
 }
 
-func (m *Material) Destroy(renderer Renderer) {
+func (m *Material) Destroy(device *GPUDevice) {
 	defer tracing.NewRegion("Material.Destroy").End()
-	vr := renderer.(*Vulkan)
-	m.renderPass.Destroy(vr)
+	m.renderPass.Destroy(device)
 	m.renderPass = nil
 	m.Shader = nil
 	m.Textures = make([]*Texture, 0)

@@ -88,7 +88,7 @@ type LightModule struct {
 }
 
 func (c LightEntityData) Init(e *engine.Entity, host *engine.Host) {
-	light := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
+	light := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
 		host.AssetDatabase(), host.MaterialCache(),
 		rendering.LightType(c.Type))
 	light.SetPosition(e.Transform.WorldPosition())

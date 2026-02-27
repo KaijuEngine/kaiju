@@ -64,53 +64,48 @@ func NewShaderDriverData() ShaderDriverData {
 type ShaderId struct {
 	instanceCount       int
 	currentUBSizes      [maxFramesInFlight]uint64
-	graphicsPipeline    vk.Pipeline
-	computePipeline     vk.Pipeline
-	pipelineLayout      vk.PipelineLayout
-	descriptorSetLayout vk.DescriptorSetLayout
-	vertModule          vk.ShaderModule
-	fragModule          vk.ShaderModule
-	geomModule          vk.ShaderModule
-	tescModule          vk.ShaderModule
-	teseModule          vk.ShaderModule
-	compModule          vk.ShaderModule
+	graphicsPipeline    GPUPipeline
+	computePipeline     GPUPipeline
+	pipelineLayout      GPUPipelineLayout
+	descriptorSetLayout GPUDescriptorSetLayout
+	vertModule          GPUShaderModule
+	fragModule          GPUShaderModule
+	geomModule          GPUShaderModule
+	tescModule          GPUShaderModule
+	teseModule          GPUShaderModule
+	compModule          GPUShaderModule
 }
 
-func (s ShaderId) IsValid() bool {
-	return s.graphicsPipeline != vk.NullPipeline
-}
+func (s ShaderId) IsValid() bool { return s.graphicsPipeline.IsValid() }
 
 type TextureId struct {
-	Image      vk.Image
-	Memory     vk.DeviceMemory
-	View       vk.ImageView
-	Sampler    vk.Sampler
-	Format     vulkan_const.Format
+	Image      GPUImage
+	Memory     GPUDeviceMemory
+	View       GPUImageView
+	Sampler    GPUSampler
+	Format     GPUFormat
 	MipLevels  uint32
-	Layout     vulkan_const.ImageLayout
-	Access     vk.AccessFlags
-	Samples    vulkan_const.SampleCountFlagBits
+	Layout     GPUImageLayout
+	Access     GPUAccessFlags
+	Samples    GPUSampleCountFlags
 	Width      int
 	Height     int
 	LayerCount int
 }
 
-func (t TextureId) IsValid() bool {
-	return t.Image != vk.NullImage
-}
+func (t TextureId) IsValid() bool { return t.Image.IsValid() }
 
 type MeshId struct {
 	vertexCount        uint32
 	indexCount         uint32
-	vertexBuffer       vk.Buffer
-	vertexBufferMemory vk.DeviceMemory
-	indexBuffer        vk.Buffer
-	indexBufferMemory  vk.DeviceMemory
+	vertexBuffer       GPUBuffer
+	vertexBufferMemory GPUDeviceMemory
+	indexBuffer        GPUBuffer
+	indexBufferMemory  GPUDeviceMemory
 }
 
 func (m MeshId) IsValid() bool {
-	return m.vertexBuffer != vk.Buffer(vk.NullHandle) &&
-		m.indexBuffer != vk.Buffer(vk.NullHandle)
+	return m.vertexBuffer.IsValid() && m.indexBuffer.IsValid()
 }
 
 func (d *ShaderDriverData) setup(sd *ShaderDataCompiled) {
