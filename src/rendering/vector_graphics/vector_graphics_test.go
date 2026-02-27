@@ -46,6 +46,9 @@ import (
 	"kaiju/rendering/vector_graphics/svg"
 )
 
+//go:embed svg/simple_circle.svg
+var svgSimpleCircle string
+
 //go:embed svg/ball.svg
 var svgBall string
 
@@ -119,7 +122,7 @@ func TestConvertSvgGroupsSimple(t *testing.T) {
 	if group.Opacity != 1.0 {
 		t.Errorf("Expected opacity 1.0, got %v", group.Opacity)
 	}
-	if group.Transform.Position.X() != 0 || group.Transform.Position.Y() != 0 {
+	if group.Transform.Position().X() != 0 || group.Transform.Position().Y() != 0 {
 		t.Error("Expected position (0, 0), got default transform")
 	}
 }
@@ -139,14 +142,15 @@ func TestConvertGroupTransform(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := convertGroupTransform(test.input)
+			result := matrix.Transform{}
+			readGroupTransform(test.input, &result)
 
 			epsilon := 0.0001
-			if !floatEqual(float64(result.Position.X()), test.exposeX, epsilon) {
-				t.Errorf("X: expected %f, got %f", test.exposeX, result.Position.X())
+			if !floatEqual(float64(result.Position().X()), test.exposeX, epsilon) {
+				t.Errorf("X: expected %f, got %f", test.exposeX, result.Position().X())
 			}
-			if !floatEqual(float64(result.Position.Y()), test.exposeY, epsilon) {
-				t.Errorf("Y: expected %f, got %f", test.exposeY, result.Position.Y())
+			if !floatEqual(float64(result.Position().Y()), test.exposeY, epsilon) {
+				t.Errorf("Y: expected %f, got %f", test.exposeY, result.Position().Y())
 			}
 		})
 	}
@@ -313,7 +317,7 @@ func TestVectorGraphicFromSVG(t *testing.T) {
 			t.Fatalf("Failed to parse ball.svg: %v", err)
 		}
 		// Convert to VectorGraphic
-		vg := VectorGraphicFromSVG(*svgData)
+		vg := VectorGraphicFromSVG(svgData)
 		// Verify ViewBox parsing
 		expectedVB := [4]float64{0, 0, 512, 512}
 		for i := 0; i < 4; i++ {

@@ -38,7 +38,9 @@ package vector_graphics
 
 import (
 	"kaiju/matrix"
+	"kaiju/rendering"
 	"kaiju/rendering/vector_graphics/svg"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -65,14 +67,8 @@ type VectorGraphic struct {
 	Groups  []Group
 }
 
-type Transform struct {
-	Position matrix.Vec2
-	Rotation matrix.Float
-	Scale    matrix.Vec2
-}
-
 type Group struct {
-	Transform         Transform
+	Transform         matrix.Transform
 	Opacity           matrix.Float
 	Groups            []Group
 	Paths             []Path
@@ -134,42 +130,38 @@ func convertSvgGroups(groups []svg.Group) []Group {
 }
 
 func convertSvgGroup(g svg.Group) Group {
-	return Group{
-		Transform:         convertGroupTransform(g.Transform),
+	out := Group{
 		Opacity:           matrix.Float(g.Opacity),
 		Groups:            convertSvgGroups(g.Groups),
 		Paths:             convertSvgPaths(g.Paths),
 		Ellipses:          convertSvgEllipses(g.Ellipses),
 		AnimateTransforms: convertSvgAnimateTransforms(g.AnimateTransforms),
 	}
+	readGroupTransform(g.Transform, &out.Transform)
+	return out
 }
 
-func convertGroupTransform(transformStr string) Transform {
-	t := Transform{
-		Position: matrix.NewVec2(0, 0),
-		Rotation: 0,
-		Scale:    matrix.NewVec2(1, 1),
-	}
+func readGroupTransform(transformStr string, transform *matrix.Transform) {
 	if transformStr == "" {
-		return t
+		return
 	}
 	// Parse the transform string using the svg package's ParseTransform function
 	transforms, err := svg.ParseTransform(transformStr)
 	if err != nil || len(transforms) == 0 {
-		return t
+		return
 	}
 	// Extract translate, rotate, and scale from the first matching transform
-	for _, transform := range transforms {
-		switch transform.Type {
+	for i := range transforms {
+		t := &transforms[i]
+		switch t.Type {
 		case svg.TransformTranslate:
-			t.Position = matrix.NewVec2(matrix.Float(transform.TranslateX), matrix.Float(transform.TranslateY))
+			transform.SetPosition(matrix.NewVec3(matrix.Float(t.TranslateX), matrix.Float(t.TranslateY), 0))
 		case svg.TransformRotate:
-			t.Rotation = matrix.Float(transform.RotateAngle)
+			transform.SetRotation(matrix.NewVec3(0, 0, matrix.Float(t.RotateAngle)))
 		case svg.TransformScale:
-			t.Scale = matrix.NewVec2(matrix.Float(transform.ScaleX), matrix.Float(transform.ScaleY))
+			transform.SetScale(matrix.NewVec3(matrix.Float(t.ScaleX), matrix.Float(t.ScaleY), 1))
 		}
 	}
-	return t
 }
 
 func convertSvgPaths(paths []svg.Path) []Path {

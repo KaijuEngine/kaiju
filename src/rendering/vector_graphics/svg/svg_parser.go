@@ -43,26 +43,26 @@ import (
 )
 
 // ParseSVGFile parses an SVG file and returns the SVG structure
-func ParseSVGFile(filename string) (*SVG, error) {
+func ParseSVGFile(filename string) (SVG, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read SVG file: %w", err)
+		return SVG{}, fmt.Errorf("failed to read SVG file: %w", err)
 	}
 	return ParseSVG(data)
 }
 
 // ParseSVG parses SVG XML data and returns the SVG structure
-func ParseSVG(data []byte) (*SVG, error) {
+func ParseSVG(data []byte) (SVG, error) {
 	var svg SVG
 	err := xml.Unmarshal(data, &svg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal SVG: %w", err)
+		return SVG{}, fmt.Errorf("failed to unmarshal SVG: %w", err)
 	}
-	return &svg, nil
+	return svg, nil
 }
 
 // ParseSVGString parses an SVG string and returns the SVG structure
-func ParseSVGString(s string) (*SVG, error) {
+func ParseSVGString(s string) (SVG, error) {
 	return ParseSVG([]byte(s))
 }
 
