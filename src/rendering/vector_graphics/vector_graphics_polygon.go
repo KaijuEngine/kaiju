@@ -13,22 +13,22 @@ import (
 func (v *VectorGraphic) StrokeToPolygons() [][]matrix.Vec3 {
 	var polygons [][]matrix.Vec3
 	// Recursively process groups and their paths.
-	var walkGroup func(g Group)
-	walkGroup = func(g Group) {
+	var walkGroup func(g *Group)
+	walkGroup = func(g *Group) {
 		// Process paths in this group.
 		for _, p := range g.Paths {
-			poly := strokePathToPolygon(p)
+			poly := p.strokePathToPolygon()
 			if len(poly) > 0 {
 				polygons = append(polygons, poly)
 			}
 		}
 		// Recurse into sub‑groups.
-		for _, sub := range g.Groups {
-			walkGroup(sub)
+		for i := range g.Groups {
+			walkGroup(&g.Groups[i])
 		}
 	}
-	for _, grp := range v.Groups {
-		walkGroup(grp)
+	for i := range v.Groups {
+		walkGroup(&v.Groups[i])
 	}
 	return polygons
 }
@@ -40,11 +40,11 @@ func (v *VectorGraphic) StrokeToPolygons() [][]matrix.Vec3 {
 //     left/right by half the stroke width.
 //  3. Build the polygon by walking the left side forward and the right side
 //     backward, closing the loop.
-func strokePathToPolygon(p Path) []matrix.Vec3 {
+func (p *Path) strokePathToPolygon() []matrix.Vec3 {
 	if p.StrokeWidth <= 0 {
 		return nil
 	}
-	pts := flattenPath(p)
+	pts := p.flattenPath()
 	if len(pts) < 2 {
 		return nil
 	}
@@ -86,7 +86,7 @@ func strokePathToPolygon(p Path) []matrix.Vec3 {
 
 // flattenPath converts a Path's segment data into a slice of absolute Vec2
 // points. Only MoveTo, LineTo and ClosePath are interpreted. Curves are ignored.
-func flattenPath(p Path) []matrix.Vec2 {
+func (p *Path) flattenPath() []matrix.Vec2 {
 	var pts []matrix.Vec2
 	var cur matrix.Vec2
 	for _, seg := range p.Data {
