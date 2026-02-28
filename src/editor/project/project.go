@@ -442,7 +442,7 @@ func (p *Project) ReadSourceCode() {
 		slog.Error("failed to read the source code folder for the project", "error", err)
 		return
 	}
-	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaiju")
+	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaijuengine.com")
 	b, _ := codegen.Walk(srcRoot, srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
 	for i := range p.entityData {
