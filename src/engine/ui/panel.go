@@ -37,11 +37,11 @@
 package ui
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/events"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 	"log/slog"
 )
 
@@ -94,6 +94,7 @@ const (
 	panelBitsIsFrozen
 	panelBitsAllowDragScroll
 	panelBitsAllowClickThrough
+	panelBitsWasDirtied
 )
 
 var UIScrollSpeed float32 = 20
@@ -126,16 +127,19 @@ func (b panelBits) isDragging() bool         { return b&panelBitsIsDragging != 0
 func (b panelBits) isFrozen() bool           { return b&panelBitsIsFrozen != 0 }
 func (b panelBits) allowDragScroll() bool    { return b&panelBitsAllowDragScroll != 0 }
 func (b panelBits) allowClickThrough() bool  { return b&panelBitsAllowClickThrough != 0 }
+func (b panelBits) wasDirtied() bool         { return b&panelBitsWasDirtied != 0 }
 func (b *panelBits) setIsScrolling()         { *b |= panelBitsIsScrolling }
 func (b *panelBits) setDragging()            { *b |= panelBitsIsDragging }
 func (b *panelBits) setFrozen()              { *b |= panelBitsIsFrozen }
 func (b *panelBits) setAllowDragScroll()     { *b |= panelBitsAllowDragScroll }
 func (b *panelBits) setAllowClickThrough()   { *b |= panelBitsAllowClickThrough }
+func (b *panelBits) setWasDirtied()          { *b |= panelBitsWasDirtied }
 func (b *panelBits) resetIsScrolling()       { *b &= ^panelBitsIsScrolling }
 func (b *panelBits) resetDragging()          { *b &= ^panelBitsIsDragging }
 func (b *panelBits) resetFrozen()            { *b &= ^panelBitsIsFrozen }
 func (b *panelBits) resetAllowDragScroll()   { *b &= ^panelBitsAllowDragScroll }
 func (b *panelBits) resetAllowClickThrough() { *b &= ^panelBitsAllowClickThrough }
+func (b *panelBits) resetWasDirtied()        { *b &= ^panelBitsWasDirtied }
 
 func (p *panelData) innerPanelData() *panelData { return p }
 
@@ -321,6 +325,11 @@ func (p *Panel) update(deltaTime float64) {
 			pd.flags.resetIsScrolling()
 		}
 	}
+	if pd.flags.wasDirtied() {
+		// Update shader visibility based on scissor clipping
+		p.updateShaderVisibility()
+		pd.flags.resetWasDirtied()
+	}
 }
 
 type rowBuilder struct {
@@ -369,6 +378,35 @@ func (rb rowBuilder) setElements(offsetX, offsetY float32) {
 		y += rb.maxMarginTop
 		layout.SetRowLayoutOffset(matrix.Vec2{x, y})
 		offsetX += layout.PixelSize().Width() + layout.margin.X() + layout.margin.Z()
+	}
+}
+
+// updateShaderVisibility activates or deactivates the panel's shader data based on
+// whether the panel's world‑space rectangle intersects the current UI scissor.
+// It does not deactivate the entity itself, preserving layout updates.
+func (p *Panel) updateShaderVisibility() {
+	// Ensure the entity is active; otherwise nothing to render.
+	if !p.entity.IsActive() {
+		return
+	}
+
+	// Retrieve the current scissor rectangle from the root UI.
+	scissor := p.Base().selfScissor()
+
+	// Compute the panel's world‑space bounds.
+	pos := p.entity.Transform.WorldPosition()
+	size := p.layout.PixelSize()
+	half := size.Scale(0.5)
+	left := pos.X() - half.X()
+	right := pos.X() + half.X()
+	bottom := pos.Y() - half.Y()
+	top := pos.Y() + half.Y()
+
+	// If the panel is completely outside the scissor, deactivate its shader data.
+	if right < scissor.X() || left > scissor.Z() || top < scissor.Y() || bottom > scissor.W() {
+		p.shaderData.Deactivate()
+	} else {
+		p.shaderData.Activate()
 	}
 }
 

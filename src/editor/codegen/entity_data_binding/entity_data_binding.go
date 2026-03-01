@@ -37,10 +37,10 @@
 package entity_data_binding
 
 import (
-	"kaiju/editor/codegen"
-	"kaiju/editor/codegen/reflect_helpers"
-	"kaiju/engine"
-	"kaiju/klib"
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/codegen/reflect_helpers"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -375,9 +375,9 @@ func isCheckbox(typeName string) bool {
 }
 
 func isEntityId(packageName, typeName string) bool {
-	return packageName == "kaiju/engine" && typeName == "EntityId"
+	return packageName == "kaijuengine.com/engine" && typeName == "EntityId"
 }
 
 func isContentId(packageName string) bool {
-	return packageName == "kaiju/engine_entity_data/content_id"
+	return packageName == "kaijuengine.com/engine_entity_data/content_id"
 }

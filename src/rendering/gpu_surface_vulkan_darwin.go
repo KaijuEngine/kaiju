@@ -4,8 +4,8 @@ package rendering
 
 import (
 	"fmt"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 	"unsafe"
 )
 

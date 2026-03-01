@@ -37,8 +37,8 @@
 package profiler
 
 import (
-	"kaiju/build"
-	"kaiju/klib/contexts"
+	"kaijuengine.com/build"
+	"kaijuengine.com/klib/contexts"
 	"os"
 	"os/exec"
 	"runtime"

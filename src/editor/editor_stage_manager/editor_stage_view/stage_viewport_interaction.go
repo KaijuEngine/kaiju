@@ -37,10 +37,10 @@
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 const menuBarHeightArea = 30

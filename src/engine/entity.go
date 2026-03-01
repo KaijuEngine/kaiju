@@ -37,11 +37,11 @@
 package engine
 
 import (
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/concurrent"
-	"kaiju/rendering"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/rendering"
 	"log/slog"
 	"slices"
 )

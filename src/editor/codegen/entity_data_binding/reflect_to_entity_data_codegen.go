@@ -37,7 +37,7 @@
 package entity_data_binding
 
 import (
-	"kaiju/editor/codegen"
+	"kaijuengine.com/editor/codegen"
 	"reflect"
 )
 

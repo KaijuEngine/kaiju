@@ -38,7 +38,7 @@ package helpers
 
 import (
 	"fmt"
-	"kaiju/rendering"
+	"kaijuengine.com/rendering"
 	"strconv"
 	"strings"
 )

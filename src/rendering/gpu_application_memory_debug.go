@@ -2,8 +2,8 @@ package rendering
 
 import (
 	"fmt"
-	"kaiju/build"
-	"kaiju/klib"
+	"kaijuengine.com/build"
+	"kaijuengine.com/klib"
 	"log/slog"
 	"sync"
 	"unsafe"

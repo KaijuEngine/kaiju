@@ -37,9 +37,9 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
 	"weak"
 )
 

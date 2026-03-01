@@ -37,13 +37,13 @@
 package editor
 
 import (
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/editor/editor_plugin"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
+	"kaijuengine.com/editor/editor_overlay/input_prompt"
+	"kaijuengine.com/editor/editor_plugin"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"os/exec"
 	"path/filepath"

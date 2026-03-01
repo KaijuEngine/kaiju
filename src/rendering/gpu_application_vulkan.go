@@ -1,8 +1,8 @@
 package rendering
 
 import (
-	"kaiju/klib"
-	vk "kaiju/rendering/vulkan"
+	"kaijuengine.com/klib"
+	vk "kaijuengine.com/rendering/vulkan"
 )
 
 func init() {

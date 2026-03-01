@@ -38,9 +38,9 @@ package project
 
 import (
 	"encoding/json"
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 )
 

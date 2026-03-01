@@ -2,7 +2,7 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"log/slog"
 	"unsafe"
 )

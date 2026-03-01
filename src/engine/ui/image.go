@@ -37,10 +37,10 @@
 package ui
 
 import (
-	"kaiju/engine/systems/visual2d/sprite"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
+	"kaijuengine.com/engine/systems/visual2d/sprite"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 	"log/slog"
 	"slices"
 )

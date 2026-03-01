@@ -40,7 +40,7 @@ package main
 
 import (
 	"C"
-	"kaiju/engine/systems/logging"
+	"kaijuengine.com/engine/systems/logging"
 	"unsafe"
 )
 

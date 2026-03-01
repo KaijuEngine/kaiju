@@ -1,6 +1,6 @@
 package rendering
 
-import "kaiju/matrix"
+import "kaijuengine.com/matrix"
 
 type GPUQueueFamily struct {
 	Index                       int

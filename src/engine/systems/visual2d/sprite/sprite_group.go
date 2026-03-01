@@ -37,9 +37,9 @@
 package sprite
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/klib"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
 	"slices"
 	"weak"
 )

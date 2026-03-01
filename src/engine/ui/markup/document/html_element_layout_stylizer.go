@@ -38,11 +38,11 @@ package document
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/klib"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/klib"
 	"slices"
 	"weak"
 )

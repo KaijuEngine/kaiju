@@ -39,10 +39,10 @@ package sprite
 import (
 	"bytes"
 	"encoding/json"
-	"kaiju/klib"
-	"kaiju/klib/streaming"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/klib/streaming"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 	"strings"
 )
 

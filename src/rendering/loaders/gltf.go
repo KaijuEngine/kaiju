@@ -45,13 +45,13 @@ import (
 	"strings"
 	"unsafe"
 
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/gltf"
-	"kaiju/rendering/loaders/load_result"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/gltf"
+	"kaijuengine.com/rendering/loaders/load_result"
 )
 
 type fullGLTF struct {

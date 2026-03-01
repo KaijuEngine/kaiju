@@ -37,9 +37,9 @@
 package content_workspace
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"strings"
 )
 

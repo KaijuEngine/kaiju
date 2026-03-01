@@ -36,7 +36,7 @@
 
 package cameras
 
-import "kaiju/engine/collision"
+import "kaijuengine.com/engine/collision"
 
 type Container struct {
 	Camera Camera

@@ -38,9 +38,9 @@ package content_database
 
 import (
 	"fmt"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/tools/font_to_msdf"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/tools/font_to_msdf"
 	"path/filepath"
 )
 

@@ -38,9 +38,9 @@ package project
 
 import (
 	"encoding/json"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine/stages"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func (p *Project) ReadEntityTemplate(id string) (stages.EntityDescription, error) {

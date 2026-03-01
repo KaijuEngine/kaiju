@@ -37,9 +37,9 @@
 package rendering
 
 import (
-	"kaiju/klib"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/klib"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 type InstanceGroupSkinningData struct {

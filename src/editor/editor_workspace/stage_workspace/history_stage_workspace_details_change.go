@@ -37,7 +37,7 @@
 package stage_workspace
 
 import (
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"reflect"
 )
 

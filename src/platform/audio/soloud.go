@@ -39,8 +39,8 @@ package audio
 import (
 	"errors"
 	"fmt"
-	"kaiju/engine/assets"
-	"kaiju/klib"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
 	"math"
 	"runtime"
 )

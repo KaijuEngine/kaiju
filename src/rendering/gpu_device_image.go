@@ -1,6 +1,6 @@
 package rendering
 
-import "kaiju/platform/profiler/tracing"
+import "kaijuengine.com/platform/profiler/tracing"
 
 func (g *GPUDevice) CreateImage(id *TextureId, properties GPUMemoryPropertyFlags, req GPUImageCreateRequest) error {
 	defer tracing.NewRegion("GPUDevice.CreateImage").End()

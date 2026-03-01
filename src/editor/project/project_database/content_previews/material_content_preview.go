@@ -3,11 +3,11 @@ package content_previews
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 	"log/slog"
 )
 

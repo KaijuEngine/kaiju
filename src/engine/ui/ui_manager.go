@@ -37,12 +37,12 @@
 package ui
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/pooling"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/pooling"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 	"runtime"
 	"sync"
 	"weak"

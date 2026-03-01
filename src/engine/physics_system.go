@@ -37,11 +37,11 @@
 package engine
 
 import (
-	"kaiju/engine/physics"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/concurrent"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/physics"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"sync"
 )

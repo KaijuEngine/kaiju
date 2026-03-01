@@ -39,8 +39,8 @@ package table_of_contents
 import (
 	"bytes"
 	"encoding/json"
-	"kaiju/build"
-	"kaiju/engine/encoding/pod"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine/encoding/pod"
 )
 
 type TableOfContents struct {

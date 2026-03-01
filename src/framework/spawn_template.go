@@ -38,11 +38,11 @@ package framework
 
 import (
 	"encoding/json"
-	"kaiju/build"
-	"kaiju/engine"
-	"kaiju/engine/stages"
-	"kaiju/klib"
-	"kaiju/matrix"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"log/slog"
 )
 

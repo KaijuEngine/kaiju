@@ -78,6 +78,9 @@ func (efs EngineFileSystem) CopyFolder(pfs *FileSystem, from, to string, skipExt
 			if slices.Contains(skipExt, filepath.Ext(name)) {
 				continue
 			}
+			if strings.EqualFold(path, "build") && strings.EqualFold(name, "raw_game.go") {
+				continue
+			}
 			entryPath := filepath.ToSlash(filepath.Join(path, name))
 			if dir[i].IsDir() {
 				if copyFolder(entryPath); err != nil {

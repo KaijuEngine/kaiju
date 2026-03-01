@@ -38,7 +38,7 @@ package engine
 
 import (
 	"flag"
-	"kaiju/build"
+	"kaijuengine.com/build"
 )
 
 var LaunchParams = LaunchParameters{}

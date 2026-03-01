@@ -38,9 +38,9 @@ package engine
 
 import (
 	"errors"
-	"kaiju/build"
-	"kaiju/engine/encoding/pod"
-	"kaiju/matrix"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/matrix"
 	"log/slog"
 	"reflect"
 )

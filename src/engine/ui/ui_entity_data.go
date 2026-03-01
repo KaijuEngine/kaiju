@@ -36,7 +36,7 @@
 
 package ui
 
-import "kaiju/engine"
+import "kaijuengine.com/engine"
 
 const (
 	EntityDataName = "ui"

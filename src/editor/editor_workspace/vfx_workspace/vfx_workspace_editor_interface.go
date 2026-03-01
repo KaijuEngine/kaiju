@@ -37,9 +37,9 @@
 package vfx_workspace
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/project"
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/project"
 )
 
 type VfxWorkspaceEditorInterface interface {

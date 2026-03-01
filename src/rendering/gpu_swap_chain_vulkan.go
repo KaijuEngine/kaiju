@@ -3,10 +3,10 @@ package rendering
 import (
 	"errors"
 	"fmt"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 )

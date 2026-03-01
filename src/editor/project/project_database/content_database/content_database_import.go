@@ -37,9 +37,9 @@
 package content_database
 
 import (
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"strings"

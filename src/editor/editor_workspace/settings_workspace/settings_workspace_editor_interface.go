@@ -37,12 +37,12 @@
 package settings_workspace
 
 import (
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_plugin"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_file_system"
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/editor_plugin"
+	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/editor/project/project_file_system"
 )
 
 type SettingsWorkspaceEditorInterface interface {

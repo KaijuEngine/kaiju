@@ -38,7 +38,7 @@ package concurrent
 
 import (
 	"container/list"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"runtime"
 	"sync"
 )

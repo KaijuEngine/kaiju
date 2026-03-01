@@ -38,8 +38,8 @@ package rendering
 
 import (
 	"encoding/json"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"slices"
 	"strings"

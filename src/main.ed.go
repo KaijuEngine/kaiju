@@ -40,9 +40,9 @@ package main
 
 import (
 	"embed"
-	"kaiju/bootstrap"
-	"kaiju/editor"
-	"kaiju/editor/project/project_file_system"
+	"kaijuengine.com/bootstrap"
+	"kaijuengine.com/editor"
+	"kaijuengine.com/editor/project/project_file_system"
 )
 
 // We embed the entire src folder into the application when building the editor.

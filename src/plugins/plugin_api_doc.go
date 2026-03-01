@@ -42,7 +42,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -120,7 +120,7 @@ func pullSourceForType(t reflect.Type) ([]string, error) {
 	if sources, ok := pkgSources[pkg]; ok {
 		return sources, nil
 	}
-	srcPath := strings.Replace(pkg, "kaiju/", "src/", 1)
+	srcPath := strings.Replace(pkg, "kaijuengine.com/", "src/", 1)
 	files, err := os.ReadDir(srcPath)
 	if err != nil {
 		return []string{}, err

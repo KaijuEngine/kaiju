@@ -37,7 +37,7 @@
 package rendering
 
 import (
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"sort"
 	"unsafe"
 )

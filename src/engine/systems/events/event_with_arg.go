@@ -36,7 +36,7 @@
 
 package events
 
-import "kaiju/platform/profiler/tracing"
+import "kaijuengine.com/platform/profiler/tracing"
 
 type eventWithArgEntry[T any] struct {
 	id   Id

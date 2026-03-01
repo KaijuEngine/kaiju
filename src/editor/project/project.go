@@ -41,14 +41,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"kaiju/editor/codegen"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/assets/content_archive"
-	"kaiju/engine/stages"
-	"kaiju/engine/systems/events"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -56,6 +48,15 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/assets/content_archive"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type GameBuildMode int
@@ -441,7 +442,7 @@ func (p *Project) ReadSourceCode() {
 		slog.Error("failed to read the source code folder for the project", "error", err)
 		return
 	}
-	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaiju")
+	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaijuengine.com")
 	b, _ := codegen.Walk(srcRoot, srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
 	for i := range p.entityData {

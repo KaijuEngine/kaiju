@@ -37,8 +37,8 @@
 package bootstrap
 
 import (
-	"kaiju/build"
-	"kaiju/engine/systems/logging"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine/systems/logging"
 	"log/slog"
 )
 

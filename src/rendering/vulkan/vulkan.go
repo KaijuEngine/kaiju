@@ -365,7 +365,7 @@ package vulkan
 */
 import "C"
 import (
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/rendering/vulkan_const"
 	"unsafe"
 )
 

@@ -37,9 +37,9 @@
 package select_tool
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/matrix"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/matrix"
 )
 
 type ResultHandler interface {

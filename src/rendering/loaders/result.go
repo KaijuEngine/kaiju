@@ -37,10 +37,10 @@
 package loaders
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/rendering/loaders/load_result"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/loaders/load_result"
 )
 
 func TrySelectResultMesh(mesh *load_result.Mesh,

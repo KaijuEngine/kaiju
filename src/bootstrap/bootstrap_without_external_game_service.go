@@ -38,7 +38,7 @@
 
 package bootstrap
 
-import "kaiju/engine"
+import "kaijuengine.com/engine"
 
 func initExternalGameService()                         {}
 func initExternalGameServiceRuntime(host *engine.Host) {}

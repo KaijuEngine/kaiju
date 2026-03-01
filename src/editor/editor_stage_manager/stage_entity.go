@@ -37,10 +37,10 @@
 package editor_stage_manager
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/engine"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 	"unsafe"
 )
 

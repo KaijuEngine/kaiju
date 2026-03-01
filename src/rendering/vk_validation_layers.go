@@ -37,10 +37,10 @@
 package rendering
 
 import (
-	"kaiju/klib"
+	"kaijuengine.com/klib"
 	"log/slog"
 
-	vk "kaiju/rendering/vulkan"
+	vk "kaijuengine.com/rendering/vulkan"
 )
 
 func checkValidationLayerSupport(validationLayers []string) bool {

@@ -40,8 +40,8 @@ import (
 	"errors"
 	"image"
 	"image/draw"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 	"unicode/utf16"
 	"unsafe"
 

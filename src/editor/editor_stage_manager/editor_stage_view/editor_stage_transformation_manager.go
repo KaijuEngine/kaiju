@@ -37,14 +37,14 @@
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 	"weak"
 )
 

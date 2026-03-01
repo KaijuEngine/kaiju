@@ -36,7 +36,7 @@
 
 package rendering
 
-import "kaiju/matrix"
+import "kaijuengine.com/matrix"
 
 const baseVertexAttributeCount = 8
 

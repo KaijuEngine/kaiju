@@ -37,8 +37,8 @@
 package network
 
 import (
-	"kaiju/engine"
-	"kaiju/klib"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
 	"net"
 	"sync"
 	"time"

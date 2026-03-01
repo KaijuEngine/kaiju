@@ -1,4 +1,4 @@
-module kaiju
+module kaijuengine.com
 
 go 1.25.0
 

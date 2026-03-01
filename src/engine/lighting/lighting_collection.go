@@ -37,12 +37,12 @@
 package lighting
 
 import (
-	"kaiju/debug"
-	"kaiju/engine/pooling"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine/pooling"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 	"sort"
 )
 

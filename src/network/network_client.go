@@ -38,8 +38,8 @@ package network
 
 import (
 	"encoding/binary"
-	"kaiju/engine"
-	"kaiju/platform/concurrent"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/platform/concurrent"
 	"log/slog"
 	"net"
 	"strconv"

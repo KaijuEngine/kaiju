@@ -37,11 +37,11 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 	"weak"

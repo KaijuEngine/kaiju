@@ -1,6 +1,6 @@
 package {{.FolderName}}
 
-import "kaiju/engine"
+import "kaijuengine.com/engine"
 
 func init() {
 	engine.RegisterEntityData({{.StructName}}{})

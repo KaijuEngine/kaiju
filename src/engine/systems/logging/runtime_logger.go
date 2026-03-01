@@ -39,7 +39,7 @@ package logging
 import (
 	"context"
 	"io"
-	"kaiju/build"
+	"kaijuengine.com/build"
 	"log/slog"
 )
 

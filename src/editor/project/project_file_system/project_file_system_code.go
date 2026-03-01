@@ -39,9 +39,9 @@ package project_file_system
 import (
 	"errors"
 	"fmt"
-	"kaiju/editor/codegen"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -112,8 +112,8 @@ go %s
 const srcGameHostFileData = `package game_host
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/stages"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/stages"
 )
 
 type GameHost struct {
@@ -132,12 +132,12 @@ const srcGameFileData = `package main
 
 import (
 	"game/game_host"
-	"kaiju/bootstrap"
-	"kaiju/build"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/engine/stages"
+	"kaijuengine.com/bootstrap"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/engine/stages"
 	"log/slog"
 	"os"
 	"path/filepath"

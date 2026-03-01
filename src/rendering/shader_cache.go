@@ -37,9 +37,9 @@
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"sync"
 )
 

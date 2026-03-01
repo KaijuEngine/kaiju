@@ -37,8 +37,8 @@
 package windowing
 
 import (
-	"kaiju/engine/systems/events"
-	"kaiju/platform/hid"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/platform/hid"
 )
 
 var (

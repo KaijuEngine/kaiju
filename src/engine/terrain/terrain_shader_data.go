@@ -37,7 +37,7 @@
 package terrain
 
 import (
-	"kaiju/rendering"
+	"kaijuengine.com/rendering"
 	"unsafe"
 )
 

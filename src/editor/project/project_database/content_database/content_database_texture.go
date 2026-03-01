@@ -43,8 +43,8 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 

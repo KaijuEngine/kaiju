@@ -39,8 +39,8 @@
 package filesystem
 
 import (
-	"kaiju/build"
-	"kaiju/klib"
+	"kaijuengine.com/build"
+	"kaijuengine.com/klib"
 	"os"
 	"os/exec"
 	"path/filepath"

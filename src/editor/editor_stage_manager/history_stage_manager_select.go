@@ -37,7 +37,7 @@
 package editor_stage_manager
 
 import (
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"slices"
 )
 

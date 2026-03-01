@@ -38,9 +38,9 @@ package content_database
 
 import (
 	"encoding/json"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
 	"strings"

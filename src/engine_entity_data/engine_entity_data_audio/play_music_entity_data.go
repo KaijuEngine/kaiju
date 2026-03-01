@@ -37,10 +37,10 @@
 package engine_entity_data_audio
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/encoding/pod"
-	"kaiju/engine_entity_data/content_id"
-	"kaiju/platform/audio"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/platform/audio"
 	"log/slog"
 	"weak"
 )

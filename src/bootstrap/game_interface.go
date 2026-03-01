@@ -37,8 +37,8 @@
 package bootstrap
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/assets"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"reflect"
 )
 

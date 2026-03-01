@@ -37,7 +37,7 @@
 package navigation
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"testing"
 )
 

@@ -37,7 +37,7 @@
 package hid
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"math"
 )
 

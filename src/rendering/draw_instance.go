@@ -37,10 +37,10 @@
 package rendering
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 	"reflect"
 	"unsafe"
 )

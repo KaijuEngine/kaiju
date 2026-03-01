@@ -37,9 +37,9 @@
 package rendering
 
 import (
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 	"sort"
 	"sync"
 )

@@ -38,7 +38,7 @@ package codegen
 
 import (
 	"bytes"
-	"kaiju/engine/encoding/pod"
+	"kaijuengine.com/engine/encoding/pod"
 	"os"
 	"reflect"
 	"testing"

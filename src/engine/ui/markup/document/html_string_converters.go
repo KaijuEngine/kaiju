@@ -37,7 +37,7 @@
 package document
 
 import (
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 	"regexp"
 	"strconv"
 	"strings"

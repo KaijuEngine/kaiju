@@ -1,8 +1,8 @@
 package rendering
 
 import (
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
 )
 
 func (g *GPUSurface) destroyImpl(inst *GPUApplicationInstance) {

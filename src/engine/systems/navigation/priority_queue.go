@@ -36,7 +36,7 @@
 
 package navigation
 
-import "kaiju/matrix"
+import "kaijuengine.com/matrix"
 
 type Node struct {
 	x, y, z int32

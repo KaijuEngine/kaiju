@@ -37,8 +37,8 @@
 package editor_stage_manager
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type objectDeleteHistory struct {

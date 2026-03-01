@@ -39,8 +39,8 @@ package editor_plugin
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 )
@@ -57,8 +57,8 @@ const editorPluginGo = `package rename_me
 // code, stub your plugin import "_" in the editor_plugin_registry.go file.
 
 import (
-	"kaiju/editor"
-	"kaiju/editor/editor_plugin"
+	"kaijuengine.com/editor"
+	"kaijuengine.com/editor/editor_plugin"
 )
 
 // This key can be whatever you want, please make it unique so it doesn't

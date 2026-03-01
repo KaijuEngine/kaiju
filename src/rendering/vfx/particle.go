@@ -36,7 +36,7 @@
 
 package vfx
 
-import "kaiju/matrix"
+import "kaijuengine.com/matrix"
 
 type particleTransformation struct {
 	Position matrix.Vec3

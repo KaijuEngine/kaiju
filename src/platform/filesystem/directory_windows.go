@@ -48,7 +48,7 @@ import "C"
 
 import (
 	"fmt"
-	"kaiju/build"
+	"kaijuengine.com/build"
 	"os"
 	"os/exec"
 	"path/filepath"

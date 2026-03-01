@@ -37,12 +37,12 @@
 package host_container
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/logging"
-	"kaiju/klib"
-	"kaiju/platform/chrono"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/logging"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/chrono"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"runtime"
 	"strconv"

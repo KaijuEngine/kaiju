@@ -37,9 +37,9 @@
 package framework
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering/loaders/kaiju_mesh"
-	"kaiju/rendering/loaders/load_result"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
+	"kaijuengine.com/rendering/loaders/load_result"
 	"math"
 )
 

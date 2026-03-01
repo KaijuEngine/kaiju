@@ -39,14 +39,14 @@
 package bootstrap
 
 import (
-	"kaiju/build"
-	"kaiju/engine"
-	"kaiju/engine/host_container"
-	"kaiju/engine/systems/logging"
-	"kaiju/matrix"
-	"kaiju/platform/profiler"
-	"kaiju/plugins"
-	"kaiju/tools/html_preview"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/host_container"
+	"kaijuengine.com/engine/systems/logging"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler"
+	"kaijuengine.com/plugins"
+	"kaijuengine.com/tools/html_preview"
 	"log/slog"
 	"runtime"
 	"time"

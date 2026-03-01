@@ -2,7 +2,7 @@ package rendering
 
 import (
 	"errors"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"unsafe"
 )

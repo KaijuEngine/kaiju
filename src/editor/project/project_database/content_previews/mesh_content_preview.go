@@ -2,14 +2,14 @@ package content_previews
 
 import (
 	"fmt"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/kaiju_mesh"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 	"log/slog"
 )
 

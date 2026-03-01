@@ -39,8 +39,8 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
-	"kaiju/rendering"
-	"kaiju/rendering/glsl"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/glsl"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -39,9 +39,9 @@ package rendering
 import (
 	"unsafe"
 
-	"kaiju/build"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	"kaijuengine.com/build"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 const (

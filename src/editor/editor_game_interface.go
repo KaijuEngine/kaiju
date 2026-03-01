@@ -39,11 +39,11 @@ package editor
 import (
 	"bytes"
 	"image/png"
-	"kaiju/build"
-	"kaiju/editor/editor_embedded_content"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_embedded_content"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"reflect"
 )

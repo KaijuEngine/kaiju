@@ -39,8 +39,8 @@ package rendering
 import (
 	"encoding/json"
 	"errors"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 	"log/slog"
 	"math"
 	"strconv"

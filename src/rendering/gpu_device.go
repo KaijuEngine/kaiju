@@ -1,11 +1,11 @@
 package rendering
 
 import (
-	"kaiju/engine/cameras"
-	"kaiju/engine/pooling"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/pooling"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"unsafe"
 )

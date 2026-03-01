@@ -37,8 +37,8 @@
 package document
 
 import (
-	"kaiju/engine/systems/events"
-	"kaiju/engine/ui"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/ui"
 	"log/slog"
 )
 

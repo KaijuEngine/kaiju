@@ -37,9 +37,9 @@
 package cameras
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type TurntableCamera struct {

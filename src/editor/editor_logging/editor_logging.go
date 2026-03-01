@@ -37,9 +37,9 @@
 package editor_logging
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/systems/logging"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/logging"
+	"kaijuengine.com/platform/profiler/tracing"
 	"strings"
 	"sync"
 	"time"

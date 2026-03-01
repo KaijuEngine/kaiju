@@ -37,9 +37,9 @@
 package codegen
 
 import (
-	"kaiju/engine"
-	"kaiju/engine_entity_data/content_id"
-	"kaiju/matrix"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/matrix"
 	"reflect"
 )
 

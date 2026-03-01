@@ -38,12 +38,12 @@ package content_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/input_prompt"
-	"kaiju/editor/editor_overlay/table_of_contents_overlay"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine/assets/table_of_contents"
-	"kaiju/klib"
+	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
+	"kaijuengine.com/editor/editor_overlay/input_prompt"
+	"kaijuengine.com/editor/editor_overlay/table_of_contents_overlay"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/assets/table_of_contents"
+	"kaijuengine.com/klib"
 	"log/slog"
 	"os"
 	"strings"

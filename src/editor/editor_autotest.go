@@ -39,8 +39,8 @@ package editor
 
 import (
 	"fmt"
-	"kaiju/build"
-	"kaiju/engine"
+	"kaijuengine.com/build"
+	"kaijuengine.com/engine"
 	"log/slog"
 	"os"
 )

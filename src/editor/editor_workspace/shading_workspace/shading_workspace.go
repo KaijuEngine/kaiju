@@ -38,15 +38,15 @@ package shading_workspace
 
 import (
 	"encoding/json"
-	"kaiju/editor/editor_stage_manager/editor_stage_view"
-	"kaiju/editor/editor_workspace/common_workspace"
-	"kaiju/editor/editor_workspace/shading_workspace/shader_designer"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/editor_workspace/shading_workspace/shader_designer"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 	"log/slog"
 )
 

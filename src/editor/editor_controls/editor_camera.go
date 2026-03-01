@@ -37,15 +37,15 @@
 package editor_controls
 
 import (
-	"kaiju/editor/editor_settings"
-	"kaiju/engine"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 	"math"
 )
 
