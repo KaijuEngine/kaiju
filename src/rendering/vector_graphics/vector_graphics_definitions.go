@@ -40,8 +40,8 @@ import (
 	"strconv"
 	"strings"
 
-	"kaiju/matrix"
-	"kaiju/rendering/vector_graphics/svg"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/vector_graphics/svg"
 )
 
 type GradientUnits int8

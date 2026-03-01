@@ -1,4 +1,4 @@
-//go:build !editor
+//go:build !editor && !generator
 
 package build
 

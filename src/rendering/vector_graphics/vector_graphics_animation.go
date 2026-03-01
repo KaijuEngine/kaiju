@@ -37,9 +37,10 @@
 package vector_graphics
 
 import (
-	"kaiju/rendering/vector_graphics/svg"
 	"strconv"
 	"strings"
+
+	"kaijuengine.com/rendering/vector_graphics/svg"
 )
 
 // SharedAnimation contains fields common to both <animate> and <animateTransform> elements

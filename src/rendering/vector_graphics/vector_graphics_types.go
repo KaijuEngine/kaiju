@@ -37,12 +37,13 @@
 package vector_graphics
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
-	"kaiju/rendering/vector_graphics/svg"
 	"math"
 	"strconv"
 	"strings"
+
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/vector_graphics/svg"
 )
 
 type StrokeLinecap int8
