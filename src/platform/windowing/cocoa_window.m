@@ -141,14 +141,22 @@ static NSEvent* handleEvent(NSEvent* e) {
 			NSPoint p = e.locationInWindow;
 			int32_t x = (int32_t)p.x;
 			int32_t y = sm->windowHeight - (int32_t)p.y;
-			shared_mem_add_event(sm, (WindowEvent){
-				.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
-				.mouseMove = { x, y }
-			});
 			if (sm->lockCursor.active) {
-				NSRect r = NSMakeRect(sm->lockCursor.x, sm->lockCursor.y, 0, 0);
-				NSRect sr = [w convertRectToScreen:r];
-				CGWarpMouseCursorPosition(sr.origin);
+				if (x != sm->lockCursor.x || y != sm->lockCursor.y) {
+					shared_mem_add_event(sm, (WindowEvent){
+						.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+						.mouseMove = { x, y }
+					});
+				}
+				if (sm->lockCursor.active) {
+					NSRect r = NSMakeRect(sm->lockCursor.x, sm->lockCursor.y, 0, 0);
+					NSRect sr = [w convertRectToScreen:r];
+					CGWarpMouseCursorPosition(sr.origin);
+			} else {
+				shared_mem_add_event(sm, (WindowEvent){
+					.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+					.mouseMove = { x, y }
+				});
 			}
 		} break;
 
