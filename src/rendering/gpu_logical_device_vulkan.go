@@ -96,7 +96,7 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 		return errors.New("failed to create logical device")
 	}
 	g.handle = unsafe.Pointer(device)
-	g.dbg.track(g.handle)
+	inst.dbg.track(g.handle)
 	// Passing vr.device directly into vk.CreateDevice will cause
 	// cgo argument has Go pointer to Go pointer panic
 	var graphicsQueue vk.Queue
