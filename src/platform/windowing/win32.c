@@ -436,6 +436,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			shared_mem_add_event(sm, evt);
 			break;
 		}
+		case WM_SETCURSOR:
+		{
+			if (sm != NULL && sm->cursorHidden) {
+				SetCursor(NULL);
+				return TRUE;
+			}
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
 		case UWM_SET_CURSOR:
 		{
 			HCURSOR c = NULL;
