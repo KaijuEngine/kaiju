@@ -857,11 +857,22 @@ void window_add_border(void* hwnd) {
 }
 
 void window_show_cursor(void* hwnd) {
-	ShowCursor(TRUE);
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (sm != NULL && sm->cursorHidden) {
+		sm->cursorHidden = false;
+		// Restore cursor visibility: bring counter back to 0 (visible)
+		while (ShowCursor(TRUE) < 0) {}
+	}
 }
 
 void window_hide_cursor(void* hwnd) {
-	ShowCursor(FALSE);
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (sm != NULL && !sm->cursorHidden) {
+		sm->cursorHidden = true;
+		SetCursor(NULL);
+		// Hide cursor: bring counter to -1 (hidden)
+		while (ShowCursor(FALSE) >= 0) {}
+	}
 }
 
 void window_lock_cursor(void* hwnd, int x, int y) {
