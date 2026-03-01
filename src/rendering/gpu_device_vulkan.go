@@ -39,14 +39,15 @@ package rendering
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"math"
+	"unsafe"
+
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"math"
-	"unsafe"
 )
 
 func (g *GPUDevice) mapMemoryImpl(memory GPUDeviceMemory, offset uintptr, size uintptr, flags GPUMemoryFlags, out *unsafe.Pointer) error {
@@ -402,13 +403,9 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	if painter.acquireImageResult == GPUErrorOutOfDate {
 		ld.RemakeSwapChain(window, inst, g)
 		return false
-	} else if painter.acquireImageResult != GPUSuccess {
-		slog.Error("Failed to present swap chain image")
-		if ld.SwapChain.IsValid() {
-			// TODO:  This is a bit strange...
-			ld.SwapChain.Destroy(g)
-			slog.Error("There is a swap chain, but no swap chain is expected at this point")
-		}
+	} else if painter.acquireImageResult != GPUSuccess && painter.acquireImageResult != GPUSuboptimal {
+		slog.Error("Failed to acquire swap chain image",
+			slog.Int("result", int(painter.acquireImageResult)))
 		return false
 	}
 	vkFences := [...]vk.Fence{vk.Fence(fences[0].handle)}
