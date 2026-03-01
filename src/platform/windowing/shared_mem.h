@@ -74,6 +74,8 @@ typedef struct {
 	struct {
 		int x;
 		int y;
+		int dx;
+		int dy;
 		bool active;
 	} lockCursor;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];

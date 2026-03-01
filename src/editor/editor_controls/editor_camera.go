@@ -144,7 +144,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			lockX, lockY := win.Width()/2, win.Height()/2
 			host.Window.HideCursor()
 			host.Window.LockCursor(lockX, lockY)
-			e.lastMousePos = m.Position()
+			e.lastMousePos = matrix.Vec2{matrix.Float(lockX), matrix.Float(win.Height() - lockY)}
 			e.flyCamStarted = true
 			return true
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Released(hid.MouseButtonRight) {

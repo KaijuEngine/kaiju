@@ -706,18 +706,23 @@ void window_poll(void* hwnd) {
 						}
 						// Mouse move
 						{
-							bool hadMouseEvent = false;
-							if (sm->eventCount > 0) {
-								int type = sm->events[sm->eventCount-1].type;
-								hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
-									|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
-							}
-							if (!hadMouseEvent) {
-								WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
-								evt.mouseMove.x = pt.x;
-								evt.mouseMove.y = pt.y;
-								shared_mem_add_event(sm, evt);
-								hadMouseEvent = true;
+							if (sm->lockCursor.active) {
+								// Accumulate raw deltas; emit once after message loop
+								sm->lockCursor.dx += mouse->lLastX;
+								sm->lockCursor.dy += mouse->lLastY;
+							} else {
+								bool hadMouseEvent = false;
+								if (sm->eventCount > 0) {
+									int type = sm->events[sm->eventCount-1].type;
+									hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
+										|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
+								}
+								if (!hadMouseEvent) {
+									WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+									evt.mouseMove.x = pt.x;
+									evt.mouseMove.y = pt.y;
+									shared_mem_add_event(sm, evt);
+								}
 							}
 						}
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
@@ -735,6 +740,15 @@ void window_poll(void* hwnd) {
 			DispatchMessage(&msg);
 			//process_message(sm, &msg);
 		}
+	}
+	// Emit accumulated locked cursor deltas as a single mouse move event
+	if (sm->lockCursor.active && (sm->lockCursor.dx != 0 || sm->lockCursor.dy != 0)) {
+		WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+		evt.mouseMove.x = sm->lockCursor.x + sm->lockCursor.dx;
+		evt.mouseMove.y = sm->lockCursor.y + sm->lockCursor.dy;
+		shared_mem_add_event(sm, evt);
+		sm->lockCursor.dx = 0;
+		sm->lockCursor.dy = 0;
 	}
 	shared_mem_flush_events(sm);
 }
@@ -846,6 +860,8 @@ void window_lock_cursor(void* hwnd, int x, int y) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->lockCursor.x = x;
 	sm->lockCursor.y = y;
+	sm->lockCursor.dx = 0;
+	sm->lockCursor.dy = 0;
 	sm->lockCursor.active = true;
 	set_cursor_position_relative_to_window(sm, x, y);
 }
