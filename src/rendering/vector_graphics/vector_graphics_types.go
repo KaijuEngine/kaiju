@@ -66,14 +66,22 @@ const (
 type VectorGraphic struct {
 	ViewBox [4]float64
 	Groups  []Group
+	Defs    Defs
 }
 
 type Group struct {
 	Transform         matrix.Transform
 	Opacity           matrix.Float
+	ClipPath          string
+	ClipRule          string
 	Groups            []Group
 	Paths             []Path
 	Ellipses          []Ellipse
+	Rects             []Rect
+	Circles           []Circle
+	Lines             []Line
+	Polygons          []Polygon
+	Polylines         []Polyline
 	AnimateTransforms []AnimateTransform
 }
 
@@ -100,12 +108,83 @@ type Ellipse struct {
 	Animates       []Animate
 }
 
+type Rect struct {
+	Id             string
+	X              matrix.Float
+	Y              matrix.Float
+	Width          matrix.Float
+	Height         matrix.Float
+	RX             matrix.Float
+	RY             matrix.Float
+	Stroke         matrix.Color
+	StrokeWidth    matrix.Float
+	Fill           matrix.Color
+	StrokeLinecap  StrokeLinecap
+	StrokeLinejoin StrokeLinejoin
+	Animates       []Animate
+}
+
+type Circle struct {
+	Id             string
+	Center         matrix.Vec2
+	R              matrix.Float
+	Stroke         matrix.Color
+	StrokeWidth    matrix.Float
+	Fill           matrix.Color
+	StrokeLinecap  StrokeLinecap
+	StrokeLinejoin StrokeLinejoin
+	Animates       []Animate
+}
+
+type Line struct {
+	Id            string
+	Start         matrix.Vec2
+	End           matrix.Vec2
+	Stroke        matrix.Color
+	StrokeWidth   matrix.Float
+	StrokeLinecap StrokeLinecap
+	Animates      []Animate
+}
+
+type Polygon struct {
+	Id             string
+	Points         []matrix.Vec2
+	Stroke         matrix.Color
+	StrokeWidth    matrix.Float
+	Fill           matrix.Color
+	StrokeLinecap  StrokeLinecap
+	StrokeLinejoin StrokeLinejoin
+	Animates       []Animate
+}
+
+type Polyline struct {
+	Id             string
+	Points         []matrix.Vec2
+	Stroke         matrix.Color
+	StrokeWidth    matrix.Float
+	Fill           matrix.Color
+	StrokeLinecap  StrokeLinecap
+	StrokeLinejoin StrokeLinejoin
+	Animates       []Animate
+}
+
+type ClipPath struct {
+	Id       string
+	Paths    []Path
+	Ellipses []Ellipse
+	Rects    []Rect
+	Circles  []Circle
+	Lines    []Line
+}
+
 func VectorGraphicFromSVG(svgData svg.SVG) VectorGraphic {
 	viewBox := parseViewBox(svgData.ViewBox)
 	groups := convertSvgGroups(svgData.Groups)
+	defs := DefsFromSvg(svgData.Defs)
 	return VectorGraphic{
 		ViewBox: viewBox,
 		Groups:  groups,
+		Defs:    defs,
 	}
 }
 
@@ -133,9 +212,16 @@ func convertSvgGroups(groups []svg.Group) []Group {
 func convertSvgGroup(g svg.Group) Group {
 	out := Group{
 		Opacity:           matrix.Float(g.Opacity),
+		ClipPath:          g.ClipPath,
+		ClipRule:          g.ClipRule,
 		Groups:            convertSvgGroups(g.Groups),
 		Paths:             convertSvgPaths(g.Paths),
 		Ellipses:          convertSvgEllipses(g.Ellipses),
+		Rects:             convertSvgRects(g.Rects),
+		Circles:           convertSvgCircles(g.Circles),
+		Lines:             convertSvgLines(g.Lines),
+		Polygons:          convertSvgPolygons(g.Polygons),
+		Polylines:         convertSvgPolylines(g.Polylines),
 		AnimateTransforms: convertSvgAnimateTransforms(g.AnimateTransforms),
 	}
 	readGroupTransform(g.Transform, &out.Transform)
@@ -206,6 +292,132 @@ func convertSvgEllipse(e svg.Ellipse) Ellipse {
 		StrokeLinejoin: mapStrokeLinejoin(e.StrokeLinejoin),
 		Animates:       convertSvgAnimates(e.Animates),
 	}
+}
+
+func convertSvgRects(rects []svg.Rect) []Rect {
+	result := make([]Rect, len(rects))
+	for i, r := range rects {
+		result[i] = convertSvgRect(r)
+	}
+	return result
+}
+
+func convertSvgRect(r svg.Rect) Rect {
+	return Rect{
+		Id:             r.Id,
+		X:              matrix.Float(r.X),
+		Y:              matrix.Float(r.Y),
+		Width:          matrix.Float(r.Width),
+		Height:         matrix.Float(r.Height),
+		RX:             matrix.Float(r.RX),
+		RY:             matrix.Float(r.RY),
+		Stroke:         ParseColor(r.Stroke),
+		StrokeWidth:    matrix.Float(r.StrokeWidth),
+		Fill:           ParseColor(r.Fill),
+		StrokeLinecap:  mapStrokeLinecap(r.StrokeLinecap),
+		StrokeLinejoin: mapStrokeLinejoin(r.StrokeLinejoin),
+		Animates:       convertSvgAnimates(r.Animates),
+	}
+}
+
+func convertSvgCircles(circles []svg.Circle) []Circle {
+	result := make([]Circle, len(circles))
+	for i, c := range circles {
+		result[i] = convertSvgCircle(c)
+	}
+	return result
+}
+
+func convertSvgCircle(c svg.Circle) Circle {
+	return Circle{
+		Id:             c.Id,
+		Center:         matrix.NewVec2(matrix.Float(c.CX), matrix.Float(c.CY)),
+		R:              matrix.Float(c.R),
+		Stroke:         ParseColor(c.Stroke),
+		StrokeWidth:    matrix.Float(c.StrokeWidth),
+		Fill:           ParseColor(c.Fill),
+		StrokeLinecap:  mapStrokeLinecap(c.StrokeLinecap),
+		StrokeLinejoin: mapStrokeLinejoin(c.StrokeLinejoin),
+		Animates:       convertSvgAnimates(c.Animates),
+	}
+}
+
+func convertSvgLines(lines []svg.Line) []Line {
+	result := make([]Line, len(lines))
+	for i, l := range lines {
+		result[i] = convertSvgLine(l)
+	}
+	return result
+}
+
+func convertSvgLine(l svg.Line) Line {
+	return Line{
+		Id:            l.Id,
+		Start:         matrix.NewVec2(matrix.Float(l.X1), matrix.Float(l.Y1)),
+		End:           matrix.NewVec2(matrix.Float(l.X2), matrix.Float(l.Y2)),
+		Stroke:        ParseColor(l.Stroke),
+		StrokeWidth:   matrix.Float(l.StrokeWidth),
+		StrokeLinecap: mapStrokeLinecap(l.StrokeLinecap),
+		Animates:      convertSvgAnimates(l.Animates),
+	}
+}
+
+func convertSvgPolygons(polygons []svg.Polygon) []Polygon {
+	result := make([]Polygon, len(polygons))
+	for i, p := range polygons {
+		result[i] = convertSvgPolygon(p)
+	}
+	return result
+}
+
+func convertSvgPolygon(p svg.Polygon) Polygon {
+	return Polygon{
+		Id:             p.Id,
+		Points:         parsePoints(p.Points),
+		Stroke:         ParseColor(p.Stroke),
+		StrokeWidth:    matrix.Float(p.StrokeWidth),
+		Fill:           ParseColor(p.Fill),
+		StrokeLinecap:  mapStrokeLinecap(p.StrokeLinecap),
+		StrokeLinejoin: mapStrokeLinejoin(p.StrokeLinejoin),
+		Animates:       convertSvgAnimates(p.Animates),
+	}
+}
+
+func convertSvgPolylines(polylines []svg.Polyline) []Polyline {
+	result := make([]Polyline, len(polylines))
+	for i, p := range polylines {
+		result[i] = convertSvgPolyline(p)
+	}
+	return result
+}
+
+func convertSvgPolyline(p svg.Polyline) Polyline {
+	return Polyline{
+		Id:             p.Id,
+		Points:         parsePoints(p.Points),
+		Stroke:         ParseColor(p.Stroke),
+		StrokeWidth:    matrix.Float(p.StrokeWidth),
+		Fill:           ParseColor(p.Fill),
+		StrokeLinecap:  mapStrokeLinecap(p.StrokeLinecap),
+		StrokeLinejoin: mapStrokeLinejoin(p.StrokeLinejoin),
+		Animates:       convertSvgAnimates(p.Animates),
+	}
+}
+
+func parsePoints(pointsStr string) []matrix.Vec2 {
+	if pointsStr == "" {
+		return nil
+	}
+	parts := strings.Fields(pointsStr)
+	points := make([]matrix.Vec2, 0, len(parts)/2)
+	for i := 0; i < len(parts)-1; i += 2 {
+		x, err1 := strconv.ParseFloat(parts[i], 64)
+		y, err2 := strconv.ParseFloat(parts[i+1], 64)
+		if err1 == nil && err2 == nil {
+			points = append(points, matrix.NewVec2(matrix.Float(x), matrix.Float(y)))
+		}
+	}
+	return points
 }
 
 func convertSvgAnimates(animates []svg.Animate) []Animate {

@@ -65,6 +65,7 @@ const (
 type Defs struct {
 	LinearGradients []LinearGradient
 	RadialGradients []RadialGradient
+	ClipPaths       []ClipPath
 }
 
 // LinearGradient maps to the <linearGradient> SVG element.
@@ -168,6 +169,17 @@ func DefsFromSvg(defs svg.Defs) Defs {
 			Stops:         []GradientStop{},
 		}
 		out.RadialGradients = append(out.RadialGradients, conv)
+	}
+	// Clip paths
+	for _, cp := range defs.ClipPaths {
+		var conv ClipPath
+		conv.Id = cp.Id
+		conv.Paths = convertSvgPaths(cp.Paths)
+		conv.Ellipses = convertSvgEllipses(cp.Ellipses)
+		conv.Rects = convertSvgRects(cp.Rects)
+		conv.Circles = convertSvgCircles(cp.Circles)
+		conv.Lines = convertSvgLines(cp.Lines)
+		out.ClipPaths = append(out.ClipPaths, conv)
 	}
 	return out
 }
@@ -302,4 +314,26 @@ func (d *Defs) ResolveRadialGradient(id string) *RadialGradient {
 		}
 	}
 	return gradient
+}
+
+// FindClipPathByID returns a pointer to the ClipPath with the given id.
+func (d *Defs) FindClipPathByID(id string) *ClipPath {
+	if d == nil {
+		return nil
+	}
+	for i := range d.ClipPaths {
+		if d.ClipPaths[i].Id == id {
+			return &d.ClipPaths[i]
+		}
+	}
+	return nil
+}
+
+// ResolveClipPath resolves a clip path by ID, handling url(#id) format.
+func (d *Defs) ResolveClipPath(id string) *ClipPath {
+	if id == "" {
+		return nil
+	}
+	refID := strings.TrimPrefix(id, "#")
+	return d.FindClipPathByID(refID)
 }

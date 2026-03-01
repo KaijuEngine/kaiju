@@ -40,6 +40,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ParseSVGFile parses an SVG file and returns the SVG structure
@@ -152,6 +153,131 @@ func (g *Group) findGroups() []Group {
 		groups = append(groups, g.Groups[i].findGroups()...)
 	}
 	return groups
+}
+
+// FindAllRects recursively finds all rects in the SVG (both at root level and in groups)
+func (s *SVG) FindAllRects() []Rect {
+	var rects []Rect
+	rects = append(rects, s.Rects...)
+	for i := range s.Groups {
+		rects = append(rects, s.Groups[i].findRects()...)
+	}
+	return rects
+}
+
+func (g *Group) findRects() []Rect {
+	var rects []Rect
+	rects = append(rects, g.Rects...)
+	for i := range g.Groups {
+		rects = append(rects, g.Groups[i].findRects()...)
+	}
+	return rects
+}
+
+// FindAllCircles recursively finds all circles in the SVG (both at root level and in groups)
+func (s *SVG) FindAllCircles() []Circle {
+	var circles []Circle
+	circles = append(circles, s.Circles...)
+	for i := range s.Groups {
+		circles = append(circles, s.Groups[i].findCircles()...)
+	}
+	return circles
+}
+
+func (g *Group) findCircles() []Circle {
+	var circles []Circle
+	circles = append(circles, g.Circles...)
+	for i := range g.Groups {
+		circles = append(circles, g.Groups[i].findCircles()...)
+	}
+	return circles
+}
+
+// FindAllLines recursively finds all lines in the SVG (both at root level and in groups)
+func (s *SVG) FindAllLines() []Line {
+	var lines []Line
+	lines = append(lines, s.Lines...)
+	for i := range s.Groups {
+		lines = append(lines, s.Groups[i].findLines()...)
+	}
+	return lines
+}
+
+func (g *Group) findLines() []Line {
+	var lines []Line
+	lines = append(lines, g.Lines...)
+	for i := range g.Groups {
+		lines = append(lines, g.Groups[i].findLines()...)
+	}
+	return lines
+}
+
+// FindAllPolygons recursively finds all polygons in the SVG (both at root level and in groups)
+func (s *SVG) FindAllPolygons() []Polygon {
+	var polygons []Polygon
+	polygons = append(polygons, s.Polygons...)
+	for i := range s.Groups {
+		polygons = append(polygons, s.Groups[i].findPolygons()...)
+	}
+	return polygons
+}
+
+func (g *Group) findPolygons() []Polygon {
+	var polygons []Polygon
+	polygons = append(polygons, g.Polygons...)
+	for i := range g.Groups {
+		polygons = append(polygons, g.Groups[i].findPolygons()...)
+	}
+	return polygons
+}
+
+// FindAllPolylines recursively finds all polylines in the SVG (both at root level and in groups)
+func (s *SVG) FindAllPolylines() []Polyline {
+	var polylines []Polyline
+	polylines = append(polylines, s.Polylines...)
+	for i := range s.Groups {
+		polylines = append(polylines, s.Groups[i].findPolylines()...)
+	}
+	return polylines
+}
+
+func (g *Group) findPolylines() []Polyline {
+	var polylines []Polyline
+	polylines = append(polylines, g.Polylines...)
+	for i := range g.Groups {
+		polylines = append(polylines, g.Groups[i].findPolylines()...)
+	}
+	return polylines
+}
+
+// FindAllClipPaths finds all clip paths in the SVG (both in defs and at root level)
+func (s *SVG) FindAllClipPaths() []ClipPath {
+	var clipPaths []ClipPath
+	clipPaths = append(clipPaths, s.ClipPaths...)
+	clipPaths = append(clipPaths, s.Defs.ClipPaths...)
+	return clipPaths
+}
+
+// FindClipPathByID searches for a clip path by ID in both root level and defs
+func (s *SVG) FindClipPathByID(id string) *ClipPath {
+	// Check root level first
+	for i := range s.ClipPaths {
+		if s.ClipPaths[i].Id == id {
+			return &s.ClipPaths[i]
+		}
+	}
+	// Then check defs
+	return s.Defs.FindClipPathByID(id)
+}
+
+// ResolveClipPath resolves a clip path by ID, handling url(#id) format
+func (s *SVG) ResolveClipPath(id string) *ClipPath {
+	if id == "" {
+		return nil
+	}
+	refID := strings.TrimPrefix(id, "url(#")
+	refID = strings.TrimSuffix(refID, ")")
+	return s.FindClipPathByID(refID)
 }
 
 // GetViewBox parses the viewBox attribute into its components

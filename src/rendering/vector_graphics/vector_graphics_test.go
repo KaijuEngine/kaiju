@@ -42,8 +42,8 @@ import (
 	"strings"
 	"testing"
 
-	"kaiju/matrix"
-	"kaiju/rendering/vector_graphics/svg"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/vector_graphics/svg"
 )
 
 //go:embed svg/simple_circle.svg

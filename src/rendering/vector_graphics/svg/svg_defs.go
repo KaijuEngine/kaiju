@@ -70,6 +70,37 @@ type Defs struct {
 	XMLName         xml.Name         `xml:"defs"`
 	LinearGradients []LinearGradient `xml:"linearGradient"`
 	RadialGradients []RadialGradient `xml:"radialGradient"`
+	ClipPaths       []ClipPath       `xml:"clipPath"`
+}
+
+// ClipPathUnits represents the coordinate system for clipPath
+type ClipPathUnits string
+
+const (
+	ClipPathUnitsUserSpaceOnUse    ClipPathUnits = "userSpaceOnUse"
+	ClipPathUnitsObjectBoundingBox ClipPathUnits = "objectBoundingBox"
+)
+
+// ClipRule represents the clip-rule attribute
+type ClipRule string
+
+const (
+	ClipRuleEvenOdd ClipRule = "evenodd"
+	ClipRuleNonzero ClipRule = "nonzero"
+)
+
+// ClipPath represents <clipPath> element
+type ClipPath struct {
+	XMLName       xml.Name      `xml:"clipPath"`
+	Id            string        `xml:"id,attr"`
+	ClipPathUnits ClipPathUnits `xml:"clipPathUnits,attr"`
+	Paths         []Path        `xml:"path"`
+	Ellipses      []Ellipse     `xml:"ellipse"`
+	Rects         []Rect        `xml:"rect"`
+	Circles       []Circle      `xml:"circle"`
+	Lines         []Line        `xml:"line"`
+	Polygons      []Polygon     `xml:"polygon"`
+	Polylines     []Polyline    `xml:"polyline"`
 }
 
 // LinearGradient represents <linearGradient> element
@@ -251,4 +282,26 @@ func (d *Defs) ResolveRadialGradient(id string) *RadialGradient {
 		}
 	}
 	return gradient
+}
+
+// FindClipPathByID finds a clip path by its ID in the defs
+func (d *Defs) FindClipPathByID(id string) *ClipPath {
+	if d == nil {
+		return nil
+	}
+	for i := range d.ClipPaths {
+		if d.ClipPaths[i].Id == id {
+			return &d.ClipPaths[i]
+		}
+	}
+	return nil
+}
+
+// ResolveClipPath resolves a clip path by ID
+func (d *Defs) ResolveClipPath(id string) *ClipPath {
+	if id == "" {
+		return nil
+	}
+	refID := strings.TrimPrefix(id, "#")
+	return d.FindClipPathByID(refID)
 }

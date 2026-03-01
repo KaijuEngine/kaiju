@@ -43,7 +43,7 @@ import (
 	"strings"
 	"testing"
 
-	"kaiju/matrix"
+	"kaijuengine.com/matrix"
 )
 
 func getTestSVGPath(t *testing.T, filename string) string {
@@ -770,4 +770,268 @@ func TestParseBallSVG(t *testing.T) {
 			t.Logf("Found %d animated path(s) with gradient fills", animatedPathsWithGradients)
 		}
 	})
+}
+
+func TestParseClippedSVG(t *testing.T) {
+	svgPath := getTestSVGPath(t, "clipped.svg")
+	svg, err := ParseSVGFile(svgPath)
+	if err != nil {
+		t.Fatalf("Failed to parse clipped.svg: %v", err)
+	}
+	// Test clip path exists in defs
+	t.Run("ClipPathInDefs", func(t *testing.T) {
+		clipPaths := svg.FindAllClipPaths()
+		if len(clipPaths) == 0 {
+			t.Error("Expected to find clip paths in defs")
+			return
+		}
+		if len(clipPaths) != 1 {
+			t.Errorf("Expected 1 clip path, got %d", len(clipPaths))
+			return
+		}
+		clipPath := clipPaths[0]
+		if clipPath.Id != "_clip1" {
+			t.Errorf("Expected clip path ID '_clip1', got '%s'", clipPath.Id)
+		}
+		t.Logf("Found clip path: ID=%s", clipPath.Id)
+	})
+	// Test clip path contains ellipse
+	t.Run("ClipPathContainsEllipse", func(t *testing.T) {
+		clipPaths := svg.FindAllClipPaths()
+		if len(clipPaths) == 0 {
+			t.Fatal("No clip paths found")
+		}
+		clipPath := clipPaths[0]
+		if len(clipPath.Ellipses) != 1 {
+			t.Errorf("Expected 1 ellipse in clip path, got %d", len(clipPath.Ellipses))
+			return
+		}
+		ellipse := clipPath.Ellipses[0]
+		expectedCX := 265.167
+		expectedCY := 252.605
+		expectedRX := 80.467
+		expectedRY := 75.374
+		if ellipse.CX != expectedCX {
+			t.Errorf("Expected ellipse cx=%f, got %f", expectedCX, ellipse.CX)
+		}
+		if ellipse.CY != expectedCY {
+			t.Errorf("Expected ellipse cy=%f, got %f", expectedCY, ellipse.CY)
+		}
+		if ellipse.RX != expectedRX {
+			t.Errorf("Expected ellipse rx=%f, got %f", expectedRX, ellipse.RX)
+		}
+		if ellipse.RY != expectedRY {
+			t.Errorf("Expected ellipse ry=%f, got %f", expectedRY, ellipse.RY)
+		}
+		t.Logf("Clip ellipse: cx=%f, cy=%f, rx=%f, ry=%f", ellipse.CX, ellipse.CY, ellipse.RX, ellipse.RY)
+	})
+	// Test group has clip-path attribute
+	t.Run("GroupClipPathAttribute", func(t *testing.T) {
+		groups := svg.FindAllGroups()
+		foundClipAttr := false
+		for _, g := range groups {
+			if g.ClipPath != "" {
+				foundClipAttr = true
+				if !strings.HasPrefix(g.ClipPath, "url(#") {
+					t.Errorf("Expected clip-path to be url(#...), got '%s'", g.ClipPath)
+				} else {
+					t.Logf("Group has clip-path: %s", g.ClipPath)
+				}
+			}
+		}
+		if !foundClipAttr {
+			t.Error("Expected to find group with clip-path attribute")
+		}
+	})
+	// Test clip path lookup
+	t.Run("ClipPathLookup", func(t *testing.T) {
+		found := svg.FindClipPathByID("_clip1")
+		if found == nil {
+			t.Error("Expected to find clip path by ID '_clip1'")
+		} else {
+			t.Logf("Found clip path by ID: %s", found.Id)
+		}
+		// Test resolve with url(#...) format
+		resolved := svg.ResolveClipPath("url(#_clip1)")
+		if resolved == nil {
+			t.Error("Expected to resolve clip path from url(#...) format")
+		} else {
+			t.Logf("Resolved clip path: %s", resolved.Id)
+		}
+	})
+	// Test rect element inside clipped group
+	t.Run("RectInClippedGroup", func(t *testing.T) {
+		rects := svg.FindAllRects()
+		if len(rects) == 0 {
+			t.Error("Expected to find rect elements")
+			return
+		}
+		rect := rects[0]
+		expectedX := 122.228
+		expectedY := 144.637
+		expectedWidth := 284.52
+		expectedHeight := 233.592
+		if rect.X != expectedX {
+			t.Errorf("Expected rect x=%f, got %f", expectedX, rect.X)
+		}
+		if rect.Y != expectedY {
+			t.Errorf("Expected rect y=%f, got %f", expectedY, rect.Y)
+		}
+		if rect.Width != expectedWidth {
+			t.Errorf("Expected rect width=%f, got %f", expectedWidth, rect.Width)
+		}
+		if rect.Height != expectedHeight {
+			t.Errorf("Expected rect height=%f, got %f", expectedHeight, rect.Height)
+		}
+		t.Logf("Rect: x=%f, y=%f, width=%f, height=%f", rect.X, rect.Y, rect.Width, rect.Height)
+	})
+}
+
+func TestParseRectSVG(t *testing.T) {
+	const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect id="testRect" x="10" y="20" width="50" height="30" rx="5" ry="5" fill="#ff0000" stroke="#00ff00" stroke-width="2"/>
+</svg>`
+	svg, err := ParseSVGString(svgString)
+	if err != nil {
+		t.Fatalf("Failed to parse SVG string: %v", err)
+	}
+	rects := svg.FindAllRects()
+	if len(rects) != 1 {
+		t.Fatalf("Expected 1 rect, got %d", len(rects))
+	}
+	rect := rects[0]
+	if rect.Id != "testRect" {
+		t.Errorf("Expected rect ID 'testRect', got '%s'", rect.Id)
+	}
+	if rect.X != 10 {
+		t.Errorf("Expected x=10, got %f", rect.X)
+	}
+	if rect.Y != 20 {
+		t.Errorf("Expected y=20, got %f", rect.Y)
+	}
+	if rect.Width != 50 {
+		t.Errorf("Expected width=50, got %f", rect.Width)
+	}
+	if rect.Height != 30 {
+		t.Errorf("Expected height=30, got %f", rect.Height)
+	}
+	if rect.RX != 5 {
+		t.Errorf("Expected rx=5, got %f", rect.RX)
+	}
+	if rect.RY != 5 {
+		t.Errorf("Expected ry=5, got %f", rect.RY)
+	}
+	color := ParseColor(rect.Fill)
+	if color.R < 0.9 || color.R > 1.0 {
+		t.Errorf("Expected red fill, got R=%f", color.R)
+	}
+	t.Logf("Parsed rect: id=%s, x=%f, y=%f, w=%f, h=%f", rect.Id, rect.X, rect.Y, rect.Width, rect.Height)
+}
+
+func TestParseCircleSVG(t *testing.T) {
+	const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle id="testCircle" cx="50" cy="50" r="25" fill="#0000ff"/>
+</svg>`
+	svg, err := ParseSVGString(svgString)
+	if err != nil {
+		t.Fatalf("Failed to parse SVG string: %v", err)
+	}
+	circles := svg.FindAllCircles()
+	if len(circles) != 1 {
+		t.Fatalf("Expected 1 circle, got %d", len(circles))
+	}
+	circle := circles[0]
+	if circle.Id != "testCircle" {
+		t.Errorf("Expected circle ID 'testCircle', got '%s'", circle.Id)
+	}
+	if circle.CX != 50 {
+		t.Errorf("Expected cx=50, got %f", circle.CX)
+	}
+	if circle.CY != 50 {
+		t.Errorf("Expected cy=50, got %f", circle.CY)
+	}
+	if circle.R != 25 {
+		t.Errorf("Expected r=25, got %f", circle.R)
+	}
+	t.Logf("Parsed circle: id=%s, cx=%f, cy=%f, r=%f", circle.Id, circle.CX, circle.CY, circle.R)
+}
+
+func TestParseLineSVG(t *testing.T) {
+	const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <line id="testLine" x1="10" y1="20" x2="90" y2="80" stroke="#000000" stroke-width="3"/>
+</svg>`
+	svg, err := ParseSVGString(svgString)
+	if err != nil {
+		t.Fatalf("Failed to parse SVG string: %v", err)
+	}
+	lines := svg.FindAllLines()
+	if len(lines) != 1 {
+		t.Fatalf("Expected 1 line, got %d", len(lines))
+	}
+	line := lines[0]
+	if line.Id != "testLine" {
+		t.Errorf("Expected line ID 'testLine', got '%s'", line.Id)
+	}
+	if line.X1 != 10 {
+		t.Errorf("Expected x1=10, got %f", line.X1)
+	}
+	if line.Y1 != 20 {
+		t.Errorf("Expected y1=20, got %f", line.Y1)
+	}
+	if line.X2 != 90 {
+		t.Errorf("Expected x2=90, got %f", line.X2)
+	}
+	if line.Y2 != 80 {
+		t.Errorf("Expected y2=80, got %f", line.Y2)
+	}
+	t.Logf("Parsed line: id=%s, x1=%f, y1=%f, x2=%f, y2=%f", line.Id, line.X1, line.Y1, line.X2, line.Y2)
+}
+
+func TestParsePolygonSVG(t *testing.T) {
+	const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <polygon id="testPolygon" points="50,10 90,90 10,90" fill="#ff00ff"/>
+</svg>`
+	svg, err := ParseSVGString(svgString)
+	if err != nil {
+		t.Fatalf("Failed to parse SVG string: %v", err)
+	}
+	polygons := svg.FindAllPolygons()
+	if len(polygons) != 1 {
+		t.Fatalf("Expected 1 polygon, got %d", len(polygons))
+	}
+	polygon := polygons[0]
+	if polygon.Id != "testPolygon" {
+		t.Errorf("Expected polygon ID 'testPolygon', got '%s'", polygon.Id)
+	}
+	if polygon.Points != "50,10 90,90 10,90" {
+		t.Errorf("Expected points '50,10 90,90 10,90', got '%s'", polygon.Points)
+	}
+	t.Logf("Parsed polygon: id=%s, points=%s", polygon.Id, polygon.Points)
+}
+
+func TestParsePolylineSVG(t *testing.T) {
+	const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <polyline id="testPolyline" points="10,10 50,50 90,10" fill="none" stroke="#00ffff" stroke-width="2"/>
+</svg>`
+	svg, err := ParseSVGString(svgString)
+	if err != nil {
+		t.Fatalf("Failed to parse SVG string: %v", err)
+	}
+	polylines := svg.FindAllPolylines()
+	if len(polylines) != 1 {
+		t.Fatalf("Expected 1 polyline, got %d", len(polylines))
+	}
+	polyline := polylines[0]
+	if polyline.Id != "testPolyline" {
+		t.Errorf("Expected polyline ID 'testPolyline', got '%s'", polyline.Id)
+	}
+	if polyline.Points != "10,10 50,50 90,10" {
+		t.Errorf("Expected points '10,10 50,50 90,10', got '%s'", polyline.Points)
+	}
+	t.Logf("Parsed polyline: id=%s, points=%s", polyline.Id, polyline.Points)
 }
