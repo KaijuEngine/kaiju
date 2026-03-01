@@ -883,11 +883,19 @@ void window_lock_cursor(void* hwnd, int x, int y) {
 	sm->lockCursor.dy = 0;
 	sm->lockCursor.active = true;
 	set_cursor_position_relative_to_window(sm, x, y);
+	// Clip cursor to a 1-pixel rect at the lock position to prevent visible movement
+	int borderSize = ((sm->right-sm->left)-sm->clientRect.right) / 2;
+	int titleSize = (sm->bottom-sm->top)-sm->clientRect.bottom-borderSize;
+	int wx = sm->left + x + borderSize;
+	int wy = sm->top + y + titleSize;
+	RECT clipRect = { wx, wy, wx + 1, wy + 1 };
+	ClipCursor(&clipRect);
 }
 
 void window_unlock_cursor(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->lockCursor.active = false;
+	ClipCursor(NULL);
 }
 
 void window_set_fullscreen(void* hwnd) {
