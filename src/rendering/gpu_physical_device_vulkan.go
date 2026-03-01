@@ -74,6 +74,13 @@ func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties GPU
 	return found
 }
 
+func (g *GPUPhysicalDevice) refreshSurfaceCapabilitiesImpl(surface unsafe.Pointer) {
+	defer tracing.NewRegion("GPUPhysicalDevice.refreshSurfaceCapabilitiesImpl").End()
+	var capabilities vk.SurfaceCapabilities
+	vk.GetPhysicalDeviceSurfaceCapabilities(vk.PhysicalDevice(g.handle), vk.Surface(surface), &capabilities)
+	g.SurfaceCapabilities.fromVulkan(capabilities)
+}
+
 func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
 	vkInstance := vk.Instance(inst.handle)
 	vkSurface := vk.Surface(inst.Surface.handle)

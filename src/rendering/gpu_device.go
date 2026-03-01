@@ -37,13 +37,14 @@
 package rendering
 
 import (
+	"log/slog"
+	"unsafe"
+
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/pooling"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
-	"log/slog"
-	"unsafe"
 )
 
 type GPUDevice struct {
@@ -69,6 +70,10 @@ func (g *GPUDevice) QueueCompute(buffer *ComputeShaderBuffer) {
 
 func (g *GPUDevice) CreateSwapChain(window RenderingContainer, inst *GPUApplicationInstance) error {
 	defer tracing.NewRegion("GPUDevice.CreateSwapChain").End()
+	if g.LogicalDevice.SwapChain.IsValid() {
+		g.LogicalDevice.WaitForRender(g)
+	}
+	g.PhysicalDevice.RefreshSurfaceCapabilities(inst.Surface.handle)
 	return g.LogicalDevice.SwapChain.Setup(window, inst, g)
 }
 

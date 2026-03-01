@@ -359,6 +359,11 @@ func (g *GPUPhysicalDevice) PadBufferSize(size uintptr) uintptr {
 	return alignedSize
 }
 
+func (g *GPUPhysicalDevice) RefreshSurfaceCapabilities(surface unsafe.Pointer) {
+	defer tracing.NewRegion("GPUPhysicalDevice.RefreshSurfaceCapabilities").End()
+	g.refreshSurfaceCapabilitiesImpl(surface)
+}
+
 func (g *GPUPhysicalDevice) isPhysicalDeviceSuitableForRendering() bool {
 	defer tracing.NewRegion("GPUPhysicalDevice.isPhysicalDeviceSuitableForRendering").End()
 	exts := requiredDeviceExtensions()

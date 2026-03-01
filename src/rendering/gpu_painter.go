@@ -45,7 +45,6 @@ type GPUPainter struct {
 	caches                RenderCaches
 	imageIndex            [maxFramesInFlight]uint32
 	descriptorPools       []GPUDescriptorPool
-	acquireImageResult    GPUResult
 	currentFrame          int
 	combinedDrawings      Drawings
 	combinedDrawingCuller combinedDrawingCuller

@@ -39,16 +39,17 @@ package rendering
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"unsafe"
+
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"unsafe"
 )
 
 func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
-	oldSwapChain := GPUSwapChain{GPUHandle: GPUHandle{g.handle}}
+	oldSwapChain := g.CopyAndReset()
 	if oldSwapChain.IsValid() {
 		defer oldSwapChain.Destroy(device)
 	}
@@ -198,7 +199,6 @@ func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
 		vk.DestroySemaphore(vkDevice, vk.Semaphore(g.renderFinishedSemaphores[i].handle), nil)
 		dbg.remove(g.renderFinishedSemaphores[i].handle)
 	}
-	g.renderFinishedSemaphores = []GPUSemaphore{}
 	for i := range g.FrameBuffers {
 		vk.DestroyFramebuffer(vkDevice, vk.Framebuffer(g.FrameBuffers[i].handle), nil)
 		dbg.remove(g.FrameBuffers[i].handle)
@@ -210,10 +210,13 @@ func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
 		g.Images[i].View.Reset()
 	}
 	if g.IsValid() {
-		vk.DestroySwapchain(vk.Device(device.LogicalDevice.handle), vk.Swapchain(g.handle), nil)
+		vk.DestroySwapchain(vkDevice, vk.Swapchain(g.handle), nil)
 		dbg.remove(g.handle)
 		g.Reset()
 	}
+	g.renderFinishedSemaphores = g.renderFinishedSemaphores[:0]
+	g.FrameBuffers = g.FrameBuffers[:0]
+	g.Images = g.Images[:0]
 }
 
 func (g *GPUSwapChain) createFrameBufferImpl(device *GPUDevice) error {
@@ -243,6 +246,7 @@ func (g *GPUSwapChain) setupSyncObjectsImpl(device *GPUDevice) error {
 	}
 	vkDevice := vk.Device(device.LogicalDevice.handle)
 	swapImgCount := len(g.Images)
+	g.renderFinishedSemaphores = make([]GPUSemaphore, swapImgCount)
 	for i := range swapImgCount {
 		var imgSemaphore vk.Semaphore
 		var rdrSemaphore vk.Semaphore
@@ -254,13 +258,9 @@ func (g *GPUSwapChain) setupSyncObjectsImpl(device *GPUDevice) error {
 		dbg.track(unsafe.Pointer(imgSemaphore))
 		dbg.track(unsafe.Pointer(rdrSemaphore))
 		dbg.track(unsafe.Pointer(fence))
-		device.LogicalDevice.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
-		device.LogicalDevice.renderFences[i].handle = unsafe.Pointer(fence)
-	}
-	g.renderFinishedSemaphores = make([]GPUSemaphore, len(g.Images))
-	for i := range g.Images {
+		g.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
+		g.renderFences[i].handle = unsafe.Pointer(fence)
 		var finishedSemaphore vk.Semaphore
-		g.renderFinishedSemaphores[i].Reset()
 		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &finishedSemaphore) != vulkan_const.Success {
 			slog.Error("Failed to create render finished semaphores")
 			return errors.New("failed to create render finished semaphores")

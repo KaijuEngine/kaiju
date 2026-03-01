@@ -37,6 +37,13 @@
 package engine
 
 import (
+	"log/slog"
+	"math"
+	"runtime"
+	"sync"
+	"time"
+	"weak"
+
 	"kaijuengine.com/build"
 	"kaijuengine.com/debug"
 	"kaijuengine.com/engine/assets"
@@ -54,12 +61,6 @@ import (
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/plugins"
 	"kaijuengine.com/rendering"
-	"log/slog"
-	"math"
-	"runtime"
-	"sync"
-	"time"
-	"weak"
 )
 
 // FrameId is a unique identifier for a frame
@@ -398,6 +399,7 @@ func (host *Host) Render() {
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
+	skipSwap := false
 	if host.Drawings.HasDrawings() {
 		lights := rendering.LightsForRender{
 			Lights:     host.lighting.Lights.Cache,
@@ -412,9 +414,13 @@ func (host *Host) Render() {
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
 			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)
+		} else {
+			skipSwap = true
 		}
 	}
-	host.Window.SwapBuffers()
+	if !skipSwap {
+		host.Window.SwapBuffers()
+	}
 	host.workGroup.Execute(matrix.TransformResetWorkGroup, &host.threads)
 }
 
