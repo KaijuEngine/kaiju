@@ -39,12 +39,13 @@ package rendering
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"unsafe"
+
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"unsafe"
 )
 
 func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
@@ -53,6 +54,7 @@ func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplication
 		defer oldSwapChain.Destroy(device)
 	}
 	pd := &device.PhysicalDevice
+	pd.RefreshSurfaceCapabilities(inst.Surface)
 	surfaceFormat := g.SelectSurfaceFormat(pd)
 	presentMode := g.SelectPresentMode(pd)
 	extent := g.SelectExtent(window, pd)

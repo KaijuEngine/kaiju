@@ -39,11 +39,12 @@ package rendering
 import (
 	"bytes"
 	"errors"
+	"log/slog"
+	"unsafe"
+
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"unsafe"
 )
 
 func (g *GPUPhysicalDevice) formatPropertiesImpl(format GPUFormat) GPUFormatProperties {
@@ -72,6 +73,14 @@ func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties GPU
 		}
 	}
 	return found
+}
+
+func (g *GPUPhysicalDevice) RefreshSurfaceCapabilities(surface GPUSurface) {
+	var capabilities vk.SurfaceCapabilities
+	vk.GetPhysicalDeviceSurfaceCapabilities(
+		vk.PhysicalDevice(g.handle),
+		vk.Surface(surface.handle), &capabilities)
+	g.SurfaceCapabilities.fromVulkan(capabilities)
 }
 
 func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
