@@ -38,11 +38,11 @@ package rendering
 
 import (
 	"errors"
+
 	"kaijuengine.com/build"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
-	"runtime"
 )
 
 type GPUApplicationInstance struct {
@@ -164,7 +164,6 @@ func (g *GPUApplicationInstance) Destroy() {
 			device.LogicalDevice.renderPassCache[k].Destroy(device)
 		}
 		device.LogicalDevice.renderPassCache = make(map[string]*RenderPass)
-		runtime.GC()
 		for i := range device.Painter.preRuns {
 			if device.Painter.preRuns[i] != nil {
 				device.Painter.preRuns[i]()
@@ -186,6 +185,13 @@ func (g *GPUApplicationInstance) Destroy() {
 		device.destroyGlobalUniforms()
 		device.Painter.DestroyDescriptorPools(device)
 		device.LogicalDevice.SwapChain.renderPass.Destroy(device)
+		vkDevice := vk.Device(device.LogicalDevice.handle)
+		for j := range device.LogicalDevice.SwapChain.Images {
+			vk.DestroySemaphore(vkDevice, vk.Semaphore(device.LogicalDevice.imageSemaphores[j].handle), nil)
+			device.LogicalDevice.dbg.remove(device.LogicalDevice.imageSemaphores[j].handle)
+			vk.DestroyFence(vkDevice, vk.Fence(device.LogicalDevice.renderFences[j].handle), nil)
+			device.LogicalDevice.dbg.remove(device.LogicalDevice.renderFences[j].handle)
+		}
 		device.LogicalDevice.SwapChain.Destroy(device)
 		device.LogicalDevice.Destroy()
 	}

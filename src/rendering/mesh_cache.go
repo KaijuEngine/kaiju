@@ -37,10 +37,11 @@
 package rendering
 
 import (
+	"sync"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
-	"sync"
 )
 
 type MeshCache struct {
@@ -113,5 +114,10 @@ func (m *MeshCache) CreatePending() {
 
 func (m *MeshCache) Destroy() {
 	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
+	for _, mesh := range m.meshes {
+		if mesh.MeshId.IsValid() {
+			m.device.destroyMeshHandle(mesh.MeshId)
+		}
+	}
 	m.meshes = make(map[string]*Mesh)
 }
