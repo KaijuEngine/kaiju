@@ -39,13 +39,14 @@ package rendering
 import (
 	"errors"
 	"fmt"
-	"kaijuengine.com/platform/profiler/tracing"
-	vk "kaijuengine.com/rendering/vulkan"
-	"kaijuengine.com/rendering/vulkan_const"
 	"log/slog"
 	"math"
 	"sort"
 	"unsafe"
+
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error {
@@ -198,7 +199,7 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 		oldSwapChain.Destroy(device)
 		vkDevice := vk.Device(g.handle)
 		// Destroy the previous swap sync objects
-		for i := range len(g.SwapChain.Images) {
+		for i := range len(oldSwapChain.Images) {
 			vk.DestroySemaphore(vkDevice, vk.Semaphore(g.imageSemaphores[i].handle), nil)
 			g.dbg.remove(g.imageSemaphores[i].handle)
 			vk.DestroyFence(vkDevice, vk.Fence(g.renderFences[i].handle), nil)
@@ -206,7 +207,6 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 		}
 		device.destroyGlobalUniforms()
 	}
-	defer oldSwapChain.Destroy(device)
 	device.CreateSwapChain(window, inst)
 	if !g.SwapChain.IsValid() {
 		return nil // TODO:  Is this correct?
