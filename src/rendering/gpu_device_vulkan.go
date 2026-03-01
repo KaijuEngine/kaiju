@@ -376,12 +376,15 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	presentInfo.PSwapchains = &swapChains[0]
 	presentInfo.PImageIndices = &g.Painter.imageIndex[g.Painter.currentFrame]
 	presentInfo.PResults = nil // Optional
-	vk.QueuePresent(vk.Queue(g.LogicalDevice.presentQueue), &presentInfo)
+	presentRes := vk.QueuePresent(vk.Queue(g.LogicalDevice.presentQueue), &presentInfo)
 	qPresent.End()
-	if g.Painter.acquireImageResult == GPUErrorOutOfDate || g.Painter.acquireImageResult == GPUSuboptimal {
+	var presentResult GPUResult
+	presentResult.fromVulkan(presentRes)
+	if presentResult == GPUErrorOutOfDate || presentResult == GPUSuboptimal {
 		g.LogicalDevice.RemakeSwapChain(window, inst, g)
-	} else if g.Painter.acquireImageResult != GPUSuccess {
-		slog.Error("Failed to present swap chain image")
+	} else if presentResult != GPUSuccess {
+		slog.Error("Failed to present swap chain image",
+			slog.Int("result", int(presentResult)))
 		return false
 	}
 	g.Painter.currentFrame = (g.Painter.currentFrame + 1) % int(len(g.LogicalDevice.SwapChain.Images))

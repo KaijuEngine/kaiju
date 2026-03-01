@@ -47,6 +47,14 @@ import (
 	"kaijuengine.com/rendering/vulkan_const"
 )
 
+func (g *GPUPhysicalDevice) RefreshSurfaceCapabilities(surface GPUSurface) {
+	var capabilities vk.SurfaceCapabilities
+	vk.GetPhysicalDeviceSurfaceCapabilities(
+		vk.PhysicalDevice(g.handle),
+		vk.Surface(surface.handle), &capabilities)
+	g.SurfaceCapabilities.fromVulkan(capabilities)
+}
+
 func (g *GPUPhysicalDevice) formatPropertiesImpl(format GPUFormat) GPUFormatProperties {
 	defer tracing.NewRegion("GPUPhysicalDevice.formatPropertiesImpl").End()
 	var formatProps vk.FormatProperties
@@ -73,14 +81,6 @@ func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties GPU
 		}
 	}
 	return found
-}
-
-func (g *GPUPhysicalDevice) RefreshSurfaceCapabilities(surface GPUSurface) {
-	var capabilities vk.SurfaceCapabilities
-	vk.GetPhysicalDeviceSurfaceCapabilities(
-		vk.PhysicalDevice(g.handle),
-		vk.Surface(surface.handle), &capabilities)
-	g.SurfaceCapabilities.fromVulkan(capabilities)
 }
 
 func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
