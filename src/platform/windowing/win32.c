@@ -256,17 +256,18 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			readMousePosition(lParam, &evt.mouseMove.x, &evt.mouseMove.y);
 			sm->mouseX = evt.mouseMove.x;
 			sm->mouseY = evt.mouseMove.y;
-			shared_mem_add_event(sm, evt);
-			if (!sm->rawInputFailed && sm->rawInputRequested) {
-				bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
-					|| evt.mouseMove.x <= sm->clientRect.right
-					|| evt.mouseMove.y <= sm->clientRect.bottom;
-				if (mouseEnteredWindow) {
-					window_enable_raw_mouse(hwnd);
-				}
-			}
 			if (sm->lockCursor.active) {
-				lock_cursor_position(sm);
+				// When locked, raw input handles movement via deltas; skip here
+			} else {
+				shared_mem_add_event(sm, evt);
+				if (!sm->rawInputFailed && sm->rawInputRequested) {
+					bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
+						|| evt.mouseMove.x <= sm->clientRect.right
+						|| evt.mouseMove.y <= sm->clientRect.bottom;
+					if (mouseEnteredWindow) {
+						window_enable_raw_mouse(hwnd);
+					}
+				}
 			}
 			break;
 		}

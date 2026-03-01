@@ -70,6 +70,7 @@ typedef struct {
 		int overrideRedirect;
 	} savedState;
 	uint32_t eventCount;
+	bool cursorHidden;
 	struct {
 		int x;
 		int y;
