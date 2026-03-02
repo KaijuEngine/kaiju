@@ -54,7 +54,6 @@ func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplication
 		defer oldSwapChain.Destroy(device)
 	}
 	pd := &device.PhysicalDevice
-	pd.RefreshSurfaceCapabilities(inst.Surface)
 	surfaceFormat := g.SelectSurfaceFormat(pd)
 	presentMode := g.SelectPresentMode(pd)
 	extent := g.SelectExtent(window, pd)
