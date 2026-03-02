@@ -399,7 +399,7 @@ func (host *Host) Render() {
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
-	skipSwap := false
+	skipSwap := true
 	if host.Drawings.HasDrawings() {
 		lights := rendering.LightsForRender{
 			Lights:     host.lighting.Lights.Cache,
@@ -414,8 +414,7 @@ func (host *Host) Render() {
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
 			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)
-		} else {
-			skipSwap = true
+			skipSwap = false
 		}
 	}
 	if !skipSwap {
