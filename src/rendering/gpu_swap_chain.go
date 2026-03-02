@@ -37,11 +37,12 @@
 package rendering
 
 import (
+	"log/slog"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
-	"log/slog"
 )
 
 type GPUSwapChain struct {
@@ -53,6 +54,16 @@ type GPUSwapChain struct {
 	FrameBuffers             []GPUFrameBuffer
 	renderPass               *RenderPass
 	renderFinishedSemaphores []GPUSemaphore
+	imageSemaphores          [maxFramesInFlight]GPUSemaphore
+	renderFences             [maxFramesInFlight]GPUFence
+}
+
+func (g *GPUSwapChain) CopyAndReset() GPUSwapChain {
+	cpy := *g
+	*g = GPUSwapChain{
+		renderPass: cpy.renderPass,
+	}
+	return cpy
 }
 
 func (g *GPUSwapChain) Setup(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
@@ -65,6 +76,7 @@ func (g *GPUSwapChain) Destroy(device *GPUDevice) {
 	device.LogicalDevice.FreeTexture(&g.Color)
 	device.LogicalDevice.FreeTexture(&g.Depth)
 	g.destroyImpl(device)
+	*g = GPUSwapChain{}
 }
 
 func (g *GPUSwapChain) SetupImageViews(device *GPUDevice) error {
@@ -162,25 +174,26 @@ func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database
 
 func (g *GPUSwapChain) SetupSyncObjects(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.SetupSyncObjects")
+	g.resetSyncObjects(device)
 	err := g.setupSyncObjectsImpl(device)
 	if err != nil {
-		ld := &device.LogicalDevice
-		for i := range len(g.Images) {
-			ld.DestroySemaphore(&ld.imageSemaphores[i])
-			ld.dbg.remove(ld.imageSemaphores[i].handle)
-			ld.DestroyFence(&ld.renderFences[i])
-			ld.dbg.remove(ld.renderFences[i].handle)
-			ld.imageSemaphores[i].Reset()
-			ld.renderFences[i].Reset()
-			for i := range g.Images {
-				if g.renderFinishedSemaphores[i].IsValid() {
-					ld.DestroySemaphore(&g.renderFinishedSemaphores[i])
-					ld.dbg.remove(g.renderFinishedSemaphores[i].handle)
-					g.renderFinishedSemaphores[i].Reset()
-				}
-			}
-			g.renderFinishedSemaphores = []GPUSemaphore{}
-		}
+		g.resetSyncObjects(device)
 	}
 	return err
+}
+
+func (g *GPUSwapChain) resetSyncObjects(device *GPUDevice) {
+	ld := &device.LogicalDevice
+	for i := range maxFramesInFlight {
+		if g.imageSemaphores[i].IsValid() {
+			ld.DestroySemaphore(&g.imageSemaphores[i])
+			ld.dbg.remove(g.imageSemaphores[i].handle)
+		}
+		if g.renderFences[i].IsValid() {
+			ld.DestroyFence(&g.renderFences[i])
+			ld.dbg.remove(g.renderFences[i].handle)
+		}
+		g.imageSemaphores[i].Reset()
+		g.renderFences[i].Reset()
+	}
 }

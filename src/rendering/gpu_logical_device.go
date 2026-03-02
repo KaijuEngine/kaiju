@@ -37,10 +37,11 @@
 package rendering
 
 import (
-	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"unsafe"
+
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type GPULogicalDevice struct {
@@ -52,8 +53,6 @@ type GPULogicalDevice struct {
 	bufferTrash     bufferDestroyer
 	dbg             memoryDebugger
 	renderPassCache map[string]*RenderPass
-	imageSemaphores [maxFramesInFlight]GPUSemaphore
-	renderFences    [maxFramesInFlight]GPUFence
 }
 
 type GPUImageCreateRequest struct {
@@ -86,7 +85,7 @@ func (g *GPULogicalDevice) WaitForRender(device *GPUDevice) {
 	fenceCount := len(g.SwapChain.Images)
 	fences := make([]GPUFence, fenceCount)
 	for i := range fenceCount {
-		fences[i].handle = unsafe.Pointer(device.LogicalDevice.renderFences[i].handle)
+		fences[i].handle = unsafe.Pointer(g.SwapChain.renderFences[i].handle)
 	}
 	g.WaitForFences(fences[:])
 }

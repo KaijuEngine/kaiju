@@ -192,21 +192,7 @@ func (g *GPULogicalDevice) freeTextureImpl(texId *TextureId) {
 
 func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
 	defer tracing.NewRegion("GPULogicalDevice.remakeSwapChainImpl").End()
-	oldSwapChain := g.SwapChain
-	g.SwapChain.Reset()
-	if oldSwapChain.IsValid() {
-		g.WaitForRender(device)
-		oldSwapChain.Destroy(device)
-		vkDevice := vk.Device(g.handle)
-		// Destroy the previous swap sync objects
-		for i := range len(oldSwapChain.Images) {
-			vk.DestroySemaphore(vkDevice, vk.Semaphore(g.imageSemaphores[i].handle), nil)
-			g.dbg.remove(g.imageSemaphores[i].handle)
-			vk.DestroyFence(vkDevice, vk.Fence(g.renderFences[i].handle), nil)
-			g.dbg.remove(g.renderFences[i].handle)
-		}
-		device.destroyGlobalUniforms()
-	}
+	// This will destroy the existing swap chain
 	device.CreateSwapChain(window, inst)
 	if !g.SwapChain.IsValid() {
 		return nil // TODO:  Is this correct?

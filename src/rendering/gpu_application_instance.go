@@ -38,6 +38,7 @@ package rendering
 
 import (
 	"errors"
+	"runtime"
 
 	"kaijuengine.com/build"
 	"kaijuengine.com/engine/assets"
@@ -228,15 +229,6 @@ func (g *GPUApplicationInstance) SetupDebug() {
 			if g.Devices[i].LogicalDevice.IsValid() {
 				g.Devices[i].LogicalDevice.SetupDebug(g.PrimaryDevice())
 			}
-		}
-	}
-}
-
-func (g *GPUApplicationInstance) Resize(window RenderingContainer, width, height int) {
-	defer tracing.NewRegion("GPUApplicationInstance.Resize").End()
-	for i := range g.Devices {
-		if g.Devices[i].LogicalDevice.IsValid() {
-			g.Devices[i].LogicalDevice.RemakeSwapChain(window, g, &g.Devices[i])
 		}
 	}
 }
