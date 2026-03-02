@@ -38,7 +38,6 @@ package rendering
 
 import (
 	"errors"
-	"runtime"
 
 	"kaijuengine.com/build"
 	"kaijuengine.com/engine/assets"
