@@ -105,7 +105,7 @@ func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplication
 		return errors.New("failed to create swap chain")
 	}
 	g.handle = unsafe.Pointer(swapChain)
-	inst.dbg.track(g.handle)
+	device.LogicalDevice.dbg.track(g.handle)
 	var swapImgCount uint32
 
 	vk.GetSwapchainImages(vk.Device(ld.handle), vk.Swapchain(g.handle), &swapImgCount, nil)
@@ -249,14 +249,12 @@ func (g *GPUSwapChain) setupSyncObjectsImpl(device *GPUDevice) error {
 	g.renderFinishedSemaphores = make([]GPUSemaphore, swapImgCount)
 	for i := range swapImgCount {
 		var imgSemaphore vk.Semaphore
-		var rdrSemaphore vk.Semaphore
 		var fence vk.Fence
-		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success || vk.CreateSemaphore(vkDevice, &sInfo, nil, &rdrSemaphore) != vulkan_const.Success || vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
+		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success || vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
 			slog.Error("Failed to create semaphores")
 			return errors.New("failed to create semaphores")
 		}
 		dbg.track(unsafe.Pointer(imgSemaphore))
-		dbg.track(unsafe.Pointer(rdrSemaphore))
 		dbg.track(unsafe.Pointer(fence))
 		g.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
 		g.renderFences[i].handle = unsafe.Pointer(fence)
