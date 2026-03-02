@@ -152,11 +152,12 @@ static NSEvent* handleEvent(NSEvent* e) {
 					NSRect r = NSMakeRect(sm->lockCursor.x, sm->lockCursor.y, 0, 0);
 					NSRect sr = [w convertRectToScreen:r];
 					CGWarpMouseCursorPosition(sr.origin);
-			} else {
-				shared_mem_add_event(sm, (WindowEvent){
-					.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
-					.mouseMove = { x, y }
-				});
+				} else {
+					shared_mem_add_event(sm, (WindowEvent){
+						.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+						.mouseMove = { x, y }
+					});
+				}
 			}
 		} break;
 
