@@ -37,10 +37,11 @@
 package rendering
 
 import (
+	"sync"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
-	"sync"
 )
 
 type ShaderCache struct {
@@ -119,5 +120,15 @@ func (s *ShaderCache) CreatePending() {
 func (s *ShaderCache) Destroy() {
 	defer tracing.NewRegion("ShaderCache.Destroy").End()
 	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
+	for _, shader := range s.shaders {
+		s.destroyShaderTree(shader)
+	}
 	s.shaders = make(map[string]*Shader)
+}
+
+func (s *ShaderCache) destroyShaderTree(shader *Shader) {
+	for _, sub := range shader.subShaders {
+		s.destroyShaderTree(sub)
+	}
+	s.device.DestroyShaderHandle(shader.RenderId)
 }

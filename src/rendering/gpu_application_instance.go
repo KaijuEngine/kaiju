@@ -38,7 +38,6 @@ package rendering
 
 import (
 	"errors"
-	"runtime"
 
 	"kaijuengine.com/build"
 	"kaijuengine.com/engine/assets"
@@ -165,7 +164,6 @@ func (g *GPUApplicationInstance) Destroy() {
 			device.LogicalDevice.renderPassCache[k].Destroy(device)
 		}
 		device.LogicalDevice.renderPassCache = make(map[string]*RenderPass)
-		runtime.GC()
 		for i := range device.Painter.preRuns {
 			if device.Painter.preRuns[i] != nil {
 				device.Painter.preRuns[i]()

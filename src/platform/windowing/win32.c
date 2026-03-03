@@ -256,17 +256,18 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			readMousePosition(lParam, &evt.mouseMove.x, &evt.mouseMove.y);
 			sm->mouseX = evt.mouseMove.x;
 			sm->mouseY = evt.mouseMove.y;
-			shared_mem_add_event(sm, evt);
-			if (!sm->rawInputFailed && sm->rawInputRequested) {
-				bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
-					|| evt.mouseMove.x <= sm->clientRect.right
-					|| evt.mouseMove.y <= sm->clientRect.bottom;
-				if (mouseEnteredWindow) {
-					window_enable_raw_mouse(hwnd);
-				}
-			}
 			if (sm->lockCursor.active) {
-				lock_cursor_position(sm);
+				// When locked, raw input handles movement via deltas; skip here
+			} else {
+				shared_mem_add_event(sm, evt);
+				if (!sm->rawInputFailed && sm->rawInputRequested) {
+					bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
+						|| evt.mouseMove.x <= sm->clientRect.right
+						|| evt.mouseMove.y <= sm->clientRect.bottom;
+					if (mouseEnteredWindow) {
+						window_enable_raw_mouse(hwnd);
+					}
+				}
 			}
 			break;
 		}
@@ -434,6 +435,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			shared_mem_add_event(sm, evt);
 			break;
+		}
+		case WM_SETCURSOR:
+		{
+			if (sm != NULL && sm->cursorHidden) {
+				SetCursor(NULL);
+				return TRUE;
+			}
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
 		case UWM_SET_CURSOR:
 		{
@@ -705,18 +714,23 @@ void window_poll(void* hwnd) {
 						}
 						// Mouse move
 						{
-							bool hadMouseEvent = false;
-							if (sm->eventCount > 0) {
-								int type = sm->events[sm->eventCount-1].type;
-								hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
-									|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
-							}
-							if (!hadMouseEvent) {
-								WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
-								evt.mouseMove.x = pt.x;
-								evt.mouseMove.y = pt.y;
-								shared_mem_add_event(sm, evt);
-								hadMouseEvent = true;
+							if (sm->lockCursor.active) {
+								// Accumulate raw deltas; emit once after message loop
+								sm->lockCursor.dx += mouse->lLastX;
+								sm->lockCursor.dy += mouse->lLastY;
+							} else {
+								bool hadMouseEvent = false;
+								if (sm->eventCount > 0) {
+									int type = sm->events[sm->eventCount-1].type;
+									hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
+										|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
+								}
+								if (!hadMouseEvent) {
+									WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+									evt.mouseMove.x = pt.x;
+									evt.mouseMove.y = pt.y;
+									shared_mem_add_event(sm, evt);
+								}
 							}
 						}
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
@@ -734,6 +748,15 @@ void window_poll(void* hwnd) {
 			DispatchMessage(&msg);
 			//process_message(sm, &msg);
 		}
+	}
+	// Emit accumulated locked cursor deltas as a single mouse move event
+	if (sm->lockCursor.active && (sm->lockCursor.dx != 0 || sm->lockCursor.dy != 0)) {
+		WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+		evt.mouseMove.x = sm->lockCursor.x + sm->lockCursor.dx;
+		evt.mouseMove.y = sm->lockCursor.y + sm->lockCursor.dy;
+		shared_mem_add_event(sm, evt);
+		sm->lockCursor.dx = 0;
+		sm->lockCursor.dy = 0;
 	}
 	shared_mem_flush_events(sm);
 }
@@ -834,24 +857,45 @@ void window_add_border(void* hwnd) {
 }
 
 void window_show_cursor(void* hwnd) {
-	ShowCursor(TRUE);
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (sm != NULL && sm->cursorHidden) {
+		sm->cursorHidden = false;
+		// Restore cursor visibility: bring counter back to 0 (visible)
+		while (ShowCursor(TRUE) < 0) {}
+	}
 }
 
 void window_hide_cursor(void* hwnd) {
-	ShowCursor(FALSE);
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (sm != NULL && !sm->cursorHidden) {
+		sm->cursorHidden = true;
+		SetCursor(NULL);
+		// Hide cursor: bring counter to -1 (hidden)
+		while (ShowCursor(FALSE) >= 0) {}
+	}
 }
 
 void window_lock_cursor(void* hwnd, int x, int y) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->lockCursor.x = x;
 	sm->lockCursor.y = y;
+	sm->lockCursor.dx = 0;
+	sm->lockCursor.dy = 0;
 	sm->lockCursor.active = true;
 	set_cursor_position_relative_to_window(sm, x, y);
+	// Clip cursor to a 1-pixel rect at the lock position to prevent visible movement
+	int borderSize = ((sm->right-sm->left)-sm->clientRect.right) / 2;
+	int titleSize = (sm->bottom-sm->top)-sm->clientRect.bottom-borderSize;
+	int wx = sm->left + x + borderSize;
+	int wy = sm->top + y + titleSize;
+	RECT clipRect = { wx, wy, wx + 1, wy + 1 };
+	ClipCursor(&clipRect);
 }
 
 void window_unlock_cursor(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->lockCursor.active = false;
+	ClipCursor(NULL);
 }
 
 void window_set_fullscreen(void* hwnd) {

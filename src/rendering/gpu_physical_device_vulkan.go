@@ -39,11 +39,12 @@ package rendering
 import (
 	"bytes"
 	"errors"
+	"log/slog"
+	"unsafe"
+
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"unsafe"
 )
 
 func (g *GPUPhysicalDevice) formatPropertiesImpl(format GPUFormat) GPUFormatProperties {

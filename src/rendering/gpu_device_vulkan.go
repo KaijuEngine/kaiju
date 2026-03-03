@@ -408,7 +408,7 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		math.MaxUint64, vk.Semaphore(ld.SwapChain.imageSemaphores[frame].handle),
 		vk.Fence(vk.NullHandle), &painter.imageIndex[frame])
 	switch res {
-	case vulkan_const.Success:
+	case vulkan_const.Success, vulkan_const.Suboptimal: // VK_SUBOPTIMAL_KHR is a success and just means the swap chain no longer matches the surface properties exactly, but can still be used to present to the surface successfully.
 		// Do nothing
 	case vulkan_const.ErrorOutOfDate:
 		ld.RemakeSwapChain(window, inst, g)

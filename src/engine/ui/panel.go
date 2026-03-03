@@ -37,12 +37,13 @@
 package ui
 
 import (
+	"log/slog"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
-	"log/slog"
 )
 
 type PanelScrollDirection = int32
@@ -389,10 +390,8 @@ func (p *Panel) updateShaderVisibility() {
 	if !p.entity.IsActive() {
 		return
 	}
-
 	// Retrieve the current scissor rectangle from the root UI.
 	scissor := p.Base().selfScissor()
-
 	// Compute the panel's world‑space bounds.
 	pos := p.entity.Transform.WorldPosition()
 	size := p.layout.PixelSize()
@@ -401,7 +400,6 @@ func (p *Panel) updateShaderVisibility() {
 	right := pos.X() + half.X()
 	bottom := pos.Y() - half.Y()
 	top := pos.Y() + half.Y()
-
 	// If the panel is completely outside the scissor, deactivate its shader data.
 	if right < scissor.X() || left > scissor.Z() || top < scissor.Y() || bottom > scissor.W() {
 		p.shaderData.Deactivate()

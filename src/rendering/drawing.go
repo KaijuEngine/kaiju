@@ -37,22 +37,35 @@
 package rendering
 
 import (
+	"sort"
+	"sync"
+
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
-	"sort"
-	"sync"
 )
 
+// Drawing represents a renderable entity in the engine. It bundles together
+// the material, mesh, shader instance data, transform, sorting order, and an
+// optional view culler used during rendering.
 type Drawing struct {
-	Material   *Material
-	Mesh       *Mesh
+	// Material defines the visual appearance and render pass for the drawing.
+	Material *Material
+	// Mesh contains the geometry to be rendered.
+	Mesh *Mesh
+	// ShaderData holds per‑instance data for the shader (e.g., uniforms).
 	ShaderData DrawInstance
-	Transform  *matrix.Transform
-	Sort       int
+	// Transform specifies the transform this drawing follows.
+	Transform *matrix.Transform
+	// Sort determines the draw order within a render pass.
+	Sort int
+	// ViewCuller optionally culls the drawing based on the view frustum.
 	ViewCuller ViewCuller
 }
 
+// IsValid reports whether the Drawing is properly configured for rendering.
+// A Drawing is considered valid if it has a non-nil Material. This check is
+// used before submitting the drawing to the render pipeline.
 func (d *Drawing) IsValid() bool {
 	return d.Material != nil
 }
