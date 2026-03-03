@@ -37,6 +37,8 @@
 package editor_controls
 
 import (
+	"math"
+
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/cameras"
@@ -46,7 +48,6 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
-	"math"
 )
 
 const (
@@ -82,7 +83,6 @@ type EditorCamera struct {
 	mode             EditorCameraMode
 	resizeId         events.Id
 	flyCamStarted    bool
-	flyCamFlickerFix bool
 	flySpeedModifier float32
 }
 
@@ -144,8 +144,7 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			lockX, lockY := win.Width()/2, win.Height()/2
 			host.Window.HideCursor()
 			host.Window.LockCursor(lockX, lockY)
-			e.lastMousePos = m.Position()
-			e.flyCamFlickerFix = false
+			e.lastMousePos = matrix.Vec2{matrix.Float(lockX), matrix.Float(win.Height() - lockY)}
 			e.flyCamStarted = true
 			return true
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
@@ -154,12 +153,6 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			host.Window.ShowCursor()
 			return false
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
-			// TODO:  This is annoying and unfortunate, but functional,
-			// basically skip one update to prevent camera jumping
-			if !e.flyCamFlickerFix {
-				e.flyCamFlickerFix = true
-				return false
-			}
 			e.update3dFly(host, delta)
 			return true
 		} else {
@@ -245,9 +238,11 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 	tc := e.camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
-	mp := mouse.Position()
-	md := e.lastMousePos.Subtract(mp)
-	tc.FlyRotate(md.X()*xSensitivity, -md.Y()*ySensitivity)
+	if mouse.Moved() {
+		mp := mouse.Position()
+		md := e.lastMousePos.Subtract(mp)
+		tc.FlyRotate(md.X()*xSensitivity, -md.Y()*ySensitivity)
+	}
 	cp := e.camera.Position()
 	cl := e.camera.LookAt()
 	var delta matrix.Vec3

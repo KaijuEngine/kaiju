@@ -1,18 +1,55 @@
+/******************************************************************************/
+/* gpu_swap_chain_vulkan.go                                                   */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package rendering
 
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"unsafe"
+
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"unsafe"
 )
 
 func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
-	oldSwapChain := GPUSwapChain{GPUHandle: GPUHandle{g.handle}}
+	oldSwapChain := g.CopyAndReset()
 	if oldSwapChain.IsValid() {
 		defer oldSwapChain.Destroy(device)
 	}
@@ -68,7 +105,7 @@ func (g *GPUSwapChain) setupImpl(window RenderingContainer, inst *GPUApplication
 		return errors.New("failed to create swap chain")
 	}
 	g.handle = unsafe.Pointer(swapChain)
-	inst.dbg.track(g.handle)
+	device.LogicalDevice.dbg.track(g.handle)
 	var swapImgCount uint32
 
 	vk.GetSwapchainImages(vk.Device(ld.handle), vk.Swapchain(g.handle), &swapImgCount, nil)
@@ -162,7 +199,6 @@ func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
 		vk.DestroySemaphore(vkDevice, vk.Semaphore(g.renderFinishedSemaphores[i].handle), nil)
 		dbg.remove(g.renderFinishedSemaphores[i].handle)
 	}
-	g.renderFinishedSemaphores = []GPUSemaphore{}
 	for i := range g.FrameBuffers {
 		vk.DestroyFramebuffer(vkDevice, vk.Framebuffer(g.FrameBuffers[i].handle), nil)
 		dbg.remove(g.FrameBuffers[i].handle)
@@ -174,10 +210,13 @@ func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
 		g.Images[i].View.Reset()
 	}
 	if g.IsValid() {
-		vk.DestroySwapchain(vk.Device(device.LogicalDevice.handle), vk.Swapchain(g.handle), nil)
+		vk.DestroySwapchain(vkDevice, vk.Swapchain(g.handle), nil)
 		dbg.remove(g.handle)
 		g.Reset()
 	}
+	g.renderFinishedSemaphores = g.renderFinishedSemaphores[:0]
+	g.FrameBuffers = g.FrameBuffers[:0]
+	g.Images = g.Images[:0]
 }
 
 func (g *GPUSwapChain) createFrameBufferImpl(device *GPUDevice) error {
@@ -207,24 +246,19 @@ func (g *GPUSwapChain) setupSyncObjectsImpl(device *GPUDevice) error {
 	}
 	vkDevice := vk.Device(device.LogicalDevice.handle)
 	swapImgCount := len(g.Images)
+	g.renderFinishedSemaphores = make([]GPUSemaphore, swapImgCount)
 	for i := range swapImgCount {
 		var imgSemaphore vk.Semaphore
-		var rdrSemaphore vk.Semaphore
 		var fence vk.Fence
-		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success || vk.CreateSemaphore(vkDevice, &sInfo, nil, &rdrSemaphore) != vulkan_const.Success || vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
+		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &imgSemaphore) != vulkan_const.Success || vk.CreateFence(vkDevice, &fInfo, nil, &fence) != vulkan_const.Success {
 			slog.Error("Failed to create semaphores")
 			return errors.New("failed to create semaphores")
 		}
 		dbg.track(unsafe.Pointer(imgSemaphore))
-		dbg.track(unsafe.Pointer(rdrSemaphore))
 		dbg.track(unsafe.Pointer(fence))
-		device.LogicalDevice.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
-		device.LogicalDevice.renderFences[i].handle = unsafe.Pointer(fence)
-	}
-	g.renderFinishedSemaphores = make([]GPUSemaphore, len(g.Images))
-	for i := range g.Images {
+		g.imageSemaphores[i].handle = unsafe.Pointer(imgSemaphore)
+		g.renderFences[i].handle = unsafe.Pointer(fence)
 		var finishedSemaphore vk.Semaphore
-		g.renderFinishedSemaphores[i].Reset()
 		if vk.CreateSemaphore(vkDevice, &sInfo, nil, &finishedSemaphore) != vulkan_const.Success {
 			slog.Error("Failed to create render finished semaphores")
 			return errors.New("failed to create render finished semaphores")

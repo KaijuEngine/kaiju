@@ -39,6 +39,13 @@ package windowing
 import (
 	"errors"
 	"image"
+	"log/slog"
+	"runtime"
+	"slices"
+	"sync"
+	"sync/atomic"
+	"unsafe"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/klib"
@@ -47,12 +54,6 @@ import (
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
-	"log/slog"
-	"runtime"
-	"slices"
-	"sync"
-	"sync/atomic"
-	"unsafe"
 )
 
 var (
@@ -199,10 +200,8 @@ func (w *Window) Poll() {
 	}
 	w.poll()
 	if w.resizedFromNativeAPI {
+		slog.Info("window resize has been requested")
 		w.resizedFromNativeAPI = false
-		if w.GpuHost.IsValid() {
-			w.GpuInstance.Resize(w, w.width, w.height)
-		}
 		w.OnResize.Execute()
 	}
 	w.isCrashed = w.isCrashed || w.fatalFromNativeAPI

@@ -1,15 +1,52 @@
+/******************************************************************************/
+/* gpu_logical_device_vulkan.go                                               */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package rendering
 
 import (
 	"errors"
 	"fmt"
-	"kaijuengine.com/platform/profiler/tracing"
-	vk "kaijuengine.com/rendering/vulkan"
-	"kaijuengine.com/rendering/vulkan_const"
 	"log/slog"
 	"math"
 	"sort"
 	"unsafe"
+
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error {
@@ -59,7 +96,7 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 		return errors.New("failed to create logical device")
 	}
 	g.handle = unsafe.Pointer(device)
-	inst.dbg.track(g.handle)
+	g.dbg.track(g.handle)
 	// Passing vr.device directly into vk.CreateDevice will cause
 	// cgo argument has Go pointer to Go pointer panic
 	var graphicsQueue vk.Queue
@@ -155,22 +192,7 @@ func (g *GPULogicalDevice) freeTextureImpl(texId *TextureId) {
 
 func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {
 	defer tracing.NewRegion("GPULogicalDevice.remakeSwapChainImpl").End()
-	oldSwapChain := g.SwapChain
-	g.SwapChain.Reset()
-	if oldSwapChain.IsValid() {
-		g.WaitForRender(device)
-		oldSwapChain.Destroy(device)
-		vkDevice := vk.Device(g.handle)
-		// Destroy the previous swap sync objects
-		for i := range len(g.SwapChain.Images) {
-			vk.DestroySemaphore(vkDevice, vk.Semaphore(g.imageSemaphores[i].handle), nil)
-			g.dbg.remove(g.imageSemaphores[i].handle)
-			vk.DestroyFence(vkDevice, vk.Fence(g.renderFences[i].handle), nil)
-			g.dbg.remove(g.renderFences[i].handle)
-		}
-		device.destroyGlobalUniforms()
-	}
-	defer oldSwapChain.Destroy(device)
+	// This will destroy the existing swap chain
 	device.CreateSwapChain(window, inst)
 	if !g.SwapChain.IsValid() {
 		return nil // TODO:  Is this correct?

@@ -1,16 +1,53 @@
+/******************************************************************************/
+/* gpu_device_vulkan.go                                                       */
+/******************************************************************************/
+/*                            This file is part of                            */
+/*                                KAIJU ENGINE                                */
+/*                          https://kaijuengine.com/                          */
+/******************************************************************************/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
+/* Copyright (c) 2015-present Brent Farris.                                   */
+/*                                                                            */
+/* May all those that this source may reach be blessed by the LORD and find   */
+/* peace and joy in life.                                                     */
+/* Everyone who drinks of this water will be thirsty again; but whoever       */
+/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining a    */
+/* copy of this software and associated documentation files (the "Software"), */
+/* to deal in the Software without restriction, including without limitation  */
+/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
+/* and/or sell copies of the Software, and to permit persons to whom the      */
+/* Software is furnished to do so, subject to the following conditions:       */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
+/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
+/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
+/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/******************************************************************************/
+
 package rendering
 
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"math"
+	"unsafe"
+
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
-	"log/slog"
-	"math"
-	"unsafe"
 )
 
 func (g *GPUDevice) mapMemoryImpl(memory GPUDeviceMemory, offset uintptr, size uintptr, flags GPUMemoryFlags, out *unsafe.Pointer) error {
@@ -277,7 +314,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	qSubmit := tracing.NewRegion("Vulkan.QueueSubmit")
 	all := make([]vk.CommandBuffer, 0, len(g.Painter.writtenCommands))
 	waitSemaphores := [...]vk.Semaphore{
-		vk.Semaphore(g.LogicalDevice.imageSemaphores[g.Painter.currentFrame].handle),
+		vk.Semaphore(g.LogicalDevice.SwapChain.imageSemaphores[g.Painter.currentFrame].handle),
 	}
 	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)}
 	signalSemaphores := [...]vk.Semaphore{
@@ -312,7 +349,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 		if sort == prePostQueueRange-1 {
 			submitInfo.SignalSemaphoreCount = uint32(len(signalSemaphores))
 			submitInfo.PSignalSemaphores = &signalSemaphores[0]
-			fence = vk.Fence(g.LogicalDevice.renderFences[g.Painter.currentFrame].handle)
+			fence = vk.Fence(g.LogicalDevice.SwapChain.renderFences[g.Painter.currentFrame].handle)
 		}
 		eCode := vk.QueueSubmit(vk.Queue(g.LogicalDevice.graphicsQueue), 1, &submitInfo, fence)
 		if eCode != vulkan_const.Success {
@@ -323,27 +360,33 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	g.Painter.writtenCommands = g.Painter.writtenCommands[:0]
 	qSubmit.End()
 	qPresent := tracing.NewRegion("Vulkan.QueuePresent")
-	dependency := vk.SubpassDependency{}
-	dependency.SrcSubpass = vulkan_const.SubpassExternal
-	dependency.DstSubpass = 0
-	dependency.SrcStageMask = vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)
-	dependency.SrcAccessMask = 0
-	dependency.DstStageMask = vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)
-	dependency.DstAccessMask = vk.AccessFlags(vulkan_const.AccessColorAttachmentWriteBit)
+	//dependency := vk.SubpassDependency{
+	//	SrcSubpass:    vulkan_const.SubpassExternal,
+	//	DstSubpass:    0,
+	//	SrcStageMask:  vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit),
+	//	SrcAccessMask: 0,
+	//	DstStageMask:  vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit),
+	//	DstAccessMask: vk.AccessFlags(vulkan_const.AccessColorAttachmentWriteBit),
+	//}
 	swapChains := []vk.Swapchain{vk.Swapchain(g.LogicalDevice.SwapChain.handle)}
-	presentInfo := vk.PresentInfo{}
-	presentInfo.SType = vulkan_const.StructureTypePresentInfo
-	presentInfo.WaitSemaphoreCount = 1
-	presentInfo.PWaitSemaphores = &signalSemaphores[0]
-	presentInfo.SwapchainCount = 1
-	presentInfo.PSwapchains = &swapChains[0]
-	presentInfo.PImageIndices = &g.Painter.imageIndex[g.Painter.currentFrame]
-	presentInfo.PResults = nil // Optional
-	vk.QueuePresent(vk.Queue(g.LogicalDevice.presentQueue), &presentInfo)
+	presentInfo := vk.PresentInfo{
+		SType:              vulkan_const.StructureTypePresentInfo,
+		WaitSemaphoreCount: 1,
+		PWaitSemaphores:    &signalSemaphores[0],
+		SwapchainCount:     1,
+		PSwapchains:        &swapChains[0],
+		PImageIndices:      &g.Painter.imageIndex[g.Painter.currentFrame],
+		PResults:           nil, // Optional
+	}
+	res := vk.QueuePresent(vk.Queue(g.LogicalDevice.presentQueue), &presentInfo)
 	qPresent.End()
-	if g.Painter.acquireImageResult == GPUErrorOutOfDate || g.Painter.acquireImageResult == GPUSuboptimal {
+	switch res {
+	case vulkan_const.Success:
+		// Do nothing
+	case vulkan_const.ErrorOutOfDate, vulkan_const.Suboptimal:
 		g.LogicalDevice.RemakeSwapChain(window, inst, g)
-	} else if g.Painter.acquireImageResult != GPUSuccess {
+		return false
+	default:
 		slog.Error("Failed to present swap chain image")
 		return false
 	}
@@ -355,18 +398,22 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
 	painter := &g.Painter
 	ld := &g.LogicalDevice
-	fences := [...]GPUFence{ld.renderFences[painter.currentFrame]}
+	fences := [...]GPUFence{ld.SwapChain.renderFences[painter.currentFrame]}
 	ld.WaitForFences(fences[:])
+	vkFences := [...]vk.Fence{vk.Fence(fences[0].handle)}
+	vk.ResetFences(vk.Device(ld.handle), 1, &vkFences[0])
 	frame := painter.currentFrame
 	res := vk.AcquireNextImage(vk.Device(ld.handle),
 		vk.Swapchain(ld.SwapChain.handle),
-		math.MaxUint64, vk.Semaphore(ld.imageSemaphores[frame].handle),
+		math.MaxUint64, vk.Semaphore(ld.SwapChain.imageSemaphores[frame].handle),
 		vk.Fence(vk.NullHandle), &painter.imageIndex[frame])
-	painter.acquireImageResult.fromVulkan(res)
-	if painter.acquireImageResult == GPUErrorOutOfDate {
+	switch res {
+	case vulkan_const.Success, vulkan_const.Suboptimal: // VK_SUBOPTIMAL_KHR is a success and just means the swap chain no longer matches the surface properties exactly, but can still be used to present to the surface successfully.
+		// Do nothing
+	case vulkan_const.ErrorOutOfDate:
 		ld.RemakeSwapChain(window, inst, g)
 		return false
-	} else if painter.acquireImageResult != GPUSuccess {
+	default:
 		slog.Error("Failed to present swap chain image")
 		if ld.SwapChain.IsValid() {
 			// TODO:  This is a bit strange...
@@ -375,8 +422,6 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		}
 		return false
 	}
-	vkFences := [...]vk.Fence{vk.Fence(fences[0].handle)}
-	vk.ResetFences(vk.Device(ld.handle), 1, &vkFences[0])
 	ld.bufferTrash.Cycle()
 	err := g.updateGlobalUniformBuffer(camera, uiCamera, lights, runtime)
 	if err != nil {

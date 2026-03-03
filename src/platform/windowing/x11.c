@@ -318,15 +318,25 @@ void window_poll(void* x11State) {
 				break;
 			}
 			case MotionNotify:
-				shared_mem_add_event(&s->sm, (WindowEvent) {
-					.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
-					.mouseMove = {
-						.x = e.xmotion.x,
-						.y = e.xmotion.y,
-					}
-				});
 				if (s->sm.lockCursor.active) {
+					if (e.xmotion.x != s->sm.lockCursor.x || e.xmotion.y != s->sm.lockCursor.y) {
+						shared_mem_add_event(&s->sm, (WindowEvent) {
+							.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+							.mouseMove = {
+								.x = e.xmotion.x,
+								.y = e.xmotion.y,
+							}
+						});
+					}
 					lock_cursor_position(s);
+				} else {
+					shared_mem_add_event(&s->sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+						.mouseMove = {
+							.x = e.xmotion.x,
+							.y = e.xmotion.y,
+						}
+					});
 				}
 				break;
 			case ClientMessage:

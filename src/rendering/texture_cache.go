@@ -37,10 +37,11 @@
 package rendering
 
 import (
+	"sync"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
-	"sync"
 )
 
 type TextureCache struct {
@@ -142,6 +143,9 @@ func (t *TextureCache) Destroy() {
 	defer tracing.NewRegion("TextureCache.Destroy").End()
 	t.pendingTextures = klib.WipeSlice(t.pendingTextures)
 	for i := range t.textures {
+		for _, tex := range t.textures[i] {
+			t.device.LogicalDevice.FreeTexture(&tex.RenderId)
+		}
 		t.textures[i] = make(map[string]*Texture)
 	}
 }
