@@ -84,7 +84,7 @@ func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUA
 	if err := g.SelectPhysicalDevice(nil); err != nil {
 		return err
 	}
-	if err := g.SetupLogicalDevice(0); err != nil {
+	if err := g.SetupLogicalDevice(g.primaryDeviceIndex); err != nil {
 		return err
 	}
 	g.SetupDebug()
