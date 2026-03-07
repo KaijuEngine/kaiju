@@ -1,262 +1,148 @@
-/******************************************************************************/
-/* vector_graphic_animation.go                                                */
-/******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
-/******************************************************************************/
-
 package vector_graphics
 
 import (
-	"strconv"
-	"strings"
-
-	"kaijuengine.com/rendering/vector_graphics/svg"
+	"time"
 )
 
-// SharedAnimation contains fields common to both <animate> and <animateTransform> elements
-// for the vector graphics animation representation used in this package.
-type SharedAnimation struct {
-	From        string
-	To          string
-	By          string
-	Values      string
-	KeyTimes    string
-	KeySplines  string
-	CalcMode    CalcMode
-	Duration    float64
-	Begin       string
-	End         string
-	RepeatCount float64
-	RepeatDur   string
-	Fill        FillMode
-	Restart     RestartMode
-	Additive    Additive
-	Accumulate  Accumulate
+type AnimatedValueType int
+
+const (
+	AnimatedValueTypeNone AnimatedValueType = iota
+	AnimatedValueTypePosition
+	AnimatedValueTypePositionX
+	AnimatedValueTypePositionY
+	AnimatedValueTypePositionZ
+	AnimatedValueTypeRotation
+	AnimatedValueTypeWidth
+	AnimatedValueTypeHeight
+	AnimatedValueTypeRadius
+	AnimatedValueTypeRadiusX
+	AnimatedValueTypeRadiusY
+	AnimatedValueTypeColorR
+	AnimatedValueTypeColorG
+	AnimatedValueTypeColorB
+	AnimatedValueTypeColorA
+	AnimatedValueTypeFromX
+	AnimatedValueTypeFromY
+	AnimatedValueTypeFromZ
+	AnimatedValueTypeToX
+	AnimatedValueTypeToY
+	AnimatedValueTypeToZ
+	AnimatedValueTypeStrokeR
+	AnimatedValueTypeStrokeG
+	AnimatedValueTypeStrokeB
+	AnimatedValueTypeStrokeA
+	AnimatedValueTypeFillR
+	AnimatedValueTypeFillG
+	AnimatedValueTypeFillB
+	AnimatedValueTypeFillA
+	AnimatedValueTypeStrokeWidth
+	AnimatedValueTypeOpacity
+	AnimatedValueTypePolygonPoint
+	// Any number greater than this point is the point index to animate, points
+	// are 2-component vectors, so it alternates: p0.x, p0.y, p1.x, p1.y, etc...
+)
+
+type Animation struct {
+	Target Shape
+	Type   AnimatedValueType
+	Keys   []AnimationKeyFrame
 }
 
-type CalcMode int8
-type FillMode int8
-type RestartMode int8
-type Additive int8
-type Accumulate int8
-
-const (
-	CalcModeDiscrete CalcMode = iota
-	CalcModeLinear
-	CalcModePaced
-	CalcModeSpline
-)
-
-const (
-	FillFreeze FillMode = iota
-	FillRemove
-)
-
-const (
-	RestartAlways RestartMode = iota
-	RestartWhenNotActive
-	RestartNever
-)
-const (
-	AdditiveReplace Additive = iota
-	AdditiveSum
-)
-
-const (
-	AccumulateNone Accumulate = iota
-	AccumulateSum
-)
-
-type Animate struct {
-	AttributeName string
-	AttributeType string
-	SharedAnimation
-	Min string
-	Max string
+type AnimationKeyFrame struct {
+	// TimeCode is represented in seconds from the start of the animation
+	TimeCode float64
+	Curve    PointCurve
+	Value    float64
 }
 
-// AnimateTransform represents <animateTransform> elements for animating transformations.
-// It contains the type of transformation (translate, rotate, scale, skewX, skewY)
-// and embeds SharedAnimation for the common animation fields.
-type AnimateTransform struct {
-	Type string
-	SharedAnimation
+func (a *Animation) Animate(timeCode float64) {
+	value := a.GetValueFromTime(timeCode)
+	a.Target.Animate(a.Type, value)
 }
 
-func (a *Animate) LoopsIndefinetely() bool {
-	return a.RepeatCount < 0
+func (a *Animation) Seconds() time.Duration {
+	if len(a.Keys) == 0 {
+		return 0
+	}
+	return time.Duration(a.Keys[len(a.Keys)-1].TimeCode)
 }
 
-func AnimateFromSvg(anim svg.Animate) Animate {
-	// Parse duration (e.g., "0.416667s")
-	var dur float64
-	if strings.HasSuffix(anim.Duration, "s") {
-		if v, err := strconv.ParseFloat(strings.TrimSuffix(anim.Duration, "s"), 64); err == nil {
-			dur = v
+// GetValueFromTime returns the interpolated value for the animation at the
+// given timeCode (seconds). It uses cubic Bézier interpolation between the two
+// surrounding keyframes. The curve handles (LeftCharacter / RightCharacter) are
+// interpreted as offsets from the keyframe point (time, value).
+func (a *Animation) GetValueFromTime(timeCode float64) float64 {
+	// No keyframes – return zero.
+	if len(a.Keys) == 0 {
+		return 0
+	}
+	// Clamp to first / last keyframe values when out of range.
+	if timeCode <= a.Keys[0].TimeCode {
+		return a.Keys[0].Value
+	}
+	if timeCode >= a.Keys[len(a.Keys)-1].TimeCode {
+		return a.Keys[len(a.Keys)-1].Value
+	}
+	// Find the segment [p, q] where p.TimeCode <= timeCode <= q.TimeCode.
+	var p, q AnimationKeyFrame
+	for i := 0; i < len(a.Keys)-1; i++ {
+		if a.Keys[i].TimeCode <= timeCode && timeCode <= a.Keys[i+1].TimeCode {
+			p = a.Keys[i]
+			q = a.Keys[i+1]
+			break
 		}
 	}
-	// Parse repeatCount – "indefinite" maps to a negative value.
-	var repeat float64
-	if anim.RepeatCount == "indefinite" {
-		repeat = -1
-	} else if anim.RepeatCount != "" {
-		if v, err := strconv.ParseFloat(anim.RepeatCount, 64); err == nil {
-			repeat = v
+	// Bézier control points (x = time, y = value).
+	// Offsets are taken from the keyframe's Curve vectors.
+	p0x, p0y := p.TimeCode, p.Value
+	p1x := p.TimeCode + float64(p.Curve.RightCharacter.X())
+	p1y := p.Value + float64(p.Curve.RightCharacter.Y())
+	p2x := q.TimeCode + float64(q.Curve.LeftCharacter.X())
+	p2y := q.Value + float64(q.Curve.LeftCharacter.Y())
+	p3x, p3y := q.TimeCode, q.Value
+	// Helper to evaluate cubic Bézier X (or Y) at parameter u.
+	bezier := func(u, x0, x1, x2, x3 float64) float64 {
+		// (1-u)^3*x0 + 3*(1-u)^2*u*x1 + 3*(1-u)*u*u*x2 + u^3*x3
+		om := 1 - u
+		return om*om*om*x0 + 3*om*om*u*x1 + 3*om*u*u*x2 + u*u*u*x3
+	}
+	// Derivative of cubic Bézier X with respect to u.
+	bezierDeriv := func(u, x0, x1, x2, x3 float64) float64 {
+		om := 1 - u
+		return 3*om*om*(x1-x0) + 6*om*u*(x2-x1) + 3*u*u*(x3-x2)
+	}
+	// Solve for u such that Bézier X(u) == timeCode using Newton‑Raphson.
+	// Initial guess based on linear interpolation.
+	u := (timeCode - p0x) / (p3x - p0x)
+	if u < 0 {
+		u = 0
+	} else if u > 1 {
+		u = 1
+	}
+	const maxIter = 10
+	const epsilon = 1e-5
+	for i := 0; i < maxIter; i++ {
+		bx := bezier(u, p0x, p1x, p2x, p3x)
+		diff := bx - timeCode
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff < epsilon {
+			break
+		}
+		dbx := bezierDeriv(u, p0x, p1x, p2x, p3x)
+		if dbx == 0 {
+			break
+		}
+		u = u - (bx-timeCode)/dbx
+		if u < 0 {
+			u = 0
+		} else if u > 1 {
+			u = 1
 		}
 	}
-	return Animate{
-		AttributeName: string(anim.AttributeName),
-		AttributeType: string(anim.AttributeType),
-		SharedAnimation: SharedAnimation{
-			From:        anim.From,
-			To:          anim.To,
-			By:          anim.By,
-			Values:      anim.Values,
-			KeyTimes:    anim.KeyTimes,
-			KeySplines:  anim.KeySplines,
-			CalcMode:    mapCalcMode(anim.CalcMode),
-			Duration:    dur,
-			Begin:       anim.Begin,
-			End:         anim.End,
-			RepeatCount: repeat,
-			RepeatDur:   anim.RepeatDur,
-			Fill:        mapFillMode(anim.Fill),
-			Restart:     mapRestartMode(anim.Restart),
-			Additive:    mapAdditive(anim.Additive),
-			Accumulate:  mapAccumulate(anim.Accumulate),
-		},
-		Min: anim.Min,
-		Max: anim.Max,
-	}
-}
-
-func AnimateTransformFromSvg(anim svg.AnimateTransform) AnimateTransform {
-	// Parse duration (e.g., "0.416667s")
-	var dur float64
-	if strings.HasSuffix(anim.Duration, "s") {
-		if v, err := strconv.ParseFloat(strings.TrimSuffix(anim.Duration, "s"), 64); err == nil {
-			dur = v
-		}
-	}
-	// Parse repeatCount – "indefinite" maps to a negative value.
-	var repeat float64
-	if anim.RepeatCount == "indefinite" {
-		repeat = -1
-	} else if anim.RepeatCount != "" {
-		if v, err := strconv.ParseFloat(anim.RepeatCount, 64); err == nil {
-			repeat = v
-		}
-	}
-	return AnimateTransform{
-		Type: anim.Type,
-		SharedAnimation: SharedAnimation{
-			From:        anim.From,
-			To:          anim.To,
-			By:          anim.By,
-			Values:      anim.Values,
-			KeyTimes:    anim.KeyTimes,
-			KeySplines:  anim.KeySplines,
-			CalcMode:    mapCalcMode(anim.CalcMode),
-			Duration:    dur,
-			Begin:       anim.Begin,
-			End:         anim.End,
-			RepeatCount: repeat,
-			RepeatDur:   anim.RepeatDur,
-			Fill:        mapFillMode(anim.Fill),
-			Restart:     mapRestartMode(anim.Restart),
-			Additive:    mapAdditive(anim.Additive),
-			Accumulate:  mapAccumulate(anim.Accumulate),
-		},
-	}
-}
-
-func mapCalcMode(s svg.CalcMode) CalcMode {
-	switch s {
-	case svg.CalcModeDiscrete:
-		return CalcModeDiscrete
-	case svg.CalcModeLinear:
-		return CalcModeLinear
-	case svg.CalcModePaced:
-		return CalcModePaced
-	case svg.CalcModeSpline:
-		return CalcModeSpline
-	default:
-		return CalcModeLinear // default per SVG spec
-	}
-}
-
-func mapFillMode(s svg.FillMode) FillMode {
-	switch s {
-	case svg.FillFreeze:
-		return FillFreeze
-	case svg.FillRemove:
-		return FillRemove
-	default:
-		return FillRemove
-	}
-}
-
-func mapRestartMode(s svg.RestartMode) RestartMode {
-	switch s {
-	case svg.RestartAlways:
-		return RestartAlways
-	case svg.RestartWhenNotActive:
-		return RestartWhenNotActive
-	case svg.RestartNever:
-		return RestartNever
-	default:
-		return RestartAlways
-	}
-}
-
-func mapAdditive(s svg.Additive) Additive {
-	switch s {
-	case svg.AdditiveReplace:
-		return AdditiveReplace
-	case svg.AdditiveSum:
-		return AdditiveSum
-	default:
-		return AdditiveReplace
-	}
-}
-
-func mapAccumulate(s svg.Accumulate) Accumulate {
-	switch s {
-	case svg.AccumulateNone:
-		return AccumulateNone
-	case svg.AccumulateSum:
-		return AccumulateSum
-	default:
-		return AccumulateNone
-	}
+	// Interpolated value is Bézier Y at the solved u.
+	value := bezier(u, p0y, p1y, p2y, p3y)
+	return value
 }
