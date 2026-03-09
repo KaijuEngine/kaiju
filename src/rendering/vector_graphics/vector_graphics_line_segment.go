@@ -21,3 +21,7 @@ func (e *LineSegment) Animate(animType AnimatedValueType, value float64) {
 		e.To.SetY(v)
 	}
 }
+
+func (e *LineSegment) ToPolygon() []matrix.Vec2 {
+	return []matrix.Vec2{e.From, e.To}
+}

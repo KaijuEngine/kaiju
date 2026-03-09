@@ -64,7 +64,7 @@ func VectorGraphicFromSVG(svg svg.SVG) VectorGraphic {
 		cx := r.X + r.Width/2
 		cy := r.Y + r.Height/2
 		shape := &Rectangle{
-			Center: matrix.NewVec3(matrix.Float(cx), matrix.Float(cy), 0),
+			Center: matrix.NewVec2(matrix.Float(cx), matrix.Float(cy)),
 			Size:   matrix.NewVec2(matrix.Float(r.Width), matrix.Float(r.Height)),
 		}
 		shape.Stroke = Color(parseColor(r.Stroke))
@@ -112,6 +112,18 @@ func VectorGraphicFromSVG(svg svg.SVG) VectorGraphic {
 	// Note: Path elements are not yet supported.
 	return vg
 }
+
+// func (g *VectorGraphic) ToMesh() *rendering.Mesh {
+// 	for i := range g.Shapes {
+// 		switch s := g.Shapes[i].(type) {
+// 		case *LineSegment:
+// 		case *Circle:
+// 		case *Ellipse:
+// 		case *Rectangle:
+// 		case *Polygon:
+// 		}
+// 	}
+// }
 
 // Helper: parse a float from string, returning matrix.Float and success flag.
 func parseFloat(s string) (matrix.Float, bool) {
