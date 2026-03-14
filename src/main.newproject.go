@@ -1,5 +1,7 @@
+//go:build !editor
+
 /******************************************************************************/
-/* main.std.go                                                                */
+/* main.newproject.go                                                         */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -36,40 +38,8 @@
 
 package main
 
-import (
-	"kaijuengine.com/bootstrap"
-	"kaijuengine.com/engine"
-	_ "kaijuengine.com/engine/ui/markup/css/properties" // Run init functions
-	_ "kaijuengine.com/engine_entity_data/content_id"   // Run the content id init
-	"kaijuengine.com/platform/profiler"
-	"kaijuengine.com/plugins"
-)
+import "log/slog"
 
-func _main(platformState any) {
-	engine.LoadLaunchParams()
-	game := getGame()
-	if engine.LaunchParams.NewProject != "" {
-		createNewProjectCLI(engine.LaunchParams.NewProject)
-		return
-	}
-	if engine.LaunchParams.Generate != "" {
-		switch engine.LaunchParams.Generate {
-		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-			plugins.RegenerateAPI()
-		}
-		return
-	}
-	if engine.LaunchParams.Trace {
-		profiler.StartTrace()
-		defer profiler.StopTrace()
-	}
-	if engine.LaunchParams.RecordPGO {
-		profiler.StartPGOProfiler()
-	}
-	bootstrap.Main(game, platformState)
-	if engine.LaunchParams.RecordPGO {
-		profiler.StopPGOProfiler()
-	}
-	profiler.CleanupProfiler()
+func createNewProjectCLI(path string) {
+	slog.Error("the -newproject flag is only available in editor builds")
 }

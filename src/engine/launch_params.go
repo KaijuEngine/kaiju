@@ -44,15 +44,21 @@ import (
 var LaunchParams = LaunchParameters{}
 
 type LaunchParameters struct {
-	Generate   string
-	StartStage string
-	Trace      bool
-	RecordPGO  bool
-	AutoTest   bool
+	Generate        string
+	NewProject      string
+	ProjectName     string
+	ProjectTemplate string
+	StartStage      string
+	Trace           bool
+	RecordPGO       bool
+	AutoTest        bool
 }
 
 func LoadLaunchParams() {
 	flag.StringVar(&LaunchParams.Generate, "generate", "", "The generator to run: 'pluginapi'")
+	flag.StringVar(&LaunchParams.NewProject, "newproject", "", "Create a new blank project at the specified path")
+	flag.StringVar(&LaunchParams.ProjectName, "projectname", "", "Name of the project to create (used with -newproject)")
+	flag.StringVar(&LaunchParams.ProjectTemplate, "projecttemplate", "", "Path to a template zip to use (used with -newproject)")
 	if build.Debug {
 		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
 		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")

@@ -1,5 +1,7 @@
+//go:build editor
+
 /******************************************************************************/
-/* main.std.go                                                                */
+/* main.ed.newproject.go                                                      */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -37,39 +39,25 @@
 package main
 
 import (
-	"kaijuengine.com/bootstrap"
-	"kaijuengine.com/engine"
-	_ "kaijuengine.com/engine/ui/markup/css/properties" // Run init functions
-	_ "kaijuengine.com/engine_entity_data/content_id"   // Run the content id init
-	"kaijuengine.com/platform/profiler"
-	"kaijuengine.com/plugins"
+	"kaiju/editor"
+	"kaiju/editor/project"
+	"kaiju/engine"
+	"log/slog"
 )
 
-func _main(platformState any) {
-	engine.LoadLaunchParams()
-	game := getGame()
-	if engine.LaunchParams.NewProject != "" {
-		createNewProjectCLI(engine.LaunchParams.NewProject)
+func createNewProjectCLI(path string) {
+	proj := project.Project{}
+	templatePath := engine.LaunchParams.ProjectTemplate
+	if err := proj.Initialize(path, templatePath, editor.EditorVersion); err != nil {
+		slog.Error("failed to create the project", "error", err, "path", path)
 		return
 	}
-	if engine.LaunchParams.Generate != "" {
-		switch engine.LaunchParams.Generate {
-		case "pluginapi":
-			plugins.GamePluginRegistry = append(plugins.GamePluginRegistry, game.PluginRegistry()...)
-			plugins.RegenerateAPI()
-		}
+	if name := engine.LaunchParams.ProjectName; name != "" {
+		proj.SetName(name)
+	}
+	if err := proj.Close(); err != nil {
+		slog.Error("failed to save the project configuration", "error", err)
 		return
 	}
-	if engine.LaunchParams.Trace {
-		profiler.StartTrace()
-		defer profiler.StopTrace()
-	}
-	if engine.LaunchParams.RecordPGO {
-		profiler.StartPGOProfiler()
-	}
-	bootstrap.Main(game, platformState)
-	if engine.LaunchParams.RecordPGO {
-		profiler.StopPGOProfiler()
-	}
-	profiler.CleanupProfiler()
+	slog.Info("successfully created blank project", "path", path)
 }
