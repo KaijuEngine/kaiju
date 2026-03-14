@@ -1,0 +1,1577 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>Kaiju Engine | API - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kaiju Engine | API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/start_with_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    With editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/start_without_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Without editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Content
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/content/workspace/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content workspace
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/content/reference_viewer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reference viewer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/content/table_of_contents/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Table of contents
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_7" id="__nav_4_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_7">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../editor/plugins/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/fonts/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_6" id="__nav_5_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_6">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="api">API</h1>
+<ul>
+<li><a href="bootstrap/">bootstrap</a></li>
+<li><a href="build/">build</a><ul>
+<li><a href="build/tag_generator/">build/tag_generator</a></li>
+</ul>
+</li>
+<li><a href="debug/">debug</a></li>
+<li><a href="editor/">editor</a><ul>
+<li><a href="editor/codegen/">editor/codegen</a><ul>
+<li><a href="editor/codegen/entity_data_binding/">editor/codegen/entity_data_binding</a></li>
+<li><a href="editor/codegen/reflect_helpers/">editor/codegen/reflect_helpers</a></li>
+<li><a href="editor/codegen/test_structure/">editor/codegen/test_structure</a><ul>
+<li><a href="editor/codegen/test_structure/test_data/">editor/codegen/test_structure/test_data</a><ul>
+<li><a href="editor/codegen/test_structure/test_data/sub_test_data/">editor/codegen/test_structure/test_data/sub_test_data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="editor/common_interfaces/">editor/common_interfaces</a></li>
+<li><a href="editor/editor_controls/">editor/editor_controls</a></li>
+<li><a href="editor/editor_embedded_content/">editor/editor_embedded_content</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/">editor/editor_embedded_content/editor_content</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/editor/">editor/editor_embedded_content/editor_content/editor</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/editor/fonts/">editor/editor_embedded_content/editor_content/editor/fonts</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/editor/meshes/">editor/editor_embedded_content/editor_content/editor/meshes</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/editor/meshes/fox/">editor/editor_embedded_content/editor_content/editor/meshes/fox</a></li>
+</ul>
+</li>
+<li><a href="editor/editor_embedded_content/editor_content/editor/textures/">editor/editor_embedded_content/editor_content/editor/textures</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/editor/textures/icons/">editor/editor_embedded_content/editor_content/editor/textures/icons</a></li>
+</ul>
+</li>
+<li><a href="editor/editor_embedded_content/editor_content/editor/ui/">editor/editor_embedded_content/editor_content/editor/ui</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/editor/ui/global/">editor/editor_embedded_content/editor_content/editor/ui/global</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/editor/ui/overlay/">editor/editor_embedded_content/editor_content/editor/ui/overlay</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/editor/ui/workspace/">editor/editor_embedded_content/editor_content/editor/ui/workspace</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="editor/editor_embedded_content/editor_content/fonts/">editor/editor_embedded_content/editor_content/fonts</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/meshes/">editor/editor_embedded_content/editor_content/meshes</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/plugins/">editor/editor_embedded_content/editor_content/plugins</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/">editor/editor_embedded_content/editor_content/renderer</a><ul>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/materials/">editor/editor_embedded_content/editor_content/renderer/materials</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/passes/">editor/editor_embedded_content/editor_content/renderer/passes</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/pipelines/">editor/editor_embedded_content/editor_content/renderer/pipelines</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/shaders/">editor/editor_embedded_content/editor_content/renderer/shaders</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/spv/">editor/editor_embedded_content/editor_content/renderer/spv</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/renderer/src/">editor/editor_embedded_content/editor_content/renderer/src</a></li>
+</ul>
+</li>
+<li><a href="editor/editor_embedded_content/editor_content/textures/">editor/editor_embedded_content/editor_content/textures</a></li>
+<li><a href="editor/editor_embedded_content/editor_content/ui/">editor/editor_embedded_content/editor_content/ui</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="editor/editor_events/">editor/editor_events</a></li>
+<li><a href="editor/editor_logging/">editor/editor_logging</a></li>
+<li><a href="editor/editor_overlay/">editor/editor_overlay</a><ul>
+<li><a href="editor/editor_overlay/ai_prompt/">editor/editor_overlay/ai_prompt</a></li>
+<li><a href="editor/editor_overlay/color_picker/">editor/editor_overlay/color_picker</a></li>
+<li><a href="editor/editor_overlay/confirm_prompt/">editor/editor_overlay/confirm_prompt</a></li>
+<li><a href="editor/editor_overlay/content_selector/">editor/editor_overlay/content_selector</a></li>
+<li><a href="editor/editor_overlay/context_menu/">editor/editor_overlay/context_menu</a></li>
+<li><a href="editor/editor_overlay/create_entity_data/">editor/editor_overlay/create_entity_data</a></li>
+<li><a href="editor/editor_overlay/file_browser/">editor/editor_overlay/file_browser</a></li>
+<li><a href="editor/editor_overlay/input_prompt/">editor/editor_overlay/input_prompt</a></li>
+<li><a href="editor/editor_overlay/new_project/">editor/editor_overlay/new_project</a></li>
+<li><a href="editor/editor_overlay/reference_viewer/">editor/editor_overlay/reference_viewer</a></li>
+<li><a href="editor/editor_overlay/sponsors/">editor/editor_overlay/sponsors</a></li>
+<li><a href="editor/editor_overlay/table_of_contents_overlay/">editor/editor_overlay/table_of_contents_overlay</a></li>
+</ul>
+</li>
+<li><a href="editor/editor_plugin/">editor/editor_plugin</a><ul>
+<li><a href="editor/editor_plugin/developer_plugins/">editor/editor_plugin/developer_plugins</a></li>
+</ul>
+</li>
+<li><a href="editor/editor_settings/">editor/editor_settings</a></li>
+<li><a href="editor/editor_stage_manager/">editor/editor_stage_manager</a><ul>
+<li><a href="editor/editor_stage_manager/data_binding_renderer/">editor/editor_stage_manager/data_binding_renderer</a></li>
+<li><a href="editor/editor_stage_manager/editor_stage_view/">editor/editor_stage_manager/editor_stage_view</a><ul>
+<li><a href="editor/editor_stage_manager/editor_stage_view/select_tool/">editor/editor_stage_manager/editor_stage_view/select_tool</a></li>
+<li><a href="editor/editor_stage_manager/editor_stage_view/transform_tools/">editor/editor_stage_manager/editor_stage_view/transform_tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="editor/editor_workspace/">editor/editor_workspace</a><ul>
+<li><a href="editor/editor_workspace/common_workspace/">editor/editor_workspace/common_workspace</a></li>
+<li><a href="editor/editor_workspace/content_workspace/">editor/editor_workspace/content_workspace</a></li>
+<li><a href="editor/editor_workspace/settings_workspace/">editor/editor_workspace/settings_workspace</a></li>
+<li><a href="editor/editor_workspace/shading_workspace/">editor/editor_workspace/shading_workspace</a><ul>
+<li><a href="editor/editor_workspace/shading_workspace/shader_designer/">editor/editor_workspace/shading_workspace/shader_designer</a></li>
+</ul>
+</li>
+<li><a href="editor/editor_workspace/stage_workspace/">editor/editor_workspace/stage_workspace</a></li>
+<li><a href="editor/editor_workspace/ui_workspace/">editor/editor_workspace/ui_workspace</a></li>
+<li><a href="editor/editor_workspace/vfx_workspace/">editor/editor_workspace/vfx_workspace</a></li>
+</ul>
+</li>
+<li><a href="editor/global_interface/">editor/global_interface</a><ul>
+<li><a href="editor/global_interface/menu_bar/">editor/global_interface/menu_bar</a></li>
+<li><a href="editor/global_interface/status_bar/">editor/global_interface/status_bar</a></li>
+</ul>
+</li>
+<li><a href="editor/memento/">editor/memento</a></li>
+<li><a href="editor/project/">editor/project</a><ul>
+<li><a href="editor/project/project_database/">editor/project/project_database</a><ul>
+<li><a href="editor/project/project_database/content_database/">editor/project/project_database/content_database</a></li>
+<li><a href="editor/project/project_database/content_previews/">editor/project/project_database/content_previews</a></li>
+</ul>
+</li>
+<li><a href="editor/project/project_file_system/">editor/project/project_file_system</a></li>
+</ul>
+</li>
+<li><a href="editor/project_templates/">editor/project_templates</a><ul>
+<li><a href="editor/project_templates/android/">editor/project_templates/android</a><ul>
+<li><a href="editor/project_templates/android/app/">editor/project_templates/android/app</a><ul>
+<li><a href="editor/project_templates/android/app/src/">editor/project_templates/android/app/src</a><ul>
+<li><a href="editor/project_templates/android/app/src/main/">editor/project_templates/android/app/src/main</a><ul>
+<li><a href="editor/project_templates/android/app/src/main/cpp/">editor/project_templates/android/app/src/main/cpp</a></li>
+<li><a href="editor/project_templates/android/app/src/main/java/">editor/project_templates/android/app/src/main/java</a><ul>
+<li><a href="editor/project_templates/android/app/src/main/java/com/">editor/project_templates/android/app/src/main/java/com</a><ul>
+<li><a href="editor/project_templates/android/app/src/main/java/com/kaijuengine/">editor/project_templates/android/app/src/main/java/com/kaijuengine</a><ul>
+<li><a href="editor/project_templates/android/app/src/main/java/com/kaijuengine/kaijuengine/">editor/project_templates/android/app/src/main/java/com/kaijuengine/kaijuengine</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="editor/project_templates/android/app/src/main/res/">editor/project_templates/android/app/src/main/res</a><ul>
+<li><a href="editor/project_templates/android/app/src/main/res/drawable/">editor/project_templates/android/app/src/main/res/drawable</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/layout/">editor/project_templates/android/app/src/main/res/layout</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/mipmap-anydpi/">editor/project_templates/android/app/src/main/res/mipmap-anydpi</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/mipmap-hdpi/">editor/project_templates/android/app/src/main/res/mipmap-hdpi</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/mipmap-mdpi/">editor/project_templates/android/app/src/main/res/mipmap-mdpi</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/mipmap-xhdpi/">editor/project_templates/android/app/src/main/res/mipmap-xhdpi</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/mipmap-xxhdpi/">editor/project_templates/android/app/src/main/res/mipmap-xxhdpi</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/mipmap-xxxhdpi/">editor/project_templates/android/app/src/main/res/mipmap-xxxhdpi</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/values/">editor/project_templates/android/app/src/main/res/values</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/values-night/">editor/project_templates/android/app/src/main/res/values-night</a></li>
+<li><a href="editor/project_templates/android/app/src/main/res/xml/">editor/project_templates/android/app/src/main/res/xml</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="editor/project_templates/android/gradle/">editor/project_templates/android/gradle</a><ul>
+<li><a href="editor/project_templates/android/gradle/wrapper/">editor/project_templates/android/gradle/wrapper</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="engine/">engine</a><ul>
+<li><a href="engine/assets/">engine/assets</a><ul>
+<li><a href="engine/assets/content_archive/">engine/assets/content_archive</a></li>
+<li><a href="engine/assets/table_of_contents/">engine/assets/table_of_contents</a></li>
+</ul>
+</li>
+<li><a href="engine/cameras/">engine/cameras</a></li>
+<li><a href="engine/collision/">engine/collision</a></li>
+<li><a href="engine/collision_system/">engine/collision_system</a></li>
+<li><a href="engine/encoding/">engine/encoding</a><ul>
+<li><a href="engine/encoding/pod/">engine/encoding/pod</a></li>
+</ul>
+</li>
+<li><a href="engine/host_container/">engine/host_container</a></li>
+<li><a href="engine/lighting/">engine/lighting</a></li>
+<li><a href="engine/physics/">engine/physics</a><ul>
+<li><a href="engine/physics/BulletCollision/">engine/physics/BulletCollision</a><ul>
+<li><a href="engine/physics/BulletCollision/BroadphaseCollision/">engine/physics/BulletCollision/BroadphaseCollision</a></li>
+<li><a href="engine/physics/BulletCollision/CollisionDispatch/">engine/physics/BulletCollision/CollisionDispatch</a></li>
+<li><a href="engine/physics/BulletCollision/CollisionShapes/">engine/physics/BulletCollision/CollisionShapes</a></li>
+<li><a href="engine/physics/BulletCollision/Gimpact/">engine/physics/BulletCollision/Gimpact</a></li>
+<li><a href="engine/physics/BulletCollision/NarrowPhaseCollision/">engine/physics/BulletCollision/NarrowPhaseCollision</a></li>
+</ul>
+</li>
+<li><a href="engine/physics/BulletDynamics/">engine/physics/BulletDynamics</a><ul>
+<li><a href="engine/physics/BulletDynamics/Character/">engine/physics/BulletDynamics/Character</a></li>
+<li><a href="engine/physics/BulletDynamics/ConstraintSolver/">engine/physics/BulletDynamics/ConstraintSolver</a></li>
+<li><a href="engine/physics/BulletDynamics/Dynamics/">engine/physics/BulletDynamics/Dynamics</a></li>
+<li><a href="engine/physics/BulletDynamics/Featherstone/">engine/physics/BulletDynamics/Featherstone</a></li>
+<li><a href="engine/physics/BulletDynamics/MLCPSolvers/">engine/physics/BulletDynamics/MLCPSolvers</a></li>
+<li><a href="engine/physics/BulletDynamics/Vehicle/">engine/physics/BulletDynamics/Vehicle</a></li>
+</ul>
+</li>
+<li><a href="engine/physics/LinearMath/">engine/physics/LinearMath</a><ul>
+<li><a href="engine/physics/LinearMath/TaskScheduler/">engine/physics/LinearMath/TaskScheduler</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="engine/pooling/">engine/pooling</a></li>
+<li><a href="engine/stages/">engine/stages</a></li>
+<li><a href="engine/systems/">engine/systems</a><ul>
+<li><a href="engine/systems/console/">engine/systems/console</a></li>
+<li><a href="engine/systems/debug_draw/">engine/systems/debug_draw</a></li>
+<li><a href="engine/systems/events/">engine/systems/events</a></li>
+<li><a href="engine/systems/logging/">engine/systems/logging</a></li>
+<li><a href="engine/systems/navigation/">engine/systems/navigation</a></li>
+<li><a href="engine/systems/tweening/">engine/systems/tweening</a></li>
+<li><a href="engine/systems/visual2d/">engine/systems/visual2d</a><ul>
+<li><a href="engine/systems/visual2d/sprite/">engine/systems/visual2d/sprite</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="engine/terrain/">engine/terrain</a></li>
+<li><a href="engine/ui/">engine/ui</a><ul>
+<li><a href="engine/ui/markup/">engine/ui/markup</a><ul>
+<li><a href="engine/ui/markup/css/">engine/ui/markup/css</a><ul>
+<li><a href="engine/ui/markup/css/functions/">engine/ui/markup/css/functions</a></li>
+<li><a href="engine/ui/markup/css/helpers/">engine/ui/markup/css/helpers</a></li>
+<li><a href="engine/ui/markup/css/properties/">engine/ui/markup/css/properties</a></li>
+<li><a href="engine/ui/markup/css/pseudos/">engine/ui/markup/css/pseudos</a></li>
+<li><a href="engine/ui/markup/css/rules/">engine/ui/markup/css/rules</a></li>
+</ul>
+</li>
+<li><a href="engine/ui/markup/document/">engine/ui/markup/document</a></li>
+<li><a href="engine/ui/markup/elements/">engine/ui/markup/elements</a></li>
+<li><a href="engine/ui/markup/spec_generator/">engine/ui/markup/spec_generator</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="engine_entity_data/">engine_entity_data</a><ul>
+<li><a href="engine_entity_data/content_id/">engine_entity_data/content_id</a></li>
+<li><a href="engine_entity_data/engine_entity_data_audio/">engine_entity_data/engine_entity_data_audio</a></li>
+<li><a href="engine_entity_data/engine_entity_data_camera/">engine_entity_data/engine_entity_data_camera</a></li>
+<li><a href="engine_entity_data/engine_entity_data_light/">engine_entity_data/engine_entity_data_light</a></li>
+<li><a href="engine_entity_data/engine_entity_data_particles/">engine_entity_data/engine_entity_data_particles</a></li>
+<li><a href="engine_entity_data/engine_entity_data_physics/">engine_entity_data/engine_entity_data_physics</a></li>
+<li><a href="engine_entity_data/engine_entity_data_skin_animation/">engine_entity_data/engine_entity_data_skin_animation</a></li>
+<li><a href="engine_entity_data/engine_entity_data_tween_transform/">engine_entity_data/engine_entity_data_tween_transform</a></li>
+</ul>
+</li>
+<li><a href="file_templates/">file_templates</a></li>
+<li><a href="framework/">framework</a></li>
+<li><a href="generators/">generators</a><ul>
+<li><a href="generators/api/">generators/api</a></li>
+<li><a href="generators/copy_header/">generators/copy_header</a></li>
+<li><a href="generators/engine_builds/">generators/engine_builds</a><ul>
+<li><a href="generators/engine_builds/engine_builds_android/">generators/engine_builds/engine_builds_android</a></li>
+</ul>
+</li>
+<li><a href="generators/msdf/">generators/msdf</a></li>
+<li><a href="generators/plugin_installer/">generators/plugin_installer</a></li>
+<li><a href="generators/spirv/">generators/spirv</a></li>
+</ul>
+</li>
+<li><a href="klib/">klib</a><ul>
+<li><a href="klib/bitmap/">klib/bitmap</a></li>
+<li><a href="klib/contexts/">klib/contexts</a></li>
+<li><a href="klib/streaming/">klib/streaming</a></li>
+<li><a href="klib/string_equations/">klib/string_equations</a></li>
+</ul>
+</li>
+<li><a href="libs/">libs</a></li>
+<li><a href="matrix/">matrix</a></li>
+<li><a href="network/">network</a><ul>
+<li><a href="network/master_server/">network/master_server</a></li>
+</ul>
+</li>
+<li><a href="ollama/">ollama</a></li>
+<li><a href="platform/">platform</a><ul>
+<li><a href="platform/audio/">platform/audio</a></li>
+<li><a href="platform/chrono/">platform/chrono</a></li>
+<li><a href="platform/concurrent/">platform/concurrent</a></li>
+<li><a href="platform/filesystem/">platform/filesystem</a></li>
+<li><a href="platform/hid/">platform/hid</a></li>
+<li><a href="platform/profiler/">platform/profiler</a><ul>
+<li><a href="platform/profiler/tracing/">platform/profiler/tracing</a></li>
+</ul>
+</li>
+<li><a href="platform/steam/">platform/steam</a></li>
+<li><a href="platform/windowing/">platform/windowing</a></li>
+</ul>
+</li>
+<li><a href="plugins/">plugins</a><ul>
+<li><a href="plugins/lua/">plugins/lua</a></li>
+</ul>
+</li>
+<li><a href="registry/">registry</a><ul>
+<li><a href="registry/shader_data_registry/">registry/shader_data_registry</a></li>
+</ul>
+</li>
+<li><a href="rendering/">rendering</a><ul>
+<li><a href="rendering/glsl/">rendering/glsl</a></li>
+<li><a href="rendering/loaders/">rendering/loaders</a><ul>
+<li><a href="rendering/loaders/gltf/">rendering/loaders/gltf</a></li>
+<li><a href="rendering/loaders/kaiju_font/">rendering/loaders/kaiju_font</a></li>
+<li><a href="rendering/loaders/kaiju_mesh/">rendering/loaders/kaiju_mesh</a></li>
+<li><a href="rendering/loaders/load_result/">rendering/loaders/load_result</a></li>
+</ul>
+</li>
+<li><a href="rendering/vfx/">rendering/vfx</a></li>
+<li><a href="rendering/vulkan/">rendering/vulkan</a><ul>
+<li><a href="rendering/vulkan/android/">rendering/vulkan/android</a></li>
+<li><a href="rendering/vulkan/moltenVK/">rendering/vulkan/moltenVK</a></li>
+<li><a href="rendering/vulkan/vulkan/">rendering/vulkan/vulkan</a></li>
+<li><a href="rendering/vulkan/windows/">rendering/vulkan/windows</a></li>
+</ul>
+</li>
+<li><a href="rendering/vulkan_const/">rendering/vulkan_const</a></li>
+</ul>
+</li>
+<li><a href="tools/">tools</a><ul>
+<li><a href="tools/font_to_msdf/">tools/font_to_msdf</a></li>
+<li><a href="tools/html_preview/">tools/html_preview</a></li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.instant", "toc.integrate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+        <script src="../javascripts/script.js"></script>
+      
+    
+  </body>
+</html>

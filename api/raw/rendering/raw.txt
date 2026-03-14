@@ -1,0 +1,3301 @@
+package rendering // import "kaijuengine.com/rendering"
+
+
+CONSTANTS
+
+const (
+	FontJustifyLeft = FontJustify(iota)
+	FontJustifyCenter
+	FontJustifyRight
+)
+const (
+	FontBaselineBottom = FontBaseline(iota)
+	FontBaselineCenter
+	FontBaselineTop
+)
+const (
+	FontBold            = FontFace("OpenSans-Bold")
+	FontBoldItalic      = FontFace("OpenSans-BoldItalic")
+	FontExtraBold       = FontFace("OpenSans-ExtraBold")
+	FontExtraBoldItalic = FontFace("OpenSans-ExtraBoldItalic")
+	FontItalic          = FontFace("OpenSans-Italic")
+	FontLight           = FontFace("OpenSans-Light")
+	FontLightItalic     = FontFace("OpenSans-LightItalic")
+	FontRegular         = FontFace("OpenSans-Regular")
+	FontSemiBold        = FontFace("OpenSans-SemiBold")
+	FontSemiBoldItalic  = FontFace("OpenSans-SemiBoldItalic")
+)
+const (
+	MaxJoints        = 50
+	MaxSkinInstances = 50
+)
+const (
+	GPUSuccess = iota
+	GPUNotReady
+	GPUTimeout
+	GPUEventSet
+	GPUEventReset
+	GPUIncomplete
+	GPUErrorOutOfHostMemory
+	GPUErrorOutOfDeviceMemory
+	GPUErrorInitializationFailed
+	GPUErrorDeviceLost
+	GPUErrorMemoryMapFailed
+	GPUErrorLayerNotPresent
+	GPUErrorExtensionNotPresent
+	GPUErrorFeatureNotPresent
+	GPUErrorIncompatibleDriver
+	GPUErrorTooManyObjects
+	GPUErrorFormatNotSupported
+	GPUErrorFragmentedPool
+	GPUErrorOutOfPoolMemory
+	GPUErrorInvalidExternalHandle
+	GPUErrorSurfaceLost
+	GPUErrorNativeWindowInUse
+	GPUSuboptimal
+	GPUErrorOutOfDate
+	GPUErrorIncompatibleDisplay
+	GPUErrorValidationFailed
+	GPUErrorInvalidShaderNv
+	GPUErrorInvalidDrmFormatModifierPlaneLayout
+	GPUErrorFragmentation
+	GPUErrorNotPermitted
+)
+const (
+	MaxLocalLights = 20
+
+	MaxCascades = 3
+)
+const (
+	LightTypeDirectional = LightType(iota)
+	LightTypePoint
+	LightTypeSpot
+)
+const (
+	QuadPivotCenter = QuadPivot(iota)
+	QuadPivotLeft
+	QuadPivotTop
+	QuadPivotRight
+	QuadPivotBottom
+	QuadPivotBottomLeft
+	QuadPivotBottomRight
+	QuadPivotTopLeft
+	QuadPivotTopRight
+)
+const (
+	QuaternionSize = int(unsafe.Sizeof(matrix.Quaternion{}))
+)
+const (
+	CubeMapSides = 6
+)
+const (
+	BytesInPixel         = 4
+	MaxCommandPools      = 5
+	MaxSecondaryCommands = 25
+)
+const (
+	DefaultFontEMSize = 14.0
+)
+const (
+	GPUWholeSize = (^uintptr(0))
+)
+const (
+	GenerateUniqueTextureKey = ""
+)
+const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
+
+VARIABLES
+
+var (
+	StringVkFormat = map[string]vulkan_const.Format{
+		"Undefined":                            vulkan_const.FormatUndefined,
+		detectDepthFormatKey:                   vulkan_const.FormatUndefined,
+		swapChainFormatKey:                     vulkan_const.FormatUndefined,
+		"R4g4UnormPack8":                       vulkan_const.FormatR4g4UnormPack8,
+		"R4g4b4a4UnormPack16":                  vulkan_const.FormatR4g4b4a4UnormPack16,
+		"B4g4r4a4UnormPack16":                  vulkan_const.FormatB4g4r4a4UnormPack16,
+		"R5g6b5UnormPack16":                    vulkan_const.FormatR5g6b5UnormPack16,
+		"B5g6r5UnormPack16":                    vulkan_const.FormatB5g6r5UnormPack16,
+		"R5g5b5a1UnormPack16":                  vulkan_const.FormatR5g5b5a1UnormPack16,
+		"B5g5r5a1UnormPack16":                  vulkan_const.FormatB5g5r5a1UnormPack16,
+		"A1r5g5b5UnormPack16":                  vulkan_const.FormatA1r5g5b5UnormPack16,
+		"R8Unorm":                              vulkan_const.FormatR8Unorm,
+		"R8Snorm":                              vulkan_const.FormatR8Snorm,
+		"R8Uscaled":                            vulkan_const.FormatR8Uscaled,
+		"R8Sscaled":                            vulkan_const.FormatR8Sscaled,
+		"R8Uint":                               vulkan_const.FormatR8Uint,
+		"R8Sint":                               vulkan_const.FormatR8Sint,
+		"R8Srgb":                               vulkan_const.FormatR8Srgb,
+		"R8g8Unorm":                            vulkan_const.FormatR8g8Unorm,
+		"R8g8Snorm":                            vulkan_const.FormatR8g8Snorm,
+		"R8g8Uscaled":                          vulkan_const.FormatR8g8Uscaled,
+		"R8g8Sscaled":                          vulkan_const.FormatR8g8Sscaled,
+		"R8g8Uint":                             vulkan_const.FormatR8g8Uint,
+		"R8g8Sint":                             vulkan_const.FormatR8g8Sint,
+		"R8g8Srgb":                             vulkan_const.FormatR8g8Srgb,
+		"R8g8b8Unorm":                          vulkan_const.FormatR8g8b8Unorm,
+		"R8g8b8Snorm":                          vulkan_const.FormatR8g8b8Snorm,
+		"R8g8b8Uscaled":                        vulkan_const.FormatR8g8b8Uscaled,
+		"R8g8b8Sscaled":                        vulkan_const.FormatR8g8b8Sscaled,
+		"R8g8b8Uint":                           vulkan_const.FormatR8g8b8Uint,
+		"R8g8b8Sint":                           vulkan_const.FormatR8g8b8Sint,
+		"R8g8b8Srgb":                           vulkan_const.FormatR8g8b8Srgb,
+		"B8g8r8Unorm":                          vulkan_const.FormatB8g8r8Unorm,
+		"B8g8r8Snorm":                          vulkan_const.FormatB8g8r8Snorm,
+		"B8g8r8Uscaled":                        vulkan_const.FormatB8g8r8Uscaled,
+		"B8g8r8Sscaled":                        vulkan_const.FormatB8g8r8Sscaled,
+		"B8g8r8Uint":                           vulkan_const.FormatB8g8r8Uint,
+		"B8g8r8Sint":                           vulkan_const.FormatB8g8r8Sint,
+		"B8g8r8Srgb":                           vulkan_const.FormatB8g8r8Srgb,
+		"R8g8b8a8Unorm":                        vulkan_const.FormatR8g8b8a8Unorm,
+		"R8g8b8a8Snorm":                        vulkan_const.FormatR8g8b8a8Snorm,
+		"R8g8b8a8Uscaled":                      vulkan_const.FormatR8g8b8a8Uscaled,
+		"R8g8b8a8Sscaled":                      vulkan_const.FormatR8g8b8a8Sscaled,
+		"R8g8b8a8Uint":                         vulkan_const.FormatR8g8b8a8Uint,
+		"R8g8b8a8Sint":                         vulkan_const.FormatR8g8b8a8Sint,
+		"R8g8b8a8Srgb":                         vulkan_const.FormatR8g8b8a8Srgb,
+		"B8g8r8a8Unorm":                        vulkan_const.FormatB8g8r8a8Unorm,
+		"B8g8r8a8Snorm":                        vulkan_const.FormatB8g8r8a8Snorm,
+		"B8g8r8a8Uscaled":                      vulkan_const.FormatB8g8r8a8Uscaled,
+		"B8g8r8a8Sscaled":                      vulkan_const.FormatB8g8r8a8Sscaled,
+		"B8g8r8a8Uint":                         vulkan_const.FormatB8g8r8a8Uint,
+		"B8g8r8a8Sint":                         vulkan_const.FormatB8g8r8a8Sint,
+		"B8g8r8a8Srgb":                         vulkan_const.FormatB8g8r8a8Srgb,
+		"A8b8g8r8UnormPack32":                  vulkan_const.FormatA8b8g8r8UnormPack32,
+		"A8b8g8r8SnormPack32":                  vulkan_const.FormatA8b8g8r8SnormPack32,
+		"A8b8g8r8UscaledPack32":                vulkan_const.FormatA8b8g8r8UscaledPack32,
+		"A8b8g8r8SscaledPack32":                vulkan_const.FormatA8b8g8r8SscaledPack32,
+		"A8b8g8r8UintPack32":                   vulkan_const.FormatA8b8g8r8UintPack32,
+		"A8b8g8r8SintPack32":                   vulkan_const.FormatA8b8g8r8SintPack32,
+		"A8b8g8r8SrgbPack32":                   vulkan_const.FormatA8b8g8r8SrgbPack32,
+		"A2r10g10b10UnormPack32":               vulkan_const.FormatA2r10g10b10UnormPack32,
+		"A2r10g10b10SnormPack32":               vulkan_const.FormatA2r10g10b10SnormPack32,
+		"A2r10g10b10UscaledPack32":             vulkan_const.FormatA2r10g10b10UscaledPack32,
+		"A2r10g10b10SscaledPack32":             vulkan_const.FormatA2r10g10b10SscaledPack32,
+		"A2r10g10b10UintPack32":                vulkan_const.FormatA2r10g10b10UintPack32,
+		"A2r10g10b10SintPack32":                vulkan_const.FormatA2r10g10b10SintPack32,
+		"A2b10g10r10UnormPack32":               vulkan_const.FormatA2b10g10r10UnormPack32,
+		"A2b10g10r10SnormPack32":               vulkan_const.FormatA2b10g10r10SnormPack32,
+		"A2b10g10r10UscaledPack32":             vulkan_const.FormatA2b10g10r10UscaledPack32,
+		"A2b10g10r10SscaledPack32":             vulkan_const.FormatA2b10g10r10SscaledPack32,
+		"A2b10g10r10UintPack32":                vulkan_const.FormatA2b10g10r10UintPack32,
+		"A2b10g10r10SintPack32":                vulkan_const.FormatA2b10g10r10SintPack32,
+		"R16Unorm":                             vulkan_const.FormatR16Unorm,
+		"R16Snorm":                             vulkan_const.FormatR16Snorm,
+		"R16Uscaled":                           vulkan_const.FormatR16Uscaled,
+		"R16Sscaled":                           vulkan_const.FormatR16Sscaled,
+		"R16Uint":                              vulkan_const.FormatR16Uint,
+		"R16Sint":                              vulkan_const.FormatR16Sint,
+		"R16Sfloat":                            vulkan_const.FormatR16Sfloat,
+		"R16g16Unorm":                          vulkan_const.FormatR16g16Unorm,
+		"R16g16Snorm":                          vulkan_const.FormatR16g16Snorm,
+		"R16g16Uscaled":                        vulkan_const.FormatR16g16Uscaled,
+		"R16g16Sscaled":                        vulkan_const.FormatR16g16Sscaled,
+		"R16g16Uint":                           vulkan_const.FormatR16g16Uint,
+		"R16g16Sint":                           vulkan_const.FormatR16g16Sint,
+		"R16g16Sfloat":                         vulkan_const.FormatR16g16Sfloat,
+		"R16g16b16Unorm":                       vulkan_const.FormatR16g16b16Unorm,
+		"R16g16b16Snorm":                       vulkan_const.FormatR16g16b16Snorm,
+		"R16g16b16Uscaled":                     vulkan_const.FormatR16g16b16Uscaled,
+		"R16g16b16Sscaled":                     vulkan_const.FormatR16g16b16Sscaled,
+		"R16g16b16Uint":                        vulkan_const.FormatR16g16b16Uint,
+		"R16g16b16Sint":                        vulkan_const.FormatR16g16b16Sint,
+		"R16g16b16Sfloat":                      vulkan_const.FormatR16g16b16Sfloat,
+		"R16g16b16a16Unorm":                    vulkan_const.FormatR16g16b16a16Unorm,
+		"R16g16b16a16Snorm":                    vulkan_const.FormatR16g16b16a16Snorm,
+		"R16g16b16a16Uscaled":                  vulkan_const.FormatR16g16b16a16Uscaled,
+		"R16g16b16a16Sscaled":                  vulkan_const.FormatR16g16b16a16Sscaled,
+		"R16g16b16a16Uint":                     vulkan_const.FormatR16g16b16a16Uint,
+		"R16g16b16a16Sint":                     vulkan_const.FormatR16g16b16a16Sint,
+		"R16g16b16a16Sfloat":                   vulkan_const.FormatR16g16b16a16Sfloat,
+		"R32Uint":                              vulkan_const.FormatR32Uint,
+		"R32Sint":                              vulkan_const.FormatR32Sint,
+		"R32Sfloat":                            vulkan_const.FormatR32Sfloat,
+		"R32g32Uint":                           vulkan_const.FormatR32g32Uint,
+		"R32g32Sint":                           vulkan_const.FormatR32g32Sint,
+		"R32g32Sfloat":                         vulkan_const.FormatR32g32Sfloat,
+		"R32g32b32Uint":                        vulkan_const.FormatR32g32b32Uint,
+		"R32g32b32Sint":                        vulkan_const.FormatR32g32b32Sint,
+		"R32g32b32Sfloat":                      vulkan_const.FormatR32g32b32Sfloat,
+		"R32g32b32a32Uint":                     vulkan_const.FormatR32g32b32a32Uint,
+		"R32g32b32a32Sint":                     vulkan_const.FormatR32g32b32a32Sint,
+		"R32g32b32a32Sfloat":                   vulkan_const.FormatR32g32b32a32Sfloat,
+		"R64Uint":                              vulkan_const.FormatR64Uint,
+		"R64Sint":                              vulkan_const.FormatR64Sint,
+		"R64Sfloat":                            vulkan_const.FormatR64Sfloat,
+		"R64g64Uint":                           vulkan_const.FormatR64g64Uint,
+		"R64g64Sint":                           vulkan_const.FormatR64g64Sint,
+		"R64g64Sfloat":                         vulkan_const.FormatR64g64Sfloat,
+		"R64g64b64Uint":                        vulkan_const.FormatR64g64b64Uint,
+		"R64g64b64Sint":                        vulkan_const.FormatR64g64b64Sint,
+		"R64g64b64Sfloat":                      vulkan_const.FormatR64g64b64Sfloat,
+		"R64g64b64a64Uint":                     vulkan_const.FormatR64g64b64a64Uint,
+		"R64g64b64a64Sint":                     vulkan_const.FormatR64g64b64a64Sint,
+		"R64g64b64a64Sfloat":                   vulkan_const.FormatR64g64b64a64Sfloat,
+		"B10g11r11UfloatPack32":                vulkan_const.FormatB10g11r11UfloatPack32,
+		"E5b9g9r9UfloatPack32":                 vulkan_const.FormatE5b9g9r9UfloatPack32,
+		"D16Unorm":                             vulkan_const.FormatD16Unorm,
+		"X8D24UnormPack32":                     vulkan_const.FormatX8D24UnormPack32,
+		"D32Sfloat":                            vulkan_const.FormatD32Sfloat,
+		"S8Uint":                               vulkan_const.FormatS8Uint,
+		"D16UnormS8Uint":                       vulkan_const.FormatD16UnormS8Uint,
+		"D24UnormS8Uint":                       vulkan_const.FormatD24UnormS8Uint,
+		"D32SfloatS8Uint":                      vulkan_const.FormatD32SfloatS8Uint,
+		"Bc1RgbUnormBlock":                     vulkan_const.FormatBc1RgbUnormBlock,
+		"Bc1RgbSrgbBlock":                      vulkan_const.FormatBc1RgbSrgbBlock,
+		"Bc1RgbaUnormBlock":                    vulkan_const.FormatBc1RgbaUnormBlock,
+		"Bc1RgbaSrgbBlock":                     vulkan_const.FormatBc1RgbaSrgbBlock,
+		"Bc2UnormBlock":                        vulkan_const.FormatBc2UnormBlock,
+		"Bc2SrgbBlock":                         vulkan_const.FormatBc2SrgbBlock,
+		"Bc3UnormBlock":                        vulkan_const.FormatBc3UnormBlock,
+		"Bc3SrgbBlock":                         vulkan_const.FormatBc3SrgbBlock,
+		"Bc4UnormBlock":                        vulkan_const.FormatBc4UnormBlock,
+		"Bc4SnormBlock":                        vulkan_const.FormatBc4SnormBlock,
+		"Bc5UnormBlock":                        vulkan_const.FormatBc5UnormBlock,
+		"Bc5SnormBlock":                        vulkan_const.FormatBc5SnormBlock,
+		"Bc6hUfloatBlock":                      vulkan_const.FormatBc6hUfloatBlock,
+		"Bc6hSfloatBlock":                      vulkan_const.FormatBc6hSfloatBlock,
+		"Bc7UnormBlock":                        vulkan_const.FormatBc7UnormBlock,
+		"Bc7SrgbBlock":                         vulkan_const.FormatBc7SrgbBlock,
+		"Etc2R8g8b8UnormBlock":                 vulkan_const.FormatEtc2R8g8b8UnormBlock,
+		"Etc2R8g8b8SrgbBlock":                  vulkan_const.FormatEtc2R8g8b8SrgbBlock,
+		"Etc2R8g8b8a1UnormBlock":               vulkan_const.FormatEtc2R8g8b8a1UnormBlock,
+		"Etc2R8g8b8a1SrgbBlock":                vulkan_const.FormatEtc2R8g8b8a1SrgbBlock,
+		"Etc2R8g8b8a8UnormBlock":               vulkan_const.FormatEtc2R8g8b8a8UnormBlock,
+		"Etc2R8g8b8a8SrgbBlock":                vulkan_const.FormatEtc2R8g8b8a8SrgbBlock,
+		"EacR11UnormBlock":                     vulkan_const.FormatEacR11UnormBlock,
+		"EacR11SnormBlock":                     vulkan_const.FormatEacR11SnormBlock,
+		"EacR11g11UnormBlock":                  vulkan_const.FormatEacR11g11UnormBlock,
+		"EacR11g11SnormBlock":                  vulkan_const.FormatEacR11g11SnormBlock,
+		"Astc4x4UnormBlock":                    vulkan_const.FormatAstc4x4UnormBlock,
+		"Astc4x4SrgbBlock":                     vulkan_const.FormatAstc4x4SrgbBlock,
+		"Astc5x4UnormBlock":                    vulkan_const.FormatAstc5x4UnormBlock,
+		"Astc5x4SrgbBlock":                     vulkan_const.FormatAstc5x4SrgbBlock,
+		"Astc5x5UnormBlock":                    vulkan_const.FormatAstc5x5UnormBlock,
+		"Astc5x5SrgbBlock":                     vulkan_const.FormatAstc5x5SrgbBlock,
+		"Astc6x5UnormBlock":                    vulkan_const.FormatAstc6x5UnormBlock,
+		"Astc6x5SrgbBlock":                     vulkan_const.FormatAstc6x5SrgbBlock,
+		"Astc6x6UnormBlock":                    vulkan_const.FormatAstc6x6UnormBlock,
+		"Astc6x6SrgbBlock":                     vulkan_const.FormatAstc6x6SrgbBlock,
+		"Astc8x5UnormBlock":                    vulkan_const.FormatAstc8x5UnormBlock,
+		"Astc8x5SrgbBlock":                     vulkan_const.FormatAstc8x5SrgbBlock,
+		"Astc8x6UnormBlock":                    vulkan_const.FormatAstc8x6UnormBlock,
+		"Astc8x6SrgbBlock":                     vulkan_const.FormatAstc8x6SrgbBlock,
+		"Astc8x8UnormBlock":                    vulkan_const.FormatAstc8x8UnormBlock,
+		"Astc8x8SrgbBlock":                     vulkan_const.FormatAstc8x8SrgbBlock,
+		"Astc10x5UnormBlock":                   vulkan_const.FormatAstc10x5UnormBlock,
+		"Astc10x5SrgbBlock":                    vulkan_const.FormatAstc10x5SrgbBlock,
+		"Astc10x6UnormBlock":                   vulkan_const.FormatAstc10x6UnormBlock,
+		"Astc10x6SrgbBlock":                    vulkan_const.FormatAstc10x6SrgbBlock,
+		"Astc10x8UnormBlock":                   vulkan_const.FormatAstc10x8UnormBlock,
+		"Astc10x8SrgbBlock":                    vulkan_const.FormatAstc10x8SrgbBlock,
+		"Astc10x10UnormBlock":                  vulkan_const.FormatAstc10x10UnormBlock,
+		"Astc10x10SrgbBlock":                   vulkan_const.FormatAstc10x10SrgbBlock,
+		"Astc12x10UnormBlock":                  vulkan_const.FormatAstc12x10UnormBlock,
+		"Astc12x10SrgbBlock":                   vulkan_const.FormatAstc12x10SrgbBlock,
+		"Astc12x12UnormBlock":                  vulkan_const.FormatAstc12x12UnormBlock,
+		"Astc12x12SrgbBlock":                   vulkan_const.FormatAstc12x12SrgbBlock,
+		"G8b8g8r8422Unorm":                     vulkan_const.FormatG8b8g8r8422Unorm,
+		"B8g8r8g8422Unorm":                     vulkan_const.FormatB8g8r8g8422Unorm,
+		"G8B8R83plane420Unorm":                 vulkan_const.FormatG8B8R83plane420Unorm,
+		"G8B8r82plane420Unorm":                 vulkan_const.FormatG8B8r82plane420Unorm,
+		"G8B8R83plane422Unorm":                 vulkan_const.FormatG8B8R83plane422Unorm,
+		"G8B8r82plane422Unorm":                 vulkan_const.FormatG8B8r82plane422Unorm,
+		"G8B8R83plane444Unorm":                 vulkan_const.FormatG8B8R83plane444Unorm,
+		"R10x6UnormPack16":                     vulkan_const.FormatR10x6UnormPack16,
+		"R10x6g10x6Unorm2pack16":               vulkan_const.FormatR10x6g10x6Unorm2pack16,
+		"R10x6g10x6b10x6a10x6Unorm4pack16":     vulkan_const.FormatR10x6g10x6b10x6a10x6Unorm4pack16,
+		"G10x6b10x6g10x6r10x6422Unorm4pack16":  vulkan_const.FormatG10x6b10x6g10x6r10x6422Unorm4pack16,
+		"B10x6g10x6r10x6g10x6422Unorm4pack16":  vulkan_const.FormatB10x6g10x6r10x6g10x6422Unorm4pack16,
+		"G10x6B10x6R10x63plane420Unorm3pack16": vulkan_const.FormatG10x6B10x6R10x63plane420Unorm3pack16,
+		"G10x6B10x6r10x62plane420Unorm3pack16": vulkan_const.FormatG10x6B10x6r10x62plane420Unorm3pack16,
+		"G10x6B10x6R10x63plane422Unorm3pack16": vulkan_const.FormatG10x6B10x6R10x63plane422Unorm3pack16,
+		"G10x6B10x6r10x62plane422Unorm3pack16": vulkan_const.FormatG10x6B10x6r10x62plane422Unorm3pack16,
+		"G10x6B10x6R10x63plane444Unorm3pack16": vulkan_const.FormatG10x6B10x6R10x63plane444Unorm3pack16,
+		"R12x4UnormPack16":                     vulkan_const.FormatR12x4UnormPack16,
+		"R12x4g12x4Unorm2pack16":               vulkan_const.FormatR12x4g12x4Unorm2pack16,
+		"R12x4g12x4b12x4a12x4Unorm4pack16":     vulkan_const.FormatR12x4g12x4b12x4a12x4Unorm4pack16,
+		"G12x4b12x4g12x4r12x4422Unorm4pack16":  vulkan_const.FormatG12x4b12x4g12x4r12x4422Unorm4pack16,
+		"B12x4g12x4r12x4g12x4422Unorm4pack16":  vulkan_const.FormatB12x4g12x4r12x4g12x4422Unorm4pack16,
+		"G12x4B12x4R12x43plane420Unorm3pack16": vulkan_const.FormatG12x4B12x4R12x43plane420Unorm3pack16,
+		"G12x4B12x4r12x42plane420Unorm3pack16": vulkan_const.FormatG12x4B12x4r12x42plane420Unorm3pack16,
+		"G12x4B12x4R12x43plane422Unorm3pack16": vulkan_const.FormatG12x4B12x4R12x43plane422Unorm3pack16,
+		"G12x4B12x4r12x42plane422Unorm3pack16": vulkan_const.FormatG12x4B12x4r12x42plane422Unorm3pack16,
+		"G12x4B12x4R12x43plane444Unorm3pack16": vulkan_const.FormatG12x4B12x4R12x43plane444Unorm3pack16,
+		"G16b16g16r16422Unorm":                 vulkan_const.FormatG16b16g16r16422Unorm,
+		"B16g16r16g16422Unorm":                 vulkan_const.FormatB16g16r16g16422Unorm,
+		"G16B16R163plane420Unorm":              vulkan_const.FormatG16B16R163plane420Unorm,
+		"G16B16r162plane420Unorm":              vulkan_const.FormatG16B16r162plane420Unorm,
+		"G16B16R163plane422Unorm":              vulkan_const.FormatG16B16R163plane422Unorm,
+		"G16B16r162plane422Unorm":              vulkan_const.FormatG16B16r162plane422Unorm,
+		"G16B16R163plane444Unorm":              vulkan_const.FormatG16B16R163plane444Unorm,
+		"Pvrtc12bppUnormBlockImg":              vulkan_const.FormatPvrtc12bppUnormBlockImg,
+		"Pvrtc14bppUnormBlockImg":              vulkan_const.FormatPvrtc14bppUnormBlockImg,
+		"Pvrtc22bppUnormBlockImg":              vulkan_const.FormatPvrtc22bppUnormBlockImg,
+		"Pvrtc24bppUnormBlockImg":              vulkan_const.FormatPvrtc24bppUnormBlockImg,
+		"Pvrtc12bppSrgbBlockImg":               vulkan_const.FormatPvrtc12bppSrgbBlockImg,
+		"Pvrtc14bppSrgbBlockImg":               vulkan_const.FormatPvrtc14bppSrgbBlockImg,
+		"Pvrtc22bppSrgbBlockImg":               vulkan_const.FormatPvrtc22bppSrgbBlockImg,
+		"Pvrtc24bppSrgbBlockImg":               vulkan_const.FormatPvrtc24bppSrgbBlockImg,
+	}
+	StringVkBlendFactor = map[string]vulkan_const.BlendFactor{
+		"Zero":                  vulkan_const.BlendFactorZero,
+		"One":                   vulkan_const.BlendFactorOne,
+		"SrcColor":              vulkan_const.BlendFactorSrcColor,
+		"SrcAlpha":              vulkan_const.BlendFactorSrcAlpha,
+		"OneMinusSrcColor":      vulkan_const.BlendFactorOneMinusSrcColor,
+		"DstColor":              vulkan_const.BlendFactorDstColor,
+		"OneMinusDstColor":      vulkan_const.BlendFactorOneMinusDstColor,
+		"OneMinusSrcAlpha":      vulkan_const.BlendFactorOneMinusSrcAlpha,
+		"DstAlpha":              vulkan_const.BlendFactorDstAlpha,
+		"OneMinusDstAlpha":      vulkan_const.BlendFactorOneMinusDstAlpha,
+		"ConstantColor":         vulkan_const.BlendFactorConstantColor,
+		"OneMinusConstantColor": vulkan_const.BlendFactorOneMinusConstantColor,
+		"ConstantAlpha":         vulkan_const.BlendFactorConstantAlpha,
+		"OneMinusConstantAlpha": vulkan_const.BlendFactorOneMinusConstantAlpha,
+		"SrcAlphaSaturate":      vulkan_const.BlendFactorSrcAlphaSaturate,
+		"Src1Color":             vulkan_const.BlendFactorSrc1Color,
+		"OneMinusSrc1Color":     vulkan_const.BlendFactorOneMinusSrc1Color,
+		"Src1Alpha":             vulkan_const.BlendFactorSrc1Alpha,
+		"OneMinusSrc1Alpha":     vulkan_const.BlendFactorOneMinusSrc1Alpha,
+	}
+	StringVkBlendOp = map[string]vulkan_const.BlendOp{
+		"Add":              vulkan_const.BlendOpAdd,
+		"Subtract":         vulkan_const.BlendOpSubtract,
+		"ReverseSubtract":  vulkan_const.BlendOpReverseSubtract,
+		"Min":              vulkan_const.BlendOpMin,
+		"Max":              vulkan_const.BlendOpMax,
+		"Zero":             vulkan_const.BlendOpZero,
+		"Src":              vulkan_const.BlendOpSrc,
+		"Dst":              vulkan_const.BlendOpDst,
+		"SrcOver":          vulkan_const.BlendOpSrcOver,
+		"DstOver":          vulkan_const.BlendOpDstOver,
+		"SrcIn":            vulkan_const.BlendOpSrcIn,
+		"DstIn":            vulkan_const.BlendOpDstIn,
+		"SrcOut":           vulkan_const.BlendOpSrcOut,
+		"DstOut":           vulkan_const.BlendOpDstOut,
+		"SrcAtop":          vulkan_const.BlendOpSrcAtop,
+		"DstAtop":          vulkan_const.BlendOpDstAtop,
+		"Xor":              vulkan_const.BlendOpXor,
+		"Multiply":         vulkan_const.BlendOpMultiply,
+		"Screen":           vulkan_const.BlendOpScreen,
+		"Overlay":          vulkan_const.BlendOpOverlay,
+		"Darken":           vulkan_const.BlendOpDarken,
+		"Lighten":          vulkan_const.BlendOpLighten,
+		"Colordodge":       vulkan_const.BlendOpColordodge,
+		"Colorburn":        vulkan_const.BlendOpColorburn,
+		"Hardlight":        vulkan_const.BlendOpHardlight,
+		"Softlight":        vulkan_const.BlendOpSoftlight,
+		"Difference":       vulkan_const.BlendOpDifference,
+		"Exclusion":        vulkan_const.BlendOpExclusion,
+		"Invert":           vulkan_const.BlendOpInvert,
+		"InvertRgb":        vulkan_const.BlendOpInvertRgb,
+		"Lineardodge":      vulkan_const.BlendOpLineardodge,
+		"Linearburn":       vulkan_const.BlendOpLinearburn,
+		"Vividlight":       vulkan_const.BlendOpVividlight,
+		"Linearlight":      vulkan_const.BlendOpLinearlight,
+		"Pinlight":         vulkan_const.BlendOpPinlight,
+		"Hardmix":          vulkan_const.BlendOpHardmix,
+		"HslHue":           vulkan_const.BlendOpHslHue,
+		"HslSaturation":    vulkan_const.BlendOpHslSaturation,
+		"HslColor":         vulkan_const.BlendOpHslColor,
+		"HslLuminosity":    vulkan_const.BlendOpHslLuminosity,
+		"Plus":             vulkan_const.BlendOpPlus,
+		"PlusClamped":      vulkan_const.BlendOpPlusClamped,
+		"PlusClampedAlpha": vulkan_const.BlendOpPlusClampedAlpha,
+		"PlusDarker":       vulkan_const.BlendOpPlusDarker,
+		"Minus":            vulkan_const.BlendOpMinus,
+		"MinusClamped":     vulkan_const.BlendOpMinusClamped,
+		"Contrast":         vulkan_const.BlendOpContrast,
+		"InvertOvg":        vulkan_const.BlendOpInvertOvg,
+		"Red":              vulkan_const.BlendOpRed,
+		"Green":            vulkan_const.BlendOpBlue,
+		"Blue":             vulkan_const.BlendOpBlue,
+	}
+	StringVkLogicOp = map[string]vulkan_const.LogicOp{
+		"Clear":        vulkan_const.LogicOpClear,
+		"And":          vulkan_const.LogicOpAnd,
+		"AndReverse":   vulkan_const.LogicOpAndReverse,
+		"Copy":         vulkan_const.LogicOpCopy,
+		"AndInverted":  vulkan_const.LogicOpAndInverted,
+		"NoOp":         vulkan_const.LogicOpNoOp,
+		"Xor":          vulkan_const.LogicOpXor,
+		"Or":           vulkan_const.LogicOpOr,
+		"Nor":          vulkan_const.LogicOpNor,
+		"Equivalent":   vulkan_const.LogicOpEquivalent,
+		"Invert":       vulkan_const.LogicOpInvert,
+		"OrReverse":    vulkan_const.LogicOpOrReverse,
+		"CopyInverted": vulkan_const.LogicOpCopyInverted,
+		"OrInverted":   vulkan_const.LogicOpOrInverted,
+		"Nand":         vulkan_const.LogicOpNand,
+		"Set":          vulkan_const.LogicOpSet,
+	}
+	StringVkCompareOp = map[string]vulkan_const.CompareOp{
+		"Never":          vulkan_const.CompareOpNever,
+		"Equal":          vulkan_const.CompareOpEqual,
+		"LessOrEqual":    vulkan_const.CompareOpLessOrEqual,
+		"Greater":        vulkan_const.CompareOpGreater,
+		"NotEqual":       vulkan_const.CompareOpNotEqual,
+		"GreaterOrEqual": vulkan_const.CompareOpGreaterOrEqual,
+		"Always":         vulkan_const.CompareOpAlways,
+		"Less":           vulkan_const.CompareOpLess,
+	}
+	StringVkStencilOp = map[string]vulkan_const.StencilOp{
+		"Zero":              vulkan_const.StencilOpZero,
+		"Replace":           vulkan_const.StencilOpReplace,
+		"IncrementAndClamp": vulkan_const.StencilOpIncrementAndClamp,
+		"DecrementAndClamp": vulkan_const.StencilOpDecrementAndClamp,
+		"Invert":            vulkan_const.StencilOpInvert,
+		"IncrementAndWrap":  vulkan_const.StencilOpIncrementAndWrap,
+		"DecrementAndWrap":  vulkan_const.StencilOpDecrementAndWrap,
+		"Keep":              vulkan_const.StencilOpKeep,
+	}
+	StringVkPrimitiveTopology = map[string]vulkan_const.PrimitiveTopology{
+		"Points":    vulkan_const.PrimitiveTopologyPointList,
+		"Lines":     vulkan_const.PrimitiveTopologyLineList,
+		"Triangles": vulkan_const.PrimitiveTopologyTriangleList,
+		"Patches":   vulkan_const.PrimitiveTopologyPatchList,
+	}
+	StringVkPolygonMode = map[string]vulkan_const.PolygonMode{
+		"Point": vulkan_const.PolygonModePoint,
+		"Line":  vulkan_const.PolygonModeLine,
+		"Fill":  vulkan_const.PolygonModeFill,
+	}
+	StringVkCullModeFlagBits = map[string]vulkan_const.CullModeFlagBits{
+		"None":  vulkan_const.CullModeNone,
+		"Front": vulkan_const.CullModeFrontBit,
+		"Back":  vulkan_const.CullModeBackBit,
+	}
+	StringVkFrontFace = map[string]vulkan_const.FrontFace{
+		"Clockwise":        vulkan_const.FrontFaceClockwise,
+		"CounterClockwise": vulkan_const.FrontFaceCounterClockwise,
+	}
+	StringVkSampleCountFlagBits = map[string]GPUSampleCountFlags{
+		swapChainSampleCountKey: GPUSampleSwapChainCount,
+		"1Bit":                  GPUSampleCount1Bit,
+		"2Bit":                  GPUSampleCount2Bit,
+		"4Bit":                  GPUSampleCount4Bit,
+		"8Bit":                  GPUSampleCount8Bit,
+		"16Bit":                 GPUSampleCount16Bit,
+		"32Bit":                 GPUSampleCount32Bit,
+		"64Bit":                 GPUSampleCount64Bit,
+	}
+	StringVkPatchControlPoints = map[string]uint32{
+		"Lines":     2,
+		"Triangles": 3,
+		"Quads":     4,
+	}
+	StringVkAttachmentLoadOp = map[string]GPUAttachmentLoadOp{
+		"Load":     GPUAttachmentLoadOpLoad,
+		"Clear":    GPUAttachmentLoadOpClear,
+		"DontCare": GPUAttachmentLoadOpDontCare,
+	}
+	StringVkAttachmentStoreOp = map[string]GPUAttachmentStoreOp{
+		"Store":    GPUAttachmentStoreOpStore,
+		"DontCare": GPUAttachmentStoreOpDontCare,
+	}
+	StringVkImageLayout = map[string]GPUImageLayout{
+		"Undefined":                             GPUImageLayoutUndefined,
+		"General":                               GPUImageLayoutGeneral,
+		"ColorAttachmentOptimal":                GPUImageLayoutColorAttachmentOptimal,
+		"DepthStencilAttachmentOptimal":         GPUImageLayoutDepthStencilAttachmentOptimal,
+		"DepthStencilReadOnlyOptimal":           GPUImageLayoutDepthStencilReadOnlyOptimal,
+		"ShaderReadOnlyOptimal":                 GPUImageLayoutShaderReadOnlyOptimal,
+		"TransferSrcOptimal":                    GPUImageLayoutTransferSrcOptimal,
+		"TransferDstOptimal":                    GPUImageLayoutTransferDstOptimal,
+		"Preinitialized":                        GPUImageLayoutPreinitialized,
+		"DepthReadOnlyStencilAttachmentOptimal": GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		"DepthAttachmentStencilReadOnlyOptimal": GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		"PresentSrc":                            GPUImageLayoutPresentSrc,
+		"SharedPresent":                         GPUImageLayoutSharedPresent,
+		"ShadingRateOptimalNv":                  GPUImageLayoutShadingRateOptimalNv,
+	}
+	StringVkPipelineStageFlagBits = map[string]vulkan_const.PipelineStageFlagBits{
+		"TopOfPipeBit":                    vulkan_const.PipelineStageTopOfPipeBit,
+		"DrawIndirectBit":                 vulkan_const.PipelineStageDrawIndirectBit,
+		"VertexInputBit":                  vulkan_const.PipelineStageVertexInputBit,
+		"VertexShaderBit":                 vulkan_const.PipelineStageVertexShaderBit,
+		"TessellationControlShaderBit":    vulkan_const.PipelineStageTessellationControlShaderBit,
+		"TessellationEvaluationShaderBit": vulkan_const.PipelineStageTessellationEvaluationShaderBit,
+		"GeometryShaderBit":               vulkan_const.PipelineStageGeometryShaderBit,
+		"FragmentShaderBit":               vulkan_const.PipelineStageFragmentShaderBit,
+		"EarlyFragmentTestsBit":           vulkan_const.PipelineStageEarlyFragmentTestsBit,
+		"LateFragmentTestsBit":            vulkan_const.PipelineStageLateFragmentTestsBit,
+		"ColorAttachmentOutputBit":        vulkan_const.PipelineStageColorAttachmentOutputBit,
+		"ComputeShaderBit":                vulkan_const.PipelineStageComputeShaderBit,
+		"TransferBit":                     vulkan_const.PipelineStageTransferBit,
+		"BottomOfPipeBit":                 vulkan_const.PipelineStageBottomOfPipeBit,
+		"HostBit":                         vulkan_const.PipelineStageHostBit,
+		"AllGraphicsBit":                  vulkan_const.PipelineStageAllGraphicsBit,
+		"AllCommandsBit":                  vulkan_const.PipelineStageAllCommandsBit,
+		"TransformFeedbackBit":            vulkan_const.PipelineStageTransformFeedbackBit,
+		"ConditionalRenderingBit":         vulkan_const.PipelineStageConditionalRenderingBit,
+		"CommandProcessBitNvx":            vulkan_const.PipelineStageCommandProcessBitNvx,
+		"ShadingRateImageBitNv":           vulkan_const.PipelineStageShadingRateImageBitNv,
+		"RaytracingBitNvx":                vulkan_const.PipelineStageRaytracingBitNvx,
+		"TaskShaderBitNv":                 vulkan_const.PipelineStageTaskShaderBitNv,
+		"MeshShaderBitNv":                 vulkan_const.PipelineStageMeshShaderBitNv,
+	}
+	StringVkAccessFlagBits = map[string]GPUAccessFlags{
+		"IndirectCommandReadBit":            GPUAccessIndirectCommandReadBit,
+		"IndexReadBit":                      GPUAccessIndexReadBit,
+		"VertexAttributeReadBit":            GPUAccessVertexAttributeReadBit,
+		"UniformReadBit":                    GPUAccessUniformReadBit,
+		"InputAttachmentReadBit":            GPUAccessInputAttachmentReadBit,
+		"ShaderReadBit":                     GPUAccessShaderReadBit,
+		"ShaderWriteBit":                    GPUAccessShaderWriteBit,
+		"ColorAttachmentReadBit":            GPUAccessColorAttachmentReadBit,
+		"ColorAttachmentWriteBit":           GPUAccessColorAttachmentWriteBit,
+		"DepthStencilAttachmentReadBit":     GPUAccessDepthStencilAttachmentReadBit,
+		"DepthStencilAttachmentWriteBit":    GPUAccessDepthStencilAttachmentWriteBit,
+		"TransferReadBit":                   GPUAccessTransferReadBit,
+		"TransferWriteBit":                  GPUAccessTransferWriteBit,
+		"HostReadBit":                       GPUAccessHostReadBit,
+		"HostWriteBit":                      GPUAccessHostWriteBit,
+		"MemoryReadBit":                     GPUAccessMemoryReadBit,
+		"MemoryWriteBit":                    GPUAccessMemoryWriteBit,
+		"TransformFeedbackWriteBit":         GPUAccessTransformFeedbackWriteBit,
+		"TransformFeedbackCounterReadBit":   GPUAccessTransformFeedbackCounterReadBit,
+		"TransformFeedbackCounterWriteBit":  GPUAccessTransformFeedbackCounterWriteBit,
+		"ConditionalRenderingReadBit":       GPUAccessConditionalRenderingReadBit,
+		"CommandProcessReadBitNvx":          GPUAccessCommandProcessReadBitNvx,
+		"CommandProcessWriteBitNvx":         GPUAccessCommandProcessWriteBitNvx,
+		"ColorAttachmentReadNoncoherentBit": GPUAccessColorAttachmentReadNoncoherentBit,
+		"ShadingRateImageReadBitNv":         GPUAccessShadingRateImageReadBitNv,
+		"AccelerationStructureReadBitNvx":   GPUAccessAccelerationStructureReadBitNvx,
+		"AccelerationStructureWriteBitNvx":  GPUAccessAccelerationStructureWriteBitNvx,
+	}
+	StringVkShaderStageFlagBits = map[string]vulkan_const.ShaderStageFlagBits{
+		"VertexBit":                 vulkan_const.ShaderStageVertexBit,
+		"TessellationControlBit":    vulkan_const.ShaderStageTessellationControlBit,
+		"TessellationEvaluationBit": vulkan_const.ShaderStageTessellationEvaluationBit,
+		"GeometryBit":               vulkan_const.ShaderStageGeometryBit,
+		"FragmentBit":               vulkan_const.ShaderStageFragmentBit,
+		"ComputeBit":                vulkan_const.ShaderStageComputeBit,
+		"AllGraphics":               vulkan_const.ShaderStageAllGraphics,
+		"All":                       vulkan_const.ShaderStageAll,
+		"RaygenBitNvx":              vulkan_const.ShaderStageRaygenBitNvx,
+		"AnyHitBitNvx":              vulkan_const.ShaderStageAnyHitBitNvx,
+		"ClosestHitBitNvx":          vulkan_const.ShaderStageClosestHitBitNvx,
+		"MissBitNvx":                vulkan_const.ShaderStageMissBitNvx,
+		"IntersectionBitNvx":        vulkan_const.ShaderStageIntersectionBitNvx,
+		"CallableBitNvx":            vulkan_const.ShaderStageCallableBitNvx,
+		"TaskBitNv":                 vulkan_const.ShaderStageTaskBitNv,
+		"MeshBitNv":                 vulkan_const.ShaderStageMeshBitNv,
+		"FlagBitsMaxEnum":           vulkan_const.ShaderStageFlagBitsMaxEnum,
+	}
+	StringVkPipelineBindPoint = map[string]vulkan_const.PipelineBindPoint{
+		"Graphics":      vulkan_const.PipelineBindPointGraphics,
+		"Compute":       vulkan_const.PipelineBindPointCompute,
+		"RaytracingNvx": vulkan_const.PipelineBindPointRaytracingNvx,
+	}
+	StringVkDependencyFlagBits = map[string]vulkan_const.DependencyFlagBits{
+		"ByRegionBit":    vulkan_const.DependencyByRegionBit,
+		"DeviceGroupBit": vulkan_const.DependencyDeviceGroupBit,
+		"ViewLocalBit":   vulkan_const.DependencyViewLocalBit,
+	}
+	StringVkColorComponentFlagBits = map[string]vulkan_const.ColorComponentFlagBits{
+		"R": vulkan_const.ColorComponentRBit,
+		"G": vulkan_const.ColorComponentGBit,
+		"B": vulkan_const.ColorComponentBBit,
+		"A": vulkan_const.ColorComponentABit,
+	}
+	StringVkPipelineCreateFlagBits = map[string]vulkan_const.PipelineCreateFlagBits{
+		"DisableOptimizationBit":      vulkan_const.PipelineCreateDisableOptimizationBit,
+		"AllowDerivativesBit":         vulkan_const.PipelineCreateAllowDerivativesBit,
+		"DerivativeBit":               vulkan_const.PipelineCreateDerivativeBit,
+		"ViewIndexFromDeviceIndexBit": vulkan_const.PipelineCreateViewIndexFromDeviceIndexBit,
+		"DispatchBase":                vulkan_const.PipelineCreateDispatchBase,
+		"DeferCompileBitNvx":          vulkan_const.PipelineCreateDeferCompileBitNvx,
+	}
+	StringVkImageTiling = map[string]GPUImageTiling{
+		"Optimal":           GPUImageTilingOptimal,
+		"Linear":            GPUImageTilingLinear,
+		"DrmFormatModifier": GPUImageTilingDrmFormatModifier,
+	}
+	StringVkFilter = map[string]GPUFilter{
+		"Nearest":  GPUFilterNearest,
+		"Linear":   GPUFilterLinear,
+		"CubicImg": GPUFilterCubicImg,
+	}
+	StringVkImageUsageFlagBits = map[string]GPUImageUsageFlags{
+		"TransferSrcBit":            GPUImageUsageTransferSrcBit,
+		"TransferDstBit":            GPUImageUsageTransferDstBit,
+		"SampledBit":                GPUImageUsageSampledBit,
+		"StorageBit":                GPUImageUsageStorageBit,
+		"ColorAttachmentBit":        GPUImageUsageColorAttachmentBit,
+		"DepthStencilAttachmentBit": GPUImageUsageDepthStencilAttachmentBit,
+		"TransientAttachmentBit":    GPUImageUsageTransientAttachmentBit,
+		"InputAttachmentBit":        GPUImageUsageInputAttachmentBit,
+		"ShadingRateImageBitNv":     GPUImageUsageShadingRateImageBitNv,
+	}
+	StringVkMemoryPropertyFlagBits = map[string]GPUMemoryPropertyFlags{
+		"DeviceLocalBit":     GPUMemoryPropertyDeviceLocalBit,
+		"HostVisibleBit":     GPUMemoryPropertyHostVisibleBit,
+		"HostCoherentBit":    GPUMemoryPropertyHostCoherentBit,
+		"HostCachedBit":      GPUMemoryPropertyHostCachedBit,
+		"LazilyAllocatedBit": GPUMemoryPropertyLazilyAllocatedBit,
+		"ProtectedBit":       GPUMemoryPropertyProtectedBit,
+	}
+	StringVkImageAspectFlagBits = map[string]GPUImageAspectFlags{
+		"ColorBit":        GPUImageAspectColorBit,
+		"DepthBit":        GPUImageAspectDepthBit,
+		"StencilBit":      GPUImageAspectStencilBit,
+		"MetadataBit":     GPUImageAspectMetadataBit,
+		"Plane0Bit":       GPUImageAspectPlane0Bit,
+		"Plane1Bit":       GPUImageAspectPlane1Bit,
+		"Plane2Bit":       GPUImageAspectPlane2Bit,
+		"MemoryPlane0Bit": GPUImageAspectMemoryPlane0Bit,
+		"MemoryPlane1Bit": GPUImageAspectMemoryPlane1Bit,
+		"MemoryPlane2Bit": GPUImageAspectMemoryPlane2Bit,
+		"MemoryPlane3Bit": GPUImageAspectMemoryPlane3Bit,
+	}
+	StringVkMap = map[string]any{
+		"StringVkFormat":                 StringVkFormat,
+		"StringVkBlendFactor":            StringVkBlendFactor,
+		"StringVkBlendOp":                StringVkBlendOp,
+		"StringVkLogicOp":                StringVkLogicOp,
+		"StringVkCompareOp":              StringVkCompareOp,
+		"StringVkStencilOp":              StringVkStencilOp,
+		"StringVkPrimitiveTopology":      StringVkPrimitiveTopology,
+		"StringVkPolygonMode":            StringVkPolygonMode,
+		"StringVkCullModeFlagBits":       StringVkCullModeFlagBits,
+		"StringVkFrontFace":              StringVkFrontFace,
+		"StringVkSampleCountFlagBits":    StringVkSampleCountFlagBits,
+		"StringVkPatchControlPoints":     StringVkPatchControlPoints,
+		"StringVkAttachmentLoadOp":       StringVkAttachmentLoadOp,
+		"StringVkAttachmentStoreOp":      StringVkAttachmentStoreOp,
+		"StringVkImageLayout":            StringVkImageLayout,
+		"StringVkPipelineStageFlagBits":  StringVkPipelineStageFlagBits,
+		"StringVkAccessFlagBits":         StringVkAccessFlagBits,
+		"StringVkPipelineBindPoint":      StringVkPipelineBindPoint,
+		"StringVkDependencyFlagBits":     StringVkDependencyFlagBits,
+		"StringVkColorComponentFlagBits": StringVkColorComponentFlagBits,
+		"StringVkPipelineCreateFlagBits": StringVkPipelineCreateFlagBits,
+		"StringVkImageTiling":            StringVkImageTiling,
+		"StringVkFilter":                 StringVkFilter,
+		"StringVkImageUsageFlagBits":     StringVkImageUsageFlagBits,
+		"StringVkMemoryPropertyFlagBits": StringVkMemoryPropertyFlagBits,
+		"StringVkImageAspectFlagBits":    StringVkImageAspectFlagBits,
+	}
+)
+
+FUNCTIONS
+
+func SetupLightMaterials(materialCache *MaterialCache) error
+func TextureKeys(textures []*Texture) []string
+func VertexFaceNormal(verts [3]Vertex) matrix.Vec3
+
+TYPES
+
+type BoneTransform struct {
+	Id        int32
+	Transform matrix.Transform
+	Skin      matrix.Mat4
+}
+
+type CommandRecorder struct {
+	// Has unexported fields.
+}
+
+func NewCommandRecorder(device *GPUDevice) (CommandRecorder, error)
+
+func (c *CommandRecorder) Begin()
+
+func (c *CommandRecorder) Destroy(device *GPUDevice)
+
+func (c *CommandRecorder) End()
+
+func (c *CommandRecorder) Reset()
+
+type CommandRecorderSecondary struct {
+	CommandRecorder
+
+	// Has unexported fields.
+}
+
+func NewCommandRecorderSecondary(device *GPUDevice, rp *RenderPass, subpassIdx int) (CommandRecorderSecondary, error)
+
+func (c *CommandRecorderSecondary) Begin(viewport vk.Viewport, scissor vk.Rect2D)
+
+type ComputeShaderBuffer struct {
+	ShaderBuffer
+	Shader *Shader
+
+	// Has unexported fields.
+}
+
+func (b *ComputeShaderBuffer) Initialize(device *GPUDevice, size uintptr, usage GPUBufferUsageFlags, properties GPUMemoryPropertyFlags) error
+
+func (b *ComputeShaderBuffer) WriteDescriptors(device *GPUDevice)
+
+type ComputeTask struct {
+	Shader         *Shader
+	DescriptorSets []GPUDescriptorSet
+	WorkGroups     [3]uint32
+}
+
+type DescriptorSetLayoutStructure struct {
+	Types []DescriptorSetLayoutStructureType
+}
+
+type DescriptorSetLayoutStructureType struct {
+	Type           vulkan_const.DescriptorType
+	Flags          vulkan_const.ShaderStageFlagBits
+	Count, Binding uint32
+}
+
+type DrawInstance interface {
+	Base() *ShaderDataBase
+	SkinningHeader() *SkinnedShaderDataHeader
+	Destroy()
+	IsDestroyed() bool
+	Activate()
+	Deactivate()
+	IsInView() bool
+	Size() int
+	SetModel(model matrix.Mat4)
+	UpdateModel(viewCuller ViewCuller, container collision.AABB)
+	DataPointer() unsafe.Pointer
+	// Returns true if it should write the data, otherwise false
+	UpdateBoundData() bool
+	BoundDataPointer() unsafe.Pointer
+	InstanceBoundDataSize() int
+
+	SelectLights(lights LightsForRender)
+
+	// Has unexported methods.
+}
+
+func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance
+
+type DrawInstanceGroup struct {
+	Mesh *Mesh
+	InstanceDriverData
+	MaterialInstance *Material
+
+	Instances []DrawInstance
+
+	// Has unexported fields.
+}
+
+func NewDrawInstanceGroup(mesh *Mesh, dataSize int, viewCuller ViewCuller) DrawInstanceGroup
+
+func (d *DrawInstanceGroup) AddInstance(instance DrawInstance)
+
+func (d *DrawInstanceGroup) AlterPadding(blockSize int)
+
+func (d *DrawInstanceGroup) AnyVisible() bool
+
+func (d *DrawInstanceGroup) Clear()
+
+func (d *DrawInstanceGroup) Destroy(device *GPUDevice)
+
+func (d *DrawInstanceGroup) IsEmpty() bool
+
+func (d *DrawInstanceGroup) IsReady() bool
+
+func (d *DrawInstanceGroup) TotalSize() int
+
+func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender)
+
+func (d *DrawInstanceGroup) VisibleCount() int
+
+func (d *DrawInstanceGroup) VisibleSize() int
+
+type Drawing struct {
+	// Material defines the visual appearance and render pass for the drawing.
+	Material *Material
+	// Mesh contains the geometry to be rendered.
+	Mesh *Mesh
+	// ShaderData holds per‑instance data for the shader (e.g., uniforms).
+	ShaderData DrawInstance
+	// Transform specifies the transform this drawing follows.
+	Transform *matrix.Transform
+	// Sort determines the draw order within a render pass.
+	Sort int
+	// ViewCuller optionally culls the drawing based on the view frustum.
+	ViewCuller ViewCuller
+}
+    Drawing represents a renderable entity in the engine. It bundles together
+    the material, mesh, shader instance data, transform, sorting order, and an
+    optional view culler used during rendering.
+
+func (d *Drawing) IsValid() bool
+    IsValid reports whether the Drawing is properly configured for rendering.
+    A Drawing is considered valid if it has a non-nil Material. This check is
+    used before submitting the drawing to the render pipeline.
+
+type Drawings struct {
+	// Has unexported fields.
+}
+
+func NewDrawings() Drawings
+
+func (d *Drawings) AddDrawing(drawing Drawing)
+
+func (d *Drawings) AddDrawings(drawings []Drawing)
+
+func (d *Drawings) Clear()
+
+func (d *Drawings) Destroy(device *GPUDevice)
+
+func (d *Drawings) HasDrawings() bool
+
+func (d *Drawings) PreparePending(shadowCascades uint8)
+
+func (d *Drawings) Render(device *GPUDevice, lights LightsForRender)
+
+type FontBaseline int
+
+type FontCache struct {
+	FaceMutex sync.RWMutex
+	// Has unexported fields.
+}
+
+func NewFontCache(device *GPUDevice, assetDb assets.Database) FontCache
+
+func (cache *FontCache) Destroy()
+
+func (cache *FontCache) EMSize(face FontFace) float32
+
+func (cache *FontCache) Init(caches RenderCaches) error
+
+func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int
+
+func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2
+
+func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32
+
+func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2
+
+func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int
+
+func (cache *FontCache) PreloadFace(face FontFace)
+
+func (cache *FontCache) RenderMeshes(caches RenderCaches,
+	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
+	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
+	is3D bool, face FontFace, lineHeight float32, cam *cameras.Container) []Drawing
+
+func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4
+
+func (cache *FontCache) TransparentMaterial(target *Material) *Material
+
+type FontFace string
+
+func (f FontFace) AsBold() FontFace
+
+func (f FontFace) AsExtraBold() FontFace
+
+func (f FontFace) AsItalic() FontFace
+
+func (f FontFace) AsLight() FontFace
+
+func (f FontFace) AsMedium() FontFace
+
+func (f FontFace) AsRegular() FontFace
+
+func (f FontFace) AsSemiBold() FontFace
+
+func (f FontFace) Base() FontFace
+
+func (f FontFace) IsBold() bool
+
+func (f FontFace) IsExtraBold() bool
+
+func (f FontFace) IsItalic() bool
+
+func (f FontFace) RemoveBold() FontFace
+
+func (f FontFace) RemoveItalic() FontFace
+
+type FontJustify int
+
+type FuncPipeline func(device *GPUDevice, shader *Shader, shaderStages []vk.PipelineShaderStageCreateInfo) bool
+
+type GPUAccessFlags uint32
+
+const (
+	GPUAccessIndirectCommandReadBit GPUAccessFlags = (1 << iota)
+	GPUAccessIndexReadBit
+	GPUAccessVertexAttributeReadBit
+	GPUAccessUniformReadBit
+	GPUAccessInputAttachmentReadBit
+	GPUAccessShaderReadBit
+	GPUAccessShaderWriteBit
+	GPUAccessColorAttachmentReadBit
+	GPUAccessColorAttachmentWriteBit
+	GPUAccessDepthStencilAttachmentReadBit
+	GPUAccessDepthStencilAttachmentWriteBit
+	GPUAccessTransferReadBit
+	GPUAccessTransferWriteBit
+	GPUAccessHostReadBit
+	GPUAccessHostWriteBit
+	GPUAccessMemoryReadBit
+	GPUAccessMemoryWriteBit
+	GPUAccessTransformFeedbackWriteBit
+	GPUAccessTransformFeedbackCounterReadBit
+	GPUAccessTransformFeedbackCounterWriteBit
+	GPUAccessConditionalRenderingReadBit
+	GPUAccessCommandProcessReadBitNvx
+	GPUAccessCommandProcessWriteBitNvx
+	GPUAccessColorAttachmentReadNoncoherentBit
+	GPUAccessShadingRateImageReadBitNv
+	GPUAccessAccelerationStructureReadBitNvx
+	GPUAccessAccelerationStructureWriteBitNvx
+)
+type GPUApplication struct {
+	Name      string
+	Version   GPUApplicationVersion
+	Instances []*GPUApplicationInstance
+}
+
+func (g *GPUApplication) ApplicationVersion() (major int, minor int, patch int)
+
+func (g *GPUApplication) CreateInstance(window RenderingContainer, assets assets.Database) (*GPUApplicationInstance, error)
+
+func (g *GPUApplication) Destroy()
+
+func (g *GPUApplication) EngineVersion() (major int, minor int, patch int)
+
+func (g *GPUApplication) FirstInstance() *GPUApplicationInstance
+
+func (g *GPUApplication) Instance(index int) (*GPUApplicationInstance, bool)
+
+func (g *GPUApplication) IsValid() bool
+
+func (g *GPUApplication) Setup(name string, version GPUApplicationVersion)
+
+type GPUApplicationInstance struct {
+	GPUInstance
+	Surface GPUSurface
+	Devices []GPUDevice
+
+	// Has unexported fields.
+}
+
+func (g *GPUApplicationInstance) Destroy()
+
+func (g *GPUApplicationInstance) FinalizeLogicalDeviceSetup()
+
+func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUApplication, assets assets.Database) error
+
+func (g *GPUApplicationInstance) PhysicalDevice() *GPUPhysicalDevice
+
+func (g *GPUApplicationInstance) PrimaryDevice() *GPUDevice
+
+func (g *GPUApplicationInstance) SelectPhysicalDevice(method func(options []GPUPhysicalDevice) int) error
+
+func (g *GPUApplicationInstance) SetupCaches(caches RenderCaches, width, height int32) error
+
+func (g *GPUApplicationInstance) SetupLogicalDevice(index int) error
+
+type GPUApplicationVersion struct {
+	Major int
+	Minor int
+	Patch int
+}
+
+type GPUAttachmentLoadOp uint8
+
+const (
+	GPUAttachmentLoadOpLoad GPUAttachmentLoadOp = iota
+	GPUAttachmentLoadOpClear
+	GPUAttachmentLoadOpDontCare
+)
+type GPUAttachmentStoreOp uint8
+
+const (
+	GPUAttachmentStoreOpStore GPUAttachmentStoreOp = iota
+	GPUAttachmentStoreOpDontCare
+)
+type GPUBuffer struct{ GPUHandle }
+
+type GPUBufferUsageFlags uint16
+
+const (
+	GPUBufferUsageTransferSrcBit GPUBufferUsageFlags = (1 << iota)
+	GPUBufferUsageTransferDstBit
+	GPUBufferUsageUniformTexelBufferBit
+	GPUBufferUsageStorageTexelBufferBit
+	GPUBufferUsageUniformBufferBit
+	GPUBufferUsageStorageBufferBit
+	GPUBufferUsageIndexBufferBit
+	GPUBufferUsageVertexBufferBit
+	GPUBufferUsageIndirectBufferBit
+	GPUBufferUsageTransformFeedbackBufferBit
+	GPUBufferUsageTransformFeedbackCounterBufferBit
+	GPUBufferUsageConditionalRenderingBit
+	GPUBufferUsageRaytracingBitNvx
+)
+type GPUColorSpace int32
+
+const (
+	GPUColorSpaceSrgbNonlinear GPUColorSpace = iota
+	GPUColorSpaceDisplayP3Nonlinear
+	GPUColorSpaceExtendedSrgbLinear
+	GPUColorSpaceDciP3Linear
+	GPUColorSpaceDciP3Nonlinear
+	GPUColorSpaceBt709Linear
+	GPUColorSpaceBt709Nonlinear
+	GPUColorSpaceBt2020Linear
+	GPUColorSpaceHdr10St2084
+	GPUColorSpaceDolbyvision
+	GPUColorSpaceHdr10Hlg
+	GPUColorSpaceAdobergbLinear
+	GPUColorSpaceAdobergbNonlinear
+	GPUColorSpacePassThrough
+	GPUColorSpaceExtendedSrgbNonlinear
+)
+type GPUCompositeAlphaFlags int32
+
+const (
+	GPUCompositeAlphaOpaqueBit GPUCompositeAlphaFlags = (1 << iota)
+	GPUCompositeAlphaPreMultipliedBit
+	GPUCompositeAlphaPostMultipliedBit
+	GPUCompositeAlphaInheritBit
+)
+type GPUDescriptorImageInfo struct {
+	Sampler     GPUSampler
+	ImageView   GPUImageView
+	ImageLayout GPUImageLayout
+}
+
+type GPUDescriptorPool struct{ GPUHandle }
+
+type GPUDescriptorSet struct{ GPUHandle }
+
+type GPUDescriptorSetLayout struct{ GPUHandle }
+
+type GPUDevice struct {
+	PhysicalDevice GPUPhysicalDevice
+	LogicalDevice  GPULogicalDevice
+	Painter        GPUPainter
+
+	// Has unexported fields.
+}
+
+func (g *GPUDevice) BlitTargets(passes []*RenderPass)
+
+func (g *GPUDevice) CopyBuffer(srcBuffer GPUBuffer, dstBuffer GPUBuffer, size uintptr)
+
+func (g *GPUDevice) CopyBufferToImage(buffer GPUBuffer, image GPUImage, width, height uint32, layerCount int)
+
+func (g *GPUDevice) CreateBuffer(size uintptr, usage GPUBufferUsageFlags, properties GPUMemoryPropertyFlags) (GPUBuffer, GPUDeviceMemory, error)
+
+func (g *GPUDevice) CreateFrameBuffer(renderPass *RenderPass, attachments []GPUImageView, width, height int32) (GPUFrameBuffer, error)
+
+func (g *GPUDevice) CreateImage(id *TextureId, properties GPUMemoryPropertyFlags, req GPUImageCreateRequest) error
+
+func (g *GPUDevice) CreateIndexBuffer(indices []uint32) (GPUBuffer, GPUDeviceMemory, error)
+
+func (g *GPUDevice) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32)
+
+func (g *GPUDevice) CreateShader(shader *Shader, assetDB assets.Database) error
+
+func (g *GPUDevice) CreateSwapChain(window RenderingContainer, inst *GPUApplicationInstance) error
+
+func (g *GPUDevice) CreateTextureSampler(mipLevels uint32, filter GPUFilter) (GPUSampler, error)
+
+func (g *GPUDevice) CreateVertexBuffer(verts []Vertex) (GPUBuffer, GPUDeviceMemory, error)
+
+func (g *GPUDevice) DestroyBuffer(buffer GPUBuffer)
+
+func (g *GPUDevice) DestroyFrameBuffer(frameBuffer GPUFrameBuffer)
+
+func (g *GPUDevice) DestroyShaderHandle(id ShaderId)
+
+func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId)
+
+func (g *GPUDevice) FreeMemory(memory GPUDeviceMemory)
+
+func (g *GPUDevice) GenerateMipMaps(texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error
+
+func (g *GPUDevice) MapMemory(memory GPUDeviceMemory, offset uintptr, size uintptr, flags GPUMemoryFlags, out *unsafe.Pointer) error
+
+func (g *GPUDevice) Memcopy(dst unsafe.Pointer, src []byte) int
+
+func (g *GPUDevice) MeshIsReady(mesh Mesh) bool
+
+func (g *GPUDevice) QueueCompute(buffer *ComputeShaderBuffer)
+
+func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool
+
+func (g *GPUDevice) SetupTexture(texture *Texture, data *TextureData) error
+
+func (g *GPUDevice) SwapFrame(window RenderingContainer, inst *GPUApplicationInstance, width, height int32) bool
+
+func (g *GPUDevice) TextureRead(texture *Texture) ([]byte, error)
+
+func (g *GPUDevice) TextureReadPixel(texture *Texture, x, y int) matrix.Color
+
+func (g *GPUDevice) TextureWritePixels(texture *Texture, requests []GPUImageWriteRequest)
+
+func (g *GPUDevice) TransitionImageLayout(vt *TextureId, newLayout GPUImageLayout, aspectMask GPUImageAspectFlags, newAccess GPUAccessFlags, cmd *CommandRecorder)
+
+func (g *GPUDevice) UnmapMemory(memory GPUDeviceMemory)
+
+func (g *GPUDevice) WriteBufferToImageRegion(image GPUImage, requests []GPUImageWriteRequest) error
+
+type GPUDeviceMemory struct{ GPUHandle }
+
+type GPUFence struct{ GPUHandle }
+
+type GPUFilter uint8
+
+const (
+	GPUFilterNearest GPUFilter = iota
+	GPUFilterLinear
+	GPUFilterCubicImg
+)
+type GPUFormat int32
+
+const (
+	GPUFormatUndefined GPUFormat = iota
+	GPUFormatR4g4UnormPack8
+	GPUFormatR4g4b4a4UnormPack16
+	GPUFormatB4g4r4a4UnormPack16
+	GPUFormatR5g6b5UnormPack16
+	GPUFormatB5g6r5UnormPack16
+	GPUFormatR5g5b5a1UnormPack16
+	GPUFormatB5g5r5a1UnormPack16
+	GPUFormatA1r5g5b5UnormPack16
+	GPUFormatR8Unorm
+	GPUFormatR8Snorm
+	GPUFormatR8Uscaled
+	GPUFormatR8Sscaled
+	GPUFormatR8Uint
+	GPUFormatR8Sint
+	GPUFormatR8Srgb
+	GPUFormatR8g8Unorm
+	GPUFormatR8g8Snorm
+	GPUFormatR8g8Uscaled
+	GPUFormatR8g8Sscaled
+	GPUFormatR8g8Uint
+	GPUFormatR8g8Sint
+	GPUFormatR8g8Srgb
+	GPUFormatR8g8b8Unorm
+	GPUFormatR8g8b8Snorm
+	GPUFormatR8g8b8Uscaled
+	GPUFormatR8g8b8Sscaled
+	GPUFormatR8g8b8Uint
+	GPUFormatR8g8b8Sint
+	GPUFormatR8g8b8Srgb
+	GPUFormatB8g8r8Unorm
+	GPUFormatB8g8r8Snorm
+	GPUFormatB8g8r8Uscaled
+	GPUFormatB8g8r8Sscaled
+	GPUFormatB8g8r8Uint
+	GPUFormatB8g8r8Sint
+	GPUFormatB8g8r8Srgb
+	GPUFormatR8g8b8a8Unorm
+	GPUFormatR8g8b8a8Snorm
+	GPUFormatR8g8b8a8Uscaled
+	GPUFormatR8g8b8a8Sscaled
+	GPUFormatR8g8b8a8Uint
+	GPUFormatR8g8b8a8Sint
+	GPUFormatR8g8b8a8Srgb
+	GPUFormatB8g8r8a8Unorm
+	GPUFormatB8g8r8a8Snorm
+	GPUFormatB8g8r8a8Uscaled
+	GPUFormatB8g8r8a8Sscaled
+	GPUFormatB8g8r8a8Uint
+	GPUFormatB8g8r8a8Sint
+	GPUFormatB8g8r8a8Srgb
+	GPUFormatA8b8g8r8UnormPack32
+	GPUFormatA8b8g8r8SnormPack32
+	GPUFormatA8b8g8r8UscaledPack32
+	GPUFormatA8b8g8r8SscaledPack32
+	GPUFormatA8b8g8r8UintPack32
+	GPUFormatA8b8g8r8SintPack32
+	GPUFormatA8b8g8r8SrgbPack32
+	GPUFormatA2r10g10b10UnormPack32
+	GPUFormatA2r10g10b10SnormPack32
+	GPUFormatA2r10g10b10UscaledPack32
+	GPUFormatA2r10g10b10SscaledPack32
+	GPUFormatA2r10g10b10UintPack32
+	GPUFormatA2r10g10b10SintPack32
+	GPUFormatA2b10g10r10UnormPack32
+	GPUFormatA2b10g10r10SnormPack32
+	GPUFormatA2b10g10r10UscaledPack32
+	GPUFormatA2b10g10r10SscaledPack32
+	GPUFormatA2b10g10r10UintPack32
+	GPUFormatA2b10g10r10SintPack32
+	GPUFormatR16Unorm
+	GPUFormatR16Snorm
+	GPUFormatR16Uscaled
+	GPUFormatR16Sscaled
+	GPUFormatR16Uint
+	GPUFormatR16Sint
+	GPUFormatR16Sfloat
+	GPUFormatR16g16Unorm
+	GPUFormatR16g16Snorm
+	GPUFormatR16g16Uscaled
+	GPUFormatR16g16Sscaled
+	GPUFormatR16g16Uint
+	GPUFormatR16g16Sint
+	GPUFormatR16g16Sfloat
+	GPUFormatR16g16b16Unorm
+	GPUFormatR16g16b16Snorm
+	GPUFormatR16g16b16Uscaled
+	GPUFormatR16g16b16Sscaled
+	GPUFormatR16g16b16Uint
+	GPUFormatR16g16b16Sint
+	GPUFormatR16g16b16Sfloat
+	GPUFormatR16g16b16a16Unorm
+	GPUFormatR16g16b16a16Snorm
+	GPUFormatR16g16b16a16Uscaled
+	GPUFormatR16g16b16a16Sscaled
+	GPUFormatR16g16b16a16Uint
+	GPUFormatR16g16b16a16Sint
+	GPUFormatR16g16b16a16Sfloat
+	GPUFormatR32Uint
+	GPUFormatR32Sint
+	GPUFormatR32Sfloat
+	GPUFormatR32g32Uint
+	GPUFormatR32g32Sint
+	GPUFormatR32g32Sfloat
+	GPUFormatR32g32b32Uint
+	GPUFormatR32g32b32Sint
+	GPUFormatR32g32b32Sfloat
+	GPUFormatR32g32b32a32Uint
+	GPUFormatR32g32b32a32Sint
+	GPUFormatR32g32b32a32Sfloat
+	GPUFormatR64Uint
+	GPUFormatR64Sint
+	GPUFormatR64Sfloat
+	GPUFormatR64g64Uint
+	GPUFormatR64g64Sint
+	GPUFormatR64g64Sfloat
+	GPUFormatR64g64b64Uint
+	GPUFormatR64g64b64Sint
+	GPUFormatR64g64b64Sfloat
+	GPUFormatR64g64b64a64Uint
+	GPUFormatR64g64b64a64Sint
+	GPUFormatR64g64b64a64Sfloat
+	GPUFormatB10g11r11UfloatPack32
+	GPUFormatE5b9g9r9UfloatPack32
+	GPUFormatD16Unorm
+	GPUFormatX8D24UnormPack32
+	GPUFormatD32Sfloat
+	GPUFormatS8Uint
+	GPUFormatD16UnormS8Uint
+	GPUFormatD24UnormS8Uint
+	GPUFormatD32SfloatS8Uint
+	GPUFormatBc1RgbUnormBlock
+	GPUFormatBc1RgbSrgbBlock
+	GPUFormatBc1RgbaUnormBlock
+	GPUFormatBc1RgbaSrgbBlock
+	GPUFormatBc2UnormBlock
+	GPUFormatBc2SrgbBlock
+	GPUFormatBc3UnormBlock
+	GPUFormatBc3SrgbBlock
+	GPUFormatBc4UnormBlock
+	GPUFormatBc4SnormBlock
+	GPUFormatBc5UnormBlock
+	GPUFormatBc5SnormBlock
+	GPUFormatBc6hUfloatBlock
+	GPUFormatBc6hSfloatBlock
+	GPUFormatBc7UnormBlock
+	GPUFormatBc7SrgbBlock
+	GPUFormatEtc2R8g8b8UnormBlock
+	GPUFormatEtc2R8g8b8SrgbBlock
+	GPUFormatEtc2R8g8b8a1UnormBlock
+	GPUFormatEtc2R8g8b8a1SrgbBlock
+	GPUFormatEtc2R8g8b8a8UnormBlock
+	GPUFormatEtc2R8g8b8a8SrgbBlock
+	GPUFormatEacR11UnormBlock
+	GPUFormatEacR11SnormBlock
+	GPUFormatEacR11g11UnormBlock
+	GPUFormatEacR11g11SnormBlock
+	GPUFormatAstc4x4UnormBlock
+	GPUFormatAstc4x4SrgbBlock
+	GPUFormatAstc5x4UnormBlock
+	GPUFormatAstc5x4SrgbBlock
+	GPUFormatAstc5x5UnormBlock
+	GPUFormatAstc5x5SrgbBlock
+	GPUFormatAstc6x5UnormBlock
+	GPUFormatAstc6x5SrgbBlock
+	GPUFormatAstc6x6UnormBlock
+	GPUFormatAstc6x6SrgbBlock
+	GPUFormatAstc8x5UnormBlock
+	GPUFormatAstc8x5SrgbBlock
+	GPUFormatAstc8x6UnormBlock
+	GPUFormatAstc8x6SrgbBlock
+	GPUFormatAstc8x8UnormBlock
+	GPUFormatAstc8x8SrgbBlock
+	GPUFormatAstc10x5UnormBlock
+	GPUFormatAstc10x5SrgbBlock
+	GPUFormatAstc10x6UnormBlock
+	GPUFormatAstc10x6SrgbBlock
+	GPUFormatAstc10x8UnormBlock
+	GPUFormatAstc10x8SrgbBlock
+	GPUFormatAstc10x10UnormBlock
+	GPUFormatAstc10x10SrgbBlock
+	GPUFormatAstc12x10UnormBlock
+	GPUFormatAstc12x10SrgbBlock
+	GPUFormatAstc12x12UnormBlock
+	GPUFormatAstc12x12SrgbBlock
+	GPUFormatG8b8g8r8422Unorm
+	GPUFormatB8g8r8g8422Unorm
+	GPUFormatG8B8R83plane420Unorm
+	GPUFormatG8B8r82plane420Unorm
+	GPUFormatG8B8R83plane422Unorm
+	GPUFormatG8B8r82plane422Unorm
+	GPUFormatG8B8R83plane444Unorm
+	GPUFormatR10x6UnormPack16
+	GPUFormatR10x6g10x6Unorm2pack16
+	GPUFormatR10x6g10x6b10x6a10x6Unorm4pack16
+	GPUFormatG10x6b10x6g10x6r10x6422Unorm4pack16
+	GPUFormatB10x6g10x6r10x6g10x6422Unorm4pack16
+	GPUFormatG10x6B10x6R10x63plane420Unorm3pack16
+	GPUFormatG10x6B10x6r10x62plane420Unorm3pack16
+	GPUFormatG10x6B10x6R10x63plane422Unorm3pack16
+	GPUFormatG10x6B10x6r10x62plane422Unorm3pack16
+	GPUFormatG10x6B10x6R10x63plane444Unorm3pack16
+	GPUFormatR12x4UnormPack16
+	GPUFormatR12x4g12x4Unorm2pack16
+	GPUFormatR12x4g12x4b12x4a12x4Unorm4pack16
+	GPUFormatG12x4b12x4g12x4r12x4422Unorm4pack16
+	GPUFormatB12x4g12x4r12x4g12x4422Unorm4pack16
+	GPUFormatG12x4B12x4R12x43plane420Unorm3pack16
+	GPUFormatG12x4B12x4r12x42plane420Unorm3pack16
+	GPUFormatG12x4B12x4R12x43plane422Unorm3pack16
+	GPUFormatG12x4B12x4r12x42plane422Unorm3pack16
+	GPUFormatG12x4B12x4R12x43plane444Unorm3pack16
+	GPUFormatG16b16g16r16422Unorm
+	GPUFormatB16g16r16g16422Unorm
+	GPUFormatG16B16R163plane420Unorm
+	GPUFormatG16B16r162plane420Unorm
+	GPUFormatG16B16R163plane422Unorm
+	GPUFormatG16B16r162plane422Unorm
+	GPUFormatG16B16R163plane444Unorm
+	GPUFormatPvrtc12bppUnormBlockImg
+	GPUFormatPvrtc14bppUnormBlockImg
+	GPUFormatPvrtc22bppUnormBlockImg
+	GPUFormatPvrtc24bppUnormBlockImg
+	GPUFormatPvrtc12bppSrgbBlockImg
+	GPUFormatPvrtc14bppSrgbBlockImg
+	GPUFormatPvrtc22bppSrgbBlockImg
+	GPUFormatPvrtc24bppSrgbBlockImg
+)
+type GPUFormatFeatureFlags int32
+
+const (
+	GPUFormatFeatureSampledImageBit GPUFormatFeatureFlags = iota
+	GPUFormatFeatureStorageImageBit
+	GPUFormatFeatureStorageImageAtomicBit
+	GPUFormatFeatureUniformTexelBufferBit
+	GPUFormatFeatureStorageTexelBufferBit
+	GPUFormatFeatureStorageTexelBufferAtomicBit
+	GPUFormatFeatureVertexBufferBit
+	GPUFormatFeatureColorAttachmentBit
+	GPUFormatFeatureColorAttachmentBlendBit
+	GPUFormatFeatureDepthStencilAttachmentBit
+	GPUFormatFeatureBlitSrcBit
+	GPUFormatFeatureBlitDstBit
+	GPUFormatFeatureSampledImageFilterLinearBit
+	GPUFormatFeatureTransferSrcBit
+	GPUFormatFeatureTransferDstBit
+	GPUFormatFeatureMidpointChromaSamplesBit
+	GPUFormatFeatureSampledImageYcbcrConversionLinearFilterBit
+	GPUFormatFeatureSampledImageYcbcrConversionSeparateReconstructionFilterBit
+	GPUFormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitBit
+	GPUFormatFeatureSampledImageYcbcrConversionChromaReconstructionExplicitForceableBit
+	GPUFormatFeatureDisjointBit
+	GPUFormatFeatureCositedChromaSamplesBit
+	GPUFormatFeatureSampledImageFilterCubicBitImg
+	GPUFormatFeatureSampledImageFilterMinmaxBit
+)
+type GPUFormatProperties struct {
+	LinearTilingFeatures  GPUFormatFeatureFlags
+	OptimalTilingFeatures GPUFormatFeatureFlags
+	BufferFeatures        GPUFormatFeatureFlags
+}
+
+type GPUFrameBuffer struct{ GPUHandle }
+
+type GPUHandle struct {
+	// Has unexported fields.
+}
+
+func (g *GPUHandle) HandleAddr() unsafe.Pointer
+
+func (g *GPUHandle) IsValid() bool
+
+func (g *GPUHandle) Reset()
+
+type GPUImage struct{ GPUHandle }
+
+type GPUImageAspectFlags uint16
+
+const (
+	GPUImageAspectColorBit GPUImageAspectFlags = (1 << iota)
+	GPUImageAspectDepthBit
+	GPUImageAspectStencilBit
+	GPUImageAspectMetadataBit
+	GPUImageAspectPlane0Bit
+	GPUImageAspectPlane1Bit
+	GPUImageAspectPlane2Bit
+	GPUImageAspectMemoryPlane0Bit
+	GPUImageAspectMemoryPlane1Bit
+	GPUImageAspectMemoryPlane2Bit
+	GPUImageAspectMemoryPlane3Bit
+)
+type GPUImageCreateFlags uint16
+
+const (
+	GPUImageCreateSparseBindingBit GPUImageCreateFlags = (1 << iota)
+	GPUImageCreateSparseResidencyBit
+	GPUImageCreateSparseAliasedBit
+	GPUImageCreateMutableFormatBit
+	GPUImageCreateCubeCompatibleBit
+	GPUImageCreateAliasBit
+	GPUImageCreateSplitInstanceBindRegionsBit
+	GPUImageCreate2dArrayCompatibleBit
+	GPUImageCreateBlockTexelViewCompatibleBit
+	GPUImageCreateExtendedUsageBit
+	GPUImageCreateProtectedBit
+	GPUImageCreateDisjointBit
+	GPUImageCreateCornerSampledBitNv
+	GPUImageCreateSampleLocationsCompatibleDepthBit
+)
+type GPUImageCreateRequest struct {
+	Flags       GPUImageCreateFlags
+	ImageType   GPUImageType
+	Format      GPUFormat
+	Extent      matrix.Vec3i
+	MipLevels   uint32
+	ArrayLayers uint32
+	Samples     GPUSampleCountFlags
+	Tiling      GPUImageTiling
+	Usage       GPUImageUsageFlags
+}
+
+type GPUImageLayout uint16
+
+const (
+	GPUImageLayoutUndefined GPUImageLayout = iota
+	GPUImageLayoutGeneral
+	GPUImageLayoutColorAttachmentOptimal
+	GPUImageLayoutDepthStencilAttachmentOptimal
+	GPUImageLayoutDepthStencilReadOnlyOptimal
+	GPUImageLayoutShaderReadOnlyOptimal
+	GPUImageLayoutTransferSrcOptimal
+	GPUImageLayoutTransferDstOptimal
+	GPUImageLayoutPreinitialized
+	GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal
+	GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal
+	GPUImageLayoutPresentSrc
+	GPUImageLayoutSharedPresent
+	GPUImageLayoutShadingRateOptimalNv
+)
+type GPUImageTiling uint8
+
+const (
+	GPUImageTilingOptimal GPUImageTiling = iota
+	GPUImageTilingLinear
+	GPUImageTilingDrmFormatModifier
+)
+type GPUImageType uint8
+
+const (
+	GPUImageType1d GPUImageType = iota
+	GPUImageType2d
+	GPUImageType3d
+)
+type GPUImageUsageFlags int32
+
+const (
+	GPUImageUsageTransferSrcBit GPUImageUsageFlags = (1 << iota)
+	GPUImageUsageTransferDstBit
+	GPUImageUsageSampledBit
+	GPUImageUsageStorageBit
+	GPUImageUsageColorAttachmentBit
+	GPUImageUsageDepthStencilAttachmentBit
+	GPUImageUsageTransientAttachmentBit
+	GPUImageUsageInputAttachmentBit
+	GPUImageUsageShadingRateImageBitNv
+)
+type GPUImageView struct{ GPUHandle }
+
+type GPUImageViewType uint8
+
+const (
+	GPUImageViewType1d GPUImageViewType = iota
+	GPUImageViewType2d
+	GPUImageViewType3d
+	GPUImageViewTypeCube
+	GPUImageViewType1dArray
+	GPUImageViewType2dArray
+	GPUImageViewTypeCubeArray
+)
+type GPUImageWriteRequest struct {
+	Region matrix.Vec4i
+	Pixels []byte
+}
+
+type GPUInstance struct {
+	// Has unexported fields.
+}
+
+func (g *GPUInstance) Destroy()
+
+func (g *GPUInstance) IsValid() bool
+
+func (g *GPUInstance) Setup(window RenderingContainer, app *GPUApplication) error
+
+type GPULight struct {
+	Matrix   [cubeMapSides]matrix.Mat4
+	Position matrix.Vec3
+
+	Direction matrix.Vec3
+	// Has unexported fields.
+}
+
+type GPULightInfo struct {
+	Position    matrix.Vec3
+	Intensity   float32
+	Direction   matrix.Vec3
+	Cutoff      float32
+	Ambient     matrix.Vec3
+	OuterCutoff float32
+	Diffuse     matrix.Vec3
+	Constant    float32
+	Specular    matrix.Vec3
+	Linear      float32
+	Quadratic   float32
+	NearPlane   float32
+	FarPlane    float32
+	Type        int32
+	// Has unexported fields.
+}
+
+type GPULogicalDevice struct {
+	GPUHandle
+
+	SwapChain GPUSwapChain
+
+	// Has unexported fields.
+}
+
+func (g *GPULogicalDevice) CreateImageView(id *TextureId, aspectFlags GPUImageAspectFlags, viewType GPUImageViewType) error
+
+func (g *GPULogicalDevice) Destroy()
+
+func (g *GPULogicalDevice) DestroyFence(fence *GPUFence)
+
+func (g *GPULogicalDevice) DestroyGroup(group *DrawInstanceGroup)
+
+func (g *GPULogicalDevice) DestroySemaphore(semaphore *GPUSemaphore)
+
+func (g *GPULogicalDevice) FreeTexture(texId *TextureId)
+
+func (g *GPULogicalDevice) ImageMemoryRequirements(image GPUImage) GPUMemoryRequirements
+
+func (g *GPULogicalDevice) RemakeSwapChain(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error
+
+func (g *GPULogicalDevice) Setup(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error
+
+func (g *GPULogicalDevice) SetupBufferDestroyer(device *GPUDevice)
+
+func (g *GPULogicalDevice) WaitForFences(fences []GPUFence)
+
+func (g *GPULogicalDevice) WaitForRender(device *GPUDevice)
+
+func (g *GPULogicalDevice) WaitIdle()
+
+type GPUMemoryFlags uint16
+
+const (
+	GPUMemoryMapPlacedBit GPUMemoryFlags = (1 << iota)
+)
+type GPUMemoryHeap struct {
+	Size  uintptr
+	Flags GPUMemoryHeapFlags
+}
+
+type GPUMemoryHeapFlags uint8
+
+const (
+	GPUMemoryHeapDeviceLocalBit GPUMemoryHeapFlags = (1 << iota)
+	GPUMemoryHeapMultiInstanceBit
+)
+type GPUMemoryPropertyFlags uint8
+
+const (
+	GPUMemoryPropertyDeviceLocalBit GPUMemoryPropertyFlags = (1 << iota)
+	GPUMemoryPropertyHostVisibleBit
+	GPUMemoryPropertyHostCoherentBit
+	GPUMemoryPropertyHostCachedBit
+	GPUMemoryPropertyLazilyAllocatedBit
+	GPUMemoryPropertyProtectedBit
+)
+type GPUMemoryRequirements struct {
+	Size           uintptr
+	Alignment      uintptr
+	MemoryTypeBits uint32
+}
+
+type GPUMemoryType struct {
+	PropertyFlags GPUMemoryPropertyFlags
+	HeapIndex     uint32
+}
+
+type GPUPainter struct {
+	// Has unexported fields.
+}
+
+func (g *GPUPainter) DestroyDescriptorPools(device *GPUDevice)
+
+type GPUPhysicalDevice struct {
+	Features            GPUPhysicalDeviceFeatures
+	Properties          GPUPhysicalDeviceProperties
+	QueueFamilies       []GPUQueueFamily
+	Extensions          []GPUPhysicalDeviceExtension
+	SurfaceFormats      []GPUSurfaceFormat
+	PresentModes        []GPUPresentMode
+	SurfaceCapabilities GPUSurfaceCapabilities
+	// Has unexported fields.
+}
+
+func ListPhysicalGpuDevices(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error)
+
+func (g *GPUPhysicalDevice) FindComputeFamiliy() GPUQueueFamily
+
+func (g *GPUPhysicalDevice) FindGraphicsFamiliy() GPUQueueFamily
+
+func (g *GPUPhysicalDevice) FindMemoryType(typeFilter uint32, properties GPUMemoryPropertyFlags) int
+
+func (g *GPUPhysicalDevice) FindPresentFamily() GPUQueueFamily
+
+func (g *GPUPhysicalDevice) FindSupportedFormat(candidates []GPUFormat, tiling GPUImageTiling, features GPUFormatFeatureFlags) GPUFormat
+
+func (g *GPUPhysicalDevice) FormatIsTileable(format GPUFormat, tiling GPUImageTiling) bool
+
+func (g *GPUPhysicalDevice) FormatProperties(format GPUFormat) GPUFormatProperties
+
+func (g *GPUPhysicalDevice) IsExtensionSupported(extension string) bool
+
+func (g *GPUPhysicalDevice) IsValid() bool
+
+func (g *GPUPhysicalDevice) MaxUsableSampleCount() GPUSampleCountFlags
+
+func (g *GPUPhysicalDevice) PadBufferSize(size uintptr) uintptr
+
+func (g *GPUPhysicalDevice) RefreshSurfaceCapabilities(surface unsafe.Pointer)
+
+type GPUPhysicalDeviceExtension struct {
+	Name    string
+	Version uint32
+}
+
+type GPUPhysicalDeviceFeatures struct {
+	RobustBufferAccess                      bool
+	FullDrawIndexUint32                     bool
+	ImageCubeArray                          bool
+	IndependentBlend                        bool
+	GeometryShader                          bool
+	TessellationShader                      bool
+	SampleRateShading                       bool
+	DualSrcBlend                            bool
+	LogicOp                                 bool
+	MultiDrawIndirect                       bool
+	DrawIndirectFirstInstance               bool
+	DepthClamp                              bool
+	DepthBiasClamp                          bool
+	FillModeNonSolid                        bool
+	DepthBounds                             bool
+	WideLines                               bool
+	LargePoints                             bool
+	AlphaToOne                              bool
+	MultiViewport                           bool
+	SamplerAnisotropy                       bool
+	TextureCompressionETC2                  bool
+	TextureCompressionASTC_LDR              bool
+	TextureCompressionBC                    bool
+	OcclusionQueryPrecise                   bool
+	PipelineStatisticsQuery                 bool
+	VertexPipelineStoresAndAtomics          bool
+	FragmentStoresAndAtomics                bool
+	ShaderTessellationAndGeometryPointSize  bool
+	ShaderImageGatherExtended               bool
+	ShaderStorageImageExtendedFormats       bool
+	ShaderStorageImageMultisample           bool
+	ShaderStorageImageReadWithoutFormat     bool
+	ShaderStorageImageWriteWithoutFormat    bool
+	ShaderUniformBufferArrayDynamicIndexing bool
+	ShaderSampledImageArrayDynamicIndexing  bool
+	ShaderStorageBufferArrayDynamicIndexing bool
+	ShaderStorageImageArrayDynamicIndexing  bool
+	ShaderClipDistance                      bool
+	ShaderCullDistance                      bool
+	ShaderFloat64                           bool
+	ShaderInt64                             bool
+	ShaderInt16                             bool
+	ShaderResourceResidency                 bool
+	ShaderResourceMinLod                    bool
+	SparseBinding                           bool
+	SparseResidencyBuffer                   bool
+	SparseResidencyImage2D                  bool
+	SparseResidencyImage3D                  bool
+	SparseResidency2Samples                 bool
+	SparseResidency4Samples                 bool
+	SparseResidency8Samples                 bool
+	SparseResidency16Samples                bool
+	SparseResidencyAliased                  bool
+	VariableMultisampleRate                 bool
+	InheritedQueries                        bool
+}
+
+type GPUPhysicalDeviceLimits struct {
+	MaxImageDimension1D                             uint32
+	MaxImageDimension2D                             uint32
+	MaxImageDimension3D                             uint32
+	MaxImageDimensionCube                           uint32
+	MaxImageArrayLayers                             uint32
+	MaxTexelBufferElements                          uint32
+	MaxUniformBufferRange                           uint32
+	MaxStorageBufferRange                           uint32
+	MaxPushConstantsSize                            uint32
+	MaxMemoryAllocationCount                        uint32
+	MaxSamplerAllocationCount                       uint32
+	BufferImageGranularity                          uintptr
+	SparseAddressSpaceSize                          uintptr
+	MaxBoundDescriptorSets                          uint32
+	MaxPerStageDescriptorSamplers                   uint32
+	MaxPerStageDescriptorUniformBuffers             uint32
+	MaxPerStageDescriptorStorageBuffers             uint32
+	MaxPerStageDescriptorSampledImages              uint32
+	MaxPerStageDescriptorStorageImages              uint32
+	MaxPerStageDescriptorInputAttachments           uint32
+	MaxPerStageResources                            uint32
+	MaxDescriptorSetSamplers                        uint32
+	MaxDescriptorSetUniformBuffers                  uint32
+	MaxDescriptorSetUniformBuffersDynamic           uint32
+	MaxDescriptorSetStorageBuffers                  uint32
+	MaxDescriptorSetStorageBuffersDynamic           uint32
+	MaxDescriptorSetSampledImages                   uint32
+	MaxDescriptorSetStorageImages                   uint32
+	MaxDescriptorSetInputAttachments                uint32
+	MaxVertexInputAttributes                        uint32
+	MaxVertexInputBindings                          uint32
+	MaxVertexInputAttributeOffset                   uint32
+	MaxVertexInputBindingStride                     uint32
+	MaxVertexOutputComponents                       uint32
+	MaxTessellationGenerationLevel                  uint32
+	MaxTessellationPatchSize                        uint32
+	MaxTessellationControlPerVertexInputComponents  uint32
+	MaxTessellationControlPerVertexOutputComponents uint32
+	MaxTessellationControlPerPatchOutputComponents  uint32
+	MaxTessellationControlTotalOutputComponents     uint32
+	MaxTessellationEvaluationInputComponents        uint32
+	MaxTessellationEvaluationOutputComponents       uint32
+	MaxGeometryShaderInvocations                    uint32
+	MaxGeometryInputComponents                      uint32
+	MaxGeometryOutputComponents                     uint32
+	MaxGeometryOutputVertices                       uint32
+	MaxGeometryTotalOutputComponents                uint32
+	MaxFragmentInputComponents                      uint32
+	MaxFragmentOutputAttachments                    uint32
+	MaxFragmentDualSrcAttachments                   uint32
+	MaxFragmentCombinedOutputResources              uint32
+	MaxComputeSharedMemorySize                      uint32
+	MaxComputeWorkGroupCount                        [3]uint32
+	MaxComputeWorkGroupInvocations                  uint32
+	MaxComputeWorkGroupSize                         [3]uint32
+	SubPixelPrecisionBits                           uint32
+	SubTexelPrecisionBits                           uint32
+	MipmapPrecisionBits                             uint32
+	MaxDrawIndexedIndexValue                        uint32
+	MaxDrawIndirectCount                            uint32
+	MaxSamplerLodBias                               float32
+	MaxSamplerAnisotropy                            float32
+	MaxViewports                                    uint32
+	MaxViewportDimensions                           [2]uint32
+	ViewportBoundsRange                             [2]float32
+	ViewportSubPixelBits                            uint32
+	MinMemoryMapAlignment                           uint
+	MinTexelBufferOffsetAlignment                   uintptr
+	MinUniformBufferOffsetAlignment                 uintptr
+	MinStorageBufferOffsetAlignment                 uintptr
+	MinTexelOffset                                  int32
+	MaxTexelOffset                                  uint32
+	MinTexelGatherOffset                            int32
+	MaxTexelGatherOffset                            uint32
+	MinInterpolationOffset                          float32
+	MaxInterpolationOffset                          float32
+	SubPixelInterpolationOffsetBits                 uint32
+	MaxFramebufferWidth                             uint32
+	MaxFramebufferHeight                            uint32
+	MaxFramebufferLayers                            uint32
+	FramebufferColorSampleCounts                    GPUSampleCountFlags
+	FramebufferDepthSampleCounts                    GPUSampleCountFlags
+	FramebufferStencilSampleCounts                  GPUSampleCountFlags
+	FramebufferNoAttachmentsSampleCounts            GPUSampleCountFlags
+	MaxColorAttachments                             uint32
+	SampledImageColorSampleCounts                   GPUSampleCountFlags
+	SampledImageIntegerSampleCounts                 GPUSampleCountFlags
+	SampledImageDepthSampleCounts                   GPUSampleCountFlags
+	SampledImageStencilSampleCounts                 GPUSampleCountFlags
+	StorageImageSampleCounts                        GPUSampleCountFlags
+	MaxSampleMaskWords                              uint32
+	TimestampComputeAndGraphics                     bool
+	TimestampPeriod                                 float32
+	MaxClipDistances                                uint32
+	MaxCullDistances                                uint32
+	MaxCombinedClipAndCullDistances                 uint32
+	DiscreteQueuePriorities                         uint32
+	PointSizeRange                                  [2]float32
+	LineWidthRange                                  [2]float32
+	PointSizeGranularity                            float32
+	LineWidthGranularity                            float32
+	StrictLines                                     bool
+	StandardSampleLocations                         bool
+	OptimalBufferCopyOffsetAlignment                uintptr
+	OptimalBufferCopyRowPitchAlignment              uintptr
+	NonCoherentAtomSize                             uintptr
+}
+
+type GPUPhysicalDeviceMemoryProperties struct {
+	MemoryTypes []GPUMemoryType
+	MemoryHeaps []GPUMemoryHeap
+}
+
+type GPUPhysicalDeviceProperties struct {
+	ApiVersion        uint32
+	DriverVersion     uint32
+	VendorID          uint32
+	DeviceID          uint32
+	DeviceType        GPUPhysicalDeviceType
+	DeviceName        string
+	PipelineCacheUUID string
+	Limits            GPUPhysicalDeviceLimits
+	SparseProperties  GPUPhysicalDeviceSparseProperties
+}
+
+type GPUPhysicalDeviceSparseProperties struct {
+	ResidencyStandard2DBlockShape            bool
+	ResidencyStandard2DMultisampleBlockShape bool
+	ResidencyStandard3DBlockShape            bool
+	ResidencyAlignedMipSize                  bool
+	ResidencyNonResidentStrict               bool
+}
+
+type GPUPhysicalDeviceType uint8
+
+const (
+	GPUPhysicalDeviceTypeOther GPUPhysicalDeviceType = iota
+	GPUPhysicalDeviceTypeIntegratedGpu
+	GPUPhysicalDeviceTypeDiscreteGpu
+	GPUPhysicalDeviceTypeVirtualGpu
+	GPUPhysicalDeviceTypeCpu
+)
+type GPUPipeline struct{ GPUHandle }
+
+type GPUPipelineLayout struct{ GPUHandle }
+
+type GPUPipelineStageFlags uint32
+
+const (
+	GPUPipelineStageTopOfPipeBit GPUPipelineStageFlags = (1 << iota)
+	GPUPipelineStageDrawIndirectBit
+	GPUPipelineStageVertexInputBit
+	GPUPipelineStageVertexShaderBit
+	GPUPipelineStageTessellationControlShaderBit
+	GPUPipelineStageTessellationEvaluationShaderBit
+	GPUPipelineStageGeometryShaderBit
+	GPUPipelineStageFragmentShaderBit
+	GPUPipelineStageEarlyFragmentTestsBit
+	GPUPipelineStageLateFragmentTestsBit
+	GPUPipelineStageColorAttachmentOutputBit
+	GPUPipelineStageComputeShaderBit
+	GPUPipelineStageTransferBit
+	GPUPipelineStageBottomOfPipeBit
+	GPUPipelineStageHostBit
+	GPUPipelineStageAllGraphicsBit
+	GPUPipelineStageAllCommandsBit
+	GPUPipelineStageTransformFeedbackBit
+	GPUPipelineStageConditionalRenderingBit
+	GPUPipelineStageCommandProcessBitNvx
+	GPUPipelineStageShadingRateImageBitNv
+	GPUPipelineStageRaytracingBitNvx
+	GPUPipelineStageTaskShaderBitNv
+	GPUPipelineStageMeshShaderBitNv
+)
+type GPUPresentMode int32
+
+const (
+	GPUPresentModeImmediate GPUPresentMode = iota
+	GPUPresentModeMailbox
+	GPUPresentModeFifo
+	GPUPresentModeFifoRelaxed
+	GPUPresentModeSharedDemandRefresh
+	GPUPresentModeSharedContinuousRefresh
+)
+type GPUQueue struct{ GPUHandle }
+
+type GPUQueueFamily struct {
+	Index                       int
+	MinImageTransferGranularity matrix.Vec3i
+	IsGraphics                  bool
+	IsCompute                   bool
+	IsTransfer                  bool
+	IsSparseBinding             bool
+	IsProtected                 bool
+	HasPresentSupport           bool
+}
+
+func InvalidGPUQueueFamily() GPUQueueFamily
+
+func (g GPUQueueFamily) IsValid() bool
+
+type GPUResult int32
+
+type GPUSampleCountFlags uint8
+
+const (
+	GPUSampleCount1Bit GPUSampleCountFlags = (1 << iota)
+	GPUSampleCount2Bit
+	GPUSampleCount4Bit
+	GPUSampleCount8Bit
+	GPUSampleCount16Bit
+	GPUSampleCount32Bit
+	GPUSampleCount64Bit
+	GPUSampleSwapChainCount
+)
+type GPUSampler struct{ GPUHandle }
+
+type GPUSemaphore struct{ GPUHandle }
+
+type GPUShaderModule struct{ GPUHandle }
+
+type GPUSurface struct {
+	// Has unexported fields.
+}
+
+func (g *GPUSurface) Create(instance *GPUInstance, window RenderingContainer) error
+
+func (g *GPUSurface) Destroy(inst *GPUApplicationInstance)
+
+type GPUSurfaceCapabilities struct {
+	MinImageCount           uint32
+	MaxImageCount           uint32
+	CurrentExtent           matrix.Vec2i
+	MinImageExtent          matrix.Vec2i
+	MaxImageExtent          matrix.Vec2i
+	MaxImageArrayLayers     uint32
+	SupportedTransforms     GPUSurfaceTransformFlags
+	CurrentTransform        GPUSurfaceTransformFlags
+	SupportedCompositeAlpha GPUCompositeAlphaFlags
+	SupportedUsageFlags     GPUImageUsageFlags
+}
+
+type GPUSurfaceFormat struct {
+	Format     GPUFormat
+	ColorSpace GPUColorSpace
+}
+
+type GPUSurfaceTransformFlags int32
+
+const (
+	GPUSurfaceTransformIdentityBit GPUSurfaceTransformFlags = (1 << iota)
+	GPUSurfaceTransformRotate90Bit
+	GPUSurfaceTransformRotate180Bit
+	GPUSurfaceTransformRotate270Bit
+	GPUSurfaceTransformHorizontalMirrorBit
+	GPUSurfaceTransformHorizontalMirrorRotate90Bit
+	GPUSurfaceTransformHorizontalMirrorRotate180Bit
+	GPUSurfaceTransformHorizontalMirrorRotate270Bit
+	GPUSurfaceTransformInheritBit
+)
+type GPUSwapChain struct {
+	GPUHandle
+	Images       []TextureId
+	Extent       matrix.Vec2i
+	Depth        TextureId
+	Color        TextureId
+	FrameBuffers []GPUFrameBuffer
+
+	// Has unexported fields.
+}
+
+func (g *GPUSwapChain) CopyAndReset() GPUSwapChain
+
+func (g *GPUSwapChain) CreateColor(device *GPUDevice) error
+
+func (g *GPUSwapChain) CreateDepth(device *GPUDevice) error
+
+func (g *GPUSwapChain) CreateFrameBuffer(device *GPUDevice) error
+
+func (g *GPUSwapChain) Destroy(device *GPUDevice)
+
+func (g *GPUSwapChain) SelectExtent(window RenderingContainer, device *GPUPhysicalDevice) matrix.Vec2i
+
+func (g *GPUSwapChain) SelectPresentMode(device *GPUPhysicalDevice) GPUPresentMode
+
+func (g *GPUSwapChain) SelectSurfaceFormat(device *GPUPhysicalDevice) GPUSurfaceFormat
+
+func (g *GPUSwapChain) Setup(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error
+
+func (g *GPUSwapChain) SetupImageViews(device *GPUDevice) error
+
+func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database) error
+
+func (g *GPUSwapChain) SetupSyncObjects(device *GPUDevice) error
+
+type GPUSwapChainSupportDetails struct {
+	// Has unexported fields.
+}
+
+type GlobalShaderData struct {
+	View             matrix.Mat4
+	Projection       matrix.Mat4
+	UIView           matrix.Mat4
+	UIProjection     matrix.Mat4
+	CameraPosition   matrix.Vec4
+	UICameraPosition matrix.Vec3
+	Time             float32
+	ScreenSize       matrix.Vec2
+	CascadeCount     int32
+
+	CascadePlaneDistances [4]float32
+	VertLights            [MaxLocalLights]GPULight
+	LightInfos            [MaxLocalLights]GPULightInfo
+	// Has unexported fields.
+}
+
+type InstanceCopyData struct {
+	// Has unexported fields.
+}
+
+func InstanceCopyDataNew(padding int) InstanceCopyData
+
+type InstanceDriverData struct {
+	// Has unexported fields.
+}
+
+type InstanceGroupSkinningData struct {
+}
+
+type Light struct {
+	// Has unexported fields.
+}
+
+func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light
+
+func (l *Light) Direction(followcam cameras.Camera) matrix.Vec3
+
+func (l *Light) FrameDirty() bool
+
+func (l *Light) IsValid() bool
+
+func (l *Light) ResetFrameDirty() bool
+
+func (l *Light) SetAmbient(ambient matrix.Vec3)
+
+func (l *Light) SetCastsShadows(castsShadows bool)
+
+func (l *Light) SetConstant(constant float32)
+
+func (l *Light) SetCutoff(cutoff float32)
+
+func (l *Light) SetDiffuse(diffuse matrix.Vec3)
+
+func (l *Light) SetDirection(dir matrix.Vec3)
+
+func (l *Light) SetIntensity(intensity float32)
+
+func (l *Light) SetLinear(linear float32)
+
+func (l *Light) SetOuterCutoff(outerCutoff float32)
+
+func (l *Light) SetPosition(position matrix.Vec3)
+
+func (l *Light) SetQuadratic(quadratic float32)
+
+func (l *Light) SetSpecular(specular matrix.Vec3)
+
+func (l *Light) Type() LightType
+
+func (l *Light) WorldSpace(followcam cameras.Camera) matrix.Vec3
+
+type LightShadowShaderData struct {
+	ShaderDataBase
+	LightIndex int32
+}
+
+func (t LightShadowShaderData) Size() int
+
+type LightType int
+
+type LightsForRender struct {
+	Lights     []Light
+	HasChanges bool
+}
+
+type Material struct {
+	Id string
+
+	Shader          *Shader
+	Textures        []*Texture
+	Instances       map[string]*Material
+	Root            weak.Pointer[Material]
+	PrepassMaterial weak.Pointer[Material]
+
+	IsLit           bool
+	ReceivesShadows bool
+	CastsShadows    bool
+	// Has unexported fields.
+}
+
+func (m *Material) CreateInstance(textures []*Texture) *Material
+
+func (m *Material) Destroy(device *GPUDevice)
+
+func (m *Material) HasTransparentSuffix() bool
+
+func (m *Material) RenderPass() *RenderPass
+
+func (m *Material) SelectRoot() *Material
+
+type MaterialCache struct {
+	// Has unexported fields.
+}
+
+func NewMaterialCache(device *GPUDevice, assetDatabase assets.Database) MaterialCache
+
+func (m *MaterialCache) AddMaterial(material *Material) *Material
+
+func (m *MaterialCache) Destroy()
+
+func (m *MaterialCache) FindMaterial(key string) (*Material, bool)
+
+func (m *MaterialCache) Material(key string) (*Material, error)
+
+type MaterialData struct {
+	Shader          string `options:""`                  // Blank = fallback
+	RenderPass      string `options:""`                  // Blank = fallback
+	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
+	Textures        []MaterialTextureData
+	PrepassMaterial string
+	IsLit           bool
+	ReceivesShadows bool
+	CastsShadows    bool
+}
+
+func (d *MaterialData) Compile(assets assets.Database, device *GPUDevice) (*Material, error)
+
+func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, copyShader bool) (*Material, error)
+
+type MaterialTextureData struct {
+	Label   string `static:"true"`
+	Texture string `content:"Texture"`
+	Filter  string `options:"StringVkFilter"`
+}
+
+func (d *MaterialTextureData) FilterToVK() TextureFilter
+
+type Mesh struct {
+	MeshId MeshId
+
+	// Has unexported fields.
+}
+
+func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh
+
+func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius float32, segments int) *Mesh
+
+func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings int) *Mesh
+    NewMeshCapsule creates a capsule mesh (cylinder with hemispherical ends)
+    with the specified radius and height. The capsule is aligned along the
+    Y-axis, with hemispheres at y=height/2 and y=-height/2. segments controls
+    the number of subdivisions around the circumference, rings controls the
+    number of rings per hemisphere.
+
+func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh
+    NewMeshCircleWire creates a wireframe circle (line loop) mesh.
+    It follows the same pattern as the other wireframe mesh generators (e.g.
+    NewMeshWireCube, NewMeshWireSphereLatLon, etc.).
+
+func NewMeshCone(cache *MeshCache, height, baseRadius float32, segments int, capped bool) *Mesh
+
+func NewMeshCube(cache *MeshCache) *Mesh
+
+func NewMeshCubeInverse(cache *MeshCache) *Mesh
+
+func NewMeshCylinder(cache *MeshCache, height, radius float32, segments int, capped bool) *Mesh
+
+func NewMeshFrustum(cache *MeshCache, key string, inverseProjection matrix.Mat4) *Mesh
+
+func NewMeshFrustumBox(cache *MeshCache, inverseProjection matrix.Mat4) *Mesh
+
+func NewMeshGrid(cache *MeshCache, key string, points []matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshLine(cache *MeshCache, key string, p0, p1 matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshOffsetQuad(cache *MeshCache, key string, sideOffsets matrix.Vec4) *Mesh
+
+func NewMeshPlane(cache *MeshCache) *Mesh
+
+func NewMeshPoint(cache *MeshCache, key string, position matrix.Vec3, vertColor matrix.Color) *Mesh
+
+func NewMeshQuad(cache *MeshCache) *Mesh
+
+func NewMeshQuadAnchored(anchor QuadPivot, cache *MeshCache) *Mesh
+
+func NewMeshScreenQuad(cache *MeshCache) *Mesh
+
+func NewMeshSkyboxCube(cache *MeshCache) *Mesh
+
+func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh
+
+func NewMeshTexturableCube(cache *MeshCache) *Mesh
+
+func NewMeshTriangle(cache *MeshCache) *Mesh
+
+func NewMeshUnitQuad(cache *MeshCache) *Mesh
+
+func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh
+
+func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
+
+func NewMeshWireCylinder(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh
+
+func NewMeshWireQuad(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
+
+func NewMeshWireSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh
+
+func (m Mesh) Bounds() collision.AABB
+
+func (m *Mesh) DelayedCreate(device *GPUDevice)
+
+func (m Mesh) IsReady() bool
+
+func (m Mesh) Key() string
+
+func (m *Mesh) SetKey(key string)
+
+type MeshCache struct {
+	// Has unexported fields.
+}
+
+func NewMeshCache(device *GPUDevice, assetDatabase assets.Database) MeshCache
+
+func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh
+    Try to add the mesh to the cache, if it already exists, return the existing
+    mesh
+
+func (m *MeshCache) CreatePending()
+
+func (m *MeshCache) Destroy()
+
+func (m *MeshCache) FindMesh(key string) (*Mesh, bool)
+
+func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh
+
+func (m *MeshCache) RemoveMesh(key string)
+
+type MeshCleanup struct {
+	// Has unexported fields.
+}
+
+type MeshCullMode = int
+
+const (
+	MeshCullModeBack MeshCullMode = iota
+	MeshCullModeFront
+	MeshCullModeNone
+)
+type MeshDrawMode = int
+
+const (
+	MeshDrawModePoints MeshDrawMode = iota
+	MeshDrawModeLines
+	MeshDrawModeTriangles
+	MeshDrawModePatches
+)
+type MeshId struct {
+	// Has unexported fields.
+}
+
+func (m MeshId) IsValid() bool
+
+type PointShadow struct {
+	Point    matrix.Vec2 // X,Z
+	Radius   float32
+	Strength float32
+}
+
+type QuadPivot = int32
+
+type RenderCaches interface {
+	ShaderCache() *ShaderCache
+	TextureCache() *TextureCache
+	MeshCache() *MeshCache
+	FontCache() *FontCache
+	MaterialCache() *MaterialCache
+	AssetDatabase() assets.Database
+}
+
+type RenderPass struct {
+	Handle vk.RenderPass
+	Buffer GPUFrameBuffer
+
+	// Has unexported fields.
+}
+
+func NewRenderPass(device *GPUDevice, setup *RenderPassDataCompiled) (*RenderPass, error)
+
+func (p *RenderPass) Destroy(device *GPUDevice)
+
+func (r *RenderPass) ExecuteSecondaryCommands()
+
+func (r *RenderPass) Height() int
+
+func (r *RenderPass) IsShadowPass() bool
+
+func (p *RenderPass) Recontstruct(device *GPUDevice) error
+
+func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture
+
+func (r *RenderPass) SelectOutputAttachmentWithSuffix(suffix string) (*Texture, bool)
+
+func (r *RenderPass) Texture(index int) *Texture
+
+func (r *RenderPass) Width() int
+
+type RenderPassAttachmentDescription struct {
+	Format         string `options:"StringVkFormat"`
+	Samples        string `options:"StringVkSampleCountFlagBits"`
+	LoadOp         string `options:"StringVkAttachmentLoadOp"`
+	StoreOp        string `options:"StringVkAttachmentStoreOp"`
+	StencilLoadOp  string `options:"StringVkAttachmentLoadOp"`
+	StencilStoreOp string `options:"StringVkAttachmentStoreOp"`
+	InitialLayout  string `options:"StringVkImageLayout"`
+	FinalLayout    string `options:"StringVkImageLayout"`
+	Image          RenderPassAttachmentImage
+}
+
+func (ad *RenderPassAttachmentDescription) FinalLayoutToVK() GPUImageLayout
+
+func (ad *RenderPassAttachmentDescription) FormatToVK(device *GPUDevice) GPUFormat
+
+func (ad *RenderPassAttachmentDescription) InitialLayoutToVK() GPUImageLayout
+
+func (ad *RenderPassAttachmentDescription) LoadOpToVK() GPUAttachmentLoadOp
+
+func (ad *RenderPassAttachmentDescription) SamplesToVK(device *GPUPhysicalDevice) GPUSampleCountFlags
+
+func (ad *RenderPassAttachmentDescription) StencilLoadOpToVK() GPUAttachmentLoadOp
+
+func (ad *RenderPassAttachmentDescription) StencilStoreOpToVK() GPUAttachmentStoreOp
+
+func (ad *RenderPassAttachmentDescription) StoreOpToVK() GPUAttachmentStoreOp
+
+type RenderPassAttachmentDescriptionCompiled struct {
+	Format         GPUFormat
+	Samples        GPUSampleCountFlags
+	LoadOp         GPUAttachmentLoadOp
+	StoreOp        GPUAttachmentStoreOp
+	StencilLoadOp  GPUAttachmentLoadOp
+	StencilStoreOp GPUAttachmentStoreOp
+	InitialLayout  GPUImageLayout
+	FinalLayout    GPUImageLayout
+	Image          RenderPassAttachmentImageCompiled
+}
+
+func (p *RenderPassAttachmentDescriptionCompiled) IsDepthFormat() bool
+
+type RenderPassAttachmentImage struct {
+	Name           string
+	ExistingImage  string
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         string                         `options:"StringVkImageTiling"`
+	Filter         string                         `options:"StringVkFilter"`
+	Usage          []string                       `options:"StringVkImageUsageFlagBits"`
+	MemoryProperty []string                       `options:"StringVkMemoryPropertyFlagBits"`
+	Aspect         []string                       `options:"StringVkImageAspectFlagBits"`
+	Access         []string                       `options:"StringVkAccessFlagBits"`
+	Clear          RenderPassAttachmentImageClear `tip:"AttachmentImageClear"`
+}
+
+func (ai *RenderPassAttachmentImage) AccessToVK() GPUAccessFlags
+
+func (ai *RenderPassAttachmentImage) AspectToVK() GPUImageAspectFlags
+
+func (ai *RenderPassAttachmentImage) FilterToVK() GPUFilter
+
+func (img *RenderPassAttachmentImage) IsInvalid() bool
+
+func (ai *RenderPassAttachmentImage) MemoryPropertyToVK() GPUMemoryPropertyFlags
+
+func (ai *RenderPassAttachmentImage) TilingToVK() GPUImageTiling
+
+func (ai *RenderPassAttachmentImage) UsageToVK() GPUImageUsageFlags
+
+type RenderPassAttachmentImageClear struct {
+	R       float32
+	G       float32
+	B       float32
+	A       float32
+	Depth   float32
+	Stencil uint32
+}
+
+type RenderPassAttachmentImageCompiled struct {
+	Name           string
+	ExistingImage  string
+	MipLevels      uint32
+	LayerCount     uint32
+	Tiling         GPUImageTiling
+	Filter         GPUFilter
+	Usage          GPUImageUsageFlags
+	MemoryProperty GPUMemoryPropertyFlags
+	Aspect         GPUImageAspectFlags
+	Access         GPUAccessFlags
+}
+
+func (img *RenderPassAttachmentImageCompiled) IsInvalid() bool
+
+type RenderPassAttachmentReference struct {
+	Attachment uint32
+	Layout     string `options:"StringVkImageLayout"`
+}
+
+func (ad *RenderPassAttachmentReference) LayoutToVK() GPUImageLayout
+
+type RenderPassAttachmentReferenceCompiled struct {
+	Attachment uint32
+	Layout     vulkan_const.ImageLayout
+}
+
+type RenderPassData struct {
+	Name                   string
+	Sort                   int
+	AttachmentDescriptions []RenderPassAttachmentDescription
+	SubpassDescriptions    []RenderPassSubpassDescription
+	SubpassDependencies    []RenderPassSubpassDependency
+	Width                  int
+	Height                 int
+	SkipCombine            bool
+}
+
+func NewRenderPassData(src string) (RenderPassData, error)
+
+func (d *RenderPassData) Compile(device *GPUDevice) RenderPassDataCompiled
+
+type RenderPassDataCompiled struct {
+	Name                   string
+	Sort                   int
+	Width                  int
+	Height                 int
+	AttachmentDescriptions []RenderPassAttachmentDescriptionCompiled
+	SubpassDescriptions    []RenderPassSubpassDescriptionCompiled
+	SubpassDependencies    []RenderPassSubpassDependencyCompiled
+	ImageClears            []vk.ClearValue
+	Subpass                []RenderPassSubpassDataCompiled
+	SkipCombine            bool
+}
+
+func (r *RenderPassDataCompiled) ConstructRenderPass(device *GPUDevice) (*RenderPass, error)
+
+type RenderPassGroup struct {
+	// Has unexported fields.
+}
+
+type RenderPassSubpass struct {
+	// Has unexported fields.
+}
+
+type RenderPassSubpassData struct {
+	Shader         string `options:""`
+	ShaderPipeline string `options:""`
+	SampledImages  []RenderPassSubpassImageData
+}
+
+type RenderPassSubpassDataCompiled struct {
+	Shader         string
+	ShaderPipeline string
+	SampledImages  []int
+}
+
+type RenderPassSubpassDependency struct {
+	SrcSubpass      int64
+	DstSubpass      int64
+	SrcStageMask    []string `options:"StringVkPipelineStageFlagBits"`
+	DstStageMask    []string `options:"StringVkPipelineStageFlagBits"`
+	SrcAccessMask   []string `options:"StringVkAccessFlagBits"`
+	DstAccessMask   []string `options:"StringVkAccessFlagBits"`
+	DependencyFlags []string `options:"StringVkDependencyFlagBits"`
+}
+
+func (sd *RenderPassSubpassDependency) DependencyFlagsToVK() vk.DependencyFlags
+
+func (sd *RenderPassSubpassDependency) DstAccessMaskToVK() GPUAccessFlags
+
+func (sd *RenderPassSubpassDependency) DstStageMaskToVK() vk.PipelineStageFlags
+
+func (sd *RenderPassSubpassDependency) SrcAccessMaskToVK() GPUAccessFlags
+
+func (sd *RenderPassSubpassDependency) SrcStageMaskToVK() vk.PipelineStageFlags
+
+type RenderPassSubpassDependencyCompiled struct {
+	SrcSubpass      uint32
+	DstSubpass      uint32
+	SrcStageMask    vk.PipelineStageFlags
+	DstStageMask    vk.PipelineStageFlags
+	SrcAccessMask   vk.AccessFlags
+	DstAccessMask   vk.AccessFlags
+	DependencyFlags vk.DependencyFlags
+}
+
+type RenderPassSubpassDescription struct {
+	PipelineBindPoint         string `options:"StringVkPipelineBindPoint"`
+	ColorAttachmentReferences []RenderPassAttachmentReference
+	InputAttachmentReferences []RenderPassAttachmentReference
+	ResolveAttachments        []RenderPassAttachmentReference
+	DepthStencilAttachment    []RenderPassAttachmentReference // 1 max
+	PreserveAttachments       []uint32                        // TODO
+	Subpass                   RenderPassSubpassData
+}
+
+func (ad *RenderPassSubpassDescription) PipelineBindPointToVK() vulkan_const.PipelineBindPoint
+
+type RenderPassSubpassDescriptionCompiled struct {
+	PipelineBindPoint         vulkan_const.PipelineBindPoint
+	ColorAttachmentReferences []RenderPassAttachmentReferenceCompiled
+	InputAttachmentReferences []RenderPassAttachmentReferenceCompiled
+	ResolveAttachments        []RenderPassAttachmentReferenceCompiled
+	DepthStencilAttachment    []RenderPassAttachmentReferenceCompiled // 1 max
+	PreserveAttachments       []uint32                                // TODO
+}
+
+type RenderPassSubpassImageData struct {
+	SampledImage string
+}
+
+type RenderingContainer interface {
+	GetDrawableSize() (int32, int32)
+	GetInstanceExtensions() []string
+	PlatformWindow() unsafe.Pointer
+	PlatformInstance() unsafe.Pointer
+}
+
+type Shader struct {
+	RenderId ShaderId
+
+	Material   MaterialData
+	DriverData ShaderDriverData
+
+	Type ShaderType
+	// Has unexported fields.
+}
+
+func NewShader(shaderData ShaderDataCompiled) *Shader
+
+func (s *Shader) AddSubShader(key string, shader *Shader)
+
+func (s *Shader) DelayedCreate(device *GPUDevice, assetDatabase assets.Database)
+
+func (s *Shader) Reload(shaderData ShaderDataCompiled)
+
+func (s *Shader) RemoveSubShader(key string)
+
+func (s *Shader) ShaderDataName() string
+
+func (s *Shader) SubShader(key string) *Shader
+
+type ShaderBuffer struct {
+	// Has unexported fields.
+}
+
+type ShaderCache struct {
+	// Has unexported fields.
+}
+
+func NewShaderCache(device *GPUDevice, assetDatabase assets.Database) ShaderCache
+
+func (s *ShaderCache) AddShader(shader *Shader)
+
+func (s *ShaderCache) CreatePending()
+
+func (s *ShaderCache) Destroy()
+
+func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled)
+
+func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isNew bool)
+
+type ShaderCleanup struct {
+	// Has unexported fields.
+}
+
+type ShaderData struct {
+	Name                        string
+	EnableDebug                 bool
+	Vertex                      string              `options:""`
+	VertexFlags                 string              `tip:"CompileFlags"`
+	Fragment                    string              `options:""`
+	FragmentFlags               string              `tip:"CompileFlags"`
+	Geometry                    string              `options:""`
+	GeometryFlags               string              `tip:"CompileFlags"`
+	TessellationControl         string              `options:""`
+	TessellationControlFlags    string              `tip:"CompileFlags"`
+	TessellationEvaluation      string              `options:""`
+	TessellationEvaluationFlags string              `tip:"CompileFlags"`
+	Compute                     string              `options:""`
+	ComputeFlags                string              `tip:"CompileFlags"`
+	LayoutGroups                []ShaderLayoutGroup `visible:"false"`
+	SamplerLabels               []string
+	VertexSpv                   string
+	FragmentSpv                 string
+	GeometrySpv                 string
+	TessellationControlSpv      string
+	TessellationEvaluationSpv   string
+	ComputeSpv                  string
+}
+
+func (d *ShaderData) Compile() ShaderDataCompiled
+
+type ShaderDataBase struct {
+	InitModel matrix.Mat4
+	// Has unexported fields.
+}
+
+func NewShaderDataBase() ShaderDataBase
+
+func (s *ShaderDataBase) Activate()
+
+func (s *ShaderDataBase) Base() *ShaderDataBase
+
+func (s *ShaderDataBase) BoundDataPointer() unsafe.Pointer
+
+func (s *ShaderDataBase) CancelDestroy()
+
+func (s *ShaderDataBase) DataPointer() unsafe.Pointer
+
+func (s *ShaderDataBase) Deactivate()
+
+func (s *ShaderDataBase) Destroy()
+
+func (s *ShaderDataBase) InstanceBoundDataSize() int
+
+func (s *ShaderDataBase) IsDestroyed() bool
+
+func (s *ShaderDataBase) IsInView() bool
+
+func (s *ShaderDataBase) Model() matrix.Mat4
+
+func (s *ShaderDataBase) ModelPtr() *matrix.Mat4
+
+func (s *ShaderDataBase) SelectLights(lights LightsForRender)
+
+func (s *ShaderDataBase) SetModel(model matrix.Mat4)
+
+func (s *ShaderDataBase) Setup()
+
+func (s *ShaderDataBase) SkinningHeader() *SkinnedShaderDataHeader
+
+func (s *ShaderDataBase) Transform() *matrix.Transform
+
+func (s *ShaderDataBase) UpdateBoundData() bool
+
+func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.AABB)
+
+type ShaderDataCombine struct {
+	ShaderDataBase
+	Color matrix.Color
+}
+
+func (t ShaderDataCombine) Size() int
+
+type ShaderDataCompiled struct {
+	Name                   string
+	Vertex                 string
+	Fragment               string
+	Geometry               string
+	TessellationControl    string
+	TessellationEvaluation string
+	Compute                string
+	LayoutGroups           []ShaderLayoutGroup
+	SamplerLabels          []string
+}
+
+func (s *ShaderDataCompiled) IsCompute() bool
+
+func (s *ShaderDataCompiled) SelectLayout(stage string) *ShaderLayoutGroup
+
+func (sd *ShaderDataCompiled) Stride() uint32
+
+func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription
+
+func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure
+
+func (sd *ShaderDataCompiled) WorkGroups() [3]uint32
+
+type ShaderDraw struct {
+	// Has unexported fields.
+}
+
+func NewShaderDraw(material *Material) ShaderDraw
+
+func (s *ShaderDraw) AddInstanceGroup(group DrawInstanceGroup)
+
+func (s *ShaderDraw) Clear()
+
+func (s *ShaderDraw) Destroy(device *GPUDevice)
+
+func (s *ShaderDraw) Filter(filter func(*DrawInstanceGroup) bool) []*DrawInstanceGroup
+
+type ShaderDriverData struct {
+	DescriptorSetLayoutStructure
+	Stride                uint32
+	AttributeDescriptions []vk.VertexInputAttributeDescription
+}
+
+func NewShaderDriverData() ShaderDriverData
+
+type ShaderId struct {
+	// Has unexported fields.
+}
+
+func (s ShaderId) IsValid() bool
+
+type ShaderLayout struct {
+	Location        int    // -1 if not set
+	Binding         int    // -1 if not set
+	Count           int    // 1 if not set
+	Set             int    // -1 if not set
+	InputAttachment int    // -1 if not set
+	Type            string // float, vec3, mat4, etc.
+	Name            string
+	Source          string // in, out, uniform, buffer
+	Fields          []ShaderLayoutStructField
+}
+
+func (l *ShaderLayout) Capacity() int
+
+func (l *ShaderLayout) DescriptorType() vulkan_const.DescriptorType
+
+func (l *ShaderLayout) FullName() string
+
+func (l *ShaderLayout) IsBuffer() bool
+
+func (l *ShaderLayout) Stride() int
+
+type ShaderLayoutGroup struct {
+	Type       string
+	WorkGroups [3]uint32
+	Layouts    []ShaderLayout
+}
+
+func (g *ShaderLayoutGroup) DescriptorFlag() vulkan_const.ShaderStageFlagBits
+
+type ShaderLayoutStructField struct {
+	Type string // float, vec3, mat4, etc.
+	Name string
+}
+
+type ShaderPipelineColorBlend struct {
+	LogicOpEnable   bool
+	LogicOp         string  `options:"StringVkLogicOp"`
+	BlendConstants0 float32 `tip:"BlendConstants"`
+	BlendConstants1 float32 `tip:"BlendConstants"`
+	BlendConstants2 float32 `tip:"BlendConstants"`
+	BlendConstants3 float32 `tip:"BlendConstants"`
+}
+
+func (s *ShaderPipelineColorBlend) LogicOpToVK() vulkan_const.LogicOp
+
+type ShaderPipelineColorBlendAttachments struct {
+	BlendEnable         bool
+	SrcColorBlendFactor string   `options:"StringVkBlendFactor"`
+	DstColorBlendFactor string   `options:"StringVkBlendFactor"`
+	ColorBlendOp        string   `options:"StringVkBlendOp"`
+	SrcAlphaBlendFactor string   `options:"StringVkBlendFactor"`
+	DstAlphaBlendFactor string   `options:"StringVkBlendFactor"`
+	AlphaBlendOp        string   `options:"StringVkBlendOp"`
+	ColorWriteMask      []string `options:"StringVkColorComponentFlagBits"`
+}
+
+func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToVK() vulkan_const.BlendOp
+
+func (a *ShaderPipelineColorBlendAttachments) BlendEnableToVK() vk.Bool32
+
+func (a *ShaderPipelineColorBlendAttachments) ColorBlendOpToVK() vulkan_const.BlendOp
+
+func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToVK() vulkan_const.ColorComponentFlagBits
+
+func (a *ShaderPipelineColorBlendAttachments) DstAlphaBlendFactorToVK() vulkan_const.BlendFactor
+
+func (a *ShaderPipelineColorBlendAttachments) DstColorBlendFactorToVK() vulkan_const.BlendFactor
+
+func (a *ShaderPipelineColorBlendAttachments) ListAlphaBlendOp() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListColorBlendOp() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListDstAlphaBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListDstColorBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListSrcAlphaBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) ListSrcColorBlendFactor() []string
+
+func (a *ShaderPipelineColorBlendAttachments) SrcAlphaBlendFactorToVK() vulkan_const.BlendFactor
+
+func (a *ShaderPipelineColorBlendAttachments) SrcColorBlendFactorToVK() vulkan_const.BlendFactor
+
+type ShaderPipelineColorBlendAttachmentsCompiled struct {
+	BlendEnable         vk.Bool32
+	SrcColorBlendFactor vulkan_const.BlendFactor
+	DstColorBlendFactor vulkan_const.BlendFactor
+	ColorBlendOp        vulkan_const.BlendOp
+	SrcAlphaBlendFactor vulkan_const.BlendFactor
+	DstAlphaBlendFactor vulkan_const.BlendFactor
+	AlphaBlendOp        vulkan_const.BlendOp
+	ColorWriteMask      vk.ColorComponentFlags
+}
+
+type ShaderPipelineColorBlendCompiled struct {
+	LogicOpEnable  vk.Bool32
+	LogicOp        vulkan_const.LogicOp
+	BlendConstants [4]float32
+}
+
+type ShaderPipelineData struct {
+	Name                  string
+	InputAssembly         ShaderPipelineInputAssembly
+	Rasterization         ShaderPipelinePipelineRasterization
+	Multisample           ShaderPipelinePipelineMultisample
+	ColorBlend            ShaderPipelineColorBlend
+	ColorBlendAttachments []ShaderPipelineColorBlendAttachments
+	DepthStencil          ShaderPipelineDepthStencil
+	Tessellation          ShaderPipelineTessellation
+	GraphicsPipeline      ShaderPipelineGraphicsPipeline
+	PushConstant          ShaderPipelinePushConstant
+}
+
+func (s *ShaderPipelineData) AlphaToCoverageEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) AlphaToOneEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) BackStencilOpStateToVK() vk.StencilOpState
+
+func (s *ShaderPipelineData) BlendConstants() [4]float32
+
+func (d *ShaderPipelineData) Compile(device *GPUPhysicalDevice) ShaderPipelineDataCompiled
+
+func (s *ShaderPipelineData) DepthBiasEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthBoundsTestEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthClampEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthTestEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) DepthWriteEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) FrontStencilOpStateToVK() vk.StencilOpState
+    TODO: This and the BackStencilOpStateToVK are duplicates because of a bad
+    structure setup, please fix later
+
+func (s ShaderPipelineData) ListBackCompareOp() []string
+
+func (s ShaderPipelineData) ListBackDepthFailOp() []string
+
+func (s ShaderPipelineData) ListBackFailOp() []string
+
+func (s ShaderPipelineData) ListBackPassOp() []string
+
+func (s ShaderPipelineData) ListBlendFactor() []string
+
+func (s ShaderPipelineData) ListBlendOp() []string
+
+func (s ShaderPipelineData) ListCullMode() []string
+
+func (s ShaderPipelineData) ListDepthCompareOp() []string
+
+func (s ShaderPipelineData) ListFrontCompareOp() []string
+
+func (s ShaderPipelineData) ListFrontDepthFailOp() []string
+
+func (s ShaderPipelineData) ListFrontFace() []string
+
+func (s ShaderPipelineData) ListFrontFailOp() []string
+
+func (s ShaderPipelineData) ListFrontPassOp() []string
+
+func (s ShaderPipelineData) ListLogicOp() []string
+
+func (s ShaderPipelineData) ListPatchControlPoints() []string
+
+func (s ShaderPipelineData) ListPolygonMode() []string
+
+func (s ShaderPipelineData) ListRasterizationSamples() []string
+
+func (s ShaderPipelineData) ListTopology() []string
+
+func (s *ShaderPipelineData) LogicOpEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) PrimitiveRestartToVK() vk.Bool32
+
+func (s *ShaderPipelineData) RasterizerDiscardEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) SampleShadingEnableToVK() vk.Bool32
+
+func (s *ShaderPipelineData) StencilTestEnableToVK() vk.Bool32
+
+type ShaderPipelineDataCompiled struct {
+	Name                  string
+	InputAssembly         ShaderPipelineInputAssemblyCompiled
+	Rasterization         ShaderPipelinePipelineRasterizationCompiled
+	Multisample           ShaderPipelinePipelineMultisampleCompiled
+	ColorBlend            ShaderPipelineColorBlendCompiled
+	ColorBlendAttachments []ShaderPipelineColorBlendAttachmentsCompiled
+	DepthStencil          ShaderPipelineDepthStencilCompiled
+	Tessellation          ShaderPipelineTessellationCompiled
+	GraphicsPipeline      ShaderPipelineGraphicsPipelineCompiled
+	PushConstant          ShaderPipelinePushConstantCompiled
+}
+
+func (s *ShaderPipelineDataCompiled) ConstructPipeline(device *GPUDevice, shader *Shader, renderPass *RenderPass, stages []vk.PipelineShaderStageCreateInfo) bool
+
+type ShaderPipelineDepthStencil struct {
+	DepthTestEnable       bool
+	DepthWriteEnable      bool
+	DepthCompareOp        string `options:"StringVkCompareOp"`
+	DepthBoundsTestEnable bool
+	StencilTestEnable     bool
+	FrontFailOp           string `options:"StringVkStencilOp" tip:"FailOp"`
+	FrontPassOp           string `options:"StringVkStencilOp" tip:"PassOp"`
+	FrontDepthFailOp      string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	FrontCompareOp        string `options:"StringVkCompareOp" tip:"CompareOp"`
+	FrontCompareMask      uint32 `tip:"CompareMask"`
+	FrontWriteMask        uint32 `tip:"WriteMask"`
+	FrontReference        uint32 `tip:"Reference"`
+	BackFailOp            string `options:"StringVkStencilOp" tip:"FailOp"`
+	BackPassOp            string `options:"StringVkStencilOp" tip:"PassOp"`
+	BackDepthFailOp       string `options:"StringVkStencilOp" tip:"DepthFailOp"`
+	BackCompareOp         string `options:"StringVkCompareOp" tip:"CompareOp"`
+	BackCompareMask       uint32 `tip:"CompareMask"`
+	BackWriteMask         uint32 `tip:"WriteMask"`
+	BackReference         uint32 `tip:"Reference"`
+	MinDepthBounds        float32
+	MaxDepthBounds        float32
+}
+
+type ShaderPipelineDepthStencilCompiled struct {
+	DepthTestEnable       vk.Bool32
+	DepthWriteEnable      vk.Bool32
+	DepthCompareOp        vulkan_const.CompareOp
+	DepthBoundsTestEnable vk.Bool32
+	StencilTestEnable     vk.Bool32
+	Front                 vk.StencilOpState
+	Back                  vk.StencilOpState
+	MinDepthBounds        float32
+	MaxDepthBounds        float32
+}
+
+type ShaderPipelineGraphicsPipeline struct {
+	Subpass             uint32
+	PipelineCreateFlags []string `options:"StringVkPipelineCreateFlagBits"`
+}
+
+func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToVK() vk.PipelineCreateFlags
+
+type ShaderPipelineGraphicsPipelineCompiled struct {
+	Subpass             uint32
+	PipelineCreateFlags vk.PipelineCreateFlags
+}
+
+type ShaderPipelineInputAssembly struct {
+	Topology         string `options:"StringVkPrimitiveTopology"`
+	PrimitiveRestart bool
+}
+
+func (s *ShaderPipelineInputAssembly) TopologyToVK() vulkan_const.PrimitiveTopology
+
+type ShaderPipelineInputAssemblyCompiled struct {
+	Topology         vulkan_const.PrimitiveTopology
+	PrimitiveRestart vk.Bool32
+}
+
+type ShaderPipelinePipelineMultisample struct {
+	RasterizationSamples  string `options:"StringVkSampleCountFlagBits"`
+	SampleShadingEnable   bool
+	MinSampleShading      float32
+	AlphaToCoverageEnable bool
+	AlphaToOneEnable      bool
+}
+
+func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToVK(device *GPUPhysicalDevice) GPUSampleCountFlags
+
+type ShaderPipelinePipelineMultisampleCompiled struct {
+	RasterizationSamples  vulkan_const.SampleCountFlagBits
+	SampleShadingEnable   vk.Bool32
+	MinSampleShading      float32
+	AlphaToCoverageEnable vk.Bool32
+	AlphaToOneEnable      vk.Bool32
+}
+
+type ShaderPipelinePipelineRasterization struct {
+	DepthClampEnable        bool
+	RasterizerDiscardEnable bool
+	PolygonMode             string `options:"StringVkPolygonMode"`
+	CullMode                string `options:"StringVkCullModeFlagBits"`
+	FrontFace               string `options:"StringVkFrontFace"`
+	DepthBiasEnable         bool
+	DepthBiasConstantFactor float32
+	DepthBiasClamp          float32
+	DepthBiasSlopeFactor    float32
+	LineWidth               float32
+}
+
+func (s *ShaderPipelinePipelineRasterization) CullModeToVK() vulkan_const.CullModeFlagBits
+
+func (s *ShaderPipelinePipelineRasterization) FrontFaceToVK() vulkan_const.FrontFace
+
+func (s *ShaderPipelinePipelineRasterization) PolygonModeToVK() vulkan_const.PolygonMode
+
+type ShaderPipelinePipelineRasterizationCompiled struct {
+	DepthClampEnable        vk.Bool32
+	DiscardEnable           vk.Bool32
+	PolygonMode             vulkan_const.PolygonMode
+	CullMode                vk.CullModeFlags
+	FrontFace               vulkan_const.FrontFace
+	DepthBiasEnable         vk.Bool32
+	DepthBiasConstantFactor float32
+	DepthBiasClamp          float32
+	DepthBiasSlopeFactor    float32
+	LineWidth               float32
+}
+
+type ShaderPipelinePushConstant struct {
+	Size       uint32
+	StageFlags []string `options:"StringVkAccessFlagBits"`
+}
+
+func (s *ShaderPipelinePushConstant) ShaderStageFlagsToVK() vk.ShaderStageFlags
+
+type ShaderPipelinePushConstantCompiled struct {
+	Size       uint32
+	StageFlags vk.ShaderStageFlags
+}
+
+type ShaderPipelineTessellation struct {
+	PatchControlPoints string `options:"StringVkPatchControlPoints"`
+}
+
+func (s *ShaderPipelineTessellation) PatchControlPointsToVK() uint32
+
+type ShaderPipelineTessellationCompiled struct {
+	PatchControlPoints uint32
+}
+
+type ShaderType int
+
+const (
+	ShaderTypeGraphics ShaderType = iota
+	ShaderTypeCompute
+)
+type SkinnedShaderDataHeader struct {
+	// Has unexported fields.
+}
+
+func (h *SkinnedShaderDataHeader) BoneByIndex(index int) *BoneTransform
+
+func (h *SkinnedShaderDataHeader) CreateBones(ids []int32)
+
+func (h *SkinnedShaderDataHeader) FindBone(id int32) *BoneTransform
+
+func (h *SkinnedShaderDataHeader) HasBones() bool
+
+func (h *SkinnedShaderDataHeader) SkinNamedDataInstanceSize() int
+
+func (h *SkinnedShaderDataHeader) SkinNamedDataPointer() unsafe.Pointer
+
+func (h *SkinnedShaderDataHeader) SkinUpdateNamedData() bool
+
+type TextShaderData struct {
+	ShaderDataBase
+	UVs     matrix.Vec4
+	FgColor matrix.Color
+	BgColor matrix.Color
+	Scissor matrix.Vec4
+	PxRange matrix.Vec2
+}
+
+func (s TextShaderData) Size() int
+
+type Texture struct {
+	Key               string
+	TexturePixelCache []byte
+	RenderId          TextureId
+	Channels          int
+	Filter            int
+	MipLevels         int
+	Width             int
+	Height            int
+	CacheInvalid      bool
+
+	// Has unexported fields.
+}
+
+func NewTexture(assetDb assets.Database, key string, filter TextureFilter) (*Texture, error)
+
+func NewTextureFromImage(key string, data []byte, filter TextureFilter) (*Texture, error)
+
+func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error)
+
+func (t *Texture) DelayedCreate(device *GPUDevice)
+
+func (t *Texture) ReadAllPixels(app *GPUApplication) ([]byte, error)
+
+func (t *Texture) ReadPendingDataForTransparency() bool
+
+func (t *Texture) ReadPixel(app *GPUApplication, x, y int) matrix.Color
+
+func (t *Texture) Reload(assetDb assets.Database) error
+
+func (t *Texture) SetPendingDataDimensions(dim TextureDimensions)
+
+func (t Texture) Size() matrix.Vec2
+
+func (t *Texture) WritePixels(device *GPUDevice, requests []GPUImageWriteRequest)
+
+type TextureCache struct {
+	// Has unexported fields.
+}
+
+func NewTextureCache(device *GPUDevice, assetDatabase assets.Database) TextureCache
+
+func (t *TextureCache) CreatePending()
+
+func (t *TextureCache) Destroy()
+
+func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter)
+
+func (t *TextureCache) InsertRawTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error)
+
+func (t *TextureCache) InsertTexture(tex *Texture)
+
+func (t *TextureCache) ReloadTexture(textureKey string, filter TextureFilter) error
+
+func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error)
+
+type TextureCleanup struct {
+	// Has unexported fields.
+}
+
+type TextureColorFormat int
+
+const (
+	TextureColorFormatRgbaUnorm TextureColorFormat = iota
+	TextureColorFormatRgbUnorm
+	TextureColorFormatRgbaSrgb
+	TextureColorFormatRgbSrgb
+	TextureColorFormatLuminance
+)
+type TextureData struct {
+	Mem            []byte
+	InternalFormat TextureInputType
+	Format         TextureColorFormat
+	Type           TextureMemType
+	Width          int
+	Height         int
+	InputType      TextureFileFormat
+	Dimensions     TextureDimensions
+}
+
+func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData
+
+func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, error)
+
+type TextureDimensions = int
+
+const (
+	TextureDimensions2 TextureDimensions = iota
+	TextureDimensions1
+	TextureDimensions3
+	TextureDimensionsCube
+)
+type TextureFileFormat = int
+
+const (
+	TextureFileFormatAstc TextureFileFormat = iota
+	TextureFileFormatPng
+	TextureFileFormatRaw
+)
+type TextureFilter = int
+
+const (
+	TextureFilterLinear TextureFilter = iota
+	TextureFilterNearest
+	TextureFilterMax
+)
+type TextureId struct {
+	Image      GPUImage
+	Memory     GPUDeviceMemory
+	View       GPUImageView
+	Sampler    GPUSampler
+	Format     GPUFormat
+	MipLevels  uint32
+	Layout     GPUImageLayout
+	Access     GPUAccessFlags
+	Samples    GPUSampleCountFlags
+	Width      int
+	Height     int
+	LayerCount int
+}
+
+func (t TextureId) IsValid() bool
+
+type TextureInputType int
+
+const (
+	TextureInputTypeCompressedRgbaAstc4x4 TextureInputType = iota
+	TextureInputTypeCompressedRgbaAstc5x4
+	TextureInputTypeCompressedRgbaAstc5x5
+	TextureInputTypeCompressedRgbaAstc6x5
+	TextureInputTypeCompressedRgbaAstc6x6
+	TextureInputTypeCompressedRgbaAstc8x5
+	TextureInputTypeCompressedRgbaAstc8x6
+	TextureInputTypeCompressedRgbaAstc8x8
+	TextureInputTypeCompressedRgbaAstc10x5
+	TextureInputTypeCompressedRgbaAstc10x6
+	TextureInputTypeCompressedRgbaAstc10x8
+	TextureInputTypeCompressedRgbaAstc10x10
+	TextureInputTypeCompressedRgbaAstc12x10
+	TextureInputTypeCompressedRgbaAstc12x12
+	TextureInputTypeRgba8
+	TextureInputTypeRgb8
+	TextureInputTypeLuminance
+)
+type TextureMemType = int
+
+const (
+	TextureMemTypeUnsignedByte TextureMemType = iota
+)
+type Vertex struct {
+	Position     matrix.Vec3
+	Normal       matrix.Vec3
+	Tangent      matrix.Vec4
+	UV0          matrix.Vec2
+	Color        matrix.Color
+	JointIds     matrix.Vec4i
+	JointWeights matrix.Vec4
+	MorphTarget  matrix.Vec3
+}
+
+func MeshPlaneData() ([]Vertex, []uint32)
+
+func MeshQuadData() ([]Vertex, []uint32)
+
+type ViewCuller interface {
+	IsInView(box collision.AABB) bool
+	ViewChanged() bool
+}
+
