@@ -39,7 +39,6 @@ package rendering
 import (
 	"errors"
 
-	"kaijuengine.com/build"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
@@ -87,7 +86,7 @@ func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUA
 	if err := g.SetupLogicalDevice(g.primaryDeviceIndex); err != nil {
 		return err
 	}
-	g.SetupDebug()
+	g.FinalizeLogicalDeviceSetup()
 	device := g.PrimaryDevice()
 	if err := device.CreateSwapChain(window, g); err != nil {
 		return err
@@ -215,12 +214,10 @@ func (g *GPUApplicationInstance) SelectPhysicalDevice(method func(options []GPUP
 	return nil
 }
 
-func (g *GPUApplicationInstance) SetupDebug() {
-	if build.Debug {
-		for i := range g.Devices {
-			if g.Devices[i].LogicalDevice.IsValid() {
-				g.Devices[i].LogicalDevice.SetupDebug(g.PrimaryDevice())
-			}
+func (g *GPUApplicationInstance) FinalizeLogicalDeviceSetup() {
+	for i := range g.Devices {
+		if g.Devices[i].LogicalDevice.IsValid() {
+			g.Devices[i].LogicalDevice.SetupBufferDestroyer(g.PrimaryDevice())
 		}
 	}
 }

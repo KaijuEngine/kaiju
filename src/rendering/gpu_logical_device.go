@@ -95,8 +95,8 @@ func (g *GPULogicalDevice) WaitForFences(fences []GPUFence) {
 	g.waitForFencesImpl(fences)
 }
 
-func (g *GPULogicalDevice) SetupDebug(device *GPUDevice) {
-	defer tracing.NewRegion("GPULogicalDevice.SetupDebug").End()
+func (g *GPULogicalDevice) SetupBufferDestroyer(device *GPUDevice) {
+	defer tracing.NewRegion("GPULogicalDevice.SetupBufferDestroyer").End()
 	g.bufferTrash = newBufferDestroyer(device, &g.dbg)
 }
 
