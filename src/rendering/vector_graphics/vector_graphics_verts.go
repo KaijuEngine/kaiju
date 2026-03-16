@@ -6,6 +6,11 @@ import (
 )
 
 func PolygonToMesh(name string, points []matrix.Vec2) *rendering.Mesh {
+	verts, indices := PolygonToVertInfo(points)
+	return rendering.NewMesh(name, verts, indices)
+}
+
+func PolygonToVertInfo(points []matrix.Vec2) ([]rendering.Vertex, []uint32) {
 	verts := make([]rendering.Vertex, len(points))
 	for i := range points {
 		verts[i] = rendering.Vertex{
@@ -14,7 +19,7 @@ func PolygonToMesh(name string, points []matrix.Vec2) *rendering.Mesh {
 			Normal:   matrix.Vec3{0.0, 0.0, 1.0},
 		}
 	}
-	return rendering.NewMesh(name, verts, pointsToPolygonIndices(points))
+	return verts, pointsToPolygonIndices(points)
 }
 
 // pointsToPolygonIndices triangulates a polygon defined by a slice of 3D

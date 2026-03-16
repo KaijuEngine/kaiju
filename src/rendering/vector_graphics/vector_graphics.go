@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/vector_graphics/svg"
 )
 
@@ -113,17 +114,57 @@ func VectorGraphicFromSVG(svg svg.SVG) VectorGraphic {
 	return vg
 }
 
-// func (g *VectorGraphic) ToMesh() *rendering.Mesh {
-// 	for i := range g.Shapes {
-// 		switch s := g.Shapes[i].(type) {
-// 		case *LineSegment:
-// 		case *Circle:
-// 		case *Ellipse:
-// 		case *Rectangle:
-// 		case *Polygon:
-// 		}
-// 	}
-// }
+func (g *VectorGraphic) ToMesh(name string, polygonDensity int) *rendering.Mesh {
+	var allVerts [][]rendering.Vertex
+	var allIndices [][]uint32
+	for i := range g.Shapes {
+		switch s := g.Shapes[i].(type) {
+		case *LineSegment:
+			v, i := PolygonToVertInfo(s.ToPolygon())
+			allVerts = append(allVerts, v)
+			allIndices = append(allIndices, i)
+		case *Circle:
+			v, i := PolygonToVertInfo(s.ToPolygon(polygonDensity))
+			allVerts = append(allVerts, v)
+			allIndices = append(allIndices, i)
+		case *Ellipse:
+			v, i := PolygonToVertInfo(s.ToPolygon(polygonDensity))
+			allVerts = append(allVerts, v)
+			allIndices = append(allIndices, i)
+		case *Rectangle:
+			v, i := PolygonToVertInfo(s.ToPolygon())
+			allVerts = append(allVerts, v)
+			allIndices = append(allIndices, i)
+		case *Polygon:
+			v, i := PolygonToVertInfo(s.ToPolygon(polygonDensity))
+			allVerts = append(allVerts, v)
+			allIndices = append(allIndices, i)
+		}
+	}
+	vertCount := 0
+	indexCount := 0
+	for i := range allVerts {
+		vertCount += len(allVerts[i])
+	}
+	verts := make([]rendering.Vertex, 0, vertCount)
+	for i := range allIndices {
+		indexCount += len(allIndices[i])
+	}
+	scale := float32(1) / float32(200)
+	indices := make([]uint32, 0, indexCount)
+	for i := range allVerts {
+		offset := uint32(len(verts))
+		for j := range allIndices[i] {
+			indices = append(indices, allIndices[i][j]+offset)
+		}
+		for j := range allVerts[i] {
+			v := allVerts[i][j]
+			v.Position.ScaleAssign(scale)
+			verts = append(verts, v)
+		}
+	}
+	return rendering.NewMesh(name, verts, indices)
+}
 
 // Helper: parse a float from string, returning matrix.Float and success flag.
 func parseFloat(s string) (matrix.Float, bool) {

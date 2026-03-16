@@ -45,6 +45,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}/src",
+			"buildFlags": "-tags=debug",
 			"env": {
 				"CGO_ENABLED": "1",
 			}
