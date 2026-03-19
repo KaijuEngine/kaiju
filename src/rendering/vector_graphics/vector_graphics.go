@@ -124,7 +124,7 @@ func (g *VectorGraphic) ToMesh(name string, polygonDensity int) *rendering.Mesh 
 			allVerts = append(allVerts, v)
 			allIndices = append(allIndices, i)
 		case *Circle:
-			v, i := PolygonToVertInfo(s.ToPolygon(polygonDensity, true))
+			v, i := PolygonToVertInfo(s.ToPolygon(polygonDensity))
 			allVerts = append(allVerts, v)
 			allIndices = append(allIndices, i)
 		case *Ellipse:
