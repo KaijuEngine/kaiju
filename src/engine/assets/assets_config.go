@@ -69,6 +69,7 @@ const (
 	MaterialDefinitionLightCubeDepth      = "light_cube_depth.material"
 	MaterialDefinitionParticle            = "particle.material"
 	MaterialDefinitionParticleTransparent = "particle_transparent.material"
+	MaterialDefinitionVector              = "vector.material"
 
 	MaterialDefinitionEdTransformWire = "ed_transform_wire.material"
 	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire.material"
