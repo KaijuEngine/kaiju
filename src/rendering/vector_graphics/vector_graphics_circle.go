@@ -30,7 +30,7 @@ func (e *Circle) Animate(animType AnimatedValueType, value float64) {
 // ToPolygon generates a polygon approximating the circle.
 // If includeStroke is true, the polygon radius is expanded by half the stroke width,
 // effectively including the stroke in the mesh geometry.
-func (e *Circle) ToPolygon(density int, includeStroke bool) []matrix.Vec2 {
+func (e *Circle) ToPolygon(density int) []matrix.Vec2 {
 	// Ensure a minimum of three points to form a valid polygon.
 	if density < 3 {
 		density = 3
@@ -38,10 +38,6 @@ func (e *Circle) ToPolygon(density int, includeStroke bool) []matrix.Vec2 {
 	points := make([]matrix.Vec2, density)
 	// Determine effective radius, optionally expanding for stroke width.
 	effectiveRadius := e.Radius
-	if includeStroke {
-		// Stroke is centered on the shape edge; expand outward by half the width.
-		effectiveRadius = e.Radius + e.StrokeWidth/2
-	}
 	for i := 0; i < density; i++ {
 		// Angle around the circle (0 to 2π).
 		angle := matrix.Float(2 * math.Pi * float64(i) / float64(density))
