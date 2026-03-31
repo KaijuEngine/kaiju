@@ -146,7 +146,7 @@ func (cache *FontCache) TransparentMaterial(target *Material) *Material {
 	} else if target.SelectRoot() == cache.textOrthoMaterial.SelectRoot() {
 		return cache.textOrthoMaterialTransparent
 	} else if target.SelectRoot() == cache.textMaterialTransparent.SelectRoot() ||
-		target == cache.textOrthoMaterialTransparent.SelectRoot() {
+		target.SelectRoot() == cache.textOrthoMaterialTransparent.SelectRoot() {
 		return target
 	}
 	slog.Error("invalid material used for getting transparent text material", "material", target.Id)
