@@ -168,25 +168,25 @@ func ToKeyboardKey(nativeKey int) KeyboardKey {
 		return KeyboardKey8
 	case 0x0039:
 		return KeyboardKey9
-	case 0xFF9E, 0xFFB0: // KP_Insert / KP_0
+	case 0xFF9E, 0xFFB0:
 		return KeyboardNumKey0
-	case 0xFF9C, 0xFFB1: // KP_End / KP_1
+	case 0xFF9C, 0xFFB1:
 		return KeyboardNumKey1
-	case 0xFF99, 0xFFB2: // KP_Down / KP_2
+	case 0xFF99, 0xFFB2:
 		return KeyboardNumKey2
-	case 0xFF9B, 0xFFB3: // KP_Next / KP_3
+	case 0xFF9B, 0xFFB3:
 		return KeyboardNumKey3
-	case 0xFF96, 0xFFB4: // KP_Left / KP_4
+	case 0xFF96, 0xFFB4:
 		return KeyboardNumKey4
-	case 0xFF9D, 0xFFB5: // KP_Begin / KP_5
+	case 0xFF9D, 0xFFB5:
 		return KeyboardNumKey5
-	case 0xFF98, 0xFFB6: // KP_Right / KP_6
+	case 0xFF98, 0xFFB6:
 		return KeyboardNumKey6
-	case 0xFF95, 0xFFB7: // KP_Home / KP_7
+	case 0xFF95, 0xFFB7:
 		return KeyboardNumKey7
-	case 0xFF97, 0xFFB8: // KP_Up / KP_8
+	case 0xFF97, 0xFFB8:
 		return KeyboardNumKey8
-	case 0xFF9A, 0xFFB9: // KP_Prior / KP_9
+	case 0xFF9A, 0xFFB9:
 		return KeyboardNumKey9
 	case 0xFFAA:
 		return KeyboardNumKeyMultiply
@@ -194,7 +194,7 @@ func ToKeyboardKey(nativeKey int) KeyboardKey {
 		return KeyboardNumKeyAdd
 	case 0xFFAD:
 		return KeyboardNumKeySubtract
-	case 0xFFAE, 0xFF9F: // KP_Decimal / KP_Delete
+	case 0xFFAE, 0xFF9F:
 		return KeyboardNumKeyPeriod
 	case 0xFFAF:
 		return KeyboardNumKeyDivide
