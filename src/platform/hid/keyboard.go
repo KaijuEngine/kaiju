@@ -411,25 +411,45 @@ func (k *Keyboard) KeyToRune(key KeyboardKey) rune {
 	case KeyboardKey9:
 		c = "9"
 	case KeyboardNumKey0:
-		c = "0"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "0"
+		}
 	case KeyboardNumKey1:
-		c = "1"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "1"
+		}
 	case KeyboardNumKey2:
-		c = "2"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "2"
+		}
 	case KeyboardNumKey3:
-		c = "3"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "3"
+		}
 	case KeyboardNumKey4:
-		c = "4"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "4"
+		}
 	case KeyboardNumKey5:
-		c = "5"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "5"
+		}
 	case KeyboardNumKey6:
-		c = "6"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "6"
+		}
 	case KeyboardNumKey7:
-		c = "7"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "7"
+		}
 	case KeyboardNumKey8:
-		c = "8"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "8"
+		}
 	case KeyboardNumKey9:
-		c = "9"
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "9"
+		}
 	case KeyboardNumKeyMultiply:
 		c = "*"
 	case KeyboardNumKeyAdd:
@@ -437,7 +457,9 @@ func (k *Keyboard) KeyToRune(key KeyboardKey) rune {
 	case KeyboardNumKeySubtract:
 		c = "-"
 	case KeyboardNumKeyPeriod:
-		c = "."
+		if k.IsToggleKeyOn(KeyboardKeyNumLock) {
+			c = "."
+		}
 	case KeyboardNumKeyDivide:
 		c = "/"
 	default:
