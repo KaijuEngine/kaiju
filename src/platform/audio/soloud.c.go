@@ -39,7 +39,8 @@ package audio
 /*
 #cgo windows LDFLAGS: -L../../libs -lsoloud_win32 -lstdc++ -lwinmm -lole32 -luuid
 #cgo android LDFLAGS: -L../../libs -lsoloud_android
-#cgo linux,!android LDFLAGS: -L../../libs -lsoloud_nix -lasound -lstdc++
+#cgo linux,!android,amd64 LDFLAGS: -L../../libs -lsoloud_nix_amd64 -lasound -lstdc++
+#cgo linux,!android,riscv64 LDFLAGS: -L../../libs -lsoloud_nix_riscv64 -lasound -lstdc++
 #cgo darwin,!ios,arm64 LDFLAGS: -L../../libs -lsoloud_darwin_arm64 -lstdc++ -framework AudioToolbox -framework CoreAudio
 #cgo darwin,!ios,amd64 LDFLAGS: -L../../libs -lsoloud_darwin_amd64 -lstdc++ -framework AudioToolbox -framework CoreAudio
 #include <stdlib.h>
