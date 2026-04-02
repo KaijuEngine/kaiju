@@ -185,6 +185,8 @@ func (w *Window) screenSizeMM() (int, int, error) {
 		nil
 }
 
+func (w *Window) invalidateMonitorCache() {}
+
 func (w *Window) dotsPerMillimeter() float64 {
 	if w.instance == nil {
 		return 0

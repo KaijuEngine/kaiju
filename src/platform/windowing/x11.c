@@ -376,18 +376,7 @@ void window_focus(void* state) {
 	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
 }
 
-typedef struct {
-	float dpmm;
-	int mm_width;
-	int mm_height;
-	int px_width;
-	int px_height;
-	int x;
-	int y;
-	int found;
-} MonitorInfo;
-
-static MonitorInfo find_monitor_info(Display* d, Window w) {
+static MonitorInfo query_monitor_info(Display* d, Window w) {
 	MonitorInfo info = {0};
 	XWindowAttributes attrs;
 	XGetWindowAttributes(d, w, &attrs);
@@ -427,9 +416,23 @@ static MonitorInfo find_monitor_info(Display* d, Window w) {
 	return info;
 }
 
+static MonitorInfo find_monitor_info(X11State* s) {
+	if (!s->monitorCacheDirty && s->monitorCache.found) {
+		return s->monitorCache;
+	}
+	s->monitorCache = query_monitor_info(s->d, s->w);
+	s->monitorCacheDirty = 0;
+	return s->monitorCache;
+}
+
+void window_invalidate_monitor_cache(void* state) {
+	X11State* s = state;
+	s->monitorCacheDirty = 1;
+}
+
 int window_width_mm(void* state) {
 	X11State* s = state;
-	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	MonitorInfo mi = find_monitor_info(s);
 	if (mi.found) return mi.mm_width;
 	int sid = DefaultScreen(s->d);
 	return XDisplayWidthMM(s->d, sid);
@@ -437,7 +440,7 @@ int window_width_mm(void* state) {
 
 int window_height_mm(void* state) {
 	X11State* s = state;
-	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	MonitorInfo mi = find_monitor_info(s);
 	if (mi.found) return mi.mm_height;
 	int sid = DefaultScreen(s->d);
 	return XDisplayHeightMM(s->d, sid);
@@ -510,7 +513,7 @@ void window_set_cursor_position(void* state, int x, int y) {
 
 float window_dpi(void* state) {
 	X11State* s = state;
-	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	MonitorInfo mi = find_monitor_info(s);
 	if (mi.found) return mi.dpmm;
 	int screen = XDefaultScreen(s->d);
 	return (float)DisplayWidth(s->d, screen) / (float)DisplayWidthMM(s->d, screen);
@@ -533,7 +536,7 @@ void window_set_full_screen(void* state) {
 	s->sm.savedState.borderWidth = attrs.border_width;
 	s->sm.savedState.overrideRedirect = attrs.override_redirect;
 	int fx, fy, fw, fh;
-	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	MonitorInfo mi = find_monitor_info(s);
 	if (mi.found) {
 		fx = mi.x;
 		fy = mi.y;

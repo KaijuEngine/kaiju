@@ -68,6 +68,7 @@ package windowing
 #cgo noescape window_unlock_cursor
 #cgo noescape window_set_cursor_position
 #cgo noescape window_set_icon
+#cgo noescape window_invalidate_monitor_cache
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -153,7 +154,7 @@ func (w *Window) clipboardContents() string {
 }
 
 func (w *Window) sizeMM() (int, int, error) {
-	dpmm := w.dotsPerMillimeter()
+	dpmm := float64(C.window_dpi(w.handle))
 	if dpmm <= 0 {
 		return 0, 0, errors.New("invalid dpmm")
 	}
@@ -186,6 +187,10 @@ func (w *Window) showCursor() {
 
 func (w *Window) hideCursor() {
 	C.window_hide_cursor(w.handle)
+}
+
+func (w *Window) invalidateMonitorCache() {
+	C.window_invalidate_monitor_cache(w.handle)
 }
 
 func (w *Window) dotsPerMillimeter() float64 {

@@ -452,6 +452,7 @@ func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
 	w.right = w.x + ww
 	w.bottom = w.y + wh
 	w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM = 0, 0
+	w.invalidateMonitorCache()
 	w.OnMove.Execute()
 }
 
