@@ -49,6 +49,7 @@
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/Xrandr.h>
 
 // Cursor docs
 // https://tronche.com/gui/x/xlib/appendix/b/
@@ -375,14 +376,69 @@ void window_focus(void* state) {
 	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
 }
 
+typedef struct {
+	float dpmm;
+	int mm_width;
+	int mm_height;
+	int px_width;
+	int px_height;
+	int x;
+	int y;
+	int found;
+} MonitorInfo;
+
+static MonitorInfo find_monitor_info(Display* d, Window w) {
+	MonitorInfo info = {0};
+	XWindowAttributes attrs;
+	XGetWindowAttributes(d, w, &attrs);
+	int wx = 0, wy = 0;
+	Window child;
+	XTranslateCoordinates(d, w, DefaultRootWindow(d), 0, 0, &wx, &wy, &child);
+	int wcx = wx + attrs.width / 2;
+	int wcy = wy + attrs.height / 2;
+	XRRScreenResources* sr = XRRGetScreenResourcesCurrent(d, DefaultRootWindow(d));
+	if (!sr) return info;
+	for (int i = 0; i < sr->ncrtc; i++) {
+		XRRCrtcInfo* ci = XRRGetCrtcInfo(d, sr, sr->crtcs[i]);
+		if (!ci || ci->width == 0 || ci->noutput == 0) {
+			if (ci) XRRFreeCrtcInfo(ci);
+			continue;
+		}
+		if (wcx >= ci->x && wcx < ci->x + (int)ci->width &&
+		    wcy >= ci->y && wcy < ci->y + (int)ci->height) {
+			XRROutputInfo* oi = XRRGetOutputInfo(d, sr, ci->outputs[0]);
+			if (oi && oi->mm_width > 0 && oi->mm_height > 0) {
+				info.dpmm = (float)ci->width / (float)oi->mm_width;
+				info.mm_width = (int)oi->mm_width;
+				info.mm_height = (int)oi->mm_height;
+				info.px_width = (int)ci->width;
+				info.px_height = (int)ci->height;
+				info.x = ci->x;
+				info.y = ci->y;
+				info.found = 1;
+			}
+			if (oi) XRRFreeOutputInfo(oi);
+			XRRFreeCrtcInfo(ci);
+			break;
+		}
+		XRRFreeCrtcInfo(ci);
+	}
+	XRRFreeScreenResources(sr);
+	return info;
+}
+
 int window_width_mm(void* state) {
 	X11State* s = state;
+	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	if (mi.found) return mi.mm_width;
 	int sid = DefaultScreen(s->d);
 	return XDisplayWidthMM(s->d, sid);
 }
 
 int window_height_mm(void* state) {
 	X11State* s = state;
+	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	if (mi.found) return mi.mm_height;
 	int sid = DefaultScreen(s->d);
 	return XDisplayHeightMM(s->d, sid);
 }
@@ -454,10 +510,10 @@ void window_set_cursor_position(void* state, int x, int y) {
 
 float window_dpi(void* state) {
 	X11State* s = state;
+	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	if (mi.found) return mi.dpmm;
 	int screen = XDefaultScreen(s->d);
-	int pixelWidth = DisplayWidth(s->d, screen);
-	int mmWidth = DisplayWidthMM(s->d, screen);
-	return pixelWidth / mmWidth;
+	return (float)DisplayWidth(s->d, screen) / (float)DisplayWidthMM(s->d, screen);
 }
 
 void window_set_title(void* state, const char* windowTitle) {
@@ -467,7 +523,6 @@ void window_set_title(void* state, const char* windowTitle) {
 
 void window_set_full_screen(void* state) {
 	X11State* s = state;
-	int screen = DefaultScreen(s->d);
 	XWindowAttributes attrs;
 	XGetWindowAttributes(s->d, s->w, &attrs);
 	s->sm.savedState.rect.left = attrs.x;
@@ -477,16 +532,28 @@ void window_set_full_screen(void* state) {
 	// TODO:  Save the border state
 	s->sm.savedState.borderWidth = attrs.border_width;
 	s->sm.savedState.overrideRedirect = attrs.override_redirect;
-	int screenWidth = DisplayWidth(s->d, screen);
-	int screenHeight = DisplayHeight(s->d, screen);
+	int fx, fy, fw, fh;
+	MonitorInfo mi = find_monitor_info(s->d, s->w);
+	if (mi.found) {
+		fx = mi.x;
+		fy = mi.y;
+		fw = mi.px_width;
+		fh = mi.px_height;
+	} else {
+		int screen = DefaultScreen(s->d);
+		fx = 0;
+		fy = 0;
+		fw = DisplayWidth(s->d, screen);
+		fh = DisplayHeight(s->d, screen);
+	}
 	XSetWindowAttributes attr = { 0 };
 	XChangeWindowAttributes(s->d, s->w, CWOverrideRedirect, &attr);
 	XSetWindowBorderWidth(s->d, s->w, 0);
 	XWindowChanges changes;
-	changes.x = 0;
-	changes.y = 0;
-	changes.width = screenWidth;
-	changes.height = screenHeight;
+	changes.x = fx;
+	changes.y = fy;
+	changes.width = fw;
+	changes.height = fh;
 	changes.border_width = 0;
 	unsigned int value_mask = CWX | CWY | CWWidth | CWHeight | CWBorderWidth;
 	XConfigureWindow(s->d, s->w, value_mask, &changes);

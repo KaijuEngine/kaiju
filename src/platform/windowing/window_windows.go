@@ -166,9 +166,11 @@ func (w *Window) dotsPerMillimeter() float64 {
 }
 
 func (w *Window) sizeMM() (int, int, error) {
-	dpi := float64(C.window_dpi(w.handle))
-	mm := dpi / 25.4
-	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
+	dpmm := w.dotsPerMillimeter()
+	if dpmm <= 0 {
+		return 0, 0, errors.New("invalid dpmm")
+	}
+	return int(float64(w.width) / dpmm), int(float64(w.height) / dpmm), nil
 }
 
 func (w *Window) screenSizeMM() (int, int, error) {

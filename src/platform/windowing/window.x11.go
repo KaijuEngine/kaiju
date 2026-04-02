@@ -40,7 +40,7 @@ package windowing
 
 /*
 #cgo CFLAGS: -I/usr/include
-#cgo LDFLAGS: -lX11 -lXcursor
+#cgo LDFLAGS: -lX11 -lXcursor -lXrandr
 #cgo noescape get_toggle_key_state
 #cgo noescape window_main
 #cgo noescape window_poll_controller
@@ -153,9 +153,11 @@ func (w *Window) clipboardContents() string {
 }
 
 func (w *Window) sizeMM() (int, int, error) {
-	width := C.window_width_mm(w.handle)
-	height := C.window_height_mm(w.handle)
-	return int(width), int(height), nil
+	dpmm := w.dotsPerMillimeter()
+	if dpmm <= 0 {
+		return 0, 0, errors.New("invalid dpmm")
+	}
+	return int(float64(w.width) / dpmm), int(float64(w.height) / dpmm), nil
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return C.window(w.handle) }
@@ -191,8 +193,7 @@ func (w *Window) dotsPerMillimeter() float64 {
 }
 
 func (w *Window) screenSizeMM() (int, int, error) {
-	mm := float64(C.window_dpi(w.handle))
-	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
+	return int(C.window_width_mm(w.handle)), int(C.window_height_mm(w.handle)), nil
 }
 
 func (w Window) setTitle(name string) {

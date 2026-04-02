@@ -39,6 +39,7 @@
 #define WINDOWING_X11_H
 
 #include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
 #include "shared_mem.h"
 
 typedef struct {
