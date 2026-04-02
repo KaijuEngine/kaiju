@@ -47,7 +47,6 @@ type Threads struct {
 	queue    *list.List
 	mutex    sync.Mutex
 	cond     *sync.Cond
-	wg       sync.WaitGroup
 	shutdown bool
 	count    int
 }
@@ -63,7 +62,6 @@ func (t *Threads) ThreadCount() int { return t.count }
 func (t *Threads) Start() {
 	defer tracing.NewRegion("Threads.Start").End()
 	t.count = runtime.NumCPU()
-	t.wg.Add(t.count)
 	for i := 0; i < t.count; i++ {
 		go t.work(i)
 	}
@@ -73,9 +71,11 @@ func (t *Threads) Stop() {
 	defer tracing.NewRegion("Threads.Stop").End()
 	t.mutex.Lock()
 	t.shutdown = true
-	t.mutex.Unlock()
 	t.cond.Broadcast()
-	t.wg.Wait()
+	for t.count > 0 {
+		t.cond.Wait()
+	}
+	t.mutex.Unlock()
 }
 
 func (t *Threads) AddWork(work []func(threadId int)) {
@@ -92,7 +92,12 @@ func (t *Threads) AddWork(work []func(threadId int)) {
 }
 
 func (t *Threads) work(id int) {
-	defer t.wg.Done()
+	defer func() {
+		t.mutex.Lock()
+		t.count--
+		t.cond.Broadcast()
+		t.mutex.Unlock()
+	}()
 	for {
 		t.mutex.Lock()
 		if t.shutdown {
