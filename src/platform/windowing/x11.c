@@ -549,6 +549,17 @@ void window_set_full_screen(void* state) {
 		fw = DisplayWidth(s->d, screen);
 		fh = DisplayHeight(s->d, screen);
 	}
+	XClientMessageEvent ev = { 0 };
+	ev.type = ClientMessage;
+	ev.window = s->w;
+	ev.message_type = XInternAtom(s->d, "_NET_WM_STATE", False);
+	ev.format = 32;
+	ev.data.l[0] = 1;
+	ev.data.l[1] = XInternAtom(s->d, "_NET_WM_STATE_FULLSCREEN", False);
+	ev.data.l[2] = 0;
+	ev.data.l[3] = 1;
+	XSendEvent(s->d, DefaultRootWindow(s->d), False,
+	           SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev);
 	XSetWindowAttributes attr = { 0 };
 	XChangeWindowAttributes(s->d, s->w, CWOverrideRedirect, &attr);
 	XSetWindowBorderWidth(s->d, s->w, 0);
