@@ -90,6 +90,7 @@ type Window struct {
 	windowSync               chan struct{}
 	syncRequest              bool
 	isClosed                 bool
+	isDestroyed              bool
 	isCrashed                bool
 	fatalFromNativeAPI       bool
 	resizedFromNativeAPI     bool
@@ -311,9 +312,10 @@ func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
 func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
-	if w.isClosed {
+	if w.isDestroyed {
 		return
 	}
+	w.isDestroyed = true
 	w.isClosed = true
 	w.removeFromActiveWindows()
 	w.GpuHost.Destroy()
