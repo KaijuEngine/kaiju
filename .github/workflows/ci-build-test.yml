@@ -347,25 +347,11 @@ jobs:
 
       - name: Run editor E2E test
         working-directory: .
-        env:
-          DISPLAY: ':99'
         run: |
-          # Start Xvfb (X Virtual Frame Buffer) for headless display
-          echo "Starting Xvfb..."
-          Xvfb :99 -screen 0 1920x1080x24 &
-          XVFB_PID=$!
-          echo "Xvfb PID: $XVFB_PID"
-
-          # Give Xvfb time to start and verify it's running
-          sleep 2
-          if ! kill -0 $XVFB_PID 2>/dev/null; then
-            echo "✗ Xvfb failed to start"
-            exit 1
-          fi
-
           # Run the editor with automated integration tests
           echo "Starting Kaiju Editor with automated tests..."
-          timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24 -ac" \
+            timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           # Exit code 0 means auto-test completed successfully
@@ -381,11 +367,7 @@ jobs:
             TEST_RESULT=1
           fi
 
-          # Cleanup
-          echo "Cleaning up..."
-          kill $XVFB_PID 2>/dev/null || true
           rm -rf autotestproject
-
           exit $TEST_RESULT
 
       - name: Upload build artifacts
@@ -514,25 +496,12 @@ jobs:
 
       - name: Run editor E2E test
         working-directory: .
-        env:
-          DISPLAY: ':99'
         run: |
-          # Start Xvfb
-          echo "Starting Xvfb..."
-          Xvfb :99 -screen 0 1920x1080x24 &
-          XVFB_PID=$!
-          echo "Xvfb PID: $XVFB_PID"
-
-          sleep 2
-          if ! kill -0 $XVFB_PID 2>/dev/null; then
-            echo "✗ Xvfb failed to start"
-            exit 1
-          fi
-
           # Run editor with automated tests
           echo "Starting Kaiju Editor with automated tests..."
           echo "GPU Profile: ${{ matrix.profile_name }}"
-          timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24 -ac" \
+            timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           if [ ${EXIT_CODE:-0} -eq 0 ]; then
@@ -546,11 +515,7 @@ jobs:
             TEST_RESULT=1
           fi
 
-          # Cleanup
-          echo "Cleaning up..."
-          kill $XVFB_PID 2>/dev/null || true
           rm -rf autotestproject
-
           exit $TEST_RESULT
 
       - name: Upload build artifacts
