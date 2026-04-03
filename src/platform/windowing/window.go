@@ -311,6 +311,9 @@ func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
 func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
+	if w.isClosed {
+		return
+	}
 	w.isClosed = true
 	w.removeFromActiveWindows()
 	w.GpuHost.Destroy()
