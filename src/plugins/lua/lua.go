@@ -67,15 +67,15 @@ package lua
 #cgo noescape luaL_newstate
 #cgo noescape lua_pushlightuserdata
 
+#cgo linux CFLAGS: -DLUA_USE_LINUX
 #cgo linux LDFLAGS: -lm -ldl
+#cgo darwin CFLAGS: -DLUA_USE_MACOSX
+#cgo windows CFLAGS: -DLUA_USE_WINDOWS
 
 #include <stdlib.h>
 #include <stdbool.h>
 
 #define LUA_USE_LONGJMP 1
-#if defined(__linux__)
-#define LUA_USE_LINUX 1
-#endif
 
 #include "lua.h"
 #include "lualib.h"
