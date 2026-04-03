@@ -786,7 +786,9 @@ void window_poll(void* hwnd) {
 
 void window_destroy(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	DestroyWindow(hwnd);
+	if (hwnd) {
+		DestroyWindow(hwnd);
+	}
 	free(sm);
 }
 
