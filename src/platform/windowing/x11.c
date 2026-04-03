@@ -360,7 +360,9 @@ void window_poll(void* x11State) {
 
 void window_destroy(void* x11State) {
 	X11State* s = x11State;
-	XDestroyWindow(s->d, s->w);
+	if (s->w) {
+		XDestroyWindow(s->d, s->w);
+	}
 	XCloseDisplay(s->d);
 	free(s);
 }
