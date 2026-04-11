@@ -1,0 +1,23 @@
+{
+  "window_width": 1280,
+  "window_height": 720,
+  "window_title": "FortressVision",
+  "fullscreen": false,
+  "target_fps": 60,
+  "dfhack_host": "localhost",
+  "dfhack_port": 5000,
+  "server_url": "ws://127.0.0.1:8080/ws",
+  "draw_distance": 10,
+  "view_levels": 5,
+  "mesher_threads": 4,
+  "fov": 60,
+  "draw_range_down": 5,
+  "draw_range_up": 1,
+  "draw_range_side": 4,
+  "camera_speed": 10,
+  "camera_sensitivity": 0.3,
+  "zoom_speed": 5,
+  "show_debug_info": true,
+  "show_grid": false,
+  "wireframe_mode": false
+}

@@ -46,6 +46,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
 func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
@@ -91,7 +92,10 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 		}
 		if color, err = matrix.ColorFromHexString(hex); err == nil {
 			if applyPanelColor || panel.Base().Type() == ui.ElementTypeImage {
+				tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+				panel.SetBackground(tex)
 				panel.SetColor(color)
+				panel.SetBGColor(color)
 			}
 			if panel.Base().IsType(ui.ElementTypeInput) {
 				panel.Base().ToInput().SetBGColor(color)

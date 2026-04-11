@@ -40,6 +40,7 @@ import (
 	"errors"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 	"strings"
@@ -63,7 +64,7 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 				offsetX += elm.Parent.Value().UI.Layout().Offset().X()
 			}
 		default:
-			val := values[0].Num
+			val := helpers.NumFromLength(values[0].Str, host.Window)
 			if strings.HasSuffix(values[0].Str, "%") {
 				l := panel.Base().Layout()
 				if l.Ui().Entity().IsRoot() {

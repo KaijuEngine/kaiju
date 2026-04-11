@@ -47,7 +47,10 @@ void main(void) {
     	processAxis(normUV.y, fragNineSliceEdgeLen.y / fragSize2D.w, fragSize2D.w / fragSize2D.y)
 	);
 	vec2 newUV = fragUvs.xy + scaledNormUV * fragUvs.zw;
-	vec4 unWeightedColor = texture(texSampler, newUV) * fragColor;
+	vec4 texColor = texture(texSampler, newUV);
+	// Lógica Premium de Cor de Fundo:
+	// Misturamos fragBGColor (fundo sólido) com (texColor * fragColor) baseado no alpha da textura.
+	vec4 unWeightedColor = mix(fragBGColor, texColor * fragColor, texColor.a);
 	// Border
 	{
 		vec2 dimensions = fragSize2D.xy;

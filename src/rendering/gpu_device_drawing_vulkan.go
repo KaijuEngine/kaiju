@@ -145,9 +145,17 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	cmd.Begin()
 	defer cmd.End()
 	g.Painter.forceQueueCommand(*cmd, false)
+	
 	frame := g.Painter.currentFrame
 	idxSF := g.Painter.imageIndex[frame]
 	swapChain := g.LogicalDevice.SwapChain
+
+	if img == nil {
+		g.TransitionImageLayout(&swapChain.Images[idxSF], GPUImageLayoutPresentSrc,
+			GPUImageAspectColorBit, GPUAccessTransferWriteBit, cmd)
+		return
+	}
+
 	g.TransitionImageLayout(&swapChain.Images[idxSF],
 		GPUImageLayoutTransferDstOptimal, GPUImageAspectColorBit,
 		GPUAccessTransferWriteBit, cmd)
@@ -370,6 +378,9 @@ func (g *GPUDevice) combineTargets() *TextureId {
 	cmd.Begin()
 	defer cmd.End()
 	g.Painter.forceQueueCommand(*cmd, false)
+	if len(g.Painter.combinedDrawings.renderPassGroups) == 0 {
+		return nil
+	}
 	// There is only one render pass in combined, so we can just grab the first one
 	draws := g.Painter.combinedDrawings.renderPassGroups[0].draws
 	for i := range draws[0].instanceGroups {
@@ -386,6 +397,11 @@ func (g *GPUDevice) combineTargets() *TextureId {
 
 func (g *GPUDevice) cleanupCombined(cmd *CommandRecorder) {
 	defer tracing.NewRegion("Vulkan.cleanupCombined").End()
+
+	if len(g.Painter.combinedDrawings.renderPassGroups) == 0 {
+		return
+	}
+
 	// There is only one render pass in combined, so we can just grab the first one
 	groups := g.Painter.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups
 	for i := range groups {

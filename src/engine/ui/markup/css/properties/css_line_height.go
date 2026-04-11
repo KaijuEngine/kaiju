@@ -46,15 +46,17 @@ import (
 )
 
 func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host) {
-	if elm.Stylizer.HasRule("line-height") {
+	if elm.Stylizer.HasRule("line-height") || elm.UI == nil {
 		return
 	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		height := helpers.NumFromLengthWithFont(size, host.Window,
-			host.FontCache().EMSize(lbl.FontFace()))
-		height = elm.Parent.Value().UI.Layout().PixelSize().Y() * height
-		lbl.SetLineHeight(height)
+		if lbl != nil {
+			size := helpers.NumFromLengthWithFont(size, host.Window,
+				host.FontCache().EMSize(lbl.FontFace()))
+			height := elm.Parent.Value().UI.Layout().PixelSize().Y() * size
+			lbl.SetLineHeight(height)
+		}
 	} else {
 		for _, child := range elm.Children {
 			setChildrenLineHeight(child, size, host)

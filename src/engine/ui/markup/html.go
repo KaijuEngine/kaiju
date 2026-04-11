@@ -41,6 +41,7 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css"
+	_ "kaijuengine.com/engine/ui/markup/css/properties"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 	"log/slog"

@@ -265,6 +265,9 @@ func (cache *FontCache) cachedMeshLetter(font fontBin, letter rune, isOrtho bool
 
 func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, meshCache *MeshCache) {
 	defer tracing.NewRegion("FontCache.createLetterMesh").End()
+	if font.cachedLetters == nil || font.cachedOrthoLetters == nil {
+		return
+	}
 	mat := cache.textMaterial
 	oMat := cache.textOrthoMaterial
 
@@ -307,12 +310,15 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
-	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
-	bin.texture.MipLevels = 1
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
+	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
+	if bin.texture == nil {
+		return false
+	}
+	bin.texture.MipLevels = 1
 	out, _ := adb.Read(face.string() + ".bin")
-	if bin.texture == nil || out == nil || len(out) == 0 {
+	if out == nil || len(out) == 0 {
 		return false
 	}
 	read := bytes.NewReader(out)
@@ -420,6 +426,10 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		} else {
 			material = cache.textOrthoMaterial
 		}
+	}
+	if material == nil {
+		slog.Error("FontCache.RenderMeshes: material de texto nulo", "transparência", fgColor.A() < 1 || bgColor.A() < 1, "is3D", is3D)
+		return nil
 	}
 	// Iterate through all characters
 	runes := []rune(text)
@@ -548,6 +558,9 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 					Scissor:        matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax},
 				}
 				shaderData.SetModel(model)
+				if material == nil || fontFace.texture == nil {
+					continue
+				}
 				drawing := Drawing{
 					Material:   material.CreateInstance([]*Texture{fontFace.texture}),
 					Mesh:       m,

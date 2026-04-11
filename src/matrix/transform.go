@@ -78,6 +78,9 @@ func (t *Transform) setup() {
 }
 
 func (t *Transform) Initialize(workGroup *concurrent.WorkGroup) {
+	if t == nil {
+		return
+	}
 	defer tracing.NewRegion("matrix.Initialize").End()
 	t.workGroup = workGroup
 	t.setup()

@@ -612,12 +612,17 @@ func (p *Panel) UnEnforceColor() {
 
 func (p *Panel) Color() matrix.Color { return p.shaderData.FgColor }
 
-func (p *Panel) SetColor(bgColor matrix.Color) {
+func (p *Panel) SetColor(color matrix.Color) {
 	if p.HasEnforcedColor() {
-		p.PanelData().enforcedColorStack[0] = bgColor
+		p.PanelData().enforcedColorStack[0] = color
 		return
 	}
-	p.setColorInternal(bgColor)
+	p.setColorInternal(color)
+}
+
+func (p *Panel) SetBGColor(color matrix.Color) {
+	p.shaderData.BgColor = color
+	p.Base().SetDirty(DirtyTypeColorChange)
 }
 
 func (p *Panel) SetScrollX(value float32) {

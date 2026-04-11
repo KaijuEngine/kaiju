@@ -46,14 +46,16 @@ import (
 )
 
 func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) {
-	if elm.Stylizer.HasRule("font-size") {
+	if elm.Stylizer.HasRule("font-size") || elm.UI == nil {
 		return
 	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		size := helpers.NumFromLengthWithFont(size, host.Window,
-			host.FontCache().EMSize(lbl.FontFace()))
-		lbl.SetFontSize(size)
+		if lbl != nil {
+			size := helpers.NumFromLengthWithFont(size, host.Window,
+				host.FontCache().EMSize(lbl.FontFace()))
+			lbl.SetFontSize(size)
+		}
 	} else {
 		for _, child := range elm.Children {
 			setChildrenFontSize(child, size, host)

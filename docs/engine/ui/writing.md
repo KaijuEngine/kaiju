@@ -73,3 +73,35 @@ doc, err := markup.DocumentFromHTMLAsset(host, "ui/tests/binding.html", data, ni
 ```
 
 This will load up the HTML document and any of the CSS it references and build out your UI. The returned `doc` will contain the document and all the elements/panels/labels. This UI is immediately loaded into the `host` so you don't need to worry about doing that yourself. *The last argument is a funcmap used for inline template functions*
+## Dynamic UI Updates (Go Interoperability)
+While HTML/CSS provides the initial structural foundation and styling (the canvas initial geometric bounding box), you will commonly need to update the UI dynamically during runtime from your game's Go logic (e.g., updating a timer, health bar, or coordinate tracker).
+
+### 1. Element Hierarchy (Panel vs Label)
+When declaring a simple markup with text in HTML:
+`html
+<div id="fps-val">FPS: --</div>
+`
+The parsing engine instantiates a ui.UIPanel base structural wrapper, and creates an attached hierarchical child ui.UILabel for the string text logic. 
+To retrieve and modify properties dynamically in the Go loop:
+*   **Backgrounds & Solid Borders**: Are applied to the parent pane (element.UIPanel.SetBGColor(...)).
+*   **Text Strings & Typography Colors**: Are applied to the inner textual label (element.InnerLabel().SetText(...) or element.InnerLabel().SetColor(...)).
+
+### 2. Dirty Flags (Reactivity is NOT Automatic)
+Unlike standard web browsers, the Kaiju Engine does NOT automatically redraw the UI canvas frame when you modify an element's property via backend Go scripts. You **must explicitly** flag the element as "dirty" in your game or system's update loop to force the Vulkan render pipeline to redraw the updated geometry on the screen:
+`go
+if e, ok := doc.GetElementById("fps-val"); ok {
+    if lbl := e.InnerLabel(); lbl != nil {
+        lbl.SetText(fmt.Sprintf("FPS: %d", fps))
+    }
+    // Critical: Signal the renderer that this specific element layout has mutated!
+    e.UI.SetDirty(ui.DirtyTypeLayout) 
+}
+`
+
+### 3. Layout Control Pitfalls (The Invisible Canvas Bug)
+**Never strip foundational HTML positioning anchors in an attempt to control the Screen Layout purely via Go Transform functions.**
+
+The document parser deeply relies on CSS properties (position: absolute, 	op, ottom, ight, width, height) to anchor the UI primitives to the Screen Viewport properly. 
+
+If you declare empty/naked <div> tags in the HTML and attempt to explicitly align and mathematically scale them exclusively via Transform.SetLocalPosition(...) or manual offset matrices natively in Go, the engine's internal UI-Layout System will fight the DOM logic. This typically cascades in elements infinitely collapsing to coordinates (0,0), or losing their mesh dimension entirely, making your UI visually disappear from the screen logic.
+*   **Golden Rule**: HTML/CSS solely owns the global layout spatial anchors, responsivity bounds, and z-index ordering. Go owns dynamic text injection, loop data binding, and situational state-color updates.

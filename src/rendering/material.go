@@ -97,6 +97,10 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	defer tracing.NewRegion("Material.CreateInstance").End()
 	instanceKey := strings.Builder{}
 	for i := range textures {
+		if textures[i] == nil {
+			instanceKey.WriteString("nil;")
+			continue
+		}
 		instanceKey.WriteString(textures[i].Key)
 		instanceKey.WriteRune(';')
 	}

@@ -50,9 +50,14 @@ import (
 
 func setChildrenFontFace(elm *document.Element, face rendering.FontFace) {
 	defer tracing.NewRegion("properties.setChildrenFontFace").End()
+	if elm.UI == nil {
+		return
+	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		lbl.SetFontFace(face)
+		if lbl != nil {
+			lbl.SetFontFace(face)
+		}
 	} else if elm.UI.IsType(ui.ElementTypeInput) {
 		elm.UI.ToInput().SetFontFace(face)
 	} else {

@@ -78,6 +78,13 @@ kaiju/
 └── AGENTS.md              # This file
 ```
 
+## UI & Engine Interoperability Guidelines (CRITICAL)
+
+When creating or modifying User Interfaces (HUDs, Menus, Overlays) within Kaiju Engine, AI agents must strict adhere to the following axioms:
+1. **Always preserve HTML/CSS layout sovereignty.** The document parser (`markup.DocumentFromHTMLAsset`) uses the bounding boundaries defined in the CSS (`position`, `top`, `width`, `height`) to anchor UI meshes correctly to the screen canvas viewport. DO NOT strip structural styling from HTML placeholders to reconstruct bounding boxes exclusively via Go transforms (`Transform.SetLocalPosition`). Removing these HTML anchors will cause render meshes to collapse to `(0,0)` or visually disappear.
+2. **Mandatory Explicit Dirty Flags**: Kaiju UI rendering does not redraw structural changes automatically via setters in the loop. If you hook into an element via Go and modify its inner text (`label.SetText()`) or dynamic coloring, you MUST explicitly tell the GPU pipeline to redraw that interface by firing `element.UI.SetDirty(ui.DirtyTypeLayout)` before the frame ends.
+3. **Hierarchical Panels vs Labels Nature**: A standard block like `<div>Text</div>` implicitly generates a `UIPanel` wrapper hosting a pure `UILabel` child. Background colors must be painted strictly on the outer Panel (`UIPanel.SetBGColor`), while internal Font styling applies exclusively to the `InnerLabel()`. Mixing these commands results in UI rendering glitches.
+
 ## CRITICAL: Custom Math Library
 
 **DO NOT use external math libraries (e.g., gonum, mathgl).** The Kaiju Engine has a complete custom math library at `kaijuengine.com/matrix`.
