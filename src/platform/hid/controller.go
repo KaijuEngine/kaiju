@@ -42,13 +42,15 @@ import (
 	"kaijuengine.com/matrix"
 )
 
+type ControllerButton uint8
+
 // Based off XBOX controller
 const (
 	ControllerMaxDevices = 8
 )
 
 const (
-	ControllerButtonUp = iota
+	ControllerButtonUp ControllerButton = iota
 	ControllerButtonDown
 	ControllerButtonLeft
 	ControllerButtonRight
@@ -139,7 +141,7 @@ func (c *Controller) Disconnected(id int) {
 
 func (device *ControllerDevice) endUpdate() {
 	if device.id >= 0 {
-		for i := 0; i < ControllerButtonMax; i++ {
+		for i := ControllerButton(0); i < ControllerButtonMax; i++ {
 			switch device.buttons[i] {
 			case controllerButtonStateDown:
 				device.buttons[i] = controllerButtonStateHeld
@@ -161,7 +163,7 @@ func (c *Controller) EndUpdate() {
 
 // SetButtonDown sets the button down on the given controller. This is called
 // automatically by the system and should not be called by the end-developer
-func (c *Controller) SetButtonDown(id, button int) {
+func (c *Controller) SetButtonDown(id int, button ControllerButton) {
 	if c.devices[id].buttons[button] == controllerButtonStateIdle {
 		c.devices[id].buttons[button] = controllerButtonStateDown
 	}
@@ -169,7 +171,7 @@ func (c *Controller) SetButtonDown(id, button int) {
 
 // SetButtonUp sets the button up on the given controller. This is called
 // automatically by the system and should not be called by the end-developer
-func (c *Controller) SetButtonUp(id, button int) {
+func (c *Controller) SetButtonUp(id int, button ControllerButton) {
 	if c.devices[id].buttons[button] != controllerButtonStateIdle {
 		c.devices[id].buttons[button] = controllerButtonStateUp
 	}
@@ -207,7 +209,7 @@ func (c *Controller) IsButtonHeld(id, button int) bool {
 // Reset will completely wipe the state of all controllers
 func (c *Controller) Reset() {
 	for i := 0; i < ControllerMaxDevices; i++ {
-		for j := 0; j < ControllerButtonMax; j++ {
+		for j := ControllerButton(0); j < ControllerButtonMax; j++ {
 			if c.devices[i].buttons[j] == controllerButtonStateDown ||
 				c.devices[i].buttons[j] == controllerButtonStateHeld {
 				c.devices[i].buttons[j] = controllerButtonStateUp

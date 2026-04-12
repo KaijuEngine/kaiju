@@ -544,10 +544,14 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 	}
 	for i := 0; i < int(unsafe.Sizeof(evt.buttons)*8); i++ {
 		buttonId := evt.buttons & (1 << i)
+		btn, err := hid.ToControllerButton(i)
+		if err != nil {
+			continue
+		}
 		if buttonId != 0 {
-			w.Controller.SetButtonDown(int(evt.controllerId), i)
+			w.Controller.SetButtonDown(int(evt.controllerId), btn)
 		} else {
-			w.Controller.SetButtonUp(int(evt.controllerId), i)
+			w.Controller.SetButtonUp(int(evt.controllerId), btn)
 		}
 	}
 	id := int(evt.controllerId)

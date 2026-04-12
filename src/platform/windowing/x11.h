@@ -63,6 +63,8 @@ typedef struct {
 	char name[128];
 	uint8_t numAxes;
 	uint8_t numButtons;
+	uint16_t buttonState;
+	int16_t axisState[8];
 } ControllerInfo;
 
 typedef struct {

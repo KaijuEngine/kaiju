@@ -165,6 +165,10 @@ void window_main(const char* windowTitle,
 		if (fd >= 0) {
 			x11State->controllers[i].fd = fd;
 			x11State->controllers[i].connected = true;
+			x11State->controllers[i].buttonState = 0;
+			for (int axis = 0; axis < 8; axis++) {
+				x11State->controllers[i].axisState[axis] = 0;
+			}
 			// Get controller name via ioctl
 			if (ioctl(fd, JSIOCGNAME(sizeof(x11State->controllers[i].name)), x11State->controllers[i].name) < 0) {
 				strncpy(x11State->controllers[i].name, "Unknown Controller", sizeof(x11State->controllers[i].name) - 1);
@@ -208,6 +212,7 @@ static inline void lock_cursor_position(X11State* s) {
 // Linux joystick deadzone values (matching XInput)
 #define JOYSTICK_DEADZONE_AXIS 7849  // ~24% of 32768
 #define JOYSTICK_DEADZONE_TRIGGER 30  // ~12% of 255
+#define JOYSTICK_HAT_DEADZONE 16384   // half of full hat axis range
 
 static inline int16_t apply_axis_deadzone(int16_t value, int16_t deadzone) {
 	if (value < 0) {
@@ -258,6 +263,10 @@ void window_poll_controller(void* x11State) {
 		// Use select() to check if data is available first (non-blocking)
 		fd_set fdset;
 		struct timeval tv;
+		int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
+		uint8_t leftTrigger = 0, rightTrigger = 0;
+		uint16_t buttons = s->controllers[i].buttonState;
+		
 		while (true) {
 			FD_ZERO(&fdset);
 			FD_SET(s->controllers[i].fd, &fdset);
@@ -266,46 +275,36 @@ void window_poll_controller(void* x11State) {
 			int ready = select(s->controllers[i].fd + 1, &fdset, NULL, NULL, &tv);
 			if (ready <= 0) break;
 			int bytesRead = read(s->controllers[i].fd, &evt, sizeof(evt));
-			if (bytesRead <= 0) break;
-			// Process button and axis events to update internal state if needed
-			// For now we query absolute state via EVIOCGABS below
-		}
-		
-		// Query current state from the device using EVIOCGABS ioctl
-		// This gives us the current position of all axes without needing events
-		int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
-		uint8_t leftTrigger = 0, rightTrigger = 0;
-		uint16_t buttons = 0;
-		
-		// Read axes states via EVIOCGABS
-		struct input_absinfo absinfo;
-		for (int axis = 0; axis < s->controllers[i].numAxes && axis < 8; axis++) {
-			memset(&absinfo, 0, sizeof(absinfo));
-			if (ioctl(s->controllers[i].fd, EVIOCGABS(axis), &absinfo) == 0) {
-				int16_t value = (int16_t)absinfo.value;
-				switch (axis) {
-				case 0: thumbLX = apply_axis_deadzone(value, JOYSTICK_DEADZONE_AXIS); break;
-				case 1: thumbLY = apply_axis_deadzone(value, JOYSTICK_DEADZONE_AXIS); break;
-				case 2: thumbRX = apply_axis_deadzone(value, JOYSTICK_DEADZONE_AXIS); break;
-				case 3: thumbRY = apply_axis_deadzone(value, JOYSTICK_DEADZONE_AXIS); break;
-				case 4: leftTrigger = apply_trigger_deadzone((uint8_t)((value + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER); break;
-				case 5: rightTrigger = apply_trigger_deadzone((uint8_t)((value + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER); break;
+			if (bytesRead != sizeof(evt)) break;
+			unsigned char type = evt.type & ~JS_EVENT_INIT;
+			if (type == JS_EVENT_BUTTON && evt.number < 16) {
+				if (evt.value) {
+					s->controllers[i].buttonState |= (1u << evt.number);
+				} else {
+					s->controllers[i].buttonState &= ~(1u << evt.number);
 				}
+				buttons = s->controllers[i].buttonState;
+			} else if (type == JS_EVENT_AXIS && evt.number < 8) {
+				s->controllers[i].axisState[evt.number] = (int16_t)evt.value;
 			}
 		}
-		
-		// Read button states via EVIOCGBIT
-		unsigned char keyState[KEY_MAX / 8 + 1];
-		memset(keyState, 0, sizeof(keyState));
-		if (ioctl(s->controllers[i].fd, EVIOCGKEY(sizeof(keyState)), keyState) >= 0) {
-			// Standard gamepad button mapping (A=0, B=1, X=2, Y=3, etc.)
-			// Linux joystick buttons typically follow gamepad layout
-			for (int btn = 0; btn < s->controllers[i].numButtons && btn < 16; btn++) {
-				int keyByte = btn / 8;
-				int keyBit = btn % 8;
-				if (keyByte < (int)(sizeof(keyState)) && (keyState[keyByte] & (1 << keyBit))) {
-					buttons |= (1 << btn);
-				}
+
+		if (s->controllers[i].numAxes > 0) {
+			if (s->controllers[i].numAxes > 0) thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
+			if (s->controllers[i].numAxes > 1) thumbLY = apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
+			if (s->controllers[i].numAxes > 2) thumbRX = apply_axis_deadzone(s->controllers[i].axisState[2], JOYSTICK_DEADZONE_AXIS);
+			if (s->controllers[i].numAxes > 3) thumbRY = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
+			if (s->controllers[i].numAxes > 4) leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[4] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			if (s->controllers[i].numAxes > 5) rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			if (s->controllers[i].numAxes > 6) {
+				int16_t hatX = s->controllers[i].axisState[6];
+				if (hatX < -JOYSTICK_HAT_DEADZONE) buttons |= (1 << 2); // Left
+				if (hatX > JOYSTICK_HAT_DEADZONE) buttons |= (1 << 3);  // Right
+			}
+			if (s->controllers[i].numAxes > 7) {
+				int16_t hatY = s->controllers[i].axisState[7];
+				if (hatY < -JOYSTICK_HAT_DEADZONE) buttons |= (1 << 0); // Up
+				if (hatY > JOYSTICK_HAT_DEADZONE) buttons |= (1 << 1);  // Down
 			}
 		}
 		
