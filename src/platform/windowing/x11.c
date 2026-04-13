@@ -289,14 +289,8 @@ void window_poll_controller(void* x11State) {
 			}
 		}
 
-		// === FIX for d-pad: it is reported as axes (not buttons), so we must
-		//     clear the d-pad bits every poll and re-set them from the *current*
-		//     hat state. Otherwise the bits stick "on" forever after you release. ===
-		buttons = s->controllers[i].buttonState;          // start from real buttons
-		buttons &= ~((1u << 0) | (1u << 1) | (1u << 2) | (1u << 3));  // clear Up/Down/Left/Right
-
 		if (s->controllers[i].numAxes > 0) {
-			if (s->controllers[i].numAxes > 0) thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
+			thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
 			if (s->controllers[i].numAxes > 1) thumbLY = apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
 			if (s->controllers[i].numAxes > 2) thumbRX = apply_axis_deadzone(s->controllers[i].axisState[2], JOYSTICK_DEADZONE_AXIS);
 			if (s->controllers[i].numAxes > 3) thumbRY = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
@@ -304,13 +298,13 @@ void window_poll_controller(void* x11State) {
 			if (s->controllers[i].numAxes > 5) rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
 			if (s->controllers[i].numAxes > 6) {
 				int16_t hatX = s->controllers[i].axisState[6];
-				if (hatX < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 2); // Left
-				if (hatX > JOYSTICK_HAT_DEADZONE)  buttons |= (1u << 3); // Right
+				if (hatX < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 14); // D-Pad Left
+				if (hatX > JOYSTICK_HAT_DEADZONE)  buttons |= (1u << 15); // D-Pad Right
 			}
 			if (s->controllers[i].numAxes > 7) {
 				int16_t hatY = s->controllers[i].axisState[7];
-				if (hatY < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 0); // Up
-				if (hatY > JOYSTICK_HAT_DEADZONE)  buttons |= (1u << 1); // Down
+				if (hatY < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 12); // D-Pad Up
+				if (hatY > JOYSTICK_HAT_DEADZONE)  buttons |= (1u << 13); // D-Pad Down
 			}
 		}
 		
