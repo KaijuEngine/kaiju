@@ -245,6 +245,33 @@ void window_poll_controller(void* x11State) {
 				ioctl(fd, JSIOCGBUTTONS, &numButtons);
 				s->controllers[i].numAxes = numAxes;
 				s->controllers[i].numButtons = numButtons;
+				// Initialize state (this was the missing piece — analogs were garbage/old memory,
+				// deadzone turned everything to 0; triggers start released at -32768)
+				s->controllers[i].buttonState = 0;
+				if (numAxes >= 1) {
+					s->controllers[i].axisState[0] = 0;
+				}
+				if (numAxes >= 2) {
+					s->controllers[i].axisState[1] = 0;
+				}
+				if (numAxes >= 3) {
+					s->controllers[i].axisState[2] = 0;
+				}
+				if (numAxes >= 4) {
+					s->controllers[i].axisState[3] = 0;
+				}
+				if (numAxes >= 5) {
+					s->controllers[i].axisState[4] = -32768; // left trigger released
+				}
+				if (numAxes >= 6) {
+					s->controllers[i].axisState[5] = -32768; // right trigger released
+				}
+				if (numAxes >= 7) {
+					s->controllers[i].axisState[6] = 0;     // hat X
+				}
+				if (numAxes >= 8) {
+					s->controllers[i].axisState[7] = 0;     // hat Y
+				}
 				// Flush any initialization events from the device
 				while (read(fd, &evt, sizeof(evt)) > 0) { /* flush */ }
 				shared_mem_add_event(&s->sm, (WindowEvent) {
@@ -258,7 +285,6 @@ void window_poll_controller(void* x11State) {
 			continue;
 		}
 		// Read all available events for this controller to keep state current
-		// Use select() to check if data is available first (non-blocking)
 		fd_set fdset;
 		struct timeval tv;
 		int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
@@ -285,7 +311,6 @@ void window_poll_controller(void* x11State) {
 				s->controllers[i].axisState[evt.number] = (int16_t)evt.value;
 			}
 		}
-
 		if (s->controllers[i].numAxes > 0) {
 			thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
 			if (s->controllers[i].numAxes > 1) {
@@ -308,7 +333,7 @@ void window_poll_controller(void* x11State) {
 				if (hatX < -JOYSTICK_HAT_DEADZONE) {
 					buttons |= (1u << 14); // D-Pad Left
 				}
-				if (hatX > JOYSTICK_HAT_DEADZONE) {
+				if (hatX > JOYSTICK_HAT_DEADZONE)  {
 					buttons |= (1u << 15); // D-Pad Right
 				}
 			}
