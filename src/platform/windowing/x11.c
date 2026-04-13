@@ -314,16 +314,16 @@ void window_poll_controller(void* x11State) {
 		if (s->controllers[i].numAxes > 0) {
 			thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
 			if (s->controllers[i].numAxes > 1) {
-				thumbLY = apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
+				thumbLY = -apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
 			}
 			if (s->controllers[i].numAxes > 2) {
-				thumbRX = apply_axis_deadzone(s->controllers[i].axisState[2], JOYSTICK_DEADZONE_AXIS);
+				leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[2] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
 			}
 			if (s->controllers[i].numAxes > 3) {
-				thumbRY = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
+				thumbRX = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
 			}
 			if (s->controllers[i].numAxes > 4) {
-				leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[4] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+				thumbRY = -apply_axis_deadzone(s->controllers[i].axisState[4], JOYSTICK_DEADZONE_AXIS);
 			}
 			if (s->controllers[i].numAxes > 5) {
 				rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
