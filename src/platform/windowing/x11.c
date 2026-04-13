@@ -231,7 +231,6 @@ static inline uint8_t apply_trigger_deadzone(uint8_t value, uint8_t deadzone) {
 void window_poll_controller(void* x11State) {
 	X11State* s = x11State;
 	struct js_event evt;
-	
 	for (int i = 0; i < MAX_CONTROLLERS; i++) {
 		if (!s->controllers[i].connected || s->controllers[i].fd < 0) {
 			// Try to reconnect
@@ -258,7 +257,6 @@ void window_poll_controller(void* x11State) {
 			}
 			continue;
 		}
-		
 		// Read all available events for this controller to keep state current
 		// Use select() to check if data is available first (non-blocking)
 		fd_set fdset;
@@ -266,7 +264,6 @@ void window_poll_controller(void* x11State) {
 		int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
 		uint8_t leftTrigger = 0, rightTrigger = 0;
 		uint16_t buttons = s->controllers[i].buttonState;
-		
 		while (true) {
 			FD_ZERO(&fdset);
 			FD_SET(s->controllers[i].fd, &fdset);
@@ -291,23 +288,40 @@ void window_poll_controller(void* x11State) {
 
 		if (s->controllers[i].numAxes > 0) {
 			thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 1) thumbLY = apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 2) thumbRX = apply_axis_deadzone(s->controllers[i].axisState[2], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 3) thumbRY = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 4) leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[4] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
-			if (s->controllers[i].numAxes > 5) rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			if (s->controllers[i].numAxes > 1) {
+				thumbLY = apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
+			}
+			if (s->controllers[i].numAxes > 2) {
+				thumbRX = apply_axis_deadzone(s->controllers[i].axisState[2], JOYSTICK_DEADZONE_AXIS);
+			}
+			if (s->controllers[i].numAxes > 3) {
+				thumbRY = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
+			}
+			if (s->controllers[i].numAxes > 4) {
+				leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[4] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			}
+			if (s->controllers[i].numAxes > 5) {
+				rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			}
 			if (s->controllers[i].numAxes > 6) {
 				int16_t hatX = s->controllers[i].axisState[6];
-				if (hatX < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 14); // D-Pad Left
-				if (hatX > JOYSTICK_HAT_DEADZONE)  buttons |= (1u << 15); // D-Pad Right
+				if (hatX < -JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 14); // D-Pad Left
+				}
+				if (hatX > JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 15); // D-Pad Right
+				}
 			}
 			if (s->controllers[i].numAxes > 7) {
 				int16_t hatY = s->controllers[i].axisState[7];
-				if (hatY < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 12); // D-Pad Up
-				if (hatY > JOYSTICK_HAT_DEADZONE)  buttons |= (1u << 13); // D-Pad Down
+				if (hatY < -JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 12); // D-Pad Up
+				}
+				if (hatY > JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 13); // D-Pad Down
+				}
 			}
 		}
-		
 		shared_mem_add_event(&s->sm, (WindowEvent) {
 			.type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
 			.controllerState = {

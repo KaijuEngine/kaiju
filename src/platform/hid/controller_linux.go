@@ -30,6 +30,14 @@ func ToControllerButton(nativeButton int) (ControllerButton, error) {
 		return ControllerButtonRightStick, nil
 	case 11:
 		return ControllerButtonEx2, nil
+	case 12:
+		return ControllerButtonUp, nil
+	case 13:
+		return ControllerButtonDown, nil
+	case 14:
+		return ControllerButtonLeft, nil
+	case 15:
+		return ControllerButtonRight, nil
 	default:
 		return 0, errors.New("invalid controller button")
 	}
