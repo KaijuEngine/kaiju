@@ -229,100 +229,109 @@ static inline uint8_t apply_trigger_deadzone(uint8_t value, uint8_t deadzone) {
 }
 
 void window_poll_controller(void* x11State) {
-	X11State* s = x11State;
-	struct js_event evt;
-	
-	for (int i = 0; i < MAX_CONTROLLERS; i++) {
-		if (!s->controllers[i].connected || s->controllers[i].fd < 0) {
-			// Try to reconnect
-			char devicePath[64];
-			snprintf(devicePath, sizeof(devicePath), "/dev/input/js%d", i);
-			int fd = open(devicePath, O_RDONLY | O_NONBLOCK);
-			if (fd >= 0) {
-				s->controllers[i].fd = fd;
-				s->controllers[i].connected = true;
-				uint8_t numAxes = 0, numButtons = 0;
-				ioctl(fd, JSIOCGAXES, &numAxes);
-				ioctl(fd, JSIOCGBUTTONS, &numButtons);
-				s->controllers[i].numAxes = numAxes;
-				s->controllers[i].numButtons = numButtons;
-				// Flush any initialization events from the device
-				while (read(fd, &evt, sizeof(evt)) > 0) { /* flush */ }
-				shared_mem_add_event(&s->sm, (WindowEvent) {
-					.type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
-					.controllerState = {
-						.controllerId = i,
-						.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED,
-					}
-				});
-			}
-			continue;
-		}
-		
-		// Read all available events for this controller to keep state current
-		// Use select() to check if data is available first (non-blocking)
-		fd_set fdset;
-		struct timeval tv;
-		int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
-		uint8_t leftTrigger = 0, rightTrigger = 0;
-		uint16_t buttons = s->controllers[i].buttonState;
-		
-		while (true) {
-			FD_ZERO(&fdset);
-			FD_SET(s->controllers[i].fd, &fdset);
-			tv.tv_sec = 0;
-			tv.tv_usec = 0;
-			int ready = select(s->controllers[i].fd + 1, &fdset, NULL, NULL, &tv);
-			if (ready <= 0) break;
-			int bytesRead = read(s->controllers[i].fd, &evt, sizeof(evt));
-			if (bytesRead != sizeof(evt)) break;
-			unsigned char type = evt.type & ~JS_EVENT_INIT;
-			if (type == JS_EVENT_BUTTON && evt.number < 16) {
-				if (evt.value) {
-					s->controllers[i].buttonState |= (1u << evt.number);
-				} else {
-					s->controllers[i].buttonState &= ~(1u << evt.number);
-				}
-				buttons = s->controllers[i].buttonState;
-			} else if (type == JS_EVENT_AXIS && evt.number < 8) {
-				s->controllers[i].axisState[evt.number] = (int16_t)evt.value;
-			}
-		}
+    X11State* s = x11State;
+    struct js_event evt;
 
-		if (s->controllers[i].numAxes > 0) {
-			if (s->controllers[i].numAxes > 0) thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 1) thumbLY = apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 2) thumbRX = apply_axis_deadzone(s->controllers[i].axisState[2], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 3) thumbRY = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
-			if (s->controllers[i].numAxes > 4) leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[4] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
-			if (s->controllers[i].numAxes > 5) rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
-			if (s->controllers[i].numAxes > 6) {
-				int16_t hatX = s->controllers[i].axisState[6];
-				if (hatX < -JOYSTICK_HAT_DEADZONE) buttons |= (1 << 2); // Left
-				if (hatX > JOYSTICK_HAT_DEADZONE) buttons |= (1 << 3);  // Right
-			}
-			if (s->controllers[i].numAxes > 7) {
-				int16_t hatY = s->controllers[i].axisState[7];
-				if (hatY < -JOYSTICK_HAT_DEADZONE) buttons |= (1 << 0); // Up
-				if (hatY > JOYSTICK_HAT_DEADZONE) buttons |= (1 << 1);  // Down
-			}
-		}
-		
-		shared_mem_add_event(&s->sm, (WindowEvent) {
-			.type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
-			.controllerState = {
-				.controllerId = i,
-				.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED,
-				.buttons = buttons,
-				.thumbLX = thumbLX,
-				.thumbLY = thumbLY,
-				.thumbRX = thumbRX,
-				.thumbRY = thumbRY,
-				.leftTrigger = leftTrigger,
-				.rightTrigger = rightTrigger,
-			}
-		});
-	}
+    for (int i = 0; i < MAX_CONTROLLERS; i++) {
+        Controller* ctrl = &s->controllers[i];  // shorter name
+
+        if (!ctrl->connected || ctrl->fd < 0) {
+            // Try to reconnect (hotplug)
+            char devicePath[64];
+            snprintf(devicePath, sizeof(devicePath), "/dev/input/js%d", i);
+            int fd = open(devicePath, O_RDONLY | O_NONBLOCK);
+            if (fd >= 0) {
+                ctrl->fd = fd;
+                ctrl->connected = true;
+                uint8_t numAxes = 0, numButtons = 0;
+                ioctl(fd, JSIOCGAXES, &numAxes);
+                ioctl(fd, JSIOCGBUTTONS, &numButtons);
+                ctrl->numAxes = numAxes;
+                ctrl->numButtons = numButtons;
+
+                // Flush any init events the kernel sends on open
+                while (read(fd, &evt, sizeof(evt)) > 0) { /* flush */ }
+
+                shared_mem_add_event(&s->sm, (WindowEvent) {
+                    .type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
+                    .controllerState = {
+                        .controllerId = i,
+                        .connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED,
+                    }
+                });
+            }
+            continue;
+        }
+
+        // === Read ALL pending events (standard non-blocking pattern) ===
+        while (true) {
+            ssize_t bytes = read(ctrl->fd, &evt, sizeof(evt));
+            if (bytes != sizeof(evt)) {
+                // No more data (EAGAIN) or error → break
+                break;
+            }
+
+            unsigned char type = evt.type & ~JS_EVENT_INIT;
+
+            if (type == JS_EVENT_BUTTON && evt.number < 16) {
+                if (evt.value)
+                    ctrl->buttonState |= (1u << evt.number);
+                else
+                    ctrl->buttonState &= ~(1u << evt.number);
+            } else if (type == JS_EVENT_AXIS && evt.number < ctrl->numAxes) {
+                ctrl->axisState[evt.number] = (int16_t)evt.value;
+            }
+        }
+
+        // === Build final state for this poll (coalesce everything) ===
+        int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
+        uint8_t leftTrigger = 0, rightTrigger = 0;
+        uint16_t buttons = ctrl->buttonState;  // real buttons only
+
+        if (ctrl->numAxes > 0) {
+            // Left stick (axis 0/1), Right stick (2/3)
+            if (ctrl->numAxes > 0) thumbLX = apply_axis_deadzone(ctrl->axisState[0], JOYSTICK_DEADZONE_AXIS);
+            if (ctrl->numAxes > 1) thumbLY = apply_axis_deadzone(ctrl->axisState[1], JOYSTICK_DEADZONE_AXIS); // ← often negate for "positive = up"
+            if (ctrl->numAxes > 2) thumbRX = apply_axis_deadzone(ctrl->axisState[2], JOYSTICK_DEADZONE_AXIS);
+            if (ctrl->numAxes > 3) thumbRY = apply_axis_deadzone(ctrl->axisState[3], JOYSTICK_DEADZONE_AXIS); // ← often negate
+
+            // Triggers (4/5 on Xbox-style pads)
+            if (ctrl->numAxes > 4)
+                leftTrigger = apply_trigger_deadzone((uint8_t)((ctrl->axisState[4] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+            if (ctrl->numAxes > 5)
+                rightTrigger = apply_trigger_deadzone((uint8_t)((ctrl->axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+
+            // D-pad = hat0X/hat0Y (axes 6/7 on almost all modern gamepads)
+            // Clear first — this is the key fix for reliable press/release
+            buttons &= ~0xFu;  // clear bits 0-3 (Up/Down/Left/Right)
+
+            if (ctrl->numAxes > 6) {
+                int16_t hatX = ctrl->axisState[6];
+                if (hatX < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 2); // Left
+                if (hatX >  JOYSTICK_HAT_DEADZONE) buttons |= (1u << 3); // Right
+            }
+            if (ctrl->numAxes > 7) {
+                int16_t hatY = ctrl->axisState[7];
+                if (hatY < -JOYSTICK_HAT_DEADZONE) buttons |= (1u << 0); // Up
+                if (hatY >  JOYSTICK_HAT_DEADZONE) buttons |= (1u << 1); // Down
+            }
+        }
+
+        shared_mem_add_event(&s->sm, (WindowEvent) {
+            .type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
+            .controllerState = {
+                .controllerId = i,
+                .connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED,
+                .buttons = buttons,
+                .thumbLX = thumbLX,
+                .thumbLY = thumbLY,
+                .thumbRX = thumbRX,
+                .thumbRY = thumbRY,
+                .leftTrigger = leftTrigger,
+                .rightTrigger = rightTrigger,
+            }
+        });
+    }
 }
 
 void window_poll(void* x11State) {
