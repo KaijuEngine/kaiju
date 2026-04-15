@@ -45,3 +45,4 @@ kaiju_android.so
 
 # Game generated files
 game_content/
+/.run/*.run.xml
