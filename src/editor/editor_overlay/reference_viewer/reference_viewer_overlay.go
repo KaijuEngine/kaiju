@@ -38,6 +38,8 @@ package reference_viewer
 
 import (
 	"fmt"
+	"log/slog"
+
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/systems/events"
@@ -45,7 +47,6 @@ import (
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/profiler/tracing"
-	"log/slog"
 )
 
 var existing *ReferenceViewer
@@ -63,28 +64,29 @@ func Show(host *engine.Host, project *project.Project, id string) (*ReferenceVie
 	if existing != nil {
 		existing.closeInternal(true)
 	}
-	o := &ReferenceViewer{}
-	o.uiMan.Init(host)
+	referenceViewer := &ReferenceViewer{}
+	referenceViewer.uiMan.Init(host)
 	var err error
-	o.doc, err = markup.DocumentFromHTMLAsset(&o.uiMan, "editor/ui/overlay/reference_viewer.go.html",
+	referenceViewer.doc, err = markup.DocumentFromHTMLAsset(&referenceViewer.uiMan, "editor/ui/overlay/reference_viewer.go.html",
 		nil, map[string]func(*document.Element){
-			"clickMiss": o.clickMiss,
+			"clickMiss": referenceViewer.clickMiss,
 		})
 	if err != nil {
-		return o, err
+		return referenceViewer, err
 	}
-	o.entryTemplate, _ = o.doc.GetElementById("entryTemplate")
-	o.entryTemplate.UI.Hide()
-	existing = o
+	referenceViewer.entryTemplate, _ = referenceViewer.doc.GetElementById("entryTemplate")
+	referenceViewer.entryTemplate.UI.Hide()
+	existing = referenceViewer
 	go func() {
-		if err := project.FindReferencesWithCallback(id, o.onFound); err != nil {
+		if err := project.FindReferencesWithCallback(id, referenceViewer.onFound); err != nil {
 			slog.Error("failed to find all references for content", "error", err)
 		}
-		if o == existing {
-			o.doc.GetElementsByClass("note")[0].UI.Hide()
+		if referenceViewer == existing {
+			referenceViewer.doc.GetElementsByClass("note")[0].UI.Hide()
+			referenceViewer.doc.GetElementsByClass("note-not-found")[0].UI.Show()
 		}
 	}()
-	return o, nil
+	return referenceViewer, nil
 }
 
 func (o *ReferenceViewer) onFound(newRef project.ContentReference) {
