@@ -41,14 +41,15 @@ import (
 	"encoding/json"
 	"io"
 	"io/fs"
-	"kaijuengine.com/editor/project/project_database/content_database"
-	"kaijuengine.com/editor/project/project_file_system"
-	"kaijuengine.com/engine/stages"
-	"kaijuengine.com/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type ContentReference struct {
@@ -65,6 +66,25 @@ func (p *Project) FindReferences(id string) ([]ContentReference, error) {
 		refs = append(refs, ref)
 	})
 	return refs, err
+}
+
+// FindAllReferencedContentFromCache Identifies and returns a list of content entries from the cache that are
+// referenced in the project and therefore filtering out unreferenced content.
+func (p *Project) FindAllReferencedContentFromCache(cachedContent []content_database.CachedContent) []content_database.CachedContent {
+	var referencedContent []content_database.CachedContent
+
+	slog.Info("shake off all unreferenced content")
+	for _, content := range cachedContent {
+		_ = p.FindReferencesWithCallback(content.Id(), func(reference ContentReference) {
+			referencedContent = append(referencedContent, content)
+		})
+	}
+	slog.Info("used project content",
+		"cached", len(cachedContent),
+		"referenced", len(referencedContent),
+	)
+
+	return referencedContent
 }
 
 func (p *Project) FindReferencesWithCallback(id string, onFound func(ref ContentReference)) error {

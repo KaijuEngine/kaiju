@@ -302,14 +302,15 @@ func (p *Project) Package(reader content_archive.FileReader) error {
 	// TODO:  Needs to use a reference graph to determine all of the content
 	// needed rather than just dumping all content in here
 	list := p.cacheDatabase.List()
-	files := make([]content_archive.SourceContent, 0, len(list))
-	for i := range list {
-		relPath := content_database.ToContentPath(list[i].Path)
+	allReferencedContent := p.FindAllReferencedContentFromCache(list)
+	files := make([]content_archive.SourceContent, 0, len(allReferencedContent))
+	for i := range allReferencedContent {
+		relPath := content_database.ToContentPath(allReferencedContent[i].Path)
 		sc := content_archive.SourceContent{
-			Key:      list[i].Id(),
+			Key:      allReferencedContent[i].Id(),
 			FullPath: filepath.Join(p.fileSystem.FullPath(relPath)),
 		}
-		if s, ok := p.contentSerializers[list[i].Config.Type]; ok {
+		if s, ok := p.contentSerializers[allReferencedContent[i].Config.Type]; ok {
 			sc.CustomSerializer = s
 		}
 		files = append(files, sc)
