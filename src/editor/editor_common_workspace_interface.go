@@ -90,10 +90,6 @@ func (ed *Editor) ShadingWorkspace() *shading_workspace.ShadingWorkspace {
 	return &ed.workspaces.shading
 }
 
-func (ed *Editor) HasReferences() {
-
-}
-
 func (ed *Editor) ShowReferences(id string) {
 	ed.BlurInterface()
 	o, _ := reference_viewer.Show(ed.host, &ed.project, id)
