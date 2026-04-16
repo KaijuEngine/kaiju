@@ -75,9 +75,10 @@ func (p *Project) FindAllReferencedContentFromCache(cachedContent []content_data
 
 	slog.Info("shake off all unreferenced content")
 	for _, content := range cachedContent {
-		_ = p.FindReferencesWithCallback(content.Id(), func(reference ContentReference) {
+		references, _ := p.FindReferences(content.Id())
+		if len(references) > 0 {
 			referencedContent = append(referencedContent, content)
-		})
+		}
 	}
 	slog.Info("used project content",
 		"cached", len(cachedContent),
