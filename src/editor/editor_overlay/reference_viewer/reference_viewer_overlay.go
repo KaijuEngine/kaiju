@@ -58,7 +58,7 @@ type ReferenceViewer struct {
 	OnClose       events.Event
 }
 
-func Show(host *engine.Host, project *project.Project, id string) (*ReferenceViewer, error) {
+func Show(host *engine.Host, p *project.Project, id string) (*ReferenceViewer, error) {
 	defer tracing.NewRegion("reference_viewer.Show").End()
 	// Only allow one context menu open at a time
 	if existing != nil {
@@ -74,18 +74,29 @@ func Show(host *engine.Host, project *project.Project, id string) (*ReferenceVie
 	if err != nil {
 		return referenceViewer, err
 	}
+
 	referenceViewer.entryTemplate, _ = referenceViewer.doc.GetElementById("entryTemplate")
 	referenceViewer.entryTemplate.UI.Hide()
 	existing = referenceViewer
+
 	go func() {
-		if err := project.FindReferencesWithCallback(id, referenceViewer.onFound); err != nil {
+		notFoundInfo := referenceViewer.doc.GetElementsByClass("not-found-info")[0]
+		notFoundInfo.UI.Hide()
+		searchInfo := referenceViewer.doc.GetElementsByClass("search-info")[0]
+
+		var hasReferences = false
+		if err := p.FindReferencesWithCallback(id, func(ref project.ContentReference) {
+			hasReferences = true
+			referenceViewer.onFound(ref)
+		}); err != nil {
 			slog.Error("failed to find all references for content", "error", err)
 		}
 		if referenceViewer == existing {
-			referenceViewer.doc.GetElementsByClass("note")[0].UI.Hide()
-			referenceViewer.doc.GetElementsByClass("note-not-found")[0].UI.Show()
+			searchInfo.UI.Hide()
 		}
+		notFoundInfo.UI.ShowToggle(!hasReferences)
 	}()
+
 	return referenceViewer, nil
 }
 

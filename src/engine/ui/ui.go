@@ -599,6 +599,15 @@ func (ui *UI) Show() {
 	ui.entity.Activate()
 }
 
+func (ui *UI) ShowToggle(show bool) {
+	defer tracing.NewRegion("UI.ShowToggle").End()
+	if show {
+		ui.entity.Activate()
+	} else {
+		ui.entity.Deactivate()
+	}
+}
+
 func (ui *UI) FindByName(name string) *UI {
 	defer tracing.NewRegion("UI.FindByName").End()
 	e := ui.entity.FindByName(name)
