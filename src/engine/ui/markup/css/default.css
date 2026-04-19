@@ -423,10 +423,10 @@ button:active, .button:active {
 	/* background-image: url("input_atlas.png");
 	background-position: 64px 0; */
 }
-button .primary, .button primary {
+button.primary, .button.primary {
 	background-color: #682A2D;
 }
-button .primary:hover, .button primary:hover {
+button.primary:hover, .button.primary:hover {
 	background-color: #881E1E;
 }
 /** Unconventional helpers **/
