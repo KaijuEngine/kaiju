@@ -71,9 +71,22 @@ func (Texture) ExtNames() []string { return []string{".png", ".jpg", ".jpeg", ".
 func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Texture.Import").End()
 	var decoder func(r io.Reader) (image.Image, error) = nil
+
 	switch strings.ToLower(filepath.Ext(src)) {
 	case ".png":
-		decoder = png.Decode
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return ProcessedImport{}, ImageImportError{err, "open"}
+		}
+
+		// The runtime texture loader already decodes PNG
+		// Avoid decoding and re-encoding
+		if _, err := png.DecodeConfig(bytes.NewReader(data)); err != nil {
+			return ProcessedImport{}, ImageImportError{err, "decode"}
+		}
+		return ProcessedImport{Variants: []ImportVariant{
+			{Name: fileNameNoExt(src), Data: data},
+		}}, nil
 	case ".jpg":
 		fallthrough
 	case ".jpeg":
