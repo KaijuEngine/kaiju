@@ -42,6 +42,7 @@ const testCSSNarrowTag = `.entry span { display: none; }`
 const testCSSNarrowClass = `.entry .wide { display: none; }`
 const testCSSCommaId = `#id1, #id2, #id3 { display: none; }`
 const testCSSInputText = `input[type="text"] { display: none; }`
+const testCSSUniversal = `* { display: none; }`
 const testCSSVarDeclare = `:root { --ed-menu-bar-height: 24px; }
 .test { height: var(--ed-menu-bar-height); }`
 const testCSSVarInCalc = `:root { --ed-menu-bar-height: 24px; }
@@ -151,6 +152,27 @@ func TestParseTextSubType(t *testing.T) {
 		t.FailNow()
 	}
 	if p[2].Name != "text" {
+		t.FailNow()
+	}
+}
+
+func TestParseUniversalSelector(t *testing.T) {
+	s := NewStyleSheet()
+	s.Parse(testCSSUniversal, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.FailNow()
+	}
+	if len(s.Groups[0].Selectors) != 1 {
+		t.FailNow()
+	}
+	if len(s.Groups[0].Selectors[0].Parts) != 1 {
+		t.FailNow()
+	}
+	p := s.Groups[0].Selectors[0].Parts[0]
+	if p.Name != "*" {
+		t.FailNow()
+	}
+	if p.SelectType != ReadingTag {
 		t.FailNow()
 	}
 }

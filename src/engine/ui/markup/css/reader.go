@@ -96,6 +96,13 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 			cssMap.add(elm.UI, applyRules)
 		}
 	case rules.ReadingTag:
+		if part.Name == "*" {
+			for _, elm := range doc.Elements {
+				cssMap.add(elm.UI, applyRules)
+			}
+			return
+		}
+
 		for _, elm := range doc.GetElementsByTagName(part.Name) {
 			cssMap.add(elm.UI, applyRules)
 		}
@@ -104,6 +111,7 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 
 func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
 	elms := make([]*document.Element, 0)
+
 	switch parts[0].SelectType {
 	case rules.ReadingId:
 		if elm, ok := doc.GetElementById(parts[0].Name); ok {
@@ -112,12 +120,18 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 	case rules.ReadingClass:
 		elms = append(elms, doc.GetElementsByClass(parts[0].Name)...)
 	case rules.ReadingTag:
-		elms = append(elms, doc.GetElementsByTagName(parts[0].Name)...)
+		if parts[0].Name == "*" {
+			elms = append(elms, doc.Elements...)
+		} else {
+			elms = append(elms, doc.GetElementsByTagName(parts[0].Name)...)
+		}
 	}
+
 	targets := make([]*document.Element, 0)
 	lastTargets := []*document.Element{}
 	for _, elm := range elms {
 		lastTargets = append(lastTargets, elm)
+
 	partsLoop:
 		for _, part := range parts[1:] {
 			switch part.SelectType {
@@ -133,6 +147,10 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 				}
 			case rules.ReadingTag:
 				tagged := doc.GetElementsByTagName(part.Name)
+				if part.Name == "*" {
+					tagged = doc.Elements
+				}
+
 				lastTargets = lastTargets[:0]
 				for _, t := range tagged {
 					if t.Parent.Value() == elm {
@@ -152,6 +170,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 			}
 		}
 	}
+
 	for _, target := range targets {
 		cssMap.add(target.UI, applyRules)
 	}
