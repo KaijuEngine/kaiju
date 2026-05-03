@@ -262,27 +262,18 @@ func (ui *UI) SetDirty(dirtyType DirtyType) {
 	ui.setDirtyInternal(dirtyType)
 }
 
-func (ui *UI) rootUI() *UI {
-	defer tracing.NewRegion("UI.rootUI").End()
-	root := &ui.entity
-	var rootUI *UI = FirstOnEntity(root)
-	for root.Parent != nil {
-		if pui := FirstOnEntity(root.Parent); pui != nil {
-			root = root.Parent
-			rootUI = pui
-		} else {
-			break
-		}
-	}
-	return rootUI
-}
-
 func (ui *UI) Clean() {
 	defer tracing.NewRegion("UI.Clean").End()
 	if ui.flags.dontClean() {
 		return
 	}
-	root := ui.rootUI()
+	// Clean only this element's subtree. Cross-element layout/scissor/render
+	// have no sibling dependencies — children read only their own layout and
+	// ancestor scissors, both of which are unchanged when cleaning a subtree.
+	// Callers that need a full-document clean should invoke Clean on the
+	// document root; the per-frame Manager.update path does exactly that via
+	// cleanIfNeeded on root UIs.
+	root := ui
 	tree := []*UI{root}
 	var createTree func(target *engine.Entity)
 	createTree = func(target *engine.Entity) {
@@ -545,23 +536,21 @@ func (ui *UI) layoutChanged(dirtyType DirtyType) {
 
 func (ui *UI) cleanIfNeeded() {
 	defer tracing.NewRegion("UI.cleanIfNeeded").End()
-	if ui.anyChildDirty() {
-		ui.Clean()
-	}
-}
-
-func (ui *UI) anyChildDirty() bool {
-	defer tracing.NewRegion("UI.anyChildDirty").End()
+	// Walk the tree top-down. At the first dirty element on each branch,
+	// Clean that subtree and stop descending into it (Clean already covers
+	// the descendants since dirty cascades downward via setDirtyInternal).
+	// Subtrees with no dirty elements are never touched, so an unrelated
+	// panel does not re-layout when a single sibling's data changes.
 	if ui.dirtyType != DirtyTypeNone {
-		return true
+		ui.Clean()
+		return
 	}
 	for i := range ui.entity.Children {
 		cui := FirstOnEntity(ui.entity.Children[i])
-		if cui != nil && cui.anyChildDirty() {
-			return true
+		if cui != nil {
+			cui.cleanIfNeeded()
 		}
 	}
-	return false
 }
 
 func (ui *UI) updateFromManager(deltaTime float64) {

@@ -729,7 +729,7 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.SetElementClassesWithoutApply(elm, classes...)
 	elm.UI.Layout().ClearStyles()
-	d.stylizer.ApplyStyles(d.style, d)
+	d.stylizer.ApplyStylesToElement(d.style, d, elm)
 }
 
 // ApplyStyles will go through and apply styles to all elements within the
@@ -738,13 +738,25 @@ func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 // styles of many elements at the same time, then apply styles after.
 func (d *Document) ApplyStyles() { d.stylizer.ApplyStyles(d.style, d) }
 
+// ApplyStylesToElement re-evaluates CSS only for `elm` and its descendants,
+// leaving the rest of the document untouched. Use this whenever a single
+// element's id/class/parent/structure changes; doc-wide ApplyStyles dirties
+// every element and forces the per-frame Clean to walk the whole tree.
+//
+// Caveat: the engine's selector matcher currently only supports descendant
+// composition (no `+` adjacent-sibling, no `~` general-sibling). If sibling
+// selectors are added later, this scope must widen accordingly.
+func (d *Document) ApplyStylesToElement(elm *Element) {
+	d.stylizer.ApplyStylesToElement(d.style, d, elm)
+}
+
 // DuplicateElement will create a duplicate of a given element, nesting it under
 // the same parent as the given element (at the end). If you wish to just
 // duplicate an element and use one of the Insert functions, then use
 // Element.Clone followed by an Insert function instead
 func (d *Document) DuplicateElement(elm *Element) *Element {
 	cpy := d.DuplicateElementWithoutApplyStyles(elm)
-	d.stylizer.ApplyStyles(d.style, d)
+	d.stylizer.ApplyStylesToElement(d.style, d, cpy)
 	return cpy
 }
 
@@ -788,17 +800,18 @@ func (d *Document) DuplicateElementToParent(elm, parent *Element) *Element {
 	}
 	d.appendElement(cpy)
 	d.ChangeElementParentWithoutApply(cpy, parent)
-	d.stylizer.ApplyStyles(d.style, d)
+	d.stylizer.ApplyStylesToElement(d.style, d, cpy)
 	return cpy
 }
 
 // DuplicateElementRepeat is the same as [DuplicateElement], but will duplicate
-// the element a specified number of times. This is an optimization to avoid
-// calling [ApplyStyles] on each duplicated element and instead call it at the
-// end, after all copies are created.
+// the element a specified number of times. Style application is scoped per
+// duplicate so the rest of the document is not dirtied.
 func (d *Document) DuplicateElementRepeat(elm *Element, count int) []*Element {
 	elms := d.DuplicateElementRepeatWithoutApplyStyles(elm, count)
-	d.stylizer.ApplyStyles(d.style, d)
+	for _, c := range elms {
+		d.stylizer.ApplyStylesToElement(d.style, d, c)
+	}
 	return elms
 }
 
@@ -808,7 +821,9 @@ func (d *Document) DuplicateElementRepeatWithoutApplyStyles(elm *Element, count 
 		elms[i] = elm.Clone(elm.Parent.Value())
 		d.appendElement(elms[i])
 	}
-	d.stylizer.ApplyStyles(d.style, d)
+	for _, c := range elms {
+		d.stylizer.ApplyStylesToElement(d.style, d, c)
+	}
 	return elms
 }
 
@@ -827,12 +842,12 @@ func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
 func (d *Document) SetElementId(elm *Element, id string) {
 	defer tracing.NewRegion("Document.SetElementId").End()
 	d.SetElementIdWithoutApplyStyles(elm, id)
-	d.ApplyStyles()
+	d.stylizer.ApplyStylesToElement(d.style, d, elm)
 }
 
 func (d *Document) ChangeElementParent(child, parent *Element) {
 	d.ChangeElementParentWithoutApply(child, parent)
-	d.ApplyStyles()
+	d.stylizer.ApplyStylesToElement(d.style, d, child)
 }
 
 func (d *Document) ChangeElementParentWithoutApply(child, parent *Element) {
@@ -944,5 +959,5 @@ func (d *Document) insertElementAt(elm *Element, parent *Element, index int) {
 	if !d.isElementInDocument(elm) {
 		d.appendElement(elm)
 	}
-	d.stylizer.ApplyStyles(d.style, d)
+	d.stylizer.ApplyStylesToElement(d.style, d, elm)
 }
