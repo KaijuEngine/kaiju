@@ -12,6 +12,9 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Claude
+.claude
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
