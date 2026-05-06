@@ -613,56 +613,56 @@ static bool build_option_controls(const char *options_utf8, dialog_option_contro
  * IFileDialogCustomize methods return HRESULTs; keep the first failure visible to Go.
  * Docs: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ifiledialogcustomize
  */
-static HRESULT add_option_controls(IFileDialogCustomize *pfdc, dialog_option_control_t *controls, int count) {
-	if (pfdc == NULL || controls == NULL || count == 0) {
+static HRESULT add_option_controls(IFileDialogCustomize *customize, dialog_option_control_t *controls, int count) {
+	if (customize == NULL || controls == NULL || count == 0) {
 		return S_OK;
 	}
 	for (int i = 0; i < count; i++) {
 		dialog_option_control_t *ctl = &controls[i];
 		if (ctl->is_checkbox) {
-			HRESULT hr = pfdc->lpVtbl->StartVisualGroup(pfdc, ctl->group_id, L"");
+			HRESULT hr = customize->lpVtbl->StartVisualGroup(customize, ctl->group_id, L"");
 			if (FAILED(hr)) return hr;
-			hr = pfdc->lpVtbl->AddCheckButton(pfdc, ctl->control_id, ctl->name, ctl->default_value ? TRUE : FALSE);
+			hr = customize->lpVtbl->AddCheckButton(customize, ctl->control_id, ctl->name, ctl->default_value ? TRUE : FALSE);
 			if (FAILED(hr)) {
-				pfdc->lpVtbl->EndVisualGroup(pfdc);
+				customize->lpVtbl->EndVisualGroup(customize);
 				return hr;
 			}
-			hr = pfdc->lpVtbl->SetControlState(pfdc, ctl->control_id, CDCS_VISIBLE | CDCS_ENABLED);
+			hr = customize->lpVtbl->SetControlState(customize, ctl->control_id, CDCS_VISIBLE | CDCS_ENABLED);
 			if (FAILED(hr)) {
-				pfdc->lpVtbl->EndVisualGroup(pfdc);
+				customize->lpVtbl->EndVisualGroup(customize);
 				return hr;
 			}
-			hr = pfdc->lpVtbl->EndVisualGroup(pfdc);
+			hr = customize->lpVtbl->EndVisualGroup(customize);
 			if (FAILED(hr)) return hr;
 		} else {
-			HRESULT hr = pfdc->lpVtbl->StartVisualGroup(pfdc, ctl->group_id, ctl->name);
+			HRESULT hr = customize->lpVtbl->StartVisualGroup(customize, ctl->group_id, ctl->name);
 			if (FAILED(hr)) return hr;
-			hr = pfdc->lpVtbl->AddComboBox(pfdc, ctl->control_id);
+			hr = customize->lpVtbl->AddComboBox(customize, ctl->control_id);
 			if (FAILED(hr)) {
-				pfdc->lpVtbl->EndVisualGroup(pfdc);
+				customize->lpVtbl->EndVisualGroup(customize);
 				return hr;
 			}
 			for (int j = 0; j < ctl->item_count; j++) {
-				hr = pfdc->lpVtbl->AddControlItem(pfdc, ctl->control_id, (DWORD)j, ctl->items[j]);
+				hr = customize->lpVtbl->AddControlItem(customize, ctl->control_id, (DWORD)j, ctl->items[j]);
 				if (FAILED(hr)) {
-					pfdc->lpVtbl->EndVisualGroup(pfdc);
+					customize->lpVtbl->EndVisualGroup(customize);
 					return hr;
 				}
 			}
 			int idx = ctl->default_value;
 			if (idx < 0) idx = 0;
 			if (idx >= ctl->item_count) idx = ctl->item_count - 1;
-			hr = pfdc->lpVtbl->SetSelectedControlItem(pfdc, ctl->control_id, (DWORD)idx);
+			hr = customize->lpVtbl->SetSelectedControlItem(customize, ctl->control_id, (DWORD)idx);
 			if (FAILED(hr)) {
-				pfdc->lpVtbl->EndVisualGroup(pfdc);
+				customize->lpVtbl->EndVisualGroup(customize);
 				return hr;
 			}
-			hr = pfdc->lpVtbl->SetControlState(pfdc, ctl->control_id, CDCS_VISIBLE | CDCS_ENABLED);
+			hr = customize->lpVtbl->SetControlState(customize, ctl->control_id, CDCS_VISIBLE | CDCS_ENABLED);
 			if (FAILED(hr)) {
-				pfdc->lpVtbl->EndVisualGroup(pfdc);
+				customize->lpVtbl->EndVisualGroup(customize);
 				return hr;
 			}
-			hr = pfdc->lpVtbl->EndVisualGroup(pfdc);
+			hr = customize->lpVtbl->EndVisualGroup(customize);
 			if (FAILED(hr)) return hr;
 		}
 	}
@@ -670,8 +670,8 @@ static HRESULT add_option_controls(IFileDialogCustomize *pfdc, dialog_option_con
 }
 
 /* serializes selections as "name|b|0/1" or "name|i|index", one control per line */
-static char *collect_selected_options_utf8(IFileDialogCustomize *pfdc, dialog_option_control_t *controls, int count) {
-	if (pfdc == NULL || controls == NULL || count == 0) {
+static char *collect_selected_options_utf8(IFileDialogCustomize *customize, dialog_option_control_t *controls, int count) {
+	if (customize == NULL || controls == NULL || count == 0) {
 		return NULL;
 	}
 	/* values are queried after Show() returns to capture final control state */
@@ -705,7 +705,7 @@ static char *collect_selected_options_utf8(IFileDialogCustomize *pfdc, dialog_op
 
 		if (ctl->is_checkbox) {
 			BOOL checked = FALSE;
-			if (FAILED(pfdc->lpVtbl->GetCheckButtonState(pfdc, ctl->control_id, &checked))) {
+			if (FAILED(customize->lpVtbl->GetCheckButtonState(customize, ctl->control_id, &checked))) {
 				checked = ctl->default_value ? TRUE : FALSE;
 			}
 			if (!append_text(&buf, &len, &cap, checked ? "b|1" : "b|0")) {
@@ -714,7 +714,7 @@ static char *collect_selected_options_utf8(IFileDialogCustomize *pfdc, dialog_op
 			}
 		} else {
 			DWORD selected = (DWORD)ctl->default_value;
-			if (FAILED(pfdc->lpVtbl->GetSelectedControlItem(pfdc, ctl->control_id, &selected))) {
+			if (FAILED(customize->lpVtbl->GetSelectedControlItem(customize, ctl->control_id, &selected))) {
 				selected = (DWORD)ctl->default_value;
 			}
 			char tmp[32];
@@ -760,14 +760,14 @@ static ULONG STDMETHODCALLTYPE dialog_event_release(IFileDialogEvents *This) {
 	return (ULONG)ref;
 }
 
-static HRESULT STDMETHODCALLTYPE dialog_event_on_file_ok(IFileDialogEvents *This, IFileDialog *pfd) {
+static HRESULT STDMETHODCALLTYPE dialog_event_on_file_ok(IFileDialogEvents *This, IFileDialog *dialog) {
 	(void)This;
-	(void)pfd;
+	(void)dialog;
 	return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE dialog_event_on_folder_changing(IFileDialogEvents *This, IFileDialog *pfd, IShellItem *psiFolder) {
-	(void)pfd;
+static HRESULT STDMETHODCALLTYPE dialog_event_on_folder_changing(IFileDialogEvents *This, IFileDialog *dialog, IShellItem *psiFolder) {
+	(void)dialog;
 	dialog_event_handler_t *self = (dialog_event_handler_t *)This;
 	if (self == NULL || self->root == NULL || self->root[0] == L'\0') {
 		return S_OK;
@@ -797,15 +797,15 @@ static HRESULT STDMETHODCALLTYPE dialog_event_on_folder_changing(IFileDialogEven
 	return ok ? S_OK : HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
 }
 
-static HRESULT STDMETHODCALLTYPE dialog_event_on_folder_change(IFileDialogEvents *This, IFileDialog *pfd) {
+static HRESULT STDMETHODCALLTYPE dialog_event_on_folder_change(IFileDialogEvents *This, IFileDialog *dialog) {
 	(void)This;
-	(void)pfd;
+	(void)dialog;
 	return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE dialog_event_on_selection_change(IFileDialogEvents *This, IFileDialog *pfd) {
+static HRESULT STDMETHODCALLTYPE dialog_event_on_selection_change(IFileDialogEvents *This, IFileDialog *dialog) {
 	(void)This;
-	(void)pfd;
+	(void)dialog;
 	return S_OK;
 }
 
@@ -813,9 +813,9 @@ static HRESULT STDMETHODCALLTYPE dialog_event_on_selection_change(IFileDialogEve
  * if the selected file is locked or in use, let the
  * Windows file dialog decide what message/action to show
  */
-static HRESULT STDMETHODCALLTYPE dialog_event_on_share_violation(IFileDialogEvents *This, IFileDialog *pfd, IShellItem *psi, FDE_SHAREVIOLATION_RESPONSE *pResponse) {
+static HRESULT STDMETHODCALLTYPE dialog_event_on_share_violation(IFileDialogEvents *This, IFileDialog *dialog, IShellItem *psi, FDE_SHAREVIOLATION_RESPONSE *pResponse) {
 	(void)This;
-	(void)pfd;
+	(void)dialog;
 	(void)psi;
 	/* windows is supposed to provide a valid pointer -> check anyway */
 	if (pResponse == NULL) {
@@ -827,15 +827,15 @@ static HRESULT STDMETHODCALLTYPE dialog_event_on_share_violation(IFileDialogEven
 	return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE dialog_event_on_type_change(IFileDialogEvents *This, IFileDialog *pfd) {
+static HRESULT STDMETHODCALLTYPE dialog_event_on_type_change(IFileDialogEvents *This, IFileDialog *dialog) {
 	(void)This;
-	(void)pfd;
+	(void)dialog;
 	return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE dialog_event_on_overwrite(IFileDialogEvents *This, IFileDialog *pfd, IShellItem *psi, FDE_OVERWRITE_RESPONSE *pResponse) {
+static HRESULT STDMETHODCALLTYPE dialog_event_on_overwrite(IFileDialogEvents *This, IFileDialog *dialog, IShellItem *psi, FDE_OVERWRITE_RESPONSE *pResponse) {
 	(void)This;
-	(void)pfd;
+	(void)dialog;
 	(void)psi;
 	/* Windows is supposed to provide a valid pointer -> check anyway */
 	if (pResponse == NULL) {
@@ -928,13 +928,13 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 		return res;
 	}
 
-	IFileDialog *pfd = NULL;
+	IFileDialog *dialog = NULL;
 	if (req->mode == DIALOG_MODE_SAVE_FILE) {
-		hr = CoCreateInstance(&CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, &IID_IFileSaveDialog, (void **)&pfd);
+		hr = CoCreateInstance(&CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, &IID_IFileSaveDialog, (void **)&dialog);
 	} else {
-		hr = CoCreateInstance(&CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, &IID_IFileOpenDialog, (void **)&pfd);
+		hr = CoCreateInstance(&CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, &IID_IFileOpenDialog, (void **)&dialog);
 	}
-	if (FAILED(hr) || pfd == NULL) {
+	if (FAILED(hr) || dialog == NULL) {
 		res.status = DIALOG_STATUS_ERROR;
 		res.hresult = (int)hr;
 		set_error_message(&res, "failed to create native file dialog");
@@ -962,7 +962,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	if (!build_filter_specs(req->filters_utf8, &filter_specs, &filter_count, &filter_names, &filter_patterns)) {
 		res.status = DIALOG_STATUS_ERROR;
 		set_error_message(&res, "failed to build dialog file filters");
-		pfd->lpVtbl->Release(pfd);
+		dialog->lpVtbl->Release(dialog);
 		if (title) free(title);
 		if (current_dir) free(current_dir);
 		if (filename) free(filename);
@@ -978,7 +978,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	if (!build_option_controls(req->options_utf8, &controls, &control_count)) {
 		res.status = DIALOG_STATUS_ERROR;
 		set_error_message(&res, "failed to build dialog option controls");
-		pfd->lpVtbl->Release(pfd);
+		dialog->lpVtbl->Release(dialog);
 		if (title) free(title);
 		if (current_dir) free(current_dir);
 		if (filename) free(filename);
@@ -990,7 +990,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	}
 
 	DWORD opts = 0;
-	hr = pfd->lpVtbl->GetOptions(pfd, &opts);
+	hr = dialog->lpVtbl->GetOptions(dialog, &opts);
 	if (FAILED(hr)) {
 		res.status = DIALOG_STATUS_ERROR;
 		res.hresult = (int)hr;
@@ -1006,7 +1006,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	if ((current_dir != NULL && current_dir[0] != L'\0') || (root != NULL && root[0] != L'\0')) {
 		opts |= FOS_PATHMUSTEXIST;
 	}
-	hr = pfd->lpVtbl->SetOptions(pfd, opts);
+	hr = dialog->lpVtbl->SetOptions(dialog, opts);
 	if (FAILED(hr)) {
 		res.status = DIALOG_STATUS_ERROR;
 		res.hresult = (int)hr;
@@ -1015,7 +1015,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	}
 
 	if (title != NULL) {
-		hr = pfd->lpVtbl->SetTitle(pfd, title);
+		hr = dialog->lpVtbl->SetTitle(dialog, title);
 		if (FAILED(hr)) {
 			res.status = DIALOG_STATUS_ERROR;
 			res.hresult = (int)hr;
@@ -1024,7 +1024,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 		}
 	}
 	if (filename != NULL && req->mode == DIALOG_MODE_SAVE_FILE) {
-		hr = pfd->lpVtbl->SetFileName(pfd, filename);
+		hr = dialog->lpVtbl->SetFileName(dialog, filename);
 		if (FAILED(hr)) {
 			res.status = DIALOG_STATUS_ERROR;
 			res.hresult = (int)hr;
@@ -1033,14 +1033,14 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 		}
 	}
 	if (filter_count > 0 && req->mode != DIALOG_MODE_OPEN_FOLDER) {
-		hr = pfd->lpVtbl->SetFileTypes(pfd, (UINT)filter_count, filter_specs);
+		hr = dialog->lpVtbl->SetFileTypes(dialog, (UINT)filter_count, filter_specs);
 		if (FAILED(hr)) {
 			res.status = DIALOG_STATUS_ERROR;
 			res.hresult = (int)hr;
 			set_error_message(&res, "failed to configure native dialog file filters");
 			goto cleanup;
 		}
-		hr = pfd->lpVtbl->SetFileTypeIndex(pfd, 1);
+		hr = dialog->lpVtbl->SetFileTypeIndex(dialog, 1); /* uses 1-based indexing */
 		if (FAILED(hr)) {
 			res.status = DIALOG_STATUS_ERROR;
 			res.hresult = (int)hr;
@@ -1060,7 +1060,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 		 * We still enforce root again against the final selected path(s) below.
 		 * Docs: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifiledialog-advise
 		 */
-		hr = pfd->lpVtbl->Advise(pfd, (IFileDialogEvents *)&event_handler, &event_cookie);
+		hr = dialog->lpVtbl->Advise(dialog, (IFileDialogEvents *)&event_handler, &event_cookie);
 		if (SUCCEEDED(hr)) {
 			event_advised = true;
 		} else {
@@ -1072,31 +1072,31 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	}
 
 	IShellItem *folder_item = NULL;
-	wchar_t *folder_ref = resolve_dialog_start_folder_alloc(current_dir, enforced_root);
-	if (folder_ref != NULL) {
+	wchar_t *start_folder_path = resolve_dialog_start_folder_alloc(current_dir, enforced_root);
+	if (start_folder_path != NULL) {
 		/* Docs: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-shcreateitemfromparsingname */
-		hr = SHCreateItemFromParsingName(folder_ref, NULL, &IID_IShellItem, (void **)&folder_item);
+		hr = SHCreateItemFromParsingName(start_folder_path, NULL, &IID_IShellItem, (void **)&folder_item);
 		if (SUCCEEDED(hr) && folder_item != NULL) {
 			/* SetDefaultFolder respects MRU (most recently used) */
 			/* SetFolder forces the constrained starting folder */
 			/* Docs: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifiledialog-setdefaultfolder */
-			/*hr = pfd->lpVtbl->SetDefaultFolder(pfd, folder_item);
+			/*hr = dialog->lpVtbl->SetDefaultFolder(dialog, folder_item);
 			if (FAILED(hr) && enforced_root != NULL && enforced_root[0] != L'\0') {
 				res.status = DIALOG_STATUS_ERROR;
 				res.hresult = (int)hr;
 				set_error_message(&res, "failed to set native dialog default root folder");
 				folder_item->lpVtbl->Release(folder_item);
-				free(folder_ref);
+				free(start_folder_path);
 				goto cleanup;
 			}*/
 			/* Docs: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifiledialog-setfolder */
-			hr = pfd->lpVtbl->SetFolder(pfd, folder_item);
+			hr = dialog->lpVtbl->SetFolder(dialog, folder_item);
 			if (FAILED(hr) && enforced_root != NULL && enforced_root[0] != L'\0') {
 				res.status = DIALOG_STATUS_ERROR;
 				res.hresult = (int)hr;
 				set_error_message(&res, "failed to set native dialog root folder");
 				folder_item->lpVtbl->Release(folder_item);
-				free(folder_ref);
+				free(start_folder_path);
 				goto cleanup;
 			}
 			folder_item->lpVtbl->Release(folder_item);
@@ -1104,31 +1104,31 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 			res.status = DIALOG_STATUS_ERROR;
 			res.hresult = (int)hr;
 			set_error_message(&res, "failed to create native dialog root folder item");
-			free(folder_ref);
+			free(start_folder_path);
 			goto cleanup;
 		}
-		free(folder_ref);
+		free(start_folder_path);
 	}
 
-	IFileDialogCustomize *pfdc = NULL;
+	IFileDialogCustomize *customize = NULL;
 	if (control_count > 0) {
-		hr = pfd->lpVtbl->QueryInterface(pfd, &IID_IFileDialogCustomize, (void **)&pfdc);
-		if (SUCCEEDED(hr) && pfdc != NULL) {
-			hr = add_option_controls(pfdc, controls, control_count);
+		hr = dialog->lpVtbl->QueryInterface(dialog, &IID_IFileDialogCustomize, (void **)&customize);
+		if (SUCCEEDED(hr) && customize != NULL) {
+			hr = add_option_controls(customize, controls, control_count);
 		}
-		if (FAILED(hr) || pfdc == NULL) {
+		if (FAILED(hr) || customize == NULL) {
 			res.status = DIALOG_STATUS_ERROR;
 			res.hresult = (int)(FAILED(hr) ? hr : E_NOINTERFACE);
 			set_error_message(&res, "failed to add custom controls to native dialog");
-			if (pfdc) {
-				pfdc->lpVtbl->Release(pfdc);
-				pfdc = NULL;
+			if (customize) {
+				customize->lpVtbl->Release(customize);
+				customize = NULL;
 			}
 			goto cleanup;
 		}
 	}
 
-	hr = pfd->lpVtbl->Show(pfd, owner);
+	hr = dialog->lpVtbl->Show(dialog, owner);
 	res.hresult = (int)hr;
 	if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
 		res.status = DIALOG_STATUS_CANCEL;
@@ -1138,7 +1138,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 	} else {
 		res.status = DIALOG_STATUS_OK;
 		UINT idx = 1;
-		if (SUCCEEDED(pfd->lpVtbl->GetFileTypeIndex(pfd, &idx))) {
+		if (SUCCEEDED(dialog->lpVtbl->GetFileTypeIndex(dialog, &idx))) {
 			if (idx > 0) {
 				idx -= 1;
 			}
@@ -1148,13 +1148,13 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 		/* Custom controls are read after Show() returns because that is when
 		 * the final user choice is available. Go fills defaults if this is empty.
 		 */
-		if (pfdc != NULL && control_count > 0) {
-			res.selected_options_utf8 = collect_selected_options_utf8(pfdc, controls, control_count);
+		if (customize != NULL && control_count > 0) {
+			res.selected_options_utf8 = collect_selected_options_utf8(customize, controls, control_count);
 		}
 
 		if (req->mode == DIALOG_MODE_OPEN_FILES) {
 			IShellItemArray *results = NULL;
-			hr = ((IFileOpenDialog *)pfd)->lpVtbl->GetResults((IFileOpenDialog *)pfd, &results);
+			hr = ((IFileOpenDialog *)dialog)->lpVtbl->GetResults((IFileOpenDialog *)dialog, &results);
 			if (FAILED(hr) || results == NULL) {
 				res.status = DIALOG_STATUS_ERROR;
 				res.hresult = (int)hr;
@@ -1229,7 +1229,7 @@ static dialog_result_t run_native_file_dialog(const dialog_request_t *req) {
 			}
 		} else {
 			IShellItem *item = NULL;
-			hr = pfd->lpVtbl->GetResult(pfd, &item);
+			hr = dialog->lpVtbl->GetResult(dialog, &item);
 			if (FAILED(hr) || item == NULL) {
 				res.status = DIALOG_STATUS_ERROR;
 				res.hresult = (int)hr;
@@ -1272,10 +1272,10 @@ cleanup:
 		SetForegroundWindow(owner);
 	}
 	if (event_advised) {
-		pfd->lpVtbl->Unadvise(pfd, event_cookie);
+		dialog->lpVtbl->Unadvise(dialog, event_cookie);
 	}
-	if (pfdc != NULL) pfdc->lpVtbl->Release(pfdc);
-	pfd->lpVtbl->Release(pfd);
+	if (customize != NULL) customize->lpVtbl->Release(customize);
+	dialog->lpVtbl->Release(dialog);
 	if (title) free(title);
 	if (current_dir) free(current_dir);
 	if (filename) free(filename);
