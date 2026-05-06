@@ -163,3 +163,26 @@ func openSaveFileDialogWindow(startPath string, fileName string, extensions []Di
 	}
 	return nil
 }
+
+func openFolderDialogWindow(startPath string, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	script := `POSIX path of (choose folder`
+	if startPath != "" {
+		script += ` default location "` + startPath + `"`
+	}
+	script += `)`
+	cmd := exec.Command("osascript", "-e", script)
+	output, err := cmd.Output()
+	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
+		return nil
+	}
+	path := strings.TrimSpace(string(output))
+	if path != "" {
+		ok(path)
+	} else if cancel != nil {
+		cancel()
+	}
+	return nil
+}

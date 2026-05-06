@@ -97,3 +97,9 @@ func openSaveFileDialogWindow(startPath string, fileName string, extensions []Di
 	klib.NotYetImplemented(-1)
 	return nil
 }
+
+func openFolderDialogWindow(startPath string, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	// TODO:  Eventually we'll create our own fully working file browser, instead of using current temp one
+	klib.NotYetImplemented(-1)
+	return nil
+}

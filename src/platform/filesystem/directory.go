@@ -54,6 +54,55 @@ type DialogExtension struct {
 	Extension string
 }
 
+type NativeDialogMode uint8
+
+const (
+	NativeDialogModeOpenFile NativeDialogMode = iota
+	NativeDialogModeOpenFiles
+	NativeDialogModeSaveFile
+	NativeDialogModeOpenFolder
+)
+
+type NativeDialogStatus uint8
+
+const (
+	NativeDialogStatusCancel NativeDialogStatus = iota
+	NativeDialogStatusAccepted
+	NativeDialogStatusFailed
+)
+
+type DialogFilter struct {
+	Name     string
+	Patterns []string
+}
+
+type DialogCustomOption struct {
+	Name    string
+	Values  []string
+	Default int
+}
+
+type NativeDialogRequest struct {
+	Mode             NativeDialogMode
+	Title            string
+	CurrentDirectory string
+	FileName         string
+	Root             string
+	Filters          []DialogFilter
+	ShowHidden       bool
+	Options          []DialogCustomOption
+	WindowHandle     unsafe.Pointer
+}
+
+type NativeDialogResult struct {
+	Status              NativeDialogStatus
+	Paths               []string
+	SelectedFilterIndex int
+	SelectedOptions     map[string]any
+	HResult             int32
+	Err                 error
+}
+
 // CreateDirectory creates a directory at the specified path with full permissions.
 func CreateDirectory(path string) error {
 	return os.MkdirAll(path, os.ModePerm)
@@ -201,6 +250,25 @@ func OpenFileDialogWindow(startPath string, extensions []DialogExtension, ok fun
 
 func OpenSaveFileDialogWindow(startPath string, fileName string, extensions []DialogExtension, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
 	return openSaveFileDialogWindow(startPath, fileName, extensions, ok, cancel, windowHandle)
+}
+
+func OpenFolderDialogWindow(startPath string, ok func(path string), cancel func(), windowHandle unsafe.Pointer) error {
+	return openFolderDialogWindow(startPath, ok, cancel, windowHandle)
+}
+
+// OpenNativeDialogWindow shows a native OS file dialog using a richer request/response model.
+func OpenNativeDialogWindow(request NativeDialogRequest, callback func(NativeDialogResult)) error {
+	return openNativeDialogWindow(request, callback)
+}
+
+// ProcessDialogCallbacks executes completed native dialog callbacks on the caller thread.
+func ProcessDialogCallbacks() {
+	processDialogCallbacks()
+}
+
+// ShutdownNativeDialogs performs platform-specific dialog runtime cleanup.
+func ShutdownNativeDialogs() {
+	shutdownNativeDialogs()
 }
 
 func Zip(srcDir, outFile string, skipFiles, skipFolders, skipExtensions []string) error {
