@@ -8,7 +8,7 @@ Kaiju Engine is a 2D/3D game engine written in Go (Golang) backed by Vulkan. It 
 
 - **Module**: `kaijuengine.com`
 - **Go Version**: 1.25.0+
-- **Build Tags**: `debug`, `editor`, platform-specific (`.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`)
+- **Build Tags**: `debug`, `editor`, optional `filedrop`, optional `filedialog`, platform-specific (`.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`)
 
 ## Project Structure
 
@@ -922,13 +922,15 @@ uiCamera := host.Cameras.UI
 
 ```bash
 cd src
-go build -tags="debug,editor,filedrop" -o ../ ./
+go build -tags="debug,editor,filedrop,filedialog" -o ../ ./
 ```
 
 ### Build Tags
 
 - `debug`: Include debug information
 - `editor`: Build with editor support
+- `filedrop`: Enable file drop integrations
+- `filedialog`: Enable native file dialog integrations
 - Platform-specific: `.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`
 
 ### Content

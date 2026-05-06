@@ -1,6 +1,6 @@
 # Windows Native Dialog
 
-The editor currently includes Windows-only native dialog.
+The editor currently includes Windows-only native dialog when built with the `filedialog` tag (for example: `-tags="editor,filedialog"`).
 
 ## Summary
 

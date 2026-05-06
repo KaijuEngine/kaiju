@@ -45,7 +45,7 @@ import (
 )
 
 var availableTags = []string{
-	"editor", "debug", "filedrop",
+	"editor", "debug", "filedrop", "filedialog",
 }
 
 const tagSetFmt = `//go:build %s
