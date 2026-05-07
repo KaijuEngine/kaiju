@@ -365,10 +365,10 @@ func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.searchEntityData").End()
 	dui.entityDataList.UI.Show()
 	dui.entityDataListTemplate.UI.Hide()
-	q := strings.ToLower(e.UI.ToInput().Text())
+	filterText := strings.ToLower(e.UI.ToInput().Text())
 	for _, c := range dui.entityDataList.Children[1:] {
 		name := strings.ToLower(c.InnerLabel().Text())
-		if q != "" && strings.Contains(name, q) {
+		if filterText != "" && strings.Contains(name, filterText) {
 			c.UI.Show()
 		} else {
 			c.UI.Hide()
@@ -380,29 +380,33 @@ func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
 func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.addEntityData").End()
 	dui.addEntityDataBykey(e.InnerLabel().Text())
+	entitySearchFilter, ok := dui.workspace.Value().Doc.GetElementById("entitySearchFilter")
+	if ok {
+		entitySearchFilter.UI.ToInput().SetText("")
+	}
 }
 
 func (dui *WorkspaceDetailsUI) addEntityDataBykey(key string) (*entity_data_binding.EntityDataEntry, bool) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.addEntityDataBykey").End()
-	w := dui.workspace.Value()
-	g, ok := w.ed.Project().EntityDataBinding(key)
+	stageWorkspace := dui.workspace.Value()
+	generatedType, ok := stageWorkspace.ed.Project().EntityDataBinding(key)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", key)
 		return nil, false
 	}
-	sel := w.stageView.Manager().Selection()
+	selectedStageEntity := stageWorkspace.stageView.Manager().Selection()
 	// TODO:  Multi-select stuff
-	target := sel[0]
-	de := w.attachEntityData(target, g)
-	dui.createDataBindingEntry(de, dui.boundEntityDataTemplate)
-	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
+	target := selectedStageEntity[0]
+	entityDataEntry := stageWorkspace.attachEntityData(target, generatedType)
+	dui.createDataBindingEntry(entityDataEntry, dui.boundEntityDataTemplate)
+	data_binding_renderer.ShowSpecific(entityDataEntry, weak.Make(stageWorkspace.Host), target)
 	dui.entityDataList.UI.Hide()
-	w.ed.History().Add(&EntityDataAttachHistory{
+	stageWorkspace.ed.History().Add(&EntityDataAttachHistory{
 		DetailsWorkspace: dui,
 		Entity:           target,
-		Data:             de,
+		Data:             entityDataEntry,
 	})
-	return de, true
+	return entityDataEntry, true
 }
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
