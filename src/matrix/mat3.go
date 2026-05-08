@@ -43,11 +43,11 @@ func NewMat3() Mat3 {
 }
 
 func (m Mat3) RowVector(row int) Vec3 {
-	return Vec3{m[row*4+0], m[row*4+1], m[row*4+2]}
+	return Vec3{m[row*3+0], m[row*3+1], m[row*3+2]}
 }
 
 func (m Mat3) ColumnVector(col int) Vec3 {
-	return Vec3{m[col+0], m[col+4], m[col+8]}
+	return Vec3{m[col+0], m[col+3], m[col+6]}
 }
 
 func Mat3Identity() Mat3 {
@@ -100,15 +100,18 @@ func (m Mat3) Multiply(rhs Mat3) Mat3 {
 }
 
 func (m *Mat3) MultiplyAssign(rhs Mat3) {
-	m[0] = m[0]*rhs[0] + m[1]*rhs[3] + m[2]*rhs[6]
-	m[1] = m[0]*rhs[1] + m[1]*rhs[4] + m[2]*rhs[7]
-	m[2] = m[0]*rhs[2] + m[1]*rhs[5] + m[2]*rhs[8]
-	m[3] = m[3]*rhs[0] + m[4]*rhs[3] + m[5]*rhs[6]
-	m[4] = m[3]*rhs[1] + m[4]*rhs[4] + m[5]*rhs[7]
-	m[5] = m[3]*rhs[2] + m[4]*rhs[5] + m[5]*rhs[8]
-	m[6] = m[6]*rhs[0] + m[7]*rhs[3] + m[8]*rhs[6]
-	m[7] = m[6]*rhs[1] + m[7]*rhs[4] + m[8]*rhs[7]
-	m[8] = m[6]*rhs[2] + m[7]*rhs[5] + m[8]*rhs[8]
+	orig := *m
+	*m = Mat3{
+		orig[0]*rhs[0] + orig[1]*rhs[3] + orig[2]*rhs[6],
+		orig[0]*rhs[1] + orig[1]*rhs[4] + orig[2]*rhs[7],
+		orig[0]*rhs[2] + orig[1]*rhs[5] + orig[2]*rhs[8],
+		orig[3]*rhs[0] + orig[4]*rhs[3] + orig[5]*rhs[6],
+		orig[3]*rhs[1] + orig[4]*rhs[4] + orig[5]*rhs[7],
+		orig[3]*rhs[2] + orig[4]*rhs[5] + orig[5]*rhs[8],
+		orig[6]*rhs[0] + orig[7]*rhs[3] + orig[8]*rhs[6],
+		orig[6]*rhs[1] + orig[7]*rhs[4] + orig[8]*rhs[7],
+		orig[6]*rhs[2] + orig[7]*rhs[5] + orig[8]*rhs[8],
+	}
 }
 
 func (m Mat3) MultiplyVec3(v Vec3) Vec3 {
