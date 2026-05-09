@@ -133,6 +133,12 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 				s.state = ReadingId
 			case ".":
 				s.state = ReadingClass
+			case "*":
+				sel.Parts = append(sel.Parts, SelectorPart{
+					Name:       "*",
+					SelectType: ReadingTag,
+				})
+				s.state = ReadingTag
 			case ">":
 				s.state = ReadingChild
 			case "~":
