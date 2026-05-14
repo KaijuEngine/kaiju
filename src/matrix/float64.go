@@ -105,7 +105,7 @@ func Pow(x Float, y Float) Float {
 	return math.Pow(x, y)
 }
 
-func IsNan(x Float) bool {
+func IsNaN(x Float) bool {
 	return math.IsNaN(x)
 }
 
