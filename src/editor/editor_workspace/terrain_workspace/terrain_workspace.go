@@ -220,6 +220,11 @@ func (w *TerrainWorkspace) Update(deltaTime float64) {
 
 func (w *TerrainWorkspace) UpdateViewportTool(view *editor_stage_view.StageView) bool {
 	defer tracing.NewRegion("TerrainWorkspace.UpdateViewportTool").End()
+	if w.pointerOverUI() {
+		w.hideBrushPreview()
+		w.finishStroke()
+		return true
+	}
 	if w.active == nil {
 		w.hideBrushPreview()
 		return false
@@ -425,6 +430,10 @@ func (w *TerrainWorkspace) brushStroke(local matrix.Vec2) terrain.PaintStroke {
 func (w *TerrainWorkspace) effectiveBrushMode() terrain.BrushMode {
 	kb := &w.Host.Window.Keyboard
 	return effectiveTerrainBrushMode(w.mode, kb.HasShift(), kb.HasCtrlOrMeta())
+}
+
+func (w *TerrainWorkspace) pointerOverUI() bool {
+	return len(w.UiMan.Hovered()) > 0 || w.UiMan.Group.HasRequests()
 }
 
 func (w *TerrainWorkspace) adjustBrushRadius(direction int) {
