@@ -1,1 +1,1 @@
-{"Name":"terrain","Shader":"terrain.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"terrain.shaderpipeline","Textures":[{"Label":"Diffuse","Texture":"square.png","Filter":"Linear"}],"IsLit":true,"CastsShadows":true,"ReceivesShadows":true}
+{"Name":"terrain","Shader":"terrain.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"terrain.shaderpipeline","Textures":[{"Label":"Diffuse","Texture":"square.png","Filter":"Linear"}],"IsLit":true,"CastsShadows":true}
