@@ -594,8 +594,8 @@ func normalizeConfig(config TerrainConfig) TerrainConfig {
 	if config.Material == "" {
 		config.Material = assets.MaterialDefinitionTerrain
 	}
-	if config.ShaderData == "" {
-		config.ShaderData = "basic"
+	if config.ShaderData == "" || (config.Material == assets.MaterialDefinitionTerrain && config.ShaderData == "basic") {
+		config.ShaderData = "terrain"
 	}
 	if len(config.Textures) == 0 {
 		config.Textures = []TerrainTexture{{Key: assets.TextureSquare, Filter: rendering.TextureFilterLinear}}
@@ -606,6 +606,22 @@ func normalizeConfig(config TerrainConfig) TerrainConfig {
 		}
 	}
 	return config
+}
+
+func (t *Terrain) SetBrushPreview(centerXZ matrix.Vec2, radius, ringWidth matrix.Float, color matrix.Color) {
+	for i := range t.ShaderData {
+		if sd, ok := t.ShaderData[i].(*shader_data_registry.ShaderDataTerrain); ok {
+			sd.SetBrush(centerXZ, radius, ringWidth, color)
+		}
+	}
+}
+
+func (t *Terrain) ClearBrushPreview() {
+	for i := range t.ShaderData {
+		if sd, ok := t.ShaderData[i].(*shader_data_registry.ShaderDataTerrain); ok {
+			sd.ClearBrush()
+		}
+	}
 }
 
 func (t *Terrain) createRenderResources(host *engine.Host) error {

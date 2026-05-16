@@ -148,6 +148,15 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_VERT_FLAGS
 	layout(location = LOCATION_START+LAYOUT_VERT_FLAGS) in uint flags;
 #endif
+#ifdef LAYOUT_VERT_BRUSH_CENTER_RADIUS
+	layout(location = LOCATION_START+LAYOUT_VERT_BRUSH_CENTER_RADIUS) in vec4 brushCenterRadius;
+#endif
+#ifdef LAYOUT_VERT_BRUSH_PARAMS
+	layout(location = LOCATION_START+LAYOUT_VERT_BRUSH_PARAMS) in vec4 brushParams;
+#endif
+#ifdef LAYOUT_VERT_BRUSH_COLOR
+	layout(location = LOCATION_START+LAYOUT_VERT_BRUSH_COLOR) in vec4 brushColor;
+#endif
 #ifdef LAYOUT_VERT_FRUSTUM_PROJECTION
 	layout(location = LOCATION_START+LAYOUT_VERT_FRUSTUM_PROJECTION) in mat4 frustumProjection;
 #endif
@@ -202,6 +211,15 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #endif
 #ifdef LAYOUT_FRAG_WORLD_POS
 	layout(location = LAYOUT_FRAG_WORLD_POS) FRAG_INOUT vec3 fragWorldPos;
+#endif
+#ifdef LAYOUT_FRAG_BRUSH_CENTER_RADIUS
+	layout(location = LAYOUT_FRAG_BRUSH_CENTER_RADIUS) FRAG_INOUT vec4 fragBrushCenterRadius;
+#endif
+#ifdef LAYOUT_FRAG_BRUSH_PARAMS
+	layout(location = LAYOUT_FRAG_BRUSH_PARAMS) FRAG_INOUT vec4 fragBrushParams;
+#endif
+#ifdef LAYOUT_FRAG_BRUSH_COLOR
+	layout(location = LAYOUT_FRAG_BRUSH_COLOR) FRAG_INOUT vec4 fragBrushColor;
 #endif
 
 #ifdef FRAGMENT_SHADER

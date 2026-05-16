@@ -47,12 +47,16 @@ import (
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/terrain"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 const (
@@ -91,6 +95,9 @@ type TerrainWorkspace struct {
 	lastLocal    matrix.Vec2
 	hasLastLocal bool
 	stroke       *terrainStrokeCapture
+
+	brushRingTransform matrix.Transform
+	brushRingData      rendering.DrawInstance
 }
 
 func (w *TerrainWorkspace) ID() string          { return ID }
@@ -136,12 +143,17 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.setActiveName("No terrain selected")
 	w.setStatus("Hover a terrain to inspect coordinates")
 	w.refreshToolReadout()
+	w.initBrushRing(host)
 	return nil
 }
 
 func (w *TerrainWorkspace) Shutdown() {
 	defer tracing.NewRegion("TerrainWorkspace.Shutdown").End()
 	w.destroyActive()
+	if w.brushRingData != nil {
+		w.brushRingData.Destroy()
+		w.brushRingData = nil
+	}
 	w.CommonShutdown()
 }
 
@@ -157,6 +169,7 @@ func (w *TerrainWorkspace) Close() {
 	w.stageView.ClearViewportToolOwner(w)
 	w.stageView.Close()
 	w.CommonClose()
+	w.hideBrushPreview()
 	w.finishStroke()
 }
 
@@ -181,6 +194,7 @@ func (w *TerrainWorkspace) Update(deltaTime float64) {
 func (w *TerrainWorkspace) UpdateViewportTool(view *editor_stage_view.StageView) bool {
 	defer tracing.NewRegion("TerrainWorkspace.UpdateViewportTool").End()
 	if w.active == nil {
+		w.hideBrushPreview()
 		return false
 	}
 	m := &w.Host.Window.Mouse
@@ -188,6 +202,9 @@ func (w *TerrainWorkspace) UpdateViewportTool(view *editor_stage_view.StageView)
 	if ok {
 		local := hit.LocalPoint
 		w.setStatus("X " + fmtFloat(local.X()) + "  Z " + fmtFloat(local.Z()) + "  H " + fmtFloat(local.Y()))
+		w.showBrushPreview(hit)
+	} else {
+		w.hideBrushPreview()
 	}
 	paintingButton := m.Pressed(hid.MouseButtonLeft) || m.Held(hid.MouseButtonLeft)
 	if !paintingButton {
@@ -345,6 +362,7 @@ func (w *TerrainWorkspace) destroyActive() {
 	w.painting = false
 	w.hasLastLocal = false
 	w.stroke = nil
+	w.hideBrushPreview()
 }
 
 func (w *TerrainWorkspace) paint(local matrix.Vec2) {
@@ -374,6 +392,49 @@ func (w *TerrainWorkspace) brushStroke(local matrix.Vec2) terrain.PaintStroke {
 		Strength: w.readBrushFloat(w.strengthInput, 0.25),
 		Falloff:  w.readFalloff(),
 		Spacing:  radius * 0.25,
+	}
+}
+
+func (w *TerrainWorkspace) initBrushRing(host *engine.Host) {
+	w.brushRingTransform.Initialize(host.WorkGroup())
+	mesh := rendering.NewMeshCircleWire(host.MeshCache(), 1, 96)
+	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEdTransformWire)
+	if err != nil {
+		slog.Error("failed to load terrain brush ring material", "error", err)
+		return
+	}
+	w.brushRingData = shader_data_registry.Create(material.Shader.ShaderDataName())
+	w.brushRingData.(*shader_data_registry.ShaderDataEdTransformWire).Color =
+		matrix.NewColor(0.2, 0.75, 1.0, 1.0)
+	w.brushRingData.Deactivate()
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Material:   material,
+		Mesh:       mesh,
+		ShaderData: w.brushRingData,
+		Transform:  &w.brushRingTransform,
+		ViewCuller: &host.Cameras.Primary,
+	})
+}
+
+func (w *TerrainWorkspace) showBrushPreview(hit terrain.TerrainRayHit) {
+	radius := w.readBrushFloat(w.radiusInput, 2)
+	color := matrix.NewColor(0.2, 0.75, 1.0, 1.0)
+	ringWidth := matrix.Max(radius*matrix.Float(0.035), matrix.Float(0.05))
+	w.active.SetBrushPreview(hit.Point.XZ(), radius, ringWidth, color)
+	if w.brushRingData == nil {
+		return
+	}
+	w.brushRingTransform.SetPosition(hit.Point.Add(hit.Normal.Scale(0.025)))
+	w.brushRingTransform.SetScale(matrix.NewVec3(radius, 1, radius))
+	w.brushRingData.Activate()
+}
+
+func (w *TerrainWorkspace) hideBrushPreview() {
+	if w.active != nil {
+		w.active.ClearBrushPreview()
+	}
+	if w.brushRingData != nil {
+		w.brushRingData.Deactivate()
 	}
 }
 

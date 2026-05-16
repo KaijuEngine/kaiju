@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* terrain_shader_data.go                                                     */
+/* shader_data_terrain.go                                                     */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,8 +34,46 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package terrain
+package shader_data_registry
 
-import "kaijuengine.com/registry/shader_data_registry"
+import (
+	"unsafe"
 
-type TerrainShaderData = shader_data_registry.ShaderDataTerrain
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
+)
+
+func init() {
+	register(func() rendering.DrawInstance {
+		return &ShaderDataTerrain{
+			ShaderDataBase: rendering.NewShaderDataBase(),
+			Color:          matrix.ColorWhite(),
+			BrushColor:     matrix.NewColor(0.2, 0.75, 1.0, 1.0),
+			BrushParams:    matrix.NewVec4(0.15, 0.18, 0.85, 0),
+		}
+	}, "terrain")
+}
+
+type ShaderDataTerrain struct {
+	rendering.ShaderDataBase `visible:"false"`
+
+	Color             matrix.Color
+	BrushCenterRadius matrix.Vec4 `visible:"false"`
+	BrushParams       matrix.Vec4 `visible:"false"`
+	BrushColor        matrix.Color
+	Flags             StandardShaderDataFlags `visible:"false"`
+}
+
+func (t ShaderDataTerrain) Size() int {
+	return int(unsafe.Sizeof(ShaderDataTerrain{}) - rendering.ShaderBaseDataStart)
+}
+
+func (t *ShaderDataTerrain) SetBrush(centerXZ matrix.Vec2, radius, ringWidth matrix.Float, color matrix.Color) {
+	t.BrushCenterRadius = matrix.NewVec4(centerXZ.X(), centerXZ.Y(), radius, 1)
+	t.BrushParams.SetX(matrix.Max(ringWidth, matrix.Float(0.001)))
+	t.BrushColor = color
+}
+
+func (t *ShaderDataTerrain) ClearBrush() {
+	t.BrushCenterRadius.SetW(0)
+}
