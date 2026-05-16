@@ -261,6 +261,7 @@ func (w *TerrainWorkspace) clickSelectTerrain(*document.Element) {
 		w.ed.FocusInterface()
 		if id != "" {
 			w.openTerrain(id)
+			w.hideCreateDialog()
 		}
 	}, w.ed.FocusInterface)
 }
