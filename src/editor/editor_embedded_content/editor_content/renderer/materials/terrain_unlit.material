@@ -1,0 +1,1 @@
+{"Name":"terrain_unlit","Shader":"terrain_unlit.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"terrain.shaderpipeline","Textures":[{"Label":"Diffuse","Texture":"square.png","Filter":"Linear"}]}
