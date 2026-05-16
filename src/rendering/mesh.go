@@ -149,6 +149,19 @@ func (m Mesh) Key() string           { return m.key }
 func (m Mesh) IsReady() bool         { return m.MeshId.IsValid() }
 func (m Mesh) Bounds() graviton.AABB { return m.bounds }
 
+func (m *Mesh) SetPendingVertices(verts []Vertex) {
+	m.pendingVerts = verts
+	if len(verts) == 0 {
+		return
+	}
+	low, high := verts[0].Position, verts[0].Position
+	for i := 1; i < len(verts); i++ {
+		low = matrix.Vec3Min(low, verts[i].Position)
+		high = matrix.Vec3Max(high, verts[i].Position)
+	}
+	m.bounds = graviton.AABBFromMinMax(low, high)
+}
+
 func NewMeshPrimitive(cache *MeshCache, primitive PrimitiveMesh) *Mesh {
 	switch primitive {
 	case PrimitiveMeshSphere:

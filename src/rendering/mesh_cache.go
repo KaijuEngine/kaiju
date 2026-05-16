@@ -123,8 +123,8 @@ func (m *MeshCache) DynamicMesh(key string, verts []Vertex, indexes []uint32) *M
 func (m *MeshCache) UpdateMeshVertices(key string, verts []Vertex) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	if mesh, ok := m.meshes[key]; ok && mesh.IsReady() {
-		mesh.pendingVerts = verts
+	if mesh, ok := m.meshes[key]; ok {
+		mesh.SetPendingVertices(verts)
 		m.pendingMeshes = append(m.pendingMeshes, mesh)
 	}
 }
