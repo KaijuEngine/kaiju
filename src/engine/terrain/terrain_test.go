@@ -92,6 +92,55 @@ func TestPaintSmoothUsesNeighborAverage(t *testing.T) {
 	}
 }
 
+func TestPaintLineDefaultSpacingUsesQuarterRadius(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    5,
+		WorldSize:     matrix.NewVec2(4, 4),
+		MinHeight:     0,
+		MaxHeight:     10,
+		InitialHeight: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	model.VisitPaintLineStamps(matrix.NewVec2(0, 0), matrix.NewVec2(1, 0), PaintStroke{
+		Radius:   1,
+		Strength: 1,
+	}, func(PaintStroke) bool {
+		count++
+		return true
+	})
+	if count != 5 {
+		t.Fatalf("expected 5 stamps for distance 1 at radius*0.25 spacing, got %d", count)
+	}
+}
+
+func TestHeightRegionCopyAndApplyRestoresHeights(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    4,
+		WorldSize:     matrix.NewVec2(4, 4),
+		MinHeight:     0,
+		MaxHeight:     10,
+		InitialHeight: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	region := DirtyRegion{MinX: 1, MinZ: 1, MaxX: 2, MaxZ: 2, Valid: true}
+	before := model.HeightField.CopyRegion(region)
+	model.HeightField.SetHeight(1, 1, 5)
+	model.HeightField.SetHeight(2, 2, 7)
+	model.ApplyHeightRegion(region, before)
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			if got := model.HeightField.Height(x, z); got != 0 {
+				t.Fatalf("expected restored height at %d,%d to be 0, got %f", x, z, got)
+			}
+		}
+	}
+}
+
 func TestTerrainRayHitUsesHeightField(t *testing.T) {
 	model, err := NewModel(TerrainConfig{
 		Resolution:    3,

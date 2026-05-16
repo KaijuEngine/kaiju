@@ -51,12 +51,13 @@ import (
 )
 
 const (
-	defaultResolution = 33
-	defaultChunkSize  = 32
-	defaultWorldSize  = matrix.Float(100)
-	defaultMinHeight  = matrix.Float(-100)
-	defaultMaxHeight  = matrix.Float(100)
-	defaultRayStep    = matrix.Float(0.5)
+	defaultResolution        = 33
+	defaultChunkSize         = 32
+	defaultWorldSize         = matrix.Float(100)
+	defaultMinHeight         = matrix.Float(-100)
+	defaultMaxHeight         = matrix.Float(100)
+	defaultRayStep           = matrix.Float(0.5)
+	defaultBrushSpacingScale = matrix.Float(0.25)
 )
 
 type TerrainTexture struct {
@@ -83,14 +84,21 @@ type DirtyRegion struct {
 }
 
 func (r DirtyRegion) Expand(padding, resolution int) DirtyRegion {
-	if !r.Valid {
+	if !r.Valid || resolution <= 0 {
+		return DirtyRegion{}
+	}
+	minX := max(0, r.MinX-padding)
+	minZ := max(0, r.MinZ-padding)
+	maxX := min(resolution-1, r.MaxX+padding)
+	maxZ := min(resolution-1, r.MaxZ+padding)
+	if minX > maxX || minZ > maxZ {
 		return DirtyRegion{}
 	}
 	return DirtyRegion{
-		MinX:  max(0, r.MinX-padding),
-		MinZ:  max(0, r.MinZ-padding),
-		MaxX:  min(resolution-1, r.MaxX+padding),
-		MaxZ:  min(resolution-1, r.MaxZ+padding),
+		MinX:  minX,
+		MinZ:  minZ,
+		MaxX:  maxX,
+		MaxZ:  maxZ,
 		Valid: true,
 	}
 }
@@ -135,6 +143,46 @@ func NewHeightField(resolution int, minHeight, maxHeight, initialHeight matrix.F
 
 func (h *HeightField) DirtyRegion() DirtyRegion { return h.dirty }
 func (h *HeightField) ClearDirty()              { h.dirty = DirtyRegion{} }
+
+func (h *HeightField) CopyRegion(region DirtyRegion) []matrix.Float {
+	if !region.Valid {
+		return nil
+	}
+	region = region.Expand(0, h.Resolution)
+	width := region.MaxX - region.MinX + 1
+	height := region.MaxZ - region.MinZ + 1
+	out := make([]matrix.Float, width*height)
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		src := h.index(region.MinX, z)
+		dst := (z - region.MinZ) * width
+		copy(out[dst:dst+width], h.Heights[src:src+width])
+	}
+	return out
+}
+
+func (h *HeightField) SetRegion(region DirtyRegion, heights []matrix.Float) DirtyRegion {
+	if !region.Valid {
+		return DirtyRegion{}
+	}
+	region = region.Expand(0, h.Resolution)
+	width := region.MaxX - region.MinX + 1
+	height := region.MaxZ - region.MinZ + 1
+	if len(heights) != width*height {
+		return DirtyRegion{}
+	}
+	var dirty DirtyRegion
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			idx := (x - region.MinX) + (z-region.MinZ)*width
+			if h.SetHeight(x, z, heights[idx]) {
+				dirty = mergeDirtyRegions(dirty, DirtyRegion{
+					MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
+				})
+			}
+		}
+	}
+	return dirty
+}
 
 func (h *HeightField) Height(x, z int) matrix.Float {
 	if !h.inBounds(x, z) {
@@ -313,26 +361,39 @@ func (t *Terrain) Paint(stroke PaintStroke) DirtyRegion {
 }
 
 func (t *Terrain) PaintLine(from, to matrix.Vec2, stroke PaintStroke) DirtyRegion {
+	var merged DirtyRegion
+	t.VisitPaintLineStamps(from, to, stroke, func(stamp PaintStroke) bool {
+		dirty := t.Paint(stamp)
+		if dirty.Valid {
+			merged = mergeDirtyRegions(merged, dirty)
+		}
+		return true
+	})
+	return merged
+}
+
+func (t *Terrain) VisitPaintLineStamps(from, to matrix.Vec2, stroke PaintStroke, visit func(PaintStroke) bool) {
+	if visit == nil {
+		return
+	}
 	delta := to.Subtract(from)
 	distance := delta.Length()
 	spacing := stroke.Spacing
 	if spacing <= 0 {
-		spacing = matrix.Max(stroke.Radius*defaultRayStep, matrix.Tiny)
+		spacing = matrix.Max(stroke.Radius*defaultBrushSpacingScale, matrix.Tiny)
 	}
 	if distance <= matrix.Tiny {
 		stroke.Center = from
-		return t.Paint(stroke)
+		visit(stroke)
+		return
 	}
 	steps := max(1, int(matrix.Ceil(distance/spacing)))
-	var merged DirtyRegion
 	for i := 0; i <= steps; i++ {
 		stroke.Center = matrix.Vec2Lerp(from, to, matrix.Float(i)/matrix.Float(steps))
-		dirty := t.Paint(stroke)
-		if dirty.Valid {
-			merged = mergeDirtyRegions(merged, dirty)
+		if !visit(stroke) {
+			return
 		}
 	}
-	return merged
 }
 
 func (t *Terrain) ApplyDirty() {
@@ -356,6 +417,16 @@ func (t *Terrain) ApplyDirty() {
 		t.host.MeshCache().UpdateMeshVertices(t.MeshChunks[i].Key, verts)
 	}
 	t.HeightField.ClearDirty()
+}
+
+func (t *Terrain) ApplyHeightRegion(region DirtyRegion, heights []matrix.Float) DirtyRegion {
+	dirty := t.HeightField.SetRegion(region, heights)
+	t.ApplyDirty()
+	return dirty
+}
+
+func (t *Terrain) StrokeRegion(stroke PaintStroke) DirtyRegion {
+	return strokeDirtyRegion(t.HeightField, t.localStrokeToGrid(stroke))
 }
 
 func (t *Terrain) RayHit(ray graviton.Ray) (TerrainRayHit, bool) {
@@ -661,10 +732,14 @@ func paintHeightField(h *HeightField, stroke PaintStroke) DirtyRegion {
 	if stroke.Radius <= 0 || stroke.Strength == 0 {
 		return DirtyRegion{}
 	}
-	minX := max(0, int(matrix.Floor(stroke.Center.X()-stroke.Radius)))
-	maxX := min(h.Resolution-1, int(matrix.Ceil(stroke.Center.X()+stroke.Radius)))
-	minZ := max(0, int(matrix.Floor(stroke.Center.Y()-stroke.Radius)))
-	maxZ := min(h.Resolution-1, int(matrix.Ceil(stroke.Center.Y()+stroke.Radius)))
+	region := strokeDirtyRegion(h, stroke)
+	if !region.Valid {
+		return DirtyRegion{}
+	}
+	minX := region.MinX
+	maxX := region.MaxX
+	minZ := region.MinZ
+	maxZ := region.MaxZ
 	if minX > maxX || minZ > maxZ {
 		return DirtyRegion{}
 	}
@@ -703,6 +778,20 @@ func paintHeightField(h *HeightField, stroke PaintStroke) DirtyRegion {
 		}
 	}
 	return dirty
+}
+
+func strokeDirtyRegion(h *HeightField, stroke PaintStroke) DirtyRegion {
+	if stroke.Radius <= 0 {
+		return DirtyRegion{}
+	}
+	minX := max(0, int(matrix.Floor(stroke.Center.X()-stroke.Radius)))
+	maxX := min(h.Resolution-1, int(matrix.Ceil(stroke.Center.X()+stroke.Radius)))
+	minZ := max(0, int(matrix.Floor(stroke.Center.Y()-stroke.Radius)))
+	maxZ := min(h.Resolution-1, int(matrix.Ceil(stroke.Center.Y()+stroke.Radius)))
+	if minX > maxX || minZ > maxZ {
+		return DirtyRegion{}
+	}
+	return DirtyRegion{MinX: minX, MinZ: minZ, MaxX: maxX, MaxZ: maxZ, Valid: true}
 }
 
 func brushWeight(distance, radius matrix.Float, falloff BrushFalloff) matrix.Float {

@@ -90,6 +90,7 @@ type TerrainWorkspace struct {
 	painting     bool
 	lastLocal    matrix.Vec2
 	hasLastLocal bool
+	stroke       *terrainStrokeCapture
 }
 
 func (w *TerrainWorkspace) ID() string          { return ID }
@@ -156,8 +157,7 @@ func (w *TerrainWorkspace) Close() {
 	w.stageView.ClearViewportToolOwner(w)
 	w.stageView.Close()
 	w.CommonClose()
-	w.painting = false
-	w.hasLastLocal = false
+	w.finishStroke()
 }
 
 func (w *TerrainWorkspace) Hotkeys() []common_workspace.HotKey {
@@ -191,14 +191,15 @@ func (w *TerrainWorkspace) UpdateViewportTool(view *editor_stage_view.StageView)
 	}
 	paintingButton := m.Pressed(hid.MouseButtonLeft) || m.Held(hid.MouseButtonLeft)
 	if !paintingButton {
-		w.painting = false
-		w.hasLastLocal = false
+		w.finishStroke()
 		return false
 	}
 	if !ok {
-		w.painting = false
 		w.hasLastLocal = false
 		return true
+	}
+	if !w.painting {
+		w.beginStroke()
 	}
 	w.paint(hit.LocalPoint.XZ())
 	return true
@@ -343,24 +344,71 @@ func (w *TerrainWorkspace) destroyActive() {
 	w.activeID = ""
 	w.painting = false
 	w.hasLastLocal = false
+	w.stroke = nil
 }
 
 func (w *TerrainWorkspace) paint(local matrix.Vec2) {
-	stroke := terrain.PaintStroke{
-		Mode:     w.mode,
-		Center:   local,
-		Radius:   w.readBrushFloat(w.radiusInput, 2),
-		Strength: w.readBrushFloat(w.strengthInput, 0.25),
-		Falloff:  w.readFalloff(),
-	}
+	stroke := w.brushStroke(local)
+	var dirty terrain.DirtyRegion
 	if w.painting && w.hasLastLocal {
-		w.active.PaintLine(w.lastLocal, local, stroke)
+		w.captureLine(w.lastLocal, local, stroke)
+		dirty = w.active.PaintLine(w.lastLocal, local, stroke)
 	} else {
-		w.active.Paint(stroke)
+		w.captureStroke(stroke)
+		dirty = w.active.Paint(stroke)
+	}
+	if w.stroke != nil && dirty.Valid {
+		w.stroke.changed = true
 	}
 	w.painting = true
 	w.lastLocal = local
 	w.hasLastLocal = true
+}
+
+func (w *TerrainWorkspace) brushStroke(local matrix.Vec2) terrain.PaintStroke {
+	radius := w.readBrushFloat(w.radiusInput, 2)
+	return terrain.PaintStroke{
+		Mode:     w.mode,
+		Center:   local,
+		Radius:   radius,
+		Strength: w.readBrushFloat(w.strengthInput, 0.25),
+		Falloff:  w.readFalloff(),
+		Spacing:  radius * 0.25,
+	}
+}
+
+func (w *TerrainWorkspace) beginStroke() {
+	w.painting = true
+	w.hasLastLocal = false
+	w.stroke = newTerrainStrokeCapture(w.active)
+}
+
+func (w *TerrainWorkspace) finishStroke() {
+	if w.stroke != nil {
+		if h := w.stroke.history(); h != nil {
+			w.ed.History().Add(h)
+		}
+	}
+	w.painting = false
+	w.hasLastLocal = false
+	w.stroke = nil
+}
+
+func (w *TerrainWorkspace) captureLine(from, to matrix.Vec2, stroke terrain.PaintStroke) {
+	if w.stroke == nil {
+		return
+	}
+	w.active.VisitPaintLineStamps(from, to, stroke, func(stamp terrain.PaintStroke) bool {
+		w.captureStroke(stamp)
+		return true
+	})
+}
+
+func (w *TerrainWorkspace) captureStroke(stroke terrain.PaintStroke) {
+	if w.stroke == nil {
+		return
+	}
+	w.stroke.captureRegion(w.active.StrokeRegion(stroke))
 }
 
 func (w *TerrainWorkspace) readFalloff() terrain.BrushFalloff {
@@ -450,3 +498,104 @@ func fmtFloat(v matrix.Float) string {
 }
 
 var _ editor_stage_view.ViewportToolOwner = (*TerrainWorkspace)(nil)
+
+type terrainStrokeCapture struct {
+	target  *terrain.Terrain
+	before  map[int]matrix.Float
+	region  terrain.DirtyRegion
+	changed bool
+}
+
+func newTerrainStrokeCapture(target *terrain.Terrain) *terrainStrokeCapture {
+	return &terrainStrokeCapture{
+		target: target,
+		before: make(map[int]matrix.Float),
+	}
+}
+
+func (c *terrainStrokeCapture) captureRegion(region terrain.DirtyRegion) {
+	if c == nil || c.target == nil || !region.Valid {
+		return
+	}
+	field := c.target.HeightField
+	region = region.Expand(0, field.Resolution)
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			idx := x + z*field.Resolution
+			if _, ok := c.before[idx]; !ok {
+				c.before[idx] = field.Height(x, z)
+			}
+		}
+	}
+	c.region = mergeTerrainRegions(c.region, region)
+}
+
+func (c *terrainStrokeCapture) history() *terrainStrokeHistory {
+	if c == nil || c.target == nil || !c.changed || !c.region.Valid {
+		return nil
+	}
+	field := c.target.HeightField
+	width := c.region.MaxX - c.region.MinX + 1
+	height := c.region.MaxZ - c.region.MinZ + 1
+	before := make([]matrix.Float, width*height)
+	after := make([]matrix.Float, width*height)
+	different := false
+	for z := c.region.MinZ; z <= c.region.MaxZ; z++ {
+		for x := c.region.MinX; x <= c.region.MaxX; x++ {
+			outIdx := (x - c.region.MinX) + (z-c.region.MinZ)*width
+			mapIdx := x + z*field.Resolution
+			beforeHeight, ok := c.before[mapIdx]
+			if !ok {
+				beforeHeight = field.Height(x, z)
+			}
+			afterHeight := field.Height(x, z)
+			before[outIdx] = beforeHeight
+			after[outIdx] = afterHeight
+			different = different || beforeHeight != afterHeight
+		}
+	}
+	if !different {
+		return nil
+	}
+	return &terrainStrokeHistory{
+		target: c.target,
+		region: c.region,
+		before: before,
+		after:  after,
+	}
+}
+
+type terrainStrokeHistory struct {
+	target *terrain.Terrain
+	region terrain.DirtyRegion
+	before []matrix.Float
+	after  []matrix.Float
+}
+
+func (h *terrainStrokeHistory) Redo()   { h.apply(h.after) }
+func (h *terrainStrokeHistory) Undo()   { h.apply(h.before) }
+func (h *terrainStrokeHistory) Delete() {}
+func (h *terrainStrokeHistory) Exit()   {}
+
+func (h *terrainStrokeHistory) apply(heights []matrix.Float) {
+	if h == nil || h.target == nil || !h.region.Valid {
+		return
+	}
+	h.target.ApplyHeightRegion(h.region, heights)
+}
+
+func mergeTerrainRegions(a, b terrain.DirtyRegion) terrain.DirtyRegion {
+	if !a.Valid {
+		return b
+	}
+	if !b.Valid {
+		return a
+	}
+	return terrain.DirtyRegion{
+		MinX:  min(a.MinX, b.MinX),
+		MinZ:  min(a.MinZ, b.MinZ),
+		MaxX:  max(a.MaxX, b.MaxX),
+		MaxZ:  max(a.MaxZ, b.MaxZ),
+		Valid: true,
+	}
+}
