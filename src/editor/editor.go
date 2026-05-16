@@ -73,6 +73,7 @@ import (
 	_ "kaijuengine.com/editor/editor_workspace/settings_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/shading_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/stage_workspace"
+	_ "kaijuengine.com/editor/editor_workspace/terrain_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/ui_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/vfx_workspace"
 )
@@ -229,6 +230,7 @@ func (ed *Editor) postProjectLoad() {
 // end in registration order. The user's drag-reorder choices override this.
 var defaultWorkspaceOrder = []string{
 	"stage",
+	"terrain",
 	"content",
 	"shading",
 	"vfx",

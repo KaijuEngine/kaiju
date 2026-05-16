@@ -49,16 +49,19 @@ func (v *StageView) processViewportInteractions() {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &v.host.Window.Mouse
 	kb := &v.host.Window.Keyboard
+	// TODO:  This is to prevent deselecting and box selection if the mouse was
+	// over the menu bar area. Probably should do this check in a better way
+	if m.ScreenPosition().Y() <= menuBarHeightArea {
+		return
+	}
+	if v.toolOwner != nil && v.toolOwner.UpdateViewportTool(v) {
+		return
+	}
 	if v.transformTool.Update() {
 		return
 	}
 	v.transformMan.Update(v.host)
 	if v.transformMan.IsBusy() {
-		return
-	}
-	// TODO:  This is to prevent deselecting and box selection if the mouse was
-	// over the menu bar area. Probably should do this check in a better way
-	if m.ScreenPosition().Y() <= menuBarHeightArea {
 		return
 	}
 	v.selectTool.Update()
