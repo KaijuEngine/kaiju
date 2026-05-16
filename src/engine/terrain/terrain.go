@@ -708,7 +708,7 @@ func (t *Terrain) buildChunkIndexes(chunk *TerrainChunk) []uint32 {
 			i1 := uint32(x + (z+1)*width)
 			i2 := uint32(x + 1 + (z+1)*width)
 			i3 := uint32(x + 1 + z*width)
-			indexes = append(indexes, i0, i2, i1, i0, i3, i2)
+			indexes = append(indexes, i0, i1, i2, i0, i2, i3)
 		}
 	}
 	return indexes

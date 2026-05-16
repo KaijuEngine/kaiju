@@ -198,6 +198,34 @@ func TestTerrainChunkMeshDataComesFromHeightField(t *testing.T) {
 	}
 }
 
+func TestTerrainChunkIndexesFaceUp(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    2,
+		WorldSize:     matrix.NewVec2(2, 2),
+		MinHeight:     0,
+		MaxHeight:     10,
+		InitialHeight: 0,
+		ChunkSize:     1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	chunk := TerrainChunk{StartX: 0, StartZ: 0, EndX: 1, EndZ: 1}
+	verts, indexes := model.buildChunkMeshData(&chunk)
+	if len(indexes) != 6 {
+		t.Fatalf("expected 6 indexes, got %d", len(indexes))
+	}
+	for i := 0; i < len(indexes); i += 3 {
+		a := verts[indexes[i]].Position
+		b := verts[indexes[i+1]].Position
+		c := verts[indexes[i+2]].Position
+		normal := b.Subtract(a).Cross(c.Subtract(a)).Normal()
+		if normal.Dot(matrix.Vec3Up()) <= 0 {
+			t.Fatalf("expected triangle %d to face up, got normal %v from indexes %v", i/3, normal, indexes[i:i+3])
+		}
+	}
+}
+
 func TestDirtyRegionExpandPadsNormals(t *testing.T) {
 	dirty := DirtyRegion{MinX: 1, MinZ: 2, MaxX: 3, MaxZ: 4, Valid: true}
 	got := dirty.Expand(1, 5)
