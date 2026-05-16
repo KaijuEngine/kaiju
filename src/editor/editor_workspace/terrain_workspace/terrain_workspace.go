@@ -62,6 +62,12 @@ import (
 const (
 	ID          = "terrain"
 	DisplayName = "Terrain"
+
+	terrainBrushValueScale  = matrix.Float(1.1)
+	terrainBrushMinRadius   = matrix.Float(0.01)
+	terrainBrushMaxRadius   = matrix.Float(10000)
+	terrainBrushMinStrength = matrix.Float(0.01)
+	terrainBrushMaxStrength = matrix.Float(10000)
 )
 
 func init() {
@@ -174,7 +180,28 @@ func (w *TerrainWorkspace) Close() {
 }
 
 func (w *TerrainWorkspace) Hotkeys() []common_workspace.HotKey {
-	return []common_workspace.HotKey{}
+	return []common_workspace.HotKey{
+		{
+			Keys: []hid.KeyboardKey{hid.KeyboardKeyOpenBracket},
+			Call: func() {
+				if w.Host.Window.Keyboard.HasShift() {
+					w.adjustBrushStrength(-1)
+				} else {
+					w.adjustBrushRadius(-1)
+				}
+			},
+		},
+		{
+			Keys: []hid.KeyboardKey{hid.KeyboardKeyCloseBracket},
+			Call: func() {
+				if w.Host.Window.Keyboard.HasShift() {
+					w.adjustBrushStrength(1)
+				} else {
+					w.adjustBrushRadius(1)
+				}
+			},
+		},
+	}
 }
 
 func (w *TerrainWorkspace) Update(deltaTime float64) {
@@ -386,13 +413,43 @@ func (w *TerrainWorkspace) paint(local matrix.Vec2) {
 func (w *TerrainWorkspace) brushStroke(local matrix.Vec2) terrain.PaintStroke {
 	radius := w.readBrushFloat(w.radiusInput, 2)
 	return terrain.PaintStroke{
-		Mode:     w.mode,
+		Mode:     w.effectiveBrushMode(),
 		Center:   local,
 		Radius:   radius,
 		Strength: w.readBrushFloat(w.strengthInput, 0.25),
 		Falloff:  w.readFalloff(),
 		Spacing:  radius * 0.25,
 	}
+}
+
+func (w *TerrainWorkspace) effectiveBrushMode() terrain.BrushMode {
+	kb := &w.Host.Window.Keyboard
+	return effectiveTerrainBrushMode(w.mode, kb.HasShift(), kb.HasCtrlOrMeta())
+}
+
+func (w *TerrainWorkspace) adjustBrushRadius(direction int) {
+	w.adjustBrushInput(w.radiusInput, 2, direction,
+		terrainBrushMinRadius, terrainBrushMaxRadius, "Brush radius")
+}
+
+func (w *TerrainWorkspace) adjustBrushStrength(direction int) {
+	w.adjustBrushInput(w.strengthInput, 0.25, direction,
+		terrainBrushMinStrength, terrainBrushMaxStrength, "Brush strength")
+}
+
+func (w *TerrainWorkspace) adjustBrushInput(e *document.Element, fallback matrix.Float,
+	direction int, minValue, maxValue matrix.Float, label string) {
+	if e == nil || direction == 0 {
+		return
+	}
+	if w.ed != nil && w.ed.IsInputFocused() {
+		return
+	}
+	value := adjustTerrainBrushValue(
+		w.readBrushFloat(e, fallback), direction, minValue, maxValue)
+	e.UI.ToInput().SetTextWithoutEvent(fmtFloat(value))
+	w.refreshToolReadout()
+	w.setStatus(label + " " + fmtFloat(value))
 }
 
 func (w *TerrainWorkspace) initBrushRing(host *engine.Host) {
@@ -552,6 +609,30 @@ func parseFloat(text string, fallback matrix.Float) matrix.Float {
 		return fallback
 	}
 	return matrix.Float(v)
+}
+
+func adjustTerrainBrushValue(value matrix.Float, direction int, minValue, maxValue matrix.Float) matrix.Float {
+	if direction > 0 {
+		value *= terrainBrushValueScale
+	} else if direction < 0 {
+		value /= terrainBrushValueScale
+	}
+	return matrix.Clamp(value, minValue, maxValue)
+}
+
+func effectiveTerrainBrushMode(mode terrain.BrushMode, smooth, invert bool) terrain.BrushMode {
+	if smooth {
+		return terrain.BrushSmooth
+	}
+	if invert {
+		switch mode {
+		case terrain.BrushRaise:
+			return terrain.BrushLower
+		case terrain.BrushLower:
+			return terrain.BrushRaise
+		}
+	}
+	return mode
 }
 
 func fmtFloat(v matrix.Float) string {
