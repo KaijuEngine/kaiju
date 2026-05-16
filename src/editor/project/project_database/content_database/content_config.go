@@ -102,6 +102,7 @@ type ContentConfig struct {
 	Mesh     *MeshConfig     `json:",omitempty"`
 	Music    *MusicConfig    `json:",omitempty"`
 	Sound    *SoundConfig    `json:",omitempty"`
+	Terrain  *TerrainConfig  `json:",omitempty"`
 	Texture  *TextureConfig  `json:",omitempty"`
 }
 

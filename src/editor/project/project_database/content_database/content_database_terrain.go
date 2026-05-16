@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_id.go                                                              */
+/* content_database_terrain.go                                                */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,44 +34,53 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_id
+package content_database
 
 import (
-	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/terrain"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
-type Css string
-type Font string
-type Html string
-type Material string
-type Mesh string
-type Music string
-type ParticleSystem string
-type RenderPass string
-type ShaderPipeline string
-type Shader string
-type Sound string
-type TableOfContents string
-type Template string
-type Terrain string
-type Texture string
-type Stage string
+func init() { addCategory(Terrain{}) }
 
-func init() {
-	pod.Register(Css(""))
-	pod.Register(Font(""))
-	pod.Register(Html(""))
-	pod.Register(Material(""))
-	pod.Register(Mesh(""))
-	pod.Register(Music(""))
-	pod.Register(ParticleSystem(""))
-	pod.Register(RenderPass(""))
-	pod.Register(ShaderPipeline(""))
-	pod.Register(Shader(""))
-	pod.Register(Sound(""))
-	pod.Register(TableOfContents(""))
-	pod.Register(Template(""))
-	pod.Register(Terrain(""))
-	pod.Register(Texture(""))
-	pod.Register(Stage(""))
+// Terrain is a [ContentCategory] represented by a ".terrain" asset. The
+// stored asset keeps JSON metadata with compact 16-bit normalized height data.
+type Terrain struct{}
+type TerrainConfig struct{}
+
+// See the documentation for the interface [ContentCategory] to learn more about
+// the following functions
+
+func (Terrain) Path() string       { return project_file_system.ContentTerrainFolder }
+func (Terrain) TypeName() string   { return "Terrain" }
+func (Terrain) ExtNames() []string { return []string{".terrain"} }
+
+func (Terrain) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Terrain.Import").End()
+	data, err := filesystem.ReadFile(src)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	asset, err := terrain.DeserializeAsset(data)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	data, err = asset.Serialize()
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	return ProcessedImport{Variants: []ImportVariant{
+		{Name: fileNameNoExt(src), Data: data},
+	}}, nil
+}
+
+func (c Terrain) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
+	defer tracing.NewRegion("Terrain.Reimport").End()
+	return reimportByNameMatching(c, id, cache, fs)
+}
+
+func (Terrain) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
+	return nil
 }

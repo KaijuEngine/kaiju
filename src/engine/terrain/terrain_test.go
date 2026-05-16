@@ -157,3 +157,63 @@ func TestDirtyRegionExpandPadsNormals(t *testing.T) {
 		t.Fatalf("expected expanded region %+v, got %+v", expected, got)
 	}
 }
+
+func TestTerrainAssetRoundTripsUint16Heights(t *testing.T) {
+	config := TerrainConfig{
+		Resolution:    2,
+		WorldSize:     matrix.NewVec2(10, 10),
+		MinHeight:     -10,
+		MaxHeight:     30,
+		InitialHeight: 0,
+	}
+	asset, err := NewAsset(config, []matrix.Float{-10, 0, 10, 30})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(asset.Heights) != 4 {
+		t.Fatalf("expected four normalized heights, got %d", len(asset.Heights))
+	}
+	if asset.Heights[0] != 0 || asset.Heights[3] != 65535 {
+		t.Fatalf("expected min/max heights to use full uint16 range, got %d and %d", asset.Heights[0], asset.Heights[3])
+	}
+	data, err := asset.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := DeserializeAsset(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	heights := loaded.FloatHeights()
+	want := []matrix.Float{-10, 0, 10, 30}
+	for i := range want {
+		if !matrix.ApproxTo(heights[i], want[i], 0.001) {
+			t.Fatalf("expected height %d to be %f, got %f", i, want[i], heights[i])
+		}
+	}
+}
+
+func TestTerrainAssetBuildsModelFromStoredHeights(t *testing.T) {
+	asset, err := NewAsset(TerrainConfig{
+		Resolution:    3,
+		WorldSize:     matrix.NewVec2(2, 2),
+		MinHeight:     0,
+		MaxHeight:     10,
+		InitialHeight: 0,
+		ChunkSize:     2,
+	}, []matrix.Float{
+		0, 0, 0,
+		0, 6, 0,
+		0, 0, 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	model, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !matrix.ApproxTo(model.HeightField.Height(1, 1), 6, 0.001) {
+		t.Fatalf("expected center height from asset to be 6, got %f", model.HeightField.Height(1, 1))
+	}
+}

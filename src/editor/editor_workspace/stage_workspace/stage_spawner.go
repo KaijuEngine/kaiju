@@ -47,9 +47,11 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine_entity_data/content_id"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_particles"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
@@ -233,6 +235,8 @@ func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent,
 		}
 	case content_database.ParticleSystem:
 		w.spawnParticleSystem(cc, hit)
+	case content_database.Terrain:
+		w.spawnTerrain(cc, hit)
 	default:
 		slog.Error("dropping this type of content into the stage is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -275,6 +279,8 @@ func (w *StageWorkspace) spawnContentAtPosition(cc *content_database.CachedConte
 		w.OpenStage(cc.Id())
 	case content_database.ParticleSystem:
 		w.spawnParticleSystem(cc, point)
+	case content_database.Terrain:
+		w.spawnTerrain(cc, point)
 	default:
 		slog.Error("double clicking this type of content is not supported",
 			"id", cc.Id(), "type", cc.Config.Type)
@@ -653,6 +659,30 @@ func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent,
 	changeEvtId := w.ed.Events().OnContentChangesSaved.Add(func(id string) {
 		for _, de := range e.DataBindingsByKey(bindKey) {
 			if de.FieldValueByName("Id").(string) == id {
+				data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+			}
+		}
+	})
+	e.OnDestroy.Add(func() {
+		w.ed.Events().OnContentChangesSaved.Remove(changeEvtId)
+	})
+}
+
+func (w *StageWorkspace) spawnTerrain(cc *content_database.CachedContent, point matrix.Vec3) {
+	defer tracing.NewRegion("StageWorkspace.spawnTerrain").End()
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	bindKey := engine_entity_data_terrain.BindingKey()
+	e, _ := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	e.Transform.SetPosition(point)
+	for _, de := range e.DataBindingsByKey(bindKey) {
+		de.SetFieldByName("Id", cc.Id())
+		data_binding_renderer.Updated(de, weak.Make(w.Host), e)
+	}
+	changeEvtId := w.ed.Events().OnContentChangesSaved.Add(func(id string) {
+		for _, de := range e.DataBindingsByKey(bindKey) {
+			terrainId, ok := de.FieldValueByName("Id").(content_id.Terrain)
+			if ok && string(terrainId) == id {
 				data_binding_renderer.Updated(de, weak.Make(w.Host), e)
 			}
 		}

@@ -274,7 +274,7 @@ type TerrainRayHit struct {
 }
 
 func NewModel(config TerrainConfig) (*Terrain, error) {
-	return newTerrain(config, nil, nil)
+	return newTerrainWithHeights(config, nil, nil, nil, nil)
 }
 
 func New(host *engine.Host, config TerrainConfig) (*Terrain, error) {
@@ -282,7 +282,7 @@ func New(host *engine.Host, config TerrainConfig) (*Terrain, error) {
 	if host == nil {
 		return NewModel(config)
 	}
-	return newTerrain(config, host.WorkGroup(), host)
+	return newTerrainWithHeights(config, nil, host.WorkGroup(), host, nil)
 }
 
 func (t *Terrain) Destroy(host *engine.Host) {
@@ -463,13 +463,24 @@ func (t *Terrain) normalAtLocal(localXZ matrix.Vec2) matrix.Vec3 {
 	return matrix.NewVec3(-dx, 1, -dz).Normal()
 }
 
-func newTerrain(config TerrainConfig, workGroup *concurrent.WorkGroup, host *engine.Host) (*Terrain, error) {
+func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGroup *concurrent.WorkGroup, host *engine.Host, entity *engine.Entity) (*Terrain, error) {
 	config = normalizeConfig(config)
 	hf, err := NewHeightField(config.Resolution, config.MinHeight, config.MaxHeight, config.InitialHeight)
 	if err != nil {
 		return nil, err
 	}
-	entity := engine.NewEntity(workGroup)
+	if heights != nil {
+		if len(heights) != len(hf.Heights) {
+			return nil, fmt.Errorf("terrain expected %d heights, got %d", len(hf.Heights), len(heights))
+		}
+		for i := range heights {
+			hf.Heights[i] = hf.clampHeight(heights[i])
+		}
+		hf.markDirty(0, 0, hf.Resolution-1, hf.Resolution-1)
+	}
+	if entity == nil {
+		entity = engine.NewEntity(workGroup)
+	}
 	entity.SetName("Terrain")
 	t := &Terrain{
 		Config:      config,
@@ -510,7 +521,7 @@ func normalizeConfig(config TerrainConfig) TerrainConfig {
 		config.ChunkSize = defaultChunkSize
 	}
 	if config.Material == "" {
-		config.Material = assets.MaterialDefinitionBasic
+		config.Material = assets.MaterialDefinitionTerrain
 	}
 	if config.ShaderData == "" {
 		config.ShaderData = "basic"

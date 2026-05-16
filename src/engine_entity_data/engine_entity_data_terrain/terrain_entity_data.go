@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* content_id.go                                                              */
+/* terrain_entity_data.go                                                     */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,44 +34,43 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package content_id
+package engine_entity_data_terrain
 
 import (
+	"log/slog"
+
+	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine/terrain"
+	"kaijuengine.com/engine_entity_data/content_id"
 )
 
-type Css string
-type Font string
-type Html string
-type Material string
-type Mesh string
-type Music string
-type ParticleSystem string
-type RenderPass string
-type ShaderPipeline string
-type Shader string
-type Sound string
-type TableOfContents string
-type Template string
-type Terrain string
-type Texture string
-type Stage string
+var bindingKey = ""
 
 func init() {
-	pod.Register(Css(""))
-	pod.Register(Font(""))
-	pod.Register(Html(""))
-	pod.Register(Material(""))
-	pod.Register(Mesh(""))
-	pod.Register(Music(""))
-	pod.Register(ParticleSystem(""))
-	pod.Register(RenderPass(""))
-	pod.Register(ShaderPipeline(""))
-	pod.Register(Shader(""))
-	pod.Register(Sound(""))
-	pod.Register(TableOfContents(""))
-	pod.Register(Template(""))
-	pod.Register(Terrain(""))
-	pod.Register(Texture(""))
-	pod.Register(Stage(""))
+	engine.RegisterEntityData(TerrainEntityData{})
+}
+
+func BindingKey() string {
+	if bindingKey == "" {
+		bindingKey = pod.QualifiedNameForLayout(TerrainEntityData{})
+	}
+	return bindingKey
+}
+
+type TerrainEntityData struct {
+	Id content_id.Terrain `visible:"false"`
+}
+
+func (d TerrainEntityData) Init(e *engine.Entity, host *engine.Host) {
+	model, err := terrain.LoadForEntity(host, string(d.Id), e)
+	if err != nil {
+		slog.Error("failed to load terrain", "id", d.Id, "error", err)
+		return
+	}
+	e.AddNamedData("Terrain", model)
+	e.OnDestroy.Add(func() {
+		model.Destroy(nil)
+		e.RemoveNamedData("Terrain", model)
+	})
 }
