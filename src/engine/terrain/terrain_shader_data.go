@@ -39,12 +39,16 @@ package terrain
 import (
 	"unsafe"
 
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 )
 
 type TerrainShaderData struct {
 	rendering.ShaderDataBase
-	heightScalar float32
+
+	Color matrix.Color
+	Flags shader_data_registry.StandardShaderDataFlags
 }
 
 func (t TerrainShaderData) Size() int {

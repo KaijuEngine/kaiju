@@ -119,3 +119,41 @@ func TestTerrainRayHitUsesHeightField(t *testing.T) {
 		t.Fatalf("expected hit distance 4, got %f", hit.Distance)
 	}
 }
+
+func TestTerrainChunkMeshDataComesFromHeightField(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    3,
+		WorldSize:     matrix.NewVec2(2, 2),
+		MinHeight:     0,
+		MaxHeight:     10,
+		InitialHeight: 0,
+		ChunkSize:     2,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.HeightField.SetHeight(1, 1, 3)
+	chunk := TerrainChunk{StartX: 0, StartZ: 0, EndX: 2, EndZ: 2}
+	verts, indexes := model.buildChunkMeshData(&chunk)
+	if len(verts) != 9 {
+		t.Fatalf("expected 9 grid vertices, got %d", len(verts))
+	}
+	if len(indexes) != 24 {
+		t.Fatalf("expected 24 triangle indexes, got %d", len(indexes))
+	}
+	if !matrix.ApproxTo(verts[4].Position.Y(), 3, matrix.Roughly) {
+		t.Fatalf("expected center vertex height 3, got %f", verts[4].Position.Y())
+	}
+	if verts[3].Normal.Equals(matrix.Vec3Up()) {
+		t.Fatal("expected adjacent vertex to produce an edited normal")
+	}
+}
+
+func TestDirtyRegionExpandPadsNormals(t *testing.T) {
+	dirty := DirtyRegion{MinX: 1, MinZ: 2, MaxX: 3, MaxZ: 4, Valid: true}
+	got := dirty.Expand(1, 5)
+	expected := DirtyRegion{MinX: 0, MinZ: 1, MaxX: 4, MaxZ: 4, Valid: true}
+	if got != expected {
+		t.Fatalf("expected expanded region %+v, got %+v", expected, got)
+	}
+}

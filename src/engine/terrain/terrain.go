@@ -82,6 +82,19 @@ type DirtyRegion struct {
 	Valid      bool
 }
 
+func (r DirtyRegion) Expand(padding, resolution int) DirtyRegion {
+	if !r.Valid {
+		return DirtyRegion{}
+	}
+	return DirtyRegion{
+		MinX:  max(0, r.MinX-padding),
+		MinZ:  max(0, r.MinZ-padding),
+		MaxX:  min(resolution-1, r.MaxX+padding),
+		MaxZ:  min(resolution-1, r.MaxZ+padding),
+		Valid: true,
+	}
+}
+
 func (r DirtyRegion) Intersects(other DirtyRegion) bool {
 	if !r.Valid || !other.Valid {
 		return false
@@ -238,6 +251,7 @@ type TerrainChunk struct {
 	Mesh       *rendering.Mesh
 	Drawing    rendering.Drawing
 	ShaderData rendering.DrawInstance
+	Indexes    []uint32
 }
 
 type Terrain struct {
@@ -326,6 +340,7 @@ func (t *Terrain) ApplyDirty() {
 	if !dirty.Valid || t.host == nil {
 		return
 	}
+	vertexDirty := dirty.Expand(1, t.HeightField.Resolution)
 	for i := range t.MeshChunks {
 		chunkRegion := DirtyRegion{
 			MinX:  t.MeshChunks[i].StartX,
@@ -334,10 +349,10 @@ func (t *Terrain) ApplyDirty() {
 			MaxZ:  t.MeshChunks[i].EndZ,
 			Valid: true,
 		}
-		if !dirty.Intersects(chunkRegion) {
+		if !vertexDirty.Intersects(chunkRegion) {
 			continue
 		}
-		verts, _ := t.buildChunkMeshData(&t.MeshChunks[i])
+		verts := t.buildChunkVertices(&t.MeshChunks[i])
 		t.host.MeshCache().UpdateMeshVertices(t.MeshChunks[i].Key, verts)
 	}
 	t.HeightField.ClearDirty()
@@ -540,7 +555,9 @@ func (t *Terrain) createChunks(host *engine.Host) {
 				EndX:   min(x+t.Config.ChunkSize, cells),
 				EndZ:   min(z+t.Config.ChunkSize, cells),
 			}
-			verts, indexes := t.buildChunkMeshData(&chunk)
+			verts := t.buildChunkVertices(&chunk)
+			indexes := t.buildChunkIndexes(&chunk)
+			chunk.Indexes = indexes
 			chunk.Mesh = host.MeshCache().DynamicMesh(chunk.Key, verts, indexes)
 			chunk.ShaderData = shader_data_registry.Create(t.Config.ShaderData)
 			chunk.Drawing = rendering.Drawing{
@@ -558,6 +575,10 @@ func (t *Terrain) createChunks(host *engine.Host) {
 }
 
 func (t *Terrain) buildChunkMeshData(chunk *TerrainChunk) ([]rendering.Vertex, []uint32) {
+	return t.buildChunkVertices(chunk), t.buildChunkIndexes(chunk)
+}
+
+func (t *Terrain) buildChunkVertices(chunk *TerrainChunk) []rendering.Vertex {
 	width := chunk.EndX - chunk.StartX + 1
 	depth := chunk.EndZ - chunk.StartZ + 1
 	verts := make([]rendering.Vertex, width*depth)
@@ -576,6 +597,12 @@ func (t *Terrain) buildChunkMeshData(chunk *TerrainChunk) ([]rendering.Vertex, [
 			}
 		}
 	}
+	return verts
+}
+
+func (t *Terrain) buildChunkIndexes(chunk *TerrainChunk) []uint32 {
+	width := chunk.EndX - chunk.StartX + 1
+	depth := chunk.EndZ - chunk.StartZ + 1
 	indexes := make([]uint32, 0, (width-1)*(depth-1)*6)
 	for z := 0; z < depth-1; z++ {
 		for x := 0; x < width-1; x++ {
@@ -586,7 +613,7 @@ func (t *Terrain) buildChunkMeshData(chunk *TerrainChunk) ([]rendering.Vertex, [
 			indexes = append(indexes, i0, i2, i1, i0, i3, i2)
 		}
 	}
-	return verts, indexes
+	return indexes
 }
 
 func (t *Terrain) localStrokeToGrid(stroke PaintStroke) PaintStroke {
