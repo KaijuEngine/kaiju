@@ -178,15 +178,15 @@ func primitiveName(primitive rendering.PrimitiveMesh) string {
 
 func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_stage_manager.StageEntity, bool) {
 	defer tracing.NewRegion("StageWorkspace.createDataBoundEntity").End()
-	w.ed.History().BeginTransaction()
-	defer w.ed.History().CommitTransaction()
-	man := w.stageView.Manager()
-	e := man.AddEntity(name, w.stageView.LookAtPoint())
 	g, ok := w.ed.Project().EntityDataBinding(bindKey)
 	if !ok {
 		slog.Error("failed to locate the entity binding data", "key", bindKey)
 		return nil, false
 	}
+	w.ed.History().BeginTransaction()
+	defer w.ed.History().CommitTransaction()
+	man := w.stageView.Manager()
+	e := man.AddEntity(name, w.stageView.LookAtPoint())
 	w.attachEntityData(e, g)
 	man.ClearSelection()
 	man.SelectEntity(e)
@@ -650,7 +650,10 @@ func (w *StageWorkspace) spawnParticleSystem(cc *content_database.CachedContent,
 	w.ed.History().BeginTransaction()
 	defer w.ed.History().CommitTransaction()
 	bindKey := engine_entity_data_particles.BindingKey()
-	e, _ := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	e, ok := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	if !ok {
+		return
+	}
 	e.Transform.SetPosition(point)
 	for _, de := range e.DataBindingsByKey(bindKey) {
 		de.SetFieldByName("Id", cc.Id())
@@ -673,7 +676,10 @@ func (w *StageWorkspace) spawnTerrain(cc *content_database.CachedContent, point 
 	w.ed.History().BeginTransaction()
 	defer w.ed.History().CommitTransaction()
 	bindKey := engine_entity_data_terrain.BindingKey()
-	e, _ := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	e, ok := w.createDataBoundEntity(cc.Config.Name, bindKey)
+	if !ok {
+		return
+	}
 	e.Transform.SetPosition(point)
 	for _, de := range e.DataBindingsByKey(bindKey) {
 		de.SetFieldByName("Id", cc.Id())

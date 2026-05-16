@@ -36,7 +36,10 @@
 
 package codegen
 
-import "reflect"
+import (
+	"path"
+	"reflect"
+)
 
 type GeneratedType struct {
 	Pkg                string
@@ -52,3 +55,20 @@ type GeneratedType struct {
 }
 
 func (g *GeneratedType) IsValid() bool { return g.Name != "" }
+
+func GeneratedTypeFromValue(registerKey string, value any) GeneratedType {
+	t := reflect.TypeOf(value)
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	fields := reflect.VisibleFields(t)
+	return GeneratedType{
+		Pkg:         path.Base(t.PkgPath()),
+		PkgPath:     t.PkgPath(),
+		Name:        t.Name(),
+		Fields:      fields,
+		FieldGens:   make([]GeneratedType, len(fields)),
+		Type:        t,
+		RegisterKey: registerKey,
+	}
+}

@@ -56,6 +56,10 @@ import (
 	"kaijuengine.com/engine/assets/content_archive"
 	"kaijuengine.com/engine/stages"
 	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_particles"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -440,7 +444,16 @@ func (p *Project) ReadSourceCode() {
 		return
 	}
 	p.readingCode = true
-	defer func() { p.readingCode = false }()
+	defer func() {
+		p.ensureBuiltInEntityDataBindings()
+		p.entityDataMap = make(map[string]*codegen.GeneratedType)
+		for i := range p.entityData {
+			p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]
+		}
+		slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
+		p.OnEntityDataUpdated.Execute(p.entityData)
+		p.readingCode = false
+	}()
 
 	p.entityData = p.entityData[:0]
 	p.entityDataMap = make(map[string]*codegen.GeneratedType)
@@ -469,11 +482,27 @@ func (p *Project) ReadSourceCode() {
 	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaijuengine.com")
 	b, _ := codegen.Walk(srcRoot, srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
-	for i := range p.entityData {
-		p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]
+}
+
+func (p *Project) ensureBuiltInEntityDataBindings() {
+	builtIns := []codegen.GeneratedType{
+		codegen.GeneratedTypeFromValue(engine_entity_data_camera.BindingKey(), engine_entity_data_camera.CameraEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_light.BindingKey(), engine_entity_data_light.LightEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_particles.BindingKey(), engine_entity_data_particles.ParticleSystemEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_terrain.BindingKey(), engine_entity_data_terrain.TerrainEntityData{}),
 	}
-	slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
-	p.OnEntityDataUpdated.Execute(p.entityData)
+	for i := range builtIns {
+		found := false
+		for j := range p.entityData {
+			if p.entityData[j].RegisterKey == builtIns[i].RegisterKey {
+				found = true
+				break
+			}
+		}
+		if !found {
+			p.entityData = append(p.entityData, builtIns[i])
+		}
+	}
 }
 
 func (p *Project) TryUpgrade() error {
