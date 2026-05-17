@@ -343,6 +343,19 @@ func (t *Terrain) Destroy(host *engine.Host) {
 	}
 }
 
+func (t *Terrain) Collision() (*graviton.TerrainCollision, error) {
+	if t == nil || t.HeightField == nil {
+		return nil, errors.New("terrain collision requires a terrain heightfield")
+	}
+	return graviton.NewTerrainCollision(
+		t.HeightField.Resolution,
+		t.Config.WorldSize,
+		t.HeightField.Heights,
+		t.HeightField.MinHeight,
+		t.HeightField.MaxHeight,
+	)
+}
+
 func (t *Terrain) HeightAtLocal(localXZ matrix.Vec2) matrix.Float {
 	x, z := t.localToGrid(localXZ)
 	return t.HeightField.Sample(x, z)

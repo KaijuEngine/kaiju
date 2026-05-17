@@ -42,6 +42,7 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/encoding/pod"
 	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/engine/terrain"
 	"kaijuengine.com/engine_entity_data/content_id"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
@@ -58,6 +59,7 @@ const (
 	ShapeCylinder
 	ShapeCone
 	ShapeMesh
+	ShapeTerrain
 )
 
 func init() {
@@ -102,6 +104,10 @@ func (r RigidBodyEntityData) gravitonRigidBody(e *engine.Entity, host *engine.Ho
 		body.SetStaticMesh(r.gravitonMesh(host))
 		return body
 	}
+	if r.Shape == ShapeTerrain {
+		body.SetStaticTerrain(r.gravitonTerrain(e))
+		return body
+	}
 	shape := r.gravitonShape(e.Transform.Scale())
 	// Scale is baked into the shape dimensions to match the existing behavior.
 	body.SetShape(shape)
@@ -135,6 +141,27 @@ func (r RigidBodyEntityData) gravitonMesh(host *engine.Host) *graviton.MeshColli
 	return mesh
 }
 
+func (r RigidBodyEntityData) gravitonTerrain(e *engine.Entity) *graviton.TerrainCollision {
+	if e == nil {
+		slog.Warn("graviton terrain physics shape has no entity")
+		return nil
+	}
+	for _, data := range e.NamedData("Terrain") {
+		model, ok := data.(*terrain.Terrain)
+		if !ok {
+			continue
+		}
+		collision, err := model.Collision()
+		if err != nil {
+			slog.Error("failed to create graviton terrain physics shape", "error", err)
+			return nil
+		}
+		return collision
+	}
+	slog.Warn("graviton terrain physics shape has no terrain entity data")
+	return nil
+}
+
 func (r RigidBodyEntityData) gravitonShape(scale matrix.Vec3) graviton.Shape {
 	scale = matrix.Vec3Abs(scale)
 	switch r.Shape {
@@ -158,6 +185,8 @@ func (r RigidBodyEntityData) gravitonShape(scale matrix.Vec3) graviton.Shape {
 		return graviton.NewConeShape(radius, height)
 	case ShapeMesh:
 		return graviton.NewMeshShape(graviton.NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero()))
+	case ShapeTerrain:
+		return graviton.NewTerrainShape(graviton.NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero()))
 	}
 	return graviton.NewBoxShape(r.Extent.Multiply(scale))
 }

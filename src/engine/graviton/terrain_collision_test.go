@@ -170,6 +170,10 @@ func TestStaticTerrainBodyGeneratesBroadPhaseAABB(t *testing.T) {
 		t.Fatalf("expected terrain proxy X bounds [1,5], got [%f,%f]",
 			proxy.bounds[matrix.Vx].min, proxy.bounds[matrix.Vx].max)
 	}
+	if !matrix.Approx(proxy.bounds[matrix.Vy].min, -1) || !matrix.Approx(proxy.bounds[matrix.Vy].max, 5) {
+		t.Fatalf("expected terrain proxy Y bounds [-1,5], got [%f,%f]",
+			proxy.bounds[matrix.Vy].min, proxy.bounds[matrix.Vy].max)
+	}
 	if !matrix.Approx(proxy.bounds[matrix.Vz].min, -5) || !matrix.Approx(proxy.bounds[matrix.Vz].max, 1) {
 		t.Fatalf("expected terrain proxy Z bounds [-5,1], got [%f,%f]",
 			proxy.bounds[matrix.Vz].min, proxy.bounds[matrix.Vz].max)

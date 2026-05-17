@@ -294,3 +294,27 @@ func TestTerrainAssetBuildsModelFromStoredHeights(t *testing.T) {
 		t.Fatalf("expected center height from asset to be 6, got %f", model.HeightField.Height(1, 1))
 	}
 }
+
+func TestTerrainCollisionUsesConfiguredHeightBounds(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    2,
+		WorldSize:     matrix.NewVec2(8, 6),
+		MinHeight:     -3,
+		MaxHeight:     9,
+		InitialHeight: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	collision, err := model.Collision()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bounds := collision.LocalBounds()
+	if !matrix.Vec3ApproxTo(bounds.Center, matrix.NewVec3(0, 3, 0), 0.0001) {
+		t.Fatalf("expected configured bounds center 0,3,0, got %v", bounds.Center)
+	}
+	if !matrix.Vec3ApproxTo(bounds.Extent, matrix.NewVec3(4, 6, 3), 0.0001) {
+		t.Fatalf("expected configured bounds extent 4,6,3, got %v", bounds.Extent)
+	}
+}

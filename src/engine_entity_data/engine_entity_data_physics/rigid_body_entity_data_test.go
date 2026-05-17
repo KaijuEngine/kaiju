@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* terrain_entity_data.go                                                     */
+/* rigid_body_entity_data_test.go                                             */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,47 +34,46 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package engine_entity_data_terrain
+package engine_entity_data_physics
 
 import (
-	"log/slog"
+	"testing"
 
 	"kaijuengine.com/engine"
-	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine/terrain"
-	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/matrix"
 )
 
-var bindingKey = ""
-
-func init() {
-	engine.RegisterEntityData(TerrainEntityData{})
-}
-
-func BindingKey() string {
-	if bindingKey == "" {
-		bindingKey = pod.QualifiedNameForLayout(TerrainEntityData{})
-	}
-	return bindingKey
-}
-
-type TerrainEntityData struct {
-	Id content_id.Terrain `visible:"false"`
-}
-
-func (d TerrainEntityData) Init(e *engine.Entity, host *engine.Host) {
-	model, err := terrain.LoadForEntity(host, string(d.Id), e)
-	if err != nil {
-		slog.Error("failed to load terrain", "id", d.Id, "error", err)
-		return
-	}
-	e.AddNamedData("Terrain", model)
-	e.OnDestroy.Add(func() {
-		model.Destroy(nil)
-		e.RemoveNamedData("Terrain", model)
+func TestTerrainRigidBodyUsesTerrainModelBounds(t *testing.T) {
+	entity := engine.NewEntity(nil)
+	entity.Transform.SetPosition(matrix.NewVec3(1, 2, 3))
+	model, err := terrain.NewModel(terrain.TerrainConfig{
+		Resolution:    2,
+		WorldSize:     matrix.NewVec2(8, 6),
+		MinHeight:     -3,
+		MaxHeight:     9,
+		InitialHeight: 0,
 	})
-}
-
-func (d TerrainEntityData) EntityDataInitPhase() engine.EntityDataPhase {
-	return engine.EntityDataPhasePhysicsBody - 1
+	if err != nil {
+		t.Fatal(err)
+	}
+	entity.AddNamedData("Terrain", model)
+	body := RigidBodyEntityData{Shape: ShapeTerrain, Mass: 5}.gravitonRigidBody(entity, nil)
+	if body.Collision.Shape.Type != graviton.ShapeTypeTerrain {
+		t.Fatalf("expected terrain shape, got %v", body.Collision.Shape.Type)
+	}
+	if body.Collision.Terrain == nil {
+		t.Fatal("expected terrain collision")
+	}
+	if !body.IsStatic() {
+		t.Fatal("expected terrain body to be static")
+	}
+	bounds := body.WorldAABB()
+	if !matrix.Vec3ApproxTo(bounds.Min(), matrix.NewVec3(-3, -1, 0), 0.0001) {
+		t.Fatalf("expected world terrain min -3,-1,0, got %v", bounds.Min())
+	}
+	if !matrix.Vec3ApproxTo(bounds.Max(), matrix.NewVec3(5, 11, 6), 0.0001) {
+		t.Fatalf("expected world terrain max 5,11,6, got %v", bounds.Max())
+	}
 }
