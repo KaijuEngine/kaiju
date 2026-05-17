@@ -245,6 +245,118 @@ func TestStaticTerrainBodyGeneratesBroadPhaseAABB(t *testing.T) {
 	}
 }
 
+func TestSystemDynamicSphereRestsOnStaticTerrain(t *testing.T) {
+	system := System{}
+	system.Initialize()
+	sphere := system.NewBody()
+	sphere.SetDynamic(1, matrix.Vec3One())
+	sphere.Collision.Shape = NewSphereShape(0.5)
+	sphere.Transform.SetPosition(matrix.NewVec3(0, 0.5, 0))
+	terrain := system.NewBody()
+	terrain.SetStaticTerrain(testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		0, 0,
+		0, 0,
+	}, 0, 0))
+	workGroup, threads, cleanup := testStepWorkers(t)
+	defer cleanup()
+	hadContact := false
+	for range 30 {
+		system.Step(workGroup, threads, 1.0/60.0)
+		hadContact = hadContact || len(system.Contacts()) > 0
+	}
+	if !hadContact {
+		t.Fatal("expected sphere to contact terrain while stepping")
+	}
+	if sphere.Transform.WorldPosition().Y() < 0.45 {
+		t.Fatalf("expected sphere to rest on terrain, got position %v", sphere.Transform.WorldPosition())
+	}
+}
+
+func TestNarrowPhaseSphereCollidesWithRaisedTerrainHeight(t *testing.T) {
+	sphere := testRigidBody(NewSphereShape(0.5), matrix.NewVec3(0, 1.45, 0))
+	terrain := testStaticTerrainBody(testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		1, 1,
+		1, 1,
+	}, 0, 2))
+	manifold, ok := CollideBodies(sphere, terrain)
+	if !ok {
+		t.Fatal("expected sphere to collide with raised terrain")
+	}
+	contact := manifold.Contacts[0]
+	if !matrix.Vec3ApproxTo(contact.Normal, matrix.Vec3Down(), 0.0001) {
+		t.Fatalf("expected downward sphere-to-terrain normal, got %v", contact.Normal)
+	}
+	if matrix.Abs(contact.Penetration-0.05) > 0.0001 {
+		t.Fatalf("expected penetration 0.05 against raised terrain, got %f", contact.Penetration)
+	}
+}
+
+func TestNarrowPhasePrimitivesCollideWithSlopedTerrain(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     *RigidBody
+		maxY     matrix.Float
+		minDepth matrix.Float
+	}{
+		{
+			name:     "sphere",
+			body:     testRigidBody(NewSphereShape(0.5), matrix.NewVec3(0, 0.45, 0)),
+			maxY:     -0.5,
+			minDepth: 0.0001,
+		},
+		{
+			name:     "capsule",
+			body:     testRigidBody(NewCapsuleShape(0.5, 2), matrix.NewVec3(0, 1.45, 0)),
+			maxY:     -0.5,
+			minDepth: 0.0001,
+		},
+		{
+			name:     "oobb",
+			body:     testRigidBody(NewBoxShape(matrix.NewVec3(0.5, 0.5, 0.5)), matrix.NewVec3(0, 0.45, 0)),
+			maxY:     -0.5,
+			minDepth: 0.0001,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			terrain := testStaticTerrainBody(testSlopedTerrain(t))
+			manifold, ok := CollideBodies(tt.body, terrain)
+			if !ok {
+				t.Fatal("expected primitive to collide with sloped terrain")
+			}
+			contact := manifold.Contacts[0]
+			horizontal := matrix.NewVec2(contact.Normal.X(), contact.Normal.Z()).Length()
+			if contact.Normal.Y() > tt.maxY || horizontal < 0.2 {
+				t.Fatalf("expected non-flat slope contact normal pointing down, got %v", contact.Normal)
+			}
+			if contact.Penetration <= tt.minDepth {
+				t.Fatalf("expected positive slope penetration, got %f", contact.Penetration)
+			}
+		})
+	}
+}
+
+func TestTerrainTransformScaleAffectsCollision(t *testing.T) {
+	sphere := testRigidBody(NewSphereShape(0.5), matrix.NewVec3(4, 7.45, -3))
+	terrain := testStaticTerrainBody(testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		1, 1,
+		1, 1,
+	}, 1, 1))
+	terrain.Transform.SetPosition(matrix.NewVec3(4, 5, -3))
+	terrain.Transform.SetScale(matrix.NewVec3(2, 2, 0.5))
+	manifold, ok := CollideBodies(sphere, terrain)
+	if !ok {
+		t.Fatal("expected sphere to collide with translated and scaled terrain")
+	}
+	contact := manifold.Contacts[0]
+	if !matrix.Vec3ApproxTo(contact.Normal, matrix.Vec3Down(), 0.0001) {
+		t.Fatalf("expected downward normal from scaled terrain, got %v", contact.Normal)
+	}
+	if matrix.Abs(contact.Penetration-0.05) > 0.0001 {
+		t.Fatalf("expected penetration 0.05 against scaled terrain, got %f", contact.Penetration)
+	}
+}
+
 func testTerrainCollision(t *testing.T, resolution int, worldSize matrix.Vec2, heights []matrix.Float, minHeight, maxHeight matrix.Float) *TerrainCollision {
 	t.Helper()
 	collision, err := NewTerrainCollision(resolution, worldSize, heights, minHeight, maxHeight)
@@ -252,4 +364,12 @@ func testTerrainCollision(t *testing.T, resolution int, worldSize matrix.Vec2, h
 		t.Fatal(err)
 	}
 	return collision
+}
+
+func testSlopedTerrain(t *testing.T) *TerrainCollision {
+	t.Helper()
+	return testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		-1, 1,
+		-1, 1,
+	}, -1, 1)
 }

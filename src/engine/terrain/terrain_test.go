@@ -1,6 +1,8 @@
 package terrain
 
 import (
+	"os/exec"
+	"strings"
 	"testing"
 
 	"kaijuengine.com/engine/graviton"
@@ -343,5 +345,84 @@ func TestTerrainNewCollisionSharesHeightStorage(t *testing.T) {
 	}
 	if got, want := model.CollisionBounds(), collision.LocalBounds(); got != want {
 		t.Fatalf("expected collision bounds %v, got %v", want, got)
+	}
+}
+
+func TestTerrainNewCollisionMatchesConfig(t *testing.T) {
+	config := TerrainConfig{
+		Resolution:    7,
+		WorldSize:     matrix.NewVec2(12, 8),
+		MinHeight:     -4,
+		MaxHeight:     16,
+		InitialHeight: 3,
+		ChunkSize:     3,
+	}
+	model, err := NewModel(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collision := model.NewCollision()
+	if collision == nil {
+		t.Fatal("expected terrain collision")
+	}
+	if collision.Resolution != model.Config.Resolution {
+		t.Fatalf("expected collision resolution %d, got %d", model.Config.Resolution, collision.Resolution)
+	}
+	if collision.WorldSize != model.Config.WorldSize {
+		t.Fatalf("expected collision world size %v, got %v", model.Config.WorldSize, collision.WorldSize)
+	}
+	if collision.MinHeight != model.Config.MinHeight || collision.MaxHeight != model.Config.MaxHeight {
+		t.Fatalf("expected collision height range [%f,%f], got [%f,%f]",
+			model.Config.MinHeight, model.Config.MaxHeight, collision.MinHeight, collision.MaxHeight)
+	}
+	if got, want := collision.LocalBounds(), model.CollisionBounds(); got != want {
+		t.Fatalf("expected collision bounds %v, got %v", want, got)
+	}
+	if got := collision.HeightAtLocal(matrix.Vec2Zero()); !matrix.ApproxTo(got, config.InitialHeight, matrix.Roughly) {
+		t.Fatalf("expected collision to sample initial height %f, got %f", config.InitialHeight, got)
+	}
+}
+
+func TestTerrainPaintingUpdatesSharedCollisionSampleHeight(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    5,
+		WorldSize:     matrix.NewVec2(4, 4),
+		MinHeight:     0,
+		MaxHeight:     10,
+		InitialHeight: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	collision := model.NewCollision()
+	if collision == nil {
+		t.Fatal("expected terrain collision")
+	}
+	before := collision.HeightAtLocal(matrix.Vec2Zero())
+	model.Paint(PaintStroke{
+		Mode:     BrushRaise,
+		Center:   matrix.Vec2Zero(),
+		Radius:   0.75,
+		Strength: 4,
+		Falloff:  FalloffConstant,
+	})
+	after := collision.HeightAtLocal(matrix.Vec2Zero())
+	if !matrix.ApproxTo(before, 0, matrix.Roughly) {
+		t.Fatalf("expected initial collision sample to be 0, got %f", before)
+	}
+	if !matrix.ApproxTo(after, 4, matrix.Roughly) {
+		t.Fatalf("expected painted shared collision sample to be 4, got %f", after)
+	}
+}
+
+func TestTerrainPackageImportGraphHasNoCycle(t *testing.T) {
+	cmd := exec.Command("go", "list", "-deps", "kaijuengine.com/engine/terrain")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		output := string(out)
+		if strings.Contains(output, "import cycle") {
+			t.Fatalf("terrain package import graph has a cycle:\n%s", output)
+		}
+		t.Fatalf("go list terrain dependencies failed: %v\n%s", err, output)
 	}
 }
