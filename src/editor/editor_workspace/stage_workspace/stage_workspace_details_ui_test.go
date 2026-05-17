@@ -36,7 +36,11 @@
 
 package stage_workspace
 
-import "testing"
+import (
+	"testing"
+
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+)
 
 func TestEnumOptionNameTrimsFieldPrefix(t *testing.T) {
 	if got := enumOptionName("Shape", "ShapeTerrain"); got != "Terrain" {
@@ -44,5 +48,20 @@ func TestEnumOptionNameTrimsFieldPrefix(t *testing.T) {
 	}
 	if got := enumOptionName("Mode", "Model"); got != "Model" {
 		t.Fatalf("expected Model to remain untrimmed, got %q", got)
+	}
+}
+
+func TestRigidBodyTerrainFieldVisibility(t *testing.T) {
+	hidden := []string{"AssetKey", "Extent", "Mass", "Radius", "Height", "IsStatic"}
+	for _, field := range hidden {
+		if rigidBodyFieldVisibleForShape(field, engine_entity_data_physics.ShapeTerrain) {
+			t.Fatalf("expected %s to be hidden for terrain rigid bodies", field)
+		}
+	}
+	if !rigidBodyFieldVisibleForShape("Shape", engine_entity_data_physics.ShapeTerrain) {
+		t.Fatal("expected Shape to stay visible for terrain rigid bodies")
+	}
+	if !rigidBodyFieldVisibleForShape("Mass", engine_entity_data_physics.ShapeBox) {
+		t.Fatal("expected non-terrain rigid bodies to keep generic field visibility")
 	}
 }

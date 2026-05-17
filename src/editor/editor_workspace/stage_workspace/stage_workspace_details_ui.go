@@ -60,6 +60,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
@@ -482,9 +483,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		for _, c := range fields[i].Children {
 			c.UI.Hide()
 		}
+		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
+		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		optionsSelect := []string{}
 		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
 			if f.Tag.Get("visible") == "false" {
+				fields[i].SetAttribute("data-visible", "false")
+				fields[i].UI.Hide()
 				continue
 			} else if ops := f.Tag.Get("options"); ops != "" {
 				switch ops {
@@ -495,8 +500,6 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				}
 			}
 		}
-		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
-		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		nameSpan := fields[i].Children[0]
 		nameSpan.UI.Show()
 		textInput := fields[i].Children[1]
@@ -627,10 +630,93 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			valReload()
 		}
 	}
+	dui.refreshShapeSpecificFieldVisibility(g, cpy)
 	if len(g.Fields) == 0 {
 		w.Doc.ApplyStyles()
 	}
 	w.Doc.SetupInputTabIndexs()
+}
+
+func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element) {
+	if g == nil || bindingElement == nil || !isRigidBodyBinding(g) {
+		return
+	}
+	shape, ok := rigidBodyShape(g)
+	if !ok {
+		return
+	}
+	for _, row := range bindingElement.Children {
+		idx, err := strconv.Atoi(row.Attribute("data-fieldidx"))
+		if err != nil || idx < 0 || idx >= len(g.Fields) {
+			continue
+		}
+		if row.Attribute("data-visible") == "false" {
+			row.UI.Hide()
+			continue
+		}
+		if rigidBodyFieldVisibleForShape(g.Fields[idx].Name, shape) {
+			row.UI.Show()
+		} else {
+			row.UI.Hide()
+		}
+	}
+	bindingElement.UI.SetDirty(ui.DirtyTypeLayout)
+	if parent := bindingElement.Parent.Value(); parent != nil {
+		parent.UI.SetDirty(ui.DirtyTypeLayout)
+	}
+}
+
+func isRigidBodyBinding(g *entity_data_binding.EntityDataEntry) bool {
+	if g.Gen.RegisterKey == engine_entity_data_physics.BindingKey() {
+		return true
+	}
+	t := reflect.TypeOf(g.BoundData)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t != nil &&
+		t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_physics" &&
+		t.Name() == "RigidBodyEntityData"
+}
+
+func rigidBodyShape(g *entity_data_binding.EntityDataEntry) (engine_entity_data_physics.Shape, bool) {
+	v := g.FieldValueByName("Shape")
+	switch shape := v.(type) {
+	case engine_entity_data_physics.Shape:
+		return shape, true
+	case int:
+		return engine_entity_data_physics.Shape(shape), true
+	case int8:
+		return engine_entity_data_physics.Shape(shape), true
+	case int16:
+		return engine_entity_data_physics.Shape(shape), true
+	case int32:
+		return engine_entity_data_physics.Shape(shape), true
+	case int64:
+		return engine_entity_data_physics.Shape(shape), true
+	}
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() {
+		return 0, false
+	}
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return engine_entity_data_physics.Shape(rv.Int()), true
+	default:
+		return 0, false
+	}
+}
+
+func rigidBodyFieldVisibleForShape(fieldName string, shape engine_entity_data_physics.Shape) bool {
+	if shape != engine_entity_data_physics.ShapeTerrain {
+		return true
+	}
+	switch fieldName {
+	case "AssetKey", "Extent", "Mass", "Radius", "Height", "IsStatic":
+		return false
+	default:
+		return true
+	}
 }
 
 func (dui *WorkspaceDetailsUI) changeShaderData(e *document.Element) {
@@ -1062,6 +1148,7 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 		if err == nil {
 			target := entity.DataBindings()[pIdx]
 			v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
+			bindingElement := root.Parent.Value()
 			h.ValueChangeProcedure = func(newVal reflect.Value) {
 				v.Set(newVal)
 				if reload, ok := dui.TargetedElementValueReload[v]; ok {
@@ -1069,10 +1156,12 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 				} else {
 					dui.reload()
 				}
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement)
 			}
 			h.From = v.Interface()
 			if ok := reflectAssignChanges(e, v); ok {
 				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement)
 				success = true
 				h.To = v.Interface()
 			}
