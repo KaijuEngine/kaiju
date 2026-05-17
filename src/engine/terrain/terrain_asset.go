@@ -403,6 +403,9 @@ func newTerrainFromAsset(host *engine.Host, asset TerrainAsset, entity *engine.E
 	if err != nil {
 		return nil, err
 	}
+	if err := t.createSplatTextures(host); err != nil {
+		return nil, err
+	}
 	return t, nil
 }
 

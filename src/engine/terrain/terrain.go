@@ -304,14 +304,15 @@ type TerrainChunk struct {
 }
 
 type Terrain struct {
-	Config      TerrainConfig
-	Entity      *engine.Entity
-	Transform   *matrix.Transform
-	HeightField *HeightField
-	LayerSet    *TerrainLayerSet
-	MeshChunks  []TerrainChunk
-	Material    *rendering.Material
-	ShaderData  []rendering.DrawInstance
+	Config        TerrainConfig
+	Entity        *engine.Entity
+	Transform     *matrix.Transform
+	HeightField   *HeightField
+	LayerSet      *TerrainLayerSet
+	SplatTextures []TerrainSplatTexture
+	MeshChunks    []TerrainChunk
+	Material      *rendering.Material
+	ShaderData    []rendering.DrawInstance
 
 	host *engine.Host
 }
@@ -487,14 +488,41 @@ func (t *Terrain) AddLayer(layer TerrainLayer) int {
 	if t == nil || t.LayerSet == nil {
 		return -1
 	}
-	return t.LayerSet.AddLayer(layer)
+	layerIndex := t.LayerSet.AddLayer(layer)
+	_ = t.createSplatTextures(t.host)
+	if layerIndex >= 0 {
+		t.MarkTextureDirty(layerIndex, DirtyRegion{
+			MinX:  0,
+			MinZ:  0,
+			MaxX:  t.LayerSet.WeightMap.Resolution - 1,
+			MaxZ:  t.LayerSet.WeightMap.Resolution - 1,
+			Valid: true,
+		})
+	}
+	return layerIndex
 }
 
 func (t *Terrain) RemoveLayer(layer int) bool {
 	if t == nil || t.LayerSet == nil {
 		return false
 	}
-	return t.LayerSet.RemoveLayer(layer)
+	if !t.LayerSet.RemoveLayer(layer) {
+		return false
+	}
+	_ = t.createSplatTextures(t.host)
+	if t.LayerSet.WeightMap != nil && len(t.SplatTextures) > 0 {
+		full := DirtyRegion{
+			MinX:  0,
+			MinZ:  0,
+			MaxX:  t.LayerSet.WeightMap.Resolution - 1,
+			MaxZ:  t.LayerSet.WeightMap.Resolution - 1,
+			Valid: true,
+		}
+		for i := range t.SplatTextures {
+			t.SplatTextures[i].Dirty = full
+		}
+	}
+	return true
 }
 
 func (t *Terrain) NormalizeWeightsAt(x, z int) bool {
@@ -508,21 +536,32 @@ func (t *Terrain) PaintLayer(layer int, stroke PaintStroke) DirtyRegion {
 	if t == nil || t.LayerSet == nil {
 		return DirtyRegion{}
 	}
-	return t.LayerSet.PaintLayer(layer, t.localStrokeToWeightGrid(stroke))
+	gridStroke := t.localStrokeToWeightGrid(stroke)
+	dirty := t.LayerSet.PaintLayer(layer, gridStroke)
+	t.MarkTextureRegionDirty(dirty)
+	t.ApplyTextureDirty(dirty)
+	return dirty
 }
 
 func (t *Terrain) EraseLayer(layer int, stroke PaintStroke) DirtyRegion {
 	if t == nil || t.LayerSet == nil {
 		return DirtyRegion{}
 	}
-	return t.LayerSet.EraseLayer(layer, t.localStrokeToWeightGrid(stroke))
+	gridStroke := t.localStrokeToWeightGrid(stroke)
+	dirty := t.LayerSet.EraseLayer(layer, gridStroke)
+	t.MarkTextureRegionDirty(dirty)
+	t.ApplyTextureDirty(dirty)
+	return dirty
 }
 
 func (t *Terrain) FillLayer(layer int) DirtyRegion {
 	if t == nil || t.LayerSet == nil {
 		return DirtyRegion{}
 	}
-	return t.LayerSet.FillLayer(layer)
+	dirty := t.LayerSet.FillLayer(layer)
+	t.MarkTextureRegionDirty(dirty)
+	t.ApplyTextureDirty(dirty)
+	return dirty
 }
 
 func (t *Terrain) LayerWeightAt(layer, x, z int) matrix.Float {
@@ -673,14 +712,15 @@ func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGro
 	}
 	entity.SetName("Terrain")
 	t := &Terrain{
-		Config:      config,
-		Entity:      entity,
-		Transform:   &entity.Transform,
-		HeightField: hf,
-		LayerSet:    layerSet,
-		MeshChunks:  make([]TerrainChunk, 0),
-		ShaderData:  make([]rendering.DrawInstance, 0),
-		host:        host,
+		Config:        config,
+		Entity:        entity,
+		Transform:     &entity.Transform,
+		HeightField:   hf,
+		LayerSet:      layerSet,
+		SplatTextures: make([]TerrainSplatTexture, 0),
+		MeshChunks:    make([]TerrainChunk, 0),
+		ShaderData:    make([]rendering.DrawInstance, 0),
+		host:          host,
 	}
 	if host != nil {
 		if err := t.createRenderResources(host); err != nil {
@@ -758,6 +798,9 @@ func (t *Terrain) createRenderResources(host *engine.Host) error {
 		if err != nil {
 			return err
 		}
+	}
+	if err := t.createSplatTextures(host); err != nil {
+		return err
 	}
 	t.Material = material.CreateInstance(textures)
 	t.createChunks(host)
