@@ -44,7 +44,6 @@ import (
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_logging"
-	"kaijuengine.com/editor/editor_overlay/ai_prompt"
 	"kaijuengine.com/editor/editor_overlay/context_menu"
 	"kaijuengine.com/editor/editor_plugin"
 	"kaijuengine.com/editor/editor_settings"
@@ -448,14 +447,6 @@ func (ed *Editor) update(deltaTime float64) {
 			ed.SaveCurrentStage()
 			return
 		}
-	}
-	if kb.HasShift() && kb.KeyDown(hid.KeyboardKeyF1) {
-		ed.blurred = true
-		ed.BlurInterface()
-		ai_prompt.Show(ed.host, func() {
-			ed.FocusInterface()
-		})
-		return
 	}
 	if kb.KeyDown(hid.KeyboardKeyF5) {
 		if kb.HasCtrlOrMeta() {

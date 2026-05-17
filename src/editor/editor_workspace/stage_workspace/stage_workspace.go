@@ -110,7 +110,6 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
-	w.initLLMActions()
 	// Subscribe to cross-workspace requests. The content workspace publishes
 	// OnRequestOpenStage when the user picks a stage asset; we open it and
 	// switch ourselves active.
