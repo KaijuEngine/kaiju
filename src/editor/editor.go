@@ -73,6 +73,7 @@ import (
 	_ "kaijuengine.com/editor/editor_workspace/settings_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/shading_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/stage_workspace"
+	_ "kaijuengine.com/editor/editor_workspace/terrain_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/ui_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/vfx_workspace"
 )
@@ -230,9 +231,10 @@ func (ed *Editor) postProjectLoad() {
 var defaultWorkspaceOrder = []string{
 	"stage",
 	"content",
-	"shading",
+	"terrain",
 	"vfx",
 	"ui",
+	"shading",
 	"settings",
 }
 

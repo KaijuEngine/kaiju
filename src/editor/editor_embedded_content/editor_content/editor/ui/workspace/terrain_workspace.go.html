@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body {
+				color: white;
+			}
+			#terrainPanel {
+				position: absolute;
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 18em;
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				padding: 0.6em;
+				background-color: rgb(18, 18, 18);
+				border-right: 2px solid black;
+				overflow-y: scroll;
+			}
+			#terrainPanel h2 {
+				font-size: 1.1em;
+				margin-bottom: 0.35em;
+			}
+			#terrainPanel h3 {
+				font-size: 0.9em;
+				margin-top: 0.8em;
+				margin-bottom: 0.35em;
+				color: #D8D8D8;
+			}
+			#terrainPanel button {
+				height: 2em;
+				margin-right: 0.25em;
+				margin-bottom: 0.35em;
+				background-color: #282828;
+				color: #DDD;
+				border: 2px solid #575757;
+			}
+			#terrainPanel button:hover {
+				background-color: #575757;
+				color: white;
+			}
+			#activeTerrainName, #terrainStatus, #terrainToolReadout {
+				width: calc(100% - 0.6em);
+				padding: 0.3em;
+				margin-bottom: 0.4em;
+				background-color: #202020;
+				color: #DDD;
+				border: 1px solid #444;
+			}
+			.field {
+				width: 100%;
+				margin-bottom: 0.35em;
+			}
+			.field span {
+				width: 7em;
+				font-size: 0.8em;
+				color: #C8C8C8;
+			}
+			.field input, .field select {
+				width: 7em;
+				height: 1.7em;
+			}
+			.materialIcon {
+				font-family: 'MaterialIcons-Regular';
+				font-size: 1.75em;
+			}
+			#createTerrainDialog {
+				position: absolute;
+				left: 19em;
+				top: calc(var(--ed-menu-bar-height) + 0.8em);
+				width: 17em;
+				padding: 0.7em;
+				background-color: #121212;
+				border: 3px solid #575757;
+				z-index: 20;
+			}
+			input {
+					height: 2em;
+			}
+			#tooltip {
+				position: absolute;
+				padding: 5px;
+				background-color: #282828;
+				border: 2px solid #AAA;
+				color: #DDD;
+				top: 0;
+				left: 0;
+				z-index: 30;
+				pointer-events: none;
+				white-space: pre;
+				font-size: 0.85em;
+			}
+	</style>
+
+	<body>
+		<div id="terrainPanel">
+			<h2>Terrain</h2>
+			<input id="activeTerrainName" type="text" placeholder="Terrain name..." onsubmit="renameTerrain" />
+			<button class="materialIcon" onclick="clickSelectTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select existing terrain from content">&#xE1BC;</button>
+			<button class="materialIcon" onclick="clickCreateTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create a new terrain asset">&#xE43E;</button>
+
+			<h3>Tools</h3>
+			<button class="materialIcon" onclick="clickToolRaise" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Raise terrain (pull up heights)">&#xE5D8;</button>
+			<button class="materialIcon" onclick="clickToolLower" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lower terrain (push down heights)">&#xE5DB;</button>
+			<button class="materialIcon" onclick="clickToolSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth terrain (average heights)">&#xE3A2;</button>
+			<div id="terrainToolReadout">Raise / R 2.00 / S 0.25</div>
+
+			<h3>Brush</h3>
+			<div class="field">
+				<span>Radius</span>
+				<input id="brushRadius" type="number" value="2" onchange="brushChanged" onsubmit="brushChanged" />
+			</div>
+			<div class="field">
+				<span>Strength</span>
+				<input id="brushStrength" type="number" value="0.1" onchange="brushChanged" onsubmit="brushChanged" />
+			</div>
+			<div class="field">
+				<span>Falloff</span>
+				<select id="brushFalloff" onchange="brushChanged">
+					<option value="smooth" selected>Smooth</option>
+					<option value="linear">Linear</option>
+					<option value="constant">Constant</option>
+				</select>
+			</div>
+
+			<h3>Asset</h3>
+			<button class="materialIcon" onclick="clickSave" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Save terrain changes to asset file">&#xE161;</button>
+			<button class="materialIcon" onclick="clickRevert" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Revert to last saved version (discard unsaved changes)">&#xE419;</button>
+
+			<h3>Status</h3>
+			<div id="terrainStatus">Hover a terrain to inspect coordinates</div>
+		</div>
+
+		<div id="createTerrainDialog">
+			<h3>Create Terrain</h3>
+			<div class="field">
+				<span>Resolution</span>
+				<input id="createResolution" type="number" value="33" />
+			</div>
+			<div class="field">
+				<span>Size X</span>
+				<input id="createSizeX" type="number" value="100" />
+			</div>
+			<div class="field">
+				<span>Size Z</span>
+				<input id="createSizeZ" type="number" value="100" />
+			</div>
+			<div class="field">
+				<span>Floor</span>
+				<input id="createFloorHeight" type="number" value="-100" />
+			</div>
+			<div class="field">
+				<span>Ceiling</span>
+				<input id="createCeilingHeight" type="number" value="100" />
+			</div>
+			<div class="field">
+				<span>Initial</span>
+				<input id="createInitialHeight" type="number" value="0" />
+			</div>
+			<button onclick="clickConfirmCreate" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create the new terrain asset">Create</button>
+			<button onclick="clickCancelCreate" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Cancel terrain creation">Cancel</button>
+		</div>
+		<span id="tooltip">Tooltip...</span>
+	</body>
+</html>

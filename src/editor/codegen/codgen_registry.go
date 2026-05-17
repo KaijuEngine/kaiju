@@ -87,6 +87,7 @@ func init() {
 	RegisterType[content_id.Sound]()
 	RegisterType[content_id.TableOfContents]()
 	RegisterType[content_id.Template]()
+	RegisterType[content_id.Terrain]()
 	RegisterType[content_id.Texture]()
 	RegisterType[content_id.Stage]()
 }

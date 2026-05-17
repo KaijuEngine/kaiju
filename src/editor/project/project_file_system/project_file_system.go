@@ -87,6 +87,7 @@ var (
 		ContentSpvFolder,
 		ContentStageFolder,
 		ContentTemplateFolder,
+		ContentTerrainFolder,
 		ContentTextureFolder,
 	}
 	coreRequiredFolders = []string{

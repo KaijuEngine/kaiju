@@ -53,6 +53,7 @@ type Shader string
 type Sound string
 type TableOfContents string
 type Template string
+type Terrain string
 type Texture string
 type Stage string
 
@@ -70,6 +71,7 @@ func init() {
 	pod.Register(Sound(""))
 	pod.Register(TableOfContents(""))
 	pod.Register(Template(""))
+	pod.Register(Terrain(""))
 	pod.Register(Texture(""))
 	pod.Register(Stage(""))
 }

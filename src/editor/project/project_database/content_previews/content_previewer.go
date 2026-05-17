@@ -181,6 +181,8 @@ func (p *ContentPreviewer) proc(id string) {
 	switch cc.Config.Type {
 	case content_database.Mesh{}.TypeName():
 		p.renderMesh(id)
+	case content_database.Terrain{}.TypeName():
+		p.renderTerrain(id)
 	// case content_database.Material{}.TypeName():
 	// 	p.renderMaterial(id)
 	default:

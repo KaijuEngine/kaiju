@@ -36,17 +36,6 @@
 
 package terrain
 
-import (
-	"unsafe"
+import "kaijuengine.com/registry/shader_data_registry"
 
-	"kaijuengine.com/rendering"
-)
-
-type TerrainShaderData struct {
-	rendering.ShaderDataBase
-	heightScalar float32
-}
-
-func (t TerrainShaderData) Size() int {
-	return int(unsafe.Sizeof(TerrainShaderData{}) - rendering.ShaderBaseDataStart)
-}
+type TerrainShaderData = shader_data_registry.ShaderDataTerrain

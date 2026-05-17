@@ -85,6 +85,9 @@ func raycastBody(ray Ray, body *RigidBody, length matrix.Float) (Hit, bool) {
 	if body.Collision.Shape.Type == ShapeTypeMesh {
 		return body.Collision.Mesh.Raycast(ray, length, &body.Transform)
 	}
+	if body.Collision.Shape.Type == ShapeTypeTerrain {
+		return body.Collision.Terrain.Raycast(ray, length, &body.Transform)
+	}
 	return raycastShape(ray, worldShape(body), length)
 }
 

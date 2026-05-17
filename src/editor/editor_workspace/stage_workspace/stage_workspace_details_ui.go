@@ -43,6 +43,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 	"weak"
 
 	"kaijuengine.com/editor/codegen"
@@ -58,6 +60,8 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
@@ -459,14 +463,25 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElementWithoutApplyStyles(tpl)
-	nameSpan := cpy.Children[0]
-	fieldDiv := cpy.Children[1]
-	if len(cpy.Children) == 3 {
-		nameSpan = cpy.Children[1]
-		fieldDiv = cpy.Children[2]
-		for _, c := range cpy.Children[0].Children {
+	var nameSpan *document.Element
+	var fieldDiv *document.Element
+	for _, c := range cpy.Children {
+		switch {
+		case c.HasClass("dataControls"):
+			for _, control := range c.Children {
+				control.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+			}
+		case c.HasClass("entityDataField") && fieldDiv == nil:
+			fieldDiv = c
+		case c.HasClass("entityDataValidation"):
 			c.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+			c.UI.Hide()
+		case nameSpan == nil:
+			nameSpan = c
 		}
+	}
+	if nameSpan == nil || fieldDiv == nil {
+		return
 	}
 	nameSpan.InnerLabel().SetText(g.Name)
 	fields := []*document.Element{fieldDiv}
@@ -480,9 +495,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		for _, c := range fields[i].Children {
 			c.UI.Hide()
 		}
+		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
+		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		optionsSelect := []string{}
 		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
 			if f.Tag.Get("visible") == "false" {
+				fields[i].SetAttribute("data-visible", "false")
+				fields[i].UI.Hide()
 				continue
 			} else if ops := f.Tag.Get("options"); ops != "" {
 				switch ops {
@@ -493,8 +512,6 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				}
 			}
 		}
-		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
-		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		nameSpan := fields[i].Children[0]
 		nameSpan.UI.Show()
 		textInput := fields[i].Children[1]
@@ -528,7 +545,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 					}
 				} else {
 					for k, v := range fg.EnumValues {
-						opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+						opts = append(opts, ui.SelectOption{Name: enumOptionName(g.Fields[i].Name, k), Value: fmt.Sprintf("%v", v)})
 					}
 				}
 				slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
@@ -625,10 +642,150 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			valReload()
 		}
 	}
+	dui.refreshShapeSpecificFieldVisibility(g, cpy)
 	if len(g.Fields) == 0 {
 		w.Doc.ApplyStyles()
 	}
 	w.Doc.SetupInputTabIndexs()
+}
+
+func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element, entities ...*editor_stage_manager.StageEntity) {
+	if g == nil || bindingElement == nil || !isRigidBodyBinding(g) {
+		return
+	}
+	shape, ok := rigidBodyShape(g)
+	if !ok {
+		return
+	}
+	var entity *editor_stage_manager.StageEntity
+	if len(entities) > 0 {
+		entity = entities[0]
+	}
+	if entity == nil {
+		entity = dui.selectedEntity()
+	}
+	hasTerrain := entityHasTerrainData(entity)
+	for _, row := range bindingElement.Children {
+		if row.HasClass("entityDataValidation") {
+			if row.Attribute("data-validation") != "terrain-missing" {
+				row.UI.Hide()
+				continue
+			}
+			if rigidBodyTerrainWarningVisible(shape, hasTerrain) {
+				row.UI.Show()
+			} else {
+				row.UI.Hide()
+			}
+			continue
+		}
+		idx, err := strconv.Atoi(row.Attribute("data-fieldidx"))
+		if err != nil || idx < 0 || idx >= len(g.Fields) {
+			continue
+		}
+		if row.Attribute("data-visible") == "false" {
+			row.UI.Hide()
+			continue
+		}
+		if rigidBodyFieldVisibleForShape(g.Fields[idx].Name, shape) {
+			row.UI.Show()
+		} else {
+			row.UI.Hide()
+		}
+	}
+	bindingElement.UI.SetDirty(ui.DirtyTypeLayout)
+	if parent := bindingElement.Parent.Value(); parent != nil {
+		parent.UI.SetDirty(ui.DirtyTypeLayout)
+	}
+}
+
+func (dui *WorkspaceDetailsUI) selectedEntity() *editor_stage_manager.StageEntity {
+	w := dui.workspace.Value()
+	if w == nil {
+		return nil
+	}
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return nil
+	}
+	return sel[len(sel)-1]
+}
+
+func entityHasTerrainData(entity *editor_stage_manager.StageEntity) bool {
+	if entity == nil {
+		return false
+	}
+	for _, binding := range entity.DataBindings() {
+		if binding.Gen.RegisterKey == engine_entity_data_terrain.BindingKey() {
+			return true
+		}
+		t := reflect.TypeOf(binding.BoundData)
+		for t != nil && t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		if t != nil &&
+			t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_terrain" &&
+			t.Name() == "TerrainEntityData" {
+			return true
+		}
+	}
+	return false
+}
+
+func isRigidBodyBinding(g *entity_data_binding.EntityDataEntry) bool {
+	if g.Gen.RegisterKey == engine_entity_data_physics.BindingKey() {
+		return true
+	}
+	t := reflect.TypeOf(g.BoundData)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t != nil &&
+		t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_physics" &&
+		t.Name() == "RigidBodyEntityData"
+}
+
+func rigidBodyShape(g *entity_data_binding.EntityDataEntry) (engine_entity_data_physics.Shape, bool) {
+	v := g.FieldValueByName("Shape")
+	switch shape := v.(type) {
+	case engine_entity_data_physics.Shape:
+		return shape, true
+	case int:
+		return engine_entity_data_physics.Shape(shape), true
+	case int8:
+		return engine_entity_data_physics.Shape(shape), true
+	case int16:
+		return engine_entity_data_physics.Shape(shape), true
+	case int32:
+		return engine_entity_data_physics.Shape(shape), true
+	case int64:
+		return engine_entity_data_physics.Shape(shape), true
+	}
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() {
+		return 0, false
+	}
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return engine_entity_data_physics.Shape(rv.Int()), true
+	default:
+		return 0, false
+	}
+}
+
+func rigidBodyTerrainWarningVisible(shape engine_entity_data_physics.Shape, hasTerrainData bool) bool {
+	return shape == engine_entity_data_physics.ShapeTerrain && !hasTerrainData
+}
+
+func rigidBodyFieldVisibleForShape(fieldName string, shape engine_entity_data_physics.Shape) bool {
+	if shape != engine_entity_data_physics.ShapeTerrain {
+		return true
+	}
+	switch fieldName {
+	case "AssetKey", "Extent", "Mass", "Radius", "Height", "IsStatic":
+		return false
+	default:
+		return true
+	}
 }
 
 func (dui *WorkspaceDetailsUI) changeShaderData(e *document.Element) {
@@ -1060,17 +1217,22 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 		if err == nil {
 			target := entity.DataBindings()[pIdx]
 			v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
+			bindingElement := root.Parent.Value()
 			h.ValueChangeProcedure = func(newVal reflect.Value) {
 				v.Set(newVal)
+				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
 				if reload, ok := dui.TargetedElementValueReload[v]; ok {
 					reload()
 				} else {
 					dui.reload()
+					return
 				}
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 			}
 			h.From = v.Interface()
 			if ok := reflectAssignChanges(e, v); ok {
 				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 				success = true
 				h.To = v.Interface()
 			}
@@ -1126,6 +1288,21 @@ func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 		}
 	}
 	return true
+}
+
+func enumOptionName(fieldName, enumName string) string {
+	if !strings.HasPrefix(enumName, fieldName) {
+		return enumName
+	}
+	trimmed := strings.TrimPrefix(enumName, fieldName)
+	if trimmed == "" {
+		return enumName
+	}
+	r, _ := utf8.DecodeRuneInString(trimmed)
+	if !unicode.IsUpper(r) {
+		return enumName
+	}
+	return trimmed
 }
 
 func (dui *WorkspaceDetailsUI) reload() {

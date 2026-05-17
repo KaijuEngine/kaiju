@@ -65,6 +65,11 @@ type StageView struct {
 	transformTool transform_tools.TransformTool
 	selectTool    select_tool.SelectTool
 	transformMan  TransformationManager
+	toolOwner     ViewportToolOwner
+}
+
+type ViewportToolOwner interface {
+	UpdateViewportTool(view *StageView) bool
 }
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
@@ -76,6 +81,16 @@ func (v *StageView) WorkspaceHost() *engine.Host { return v.host }
 func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
+
+func (v *StageView) SetViewportToolOwner(owner ViewportToolOwner) {
+	v.toolOwner = owner
+}
+
+func (v *StageView) ClearViewportToolOwner(owner ViewportToolOwner) {
+	if v.toolOwner == owner {
+		v.toolOwner = nil
+	}
+}
 
 func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()

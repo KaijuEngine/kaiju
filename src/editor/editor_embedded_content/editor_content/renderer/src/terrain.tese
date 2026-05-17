@@ -1,82 +1,92 @@
 #version 460
+#define TESS_EVALUATION_SHADER
 
-#include "inc_default.inl"
+#include "kaiju.glsl"
 
-layout (triangles, equal_spacing, cw) in;
+#define TERRAIN_PHONG_STRENGTH 0.65
 
-layout(location = 0) in vec4 teseColor[];
-layout(location = 1) in vec2 teseTexCoord[];
-layout(location = 2) in vec3 teseCamPos[];
-layout(location = 3) in float teseScalar[];
-layout(location = 4) in mat4 teseView[];
-layout(location = 8) in mat4 teseProjection[];
-layout(location = 12) in mat4 teseModel[];
-layout(location = 16) in mat3 teseNmlModel[];
+layout(triangles, fractional_odd_spacing, cw) in;
+
+layout(location = 0) in vec4 tcColor[];
+layout(location = 1) flat in uint tcFlags[];
+layout(location = 2) in vec3 tcPos[];
+layout(location = 3) in vec2 tcTexCoords[];
+layout(location = 4) in vec3 tcNormal[];
+layout(location = 5) in vec3 tcViewDir[];
+layout(location = 6) in vec4 tcSlopeParams[];
+layout(location = 7) in vec4 tcGrassTint[];
+layout(location = 8) in vec4 tcRockTint[];
+layout(location = 9) in vec4 tcLightDirectionAmbient[];
+layout(location = 10) in vec4 tcLightColorDiffuse[];
+layout(location = 11) in vec4 tcMaterialParams[];
+layout(location = 12) in vec4 tcBrushCenterRadius[];
+layout(location = 13) in vec4 tcBrushParams[];
+layout(location = 14) in vec4 tcBrushColor[];
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec2 fragTexCoord;
-layout(location = 2) out vec3 fragTangentViewPos;
-layout(location = 3) out vec3 fragTangentFragPos;
-layout(location = 4) out vec3 fragLightTPos;
-layout(location = 5) out vec4 fragPosLightSpace;
-layout(location = 6) out vec3 fragPos;
-layout(location = 7) out vec3 fragNormal;
+layout(location = 1) flat out uint fragFlags;
+layout(location = 2) out vec3 fragPos;
+layout(location = 3) out vec2 fragTexCoords;
+layout(location = 4) out vec3 fragNormal;
+layout(location = 5) out vec3 fragViewDir;
+layout(location = 6) out vec4 fragSlopeParams;
+layout(location = 7) out vec4 fragGrassTint;
+layout(location = 8) out vec4 fragRockTint;
+layout(location = 9) out vec4 fragLightDirectionAmbient;
+layout(location = 10) out vec4 fragLightColorDiffuse;
+layout(location = 11) out vec4 fragMaterialParams;
+layout(location = 12) out vec4 fragBrushCenterRadius;
+layout(location = 13) out vec4 fragBrushParams;
+layout(location = 14) out vec4 fragBrushColor;
 
-// Height/Cavity/Roughness map
-// Terrain normal map
-// Rock color, normal
-// Ground color, normal
-layout(binding = 1) uniform sampler2D textures[6];
+vec3 interpolateVec3(vec3 a, vec3 b, vec3 c, vec3 weights) {
+	return a * weights.x + b * weights.y + c * weights.z;
+}
 
-float height_map(vec2 position) {
-	vec3 rgb = texture(textures[0], position).rgb;
-	return rgb.r * teseScalar[0];
+vec4 interpolateVec4(vec4 a, vec4 b, vec4 c, vec3 weights) {
+	return a * weights.x + b * weights.y + c * weights.z;
+}
+
+vec2 interpolateVec2(vec2 a, vec2 b, vec2 c, vec3 weights) {
+	return a * weights.x + b * weights.y + c * weights.z;
+}
+
+vec3 projectOntoTangentPlane(vec3 point, vec3 planePoint, vec3 normal) {
+	return point - normal * dot(point - planePoint, normal);
+}
+
+vec3 phongTerrainPosition(vec3 linearPosition, vec3 weights) {
+	vec3 n0 = normalize(tcNormal[0]);
+	vec3 n1 = normalize(tcNormal[1]);
+	vec3 n2 = normalize(tcNormal[2]);
+	vec3 p0 = projectOntoTangentPlane(linearPosition, tcPos[0], n0);
+	vec3 p1 = projectOntoTangentPlane(linearPosition, tcPos[1], n1);
+	vec3 p2 = projectOntoTangentPlane(linearPosition, tcPos[2], n2);
+	vec3 phongPosition = interpolateVec3(p0, p1, p2, weights);
+	return mix(linearPosition, phongPosition, TERRAIN_PHONG_STRENGTH);
 }
 
 void main() {
-    // barycentric coordinates
-    float u = gl_TessCoord.x;
-    float v = gl_TessCoord.y;
-    float w = gl_TessCoord.z;
+	vec3 weights = gl_TessCoord;
+	vec3 linearPosition = interpolateVec3(tcPos[0], tcPos[1], tcPos[2], weights);
+	vec3 normal = normalize(interpolateVec3(tcNormal[0], tcNormal[1], tcNormal[2], weights));
+	vec3 position = phongTerrainPosition(linearPosition, weights);
 
-    fragTexCoord = u * teseTexCoord[0] + v * teseTexCoord[1] + w * teseTexCoord[2];
+	fragColor = interpolateVec4(tcColor[0], tcColor[1], tcColor[2], weights);
+	fragFlags = tcFlags[0];
+	fragPos = position;
+	fragTexCoords = interpolateVec2(tcTexCoords[0], tcTexCoords[1], tcTexCoords[2], weights);
+	fragNormal = normal;
+	fragViewDir = cameraPosition.xyz - position;
+	fragSlopeParams = interpolateVec4(tcSlopeParams[0], tcSlopeParams[1], tcSlopeParams[2], weights);
+	fragGrassTint = interpolateVec4(tcGrassTint[0], tcGrassTint[1], tcGrassTint[2], weights);
+	fragRockTint = interpolateVec4(tcRockTint[0], tcRockTint[1], tcRockTint[2], weights);
+	fragLightDirectionAmbient = interpolateVec4(tcLightDirectionAmbient[0], tcLightDirectionAmbient[1], tcLightDirectionAmbient[2], weights);
+	fragLightColorDiffuse = interpolateVec4(tcLightColorDiffuse[0], tcLightColorDiffuse[1], tcLightColorDiffuse[2], weights);
+	fragMaterialParams = interpolateVec4(tcMaterialParams[0], tcMaterialParams[1], tcMaterialParams[2], weights);
+	fragBrushCenterRadius = interpolateVec4(tcBrushCenterRadius[0], tcBrushCenterRadius[1], tcBrushCenterRadius[2], weights);
+	fragBrushParams = interpolateVec4(tcBrushParams[0], tcBrushParams[1], tcBrushParams[2], weights);
+	fragBrushColor = interpolateVec4(tcBrushColor[0], tcBrushColor[1], tcBrushColor[2], weights);
 
-    vec4 p0 = u * gl_in[0].gl_Position;
-    vec4 p1 = v * gl_in[1].gl_Position;
-    vec4 p2 = w * gl_in[2].gl_Position;
-    vec4 pos = p0 + p1 + p2;
-
-    vec4 prePos = pos;
-
-	prePos.y = height_map(fragTexCoord);
-	//fragHeight = prePos.y - pos.y;
-
-    // Generate 2 points near this point to create a triangle
-    vec3 fp0 = prePos.xyz + vec3(0.1, 0.0, 0.0);
-    vec3 fp1 = prePos.xyz + vec3(0.0, 0.0, 0.1);
-	fp0.y = height_map(fragTexCoord + vec2(0.01, 0.0));
-	fp1.y = height_map(fragTexCoord + vec2(0.0, 0.01));
-    
-    vec3 e0 = fp1 - fp0;
-    vec3 e1 = prePos.xyz - fp1;
-    vec3 triNml = normalize(cross(e1, e0));
-    vec3 triTangent = normalize(cross(prePos.xyz, triNml));
-
-    pos = teseModel[0] * prePos;
-
-    vec3 T = normalize(teseNmlModel[0] * triTangent);
-    vec3 N = normalize(teseNmlModel[0] * triNml);
-    T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(N, T);
-    mat3 TBN = transpose(mat3(T, B, N));
-	
-	fragPos = pos.xyz;
-	fragColor = teseColor[0];
-    fragLightTPos = TBN * vertLights[0].position;
-	fragPosLightSpace = vertLights[0].matrix[0] * vec4(fragPos, 1.0);
-	fragTangentViewPos = TBN * cameraPosition.xyz;
-	fragTangentFragPos = TBN * fragPos;
-	fragNormal = triNml;
-
-    gl_Position = teseProjection[0] * teseView[0] * pos;
+	gl_Position = projection * view * vec4(position, 1.0);
 }

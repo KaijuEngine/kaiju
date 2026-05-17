@@ -461,6 +461,16 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 			},
 		},
 	}
+	if cc, err := w.ed.Cache().Read(id); err == nil {
+		if cc.Config.Type == (content_database.Terrain{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Open in terrain editor",
+				Call: func() {
+					w.ed.Events().OnRequestOpenTerrain.Execute(id)
+				},
+			})
+		}
+	}
 	w.ed.BlurInterface()
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)
 }

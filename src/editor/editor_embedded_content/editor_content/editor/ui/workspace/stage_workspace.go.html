@@ -316,6 +316,26 @@
 				border: 2px solid #AAA;
 				margin-bottom: 0.2em;
 			}
+			.entityDataFieldHidden {
+				display: none;
+			}
+			.entityDataFieldDisabled {
+				color: #777;
+			}
+			.entityDataValidation {
+				width: calc(100% - 0.7em);
+				padding: 0.35em;
+				margin: 0.25em;
+				background-color: #1C1C1C;
+				border-left: 3px solid #AAA;
+				color: #DDD;
+				font-size: 0.85em;
+			}
+			.entityDataValidationWarning {
+				background-color: #3A311B;
+				border-left-color: #D6A533;
+				color: #FFD56A;
+			}
 			.dataContentId {
 				width: 100%;
 				background-color: #282828;
@@ -472,6 +492,9 @@
 								<button class="deleteButton" data-bindidx="" onclick="removeEntityData">&#xE872;</button>
 							</div>
 							<div class="center">Data name...</div>
+							<div class="entityDataValidation entityDataValidationWarning" data-validation="terrain-missing" data-bindidx="">
+								<span>Terrain collider needs TerrainEntityData on this entity.</span>
+							</div>
 							<div class="entityDataField" data-fieldidx="" data-bindidx="">
 								<span>Field name...</span>
 								<!-- Text input -->

@@ -89,6 +89,10 @@ type EditorEvents struct {
 	// OnRequestOpenShadingSpec asks the shading workspace to open the given
 	// shader / material / render pass content id and switch itself active.
 	OnRequestOpenShadingSpec events.EventWithArg[string]
+
+	// OnRequestOpenTerrain asks the terrain workspace to open the given
+	// terrain content id and switch itself active.
+	OnRequestOpenTerrain events.EventWithArg[string]
 }
 
 type TagEvent struct {

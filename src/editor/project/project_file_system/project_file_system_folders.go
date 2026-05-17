@@ -82,6 +82,7 @@ const (
 	ContentSpvFolder             = ContentRenderFolder + "/spv"
 	ContentStageFolder           = "stage"
 	ContentTemplateFolder        = "template"
+	ContentTerrainFolder         = "terrain"
 	ContentTextureFolder         = "texture"
 	ContentTableFolder           = "table"
 	ContentTableOfContentsFolder = ContentTableFolder + "/content"

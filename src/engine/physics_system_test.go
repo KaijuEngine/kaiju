@@ -256,6 +256,51 @@ func TestStagePhysicsFindHitReturnsEntityEntry(t *testing.T) {
 	}
 }
 
+func TestStagePhysicsAddEntityTerrainStagesStaticTerrainBody(t *testing.T) {
+	workGroup, _, cleanup := testStagePhysicsWorkers(t)
+	defer cleanup()
+
+	physics := StagePhysics{}
+	physics.Start()
+	defer physics.Destroy()
+
+	entity := NewEntity(workGroup)
+	entity.Transform.SetPosition(matrix.NewVec3(2, 3, 4))
+	entity.Transform.SetRotation(matrix.NewVec3(0.1, 0.2, 0.3))
+	terrain, err := graviton.NewTerrainCollision(
+		2,
+		matrix.NewVec2(4, 6),
+		[]matrix.Float{0, 1, 2, 3},
+		0,
+		3,
+	)
+	if err != nil {
+		t.Fatalf("failed to create terrain collision: %v", err)
+	}
+
+	physics.AddEntityTerrain(entity, terrain)
+
+	if len(physics.entities) != 1 {
+		t.Fatalf("expected 1 staged entity, got %d", len(physics.entities))
+	}
+	body := physics.entities[0].Body
+	if !body.IsStatic() {
+		t.Fatal("expected terrain body to be static")
+	}
+	if body.Collision.Terrain != terrain {
+		t.Fatal("expected staged body to reference the terrain collision")
+	}
+	if body.Collision.Shape.Type != graviton.ShapeTypeTerrain {
+		t.Fatalf("expected terrain shape type, got %d", body.Collision.Shape.Type)
+	}
+	if !matrix.Vec3ApproxTo(body.Transform.WorldPosition(), entity.Transform.WorldPosition(), 0.0001) {
+		t.Fatalf("expected body position to initialize from entity, got %v", body.Transform.WorldPosition())
+	}
+	if !matrix.Vec3ApproxTo(body.Transform.WorldRotation(), entity.Transform.WorldRotation(), 0.0001) {
+		t.Fatalf("expected body rotation to initialize from entity, got %v", body.Transform.WorldRotation())
+	}
+}
+
 func TestStagePhysicsAddsDistanceJointBetweenEntities(t *testing.T) {
 	workGroup, threads, cleanup := testStagePhysicsWorkers(t)
 	defer cleanup()
