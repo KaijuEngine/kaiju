@@ -230,11 +230,11 @@ func (ed *Editor) postProjectLoad() {
 // end in registration order. The user's drag-reorder choices override this.
 var defaultWorkspaceOrder = []string{
 	"stage",
-	"terrain",
 	"content",
-	"shading",
+	"terrain",
 	"vfx",
 	"ui",
+	"shading",
 	"settings",
 }
 
