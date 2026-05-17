@@ -49,6 +49,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/terrain"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
@@ -76,8 +77,9 @@ func init() {
 
 type TerrainWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed        editor_workspace.WorkspaceEditorInterface
-	stageView *editor_stage_view.StageView
+	ed               editor_workspace.WorkspaceEditorInterface
+	stageView        *editor_stage_view.StageView
+	openTerrainSubID events.Id
 
 	activeID      string
 	activeName    *document.Element
@@ -150,6 +152,13 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.setStatus("Hover a terrain to inspect coordinates")
 	w.refreshToolReadout()
 	w.initBrushRing(host)
+	// Subscribe to cross-workspace requests. The content workspace (or stage
+	// content UI) publishes OnRequestOpenTerrain when the user right-clicks
+	// a terrain asset; we open it and switch ourselves active.
+	w.openTerrainSubID = ed.Events().OnRequestOpenTerrain.Add(func(terrainID string) {
+		w.openTerrain(terrainID)
+		ed.SelectWorkspace(ID)
+	})
 	return nil
 }
 
@@ -159,6 +168,9 @@ func (w *TerrainWorkspace) Shutdown() {
 	if w.brushRingData != nil {
 		w.brushRingData.Destroy()
 		w.brushRingData = nil
+	}
+	if w.ed != nil {
+		w.ed.Events().OnRequestOpenTerrain.Remove(w.openTerrainSubID)
 	}
 	w.CommonShutdown()
 }

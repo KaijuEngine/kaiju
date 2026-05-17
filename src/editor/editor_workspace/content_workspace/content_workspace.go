@@ -843,6 +843,14 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 				Call:  func() { w.editor.Events().OnRequestViewHtmlUi.Execute(id) },
 			})
 		}
+		if cc.Config.Type == (content_database.Terrain{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Open in terrain editor",
+				Call: func() {
+					w.openInEditor(cc)
+				},
+			})
+		}
 		if isEditableText {
 			options = append(options, context_menu.ContextMenuOption{
 				Label: "Open in editor",
@@ -1024,6 +1032,9 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 		fallthrough
 	case content_database.Shader{}.TypeName():
 		w.editor.Events().OnRequestOpenShadingSpec.Execute(cc.Id())
+		return
+	case content_database.Terrain{}.TypeName():
+		w.editor.Events().OnRequestOpenTerrain.Execute(cc.Id())
 		return
 	case content_database.Stage{}.TypeName():
 		w.editor.Events().OnRequestOpenStage.Execute(cc.Id())
