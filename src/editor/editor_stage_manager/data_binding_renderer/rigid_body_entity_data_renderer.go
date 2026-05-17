@@ -44,6 +44,8 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/engine/terrain"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -59,6 +61,8 @@ type rigidBodyGizmo struct {
 	Height     float32
 	IsStatic   bool
 	Shape      engine_entity_data_physics.Shape
+	Terrain    graviton.AABB
+	HasTerrain bool
 }
 
 type RigidBodyEntityDataRenderer struct {
@@ -79,7 +83,7 @@ func (c *RigidBodyEntityDataRenderer) Attached(host *engine.Host, manager *edito
 		c.Detatched(host, manager, target, data)
 	}
 	g := rigidBodyGizmo{}
-	g.reloadData(data)
+	g.reloadData(data, target)
 	var err error
 	if g.ShaderData, err = rigidBodyLoadWireframe(host, g, &target.Transform); err == nil {
 		c.Wireframes[target] = g
@@ -114,7 +118,7 @@ func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_sta
 
 func (c *RigidBodyEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if g, ok := c.Wireframes[target]; ok {
-		if g.reloadData(data) {
+		if g.reloadData(data, target) {
 			g.ShaderData.Destroy()
 			var err error
 			if g.ShaderData, err = rigidBodyLoadWireframe(host, g, &target.Transform); err == nil {
@@ -144,6 +148,8 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 		wireframe = rendering.NewMeshWireCylinder(host.MeshCache(), rad, height, 5, 1)
 	case engine_entity_data_physics.ShapeCone:
 		wireframe = rendering.NewMeshWireCone(host.MeshCache(), g.Radius, g.Height, 5, 1)
+	case engine_entity_data_physics.ShapeTerrain:
+		wireframe = rendering.NewMeshWireCube(host.MeshCache(), "rigidbody_terrain_gizmo", matrix.ColorWhite())
 	}
 	if wireframe == nil {
 		slog.Error("missing shape for rigid body wireframe")
@@ -152,9 +158,17 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
 	gsd := sd.(*shader_data_registry.ShaderDataEdTransformWire)
 	gsd.Color = matrix.NewColor(0, 1, 0, 1)
+	if g.Shape == engine_entity_data_physics.ShapeTerrain && !g.HasTerrain {
+		gsd.Color = matrix.ColorYellow()
+	}
 	if g.Shape == engine_entity_data_physics.ShapeBox {
 		model := matrix.Mat4Identity()
 		model.Scale(g.Extent.Scale(2))
+		gsd.SetModel(model)
+	} else if g.Shape == engine_entity_data_physics.ShapeTerrain {
+		model := matrix.Mat4Identity()
+		model.Translate(g.Terrain.Center)
+		model.Scale(g.Terrain.Size())
 		gsd.SetModel(model)
 	}
 	host.Drawings.AddDrawing(rendering.Drawing{
@@ -167,13 +181,29 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 	return gsd, nil
 }
 
-func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) bool {
+func rigidBodyTerrainBounds(target *editor_stage_manager.StageEntity) (graviton.AABB, bool) {
+	if target != nil {
+		for _, data := range target.NamedData("Terrain") {
+			model, ok := data.(*terrain.Terrain)
+			if !ok {
+				continue
+			}
+			if collision := model.NewCollision(); collision != nil {
+				return collision.LocalBounds(), true
+			}
+		}
+	}
+	return graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false
+}
+
+func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry, target *editor_stage_manager.StageEntity) bool {
 	e := data.FieldValueByName("Extent").(matrix.Vec3)
 	m := data.FieldValueByName("Mass").(float32)
 	r := data.FieldValueByName("Radius").(float32)
 	h := data.FieldValueByName("Height").(float32)
 	i := data.FieldValueByName("IsStatic").(bool)
 	s := engine_entity_data_physics.Shape(data.FieldValueByName("Shape").(int))
+	terrainBounds, hasTerrain := rigidBodyTerrainBounds(target)
 	changed := g.Shape != s ||
 		(!g.Extent.Equals(e) &&
 			(s == engine_entity_data_physics.ShapeBox ||
@@ -184,12 +214,16 @@ func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) b
 				s == engine_entity_data_physics.ShapeCone)) ||
 		(g.Height != h &&
 			(s == engine_entity_data_physics.ShapeCapsule ||
-				s == engine_entity_data_physics.ShapeCone))
+				s == engine_entity_data_physics.ShapeCone)) ||
+		(s == engine_entity_data_physics.ShapeTerrain &&
+			(g.HasTerrain != hasTerrain || g.Terrain != terrainBounds))
 	g.Extent = e
 	g.Mass = m
 	g.Radius = r
 	g.Height = h
 	g.IsStatic = i
 	g.Shape = s
+	g.Terrain = terrainBounds
+	g.HasTerrain = hasTerrain
 	return changed
 }
