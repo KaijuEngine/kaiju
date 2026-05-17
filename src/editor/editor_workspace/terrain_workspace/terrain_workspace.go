@@ -37,15 +37,19 @@
 package terrain_workspace
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 
 	"kaijuengine.com/editor/editor_overlay/content_selector"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/editor_workspace_registry"
+
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
-	"kaijuengine.com/editor/editor_workspace_registry"
+
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
@@ -80,6 +84,7 @@ type TerrainWorkspace struct {
 	ed               editor_workspace.WorkspaceEditorInterface
 	stageView        *editor_stage_view.StageView
 	openTerrainSubID events.Id
+	renamedSubID     events.Id
 
 	activeID      string
 	activeName    *document.Element
@@ -129,12 +134,13 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		"clickSave":          w.clickSave,
 		"clickRevert":        w.clickRevert,
 		"brushChanged":       w.brushChanged,
+		"renameTerrain":      w.renameTerrain,
 	}
 	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/terrain_workspace.go.html", nil, funcs); err != nil {
 		return err
 	}
-	w.activeName, _ = w.Doc.GetElementById("activeTerrainName")
+
 	w.createDialog, _ = w.Doc.GetElementById("createTerrainDialog")
 	w.status, _ = w.Doc.GetElementById("terrainStatus")
 	w.toolReadout, _ = w.Doc.GetElementById("terrainToolReadout")
@@ -159,6 +165,9 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		w.openTerrain(terrainID)
 		ed.SelectWorkspace(ID)
 	})
+	// Subscribe to content renamed events so the active name updates if renamed from
+	// another workspace like the content workspace.
+	w.renamedSubID = ed.Events().OnContentRenamed.Add(w.contentRenamed)
 	return nil
 }
 
@@ -171,6 +180,7 @@ func (w *TerrainWorkspace) Shutdown() {
 	}
 	if w.ed != nil {
 		w.ed.Events().OnRequestOpenTerrain.Remove(w.openTerrainSubID)
+		w.ed.Events().OnContentRenamed.Remove(w.renamedSubID)
 	}
 	w.CommonShutdown()
 }
@@ -601,7 +611,12 @@ func (w *TerrainWorkspace) hideCreateDialog() {
 
 func (w *TerrainWorkspace) setActiveName(text string) {
 	if w.activeName != nil {
-		w.activeName.InnerLabel().SetText(text)
+		input := w.activeName.UI.ToInput()
+		if text == "" || text == "No terrain selected" {
+			input.SetTextWithoutEvent("")
+		} else {
+			input.SetTextWithoutEvent(text)
+		}
 	}
 }
 
@@ -763,4 +778,37 @@ func mergeTerrainRegions(a, b terrain.DirtyRegion) terrain.DirtyRegion {
 		MaxZ:  max(a.MaxZ, b.MaxZ),
 		Valid: true,
 	}
+}
+
+func (w *TerrainWorkspace) renameTerrain(e *document.Element) {
+	defer tracing.NewRegion("TerrainWorkspace.renameTerrain").End()
+	if w.activeID == "" || w.ed == nil {
+		return
+	}
+	name := strings.TrimSpace(e.UI.ToInput().Text())
+	if name == "" {
+		slog.Warn("The name for the terrain can't be left blank, ignoring change")
+		return
+	}
+	pfs := w.ed.ProjectFileSystem()
+	if _, err := w.ed.Cache().Rename(w.activeID, name, pfs); err != nil {
+		if !errors.Is(err, content_database.CacheContentNameEqual) {
+			slog.Error("failed to rename the terrain", "id", w.activeID, "error", err)
+		}
+		return
+	}
+	w.ed.Events().OnContentRenamed.Execute(w.activeID)
+	w.setStatus("Renamed terrain to " + name)
+}
+
+func (w *TerrainWorkspace) contentRenamed(id string) {
+	if id != w.activeID || w.activeName == nil || w.ed == nil {
+		return
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		slog.Error("failed to read renamed terrain cache entry", "id", id, "error", err)
+		return
+	}
+	w.setActiveName(cc.Config.Name)
 }

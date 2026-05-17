@@ -75,12 +75,15 @@
 				border: 3px solid #575757;
 				z-index: 20;
 			}
+			input {
+				height: 2em;
+			}
 		</style>
 	</head>
 	<body>
 		<div id="terrainPanel">
 			<h2>Terrain</h2>
-			<div id="activeTerrainName">No terrain selected</div>
+			<input id="activeTerrainName" type="text" placeholder="Terrain Name..." onsubmit="renameTerrain" />
 			<button onclick="clickSelectTerrain">Select Terrain</button>
 			<button onclick="clickCreateTerrain">Create Terrain</button>
 
