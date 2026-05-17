@@ -39,6 +39,7 @@ package codegen
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -96,4 +97,52 @@ func TestWalk(t *testing.T) {
 	if a != 10 {
 		t.Error("Expected 10, got ", a)
 	}
+}
+
+func TestWalkRigidBodyShapeEnumIncludesTerrain(t *testing.T) {
+	srcPath, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	readPath, err := filepath.Abs("../../engine_entity_data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srcRoot, err := os.OpenRoot(srcPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srcRoot.Close()
+	readRoot, err := os.OpenRoot(readPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readRoot.Close()
+	gens, err := Walk(srcRoot, readRoot, "kaijuengine.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rigidBody GeneratedType
+	for i := range gens {
+		if gens[i].Name == "RigidBodyEntityData" {
+			rigidBody = gens[i]
+			break
+		}
+	}
+	if !rigidBody.IsValid() {
+		t.Fatal("expected generated RigidBodyEntityData")
+	}
+	for i := range rigidBody.Fields {
+		if rigidBody.Fields[i].Name != "Shape" {
+			continue
+		}
+		if len(rigidBody.FieldGens[i].EnumValues) == 0 {
+			t.Fatal("expected Shape field to have enum metadata")
+		}
+		if got := rigidBody.FieldGens[i].EnumValues["ShapeTerrain"]; got != int64(6) {
+			t.Fatalf("expected ShapeTerrain enum value 6, got %v", got)
+		}
+		return
+	}
+	t.Fatal("expected RigidBodyEntityData.Shape field")
 }

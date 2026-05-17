@@ -59,6 +59,7 @@ import (
 	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_particles"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -489,6 +490,7 @@ func (p *Project) ensureBuiltInEntityDataBindings() {
 		codegen.GeneratedTypeFromValue(engine_entity_data_camera.BindingKey(), engine_entity_data_camera.CameraEntityData{}),
 		codegen.GeneratedTypeFromValue(engine_entity_data_light.BindingKey(), engine_entity_data_light.LightEntityData{}),
 		codegen.GeneratedTypeFromValue(engine_entity_data_particles.BindingKey(), engine_entity_data_particles.ParticleSystemEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_physics.BindingKey(), engine_entity_data_physics.RigidBodyEntityData{}),
 		codegen.GeneratedTypeFromValue(engine_entity_data_terrain.BindingKey(), engine_entity_data_terrain.TerrainEntityData{}),
 	}
 	for i := range builtIns {

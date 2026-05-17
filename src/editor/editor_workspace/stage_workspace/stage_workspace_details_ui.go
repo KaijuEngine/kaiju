@@ -43,6 +43,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 	"weak"
 
 	"kaijuengine.com/editor/codegen"
@@ -528,7 +530,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 					}
 				} else {
 					for k, v := range fg.EnumValues {
-						opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+						opts = append(opts, ui.SelectOption{Name: enumOptionName(g.Fields[i].Name, k), Value: fmt.Sprintf("%v", v)})
 					}
 				}
 				slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
@@ -1126,6 +1128,21 @@ func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 		}
 	}
 	return true
+}
+
+func enumOptionName(fieldName, enumName string) string {
+	if !strings.HasPrefix(enumName, fieldName) {
+		return enumName
+	}
+	trimmed := strings.TrimPrefix(enumName, fieldName)
+	if trimmed == "" {
+		return enumName
+	}
+	r, _ := utf8.DecodeRuneInString(trimmed)
+	if !unicode.IsUpper(r) {
+		return enumName
+	}
+	return trimmed
 }
 
 func (dui *WorkspaceDetailsUI) reload() {
