@@ -66,15 +66,16 @@ type TerrainTexture struct {
 }
 
 type TerrainConfig struct {
-	Resolution    int
-	WorldSize     matrix.Vec2
-	MinHeight     matrix.Float
-	MaxHeight     matrix.Float
-	InitialHeight matrix.Float
-	ChunkSize     int
-	Material      string
-	Textures      []TerrainTexture
-	ShaderData    string
+	Resolution      int
+	PaintResolution int
+	WorldSize       matrix.Vec2
+	MinHeight       matrix.Float
+	MaxHeight       matrix.Float
+	InitialHeight   matrix.Float
+	ChunkSize       int
+	Material        string
+	Textures        []TerrainTexture
+	ShaderData      string
 }
 
 type DirtyRegion struct {
@@ -307,6 +308,7 @@ type Terrain struct {
 	Entity      *engine.Entity
 	Transform   *matrix.Transform
 	HeightField *HeightField
+	LayerSet    *TerrainLayerSet
 	MeshChunks  []TerrainChunk
 	Material    *rendering.Material
 	ShaderData  []rendering.DrawInstance
@@ -474,6 +476,70 @@ func (t *Terrain) ApplyHeightRegion(region DirtyRegion, heights []matrix.Float) 
 	return dirty
 }
 
+func (t *Terrain) LayerCount() int {
+	if t == nil || t.LayerSet == nil {
+		return 0
+	}
+	return t.LayerSet.LayerCount()
+}
+
+func (t *Terrain) AddLayer(layer TerrainLayer) int {
+	if t == nil || t.LayerSet == nil {
+		return -1
+	}
+	return t.LayerSet.AddLayer(layer)
+}
+
+func (t *Terrain) RemoveLayer(layer int) bool {
+	if t == nil || t.LayerSet == nil {
+		return false
+	}
+	return t.LayerSet.RemoveLayer(layer)
+}
+
+func (t *Terrain) NormalizeWeightsAt(x, z int) bool {
+	if t == nil || t.LayerSet == nil {
+		return false
+	}
+	return t.LayerSet.NormalizeWeightsAt(x, z)
+}
+
+func (t *Terrain) PaintLayer(layer int, stroke PaintStroke) DirtyRegion {
+	if t == nil || t.LayerSet == nil {
+		return DirtyRegion{}
+	}
+	return t.LayerSet.PaintLayer(layer, t.localStrokeToWeightGrid(stroke))
+}
+
+func (t *Terrain) EraseLayer(layer int, stroke PaintStroke) DirtyRegion {
+	if t == nil || t.LayerSet == nil {
+		return DirtyRegion{}
+	}
+	return t.LayerSet.EraseLayer(layer, t.localStrokeToWeightGrid(stroke))
+}
+
+func (t *Terrain) FillLayer(layer int) DirtyRegion {
+	if t == nil || t.LayerSet == nil {
+		return DirtyRegion{}
+	}
+	return t.LayerSet.FillLayer(layer)
+}
+
+func (t *Terrain) LayerWeightAt(layer, x, z int) matrix.Float {
+	if t == nil || t.LayerSet == nil {
+		return 0
+	}
+	return t.LayerSet.LayerWeightAt(layer, x, z)
+}
+
+func (t *Terrain) SampleLayerWeightAtLocal(layer int, localXZ matrix.Vec2) matrix.Float {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return 0
+	}
+	x, z := t.localToWeightGrid(localXZ)
+	return t.LayerSet.WeightMap.Sample(layer, x, z)
+}
+
 func (t *Terrain) StrokeRegion(stroke PaintStroke) DirtyRegion {
 	return strokeDirtyRegion(t.HeightField, t.localStrokeToGrid(stroke))
 }
@@ -598,6 +664,10 @@ func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGro
 		}
 		hf.markDirty(0, 0, hf.Resolution-1, hf.Resolution-1)
 	}
+	layerSet, err := NewTerrainLayerSet(config.PaintResolution)
+	if err != nil {
+		return nil, err
+	}
 	if entity == nil {
 		entity = engine.NewEntity(workGroup)
 	}
@@ -607,6 +677,7 @@ func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGro
 		Entity:      entity,
 		Transform:   &entity.Transform,
 		HeightField: hf,
+		LayerSet:    layerSet,
 		MeshChunks:  make([]TerrainChunk, 0),
 		ShaderData:  make([]rendering.DrawInstance, 0),
 		host:        host,
@@ -622,6 +693,9 @@ func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGro
 func normalizeConfig(config TerrainConfig) TerrainConfig {
 	if config.Resolution < 2 {
 		config.Resolution = defaultResolution
+	}
+	if config.PaintResolution < 2 {
+		config.PaintResolution = config.Resolution
 	}
 	if config.WorldSize.X() <= 0 {
 		config.WorldSize.SetX(defaultWorldSize)
@@ -777,9 +851,36 @@ func (t *Terrain) localStrokeToGrid(stroke PaintStroke) PaintStroke {
 	return stroke
 }
 
+func (t *Terrain) localStrokeToWeightGrid(stroke PaintStroke) PaintStroke {
+	if t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return stroke
+	}
+	x, z := t.localToWeightGrid(stroke.Center)
+	cell := matrix.Min(
+		t.Config.WorldSize.X()/matrix.Float(t.LayerSet.WeightMap.Resolution-1),
+		t.Config.WorldSize.Y()/matrix.Float(t.LayerSet.WeightMap.Resolution-1),
+	)
+	stroke.Center = matrix.NewVec2(x, z)
+	if cell > matrix.Tiny {
+		stroke.Radius /= cell
+		stroke.Spacing /= cell
+	}
+	return stroke
+}
+
 func (t *Terrain) localToGrid(localXZ matrix.Vec2) (matrix.Float, matrix.Float) {
 	x := ((localXZ.X() / t.Config.WorldSize.X()) + 0.5) * matrix.Float(t.HeightField.Resolution-1)
 	z := ((localXZ.Y() / t.Config.WorldSize.Y()) + 0.5) * matrix.Float(t.HeightField.Resolution-1)
+	return x, z
+}
+
+func (t *Terrain) localToWeightGrid(localXZ matrix.Vec2) (matrix.Float, matrix.Float) {
+	resolution := t.HeightField.Resolution
+	if t.LayerSet != nil && t.LayerSet.WeightMap != nil {
+		resolution = t.LayerSet.WeightMap.Resolution
+	}
+	x := ((localXZ.X() / t.Config.WorldSize.X()) + 0.5) * matrix.Float(resolution-1)
+	z := ((localXZ.Y() / t.Config.WorldSize.Y()) + 0.5) * matrix.Float(resolution-1)
 	return x, z
 }
 
