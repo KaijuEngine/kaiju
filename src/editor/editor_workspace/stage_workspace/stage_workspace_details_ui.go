@@ -463,14 +463,25 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
 	cpy := w.Doc.DuplicateElementWithoutApplyStyles(tpl)
-	nameSpan := cpy.Children[0]
-	fieldDiv := cpy.Children[1]
-	if len(cpy.Children) == 3 {
-		nameSpan = cpy.Children[1]
-		fieldDiv = cpy.Children[2]
-		for _, c := range cpy.Children[0].Children {
+	var nameSpan *document.Element
+	var fieldDiv *document.Element
+	for _, c := range cpy.Children {
+		switch {
+		case c.HasClass("dataControls"):
+			for _, control := range c.Children {
+				control.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+			}
+		case c.HasClass("entityDataField") && fieldDiv == nil:
+			fieldDiv = c
+		case c.HasClass("entityDataValidation"):
 			c.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+			c.UI.Hide()
+		case nameSpan == nil:
+			nameSpan = c
 		}
+	}
+	if nameSpan == nil || fieldDiv == nil {
+		return
 	}
 	nameSpan.InnerLabel().SetText(g.Name)
 	fields := []*document.Element{fieldDiv}
@@ -478,9 +489,6 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		fieldDiv.UI.Hide()
 	} else if len(g.Fields) > 1 {
 		fields = append(fields, w.Doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
-	}
-	if isRigidBodyBinding(g) {
-		dui.createRigidBodyTerrainWarning(fieldDiv)
 	}
 	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
@@ -641,21 +649,6 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w.Doc.SetupInputTabIndexs()
 }
 
-func (dui *WorkspaceDetailsUI) createRigidBodyTerrainWarning(fieldDiv *document.Element) {
-	warning := dui.workspace.Value().Doc.DuplicateElementWithoutApplyStyles(fieldDiv)
-	warning.SetAttribute("data-terrain-warning", "true")
-	warning.SetAttribute("data-fieldidx", "")
-	warning.SetAttribute("data-bindidx", "")
-	for _, c := range warning.Children {
-		c.UI.Hide()
-	}
-	label := warning.Children[0]
-	label.UI.Show()
-	label.InnerLabel().SetText("Terrain collider needs TerrainEntityData on this entity.")
-	label.InnerLabel().SetColor(matrix.ColorYellow())
-	warning.UI.Hide()
-}
-
 func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element, entities ...*editor_stage_manager.StageEntity) {
 	if g == nil || bindingElement == nil || !isRigidBodyBinding(g) {
 		return
@@ -673,7 +666,11 @@ func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_dat
 	}
 	hasTerrain := entityHasTerrainData(entity)
 	for _, row := range bindingElement.Children {
-		if row.Attribute("data-terrain-warning") == "true" {
+		if row.HasClass("entityDataValidation") {
+			if row.Attribute("data-validation") != "terrain-missing" {
+				row.UI.Hide()
+				continue
+			}
 			if rigidBodyTerrainWarningVisible(shape, hasTerrain) {
 				row.UI.Show()
 			} else {
