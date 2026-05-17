@@ -180,6 +180,21 @@ func (s *TerrainLayerSet) RemoveLayer(layer int) bool {
 	return true
 }
 
+func (s *TerrainLayerSet) MoveLayer(from, to int) bool {
+	if s == nil || s.WeightMap == nil ||
+		from < 0 || to < 0 || from >= len(s.Layers) || to >= len(s.Layers) || from == to {
+		return false
+	}
+	layer := s.Layers[from]
+	if from < to {
+		copy(s.Layers[from:to], s.Layers[from+1:to+1])
+	} else {
+		copy(s.Layers[to+1:from+1], s.Layers[to:from])
+	}
+	s.Layers[to] = layer
+	return s.WeightMap.MoveLayer(from, to)
+}
+
 func (s *TerrainLayerSet) NormalizeWeightsAt(x, z int) bool {
 	if s == nil || s.WeightMap == nil {
 		return false
@@ -274,6 +289,35 @@ func (m *TextureWeightMap) RemoveLayer(removeLayer int) bool {
 		}
 	}
 	m.Layers = newLayers
+	m.Weights = next
+	return true
+}
+
+func (m *TextureWeightMap) MoveLayer(from, to int) bool {
+	if m == nil || from < 0 || to < 0 || from >= m.Layers || to >= m.Layers || from == to {
+		return false
+	}
+	oldWeights := m.Weights
+	next := make([]matrix.Float, len(oldWeights))
+	order := make([]int, m.Layers)
+	for i := range order {
+		order[i] = i
+	}
+	moved := order[from]
+	if from < to {
+		copy(order[from:to], order[from+1:to+1])
+	} else {
+		copy(order[to+1:from+1], order[to:from])
+	}
+	order[to] = moved
+	for z := 0; z < m.Resolution; z++ {
+		for x := 0; x < m.Resolution; x++ {
+			cell := x + z*m.Resolution
+			for dstLayer, srcLayer := range order {
+				next[cell*m.Layers+dstLayer] = oldWeights[cell*m.Layers+srcLayer]
+			}
+		}
+	}
 	m.Weights = next
 	return true
 }

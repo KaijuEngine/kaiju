@@ -574,6 +574,29 @@ func (t *Terrain) RemoveLayer(layer int) bool {
 	return true
 }
 
+func (t *Terrain) MoveLayer(from, to int) bool {
+	if t == nil || t.LayerSet == nil {
+		return false
+	}
+	if !t.LayerSet.MoveLayer(from, to) {
+		return false
+	}
+	_ = t.createSplatTextures(t.host)
+	_ = t.refreshMaterialTextures()
+	if t.LayerSet.WeightMap != nil {
+		full := DirtyRegion{
+			MinX:  0,
+			MinZ:  0,
+			MaxX:  t.LayerSet.WeightMap.Resolution - 1,
+			MaxZ:  t.LayerSet.WeightMap.Resolution - 1,
+			Valid: true,
+		}
+		t.MarkTextureRegionDirty(full)
+		t.ApplyTextureDirty(full)
+	}
+	return true
+}
+
 func (t *Terrain) NormalizeWeightsAt(x, z int) bool {
 	if t == nil || t.LayerSet == nil {
 		return false

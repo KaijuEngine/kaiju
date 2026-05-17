@@ -189,6 +189,34 @@ func TestTerrainFillAndRemoveLayerWeights(t *testing.T) {
 	}
 }
 
+func TestTerrainMoveLayerPreservesLayerWeights(t *testing.T) {
+	set, err := NewTerrainLayerSet(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	moss := set.AddLayer(NewTerrainLayer("moss"))
+	rock := set.AddLayer(NewTerrainLayer("rock"))
+	set.SetLayerWeightAt(base, 1, 1, 0.2)
+	set.SetLayerWeightAt(moss, 1, 1, 0.3)
+	set.SetLayerWeightAt(rock, 1, 1, 0.5)
+	if !set.MoveLayer(rock, base) {
+		t.Fatal("expected move layer to succeed")
+	}
+	if got := set.Layers[0].TextureContentID; got != "rock" {
+		t.Fatalf("expected rock to move to layer 0, got %q", got)
+	}
+	if got := set.LayerWeightAt(0, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected moved rock weight to stay 0.5, got %f", got)
+	}
+	if got := set.LayerWeightAt(1, 1, 1); !matrix.ApproxTo(got, 0.2, matrix.Roughly) {
+		t.Fatalf("expected shifted base weight to stay 0.2, got %f", got)
+	}
+	if got := set.LayerWeightAt(2, 1, 1); !matrix.ApproxTo(got, 0.3, matrix.Roughly) {
+		t.Fatalf("expected shifted moss weight to stay 0.3, got %f", got)
+	}
+}
+
 func TestTexturePaintStrokePaintEraseAndNormalize(t *testing.T) {
 	set, err := NewTerrainLayerSet(5)
 	if err != nil {

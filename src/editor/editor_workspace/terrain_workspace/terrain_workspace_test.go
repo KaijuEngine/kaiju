@@ -37,6 +37,9 @@
 package terrain_workspace
 
 import (
+	"os"
+	"regexp"
+	"strings"
 	"testing"
 
 	"kaijuengine.com/engine/terrain"
@@ -70,5 +73,47 @@ func TestEffectiveTerrainBrushModeModifiers(t *testing.T) {
 	}
 	if got := effectiveTerrainBrushMode(terrain.BrushSmooth, false, true); got != terrain.BrushSmooth {
 		t.Fatalf("ctrl should leave smooth unchanged, got %d", got)
+	}
+}
+
+func TestTextureToolNames(t *testing.T) {
+	tests := map[terrain.TextureBrushMode]string{
+		terrain.TextureBrushPaint:         "Paint",
+		terrain.TextureBrushErase:         "Erase",
+		terrain.TextureBrushSmoothWeights: "Blend",
+		terrain.TextureBrushFill:          "Fill",
+		terrain.TextureBrushSample:        "Pick",
+	}
+	for mode, want := range tests {
+		if got := textureToolName(mode); got != want {
+			t.Fatalf("expected texture mode %d to read %q, got %q", mode, want, got)
+		}
+	}
+}
+
+func TestTerrainWorkspaceMarkupSplitsToolRows(t *testing.T) {
+	data, err := os.ReadFile("../../editor_embedded_content/editor_content/editor/ui/workspace/terrain_workspace.go.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(data)
+	for _, id := range []string{
+		`id="terrainModeRow"`,
+		`id="heightToolRow"`,
+		`id="heightBrushControls"`,
+		`id="texturePaintRow"`,
+		`onclick="clickModeTexture"`,
+		`onclick="clickTexturePaint"`,
+		`id="textureLayerSelect"`,
+	} {
+		if !strings.Contains(html, id) {
+			t.Fatalf("expected terrain workspace markup to contain %s", id)
+		}
+	}
+	onclick := regexp.MustCompile(`onclick="([^"]+)"`)
+	for _, match := range onclick.FindAllStringSubmatch(html, -1) {
+		if !regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`).MatchString(match[1]) {
+			t.Fatalf("onclick must name a single Go function, got %q", match[1])
+		}
 	}
 }

@@ -59,6 +59,13 @@
 				width: 7em;
 				height: 1.7em;
 			}
+			.toolRow {
+				width: 100%;
+				margin-bottom: 0.35em;
+			}
+			#texturePaintRow {
+				margin-top: 0.35em;
+			}
 			.materialIcon {
 				font-family: 'MaterialIcons-Regular';
 				font-size: 1.75em;
@@ -108,27 +115,98 @@
 			<button class="materialIcon" onclick="clickCreateTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create a new terrain asset">&#xE43E;</button>
 
 			<h3>Tools</h3>
-			<button group="tool" class="materialIcon active" onclick="clickToolRaise" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Raise terrain (pull up heights)">&#xE5D8;</button>
-			<button group="tool" class="materialIcon" onclick="clickToolLower" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lower terrain (push down heights)">&#xE5DB;</button>
-			<button group="tool" class="materialIcon" onclick="clickToolSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth terrain (average heights)">&#xE3A2;</button>
+			<div id="terrainModeRow" class="toolRow">
+				<button group="terrainMode" class="materialIcon active" onclick="clickModeHeight" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Height sculpt tools">&#xE3A2;</button>
+				<button group="terrainMode" class="materialIcon" onclick="clickModeTexture" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Texture paint tools">&#xE40A;</button>
+			</div>
+			<div id="heightToolRow" class="toolRow">
+				<button group="heightTool" class="materialIcon active" onclick="clickToolRaise" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Raise terrain (pull up heights)">&#xE5D8;</button>
+				<button group="heightTool" class="materialIcon" onclick="clickToolLower" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lower terrain (push down heights)">&#xE5DB;</button>
+				<button group="heightTool" class="materialIcon" onclick="clickToolSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth terrain (average heights)">&#xE3A2;</button>
+			</div>
 			<div id="terrainToolReadout">Raise / R 2.00 / S 0.25</div>
 
-			<h3>Brush</h3>
-			<div class="field">
-				<span>Radius</span>
-				<input id="brushRadius" type="number" value="2" onchange="brushChanged" onsubmit="brushChanged" />
+			<div id="heightBrushControls">
+				<h3>Height Brush</h3>
+				<div class="field">
+					<span>Radius</span>
+					<input id="brushRadius" type="number" value="2" onchange="brushChanged" onsubmit="brushChanged" />
+				</div>
+				<div class="field">
+					<span>Strength</span>
+					<input id="brushStrength" type="number" value="0.1" onchange="brushChanged" onsubmit="brushChanged" />
+				</div>
+				<div class="field">
+					<span>Falloff</span>
+					<select id="brushFalloff" onchange="brushChanged">
+						<option value="smooth" selected>Smooth</option>
+						<option value="linear">Linear</option>
+						<option value="constant">Constant</option>
+					</select>
+				</div>
 			</div>
-			<div class="field">
-				<span>Strength</span>
-				<input id="brushStrength" type="number" value="0.1" onchange="brushChanged" onsubmit="brushChanged" />
-			</div>
-			<div class="field">
-				<span>Falloff</span>
-				<select id="brushFalloff" onchange="brushChanged">
-					<option value="smooth" selected>Smooth</option>
-					<option value="linear">Linear</option>
-					<option value="constant">Constant</option>
-				</select>
+
+			<div id="texturePaintRow">
+				<h3>Texture Paint</h3>
+				<div class="toolRow">
+					<button group="textureTool" class="materialIcon active" onclick="clickTexturePaint" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Paint selected texture layer">&#xE3AE;</button>
+					<button group="textureTool" class="materialIcon" onclick="clickTextureErase" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Erase selected texture layer">&#xE14C;</button>
+					<button group="textureTool" class="materialIcon" onclick="clickTextureSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth/blend texture weights">&#xE3A2;</button>
+					<button group="textureTool" class="materialIcon" onclick="clickTextureFill" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill terrain with selected texture layer">&#xE243;</button>
+					<button group="textureTool" class="materialIcon" onclick="clickTexturePick" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Pick/sample texture layer from terrain">&#xE3B7;</button>
+				</div>
+				<div class="field">
+					<span>Layer</span>
+					<select id="textureLayerSelect" onchange="textureLayerChanged">
+						<option value="-1">No layers</option>
+					</select>
+				</div>
+				<div class="toolRow">
+					<button class="materialIcon" onclick="clickAddLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Add texture layer">&#xE145;</button>
+					<button class="materialIcon" onclick="clickRemoveLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Remove selected texture layer">&#xE872;</button>
+					<button class="materialIcon" onclick="clickLayerUp" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Move selected texture layer up">&#xE5D8;</button>
+					<button class="materialIcon" onclick="clickLayerDown" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Move selected texture layer down">&#xE5DB;</button>
+				</div>
+				<div class="field">
+					<span>Tiling X</span>
+					<input id="textureTilingX" type="number" value="1" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Tiling Z</span>
+					<input id="textureTilingY" type="number" value="1" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Brush size</span>
+					<input id="textureBrushRadius" type="number" value="2" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Opacity</span>
+					<input id="textureOpacity" type="number" value="1" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Falloff</span>
+					<select id="textureFalloff" onchange="textureBrushChanged">
+						<option value="smooth" selected>Smooth</option>
+						<option value="linear">Linear</option>
+						<option value="constant">Constant</option>
+					</select>
+				</div>
+				<div class="field">
+					<span>Slope min</span>
+					<input id="textureSlopeMin" type="number" value="0" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Slope max</span>
+					<input id="textureSlopeMax" type="number" value="90" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Height min</span>
+					<input id="textureHeightMin" type="number" value="-100" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Height max</span>
+					<input id="textureHeightMax" type="number" value="100" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
 			</div>
 
 			<h3>Asset</h3>
