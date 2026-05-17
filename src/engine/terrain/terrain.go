@@ -322,6 +322,12 @@ type Terrain struct {
 	host *engine.Host
 }
 
+type TerrainLayerSetState struct {
+	Layers              []TerrainLayer
+	WeightMapResolution int
+	Weights             []matrix.Float
+}
+
 type TerrainRayHit struct {
 	Point      matrix.Vec3
 	LocalPoint matrix.Vec3
@@ -523,6 +529,78 @@ func (t *Terrain) ApplyHeightRegion(region DirtyRegion, heights []matrix.Float) 
 	dirty := t.HeightField.SetRegion(region, heights)
 	t.ApplyDirty()
 	return dirty
+}
+
+func (t *Terrain) TextureStrokeRegion(stroke TexturePaintStroke) DirtyRegion {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return DirtyRegion{}
+	}
+	gridStroke := t.localTextureStrokeToWeightGrid(stroke)
+	return t.LayerSet.WeightMap.textureStrokeRegion(normalizeTexturePaintStroke(gridStroke))
+}
+
+func (t *Terrain) CopyTextureWeightRegion(region DirtyRegion) []matrix.Float {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return nil
+	}
+	return t.LayerSet.WeightMap.CopyRegion(region)
+}
+
+func (t *Terrain) ApplyTextureWeightRegion(region DirtyRegion, weights []matrix.Float) DirtyRegion {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return DirtyRegion{}
+	}
+	dirty := t.LayerSet.WeightMap.SetRegion(region, weights)
+	if dirty.Valid {
+		t.MarkTextureRegionDirty(dirty)
+		t.ApplyTextureDirty(dirty)
+	}
+	return dirty
+}
+
+func (t *Terrain) LayerSetState() TerrainLayerSetState {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return TerrainLayerSetState{}
+	}
+	return TerrainLayerSetState{
+		Layers:              append([]TerrainLayer(nil), t.LayerSet.Layers...),
+		WeightMapResolution: t.LayerSet.WeightMap.Resolution,
+		Weights:             append([]matrix.Float(nil), t.LayerSet.WeightMap.Weights...),
+	}
+}
+
+func (t *Terrain) ApplyLayerSetState(state TerrainLayerSetState) bool {
+	if t == nil || state.WeightMapResolution < 2 || len(state.Layers) == 0 {
+		return false
+	}
+	expectedWeights := state.WeightMapResolution * state.WeightMapResolution * len(state.Layers)
+	if len(state.Weights) != expectedWeights {
+		return false
+	}
+	weights, err := NewTextureWeightMap(state.WeightMapResolution, len(state.Layers))
+	if err != nil {
+		return false
+	}
+	weights.Weights = append(weights.Weights[:0], state.Weights...)
+	t.LayerSet = &TerrainLayerSet{
+		Layers:    append([]TerrainLayer(nil), state.Layers...),
+		WeightMap: weights,
+	}
+	t.syncConfigTexturesFromLayers()
+	_ = t.createSplatTextures(t.host)
+	_ = t.refreshMaterialTextures()
+	if t.LayerSet.WeightMap != nil {
+		full := DirtyRegion{
+			MinX:  0,
+			MinZ:  0,
+			MaxX:  t.LayerSet.WeightMap.Resolution - 1,
+			MaxZ:  t.LayerSet.WeightMap.Resolution - 1,
+			Valid: true,
+		}
+		t.MarkTextureRegionDirty(full)
+		t.ApplyTextureDirty(full)
+	}
+	return true
 }
 
 func (t *Terrain) LayerCount() int {

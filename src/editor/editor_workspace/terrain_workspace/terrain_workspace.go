@@ -40,6 +40,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -139,15 +140,16 @@ type TerrainWorkspace struct {
 	createCeilingHeight *document.Element
 	createInitialHeight *document.Element
 
-	active       *terrain.Terrain
-	toolMode     TerrainToolMode
-	mode         terrain.BrushMode
-	textureMode  terrain.TextureBrushMode
-	textureLayer int
-	painting     bool
-	lastLocal    matrix.Vec2
-	hasLastLocal bool
-	stroke       *terrainStrokeCapture
+	active               *terrain.Terrain
+	toolMode             TerrainToolMode
+	mode                 terrain.BrushMode
+	textureMode          terrain.TextureBrushMode
+	textureLayer         int
+	painting             bool
+	lastLocal            matrix.Vec2
+	hasLastLocal         bool
+	stroke               *terrainStrokeCapture
+	textureStrokeCapture *terrainTextureStrokeCapture
 
 	brushRingTransform matrix.Transform
 	brushRingData      rendering.DrawInstance
@@ -570,7 +572,10 @@ func (w *TerrainWorkspace) clickAddLayer(*document.Element) {
 		}
 		layer := terrain.NewTerrainLayer(id)
 		layer.Name = w.textureNameForID(id)
+		before := w.active.LayerSetState()
+		beforeLayer := w.textureLayer
 		w.textureLayer = w.active.AddLayer(layer)
+		w.addTextureLayerSetHistory(before, beforeLayer)
 		w.refreshLayerSelector()
 		w.refreshTextureLayerFields()
 		w.refreshLayerPalette()
@@ -583,10 +588,13 @@ func (w *TerrainWorkspace) clickRemoveLayer(*document.Element) {
 		return
 	}
 	layer := w.readTextureLayer()
+	before := w.active.LayerSetState()
+	beforeLayer := layer
 	if !w.active.RemoveLayer(layer) {
 		return
 	}
 	w.textureLayer = min(layer, w.active.LayerCount()-1)
+	w.addTextureLayerSetHistory(before, beforeLayer)
 	w.refreshLayerSelector()
 	w.refreshTextureLayerFields()
 	w.refreshLayerPalette()
@@ -607,14 +615,35 @@ func (w *TerrainWorkspace) moveTextureLayer(direction int) {
 	}
 	layer := w.readTextureLayer()
 	next := layer + direction
+	before := w.active.LayerSetState()
+	beforeLayer := layer
 	if !w.active.MoveLayer(layer, next) {
 		return
 	}
 	w.textureLayer = next
+	w.addTextureLayerSetHistory(before, beforeLayer)
 	w.refreshLayerSelector()
 	w.refreshTextureLayerFields()
 	w.refreshLayerPalette()
 	w.setStatus("Moved texture layer")
+}
+
+func (w *TerrainWorkspace) addTextureLayerSetHistory(before terrain.TerrainLayerSetState, beforeLayer int) {
+	if w.ed == nil || w.active == nil {
+		return
+	}
+	after := w.active.LayerSetState()
+	h := &terrainLayerSetHistory{
+		workspace:   w,
+		target:      w.active,
+		before:      before,
+		after:       after,
+		beforeLayer: beforeLayer,
+		afterLayer:  w.textureLayer,
+	}
+	if h.changed() {
+		w.ed.History().Add(h)
+	}
 }
 
 func (w *TerrainWorkspace) clickLayerSwatch(e *document.Element) {
@@ -670,6 +699,7 @@ func (w *TerrainWorkspace) destroyActive() {
 	w.painting = false
 	w.hasLastLocal = false
 	w.stroke = nil
+	w.textureStrokeCapture = nil
 	w.refreshLayerSelector()
 	w.refreshLayerPalette()
 	w.hideBrushPreview()
@@ -706,8 +736,10 @@ func (w *TerrainWorkspace) paintTexture(local matrix.Vec2) {
 	var result terrain.TexturePaintResult
 	if w.painting && w.hasLastLocal && stroke.Mode != terrain.TextureBrushFill &&
 		stroke.Mode != terrain.TextureBrushSample {
+		w.captureTextureLine(w.lastLocal, local, stroke)
 		result = w.active.PaintTextureLine(layer, w.lastLocal, local, stroke)
 	} else {
+		w.captureTextureStroke(stroke)
 		result = w.active.PaintTextureLayer(layer, stroke)
 	}
 	if result.Sampled {
@@ -717,6 +749,9 @@ func (w *TerrainWorkspace) paintTexture(local matrix.Vec2) {
 		w.setStatus("Picked texture layer " + strconv.Itoa(result.SampledLayer+1))
 	}
 	if result.Dirty.Valid {
+		if w.textureStrokeCapture != nil {
+			w.textureStrokeCapture.markDirty(result.Dirty)
+		}
 		w.setStatus("Texture paint updated")
 	}
 	w.painting = true
@@ -858,8 +893,13 @@ func (w *TerrainWorkspace) hideBrushPreview() {
 func (w *TerrainWorkspace) beginStroke() {
 	w.painting = true
 	w.hasLastLocal = false
+	w.stroke = nil
+	w.textureStrokeCapture = nil
+	if w.toolMode == TerrainToolTexturePaint {
+		w.textureStrokeCapture = newTerrainTextureStrokeCapture(w.active)
+		return
+	}
 	if w.toolMode != TerrainToolHeightSculpt {
-		w.stroke = nil
 		return
 	}
 	w.stroke = newTerrainStrokeCapture(w.active)
@@ -871,9 +911,15 @@ func (w *TerrainWorkspace) finishStroke() {
 			w.ed.History().Add(h)
 		}
 	}
+	if w.textureStrokeCapture != nil {
+		if h := w.textureStrokeCapture.history(); h != nil {
+			w.ed.History().Add(h)
+		}
+	}
 	w.painting = false
 	w.hasLastLocal = false
 	w.stroke = nil
+	w.textureStrokeCapture = nil
 }
 
 func (w *TerrainWorkspace) captureLine(from, to matrix.Vec2, stroke terrain.PaintStroke) {
@@ -891,6 +937,23 @@ func (w *TerrainWorkspace) captureStroke(stroke terrain.PaintStroke) {
 		return
 	}
 	w.stroke.captureRegion(w.active.StrokeRegion(stroke))
+}
+
+func (w *TerrainWorkspace) captureTextureLine(from, to matrix.Vec2, stroke terrain.TexturePaintStroke) {
+	if w.textureStrokeCapture == nil {
+		return
+	}
+	w.active.VisitTexturePaintLineStamps(from, to, stroke, func(stamp terrain.TexturePaintStroke) bool {
+		w.captureTextureStroke(stamp)
+		return true
+	})
+}
+
+func (w *TerrainWorkspace) captureTextureStroke(stroke terrain.TexturePaintStroke) {
+	if w.textureStrokeCapture == nil || stroke.Mode == terrain.TextureBrushSample {
+		return
+	}
+	w.textureStrokeCapture.captureRegion(w.active.TextureStrokeRegion(stroke))
 }
 
 func (w *TerrainWorkspace) readFalloff() terrain.BrushFalloff {
@@ -1437,6 +1500,147 @@ func (h *terrainStrokeHistory) apply(heights []matrix.Float) {
 		return
 	}
 	h.target.ApplyHeightRegion(h.region, heights)
+}
+
+type terrainTextureStrokeCapture struct {
+	target *terrain.Terrain
+	before map[int][]matrix.Float
+	region terrain.DirtyRegion
+}
+
+func newTerrainTextureStrokeCapture(target *terrain.Terrain) *terrainTextureStrokeCapture {
+	return &terrainTextureStrokeCapture{
+		target: target,
+		before: make(map[int][]matrix.Float),
+	}
+}
+
+func (c *terrainTextureStrokeCapture) captureRegion(region terrain.DirtyRegion) {
+	if c == nil || c.target == nil || !region.Valid ||
+		c.target.LayerSet == nil || c.target.LayerSet.WeightMap == nil {
+		return
+	}
+	weights := c.target.LayerSet.WeightMap
+	region = region.Expand(0, weights.Resolution)
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			idx := x + z*weights.Resolution
+			if _, ok := c.before[idx]; ok {
+				continue
+			}
+			cell := make([]matrix.Float, weights.Layers)
+			for layer := 0; layer < weights.Layers; layer++ {
+				cell[layer] = weights.WeightAt(layer, x, z)
+			}
+			c.before[idx] = cell
+		}
+	}
+}
+
+func (c *terrainTextureStrokeCapture) markDirty(region terrain.DirtyRegion) {
+	if c == nil || !region.Valid {
+		return
+	}
+	c.region = mergeTerrainRegions(c.region, region)
+}
+
+func (c *terrainTextureStrokeCapture) history() *terrainTextureStrokeHistory {
+	if c == nil || c.target == nil || !c.region.Valid ||
+		c.target.LayerSet == nil || c.target.LayerSet.WeightMap == nil {
+		return nil
+	}
+	weights := c.target.LayerSet.WeightMap
+	region := c.region.Expand(0, weights.Resolution)
+	if !region.Valid {
+		return nil
+	}
+	width := region.MaxX - region.MinX + 1
+	height := region.MaxZ - region.MinZ + 1
+	before := make([]matrix.Float, width*height*weights.Layers)
+	after := make([]matrix.Float, width*height*weights.Layers)
+	different := false
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			cell := (x - region.MinX) + (z-region.MinZ)*width
+			mapIdx := x + z*weights.Resolution
+			beforeCell, ok := c.before[mapIdx]
+			for layer := 0; layer < weights.Layers; layer++ {
+				beforeWeight := weights.WeightAt(layer, x, z)
+				if ok && layer < len(beforeCell) {
+					beforeWeight = beforeCell[layer]
+				}
+				afterWeight := weights.WeightAt(layer, x, z)
+				outIdx := cell*weights.Layers + layer
+				before[outIdx] = beforeWeight
+				after[outIdx] = afterWeight
+				different = different || beforeWeight != afterWeight
+			}
+		}
+	}
+	if !different {
+		return nil
+	}
+	return &terrainTextureStrokeHistory{
+		target: c.target,
+		region: region,
+		before: before,
+		after:  after,
+	}
+}
+
+type terrainTextureStrokeHistory struct {
+	target *terrain.Terrain
+	region terrain.DirtyRegion
+	before []matrix.Float
+	after  []matrix.Float
+}
+
+func (h *terrainTextureStrokeHistory) Redo()   { h.apply(h.after) }
+func (h *terrainTextureStrokeHistory) Undo()   { h.apply(h.before) }
+func (h *terrainTextureStrokeHistory) Delete() {}
+func (h *terrainTextureStrokeHistory) Exit()   {}
+
+func (h *terrainTextureStrokeHistory) apply(weights []matrix.Float) {
+	if h == nil || h.target == nil || !h.region.Valid {
+		return
+	}
+	h.target.ApplyTextureWeightRegion(h.region, weights)
+}
+
+type terrainLayerSetHistory struct {
+	workspace   *TerrainWorkspace
+	target      *terrain.Terrain
+	before      terrain.TerrainLayerSetState
+	after       terrain.TerrainLayerSetState
+	beforeLayer int
+	afterLayer  int
+}
+
+func (h *terrainLayerSetHistory) Redo()   { h.apply(h.after, h.afterLayer) }
+func (h *terrainLayerSetHistory) Undo()   { h.apply(h.before, h.beforeLayer) }
+func (h *terrainLayerSetHistory) Delete() {}
+func (h *terrainLayerSetHistory) Exit()   {}
+
+func (h *terrainLayerSetHistory) changed() bool {
+	if h == nil {
+		return false
+	}
+	return !reflect.DeepEqual(h.before, h.after)
+}
+
+func (h *terrainLayerSetHistory) apply(state terrain.TerrainLayerSetState, selectedLayer int) {
+	if h == nil || h.target == nil || !h.target.ApplyLayerSetState(state) {
+		return
+	}
+	if h.workspace == nil || h.workspace.active != h.target {
+		return
+	}
+	h.workspace.textureLayer = min(max(selectedLayer, 0), h.target.LayerCount()-1)
+	h.workspace.refreshLayerSelector()
+	h.workspace.refreshTextureLayerFields()
+	h.workspace.refreshLayerPalette()
+	h.workspace.refreshToolReadout()
+	h.workspace.validateLayerTextures()
 }
 
 func mergeTerrainRegions(a, b terrain.DirtyRegion) terrain.DirtyRegion {

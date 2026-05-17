@@ -347,6 +347,58 @@ func (m *TextureWeightMap) SetWeightAt(layer, x, z int, weight matrix.Float) boo
 	return true
 }
 
+func (m *TextureWeightMap) CopyRegion(region DirtyRegion) []matrix.Float {
+	if m == nil || !region.Valid {
+		return nil
+	}
+	region = region.Expand(0, m.Resolution)
+	width := region.MaxX - region.MinX + 1
+	height := region.MaxZ - region.MinZ + 1
+	out := make([]matrix.Float, width*height*m.Layers)
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			cell := (x - region.MinX) + (z-region.MinZ)*width
+			for layer := 0; layer < m.Layers; layer++ {
+				out[cell*m.Layers+layer] = m.WeightAt(layer, x, z)
+			}
+		}
+	}
+	return out
+}
+
+func (m *TextureWeightMap) SetRegion(region DirtyRegion, weights []matrix.Float) DirtyRegion {
+	if m == nil || !region.Valid {
+		return DirtyRegion{}
+	}
+	region = region.Expand(0, m.Resolution)
+	width := region.MaxX - region.MinX + 1
+	height := region.MaxZ - region.MinZ + 1
+	if len(weights) != width*height*m.Layers {
+		return DirtyRegion{}
+	}
+	var dirty DirtyRegion
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			cell := (x - region.MinX) + (z-region.MinZ)*width
+			changed := false
+			for layer := 0; layer < m.Layers; layer++ {
+				next := matrix.Clamp(weights[cell*m.Layers+layer], 0, 1)
+				idx := m.index(layer, x, z)
+				if m.Weights[idx] != next {
+					m.Weights[idx] = next
+					changed = true
+				}
+			}
+			if changed {
+				dirty = mergeDirtyRegions(dirty, DirtyRegion{
+					MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
+				})
+			}
+		}
+	}
+	return dirty
+}
+
 func (m *TextureWeightMap) Sample(layer int, x, z matrix.Float) matrix.Float {
 	if m == nil || layer < 0 || layer >= m.Layers {
 		return 0
