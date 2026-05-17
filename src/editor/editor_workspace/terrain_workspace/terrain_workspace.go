@@ -56,6 +56,7 @@ type TerrainWorkspace struct {
 	createDialog  *document.Element
 	status        *document.Element
 	toolReadout   *document.Element
+	tooltip       *document.Element
 	radiusInput   *document.Element
 	strengthInput *document.Element
 	falloffSelect *document.Element
@@ -90,6 +91,9 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.mode = terrain.BrushRaise
 	funcs := map[string]func(*document.Element){
 		"clickSelectTerrain": w.clickSelectTerrain,
+		"buttonMouseEnter":   w.buttonMouseEnter,
+		"buttonMouseLeave":   w.buttonMouseLeave,
+		"buttonMouseMove":    w.buttonMouseMove,
 		"clickCreateTerrain": w.clickCreateTerrain,
 		"clickCancelCreate":  w.clickCancelCreate,
 		"clickConfirmCreate": w.clickConfirmCreate,
@@ -109,6 +113,7 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.createDialog, _ = w.Doc.GetElementById("createTerrainDialog")
 	w.status, _ = w.Doc.GetElementById("terrainStatus")
 	w.toolReadout, _ = w.Doc.GetElementById("terrainToolReadout")
+	w.tooltip, _ = w.Doc.GetElementById("tooltip")
 	w.radiusInput, _ = w.Doc.GetElementById("brushRadius")
 	w.strengthInput, _ = w.Doc.GetElementById("brushStrength")
 	w.falloffSelect, _ = w.Doc.GetElementById("brushFalloff")
@@ -155,6 +160,9 @@ func (w *TerrainWorkspace) Open() {
 	defer tracing.NewRegion("TerrainWorkspace.Open").End()
 	w.CommonOpen()
 	w.stageView.Open()
+	if w.tooltip != nil {
+		w.tooltip.UI.Hide()
+	}
 	w.stageView.SetViewportToolOwner(w)
 }
 
@@ -776,4 +784,40 @@ func (w *TerrainWorkspace) contentRenamed(id string) {
 		return
 	}
 	w.setActiveName(cc.Config.Name)
+}
+
+func (w *TerrainWorkspace) buttonMouseEnter(e *document.Element) {
+	defer tracing.NewRegion("TerrainWorkspace.buttonMouseEnter").End()
+	if w.tooltip == nil {
+		return
+	}
+	text := e.Attribute("data-tooltip")
+	if text == "" {
+		w.tooltip.UI.Hide()
+		return
+	}
+	w.tooltip.InnerLabel().SetText(text)
+	w.tooltip.UI.Show()
+}
+
+func (w *TerrainWorkspace) buttonMouseMove(e *document.Element) {
+	defer tracing.NewRegion("TerrainWorkspace.buttonMouseMove").End()
+	if w.tooltip == nil {
+		return
+	}
+	ui := w.tooltip.UI
+	if !ui.Entity().IsActive() {
+		ui.Show()
+	}
+	p := w.Host.Window.Mouse.ScreenPosition()
+	w.Host.RunOnMainThread(func() {
+		ui.Layout().SetOffset(p.X()+12, p.Y()+18)
+	})
+}
+
+func (w *TerrainWorkspace) buttonMouseLeave(e *document.Element) {
+	defer tracing.NewRegion("TerrainWorkspace.buttonMouseLeave").End()
+	if w.tooltip != nil {
+		w.tooltip.UI.Hide()
+	}
 }

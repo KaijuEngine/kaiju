@@ -63,9 +63,6 @@
 				font-family: 'MaterialIcons-Regular';
 				font-size: 1.75em;
 			}
-			.actionButton {
-				width: 6em;
-			}
 			#createTerrainDialog {
 				position: absolute;
 				left: 19em;
@@ -77,21 +74,34 @@
 				z-index: 20;
 			}
 			input {
-				height: 2em;
+					height: 2em;
 			}
-		</style>
-	</head>
+			#tooltip {
+				position: absolute;
+				padding: 5px;
+				background-color: #282828;
+				border: 2px solid #AAA;
+				color: #DDD;
+				top: 0;
+				left: 0;
+				z-index: 30;
+				pointer-events: none;
+				white-space: pre;
+				font-size: 0.85em;
+			}
+	</style>
+
 	<body>
 		<div id="terrainPanel">
 			<h2>Terrain</h2>
 			<input id="activeTerrainName" type="text" placeholder="Terrain name..." onsubmit="renameTerrain" />
-			<button class="materialIcon" onclick="clickSelectTerrain">&#xE1BC;</button>
-			<button class="materialIcon" onclick="clickCreateTerrain">&#xE43E;</button>
+			<button class="materialIcon" onclick="clickSelectTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select existing terrain from content">&#xE1BC;</button>
+			<button class="materialIcon" onclick="clickCreateTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create a new terrain asset">&#xE43E;</button>
 
 			<h3>Tools</h3>
-			<button class="materialIcon" onclick="clickToolRaise">&#xE5D8;</button>
-			<button class="materialIcon" onclick="clickToolLower">&#xE5DB;</button>
-			<button class="materialIcon" onclick="clickToolSmooth">&#xE3A2;</button>
+			<button class="materialIcon" onclick="clickToolRaise" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Raise terrain (pull up heights)">&#xE5D8;</button>
+			<button class="materialIcon" onclick="clickToolLower" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lower terrain (push down heights)">&#xE5DB;</button>
+			<button class="materialIcon" onclick="clickToolSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth terrain (average heights)">&#xE3A2;</button>
 			<div id="terrainToolReadout">Raise / R 2.00 / S 0.25</div>
 
 			<h3>Brush</h3>
@@ -113,8 +123,8 @@
 			</div>
 
 			<h3>Asset</h3>
-			<button class="actionButton" onclick="clickSave">Save</button>
-			<button class="actionButton" onclick="clickRevert">Revert</button>
+			<button class="materialIcon" onclick="clickSave" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Save terrain changes to asset file">&#xE161;</button>
+			<button class="materialIcon" onclick="clickRevert" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Revert to last saved version (discard unsaved changes)">&#xE419;</button>
 
 			<h3>Status</h3>
 			<div id="terrainStatus">Hover a terrain to inspect coordinates</div>
@@ -146,8 +156,9 @@
 				<span>Initial</span>
 				<input id="createInitialHeight" type="number" value="0" />
 			</div>
-			<button onclick="clickConfirmCreate">Create</button>
-			<button onclick="clickCancelCreate">Cancel</button>
+			<button onclick="clickConfirmCreate" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create the new terrain asset">Create</button>
+			<button onclick="clickCancelCreate" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Cancel terrain creation">Cancel</button>
 		</div>
+		<span id="tooltip">Tooltip...</span>
 	</body>
 </html>
