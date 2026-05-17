@@ -519,7 +519,9 @@ rendering.NewMeshPlane(cache, width, depth)
 
 ## UI System (`src/engine/ui/`)
 
-The Kaiju Engine features an optional web-inspired UI system with HTML/CSS-like layout, full event handling, and a markup system for declarative UI creation. The UI renders on a separate orthographic camera (`host.Cameras.UI`) from the main 3D rendering. You can choose construct the UI without using any HTML/CSS markup, developers can create stylizers directly.
+The Kaiju Engine features an optional web-inspired UI system with HTML/CSS-like layout, full event handling, and a markup system for declarative UI creation. The UI renders on a separate orthographic camera (`host.Cameras.UI`) from the main 3D rendering. You can choose to construct the UI without using any HTML/CSS markup, developers can create stylizers directly.
+
+Kaiju Engine has NO JavaScript runtime. All .go.html files are Go templates parsed by engine/ui/markup/document (html_parser.go uses html/template + custom funcMap). onclick="someFunc" attributes map to a SINGLE Go function name in the funcs map passed to CommonWorkspace.InitializeWithUI (or equivalent). Multiple JS-style calls like "setActiveTool(this); clickToolRaise()" are invalid. CSS is custom-parsed (markup/css + Stylizer + ElementLayoutStylizer), classes managed via document.SetElementClasses(elm, "materialIcon", "active"), elm.HasClass(), elm.ClassList(), or SetClasses. UI elements (ui.Panel, ui.Button, ui.Label, etc.) are backed by engine.Entity + custom layout/dirty flags + Vulkan rendering. Active states for tools use CSS classes like .active with editor accent colors (#682A2D/#881E1E) + Go-side class management in click handlers (see settings_workspace for SetElementClasses pattern). This understanding must ALL UI work in engine and in editor.
 
 ### Architecture
 
