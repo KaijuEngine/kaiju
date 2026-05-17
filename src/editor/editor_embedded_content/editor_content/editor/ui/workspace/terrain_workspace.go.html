@@ -63,6 +63,15 @@
 				font-family: 'MaterialIcons-Regular';
 				font-size: 1.75em;
 			}
+			.materialIcon.active {
+				background-color: #682A2D;
+				color: white;
+				border-color: #881E1E;
+			}
+			.materialIcon.active:hover {
+				background-color: #881E1E;
+				border-color: #a52222;
+			}
 			#createTerrainDialog {
 				position: absolute;
 				left: 19em;
@@ -99,9 +108,9 @@
 			<button class="materialIcon" onclick="clickCreateTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create a new terrain asset">&#xE43E;</button>
 
 			<h3>Tools</h3>
-			<button class="materialIcon" onclick="clickToolRaise" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Raise terrain (pull up heights)">&#xE5D8;</button>
-			<button class="materialIcon" onclick="clickToolLower" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lower terrain (push down heights)">&#xE5DB;</button>
-			<button class="materialIcon" onclick="clickToolSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth terrain (average heights)">&#xE3A2;</button>
+			<button group="tool" class="materialIcon active" onclick="clickToolRaise" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Raise terrain (pull up heights)">&#xE5D8;</button>
+			<button group="tool" class="materialIcon" onclick="clickToolLower" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lower terrain (push down heights)">&#xE5DB;</button>
+			<button group="tool" class="materialIcon" onclick="clickToolSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth terrain (average heights)">&#xE3A2;</button>
 			<div id="terrainToolReadout">Raise / R 2.00 / S 0.25</div>
 
 			<h3>Brush</h3>

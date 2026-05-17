@@ -60,6 +60,7 @@ type TerrainWorkspace struct {
 	radiusInput   *document.Element
 	strengthInput *document.Element
 	falloffSelect *document.Element
+	toolBtns      []*document.Element
 
 	createResolution    *document.Element
 	createSizeX         *document.Element
@@ -124,6 +125,7 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.createCeilingHeight, _ = w.Doc.GetElementById("createCeilingHeight")
 	w.createInitialHeight, _ = w.Doc.GetElementById("createInitialHeight")
 	w.activeName, _ = w.Doc.GetElementById("activeTerrainName")
+	w.toolBtns = w.Doc.GetElementsByGroup("tool")
 	w.hideCreateDialog()
 	w.setActiveName("Terrain name...")
 	w.setStatus("Hover a terrain to inspect coordinates")
@@ -303,19 +305,29 @@ func (w *TerrainWorkspace) clickConfirmCreate(*document.Element) {
 	w.openTerrain(ids[0])
 }
 
-func (w *TerrainWorkspace) clickToolRaise(*document.Element) {
+func (w *TerrainWorkspace) highlightTool(e *document.Element) {
+	for i := range w.toolBtns {
+		w.Doc.SetElementClassesWithoutApply(w.toolBtns[i], "materialIcon")
+	}
+	w.Doc.SetElementClasses(e, "materialIcon", "active")
+}
+
+func (w *TerrainWorkspace) clickToolRaise(e *document.Element) {
 	w.mode = terrain.BrushRaise
 	w.refreshToolReadout()
+	w.highlightTool(e)
 }
 
-func (w *TerrainWorkspace) clickToolLower(*document.Element) {
+func (w *TerrainWorkspace) clickToolLower(e *document.Element) {
 	w.mode = terrain.BrushLower
 	w.refreshToolReadout()
+	w.highlightTool(e)
 }
 
-func (w *TerrainWorkspace) clickToolSmooth(*document.Element) {
+func (w *TerrainWorkspace) clickToolSmooth(e *document.Element) {
 	w.mode = terrain.BrushSmooth
 	w.refreshToolReadout()
+	w.highlightTool(e)
 }
 
 func (w *TerrainWorkspace) clickSave(*document.Element) {
