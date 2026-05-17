@@ -347,13 +347,49 @@ func (t *Terrain) Collision() (*graviton.TerrainCollision, error) {
 	if t == nil || t.HeightField == nil {
 		return nil, errors.New("terrain collision requires a terrain heightfield")
 	}
-	return graviton.NewTerrainCollision(
+	collision := t.NewCollision()
+	if collision == nil {
+		return nil, errors.New("terrain collision could not be created")
+	}
+	return collision, nil
+}
+
+// NewCollision creates a Graviton terrain collider backed by the terrain height
+// storage. Height edits are visible to the collider immediately; do not mutate
+// terrain heights concurrently with a physics step.
+func (t *Terrain) NewCollision() *graviton.TerrainCollision {
+	if t == nil || t.HeightField == nil {
+		return nil
+	}
+	collision, err := graviton.NewTerrainCollision(
 		t.HeightField.Resolution,
 		t.Config.WorldSize,
 		t.HeightField.Heights,
 		t.HeightField.MinHeight,
 		t.HeightField.MaxHeight,
 	)
+	if err != nil {
+		return nil
+	}
+	return collision
+}
+
+// CollisionBounds returns the local-space bounds used by terrain collision.
+func (t *Terrain) CollisionBounds() graviton.AABB {
+	if t == nil || t.HeightField == nil {
+		return graviton.NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero())
+	}
+	minPoint := matrix.NewVec3(
+		-t.Config.WorldSize.X()*0.5,
+		t.HeightField.MinHeight,
+		-t.Config.WorldSize.Y()*0.5,
+	)
+	maxPoint := matrix.NewVec3(
+		t.Config.WorldSize.X()*0.5,
+		t.HeightField.MaxHeight,
+		t.Config.WorldSize.Y()*0.5,
+	)
+	return graviton.AABBFromMinMax(minPoint, maxPoint)
 }
 
 func (t *Terrain) HeightAtLocal(localXZ matrix.Vec2) matrix.Float {

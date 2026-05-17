@@ -318,3 +318,30 @@ func TestTerrainCollisionUsesConfiguredHeightBounds(t *testing.T) {
 		t.Fatalf("expected configured bounds extent 4,6,3, got %v", bounds.Extent)
 	}
 }
+
+func TestTerrainNewCollisionSharesHeightStorage(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:    2,
+		WorldSize:     matrix.NewVec2(8, 6),
+		MinHeight:     -3,
+		MaxHeight:     9,
+		InitialHeight: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	collision := model.NewCollision()
+	if collision == nil {
+		t.Fatal("expected terrain collision")
+	}
+	if &collision.Heights[0] != &model.HeightField.Heights[0] {
+		t.Fatal("expected terrain collision to share height storage")
+	}
+	model.HeightField.SetHeight(1, 1, 5)
+	if got := collision.Height(1, 1); got != 5 {
+		t.Fatalf("expected shared collision height to update to 5, got %f", got)
+	}
+	if got, want := model.CollisionBounds(), collision.LocalBounds(); got != want {
+		t.Fatalf("expected collision bounds %v, got %v", want, got)
+	}
+}

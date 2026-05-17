@@ -151,9 +151,9 @@ func (r RigidBodyEntityData) gravitonTerrain(e *engine.Entity) *graviton.Terrain
 		if !ok {
 			continue
 		}
-		collision, err := model.Collision()
-		if err != nil {
-			slog.Error("failed to create graviton terrain physics shape", "error", err)
+		collision := model.NewCollision()
+		if collision == nil {
+			slog.Error("failed to create graviton terrain physics shape")
 			return nil
 		}
 		return collision
