@@ -248,6 +248,91 @@ func TestNarrowPhaseSphereStaticMeshEdgeContact(t *testing.T) {
 	}
 }
 
+func TestNarrowPhaseSphereStaticTerrainFloorContact(t *testing.T) {
+	sphere := testRigidBody(NewSphereShape(0.5), matrix.Vec3{0, 0.45, 0})
+	terrain := testStaticTerrainBody(testFlatTerrain(t))
+	manifold, ok := CollideBodies(sphere, terrain)
+	if !ok {
+		t.Fatal("expected sphere to collide with terrain floor")
+	}
+	contact := manifold.Contacts[0]
+	if !matrix.Vec3ApproxTo(contact.Normal, matrix.Vec3Down(), 0.0001) {
+		t.Fatalf("expected downward sphere-to-terrain normal, got %v", contact.Normal)
+	}
+	if matrix.Abs(contact.Penetration-0.05) > 0.0001 {
+		t.Fatalf("expected penetration 0.05, got %f", contact.Penetration)
+	}
+}
+
+func TestNarrowPhaseCapsuleStaticTerrainFloorContact(t *testing.T) {
+	capsule := testRigidBody(NewCapsuleShape(0.5, 2), matrix.Vec3{0, 1.45, 0})
+	terrain := testStaticTerrainBody(testFlatTerrain(t))
+	manifold, ok := CollideBodies(capsule, terrain)
+	if !ok {
+		t.Fatal("expected capsule to collide with terrain floor")
+	}
+	contact := manifold.Contacts[0]
+	if !matrix.Vec3ApproxTo(contact.Normal, matrix.Vec3Down(), 0.0001) {
+		t.Fatalf("expected downward capsule-to-terrain normal, got %v", contact.Normal)
+	}
+	if matrix.Abs(contact.Penetration-0.05) > 0.0001 {
+		t.Fatalf("expected penetration 0.05, got %f", contact.Penetration)
+	}
+}
+
+func TestNarrowPhaseOOBBStaticTerrainFloorContact(t *testing.T) {
+	box := testRigidBody(NewBoxShape(matrix.NewVec3(0.5, 0.5, 0.5)), matrix.Vec3{0, 0.45, 0})
+	terrain := testStaticTerrainBody(testFlatTerrain(t))
+	manifold, ok := CollideBodies(box, terrain)
+	if !ok {
+		t.Fatal("expected box to collide with terrain floor")
+	}
+	contact := manifold.Contacts[0]
+	if !matrix.Vec3ApproxTo(contact.Normal, matrix.Vec3Down(), 0.0001) {
+		t.Fatalf("expected downward box-to-terrain normal, got %v", contact.Normal)
+	}
+	if matrix.Abs(contact.Penetration-0.05) > 0.0001 {
+		t.Fatalf("expected penetration 0.05, got %f", contact.Penetration)
+	}
+}
+
+func TestNarrowPhaseSphereStaticTerrainTransformedContact(t *testing.T) {
+	sphere := testRigidBody(NewSphereShape(0.5), matrix.Vec3{1, 1.45, -1})
+	terrain := testStaticTerrainBody(testFlatTerrain(t))
+	terrain.Transform.SetPosition(matrix.Vec3{1, 1, -1})
+	manifold, ok := CollideBodies(sphere, terrain)
+	if !ok {
+		t.Fatal("expected sphere to collide with transformed terrain floor")
+	}
+	contact := manifold.Contacts[0]
+	if !matrix.Vec3ApproxTo(contact.Normal, matrix.Vec3Down(), 0.0001) {
+		t.Fatalf("expected downward sphere-to-terrain normal, got %v", contact.Normal)
+	}
+	if matrix.Abs(contact.Penetration-0.05) > 0.0001 {
+		t.Fatalf("expected penetration 0.05, got %f", contact.Penetration)
+	}
+}
+
+func TestNarrowPhaseSphereStaticTerrainUsesCurrentHeights(t *testing.T) {
+	terrainCollision := testFlatTerrain(t)
+	terrain := testStaticTerrainBody(terrainCollision)
+	sphere := testRigidBody(NewSphereShape(0.5), matrix.Vec3{0, 0.45, 0})
+	if _, ok := CollideBodies(sphere, terrain); !ok {
+		t.Fatal("expected sphere to collide with initial terrain floor")
+	}
+	for i := range terrainCollision.Heights {
+		terrainCollision.Heights[i] = -2
+	}
+	terrainCollision.MinHeight = -2
+	terrainCollision.MaxHeight = -2
+	terrainCollision.RefreshBounds()
+	terrain.Collision.Shape = NewTerrainShape(terrainCollision.Bounds)
+	terrain.Collision.LocalAABB = terrainCollision.Bounds
+	if _, ok := CollideBodies(sphere, terrain); ok {
+		t.Fatal("expected generated terrain triangles to use edited heights")
+	}
+}
+
 func TestSystemDynamicSphereRestsOnStaticMeshFloor(t *testing.T) {
 	system := System{}
 	system.Initialize()
@@ -367,6 +452,13 @@ func testStaticMeshBody(mesh *MeshCollision) *RigidBody {
 	return body
 }
 
+func testStaticTerrainBody(terrain *TerrainCollision) *RigidBody {
+	body := &RigidBody{}
+	body.Transform.SetupRawTransform()
+	body.SetStaticTerrain(terrain)
+	return body
+}
+
 func testMeshFloor() *MeshCollision {
 	return NewMeshCollisionFromVertices([]matrix.Vec3{
 		{-2, 0, -2},
@@ -383,6 +475,14 @@ func testSlopedMeshFloor() *MeshCollision {
 		{-2, -1, 2},
 		{2, 1, 2},
 	}, []uint32{0, 1, 2, 2, 1, 3})
+}
+
+func testFlatTerrain(t *testing.T) *TerrainCollision {
+	t.Helper()
+	return testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		0, 0,
+		0, 0,
+	}, 0, 0)
 }
 
 func manifoldSet(manifolds []ContactManifold) map[[2]*RigidBody]bool {

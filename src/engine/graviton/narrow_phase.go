@@ -178,6 +178,17 @@ func CollideBodies(a, b *RigidBody) (ContactManifold, bool) {
 		manifold.add(contact)
 		return manifold, true
 	}
+	if contact, ok := collideBodyTerrainPair(a, b); ok {
+		contact.BodyA = a
+		contact.BodyB = b
+		manifold := ContactManifold{
+			BodyA:  a,
+			BodyB:  b,
+			Normal: contact.Normal,
+		}
+		manifold.add(contact)
+		return manifold, true
+	}
 	shapeA := worldShape(a)
 	shapeB := worldShape(b)
 	contact, ok := collideShapes(shapeA, shapeB)
@@ -211,6 +222,26 @@ func collideBodyMeshPair(a, b *RigidBody) (Contact, bool) {
 			return Contact{}, false
 		}
 		return collidePrimitiveStaticMesh(worldShape(a), b.Collision.Mesh, &b.Transform)
+	}
+	return Contact{}, false
+}
+
+func collideBodyTerrainPair(a, b *RigidBody) (Contact, bool) {
+	if a.Collision.Shape.Type == ShapeTypeTerrain || b.Collision.Shape.Type == ShapeTypeTerrain {
+		if a.Collision.Shape.Type == ShapeTypeTerrain && b.Collision.Shape.Type == ShapeTypeTerrain {
+			return Contact{}, false
+		}
+		if a.Collision.Shape.Type == ShapeTypeTerrain {
+			if !a.IsStatic() || a.Collision.Terrain == nil {
+				return Contact{}, false
+			}
+			contact, ok := collidePrimitiveStaticTerrain(worldShape(b), a.Collision.Terrain, &a.Transform)
+			return flipContact(contact), ok
+		}
+		if !b.IsStatic() || b.Collision.Terrain == nil {
+			return Contact{}, false
+		}
+		return collidePrimitiveStaticTerrain(worldShape(a), b.Collision.Terrain, &b.Transform)
 	}
 	return Contact{}, false
 }
@@ -390,6 +421,23 @@ func collidePrimitiveStaticMesh(primitive Shape, mesh *MeshCollision, meshTransf
 	}
 }
 
+func collidePrimitiveStaticTerrain(primitive Shape, terrain *TerrainCollision, terrainTransform *matrix.Transform) (Contact, bool) {
+	if terrain == nil || !terrain.valid() {
+		return Contact{}, false
+	}
+	queryBounds := terrainLocalQueryBounds(shapeWorldAABB(primitive), terrainTransform)
+	switch primitive.Type {
+	case ShapeTypeSphere:
+		return collideSphereTerrain(Sphere(primitive), terrain, terrainTransform, queryBounds)
+	case ShapeTypeCapsule:
+		return collideCapsuleTerrain(Capsule(primitive), terrain, terrainTransform, queryBounds)
+	case ShapeTypeOOBB:
+		return collideOOBBTerrain(OOBB(primitive), terrain, terrainTransform, queryBounds)
+	default:
+		return Contact{}, false
+	}
+}
+
 func collideSphereSphere(a, b Sphere) (Contact, bool) {
 	ab := b.Center.Subtract(a.Center)
 	distSq := ab.LengthSquared()
@@ -417,6 +465,33 @@ func collideSphereMesh(s Sphere, mesh *MeshCollision, meshTransform *matrix.Tran
 	var bestContact Contact
 	found := false
 	mesh.ForEachWorldTriangle(meshTransform, func(tri DetailedTriangle) bool {
+		closest := closestPointOnTriangle(s.Center, tri.Points[0], tri.Points[1], tri.Points[2])
+		delta := closest.Subtract(s.Center)
+		distSq := delta.LengthSquared()
+		if distSq > radiusSq || distSq >= bestDistanceSq {
+			return true
+		}
+		normal := primitiveToTriangleNormal(s.Center, closest, tri)
+		dist := matrix.Float(0)
+		if distSq > contactEpsilon*contactEpsilon {
+			dist = matrix.Sqrt(distSq)
+			normal = delta.Scale(1 / dist)
+		}
+		pointA := s.Center.Add(normal.Scale(s.Radius))
+		bestContact = newContact(pointA, closest, normal, s.Radius-dist)
+		bestDistanceSq = distSq
+		found = true
+		return true
+	})
+	return bestContact, found
+}
+
+func collideSphereTerrain(s Sphere, terrain *TerrainCollision, terrainTransform *matrix.Transform, queryBounds AABB) (Contact, bool) {
+	radiusSq := s.Radius * s.Radius
+	bestDistanceSq := matrix.Inf(1)
+	var bestContact Contact
+	found := false
+	forEachTerrainWorldTriangle(terrain, terrainTransform, queryBounds, func(tri DetailedTriangle) bool {
 		closest := closestPointOnTriangle(s.Center, tri.Points[0], tri.Points[1], tri.Points[2])
 		delta := closest.Subtract(s.Center)
 		distSq := delta.LengthSquared()
@@ -679,6 +754,34 @@ func collideCapsuleMesh(c Capsule, mesh *MeshCollision, meshTransform *matrix.Tr
 	return bestContact, found
 }
 
+func collideCapsuleTerrain(c Capsule, terrain *TerrainCollision, terrainTransform *matrix.Transform, queryBounds AABB) (Contact, bool) {
+	a, b := capsuleSegment(c)
+	radiusSq := c.Radius * c.Radius
+	bestDistanceSq := matrix.Inf(1)
+	var bestContact Contact
+	found := false
+	forEachTerrainWorldTriangle(terrain, terrainTransform, queryBounds, func(tri DetailedTriangle) bool {
+		segPoint, triPoint := closestSegmentTriangle(a, b, tri.Points[0], tri.Points[1], tri.Points[2])
+		delta := triPoint.Subtract(segPoint)
+		distSq := delta.LengthSquared()
+		if distSq > radiusSq || distSq >= bestDistanceSq {
+			return true
+		}
+		normal := primitiveToTriangleNormal(segPoint, triPoint, tri)
+		dist := matrix.Float(0)
+		if distSq > contactEpsilon*contactEpsilon {
+			dist = matrix.Sqrt(distSq)
+			normal = delta.Scale(1 / dist)
+		}
+		pointA := segPoint.Add(normal.Scale(c.Radius))
+		bestContact = newContact(pointA, triPoint, normal, c.Radius-dist)
+		bestDistanceSq = distSq
+		found = true
+		return true
+	})
+	return bestContact, found
+}
+
 func collideAABBAABB(a, b AABB) (Contact, bool) {
 	delta := b.Center.Subtract(a.Center)
 	overlap := a.Extent.Add(b.Extent).Subtract(delta.Abs())
@@ -745,6 +848,23 @@ func collideOOBBMesh(box OOBB, mesh *MeshCollision, meshTransform *matrix.Transf
 	var bestContact Contact
 	found := false
 	mesh.ForEachWorldTriangle(meshTransform, func(tri DetailedTriangle) bool {
+		contact, ok := collideOOBBTriangle(box, tri)
+		if !ok || contact.Penetration >= bestPenetration {
+			return true
+		}
+		bestPenetration = contact.Penetration
+		bestContact = contact
+		found = true
+		return true
+	})
+	return bestContact, found
+}
+
+func collideOOBBTerrain(box OOBB, terrain *TerrainCollision, terrainTransform *matrix.Transform, queryBounds AABB) (Contact, bool) {
+	bestPenetration := matrix.Inf(1)
+	var bestContact Contact
+	found := false
+	forEachTerrainWorldTriangle(terrain, terrainTransform, queryBounds, func(tri DetailedTriangle) bool {
 		contact, ok := collideOOBBTriangle(box, tri)
 		if !ok || contact.Penetration >= bestPenetration {
 			return true
@@ -932,9 +1052,60 @@ func shapeWorldAABB(shape Shape) AABB {
 		return NewAABB(shape.Center, matrix.NewVec3XYZ(radius))
 	case ShapeTypeMesh:
 		return NewAABB(shape.Center, shape.Extent)
+	case ShapeTypeTerrain:
+		return NewAABB(shape.Center, shape.Extent)
 	default:
 		return NullAABB
 	}
+}
+
+func terrainLocalQueryBounds(worldBounds AABB, terrainTransform *matrix.Transform) AABB {
+	localBounds := worldBounds
+	if terrainTransform != nil {
+		localBounds = worldBounds.Transform(terrainTransform.InverseWorldMatrix())
+	}
+	localBounds.Extent = localBounds.Extent.Add(matrix.NewVec3XYZ(contactEpsilon))
+	return localBounds
+}
+
+func forEachTerrainWorldTriangle(terrain *TerrainCollision, terrainTransform *matrix.Transform, localBounds AABB, visit func(DetailedTriangle) bool) {
+	if terrain == nil || visit == nil {
+		return
+	}
+	minX, minZ, maxX, maxZ, ok := terrain.CellRangeForLocalAABB(localBounds)
+	if !ok {
+		return
+	}
+	var wm matrix.Mat4
+	hasTransform := terrainTransform != nil
+	if hasTransform {
+		wm = terrainTransform.WorldMatrix()
+	}
+	for z := minZ; z <= maxZ; z++ {
+		for x := minX; x <= maxX; x++ {
+			p0 := terrain.GridToLocal(matrix.Float(x), matrix.Float(z))
+			p1 := terrain.GridToLocal(matrix.Float(x), matrix.Float(z+1))
+			p2 := terrain.GridToLocal(matrix.Float(x+1), matrix.Float(z+1))
+			p3 := terrain.GridToLocal(matrix.Float(x+1), matrix.Float(z))
+			if !visitTerrainTriangle([3]matrix.Vec3{p0, p1, p2}, wm, hasTransform, visit) {
+				return
+			}
+			if !visitTerrainTriangle([3]matrix.Vec3{p0, p2, p3}, wm, hasTransform, visit) {
+				return
+			}
+		}
+	}
+}
+
+func visitTerrainTriangle(points [3]matrix.Vec3, wm matrix.Mat4, hasTransform bool, visit func(DetailedTriangle) bool) bool {
+	if hasTransform {
+		points = [3]matrix.Vec3{
+			wm.TransformPoint(points[0]),
+			wm.TransformPoint(points[1]),
+			wm.TransformPoint(points[2]),
+		}
+	}
+	return visit(DetailedTriangleFromPoints(points))
 }
 
 func satBoxAxis(a, b OOBB, axis, centerDelta matrix.Vec3, normal *matrix.Vec3, minOverlap *matrix.Float) bool {
