@@ -56,6 +56,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders"
 )
 
 const rawContentPath = `editor/editor_embedded_content/editor_content`
@@ -64,6 +65,7 @@ const gameContentPath = `game_content`
 type Game struct {
 	host  *engine.Host
 	ball  *engine.Entity
+	cube  *engine.Entity
 	ui    *ui.Manager
 	label *ui.Label
 }
@@ -109,6 +111,28 @@ func (g *Game) Launch(host *engine.Host) {
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+
+	res, err := loaders.OBJ("cube.obj", host.AssetDatabase())
+	if err != nil {
+		panic("could not read cube.obj")
+	}
+	meshCache := host.MeshCache()
+	slog.Info("read cube.obj", "verts", len(res.Meshes[0].Verts), "indexes", len(res.Meshes[0].Indexes))
+	cube := meshCache.Mesh("cube", res.Meshes[0].Verts, res.Meshes[0].Indexes)
+	meshCache.AddMesh(cube)
+	g.cube = engine.NewEntity(host.WorkGroup())
+	g.cube.Transform.SetPosition(matrix.NewVec3(2, 0, -5))
+	g.cube.Transform.SetRotation(matrix.NewVec3(-20, 20, 20))
+	sd = shader_data_registry.Create("cube")
+	sd.(*shader_data_registry.ShaderDataStandard).Color = matrix.ColorBlue()
+	host.Drawings.AddDrawing(rendering.Drawing{
+		Material:   mat.CreateInstance([]*rendering.Texture{tex}),
+		Mesh:       cube,
+		ShaderData: sd,
+		Transform:  &g.cube.Transform,
+		ViewCuller: &host.Cameras.Primary,
+	})
+
 	updateId := host.Updater.AddUpdate(g.update)
 	g.ball.OnDestroy.Add(func() {
 		sd.Destroy()
@@ -137,6 +161,7 @@ func (g *Game) update(deltaTime float64) {
 	x := math.Sin(g.host.Runtime())
 	console.For(g.host).Write(g.ball.Transform.Position().String()) // Open console in game (debug flag) with F1
 	g.ball.Transform.SetPosition(matrix.NewVec3(matrix.Float(x), 0, -3))
+	g.cube.Transform.SetRotation(g.cube.Transform.Rotation().Add(matrix.NewVec3(0, 0, 10).Scale(float32(deltaTime))))
 }
 
 func getGame() bootstrap.GameInterface { return &Game{} }
@@ -172,7 +197,7 @@ func gameCopyEditorContent() error {
 		}
 		return nil
 	}
-	skip := []string{"editor", "meshes"}
+	skip := []string{"editor"}
 	for i := range top {
 		if !top[i].IsDir() {
 			continue

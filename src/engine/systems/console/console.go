@@ -256,6 +256,12 @@ func (c *Console) update(deltaTime float64) {
 	host := c.host.Value()
 	debug.EnsureNotNil(host)
 	kb := &host.Window.Keyboard
+
+	lblParent, ok := c.doc.GetElementById("consoleContent")
+	if ok && matrix.Abs(matrix.Float(lblParent.UIPanel.ScrollY())-lblParent.UIPanel.MaxScroll()[1]) < 50 {
+		lblParent.UIPanel.SetScrollY(matrix.FloatMax)
+	}
+
 	if !kb.HasModifier() && kb.KeyDown(hid.KeyboardKeyF1) {
 		c.toggle()
 	} else if kb.KeyDown(hid.KeyboardKeyUp) {
