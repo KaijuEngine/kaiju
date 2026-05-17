@@ -167,9 +167,9 @@
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">
-					<span id="tagFilterTemplate" class="filterBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</span>
+					<span id="tagFilterTemplate" class="filterBtn" group="tag" data-tag="" onclick="clickFilter" onrightclick="rightClickTag">Tag...</span>
 					{{range $tag , $count := .Tags}}
-					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter">{{$tag}} {{$count}}</span>
+					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter" onrightclick="rightClickTag">{{$tag}} {{$count}}</span>
 					{{end}}
 				</div>
 			</div>

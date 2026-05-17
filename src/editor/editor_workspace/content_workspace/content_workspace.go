@@ -147,6 +147,7 @@ func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 			"entryMouseMove":      w.entryMouseMove,
 			"entryMouseLeave":     w.entryMouseLeave,
 			"rightClickContent":   w.rightClickContent,
+			"rightClickTag":       w.rightClickTag,
 			"clickClearSelection": w.clickClearSelection,
 			"clickPlayAudio":      w.clickPlayAudio,
 			"changeAudioPosition": w.changeAudioPosition,
@@ -1222,4 +1223,96 @@ func (w *ContentWorkspace) requestChangeGuid(id string) {
 			w.editor.FocusInterface()
 		},
 	})
+}
+
+func (w *ContentWorkspace) rightClickTag(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.rightClickTag").End()
+	tag := e.Attribute("data-tag")
+	if tag == "" {
+		return
+	}
+	w.editor.BlurInterface()
+	options := []context_menu.ContextMenuOption{
+		{
+			Label: fmt.Sprintf("Delete all content with tag '%s'", tag),
+			Call:  func() { w.deleteAllContentWithTag(tag) },
+		},
+	}
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.editor.FocusInterface)
+}
+
+func (w *ContentWorkspace) deleteAllContentWithTag(tag string) {
+	defer tracing.NewRegion("ContentWorkspace.deleteAllContentWithTag").End()
+	contents := w.cache.TagFilter([]string{tag})
+	if len(contents) == 0 {
+		return
+	}
+	onlyThisTag := []content_database.CachedContent{}
+	hasOtherTags := []content_database.CachedContent{}
+	for i := range contents {
+		cc := contents[i]
+		if len(cc.Config.Tags) == 1 {
+			onlyThisTag = append(onlyThisTag, cc)
+		} else {
+			hasOtherTags = append(hasOtherTags, cc)
+		}
+	}
+	total := len(onlyThisTag) + len(hasOtherTags)
+	desc := fmt.Sprintf("This will permanently delete %d content files that are tagged with '%s'.\n\nThis action cannot be undone.", total, tag)
+	w.UiMan.DisableUpdate()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       fmt.Sprintf("Delete content with tag '%s'", tag),
+		Description: desc,
+		ConfirmText: "Delete",
+		CancelText:  "Cancel",
+		OnConfirm: func() {
+			if len(hasOtherTags) > 0 {
+				var listStr string
+				listStr = "The following content also have other tags:\n"
+				for _, cc := range hasOtherTags {
+					other := klib.SlicesRemoveElement(cc.Config.Tags.ToSlice(), tag)
+					listStr += fmt.Sprintf("  - %s (%s) [other tags: %s]\n", cc.Config.Name, cc.Config.Type, strings.Join(other, ", "))
+				}
+				listStr += "\nAre you sure you want to continue deleting them?"
+				confirm_prompt.Show(w.Host, confirm_prompt.Config{
+					Title:       "Content with additional tags",
+					Description: listStr,
+					ConfirmText: "Yes, delete all",
+					CancelText:  "Cancel",
+					OnConfirm: func() {
+						w.UiMan.EnableUpdate()
+						w.performMultiContentDelete(append(onlyThisTag, hasOtherTags...))
+					},
+					OnCancel: w.UiMan.EnableUpdate,
+				})
+				return
+			}
+			w.UiMan.EnableUpdate()
+			w.performMultiContentDelete(onlyThisTag)
+		},
+		OnCancel: w.UiMan.EnableUpdate,
+	})
+}
+
+func (w *ContentWorkspace) performMultiContentDelete(contents []content_database.CachedContent) {
+	defer tracing.NewRegion("ContentWorkspace.performMultiContentDelete").End()
+	ids := make([]string, 0, len(contents))
+	for _, cc := range contents {
+		ids = append(ids, cc.Id())
+	}
+	for _, id := range ids {
+		if err := content_database.Delete(id, w.pfs, w.cache); err != nil {
+			if !errors.Is(err, content_database.DeleteContentMissingIdError) {
+				slog.Error("failed to delete content by tag", "id", id, "error", err)
+			}
+			continue
+		}
+		w.editor.Events().OnContentRemoved.Execute([]string{id})
+		w.editor.ContentPreviewer().DeletePreviewImage(id)
+	}
+	w.removeContentView(ids)
+	if len(w.selectedContent) > 0 {
+		w.clearSelection()
+	}
+	w.tooltip.UI.Hide()
 }
