@@ -43,6 +43,49 @@ import (
 	"kaijuengine.com/rendering"
 )
 
+type TextureBrushMode int
+
+const (
+	TextureBrushPaint TextureBrushMode = iota
+	TextureBrushErase
+	TextureBrushSmoothWeights
+	TextureBrushFill
+	TextureBrushReplace
+	TextureBrushSample
+)
+
+type TexturePaintConstraints struct {
+	UseSlope     bool
+	SlopeMin     matrix.Float
+	SlopeMax     matrix.Float
+	UseHeight    bool
+	HeightMin    matrix.Float
+	HeightMax    matrix.Float
+	AngleCutoff  matrix.Float
+	NormalFacing matrix.Vec3
+}
+
+type TexturePaintStroke struct {
+	Mode                TextureBrushMode
+	Center              matrix.Vec2
+	Radius              matrix.Float
+	Strength            matrix.Float
+	Falloff             BrushFalloff
+	Opacity             matrix.Float
+	TargetWeight        matrix.Float
+	Spacing             matrix.Float
+	ReplaceLayer        int
+	PreserveOtherLayers bool
+	Constraints         TexturePaintConstraints
+}
+
+type TexturePaintResult struct {
+	Dirty         DirtyRegion
+	Sampled       bool
+	SampledLayer  int
+	SampledWeight matrix.Float
+}
+
 type TerrainLayer struct {
 	TextureContentID   string
 	NormalContentID    string
@@ -177,6 +220,13 @@ func (s *TerrainLayerSet) SetLayerWeightAt(layer, x, z int, weight matrix.Float)
 		return false
 	}
 	return s.WeightMap.SetWeightAt(layer, x, z, weight)
+}
+
+func (s *TerrainLayerSet) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult {
+	if s == nil || s.WeightMap == nil {
+		return TexturePaintResult{}
+	}
+	return s.WeightMap.PaintTextureLayer(layer, stroke)
 }
 
 func (m *TextureWeightMap) AddLayer(defaultWeight matrix.Float) {
@@ -329,6 +379,268 @@ func (m *TextureWeightMap) FillLayer(fillLayer int) DirtyRegion {
 		}
 	}
 	return DirtyRegion{MinX: 0, MinZ: 0, MaxX: m.Resolution - 1, MaxZ: m.Resolution - 1, Valid: true}
+}
+
+func (m *TextureWeightMap) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult {
+	return m.paintTextureLayer(layer, stroke, nil)
+}
+
+type texturePaintFilter func(x, z int) bool
+
+func (m *TextureWeightMap) paintTextureLayer(layer int, stroke TexturePaintStroke, filter texturePaintFilter) TexturePaintResult {
+	if m == nil || m.Layers == 0 {
+		return TexturePaintResult{}
+	}
+	stroke = normalizeTexturePaintStroke(stroke)
+	if stroke.Mode == TextureBrushSample {
+		return m.sampleTextureLayer(stroke)
+	}
+	if layer < 0 || layer >= m.Layers {
+		return TexturePaintResult{}
+	}
+	region := m.textureStrokeRegion(stroke)
+	if !region.Valid {
+		return TexturePaintResult{}
+	}
+	var original []matrix.Float
+	if stroke.Mode == TextureBrushSmoothWeights {
+		original = append([]matrix.Float(nil), m.Weights...)
+	}
+	var dirty DirtyRegion
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			if filter != nil && !filter(x, z) {
+				continue
+			}
+			amount, ok := m.textureStrokeAmount(stroke, x, z)
+			if !ok {
+				continue
+			}
+			before := m.copyWeightsAt(x, z)
+			changed := false
+			switch stroke.Mode {
+			case TextureBrushErase:
+				changed = m.setTargetWeightAt(layer, x, z, 0, amount, stroke)
+			case TextureBrushSmoothWeights:
+				changed = m.smoothWeightsAt(x, z, amount, original)
+			case TextureBrushFill:
+				changed = m.setTargetWeightAt(layer, x, z, stroke.TargetWeight, amount, stroke)
+			case TextureBrushReplace:
+				changed = m.replaceWeightAt(layer, stroke.ReplaceLayer, x, z, amount)
+			case TextureBrushPaint:
+				fallthrough
+			default:
+				changed = m.setTargetWeightAt(layer, x, z, stroke.TargetWeight, amount, stroke)
+			}
+			if !changed && !weightsChanged(before, m.copyWeightsAt(x, z)) {
+				continue
+			}
+			dirty = mergeDirtyRegions(dirty, DirtyRegion{
+				MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
+			})
+		}
+	}
+	return TexturePaintResult{Dirty: dirty}
+}
+
+func normalizeTexturePaintStroke(stroke TexturePaintStroke) TexturePaintStroke {
+	if stroke.Opacity <= 0 {
+		stroke.Opacity = 1
+	}
+	stroke.Opacity = matrix.Clamp(stroke.Opacity, 0, 1)
+	if stroke.Mode == TextureBrushPaint || stroke.Mode == TextureBrushFill {
+		if stroke.TargetWeight == 0 {
+			stroke.TargetWeight = 1
+		}
+	}
+	stroke.TargetWeight = matrix.Clamp(stroke.TargetWeight, 0, 1)
+	return stroke
+}
+
+func (m *TextureWeightMap) textureStrokeRegion(stroke TexturePaintStroke) DirtyRegion {
+	if m == nil {
+		return DirtyRegion{}
+	}
+	if stroke.Mode == TextureBrushFill || (stroke.Mode == TextureBrushReplace && stroke.Radius <= 0) {
+		return DirtyRegion{MinX: 0, MinZ: 0, MaxX: m.Resolution - 1, MaxZ: m.Resolution - 1, Valid: true}
+	}
+	if stroke.Radius <= 0 {
+		return DirtyRegion{}
+	}
+	minX := max(0, int(matrix.Floor(stroke.Center.X()-stroke.Radius)))
+	maxX := min(m.Resolution-1, int(matrix.Ceil(stroke.Center.X()+stroke.Radius)))
+	minZ := max(0, int(matrix.Floor(stroke.Center.Y()-stroke.Radius)))
+	maxZ := min(m.Resolution-1, int(matrix.Ceil(stroke.Center.Y()+stroke.Radius)))
+	if minX > maxX || minZ > maxZ {
+		return DirtyRegion{}
+	}
+	return DirtyRegion{MinX: minX, MinZ: minZ, MaxX: maxX, MaxZ: maxZ, Valid: true}
+}
+
+func (m *TextureWeightMap) textureStrokeAmount(stroke TexturePaintStroke, x, z int) (matrix.Float, bool) {
+	strength := matrix.Abs(stroke.Strength)
+	if stroke.Mode == TextureBrushFill && strength == 0 {
+		strength = 1
+	}
+	if stroke.Mode == TextureBrushReplace && stroke.Radius <= 0 && strength == 0 {
+		strength = 1
+	}
+	if strength == 0 {
+		return 0, false
+	}
+	weight := matrix.Float(1)
+	if stroke.Mode != TextureBrushFill && stroke.Radius > 0 {
+		dx := matrix.Float(x) - stroke.Center.X()
+		dz := matrix.Float(z) - stroke.Center.Y()
+		distance := matrix.Sqrt(dx*dx + dz*dz)
+		if distance > stroke.Radius {
+			return 0, false
+		}
+		weight = brushWeight(distance, stroke.Radius, stroke.Falloff)
+	}
+	amount := matrix.Clamp(strength*stroke.Opacity*weight, 0, 1)
+	return amount, amount > 0
+}
+
+func (m *TextureWeightMap) setTargetWeightAt(layer, x, z int, target, amount matrix.Float, stroke TexturePaintStroke) bool {
+	if !m.inBounds(layer, x, z) {
+		return false
+	}
+	m.NormalizeWeightsAt(x, z)
+	before := m.copyWeightsAt(x, z)
+	afterTarget := matrix.Lerp(before[layer], matrix.Clamp(target, 0, 1), matrix.Clamp(amount, 0, 1))
+	if stroke.PreserveOtherLayers {
+		m.applyPreservedTargetWeight(layer, x, z, before, afterTarget, stroke.ReplaceLayer)
+	} else {
+		m.redistributeTargetWeight(layer, x, z, before, afterTarget)
+	}
+	m.NormalizeWeightsAt(x, z)
+	return weightsChanged(before, m.copyWeightsAt(x, z))
+}
+
+func (m *TextureWeightMap) redistributeTargetWeight(layer, x, z int, before []matrix.Float, afterTarget matrix.Float) {
+	beforeOtherSum := matrix.Float(1) - before[layer]
+	afterOtherSum := matrix.Float(1) - afterTarget
+	for i := 0; i < m.Layers; i++ {
+		if i == layer {
+			m.Weights[m.index(i, x, z)] = afterTarget
+		} else if beforeOtherSum > matrix.Tiny {
+			m.Weights[m.index(i, x, z)] = before[i] * afterOtherSum / beforeOtherSum
+		} else {
+			m.Weights[m.index(i, x, z)] = 0
+		}
+	}
+	if m.Layers > 1 && beforeOtherSum <= matrix.Tiny && afterOtherSum > matrix.Tiny {
+		fallback := firstOtherLayer(layer, m.Layers)
+		m.Weights[m.index(fallback, x, z)] = afterOtherSum
+	}
+}
+
+func (m *TextureWeightMap) applyPreservedTargetWeight(layer, x, z int, before []matrix.Float, afterTarget matrix.Float, preserveLayer int) {
+	for i := 0; i < m.Layers; i++ {
+		m.Weights[m.index(i, x, z)] = before[i]
+	}
+	compensator := preserveLayer
+	if compensator < 0 || compensator >= m.Layers || compensator == layer {
+		compensator = firstOtherLayer(layer, m.Layers)
+	}
+	m.Weights[m.index(layer, x, z)] = afterTarget
+	if compensator >= 0 {
+		delta := afterTarget - before[layer]
+		m.Weights[m.index(compensator, x, z)] = matrix.Clamp(before[compensator]-delta, 0, 1)
+	}
+}
+
+func (m *TextureWeightMap) replaceWeightAt(layer, replaceLayer, x, z int, amount matrix.Float) bool {
+	if !m.inBounds(layer, x, z) || !m.inBounds(replaceLayer, x, z) || layer == replaceLayer {
+		return false
+	}
+	m.NormalizeWeightsAt(x, z)
+	before := m.copyWeightsAt(x, z)
+	move := before[replaceLayer] * matrix.Clamp(amount, 0, 1)
+	m.Weights[m.index(layer, x, z)] = before[layer] + move
+	m.Weights[m.index(replaceLayer, x, z)] = before[replaceLayer] - move
+	m.NormalizeWeightsAt(x, z)
+	return weightsChanged(before, m.copyWeightsAt(x, z))
+}
+
+func (m *TextureWeightMap) smoothWeightsAt(x, z int, amount matrix.Float, original []matrix.Float) bool {
+	if len(original) != len(m.Weights) {
+		return false
+	}
+	m.NormalizeWeightsAt(x, z)
+	before := m.copyWeightsAt(x, z)
+	for layer := 0; layer < m.Layers; layer++ {
+		average := m.neighborWeightAverage(original, layer, x, z)
+		m.Weights[m.index(layer, x, z)] = matrix.Lerp(before[layer], average, matrix.Clamp(amount, 0, 1))
+	}
+	m.NormalizeWeightsAt(x, z)
+	return weightsChanged(before, m.copyWeightsAt(x, z))
+}
+
+func (m *TextureWeightMap) neighborWeightAverage(weights []matrix.Float, layer, x, z int) matrix.Float {
+	var sum matrix.Float
+	count := matrix.Float(0)
+	for nz := max(0, z-1); nz <= min(m.Resolution-1, z+1); nz++ {
+		for nx := max(0, x-1); nx <= min(m.Resolution-1, x+1); nx++ {
+			sum += weights[(nx+nz*m.Resolution)*m.Layers+layer]
+			count++
+		}
+	}
+	if count == 0 {
+		return 0
+	}
+	return sum / count
+}
+
+func (m *TextureWeightMap) sampleTextureLayer(stroke TexturePaintStroke) TexturePaintResult {
+	x := int(matrix.Round(stroke.Center.X()))
+	z := int(matrix.Round(stroke.Center.Y()))
+	x = max(0, min(m.Resolution-1, x))
+	z = max(0, min(m.Resolution-1, z))
+	bestLayer := 0
+	bestWeight := m.WeightAt(0, x, z)
+	for layer := 1; layer < m.Layers; layer++ {
+		weight := m.WeightAt(layer, x, z)
+		if weight > bestWeight {
+			bestLayer = layer
+			bestWeight = weight
+		}
+	}
+	return TexturePaintResult{
+		Sampled:       true,
+		SampledLayer:  bestLayer,
+		SampledWeight: bestWeight,
+	}
+}
+
+func (m *TextureWeightMap) copyWeightsAt(x, z int) []matrix.Float {
+	out := make([]matrix.Float, m.Layers)
+	for layer := 0; layer < m.Layers; layer++ {
+		out[layer] = m.WeightAt(layer, x, z)
+	}
+	return out
+}
+
+func firstOtherLayer(layer, layers int) int {
+	for i := 0; i < layers; i++ {
+		if i != layer {
+			return i
+		}
+	}
+	return -1
+}
+
+func weightsChanged(before, after []matrix.Float) bool {
+	if len(before) != len(after) {
+		return true
+	}
+	for i := range before {
+		if !matrix.ApproxTo(before[i], after[i], matrix.Roughly) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *TextureWeightMap) paintLayer(layer int, stroke PaintStroke, erase bool) DirtyRegion {

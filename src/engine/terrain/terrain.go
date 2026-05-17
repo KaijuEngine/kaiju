@@ -428,6 +428,49 @@ func (t *Terrain) PaintLine(from, to matrix.Vec2, stroke PaintStroke) DirtyRegio
 	return merged
 }
 
+func (t *Terrain) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return TexturePaintResult{}
+	}
+	gridStroke := t.localTextureStrokeToWeightGrid(stroke)
+	filter := t.texturePaintConstraintFilter(stroke.Constraints)
+	result := t.LayerSet.WeightMap.paintTextureLayer(layer, gridStroke, filter)
+	t.MarkTextureRegionDirty(result.Dirty)
+	t.ApplyTextureDirty(result.Dirty)
+	return result
+}
+
+func (t *Terrain) PaintTextureLine(layer int, from, to matrix.Vec2, stroke TexturePaintStroke) TexturePaintResult {
+	var merged TexturePaintResult
+	t.VisitTexturePaintLineStamps(from, to, stroke, func(stamp TexturePaintStroke) bool {
+		result := t.PaintTextureLayer(layer, stamp)
+		if result.Dirty.Valid {
+			merged.Dirty = mergeDirtyRegions(merged.Dirty, result.Dirty)
+		}
+		if result.Sampled {
+			merged.Sampled = true
+			merged.SampledLayer = result.SampledLayer
+			merged.SampledWeight = result.SampledWeight
+		}
+		return true
+	})
+	return merged
+}
+
+func (t *Terrain) VisitTexturePaintLineStamps(from, to matrix.Vec2, stroke TexturePaintStroke, visit func(TexturePaintStroke) bool) {
+	if visit == nil {
+		return
+	}
+	t.VisitPaintLineStamps(from, to, textureStrokeAsPaintStroke(stroke), func(stamp PaintStroke) bool {
+		stroke.Center = stamp.Center
+		stroke.Radius = stamp.Radius
+		stroke.Strength = stamp.Strength
+		stroke.Falloff = stamp.Falloff
+		stroke.Spacing = stamp.Spacing
+		return visit(stroke)
+	})
+}
+
 func (t *Terrain) VisitPaintLineStamps(from, to matrix.Vec2, stroke PaintStroke, visit func(PaintStroke) bool) {
 	if visit == nil {
 		return
@@ -583,6 +626,17 @@ func (t *Terrain) SampleLayerWeightAtLocal(layer int, localXZ matrix.Vec2) matri
 	}
 	x, z := t.localToWeightGrid(localXZ)
 	return t.LayerSet.WeightMap.Sample(layer, x, z)
+}
+
+func (t *Terrain) SampleTextureLayerAtLocal(localXZ matrix.Vec2) TexturePaintResult {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return TexturePaintResult{}
+	}
+	x, z := t.localToWeightGrid(localXZ)
+	return t.LayerSet.WeightMap.PaintTextureLayer(0, TexturePaintStroke{
+		Mode:   TextureBrushSample,
+		Center: matrix.NewVec2(x, z),
+	})
 }
 
 func (t *Terrain) StrokeRegion(stroke PaintStroke) DirtyRegion {
@@ -984,6 +1038,24 @@ func (t *Terrain) localStrokeToWeightGrid(stroke PaintStroke) PaintStroke {
 	return stroke
 }
 
+func (t *Terrain) localTextureStrokeToWeightGrid(stroke TexturePaintStroke) TexturePaintStroke {
+	gridStroke := t.localStrokeToWeightGrid(textureStrokeAsPaintStroke(stroke))
+	stroke.Center = gridStroke.Center
+	stroke.Radius = gridStroke.Radius
+	stroke.Spacing = gridStroke.Spacing
+	return stroke
+}
+
+func textureStrokeAsPaintStroke(stroke TexturePaintStroke) PaintStroke {
+	return PaintStroke{
+		Center:   stroke.Center,
+		Radius:   stroke.Radius,
+		Strength: stroke.Strength,
+		Falloff:  stroke.Falloff,
+		Spacing:  stroke.Spacing,
+	}
+}
+
 func (t *Terrain) localToGrid(localXZ matrix.Vec2) (matrix.Float, matrix.Float) {
 	x := ((localXZ.X() / t.Config.WorldSize.X()) + 0.5) * matrix.Float(t.HeightField.Resolution-1)
 	z := ((localXZ.Y() / t.Config.WorldSize.Y()) + 0.5) * matrix.Float(t.HeightField.Resolution-1)
@@ -998,6 +1070,66 @@ func (t *Terrain) localToWeightGrid(localXZ matrix.Vec2) (matrix.Float, matrix.F
 	x := ((localXZ.X() / t.Config.WorldSize.X()) + 0.5) * matrix.Float(resolution-1)
 	z := ((localXZ.Y() / t.Config.WorldSize.Y()) + 0.5) * matrix.Float(resolution-1)
 	return x, z
+}
+
+func (t *Terrain) weightGridToLocal(x, z int) matrix.Vec2 {
+	resolution := t.HeightField.Resolution
+	if t.LayerSet != nil && t.LayerSet.WeightMap != nil {
+		resolution = t.LayerSet.WeightMap.Resolution
+	}
+	if resolution <= 1 {
+		return matrix.Vec2Zero()
+	}
+	gx := matrix.Float(x) / matrix.Float(resolution-1)
+	gz := matrix.Float(z) / matrix.Float(resolution-1)
+	return matrix.NewVec2(
+		(gx-0.5)*t.Config.WorldSize.X(),
+		(gz-0.5)*t.Config.WorldSize.Y(),
+	)
+}
+
+func (t *Terrain) texturePaintConstraintFilter(constraints TexturePaintConstraints) texturePaintFilter {
+	if t == nil || t.HeightField == nil || !texturePaintConstraintsEnabled(constraints) {
+		return nil
+	}
+	if constraints.UseSlope && constraints.SlopeMin > constraints.SlopeMax {
+		constraints.SlopeMin, constraints.SlopeMax = constraints.SlopeMax, constraints.SlopeMin
+	}
+	if constraints.UseHeight && constraints.HeightMin > constraints.HeightMax {
+		constraints.HeightMin, constraints.HeightMax = constraints.HeightMax, constraints.HeightMin
+	}
+	facing := constraints.NormalFacing
+	if !facing.IsZero() {
+		facing = facing.Normal()
+	}
+	return func(x, z int) bool {
+		localXZ := t.weightGridToLocal(x, z)
+		if constraints.UseHeight {
+			height := t.HeightAtLocal(localXZ)
+			if height < constraints.HeightMin || height > constraints.HeightMax {
+				return false
+			}
+		}
+		normal := t.normalAtLocal(localXZ)
+		if constraints.UseSlope {
+			slope := matrix.Rad2Deg(normal.Angle(matrix.Vec3Up()))
+			if slope < constraints.SlopeMin || slope > constraints.SlopeMax {
+				return false
+			}
+		}
+		if !facing.IsZero() && constraints.AngleCutoff > 0 {
+			angle := matrix.Rad2Deg(normal.Angle(facing))
+			if angle > constraints.AngleCutoff {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func texturePaintConstraintsEnabled(constraints TexturePaintConstraints) bool {
+	return constraints.UseSlope || constraints.UseHeight ||
+		(!constraints.NormalFacing.IsZero() && constraints.AngleCutoff > 0)
 }
 
 func (t *Terrain) gridToLocal(x, z matrix.Float) matrix.Vec3 {
