@@ -390,6 +390,17 @@ func (p *StagePhysics) AddEntityShape(entity *Entity, mass float32, shape gravit
 	p.AddEntity(entity, body)
 }
 
+func (p *StagePhysics) AddEntityTerrain(entity *Entity, terrain *graviton.TerrainCollision) {
+	defer tracing.NewRegion("StagePhysics.AddEntityTerrain").End()
+	t := &entity.Transform
+	body := &graviton.RigidBody{}
+	body.Transform.SetupRawTransform()
+	body.Transform.SetPosition(t.Position())
+	body.Transform.SetRotation(t.Rotation())
+	body.SetStaticTerrain(terrain)
+	p.AddEntity(entity, body)
+}
+
 func (p *StagePhysics) Update(workGroup *concurrent.WorkGroup, threads *concurrent.Threads, deltaTime float64) {
 	defer tracing.NewRegion("StagePhysics.Update").End()
 	p.ensureStepConfig()
