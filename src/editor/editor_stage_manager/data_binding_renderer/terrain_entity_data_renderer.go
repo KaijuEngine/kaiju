@@ -69,6 +69,20 @@ func (r *TerrainEntityDataRenderer) Attached(host *engine.Host, manager *editor_
 	target.OnDestroy.Add(func() {
 		r.Detatched(host, manager, target, data)
 	})
+	target.OnActivate.Add(func() {
+		if g, ok := r.Terrains[target]; ok && g.terrain != nil {
+			for i := range g.terrain.ShaderData {
+				g.terrain.ShaderData[i].Activate()
+			}
+		}
+	})
+	target.OnDeactivate.Add(func() {
+		if g, ok := r.Terrains[target]; ok && g.terrain != nil {
+			for i := range g.terrain.ShaderData {
+				g.terrain.ShaderData[i].Deactivate()
+			}
+		}
+	})
 	r.Update(host, target, data)
 }
 
@@ -84,15 +98,18 @@ func (r *TerrainEntityDataRenderer) Detatched(host *engine.Host, manager *editor
 
 func (r *TerrainEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("TerrainEntityDataRenderer.Show").End()
+	// Terrain visuals are persistent and do not depend on selection state.
+	// Update will only reload if the terrain ID has changed.
 	r.Update(host, target, data)
 }
 
 func (r *TerrainEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("TerrainEntityDataRenderer.Hide").End()
+	// Do not destroy the terrain on deselect - it should show at all times in the stage.
+	// Hide is only for selection-based gizmos/overlays (none for terrain itself).
+	// The terrain is deactivated only via entity OnDeactivate if the entity is disabled.
 	if g, ok := r.Terrains[target]; ok && g.terrain != nil {
-		g.terrain.Destroy(nil)
-		g.terrain = nil
-		g.id = ""
+		g.terrain.ClearBrushPreview()
 	}
 }
 
@@ -108,18 +125,22 @@ func (r *TerrainEntityDataRenderer) Update(host *engine.Host, target *editor_sta
 		slog.Error("terrain id failure", "id", id)
 		return
 	}
-	if string(id) == "" {
+	sid := string(id)
+	if sid == "" {
 		return
+	}
+	if g.id == sid && g.terrain != nil {
+		return // no change
 	}
 	if g.terrain != nil {
 		g.terrain.Destroy(nil)
 		g.terrain = nil
 	}
-	model, err := terrain.LoadForEntity(host, string(id), &target.Entity)
+	model, err := terrain.LoadForEntity(host, sid, &target.Entity)
 	if err != nil {
 		slog.Error("invalid terrain id specified", "id", id, "error", err)
 		return
 	}
-	g.id = string(id)
+	g.id = sid
 	g.terrain = model
 }
