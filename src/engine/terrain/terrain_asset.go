@@ -395,7 +395,7 @@ func newTerrainFromAsset(host *engine.Host, asset TerrainAsset, entity *engine.E
 	if host != nil {
 		workGroup = host.WorkGroup()
 	}
-	t, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), workGroup, host, entity)
+	t, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), workGroup, nil, entity)
 	if err != nil {
 		return nil, err
 	}
@@ -403,8 +403,11 @@ func newTerrainFromAsset(host *engine.Host, asset TerrainAsset, entity *engine.E
 	if err != nil {
 		return nil, err
 	}
-	if err := t.createSplatTextures(host); err != nil {
-		return nil, err
+	if host != nil {
+		t.host = host
+		if err := t.createRenderResources(host); err != nil {
+			return nil, err
+		}
 	}
 	return t, nil
 }

@@ -2,7 +2,9 @@
 #define FRAGMENT_SHADER
 #define HAS_GBUFFER
 
-#define SAMPLER_COUNT 1
+#define TERRAIN_WEIGHT_MAP_COUNT 1
+#define TERRAIN_LAYER_COUNT 4
+#define SAMPLER_COUNT TERRAIN_WEIGHT_MAP_COUNT + TERRAIN_LAYER_COUNT
 
 #define LAYOUT_FRAG_COLOR 0
 #define LAYOUT_FRAG_FLAGS 1
@@ -48,9 +50,24 @@ vec3 terrainAlbedo(vec3 sampledColor, vec3 normal) {
 	return textured * tinted;
 }
 
+vec4 terrainLayerColor() {
+	vec4 weights = max(texture(textures[0], fragTexCoords), vec4(0.0));
+	float totalWeight = weights.r + weights.g + weights.b + weights.a;
+	if (totalWeight <= 0.001) {
+		weights = vec4(1.0, 0.0, 0.0, 0.0);
+		totalWeight = 1.0;
+	}
+	weights /= totalWeight;
+	return
+		texture(textures[1], fragTexCoords) * weights.r +
+		texture(textures[2], fragTexCoords) * weights.g +
+		texture(textures[3], fragTexCoords) * weights.b +
+		texture(textures[4], fragTexCoords) * weights.a;
+}
+
 void main() {
 	vec3 normal = normalize(fragNormal);
-	vec4 texColor = texture(textures[0], fragTexCoords) * fragColor;
+	vec4 texColor = terrainLayerColor() * fragColor;
 	vec3 terrainColor = terrainAlbedo(texColor.rgb, normal);
 	terrainColor = applyBrushOverlay(terrainColor);
 	processGBuffer(normal);

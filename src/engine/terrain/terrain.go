@@ -58,6 +58,10 @@ const (
 	defaultMaxHeight         = matrix.Float(100)
 	defaultRayStep           = matrix.Float(0.5)
 	defaultBrushSpacingScale = matrix.Float(0.25)
+
+	terrainWeightMapSlots    = 1
+	terrainAlbedoLayerSlots  = 4
+	terrainBaseWeightMapName = "terrain_base_weight_map"
 )
 
 type TerrainTexture struct {
@@ -490,6 +494,7 @@ func (t *Terrain) AddLayer(layer TerrainLayer) int {
 	}
 	layerIndex := t.LayerSet.AddLayer(layer)
 	_ = t.createSplatTextures(t.host)
+	_ = t.refreshMaterialTextures()
 	if layerIndex >= 0 {
 		t.MarkTextureDirty(layerIndex, DirtyRegion{
 			MinX:  0,
@@ -510,6 +515,7 @@ func (t *Terrain) RemoveLayer(layer int) bool {
 		return false
 	}
 	_ = t.createSplatTextures(t.host)
+	_ = t.refreshMaterialTextures()
 	if t.LayerSet.WeightMap != nil && len(t.SplatTextures) > 0 {
 		full := DirtyRegion{
 			MinX:  0,
@@ -792,20 +798,87 @@ func (t *Terrain) createRenderResources(host *engine.Host) error {
 	if err != nil {
 		return err
 	}
-	textures := make([]*rendering.Texture, len(t.Config.Textures))
-	for i := range t.Config.Textures {
-		textures[i], err = host.TextureCache().Texture(t.Config.Textures[i].Key, t.Config.Textures[i].Filter)
-		if err != nil {
-			return err
-		}
-	}
-	if err := t.createSplatTextures(host); err != nil {
+	t.ensureRenderableLayers()
+	textures, err := t.terrainMaterialTextures(host)
+	if err != nil {
 		return err
 	}
 	t.Material = material.CreateInstance(textures)
 	t.createChunks(host)
 	t.HeightField.ClearDirty()
 	return nil
+}
+
+func (t *Terrain) refreshMaterialTextures() error {
+	if t == nil || t.host == nil || t.Material == nil {
+		return nil
+	}
+	textures, err := t.terrainMaterialTextures(t.host)
+	if err != nil {
+		return err
+	}
+	t.Material.Textures = textures
+	for i := range t.MeshChunks {
+		t.MeshChunks[i].Drawing.Material = t.Material
+	}
+	return nil
+}
+
+func (t *Terrain) ensureRenderableLayers() {
+	if t == nil || t.LayerSet == nil || t.LayerSet.LayerCount() > 0 {
+		return
+	}
+	for i := range t.Config.Textures {
+		layer := NewTerrainLayer(t.Config.Textures[i].Key)
+		layer.Filter = t.Config.Textures[i].Filter
+		t.LayerSet.AddLayer(layer)
+	}
+}
+
+func (t *Terrain) terrainMaterialTextures(host *engine.Host) ([]*rendering.Texture, error) {
+	if err := t.createSplatTextures(host); err != nil {
+		return nil, err
+	}
+	count := terrainWeightMapSlots + terrainAlbedoLayerSlots
+	textures := make([]*rendering.Texture, count)
+	baseWeight, err := host.TextureCache().InsertRawTexture(
+		terrainBaseWeightMapName,
+		[]byte{255, 0, 0, 0},
+		1,
+		1,
+		rendering.TextureFilterNearest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < terrainWeightMapSlots; i++ {
+		textures[i] = baseWeight
+		if i < len(t.SplatTextures) && t.SplatTextures[i].Texture != nil {
+			textures[i] = t.SplatTextures[i].Texture
+		}
+	}
+	fallbackLayer, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < terrainAlbedoLayerSlots; i++ {
+		textures[terrainWeightMapSlots+i] = fallbackLayer
+		if t.LayerSet != nil && i < len(t.LayerSet.Layers) {
+			layer := t.LayerSet.Layers[i]
+			tex, err := host.TextureCache().Texture(layer.TextureContentID, layer.Filter)
+			if err != nil {
+				return nil, err
+			}
+			textures[terrainWeightMapSlots+i] = tex
+		} else if i < len(t.Config.Textures) {
+			tex, err := host.TextureCache().Texture(t.Config.Textures[i].Key, t.Config.Textures[i].Filter)
+			if err != nil {
+				return nil, err
+			}
+			textures[terrainWeightMapSlots+i] = tex
+		}
+	}
+	return textures, nil
 }
 
 func (t *Terrain) createChunks(host *engine.Host) {
