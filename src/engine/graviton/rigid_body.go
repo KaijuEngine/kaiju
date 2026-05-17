@@ -89,6 +89,7 @@ type Mass struct {
 type CollisionInfo struct {
 	Shape     Shape
 	Mesh      *MeshCollision
+	Terrain   *TerrainCollision
 	LocalAABB AABB
 	Group     int
 	Mask      int
@@ -156,17 +157,32 @@ func (r *RigidBody) SetKinematic() {
 func (r *RigidBody) SetShape(shape Shape) {
 	r.Collision.Shape = shape
 	r.Collision.Mesh = nil
+	r.Collision.Terrain = nil
 	r.Collision.LocalAABB = AABB{}
 	r.ensureDefaultCollisionFilter()
 }
 
 func (r *RigidBody) SetStaticMesh(mesh *MeshCollision) {
 	r.Collision.Mesh = mesh
+	r.Collision.Terrain = nil
 	bounds := NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero())
 	if mesh != nil {
 		bounds = mesh.Bounds
 	}
 	r.Collision.Shape = NewMeshShape(bounds)
+	r.Collision.LocalAABB = bounds
+	r.SetStatic()
+	r.ensureDefaultCollisionFilter()
+}
+
+func (r *RigidBody) SetStaticTerrain(terrain *TerrainCollision) {
+	r.Collision.Mesh = nil
+	r.Collision.Terrain = terrain
+	bounds := NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero())
+	if terrain != nil {
+		bounds = terrain.Bounds
+	}
+	r.Collision.Shape = NewTerrainShape(bounds)
 	r.Collision.LocalAABB = bounds
 	r.SetStatic()
 	r.ensureDefaultCollisionFilter()
@@ -375,6 +391,9 @@ func (r *RigidBody) recordSleepTransform() {
 func (r *RigidBody) WorldAABB() AABB {
 	if r.Collision.Shape.Type == ShapeTypeMesh && r.Collision.Mesh != nil {
 		return r.Collision.Mesh.Bounds.Transform(r.Transform.WorldMatrix())
+	}
+	if r.Collision.Shape.Type == ShapeTypeTerrain && r.Collision.Terrain != nil {
+		return r.Collision.Terrain.Bounds.Transform(r.Transform.WorldMatrix())
 	}
 	if r.Collision.LocalAABB.Type == ShapeTypeAABB {
 		return r.Collision.LocalAABB.Transform(r.Transform.WorldMatrix())

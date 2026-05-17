@@ -122,6 +122,60 @@ func TestTerrainCollisionForEachTriangleInLocalAABB(t *testing.T) {
 	}
 }
 
+func TestNewTerrainShapeSetup(t *testing.T) {
+	bounds := AABBFromMinMax(matrix.NewVec3(-2, -1, -3), matrix.NewVec3(2, 5, 3))
+	shape := NewTerrainShape(bounds)
+	if shape.Type != ShapeTypeTerrain {
+		t.Fatalf("expected terrain shape, got %v", shape.Type)
+	}
+	if !matrix.Vec3ApproxTo(shape.Center, bounds.Center, 0.0001) {
+		t.Fatalf("expected terrain shape center %v, got %v", bounds.Center, shape.Center)
+	}
+	if !matrix.Vec3ApproxTo(shape.Extent, bounds.Extent, 0.0001) {
+		t.Fatalf("expected terrain shape extent %v, got %v", bounds.Extent, shape.Extent)
+	}
+}
+
+func TestStaticTerrainBodyGeneratesBroadPhaseAABB(t *testing.T) {
+	system := System{}
+	system.Initialize()
+	body := system.NewBody()
+	body.Transform.SetPosition(matrix.NewVec3(3, 0, -2))
+	terrain := testTerrainCollision(t, 2, matrix.NewVec2(4, 6), []matrix.Float{
+		0, 0,
+		0, 0,
+	}, -1, 5)
+	body.SetStaticTerrain(terrain)
+	if body.Collision.Terrain != terrain {
+		t.Fatal("expected body to store terrain collision")
+	}
+	if body.Collision.Mesh != nil {
+		t.Fatal("expected terrain body to clear mesh collision")
+	}
+	if body.Collision.Shape.Type != ShapeTypeTerrain {
+		t.Fatalf("expected terrain shape, got %v", body.Collision.Shape.Type)
+	}
+	if !body.IsStatic() {
+		t.Fatal("expected terrain body to be static")
+	}
+	system.broadPhase.Rebuild(&system.bodies)
+	if len(system.broadPhase.proxies) != 1 {
+		t.Fatalf("expected 1 broad phase proxy, got %d", len(system.broadPhase.proxies))
+	}
+	proxy := system.broadPhase.proxies[0]
+	if proxy.body != body {
+		t.Fatal("expected proxy to reference terrain body")
+	}
+	if !matrix.Approx(proxy.bounds[matrix.Vx].min, 1) || !matrix.Approx(proxy.bounds[matrix.Vx].max, 5) {
+		t.Fatalf("expected terrain proxy X bounds [1,5], got [%f,%f]",
+			proxy.bounds[matrix.Vx].min, proxy.bounds[matrix.Vx].max)
+	}
+	if !matrix.Approx(proxy.bounds[matrix.Vz].min, -5) || !matrix.Approx(proxy.bounds[matrix.Vz].max, 1) {
+		t.Fatalf("expected terrain proxy Z bounds [-5,1], got [%f,%f]",
+			proxy.bounds[matrix.Vz].min, proxy.bounds[matrix.Vz].max)
+	}
+}
+
 func testTerrainCollision(t *testing.T, resolution int, worldSize matrix.Vec2, heights []matrix.Float, minHeight, maxHeight matrix.Float) *TerrainCollision {
 	t.Helper()
 	collision, err := NewTerrainCollision(resolution, worldSize, heights, minHeight, maxHeight)

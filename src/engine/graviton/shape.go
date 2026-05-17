@@ -48,6 +48,7 @@ const (
 	ShapeTypeCylinder
 	ShapeTypeCone
 	ShapeTypeMesh
+	ShapeTypeTerrain
 )
 
 type Shape struct {
@@ -129,5 +130,17 @@ func (s *Shape) SetConeShape(radius, height matrix.Float) {
 func NewConeShape(radius, height matrix.Float) Shape {
 	s := Shape{}
 	s.SetConeShape(radius, height)
+	return s
+}
+
+func (s *Shape) SetTerrain(bounds AABB) {
+	s.Type = ShapeTypeTerrain
+	s.Center = bounds.Center
+	s.Extent = bounds.Extent
+}
+
+func NewTerrainShape(bounds AABB) Shape {
+	s := Shape{}
+	s.SetTerrain(bounds)
 	return s
 }
