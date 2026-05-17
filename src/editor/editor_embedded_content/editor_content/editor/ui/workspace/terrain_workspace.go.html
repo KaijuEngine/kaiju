@@ -59,8 +59,9 @@
 				width: 7em;
 				height: 1.7em;
 			}
-			.toolButton {
-				width: 5em;
+			.materialIcon {
+				font-family: 'MaterialIcons-Regular';
+				font-size: 1.75em;
 			}
 			.actionButton {
 				width: 6em;
@@ -84,13 +85,13 @@
 		<div id="terrainPanel">
 			<h2>Terrain</h2>
 			<input id="activeTerrainName" type="text" placeholder="Terrain name..." onsubmit="renameTerrain" />
-			<button onclick="clickSelectTerrain">Select Terrain</button>
-			<button onclick="clickCreateTerrain">Create Terrain</button>
+			<button class="materialIcon" onclick="clickSelectTerrain">&#xE1BC;</button>
+			<button class="materialIcon" onclick="clickCreateTerrain">&#xE43E;</button>
 
 			<h3>Tools</h3>
-			<button class="toolButton" onclick="clickToolRaise">Raise</button>
-			<button class="toolButton" onclick="clickToolLower">Lower</button>
-			<button class="toolButton" onclick="clickToolSmooth">Smooth</button>
+			<button class="materialIcon" onclick="clickToolRaise">&#xE5D8;</button>
+			<button class="materialIcon" onclick="clickToolLower">&#xE5DB;</button>
+			<button class="materialIcon" onclick="clickToolSmooth">&#xE3A2;</button>
 			<div id="terrainToolReadout">Raise / R 2.00 / S 0.25</div>
 
 			<h3>Brush</h3>
