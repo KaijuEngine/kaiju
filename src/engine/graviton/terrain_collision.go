@@ -43,6 +43,8 @@ import (
 	"kaijuengine.com/matrix"
 )
 
+const terrainRayStep = matrix.Float(0.5)
+
 type TerrainCollision struct {
 	Resolution int
 	WorldSize  matrix.Vec2
@@ -233,6 +235,134 @@ func (c *TerrainCollision) ForEachTriangleInLocalAABB(bounds AABB, visit func(De
 			}
 		}
 	}
+}
+
+func (c *TerrainCollision) Raycast(ray Ray, length matrix.Float, transform *matrix.Transform) (Hit, bool) {
+	if c == nil || !c.valid() || length <= contactEpsilon || ray.Direction.IsZero() {
+		return Hit{}, false
+	}
+	localRay := ray
+	localLength := length
+	if transform != nil {
+		inv := transform.InverseWorldMatrix()
+		localOrigin := inv.TransformPoint(ray.Origin)
+		localEnd := inv.TransformPoint(ray.Point(float32(length)))
+		localDelta := localEnd.Subtract(localOrigin)
+		localLength = localDelta.Length()
+		if localLength <= contactEpsilon {
+			return Hit{}, false
+		}
+		localRay = Ray{
+			Origin:    localOrigin,
+			Direction: localDelta.Scale(1.0 / localLength),
+		}
+	} else {
+		localRay.Direction = localRay.Direction.Normal()
+	}
+	localPoint, ok := c.raycastLocal(localRay, localLength)
+	if !ok {
+		return Hit{}, false
+	}
+	point := localPoint
+	normal := c.NormalAtLocal(localPoint.XZ())
+	if transform != nil {
+		world := transform.WorldMatrix()
+		point = world.TransformPoint(localPoint)
+		normalEnd := world.TransformPoint(normal)
+		normalOrigin := world.TransformPoint(matrix.Vec3Zero())
+		normal = normalEnd.Subtract(normalOrigin)
+	}
+	distance := point.Distance(ray.Origin)
+	if distance > length {
+		return Hit{}, false
+	}
+	normal = safeNormal(normal, ray.Direction.Negative())
+	if matrix.Vec3Dot(normal, ray.Direction) > 0 {
+		normal = normal.Negative()
+	}
+	return Hit{
+		Point:    point,
+		Normal:   normal,
+		Distance: distance,
+	}, true
+}
+
+func (c *TerrainCollision) raycastLocal(ray Ray, length matrix.Float) (matrix.Vec3, bool) {
+	if ray.Direction.IsZero() {
+		return matrix.Vec3Zero(), false
+	}
+	ray.Direction = ray.Direction.Normal()
+	entry, exit, ok := terrainRayBounds(ray, c.Bounds.Min(), c.Bounds.Max())
+	if !ok {
+		return matrix.Vec3Zero(), false
+	}
+	if entry > length {
+		return matrix.Vec3Zero(), false
+	}
+	exit = matrix.Min(exit, length)
+	cell := matrix.Min(
+		c.WorldSize.X()/matrix.Float(c.Resolution-1),
+		c.WorldSize.Y()/matrix.Float(c.Resolution-1),
+	)
+	step := matrix.Max(cell*terrainRayStep, matrix.Tiny)
+	if entry < 0 {
+		entry = 0
+	}
+	lastDistance := entry
+	lastPoint := ray.Point(float32(lastDistance))
+	if lastPoint.Y() <= c.HeightAtLocal(lastPoint.XZ()) {
+		return lastPoint, true
+	}
+	for distance := entry + step; distance <= exit+matrix.Tiny; distance += step {
+		point := ray.Point(float32(matrix.Min(distance, exit)))
+		if point.Y() <= c.HeightAtLocal(point.XZ()) {
+			return c.refineRayHit(ray, lastDistance, matrix.Min(distance, exit)), true
+		}
+		lastDistance = distance
+	}
+	return matrix.Vec3Zero(), false
+}
+
+func (c *TerrainCollision) refineRayHit(ray Ray, low, high matrix.Float) matrix.Vec3 {
+	for i := 0; i < 12; i++ {
+		mid := (low + high) * 0.5
+		point := ray.Point(float32(mid))
+		if point.Y() > c.HeightAtLocal(point.XZ()) {
+			low = mid
+		} else {
+			high = mid
+		}
+	}
+	return ray.Point(float32(high))
+}
+
+func terrainRayBounds(ray Ray, minBounds, maxBounds matrix.Vec3) (matrix.Float, matrix.Float, bool) {
+	tMin := matrix.Float(0)
+	tMax := matrix.Inf(1)
+	for axis := 0; axis < 3; axis++ {
+		origin := ray.Origin[axis]
+		direction := ray.Direction[axis]
+		minValue := minBounds[axis]
+		maxValue := maxBounds[axis]
+		if matrix.Abs(direction) <= matrix.FloatSmallestNonzero {
+			if origin < minValue || origin > maxValue {
+				return 0, 0, false
+			}
+			continue
+		}
+		inv := 1 / direction
+		t0 := (minValue - origin) * inv
+		t1 := (maxValue - origin) * inv
+		if t0 > t1 {
+			t0, t1 = t1, t0
+		}
+		tMin = matrix.Max(tMin, t0)
+		tMax = matrix.Min(tMax, t1)
+		if tMin > tMax {
+			return 0, 0, false
+		}
+	}
+	return tMin, tMax, true
 }
 
 func (c *TerrainCollision) valid() bool {

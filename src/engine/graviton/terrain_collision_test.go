@@ -122,6 +122,71 @@ func TestTerrainCollisionForEachTriangleInLocalAABB(t *testing.T) {
 	}
 }
 
+func TestTerrainCollisionRaycastHitsHeightField(t *testing.T) {
+	collision := testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		0, 0,
+		0, 0,
+	}, -1, 1)
+	ray := Ray{
+		Origin:    matrix.NewVec3(0, 2, 0),
+		Direction: matrix.Vec3Down(),
+	}
+	hit, ok := collision.Raycast(ray, 4, nil)
+	if !ok {
+		t.Fatal("expected raycast to hit terrain")
+	}
+	if !matrix.ApproxTo(hit.Distance, 2, 0.001) {
+		t.Fatalf("expected hit distance 2, got %f", hit.Distance)
+	}
+	if !matrix.Vec3ApproxTo(hit.Point, matrix.Vec3Zero(), 0.001) {
+		t.Fatalf("expected terrain hit at origin, got %v", hit.Point)
+	}
+	if !matrix.Vec3ApproxTo(hit.Normal, matrix.Vec3Up(), 0.001) {
+		t.Fatalf("expected terrain normal up, got %v", hit.Normal)
+	}
+}
+
+func TestTerrainCollisionRaycastRespectsLength(t *testing.T) {
+	collision := testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		0, 0,
+		0, 0,
+	}, -1, 1)
+	ray := Ray{
+		Origin:    matrix.NewVec3(0, 3, 0),
+		Direction: matrix.Vec3Down(),
+	}
+	if hit, ok := collision.Raycast(ray, 1, nil); ok {
+		t.Fatalf("expected short raycast to miss terrain, got hit %+v", hit)
+	}
+}
+
+func TestSystemRaycastHitsStaticTerrain(t *testing.T) {
+	system := System{}
+	system.Initialize()
+	body := system.NewBody()
+	body.Transform.SetPosition(matrix.NewVec3(3, 0, -2))
+	body.SetStaticTerrain(testTerrainCollision(t, 2, matrix.NewVec2(4, 4), []matrix.Float{
+		0, 0,
+		0, 0,
+	}, -1, 1))
+	hit, ok := system.Raycast(matrix.NewVec3(3, 2, -2), matrix.NewVec3(3, -2, -2))
+	if !ok {
+		t.Fatal("expected system raycast to hit terrain")
+	}
+	if hit.Body != body {
+		t.Fatalf("expected hit body %p, got %p", body, hit.Body)
+	}
+	if !matrix.ApproxTo(hit.Distance, 2, 0.001) {
+		t.Fatalf("expected hit distance 2, got %f", hit.Distance)
+	}
+	if !matrix.Vec3ApproxTo(hit.Point, matrix.NewVec3(3, 0, -2), 0.001) {
+		t.Fatalf("expected translated terrain hit point, got %v", hit.Point)
+	}
+	if !matrix.Vec3ApproxTo(hit.Normal, matrix.Vec3Up(), 0.001) {
+		t.Fatalf("expected terrain normal up, got %v", hit.Normal)
+	}
+}
+
 func TestNewTerrainShapeSetup(t *testing.T) {
 	bounds := AABBFromMinMax(matrix.NewVec3(-2, -1, -3), matrix.NewVec3(2, 5, 3))
 	shape := NewTerrainShape(bounds)
