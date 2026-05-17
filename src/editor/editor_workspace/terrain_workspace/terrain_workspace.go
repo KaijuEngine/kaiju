@@ -153,8 +153,9 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.createFloorHeight, _ = w.Doc.GetElementById("createFloorHeight")
 	w.createCeilingHeight, _ = w.Doc.GetElementById("createCeilingHeight")
 	w.createInitialHeight, _ = w.Doc.GetElementById("createInitialHeight")
+	w.activeName, _ = w.Doc.GetElementById("activeTerrainName")
 	w.hideCreateDialog()
-	w.setActiveName("No terrain selected")
+	w.setActiveName("Terrain name...")
 	w.setStatus("Hover a terrain to inspect coordinates")
 	w.refreshToolReadout()
 	w.initBrushRing(host)
@@ -611,12 +612,10 @@ func (w *TerrainWorkspace) hideCreateDialog() {
 
 func (w *TerrainWorkspace) setActiveName(text string) {
 	if w.activeName != nil {
-		input := w.activeName.UI.ToInput()
-		if text == "" || text == "No terrain selected" {
-			input.SetTextWithoutEvent("")
-		} else {
-			input.SetTextWithoutEvent(text)
+		if text == "" {
+			text = "Terrain name..."
 		}
+		w.activeName.UI.ToInput().SetTextWithoutEvent(text)
 	}
 }
 
