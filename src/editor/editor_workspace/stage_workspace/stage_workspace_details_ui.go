@@ -61,6 +61,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/engine_entity_data/content_id"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
@@ -478,6 +479,9 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	} else if len(g.Fields) > 1 {
 		fields = append(fields, w.Doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
 	}
+	if isRigidBodyBinding(g) {
+		dui.createRigidBodyTerrainWarning(fieldDiv)
+	}
 	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
 		for _, c := range fields[i].Children {
@@ -637,7 +641,22 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	w.Doc.SetupInputTabIndexs()
 }
 
-func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element) {
+func (dui *WorkspaceDetailsUI) createRigidBodyTerrainWarning(fieldDiv *document.Element) {
+	warning := dui.workspace.Value().Doc.DuplicateElementWithoutApplyStyles(fieldDiv)
+	warning.SetAttribute("data-terrain-warning", "true")
+	warning.SetAttribute("data-fieldidx", "")
+	warning.SetAttribute("data-bindidx", "")
+	for _, c := range warning.Children {
+		c.UI.Hide()
+	}
+	label := warning.Children[0]
+	label.UI.Show()
+	label.InnerLabel().SetText("Terrain collider needs TerrainEntityData on this entity.")
+	label.InnerLabel().SetColor(matrix.ColorYellow())
+	warning.UI.Hide()
+}
+
+func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element, entities ...*editor_stage_manager.StageEntity) {
 	if g == nil || bindingElement == nil || !isRigidBodyBinding(g) {
 		return
 	}
@@ -645,7 +664,23 @@ func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_dat
 	if !ok {
 		return
 	}
+	var entity *editor_stage_manager.StageEntity
+	if len(entities) > 0 {
+		entity = entities[0]
+	}
+	if entity == nil {
+		entity = dui.selectedEntity()
+	}
+	hasTerrain := entityHasTerrainData(entity)
 	for _, row := range bindingElement.Children {
+		if row.Attribute("data-terrain-warning") == "true" {
+			if rigidBodyTerrainWarningVisible(shape, hasTerrain) {
+				row.UI.Show()
+			} else {
+				row.UI.Hide()
+			}
+			continue
+		}
 		idx, err := strconv.Atoi(row.Attribute("data-fieldidx"))
 		if err != nil || idx < 0 || idx >= len(g.Fields) {
 			continue
@@ -664,6 +699,39 @@ func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_dat
 	if parent := bindingElement.Parent.Value(); parent != nil {
 		parent.UI.SetDirty(ui.DirtyTypeLayout)
 	}
+}
+
+func (dui *WorkspaceDetailsUI) selectedEntity() *editor_stage_manager.StageEntity {
+	w := dui.workspace.Value()
+	if w == nil {
+		return nil
+	}
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return nil
+	}
+	return sel[len(sel)-1]
+}
+
+func entityHasTerrainData(entity *editor_stage_manager.StageEntity) bool {
+	if entity == nil {
+		return false
+	}
+	for _, binding := range entity.DataBindings() {
+		if binding.Gen.RegisterKey == engine_entity_data_terrain.BindingKey() {
+			return true
+		}
+		t := reflect.TypeOf(binding.BoundData)
+		for t != nil && t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		if t != nil &&
+			t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_terrain" &&
+			t.Name() == "TerrainEntityData" {
+			return true
+		}
+	}
+	return false
 }
 
 func isRigidBodyBinding(g *entity_data_binding.EntityDataEntry) bool {
@@ -705,6 +773,10 @@ func rigidBodyShape(g *entity_data_binding.EntityDataEntry) (engine_entity_data_
 	default:
 		return 0, false
 	}
+}
+
+func rigidBodyTerrainWarningVisible(shape engine_entity_data_physics.Shape, hasTerrainData bool) bool {
+	return shape == engine_entity_data_physics.ShapeTerrain && !hasTerrainData
 }
 
 func rigidBodyFieldVisibleForShape(fieldName string, shape engine_entity_data_physics.Shape) bool {
@@ -1156,12 +1228,12 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 				} else {
 					dui.reload()
 				}
-				dui.refreshShapeSpecificFieldVisibility(target, bindingElement)
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 			}
 			h.From = v.Interface()
 			if ok := reflectAssignChanges(e, v); ok {
 				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
-				dui.refreshShapeSpecificFieldVisibility(target, bindingElement)
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 				success = true
 				h.To = v.Interface()
 			}

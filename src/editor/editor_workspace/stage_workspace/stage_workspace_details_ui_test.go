@@ -65,3 +65,15 @@ func TestRigidBodyTerrainFieldVisibility(t *testing.T) {
 		t.Fatal("expected non-terrain rigid bodies to keep generic field visibility")
 	}
 }
+
+func TestRigidBodyTerrainWarningVisibility(t *testing.T) {
+	if !rigidBodyTerrainWarningVisible(engine_entity_data_physics.ShapeTerrain, false) {
+		t.Fatal("expected terrain shape without terrain data to show a warning")
+	}
+	if rigidBodyTerrainWarningVisible(engine_entity_data_physics.ShapeTerrain, true) {
+		t.Fatal("expected terrain shape with terrain data to hide the warning")
+	}
+	if rigidBodyTerrainWarningVisible(engine_entity_data_physics.ShapeBox, false) {
+		t.Fatal("expected non-terrain shapes to hide the terrain warning")
+	}
+}
