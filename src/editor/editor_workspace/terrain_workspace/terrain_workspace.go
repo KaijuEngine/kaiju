@@ -189,6 +189,7 @@ func (w *TerrainWorkspace) Close() {
 	w.CommonClose()
 	w.hideBrushPreview()
 	w.finishStroke()
+	w.destroyActive()
 }
 
 func (w *TerrainWorkspace) Hotkeys() []common_workspace.HotKey {
