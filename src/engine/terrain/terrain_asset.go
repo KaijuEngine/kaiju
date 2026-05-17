@@ -109,6 +109,7 @@ func NewAssetWithLayerSet(config TerrainConfig, heights []matrix.Float, layerSet
 		return TerrainAsset{}, err
 	}
 	config.PaintResolution = paintResolution
+	config.Textures = terrainTexturesFromLayers(layers)
 	asset := TerrainAsset{
 		Version:             AssetVersion,
 		Config:              config,
@@ -403,6 +404,7 @@ func newTerrainFromAsset(host *engine.Host, asset TerrainAsset, entity *engine.E
 	if err != nil {
 		return nil, err
 	}
+	t.syncConfigTexturesFromLayers()
 	if host != nil {
 		t.host = host
 		if err := t.createRenderResources(host); err != nil {

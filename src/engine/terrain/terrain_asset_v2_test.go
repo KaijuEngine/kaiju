@@ -61,6 +61,7 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 		t.Fatal(err)
 	}
 	grass := set.AddLayer(TerrainLayer{
+		Name:               "Grass",
 		TextureContentID:   "grass-albedo",
 		NormalContentID:    "grass-normal",
 		RoughnessContentID: "grass-roughness",
@@ -71,6 +72,7 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 		Tint:               matrix.ColorGreen(),
 	})
 	rock := set.AddLayer(TerrainLayer{
+		Name:             "Rock",
 		TextureContentID: "rock-albedo",
 		Filter:           rendering.TextureFilterLinear,
 		Tiling:           matrix.NewVec2(2, 3),
@@ -107,8 +109,15 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 	if loaded.Layers[0].TextureContentID != "grass-albedo" || loaded.Layers[0].NormalContentID != "grass-normal" {
 		t.Fatalf("expected layer metadata to round-trip, got %+v", loaded.Layers[0])
 	}
+	if loaded.Layers[0].Name != "Grass" || loaded.Layers[1].Name != "Rock" {
+		t.Fatalf("expected layer names to round-trip, got %+v", loaded.Layers)
+	}
 	if loaded.Layers[0].Filter != rendering.TextureFilterNearest {
 		t.Fatalf("expected nearest filter to round-trip, got %d", loaded.Layers[0].Filter)
+	}
+	if len(loaded.Config.Textures) != 2 || loaded.Config.Textures[0].Key != "grass-albedo" ||
+		loaded.Config.Textures[1].Key != "rock-albedo" {
+		t.Fatalf("expected terrain config textures to follow layers, got %+v", loaded.Config.Textures)
 	}
 	if loaded.WeightMapResolution != config.PaintResolution {
 		t.Fatalf("expected weight map resolution %d, got %d", config.PaintResolution, loaded.WeightMapResolution)

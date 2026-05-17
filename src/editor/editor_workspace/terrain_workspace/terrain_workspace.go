@@ -113,15 +113,24 @@ type TerrainWorkspace struct {
 	textureBtns   []*document.Element
 
 	textureLayerSelect    *document.Element
+	textureLayerPalette   *document.Element
+	textureSwatchTemplate *document.Element
+	textureLayerNameInput *document.Element
+	textureFilterSelect   *document.Element
 	textureRadiusInput    *document.Element
 	textureOpacityInput   *document.Element
 	textureFalloffSelect  *document.Element
 	textureTilingXInput   *document.Element
 	textureTilingYInput   *document.Element
+	textureTintRInput     *document.Element
+	textureTintGInput     *document.Element
+	textureTintBInput     *document.Element
+	textureTintAInput     *document.Element
 	textureSlopeMinInput  *document.Element
 	textureSlopeMaxInput  *document.Element
 	textureHeightMinInput *document.Element
 	textureHeightMaxInput *document.Element
+	textureSwatches       []*document.Element
 
 	createResolution    *document.Element
 	createSizeX         *document.Element
@@ -178,6 +187,7 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		"clickRemoveLayer":    w.clickRemoveLayer,
 		"clickLayerUp":        w.clickLayerUp,
 		"clickLayerDown":      w.clickLayerDown,
+		"clickLayerSwatch":    w.clickLayerSwatch,
 		"clickSave":           w.clickSave,
 		"clickRevert":         w.clickRevert,
 		"brushChanged":        w.brushChanged,
@@ -201,11 +211,19 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.strengthInput, _ = w.Doc.GetElementById("brushStrength")
 	w.falloffSelect, _ = w.Doc.GetElementById("brushFalloff")
 	w.textureLayerSelect, _ = w.Doc.GetElementById("textureLayerSelect")
+	w.textureLayerPalette, _ = w.Doc.GetElementById("textureLayerPalette")
+	w.textureSwatchTemplate, _ = w.Doc.GetElementById("textureLayerSwatchTemplate")
+	w.textureLayerNameInput, _ = w.Doc.GetElementById("textureLayerName")
+	w.textureFilterSelect, _ = w.Doc.GetElementById("textureFilter")
 	w.textureRadiusInput, _ = w.Doc.GetElementById("textureBrushRadius")
 	w.textureOpacityInput, _ = w.Doc.GetElementById("textureOpacity")
 	w.textureFalloffSelect, _ = w.Doc.GetElementById("textureFalloff")
 	w.textureTilingXInput, _ = w.Doc.GetElementById("textureTilingX")
 	w.textureTilingYInput, _ = w.Doc.GetElementById("textureTilingY")
+	w.textureTintRInput, _ = w.Doc.GetElementById("textureTintR")
+	w.textureTintGInput, _ = w.Doc.GetElementById("textureTintG")
+	w.textureTintBInput, _ = w.Doc.GetElementById("textureTintB")
+	w.textureTintAInput, _ = w.Doc.GetElementById("textureTintA")
 	w.textureSlopeMinInput, _ = w.Doc.GetElementById("textureSlopeMin")
 	w.textureSlopeMaxInput, _ = w.Doc.GetElementById("textureSlopeMax")
 	w.textureHeightMinInput, _ = w.Doc.GetElementById("textureHeightMin")
@@ -221,10 +239,14 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.heightBtns = w.Doc.GetElementsByGroup("heightTool")
 	w.textureBtns = w.Doc.GetElementsByGroup("textureTool")
 	w.hideCreateDialog()
+	if w.textureSwatchTemplate != nil {
+		w.textureSwatchTemplate.UI.Hide()
+	}
 	w.setActiveName("Terrain name...")
 	w.setStatus("Hover a terrain to inspect coordinates")
 	w.refreshToolPanels()
 	w.refreshLayerSelector()
+	w.refreshLayerPalette()
 	w.refreshToolReadout()
 	w.initBrushRing(host)
 	// Subscribe to cross-workspace requests. The content workspace (or stage
@@ -481,6 +503,8 @@ func (w *TerrainWorkspace) clickSave(*document.Element) {
 	if w.active == nil || w.activeID == "" {
 		return
 	}
+	w.applyTextureLayerSettings()
+	texturesValid := w.validateLayerTextures()
 	asset, err := terrain.NewAssetFromTerrain(w.active)
 	if err != nil {
 		slog.Error("failed to create terrain asset from edited heightfield", "error", err)
@@ -505,7 +529,9 @@ func (w *TerrainWorkspace) clickSave(*document.Element) {
 		return
 	}
 	w.ed.Events().OnContentChangesSaved.Execute(w.activeID)
-	w.setStatus("Saved " + cc.Config.Name)
+	if texturesValid {
+		w.setStatus("Saved " + cc.Config.Name)
+	}
 }
 
 func (w *TerrainWorkspace) clickRevert(*document.Element) {
@@ -527,6 +553,7 @@ func (w *TerrainWorkspace) textureBrushChanged(*document.Element) {
 func (w *TerrainWorkspace) textureLayerChanged(*document.Element) {
 	w.textureLayer = w.readTextureLayer()
 	w.refreshTextureLayerFields()
+	w.refreshLayerPalette()
 	w.refreshToolReadout()
 }
 
@@ -541,10 +568,13 @@ func (w *TerrainWorkspace) clickAddLayer(*document.Element) {
 		if id == "" {
 			return
 		}
-		w.textureLayer = w.active.AddLayer(terrain.NewTerrainLayer(id))
+		layer := terrain.NewTerrainLayer(id)
+		layer.Name = w.textureNameForID(id)
+		w.textureLayer = w.active.AddLayer(layer)
 		w.refreshLayerSelector()
 		w.refreshTextureLayerFields()
-		w.setStatus("Added texture layer")
+		w.refreshLayerPalette()
+		w.setLayerTextureStatus(id, "Added texture layer")
 	}, w.ed.FocusInterface)
 }
 
@@ -559,6 +589,7 @@ func (w *TerrainWorkspace) clickRemoveLayer(*document.Element) {
 	w.textureLayer = min(layer, w.active.LayerCount()-1)
 	w.refreshLayerSelector()
 	w.refreshTextureLayerFields()
+	w.refreshLayerPalette()
 	w.setStatus("Removed texture layer")
 }
 
@@ -582,7 +613,25 @@ func (w *TerrainWorkspace) moveTextureLayer(direction int) {
 	w.textureLayer = next
 	w.refreshLayerSelector()
 	w.refreshTextureLayerFields()
+	w.refreshLayerPalette()
 	w.setStatus("Moved texture layer")
+}
+
+func (w *TerrainWorkspace) clickLayerSwatch(e *document.Element) {
+	if e == nil {
+		return
+	}
+	layer, err := strconv.Atoi(e.Attribute("data-layer"))
+	if err != nil {
+		return
+	}
+	w.textureLayer = layer
+	if w.textureLayerSelect != nil {
+		w.textureLayerSelect.UI.ToSelect().PickOptionWithoutEvent(layer)
+	}
+	w.refreshTextureLayerFields()
+	w.refreshLayerPalette()
+	w.refreshToolReadout()
 }
 
 func (w *TerrainWorkspace) openTerrain(id string) {
@@ -606,7 +655,9 @@ func (w *TerrainWorkspace) openTerrain(id string) {
 	w.textureLayer = 0
 	w.refreshLayerSelector()
 	w.refreshTextureLayerFields()
+	w.refreshLayerPalette()
 	w.refreshToolReadout()
+	w.validateLayerTextures()
 }
 
 func (w *TerrainWorkspace) destroyActive() {
@@ -619,6 +670,8 @@ func (w *TerrainWorkspace) destroyActive() {
 	w.painting = false
 	w.hasLastLocal = false
 	w.stroke = nil
+	w.refreshLayerSelector()
+	w.refreshLayerPalette()
 	w.hideBrushPreview()
 }
 
@@ -987,13 +1040,42 @@ func (w *TerrainWorkspace) refreshLayerSelector() {
 		w.textureLayer = w.active.LayerCount() - 1
 	}
 	for i := 0; i < w.active.LayerCount(); i++ {
-		name := "Layer " + strconv.Itoa(i+1)
-		if i < len(w.active.LayerSet.Layers) && w.active.LayerSet.Layers[i].TextureContentID != "" {
-			name += " " + w.active.LayerSet.Layers[i].TextureContentID
-		}
+		name := w.layerDisplayName(i)
 		selectUI.AddOption(name, strconv.Itoa(i))
 	}
 	selectUI.PickOptionWithoutEvent(w.textureLayer)
+}
+
+func (w *TerrainWorkspace) refreshLayerPalette() {
+	if w.textureSwatchTemplate == nil {
+		return
+	}
+	for i := range w.textureSwatches {
+		w.Doc.RemoveElementWithoutApplyStyles(w.textureSwatches[i])
+	}
+	w.textureSwatches = w.textureSwatches[:0]
+	if w.active == nil || w.active.LayerCount() == 0 {
+		w.Doc.ApplyStyles()
+		return
+	}
+	w.textureSwatches = w.Doc.DuplicateElementRepeatWithoutApplyStyles(
+		w.textureSwatchTemplate, w.active.LayerCount())
+	for i := range w.textureSwatches {
+		swatch := w.textureSwatches[i]
+		w.Doc.SetElementIdWithoutApplyStyles(swatch, "")
+		swatch.UI.Show()
+		swatch.SetAttribute("data-layer", strconv.Itoa(i))
+		classes := []string{"layerSwatch"}
+		if i == w.textureLayer {
+			classes = append(classes, "active")
+		}
+		w.Doc.SetElementClassesWithoutApply(swatch, classes...)
+		if len(swatch.Children) > 1 && swatch.Children[1].InnerLabel() != nil {
+			swatch.Children[1].InnerLabel().SetText(w.layerDisplayName(i))
+		}
+		w.loadLayerSwatchTexture(swatch, i)
+	}
+	w.Doc.ApplyStyles()
 }
 
 func (w *TerrainWorkspace) refreshTextureLayerFields() {
@@ -1002,11 +1084,29 @@ func (w *TerrainWorkspace) refreshTextureLayerFields() {
 		return
 	}
 	layer := w.active.LayerSet.Layers[w.textureLayer]
+	if w.textureLayerNameInput != nil {
+		w.textureLayerNameInput.UI.ToInput().SetTextWithoutEvent(layer.Name)
+	}
+	if w.textureFilterSelect != nil {
+		w.textureFilterSelect.UI.ToSelect().PickOptionWithoutEvent(textureFilterOptionIndex(layer.Filter))
+	}
 	if w.textureTilingXInput != nil {
 		w.textureTilingXInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tiling.X()))
 	}
 	if w.textureTilingYInput != nil {
 		w.textureTilingYInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tiling.Y()))
+	}
+	if w.textureTintRInput != nil {
+		w.textureTintRInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tint.R()))
+	}
+	if w.textureTintGInput != nil {
+		w.textureTintGInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tint.G()))
+	}
+	if w.textureTintBInput != nil {
+		w.textureTintBInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tint.B()))
+	}
+	if w.textureTintAInput != nil {
+		w.textureTintAInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tint.A()))
 	}
 	if w.active.HeightField != nil {
 		if w.textureHeightMinInput != nil {
@@ -1026,10 +1126,26 @@ func (w *TerrainWorkspace) applyTextureLayerSettings() {
 	if layer < 0 || layer >= w.active.LayerCount() {
 		return
 	}
-	w.active.LayerSet.Layers[layer].Tiling = matrix.NewVec2(
+	next := w.active.LayerSet.Layers[layer]
+	if w.textureLayerNameInput != nil {
+		next.Name = strings.TrimSpace(w.textureLayerNameInput.UI.ToInput().Text())
+	}
+	next.Filter = w.readTextureFilter()
+	next.Tiling = matrix.NewVec2(
 		w.readBrushFloat(w.textureTilingXInput, 1),
 		w.readBrushFloat(w.textureTilingYInput, 1),
 	)
+	next.Tint = matrix.NewColor(
+		matrix.Clamp(w.readBrushFloat(w.textureTintRInput, 1), 0, 1),
+		matrix.Clamp(w.readBrushFloat(w.textureTintGInput, 1), 0, 1),
+		matrix.Clamp(w.readBrushFloat(w.textureTintBInput, 1), 0, 1),
+		matrix.Clamp(w.readBrushFloat(w.textureTintAInput, 1), 0, 1),
+	)
+	if w.active.SetLayer(layer, next) {
+		w.refreshLayerSelector()
+		w.refreshLayerPalette()
+		w.setLayerTextureStatus(next.TextureContentID, "Updated texture layer")
+	}
 }
 
 func (w *TerrainWorkspace) readTextureLayer() int {
@@ -1041,6 +1157,123 @@ func (w *TerrainWorkspace) readTextureLayer() int {
 		return w.textureLayer
 	}
 	return v
+}
+
+func (w *TerrainWorkspace) readTextureFilter() rendering.TextureFilter {
+	if w.textureFilterSelect == nil {
+		return rendering.TextureFilterLinear
+	}
+	switch w.textureFilterSelect.UI.ToSelect().Value() {
+	case "nearest":
+		return rendering.TextureFilterNearest
+	case "linear":
+		fallthrough
+	default:
+		return rendering.TextureFilterLinear
+	}
+}
+
+func textureFilterOption(filter rendering.TextureFilter) string {
+	if filter == rendering.TextureFilterNearest {
+		return "nearest"
+	}
+	return "linear"
+}
+
+func textureFilterOptionIndex(filter rendering.TextureFilter) int {
+	if textureFilterOption(filter) == "nearest" {
+		return 1
+	}
+	return 0
+}
+
+func (w *TerrainWorkspace) layerDisplayName(layer int) string {
+	if w.active == nil || w.active.LayerSet == nil ||
+		layer < 0 || layer >= len(w.active.LayerSet.Layers) {
+		return "Layer"
+	}
+	data := w.active.LayerSet.Layers[layer]
+	name := strings.TrimSpace(data.Name)
+	if name == "" {
+		name = w.textureNameForID(data.TextureContentID)
+	}
+	if name == "" {
+		name = "Layer " + strconv.Itoa(layer+1)
+	}
+	return strconv.Itoa(layer+1) + " " + name
+}
+
+func (w *TerrainWorkspace) textureNameForID(id string) string {
+	if id == "" {
+		return ""
+	}
+	if id == assets.TextureSquare {
+		return assets.TextureSquare
+	}
+	if w.ed == nil || w.ed.Cache() == nil {
+		return id
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil || cc.Config.Name == "" {
+		return id
+	}
+	return cc.Config.Name
+}
+
+func (w *TerrainWorkspace) loadLayerSwatchTexture(swatch *document.Element, layer int) {
+	if swatch == nil || len(swatch.Children) == 0 || w.active == nil ||
+		w.active.LayerSet == nil || layer < 0 || layer >= len(w.active.LayerSet.Layers) {
+		return
+	}
+	thumb := swatch.Children[0].UI.ToPanel()
+	data := w.active.LayerSet.Layers[layer]
+	tex, err := w.Host.TextureCache().Texture(data.TextureContentID, data.Filter)
+	if err != nil {
+		tex, err = w.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	}
+	if err == nil {
+		thumb.SetBackground(tex)
+	}
+	thumb.SetColor(data.Tint)
+}
+
+func (w *TerrainWorkspace) validateLayerTextures() bool {
+	if w.active == nil || w.active.LayerSet == nil {
+		return true
+	}
+	for i := range w.active.LayerSet.Layers {
+		id := w.active.LayerSet.Layers[i].TextureContentID
+		if !w.textureExists(id) {
+			w.setStatus("Missing texture " + id + "; using " + assets.TextureSquare)
+			return false
+		}
+	}
+	return true
+}
+
+func (w *TerrainWorkspace) setLayerTextureStatus(id, okStatus string) {
+	if !w.textureExists(id) {
+		w.setStatus("Missing texture " + id + "; using " + assets.TextureSquare)
+		return
+	}
+	w.setStatus(okStatus)
+}
+
+func (w *TerrainWorkspace) textureExists(id string) bool {
+	if id == "" {
+		return false
+	}
+	if id == assets.TextureSquare {
+		return true
+	}
+	if w.ed == nil || w.ed.Cache() == nil {
+		return true
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return false
+	}
+	return cc.Config.Type == (content_database.Texture{}).TypeName()
 }
 
 func (w *TerrainWorkspace) refreshToolReadout() {

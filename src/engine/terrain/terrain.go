@@ -39,6 +39,7 @@ package terrain
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
@@ -536,6 +537,7 @@ func (t *Terrain) AddLayer(layer TerrainLayer) int {
 		return -1
 	}
 	layerIndex := t.LayerSet.AddLayer(layer)
+	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
 	if layerIndex >= 0 {
@@ -550,6 +552,18 @@ func (t *Terrain) AddLayer(layer TerrainLayer) int {
 	return layerIndex
 }
 
+func (t *Terrain) SetLayer(layer int, value TerrainLayer) bool {
+	if t == nil || t.LayerSet == nil {
+		return false
+	}
+	if !t.LayerSet.SetLayer(layer, value) {
+		return false
+	}
+	t.syncConfigTexturesFromLayers()
+	_ = t.refreshMaterialTextures()
+	return true
+}
+
 func (t *Terrain) RemoveLayer(layer int) bool {
 	if t == nil || t.LayerSet == nil {
 		return false
@@ -557,6 +571,7 @@ func (t *Terrain) RemoveLayer(layer int) bool {
 	if !t.LayerSet.RemoveLayer(layer) {
 		return false
 	}
+	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
 	if t.LayerSet.WeightMap != nil && len(t.SplatTextures) > 0 {
@@ -581,6 +596,7 @@ func (t *Terrain) MoveLayer(from, to int) bool {
 	if !t.LayerSet.MoveLayer(from, to) {
 		return false
 	}
+	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
 	if t.LayerSet.WeightMap != nil {
@@ -944,18 +960,41 @@ func (t *Terrain) terrainMaterialTextures(host *engine.Host) ([]*rendering.Textu
 			layer := t.LayerSet.Layers[i]
 			tex, err := host.TextureCache().Texture(layer.TextureContentID, layer.Filter)
 			if err != nil {
-				return nil, err
+				slog.Warn("terrain layer texture missing; using fallback texture",
+					"texture", layer.TextureContentID, "fallback", assets.TextureSquare, "error", err)
+				continue
 			}
 			textures[terrainWeightMapSlots+i] = tex
 		} else if i < len(t.Config.Textures) {
 			tex, err := host.TextureCache().Texture(t.Config.Textures[i].Key, t.Config.Textures[i].Filter)
 			if err != nil {
-				return nil, err
+				slog.Warn("terrain config texture missing; using fallback texture",
+					"texture", t.Config.Textures[i].Key, "fallback", assets.TextureSquare, "error", err)
+				continue
 			}
 			textures[terrainWeightMapSlots+i] = tex
 		}
 	}
 	return textures, nil
+}
+
+func (t *Terrain) syncConfigTexturesFromLayers() {
+	if t == nil || t.LayerSet == nil {
+		return
+	}
+	t.Config.Textures = terrainTexturesFromLayers(t.LayerSet.Layers)
+}
+
+func terrainTexturesFromLayers(layers []TerrainLayer) []TerrainTexture {
+	if len(layers) == 0 {
+		return []TerrainTexture{{Key: assets.TextureSquare, Filter: rendering.TextureFilterLinear}}
+	}
+	textures := make([]TerrainTexture, len(layers))
+	for i := range layers {
+		layer := normalizeTerrainLayer(layers[i])
+		textures[i] = TerrainTexture{Key: layer.TextureContentID, Filter: layer.Filter}
+	}
+	return textures
 }
 
 func (t *Terrain) createChunks(host *engine.Host) {

@@ -87,6 +87,7 @@ type TexturePaintResult struct {
 }
 
 type TerrainLayer struct {
+	Name               string
 	TextureContentID   string
 	NormalContentID    string
 	RoughnessContentID string
@@ -110,6 +111,7 @@ type TextureWeightMap struct {
 
 func NewTerrainLayer(textureContentID string) TerrainLayer {
 	return TerrainLayer{
+		Name:             textureContentID,
 		TextureContentID: textureContentID,
 		Filter:           rendering.TextureFilterLinear,
 		Tiling:           matrix.Vec2One(),
@@ -165,6 +167,14 @@ func (s *TerrainLayerSet) AddLayer(layer TerrainLayer) int {
 	}
 	s.WeightMap.AddLayer(defaultWeight)
 	return len(s.Layers) - 1
+}
+
+func (s *TerrainLayerSet) SetLayer(layer int, value TerrainLayer) bool {
+	if s == nil || layer < 0 || layer >= len(s.Layers) {
+		return false
+	}
+	s.Layers[layer] = normalizeTerrainLayer(value)
+	return true
 }
 
 func (s *TerrainLayerSet) RemoveLayer(layer int) bool {
@@ -777,6 +787,9 @@ func (m *TextureWeightMap) index(layer, x, z int) int {
 }
 
 func normalizeTerrainLayer(layer TerrainLayer) TerrainLayer {
+	if layer.Name == "" {
+		layer.Name = layer.TextureContentID
+	}
 	if layer.Filter < 0 || layer.Filter >= rendering.TextureFilterMax {
 		layer.Filter = rendering.TextureFilterLinear
 	}

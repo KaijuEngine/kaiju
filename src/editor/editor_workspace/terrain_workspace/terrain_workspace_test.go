@@ -105,6 +105,10 @@ func TestTerrainWorkspaceMarkupSplitsToolRows(t *testing.T) {
 		`onclick="clickModeTexture"`,
 		`onclick="clickTexturePaint"`,
 		`id="textureLayerSelect"`,
+		`id="textureLayerPalette"`,
+		`id="textureLayerName"`,
+		`id="textureFilter"`,
+		`id="textureTintR"`,
 	} {
 		if !strings.Contains(html, id) {
 			t.Fatalf("expected terrain workspace markup to contain %s", id)
