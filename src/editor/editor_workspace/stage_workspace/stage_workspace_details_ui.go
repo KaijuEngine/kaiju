@@ -1220,10 +1220,12 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 			bindingElement := root.Parent.Value()
 			h.ValueChangeProcedure = func(newVal reflect.Value) {
 				v.Set(newVal)
+				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
 				if reload, ok := dui.TargetedElementValueReload[v]; ok {
 					reload()
 				} else {
 					dui.reload()
+					return
 				}
 				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 			}
