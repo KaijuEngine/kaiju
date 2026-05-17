@@ -43,8 +43,10 @@
 	#define FRAG_INOUT in
 #elif defined(VERTEX_SHADER)
 	#define FRAG_INOUT out
+#elif defined(TESS_CONTROL_SHADER) || defined(TESS_EVALUATION_SHADER)
+	#define FRAG_INOUT out
 #else
-	#error "FRAG_INOUT can only be used in vertex or fragment shaders"
+	#error "FRAG_INOUT can only be used in vertex, fragment, or tessellation shaders"
 #endif
 
 #ifdef SAMPLER_COUNT
