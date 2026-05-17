@@ -183,6 +183,12 @@
 					<button group="textureTool" class="materialIcon" onclick="clickTextureFill" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill terrain with selected texture layer">&#xE243;</button>
 					<button group="textureTool" class="materialIcon" onclick="clickTexturePick" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Pick/sample texture layer from terrain">&#xE3B7;</button>
 				</div>
+				<div class="toolRow">
+					<button class="materialIcon" onclick="clickFillLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill entire terrain with selected texture layer">&#xE243;</button>
+					<button class="materialIcon" onclick="clickTextureClear" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Clear selected texture layer weights">&#xE872;</button>
+					<button class="materialIcon" onclick="clickAutoMaterial" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Generate grass/rock/snow weights from slope and height">&#xE8B8;</button>
+					<button class="materialIcon" onclick="clickWeightDebug" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Show selected layer weight-map debug readout">&#xE8F4;</button>
+				</div>
 				<div class="field">
 					<span>Layer</span>
 					<select id="textureLayerSelect" onchange="textureLayerChanged">
@@ -194,6 +200,10 @@
 					<button class="materialIcon" onclick="clickRemoveLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Remove selected texture layer">&#xE872;</button>
 					<button class="materialIcon" onclick="clickLayerUp" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Move selected texture layer up">&#xE5D8;</button>
 					<button class="materialIcon" onclick="clickLayerDown" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Move selected texture layer down">&#xE5DB;</button>
+					<button class="materialIcon" onclick="clickLayerLock" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Lock selected texture layer">&#xE897;</button>
+					<button class="materialIcon" onclick="clickLayerVisible" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Toggle selected layer visibility preview">&#xE8F4;</button>
+					<button class="materialIcon" onclick="clickLayerSolo" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Solo selected layer preview">&#xE8F5;</button>
+					<button class="materialIcon" onclick="clickTriplanar" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Toggle triplanar cliff projection for selected layer">&#xE3B6;</button>
 				</div>
 				<div id="textureLayerPalette">
 					<span id="textureLayerSwatchTemplate" class="layerSwatch" onclick="clickLayerSwatch" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select texture layer">
@@ -219,6 +229,14 @@
 				<div class="field">
 					<span>Tiling Z</span>
 					<input id="textureTilingY" type="number" value="1" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>World X</span>
+					<input id="textureWorldSizeX" type="number" value="0" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>World Z</span>
+					<input id="textureWorldSizeY" type="number" value="0" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
 				</div>
 				<div class="field">
 					<span>Tint R</span>
@@ -251,6 +269,22 @@
 						<option value="linear">Linear</option>
 						<option value="constant">Constant</option>
 					</select>
+				</div>
+				<div class="field">
+					<span>Stamp</span>
+					<select id="textureStamp" onchange="textureBrushChanged">
+						<option value="none" selected>None</option>
+						<option value="soft">Soft</option>
+						<option value="hard">Hard</option>
+					</select>
+				</div>
+				<div class="field">
+					<span>Noise</span>
+					<input id="textureNoise" type="number" value="0" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
+				</div>
+				<div class="field">
+					<span>Jitter</span>
+					<input id="textureJitter" type="number" value="0" onchange="textureBrushChanged" onsubmit="textureBrushChanged" />
 				</div>
 				<div class="field">
 					<span>Slope min</span>

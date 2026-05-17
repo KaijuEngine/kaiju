@@ -65,6 +65,11 @@ type TexturePaintConstraints struct {
 	NormalFacing matrix.Vec3
 }
 
+type TextureBrushStamp struct {
+	Resolution int
+	Alpha      []matrix.Float
+}
+
 type TexturePaintStroke struct {
 	Mode                TextureBrushMode
 	Center              matrix.Vec2
@@ -77,6 +82,13 @@ type TexturePaintStroke struct {
 	ReplaceLayer        int
 	PreserveOtherLayers bool
 	Constraints         TexturePaintConstraints
+	NoiseStrength       matrix.Float
+	NoiseScale          matrix.Float
+	NoiseSeed           int
+	Jitter              matrix.Float
+	Stamp               *TextureBrushStamp
+	StampScale          matrix.Float
+	StampRotation       matrix.Float
 }
 
 type TexturePaintResult struct {
@@ -96,11 +108,39 @@ type TerrainLayer struct {
 	Offset             matrix.Vec2
 	Rotation           matrix.Float
 	Tint               matrix.Color
+	TextureWorldSize   matrix.Vec2
+	Locked             bool
+	Hidden             bool
+	Solo               bool
+	TriplanarCliffs    bool
+	TriplanarSlope     matrix.Float
 }
 
 type TerrainLayerSet struct {
 	Layers    []TerrainLayer
 	WeightMap *TextureWeightMap
+}
+
+type AutoMaterialRule struct {
+	Name          string
+	Layer         int
+	TargetWeight  matrix.Float
+	Constraints   TexturePaintConstraints
+	NoiseStrength matrix.Float
+	NoiseScale    matrix.Float
+	NoiseSeed     int
+}
+
+type TerrainAutoMaterialPreset struct {
+	GrassLayer    int
+	RockLayer     int
+	SnowLayer     int
+	FlatSlopeMax  matrix.Float
+	CliffSlopeMin matrix.Float
+	SnowHeightMin matrix.Float
+	NoiseStrength matrix.Float
+	NoiseScale    matrix.Float
+	NoiseSeed     int
 }
 
 type TextureWeightMap struct {
@@ -216,21 +256,42 @@ func (s *TerrainLayerSet) PaintLayer(layer int, stroke PaintStroke) DirtyRegion 
 	if s == nil || s.WeightMap == nil {
 		return DirtyRegion{}
 	}
-	return s.WeightMap.PaintLayer(layer, stroke)
+	return s.PaintTextureLayer(layer, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   stroke.Center,
+		Radius:   stroke.Radius,
+		Strength: stroke.Strength,
+		Falloff:  stroke.Falloff,
+		Spacing:  stroke.Spacing,
+	}).Dirty
 }
 
 func (s *TerrainLayerSet) EraseLayer(layer int, stroke PaintStroke) DirtyRegion {
 	if s == nil || s.WeightMap == nil {
 		return DirtyRegion{}
 	}
-	return s.WeightMap.EraseLayer(layer, stroke)
+	return s.PaintTextureLayer(layer, TexturePaintStroke{
+		Mode:     TextureBrushErase,
+		Center:   stroke.Center,
+		Radius:   stroke.Radius,
+		Strength: stroke.Strength,
+		Falloff:  stroke.Falloff,
+		Spacing:  stroke.Spacing,
+	}).Dirty
 }
 
 func (s *TerrainLayerSet) FillLayer(layer int) DirtyRegion {
 	if s == nil || s.WeightMap == nil {
 		return DirtyRegion{}
 	}
-	return s.WeightMap.FillLayer(layer)
+	return s.WeightMap.FillLayerWithLocks(layer, s.lockedLayers())
+}
+
+func (s *TerrainLayerSet) ClearLayer(layer int) DirtyRegion {
+	if s == nil || s.WeightMap == nil {
+		return DirtyRegion{}
+	}
+	return s.WeightMap.ClearLayerWithLocks(layer, s.lockedLayers())
 }
 
 func (s *TerrainLayerSet) LayerWeightAt(layer, x, z int) matrix.Float {
@@ -251,7 +312,87 @@ func (s *TerrainLayerSet) PaintTextureLayer(layer int, stroke TexturePaintStroke
 	if s == nil || s.WeightMap == nil {
 		return TexturePaintResult{}
 	}
-	return s.WeightMap.PaintTextureLayer(layer, stroke)
+	return s.WeightMap.PaintTextureLayerWithLocks(layer, stroke, s.lockedLayers())
+}
+
+func (s *TerrainLayerSet) EffectiveWeightMapForPreview() *TextureWeightMap {
+	if s == nil || s.WeightMap == nil {
+		return nil
+	}
+	if !s.hasPreviewFilter() {
+		return s.WeightMap
+	}
+	out, err := NewTextureWeightMap(s.WeightMap.Resolution, s.WeightMap.Layers)
+	if err != nil {
+		return s.WeightMap
+	}
+	copy(out.Weights, s.WeightMap.Weights)
+	for z := 0; z < out.Resolution; z++ {
+		for x := 0; x < out.Resolution; x++ {
+			for layer := 0; layer < out.Layers; layer++ {
+				if !s.layerPreviewVisible(layer) {
+					out.Weights[out.index(layer, x, z)] = 0
+				}
+			}
+			out.NormalizeWeightsAt(x, z)
+		}
+	}
+	return out
+}
+
+func (s *TerrainLayerSet) WeightDebugRGBA(layer int) []byte {
+	if s == nil || s.WeightMap == nil || layer < 0 || layer >= s.WeightMap.Layers {
+		return nil
+	}
+	pixels := make([]byte, s.WeightMap.Resolution*s.WeightMap.Resolution*4)
+	for z := 0; z < s.WeightMap.Resolution; z++ {
+		for x := 0; x < s.WeightMap.Resolution; x++ {
+			weight := weightToByte(s.WeightMap.WeightAt(layer, x, z))
+			i := (x + z*s.WeightMap.Resolution) * 4
+			pixels[i+0] = weight
+			pixels[i+1] = weight
+			pixels[i+2] = weight
+			pixels[i+3] = 255
+		}
+	}
+	return pixels
+}
+
+func (s *TerrainLayerSet) lockedLayers() []bool {
+	if s == nil || len(s.Layers) == 0 {
+		return nil
+	}
+	locked := make([]bool, len(s.Layers))
+	for i := range s.Layers {
+		locked[i] = s.Layers[i].Locked
+	}
+	return locked
+}
+
+func (s *TerrainLayerSet) hasPreviewFilter() bool {
+	if s == nil {
+		return false
+	}
+	for i := range s.Layers {
+		if s.Layers[i].Hidden || s.Layers[i].Solo {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *TerrainLayerSet) layerPreviewVisible(layer int) bool {
+	if s == nil || layer < 0 || layer >= len(s.Layers) {
+		return false
+	}
+	hasSolo := false
+	for i := range s.Layers {
+		hasSolo = hasSolo || s.Layers[i].Solo
+	}
+	if hasSolo {
+		return s.Layers[layer].Solo
+	}
+	return !s.Layers[layer].Hidden
 }
 
 func (m *TextureWeightMap) AddLayer(defaultWeight matrix.Float) {
@@ -470,11 +611,20 @@ func (m *TextureWeightMap) EraseLayer(layer int, stroke PaintStroke) DirtyRegion
 }
 
 func (m *TextureWeightMap) FillLayer(fillLayer int) DirtyRegion {
+	return m.FillLayerWithLocks(fillLayer, nil)
+}
+
+func (m *TextureWeightMap) FillLayerWithLocks(fillLayer int, locked []bool) DirtyRegion {
 	if m == nil || fillLayer < 0 || fillLayer >= m.Layers {
 		return DirtyRegion{}
 	}
+	if layerLocked(locked, fillLayer) {
+		return DirtyRegion{}
+	}
+	var dirty DirtyRegion
 	for z := 0; z < m.Resolution; z++ {
 		for x := 0; x < m.Resolution; x++ {
+			before := m.copyWeightsAt(x, z)
 			for layer := 0; layer < m.Layers; layer++ {
 				weight := matrix.Float(0)
 				if layer == fillLayer {
@@ -482,18 +632,83 @@ func (m *TextureWeightMap) FillLayer(fillLayer int) DirtyRegion {
 				}
 				m.Weights[m.index(layer, x, z)] = weight
 			}
+			m.applyLockedWeightsAt(x, z, before, locked)
+			if weightsChanged(before, m.copyWeightsAt(x, z)) {
+				dirty = mergeDirtyRegions(dirty, DirtyRegion{
+					MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
+				})
+			}
 		}
 	}
-	return DirtyRegion{MinX: 0, MinZ: 0, MaxX: m.Resolution - 1, MaxZ: m.Resolution - 1, Valid: true}
+	return dirty
+}
+
+func (m *TextureWeightMap) ClearLayer(clearLayer int) DirtyRegion {
+	return m.ClearLayerWithLocks(clearLayer, nil)
+}
+
+func (m *TextureWeightMap) ClearLayerWithLocks(clearLayer int, locked []bool) DirtyRegion {
+	if m == nil || clearLayer < 0 || clearLayer >= m.Layers {
+		return DirtyRegion{}
+	}
+	if layerLocked(locked, clearLayer) {
+		return DirtyRegion{}
+	}
+	var dirty DirtyRegion
+	for z := 0; z < m.Resolution; z++ {
+		for x := 0; x < m.Resolution; x++ {
+			before := m.copyWeightsAt(x, z)
+			lockedSum := matrix.Float(0)
+			unlockedOtherSum := matrix.Float(0)
+			fallback := -1
+			for layer := 0; layer < m.Layers; layer++ {
+				if layerLocked(locked, layer) {
+					lockedSum += matrix.Clamp(before[layer], 0, 1)
+				} else if layer != clearLayer {
+					unlockedOtherSum += matrix.Clamp(before[layer], 0, 1)
+					if fallback < 0 {
+						fallback = layer
+					}
+				}
+			}
+			remaining := matrix.Clamp(1-lockedSum, 0, 1)
+			for layer := 0; layer < m.Layers; layer++ {
+				switch {
+				case layerLocked(locked, layer):
+					m.Weights[m.index(layer, x, z)] = before[layer]
+				case layer == clearLayer:
+					m.Weights[m.index(layer, x, z)] = 0
+				case unlockedOtherSum > matrix.Tiny:
+					m.Weights[m.index(layer, x, z)] = before[layer] * remaining / unlockedOtherSum
+				default:
+					m.Weights[m.index(layer, x, z)] = 0
+				}
+			}
+			if fallback >= 0 && unlockedOtherSum <= matrix.Tiny {
+				m.Weights[m.index(fallback, x, z)] = remaining
+			}
+			m.applyLockedWeightsAt(x, z, before, locked)
+			if weightsChanged(before, m.copyWeightsAt(x, z)) {
+				dirty = mergeDirtyRegions(dirty, DirtyRegion{
+					MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
+				})
+			}
+		}
+	}
+	return dirty
 }
 
 func (m *TextureWeightMap) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult {
-	return m.paintTextureLayer(layer, stroke, nil)
+	return m.PaintTextureLayerWithLocks(layer, stroke, nil)
+}
+
+func (m *TextureWeightMap) PaintTextureLayerWithLocks(layer int, stroke TexturePaintStroke, locked []bool) TexturePaintResult {
+	return m.paintTextureLayer(layer, stroke, nil, locked)
 }
 
 type texturePaintFilter func(x, z int) bool
 
-func (m *TextureWeightMap) paintTextureLayer(layer int, stroke TexturePaintStroke, filter texturePaintFilter) TexturePaintResult {
+func (m *TextureWeightMap) paintTextureLayer(layer int, stroke TexturePaintStroke, filter texturePaintFilter, locked []bool) TexturePaintResult {
 	if m == nil || m.Layers == 0 {
 		return TexturePaintResult{}
 	}
@@ -502,6 +717,9 @@ func (m *TextureWeightMap) paintTextureLayer(layer int, stroke TexturePaintStrok
 		return m.sampleTextureLayer(stroke)
 	}
 	if layer < 0 || layer >= m.Layers {
+		return TexturePaintResult{}
+	}
+	if layerLocked(locked, layer) {
 		return TexturePaintResult{}
 	}
 	region := m.textureStrokeRegion(stroke)
@@ -541,6 +759,10 @@ func (m *TextureWeightMap) paintTextureLayer(layer int, stroke TexturePaintStrok
 			if !changed && !weightsChanged(before, m.copyWeightsAt(x, z)) {
 				continue
 			}
+			m.applyLockedWeightsAt(x, z, before, locked)
+			if !weightsChanged(before, m.copyWeightsAt(x, z)) {
+				continue
+			}
 			dirty = mergeDirtyRegions(dirty, DirtyRegion{
 				MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
 			})
@@ -560,6 +782,16 @@ func normalizeTexturePaintStroke(stroke TexturePaintStroke) TexturePaintStroke {
 		}
 	}
 	stroke.TargetWeight = matrix.Clamp(stroke.TargetWeight, 0, 1)
+	stroke.NoiseStrength = matrix.Clamp(stroke.NoiseStrength, 0, 1)
+	if stroke.NoiseScale < 0 {
+		stroke.NoiseScale = 0
+	}
+	if stroke.Jitter < 0 {
+		stroke.Jitter = 0
+	}
+	if stroke.StampScale <= 0 {
+		stroke.StampScale = 1
+	}
 	return stroke
 }
 
@@ -599,10 +831,26 @@ func (m *TextureWeightMap) textureStrokeAmount(stroke TexturePaintStroke, x, z i
 		dx := matrix.Float(x) - stroke.Center.X()
 		dz := matrix.Float(z) - stroke.Center.Y()
 		distance := matrix.Sqrt(dx*dx + dz*dz)
+		if stroke.Jitter > 0 {
+			jitter := textureHashSigned(x, z, stroke.NoiseSeed+17) * stroke.Jitter
+			distance = matrix.Max(0, distance+jitter)
+		}
 		if distance > stroke.Radius {
 			return 0, false
 		}
 		weight = brushWeight(distance, stroke.Radius, stroke.Falloff)
+	}
+	if stroke.Stamp != nil && stroke.Mode != TextureBrushFill {
+		weight *= stroke.Stamp.Sample(
+			(matrix.Float(x)-stroke.Center.X())/matrix.Max(stroke.Radius, matrix.Tiny),
+			(matrix.Float(z)-stroke.Center.Y())/matrix.Max(stroke.Radius, matrix.Tiny),
+			stroke.StampScale,
+			stroke.StampRotation,
+		)
+	}
+	if stroke.NoiseStrength > 0 {
+		noise := textureHashNoise(x, z, stroke.NoiseScale, stroke.NoiseSeed)
+		weight *= matrix.Lerp(1, noise, stroke.NoiseStrength)
 	}
 	amount := matrix.Clamp(strength*stroke.Opacity*weight, 0, 1)
 	return amount, amount > 0
@@ -728,6 +976,51 @@ func (m *TextureWeightMap) copyWeightsAt(x, z int) []matrix.Float {
 	return out
 }
 
+func (m *TextureWeightMap) applyLockedWeightsAt(x, z int, before []matrix.Float, locked []bool) {
+	if m == nil || len(locked) == 0 || len(before) != m.Layers {
+		m.NormalizeWeightsAt(x, z)
+		return
+	}
+	lockedSum := matrix.Float(0)
+	unlockedSum := matrix.Float(0)
+	unlockedCount := 0
+	for layer := 0; layer < m.Layers; layer++ {
+		if layerLocked(locked, layer) {
+			weight := matrix.Clamp(before[layer], 0, 1)
+			m.Weights[m.index(layer, x, z)] = weight
+			lockedSum += weight
+		} else {
+			weight := matrix.Clamp(m.WeightAt(layer, x, z), 0, 1)
+			m.Weights[m.index(layer, x, z)] = weight
+			unlockedSum += weight
+			unlockedCount++
+		}
+	}
+	remaining := matrix.Clamp(1-lockedSum, 0, 1)
+	if unlockedCount == 0 {
+		return
+	}
+	if unlockedSum <= matrix.Tiny {
+		even := remaining / matrix.Float(unlockedCount)
+		for layer := 0; layer < m.Layers; layer++ {
+			if !layerLocked(locked, layer) {
+				m.Weights[m.index(layer, x, z)] = even
+			}
+		}
+		return
+	}
+	scale := remaining / unlockedSum
+	for layer := 0; layer < m.Layers; layer++ {
+		if !layerLocked(locked, layer) {
+			m.Weights[m.index(layer, x, z)] *= scale
+		}
+	}
+}
+
+func layerLocked(locked []bool, layer int) bool {
+	return layer >= 0 && layer < len(locked) && locked[layer]
+}
+
 func firstOtherLayer(layer, layers int) int {
 	for i := 0; i < layers; i++ {
 		if i != layer {
@@ -747,6 +1040,70 @@ func weightsChanged(before, after []matrix.Float) bool {
 		}
 	}
 	return false
+}
+
+func (s *TextureBrushStamp) Sample(x, z, scale, rotation matrix.Float) matrix.Float {
+	if s == nil || s.Resolution < 2 || len(s.Alpha) != s.Resolution*s.Resolution {
+		return 1
+	}
+	if scale <= 0 {
+		scale = 1
+	}
+	x /= scale
+	z /= scale
+	if rotation != 0 {
+		sin, cos := matrix.Sin(rotation), matrix.Cos(rotation)
+		x, z = x*cos-z*sin, x*sin+z*cos
+	}
+	u := x*0.5 + 0.5
+	v := z*0.5 + 0.5
+	if u < 0 || u > 1 || v < 0 || v > 1 {
+		return 0
+	}
+	gx := u * matrix.Float(s.Resolution-1)
+	gz := v * matrix.Float(s.Resolution-1)
+	x0 := int(matrix.Floor(gx))
+	z0 := int(matrix.Floor(gz))
+	x1 := min(x0+1, s.Resolution-1)
+	z1 := min(z0+1, s.Resolution-1)
+	tx := gx - matrix.Float(x0)
+	tz := gz - matrix.Float(z0)
+	a00 := matrix.Clamp(s.Alpha[x0+z0*s.Resolution], 0, 1)
+	a10 := matrix.Clamp(s.Alpha[x1+z0*s.Resolution], 0, 1)
+	a01 := matrix.Clamp(s.Alpha[x0+z1*s.Resolution], 0, 1)
+	a11 := matrix.Clamp(s.Alpha[x1+z1*s.Resolution], 0, 1)
+	return matrix.Lerp(matrix.Lerp(a00, a10, tx), matrix.Lerp(a01, a11, tx), tz)
+}
+
+func textureHashNoise(x, z int, scale matrix.Float, seed int) matrix.Float {
+	if scale > matrix.Tiny {
+		x = int(matrix.Floor(matrix.Float(x) / scale))
+		z = int(matrix.Floor(matrix.Float(z) / scale))
+	}
+	return textureHash01(x, z, seed)
+}
+
+func textureHashSigned(x, z, seed int) matrix.Float {
+	return textureHash01(x, z, seed)*2 - 1
+}
+
+func textureHash01(x, z, seed int) matrix.Float {
+	n := uint32(x)*374761393 + uint32(z)*668265263 + uint32(seed)*1442695041
+	n = (n ^ (n >> 13)) * 1274126177
+	n ^= n >> 16
+	return matrix.Float(n&0xffff) / matrix.Float(0xffff)
+}
+
+func normalizeAutoMaterialRule(rule AutoMaterialRule) AutoMaterialRule {
+	if rule.TargetWeight <= 0 {
+		rule.TargetWeight = 1
+	}
+	rule.TargetWeight = matrix.Clamp(rule.TargetWeight, 0, 1)
+	rule.NoiseStrength = matrix.Clamp(rule.NoiseStrength, 0, 1)
+	if rule.NoiseScale < 0 {
+		rule.NoiseScale = 0
+	}
+	return rule
 }
 
 func (m *TextureWeightMap) paintLayer(layer int, stroke PaintStroke, erase bool) DirtyRegion {
@@ -850,6 +1207,15 @@ func normalizeTerrainLayer(layer TerrainLayer) TerrainLayer {
 	}
 	if layer.Tint == matrix.ColorZero() {
 		layer.Tint = matrix.ColorWhite()
+	}
+	if layer.TextureWorldSize.X() < 0 {
+		layer.TextureWorldSize.SetX(0)
+	}
+	if layer.TextureWorldSize.Y() < 0 {
+		layer.TextureWorldSize.SetY(0)
+	}
+	if layer.TriplanarSlope < 0 {
+		layer.TriplanarSlope = 0
 	}
 	return layer
 }

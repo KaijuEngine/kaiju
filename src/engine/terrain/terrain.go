@@ -441,7 +441,7 @@ func (t *Terrain) PaintTextureLayer(layer int, stroke TexturePaintStroke) Textur
 	}
 	gridStroke := t.localTextureStrokeToWeightGrid(stroke)
 	filter := t.texturePaintConstraintFilter(stroke.Constraints)
-	result := t.LayerSet.WeightMap.paintTextureLayer(layer, gridStroke, filter)
+	result := t.LayerSet.WeightMap.paintTextureLayer(layer, gridStroke, filter, t.LayerSet.lockedLayers())
 	t.MarkTextureRegionDirty(result.Dirty)
 	t.ApplyTextureDirty(result.Dirty)
 	return result
@@ -610,6 +610,158 @@ func (t *Terrain) LayerCount() int {
 	return t.LayerSet.LayerCount()
 }
 
+func (t *Terrain) FillLayer(layer int) DirtyRegion {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return DirtyRegion{}
+	}
+	dirty := t.LayerSet.FillLayer(layer)
+	t.MarkTextureRegionDirty(dirty)
+	t.ApplyTextureDirty(dirty)
+	return dirty
+}
+
+func (t *Terrain) ClearLayer(layer int) DirtyRegion {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return DirtyRegion{}
+	}
+	dirty := t.LayerSet.ClearLayer(layer)
+	t.MarkTextureRegionDirty(dirty)
+	t.ApplyTextureDirty(dirty)
+	return dirty
+}
+
+func (t *Terrain) WeightDebugRGBA(layer int) []byte {
+	if t == nil || t.LayerSet == nil {
+		return nil
+	}
+	return t.LayerSet.WeightDebugRGBA(layer)
+}
+
+func (t *Terrain) RefreshTexturePreview() {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
+		return
+	}
+	full := DirtyRegion{
+		MinX:  0,
+		MinZ:  0,
+		MaxX:  t.LayerSet.WeightMap.Resolution - 1,
+		MaxZ:  t.LayerSet.WeightMap.Resolution - 1,
+		Valid: true,
+	}
+	t.MarkTextureRegionDirty(full)
+	t.ApplyTextureDirty(full)
+}
+
+func (t *Terrain) ApplyAutoMaterialRules(rules []AutoMaterialRule) DirtyRegion {
+	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil || len(rules) == 0 {
+		return DirtyRegion{}
+	}
+	weights := t.LayerSet.WeightMap
+	locked := t.LayerSet.lockedLayers()
+	filters := make([]texturePaintFilter, len(rules))
+	for i := range rules {
+		filters[i] = t.texturePaintConstraintFilter(rules[i].Constraints)
+	}
+	var dirty DirtyRegion
+	for z := 0; z < weights.Resolution; z++ {
+		for x := 0; x < weights.Resolution; x++ {
+			before := weights.copyWeightsAt(x, z)
+			changedRule := false
+			for layer := 0; layer < weights.Layers; layer++ {
+				if !layerLocked(locked, layer) {
+					weights.Weights[weights.index(layer, x, z)] = 0
+				}
+			}
+			for i := range rules {
+				rule := normalizeAutoMaterialRule(rules[i])
+				if rule.Layer < 0 || rule.Layer >= weights.Layers || layerLocked(locked, rule.Layer) {
+					continue
+				}
+				if filters[i] != nil && !filters[i](x, z) {
+					continue
+				}
+				weight := rule.TargetWeight
+				if rule.NoiseStrength > 0 {
+					weight *= matrix.Lerp(1, textureHashNoise(x, z, rule.NoiseScale, rule.NoiseSeed), rule.NoiseStrength)
+				}
+				weights.Weights[weights.index(rule.Layer, x, z)] += matrix.Clamp(weight, 0, 1)
+				changedRule = true
+			}
+			if !changedRule {
+				for layer := 0; layer < weights.Layers; layer++ {
+					weights.Weights[weights.index(layer, x, z)] = before[layer]
+				}
+				continue
+			}
+			weights.applyLockedWeightsAt(x, z, before, locked)
+			if weightsChanged(before, weights.copyWeightsAt(x, z)) {
+				dirty = mergeDirtyRegions(dirty, DirtyRegion{
+					MinX: x, MinZ: z, MaxX: x, MaxZ: z, Valid: true,
+				})
+			}
+		}
+	}
+	t.MarkTextureRegionDirty(dirty)
+	t.ApplyTextureDirty(dirty)
+	return dirty
+}
+
+func TerrainAutoMaterialRules(preset TerrainAutoMaterialPreset) []AutoMaterialRule {
+	if preset.FlatSlopeMax <= 0 {
+		preset.FlatSlopeMax = 25
+	}
+	if preset.CliffSlopeMin <= 0 {
+		preset.CliffSlopeMin = 42
+	}
+	rules := make([]AutoMaterialRule, 0, 3)
+	if preset.GrassLayer >= 0 {
+		rules = append(rules, AutoMaterialRule{
+			Name:         "Grass flats",
+			Layer:        preset.GrassLayer,
+			TargetWeight: 1,
+			Constraints: TexturePaintConstraints{
+				UseSlope: true,
+				SlopeMin: 0,
+				SlopeMax: preset.FlatSlopeMax,
+			},
+			NoiseStrength: preset.NoiseStrength,
+			NoiseScale:    preset.NoiseScale,
+			NoiseSeed:     preset.NoiseSeed,
+		})
+	}
+	if preset.RockLayer >= 0 {
+		rules = append(rules, AutoMaterialRule{
+			Name:         "Rock cliffs",
+			Layer:        preset.RockLayer,
+			TargetWeight: 1,
+			Constraints: TexturePaintConstraints{
+				UseSlope: true,
+				SlopeMin: preset.CliffSlopeMin,
+				SlopeMax: 90,
+			},
+			NoiseStrength: preset.NoiseStrength,
+			NoiseScale:    preset.NoiseScale,
+			NoiseSeed:     preset.NoiseSeed + 1,
+		})
+	}
+	if preset.SnowLayer >= 0 {
+		rules = append(rules, AutoMaterialRule{
+			Name:         "Snow caps",
+			Layer:        preset.SnowLayer,
+			TargetWeight: 1,
+			Constraints: TexturePaintConstraints{
+				UseHeight: true,
+				HeightMin: preset.SnowHeightMin,
+				HeightMax: matrix.Inf(1),
+			},
+			NoiseStrength: preset.NoiseStrength,
+			NoiseScale:    preset.NoiseScale,
+			NoiseSeed:     preset.NoiseSeed + 2,
+		})
+	}
+	return rules
+}
+
 func (t *Terrain) AddLayer(layer TerrainLayer) int {
 	if t == nil || t.LayerSet == nil {
 		return -1
@@ -715,16 +867,6 @@ func (t *Terrain) EraseLayer(layer int, stroke PaintStroke) DirtyRegion {
 	}
 	gridStroke := t.localStrokeToWeightGrid(stroke)
 	dirty := t.LayerSet.EraseLayer(layer, gridStroke)
-	t.MarkTextureRegionDirty(dirty)
-	t.ApplyTextureDirty(dirty)
-	return dirty
-}
-
-func (t *Terrain) FillLayer(layer int) DirtyRegion {
-	if t == nil || t.LayerSet == nil {
-		return DirtyRegion{}
-	}
-	dirty := t.LayerSet.FillLayer(layer)
 	t.MarkTextureRegionDirty(dirty)
 	t.ApplyTextureDirty(dirty)
 	return dirty

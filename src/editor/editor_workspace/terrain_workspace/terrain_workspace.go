@@ -113,25 +113,30 @@ type TerrainWorkspace struct {
 	heightBtns    []*document.Element
 	textureBtns   []*document.Element
 
-	textureLayerSelect    *document.Element
-	textureLayerPalette   *document.Element
-	textureSwatchTemplate *document.Element
-	textureLayerNameInput *document.Element
-	textureFilterSelect   *document.Element
-	textureRadiusInput    *document.Element
-	textureOpacityInput   *document.Element
-	textureFalloffSelect  *document.Element
-	textureTilingXInput   *document.Element
-	textureTilingYInput   *document.Element
-	textureTintRInput     *document.Element
-	textureTintGInput     *document.Element
-	textureTintBInput     *document.Element
-	textureTintAInput     *document.Element
-	textureSlopeMinInput  *document.Element
-	textureSlopeMaxInput  *document.Element
-	textureHeightMinInput *document.Element
-	textureHeightMaxInput *document.Element
-	textureSwatches       []*document.Element
+	textureLayerSelect     *document.Element
+	textureLayerPalette    *document.Element
+	textureSwatchTemplate  *document.Element
+	textureLayerNameInput  *document.Element
+	textureFilterSelect    *document.Element
+	textureRadiusInput     *document.Element
+	textureOpacityInput    *document.Element
+	textureFalloffSelect   *document.Element
+	textureTilingXInput    *document.Element
+	textureTilingYInput    *document.Element
+	textureWorldSizeXInput *document.Element
+	textureWorldSizeYInput *document.Element
+	textureTintRInput      *document.Element
+	textureTintGInput      *document.Element
+	textureTintBInput      *document.Element
+	textureTintAInput      *document.Element
+	textureSlopeMinInput   *document.Element
+	textureSlopeMaxInput   *document.Element
+	textureHeightMinInput  *document.Element
+	textureHeightMaxInput  *document.Element
+	textureNoiseInput      *document.Element
+	textureJitterInput     *document.Element
+	textureStampSelect     *document.Element
+	textureSwatches        []*document.Element
 
 	createResolution    *document.Element
 	createSizeX         *document.Element
@@ -185,10 +190,18 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		"clickTextureSmooth":  w.clickTextureSmooth,
 		"clickTextureFill":    w.clickTextureFill,
 		"clickTexturePick":    w.clickTexturePick,
+		"clickFillLayer":      w.clickFillLayer,
+		"clickTextureClear":   w.clickTextureClear,
+		"clickAutoMaterial":   w.clickAutoMaterial,
 		"clickAddLayer":       w.clickAddLayer,
 		"clickRemoveLayer":    w.clickRemoveLayer,
 		"clickLayerUp":        w.clickLayerUp,
 		"clickLayerDown":      w.clickLayerDown,
+		"clickLayerLock":      w.clickLayerLock,
+		"clickLayerVisible":   w.clickLayerVisible,
+		"clickLayerSolo":      w.clickLayerSolo,
+		"clickWeightDebug":    w.clickWeightDebug,
+		"clickTriplanar":      w.clickTriplanar,
 		"clickLayerSwatch":    w.clickLayerSwatch,
 		"clickSave":           w.clickSave,
 		"clickRevert":         w.clickRevert,
@@ -222,6 +235,8 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.textureFalloffSelect, _ = w.Doc.GetElementById("textureFalloff")
 	w.textureTilingXInput, _ = w.Doc.GetElementById("textureTilingX")
 	w.textureTilingYInput, _ = w.Doc.GetElementById("textureTilingY")
+	w.textureWorldSizeXInput, _ = w.Doc.GetElementById("textureWorldSizeX")
+	w.textureWorldSizeYInput, _ = w.Doc.GetElementById("textureWorldSizeY")
 	w.textureTintRInput, _ = w.Doc.GetElementById("textureTintR")
 	w.textureTintGInput, _ = w.Doc.GetElementById("textureTintG")
 	w.textureTintBInput, _ = w.Doc.GetElementById("textureTintB")
@@ -230,6 +245,9 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.textureSlopeMaxInput, _ = w.Doc.GetElementById("textureSlopeMax")
 	w.textureHeightMinInput, _ = w.Doc.GetElementById("textureHeightMin")
 	w.textureHeightMaxInput, _ = w.Doc.GetElementById("textureHeightMax")
+	w.textureNoiseInput, _ = w.Doc.GetElementById("textureNoise")
+	w.textureJitterInput, _ = w.Doc.GetElementById("textureJitter")
+	w.textureStampSelect, _ = w.Doc.GetElementById("textureStamp")
 	w.createResolution, _ = w.Doc.GetElementById("createResolution")
 	w.createSizeX, _ = w.Doc.GetElementById("createSizeX")
 	w.createSizeZ, _ = w.Doc.GetElementById("createSizeZ")
@@ -500,6 +518,60 @@ func (w *TerrainWorkspace) clickTexturePick(e *document.Element) {
 	w.highlightButtons(w.textureBtns, e)
 }
 
+func (w *TerrainWorkspace) clickFillLayer(*document.Element) {
+	if w.active == nil {
+		return
+	}
+	layer := w.readTextureLayer()
+	before := w.active.LayerSetState()
+	beforeLayer := layer
+	dirty := w.active.FillLayer(layer)
+	if dirty.Valid {
+		w.addTextureLayerSetHistory(before, beforeLayer)
+		w.setStatus("Filled terrain with selected texture layer")
+	}
+}
+
+func (w *TerrainWorkspace) clickTextureClear(*document.Element) {
+	if w.active == nil {
+		return
+	}
+	layer := w.readTextureLayer()
+	before := w.active.LayerSetState()
+	beforeLayer := layer
+	dirty := w.active.ClearLayer(layer)
+	if dirty.Valid {
+		w.addTextureLayerSetHistory(before, beforeLayer)
+		w.setStatus("Cleared texture layer")
+	}
+}
+
+func (w *TerrainWorkspace) clickAutoMaterial(*document.Element) {
+	if w.active == nil || w.active.LayerCount() == 0 {
+		return
+	}
+	before := w.active.LayerSetState()
+	beforeLayer := w.textureLayer
+	grass := min(0, w.active.LayerCount()-1)
+	rock := min(1, w.active.LayerCount()-1)
+	snow := min(2, w.active.LayerCount()-1)
+	rules := terrain.TerrainAutoMaterialRules(terrain.TerrainAutoMaterialPreset{
+		GrassLayer:    grass,
+		RockLayer:     rock,
+		SnowLayer:     snow,
+		FlatSlopeMax:  28,
+		CliffSlopeMin: 42,
+		SnowHeightMin: w.readBrushFloat(w.textureHeightMinInput, w.active.HeightField.MaxHeight*0.65),
+		NoiseStrength: w.readBrushFloat(w.textureNoiseInput, 0),
+		NoiseScale:    max(w.readBrushFloat(w.textureRadiusInput, 2), matrix.Float(1)),
+	})
+	if dirty := w.active.ApplyAutoMaterialRules(rules); dirty.Valid {
+		w.addTextureLayerSetHistory(before, beforeLayer)
+		w.refreshLayerPalette()
+		w.setStatus("Generated terrain material from height and slope")
+	}
+}
+
 func (w *TerrainWorkspace) clickSave(*document.Element) {
 	defer tracing.NewRegion("TerrainWorkspace.clickSave").End()
 	if w.active == nil || w.activeID == "" {
@@ -607,6 +679,72 @@ func (w *TerrainWorkspace) clickLayerUp(*document.Element) {
 
 func (w *TerrainWorkspace) clickLayerDown(*document.Element) {
 	w.moveTextureLayer(1)
+}
+
+func (w *TerrainWorkspace) clickLayerLock(*document.Element) {
+	w.toggleLayerFlag(func(layer *terrain.TerrainLayer) {
+		layer.Locked = !layer.Locked
+	}, "Toggled layer lock")
+}
+
+func (w *TerrainWorkspace) clickLayerVisible(*document.Element) {
+	w.toggleLayerFlag(func(layer *terrain.TerrainLayer) {
+		layer.Hidden = !layer.Hidden
+	}, "Toggled layer visibility")
+	if w.active != nil {
+		w.active.RefreshTexturePreview()
+	}
+}
+
+func (w *TerrainWorkspace) clickLayerSolo(*document.Element) {
+	w.toggleLayerFlag(func(layer *terrain.TerrainLayer) {
+		layer.Solo = !layer.Solo
+	}, "Toggled layer solo preview")
+	if w.active != nil {
+		w.active.RefreshTexturePreview()
+	}
+}
+
+func (w *TerrainWorkspace) clickWeightDebug(*document.Element) {
+	if w.active == nil {
+		return
+	}
+	layer := w.readTextureLayer()
+	debug := w.active.WeightDebugRGBA(layer)
+	if len(debug) == 0 {
+		return
+	}
+	w.setStatus("Weight debug L " + strconv.Itoa(layer+1) + " " + strconv.Itoa(len(debug)/4) + " px")
+}
+
+func (w *TerrainWorkspace) clickTriplanar(*document.Element) {
+	w.toggleLayerFlag(func(layer *terrain.TerrainLayer) {
+		layer.TriplanarCliffs = !layer.TriplanarCliffs
+		if layer.TriplanarSlope <= 0 {
+			layer.TriplanarSlope = 45
+		}
+	}, "Toggled triplanar cliff projection")
+}
+
+func (w *TerrainWorkspace) toggleLayerFlag(update func(*terrain.TerrainLayer), status string) {
+	if w.active == nil || w.active.LayerSet == nil || update == nil {
+		return
+	}
+	layer := w.readTextureLayer()
+	if layer < 0 || layer >= w.active.LayerCount() {
+		return
+	}
+	before := w.active.LayerSetState()
+	beforeLayer := layer
+	next := w.active.LayerSet.Layers[layer]
+	update(&next)
+	if !w.active.SetLayer(layer, next) {
+		return
+	}
+	w.addTextureLayerSetHistory(before, beforeLayer)
+	w.refreshTextureLayerFields()
+	w.refreshLayerPalette()
+	w.setStatus(status)
 }
 
 func (w *TerrainWorkspace) moveTextureLayer(direction int) {
@@ -774,14 +912,18 @@ func (w *TerrainWorkspace) brushStroke(local matrix.Vec2) terrain.PaintStroke {
 func (w *TerrainWorkspace) textureStroke(local matrix.Vec2) terrain.TexturePaintStroke {
 	radius := w.readBrushFloat(w.textureRadiusInput, 2)
 	return terrain.TexturePaintStroke{
-		Mode:         w.textureMode,
-		Center:       local,
-		Radius:       radius,
-		Strength:     w.readBrushFloat(w.textureOpacityInput, 1),
-		Opacity:      1,
-		TargetWeight: 1,
-		Falloff:      w.readTextureFalloff(),
-		Spacing:      radius * 0.25,
+		Mode:          w.textureMode,
+		Center:        local,
+		Radius:        radius,
+		Strength:      w.readBrushFloat(w.textureOpacityInput, 1),
+		Opacity:       1,
+		TargetWeight:  1,
+		Falloff:       w.readTextureFalloff(),
+		Spacing:       radius * 0.25,
+		NoiseStrength: matrix.Clamp(w.readBrushFloat(w.textureNoiseInput, 0), 0, 1),
+		NoiseScale:    max(radius, matrix.Float(0.001)),
+		Jitter:        matrix.Clamp(w.readBrushFloat(w.textureJitterInput, 0), 0, radius),
+		Stamp:         w.readTextureStamp(),
 		Constraints: terrain.TexturePaintConstraints{
 			UseSlope:  w.textureSlopeConstraintsEnabled(),
 			SlopeMin:  w.readBrushFloat(w.textureSlopeMinInput, 0),
@@ -791,6 +933,44 @@ func (w *TerrainWorkspace) textureStroke(local matrix.Vec2) terrain.TexturePaint
 			HeightMax: w.readBrushFloat(w.textureHeightMaxInput, 100000),
 		},
 	}
+}
+
+func (w *TerrainWorkspace) readTextureStamp() *terrain.TextureBrushStamp {
+	if w.textureStampSelect == nil {
+		return nil
+	}
+	switch w.textureStampSelect.UI.ToSelect().Value() {
+	case "soft":
+		return radialTextureStamp(16, true)
+	case "hard":
+		return radialTextureStamp(16, false)
+	default:
+		return nil
+	}
+}
+
+func radialTextureStamp(resolution int, soft bool) *terrain.TextureBrushStamp {
+	stamp := &terrain.TextureBrushStamp{
+		Resolution: resolution,
+		Alpha:      make([]matrix.Float, resolution*resolution),
+	}
+	center := matrix.Float(resolution-1) * 0.5
+	for z := 0; z < resolution; z++ {
+		for x := 0; x < resolution; x++ {
+			dx := (matrix.Float(x) - center) / center
+			dz := (matrix.Float(z) - center) / center
+			d := matrix.Sqrt(dx*dx + dz*dz)
+			alpha := matrix.Float(0)
+			if d <= 1 {
+				alpha = 1
+				if soft {
+					alpha = 1 - d
+				}
+			}
+			stamp.Alpha[x+z*resolution] = alpha
+		}
+	}
+	return stamp
 }
 
 func (w *TerrainWorkspace) effectiveBrushMode() terrain.BrushMode {
@@ -1159,6 +1339,12 @@ func (w *TerrainWorkspace) refreshTextureLayerFields() {
 	if w.textureTilingYInput != nil {
 		w.textureTilingYInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tiling.Y()))
 	}
+	if w.textureWorldSizeXInput != nil {
+		w.textureWorldSizeXInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.TextureWorldSize.X()))
+	}
+	if w.textureWorldSizeYInput != nil {
+		w.textureWorldSizeYInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.TextureWorldSize.Y()))
+	}
 	if w.textureTintRInput != nil {
 		w.textureTintRInput.UI.ToInput().SetTextWithoutEvent(fmtFloat(layer.Tint.R()))
 	}
@@ -1198,6 +1384,16 @@ func (w *TerrainWorkspace) applyTextureLayerSettings() {
 		w.readBrushFloat(w.textureTilingXInput, 1),
 		w.readBrushFloat(w.textureTilingYInput, 1),
 	)
+	next.TextureWorldSize = matrix.NewVec2(
+		w.readBrushFloat(w.textureWorldSizeXInput, 0),
+		w.readBrushFloat(w.textureWorldSizeYInput, 0),
+	)
+	if next.TextureWorldSize.X() > matrix.Tiny && next.TextureWorldSize.Y() > matrix.Tiny {
+		next.Tiling = matrix.NewVec2(
+			w.active.Config.WorldSize.X()/next.TextureWorldSize.X(),
+			w.active.Config.WorldSize.Y()/next.TextureWorldSize.Y(),
+		)
+	}
 	next.Tint = matrix.NewColor(
 		matrix.Clamp(w.readBrushFloat(w.textureTintRInput, 1), 0, 1),
 		matrix.Clamp(w.readBrushFloat(w.textureTintGInput, 1), 0, 1),
@@ -1262,6 +1458,15 @@ func (w *TerrainWorkspace) layerDisplayName(layer int) string {
 	}
 	if name == "" {
 		name = "Layer " + strconv.Itoa(layer+1)
+	}
+	if data.Locked {
+		name += " [L]"
+	}
+	if data.Hidden {
+		name += " [H]"
+	}
+	if data.Solo {
+		name += " [S]"
 	}
 	return strconv.Itoa(layer+1) + " " + name
 }

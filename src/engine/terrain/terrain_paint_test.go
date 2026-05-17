@@ -372,6 +372,92 @@ func TestTexturePaintStrokeCanPreserveOtherLayers(t *testing.T) {
 	assertTextureWeightsNormalized(t, set.WeightMap)
 }
 
+func TestTerrainTextureLayerClearAndLocks(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      3,
+		PaintResolution: 3,
+		WorldSize:       matrix.NewVec2(2, 2),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	locked := model.AddLayer(NewTerrainLayer("locked"))
+	model.LayerSet.SetLayerWeightAt(base, 1, 1, 0.2)
+	model.LayerSet.SetLayerWeightAt(paint, 1, 1, 0.3)
+	model.LayerSet.SetLayerWeightAt(locked, 1, 1, 0.5)
+	model.NormalizeWeightsAt(1, 1)
+	layer := model.LayerSet.Layers[locked]
+	layer.Locked = true
+	model.SetLayer(locked, layer)
+	result := model.PaintTextureLayer(paint, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(0, 0),
+		Radius:   0.1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected unlocked paint to dirty weights")
+	}
+	if got := model.LayerWeightAt(locked, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected locked layer to keep 0.5, got %f", got)
+	}
+	dirty := model.ClearLayer(paint)
+	if !dirty.Valid {
+		t.Fatal("expected clear layer to dirty weights")
+	}
+	if got := model.LayerWeightAt(paint, 1, 1); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected cleared layer to be 0, got %f", got)
+	}
+	if got := model.LayerWeightAt(locked, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected clear to preserve locked layer, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, model.LayerSet.WeightMap)
+}
+
+func TestTerrainAutoMaterialRulesUseSlopeHeightAndNoise(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      5,
+		PaintResolution: 5,
+		WorldSize:       matrix.NewVec2(4, 4),
+		MinHeight:       0,
+		MaxHeight:       10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	grass := model.AddLayer(NewTerrainLayer("grass"))
+	rock := model.AddLayer(NewTerrainLayer("rock"))
+	snow := model.AddLayer(NewTerrainLayer("snow"))
+	for z := 0; z < model.HeightField.Resolution; z++ {
+		for x := 0; x < model.HeightField.Resolution; x++ {
+			model.HeightField.SetHeight(x, z, matrix.Float(x+z))
+		}
+	}
+	rules := TerrainAutoMaterialRules(TerrainAutoMaterialPreset{
+		GrassLayer:    grass,
+		RockLayer:     rock,
+		SnowLayer:     snow,
+		FlatSlopeMax:  5,
+		CliffSlopeMin: 20,
+		SnowHeightMin: 6,
+		NoiseStrength: 0.25,
+		NoiseScale:    2,
+	})
+	if dirty := model.ApplyAutoMaterialRules(rules); !dirty.Valid {
+		t.Fatal("expected auto material generation to dirty weights")
+	}
+	if got := model.LayerWeightAt(snow, 4, 4); got <= 0 {
+		t.Fatalf("expected high terrain to receive snow, got %f", got)
+	}
+	if got := model.LayerWeightAt(rock, 1, 1); got <= 0 {
+		t.Fatalf("expected sloped terrain to receive rock, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, model.LayerSet.WeightMap)
+}
+
 func TestTerrainTexturePaintHonorsSlopeConstraint(t *testing.T) {
 	model, err := NewModel(TerrainConfig{
 		Resolution:      5,

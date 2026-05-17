@@ -144,7 +144,7 @@ func (t *Terrain) SplatTextureWriteRequest(texture int, region DirtyRegion) rend
 	if !region.Valid {
 		return rendering.GPUImageWriteRequest{}
 	}
-	pixels := packSplatTextureRegion(t.LayerSet.WeightMap, texture, region)
+	pixels := packSplatTextureRegion(t.LayerSet.EffectiveWeightMapForPreview(), texture, region)
 	return rendering.GPUImageWriteRequest{
 		Region: matrix.Vec4i{
 			int32(region.MinX),
@@ -162,8 +162,9 @@ func (t *Terrain) createSplatTextures(host *engine.Host) error {
 	}
 	count := splatTextureCount(t.LayerSet.WeightMap.Layers)
 	t.SplatTextures = make([]TerrainSplatTexture, count)
+	weightMap := t.LayerSet.EffectiveWeightMapForPreview()
 	for i := range count {
-		pixels := packSplatTexture(t.LayerSet.WeightMap, i)
+		pixels := packSplatTexture(weightMap, i)
 		key := fmt.Sprintf("terrain_%p_splat_%d_%d", t, t.LayerSet.WeightMap.Layers, i)
 		splat := TerrainSplatTexture{
 			Key:        key,
