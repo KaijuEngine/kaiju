@@ -249,7 +249,7 @@ func (g *GPUDevice) createDescriptorPool(counts uint32) error {
 			DescriptorCount: counts * swapImageCount,
 		},
 		{
-			Type:            vulkan_const.DescriptorTypeCombinedImageSampler,
+			Type:            vulkan_const.DescriptorTypeStorageImage,
 			DescriptorCount: counts * swapImageCount,
 		},
 		{
@@ -431,6 +431,7 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		r()
 	}
 	painter.preRuns = klib.WipeSlice(painter.preRuns)
+	painter.QueueHiZPyramid(g)
 	painter.executeCompute(g)
 	return true
 }

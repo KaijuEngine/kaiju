@@ -245,9 +245,9 @@ func (s *ShaderSource) readPreprocessor() {
 			s.multilineDefine = line.hasDefineSlash()
 			match := re.FindStringSubmatch(line.string())
 			if len(match) == 3 {
-			name := match[1]
-			value := strings.TrimSpace(match[2])
-			isEquation := false
+				name := match[1]
+				value := strings.TrimSpace(match[2])
+				isEquation := false
 				if value != "" {
 					for j := range ops {
 						isEquation = isEquation || strings.Contains(value, ops[j])
@@ -310,10 +310,6 @@ func (s *ShaderSource) readComputeLayouts() error {
 	}
 	if err := s.readLayouts(); err != nil {
 		return err
-	}
-	for i := range s.Layouts {
-		// TODO:  Accurate?
-		s.Layouts[i].Type = "StorageBuffer"
 	}
 	return nil
 }

@@ -52,18 +52,19 @@ import (
 )
 
 type RenderPass struct {
-	Handle                 vk.RenderPass
-	Buffer                 GPUFrameBuffer
-	textures               []Texture
-	occlusionDepthCopy     Texture
-	occlusionDepthCopyFrom int
-	construction           RenderPassDataCompiled
-	subpasses              []RenderPassSubpass
-	cmd                    [maxFramesInFlight]CommandRecorder
-	cmdSecondary           [maxFramesInFlight]CommandRecorderSecondary
-	currentIdx             int
-	subpassIdx             int
-	frame                  int
+	Handle                  vk.RenderPass
+	Buffer                  GPUFrameBuffer
+	textures                []Texture
+	occlusionDepthCopy      Texture
+	occlusionDepthCopyFrom  int
+	occlusionDepthCopyReady bool
+	construction            RenderPassDataCompiled
+	subpasses               []RenderPassSubpass
+	cmd                     [maxFramesInFlight]CommandRecorder
+	cmdSecondary            [maxFramesInFlight]CommandRecorderSecondary
+	currentIdx              int
+	subpassIdx              int
+	frame                   int
 }
 
 type RenderPassSubpass struct {
@@ -82,7 +83,7 @@ func (r *RenderPass) Height() int { return r.construction.Height }
 func (r *RenderPass) Texture(index int) *Texture { return &r.textures[index] }
 
 func (r *RenderPass) OcclusionDepthSource() (*Texture, bool) {
-	if !r.occlusionDepthCopy.RenderId.IsValid() {
+	if !r.occlusionDepthCopyReady || !r.occlusionDepthCopy.RenderId.IsValid() {
 		return nil, false
 	}
 	return &r.occlusionDepthCopy, true
@@ -517,6 +518,7 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 	device.LogicalDevice.FreeTexture(&p.occlusionDepthCopy.RenderId)
 	p.occlusionDepthCopy = Texture{}
 	p.occlusionDepthCopyFrom = -1
+	p.occlusionDepthCopyReady = false
 	for i := range p.subpasses {
 		for j := range len(p.subpasses[i].cmd) {
 			p.subpasses[i].cmd[j].Destroy(device)

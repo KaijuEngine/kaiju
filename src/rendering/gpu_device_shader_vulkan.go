@@ -368,18 +368,22 @@ func imageInfoVk(view vk.ImageView, sampler vk.Sampler) vk.DescriptorImageInfo {
 }
 
 func prepareSetWriteImage(set vk.DescriptorSet, imageInfos []vk.DescriptorImageInfo, bindingIndex uint32, asAttachment bool) vk.WriteDescriptorSet {
+	descriptorType := vulkan_const.DescriptorTypeCombinedImageSampler
+	if asAttachment {
+		descriptorType = vulkan_const.DescriptorTypeInputAttachment
+	}
+	return prepareSetWriteImageTyped(set, imageInfos, bindingIndex, descriptorType)
+}
+
+func prepareSetWriteImageTyped(set vk.DescriptorSet, imageInfos []vk.DescriptorImageInfo, bindingIndex uint32, descriptorType vulkan_const.DescriptorType) vk.WriteDescriptorSet {
 	write := vk.WriteDescriptorSet{
 		SType:           vulkan_const.StructureTypeWriteDescriptorSet,
 		DstSet:          set,
 		DstBinding:      bindingIndex,
 		DstArrayElement: 0,
+		DescriptorType:  descriptorType,
+		DescriptorCount: uint32(len(imageInfos)),
+		PImageInfo:      &imageInfos[0],
 	}
-	if asAttachment {
-		write.DescriptorType = vulkan_const.DescriptorTypeInputAttachment
-	} else {
-		write.DescriptorType = vulkan_const.DescriptorTypeCombinedImageSampler
-	}
-	write.DescriptorCount = uint32(len(imageInfos))
-	write.PImageInfo = &imageInfos[0]
 	return write
 }

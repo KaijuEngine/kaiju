@@ -37,6 +37,8 @@
 package glsl
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -169,4 +171,29 @@ func TestParse(t *testing.T) {
 	}
 
 	t.Logf("All checks passed. Layouts: %d, Defines: %d", len(src.Layouts), len(src.defines))
+}
+
+func TestParseComputeImageLayouts(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "hiz.comp")
+	src := `#version 450
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(binding = 0) uniform sampler2D srcDepth;
+layout(binding = 1, r32f) uniform image2D dstDepth;
+`
+	if err := os.WriteFile(path, []byte(src), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	parsed, err := Parse(path, "")
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if parsed.WorkGroups != ([3]uint32{8, 8, 1}) {
+		t.Fatalf("WorkGroups = %v", parsed.WorkGroups)
+	}
+	if len(parsed.Layouts) != 2 {
+		t.Fatalf("layout count = %d", len(parsed.Layouts))
+	}
+	if parsed.Layouts[0].Type != "sampler2D" || parsed.Layouts[1].Type != "image2D" {
+		t.Fatalf("compute image layouts = %+v", parsed.Layouts)
+	}
 }

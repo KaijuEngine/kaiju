@@ -172,6 +172,7 @@ func (g *GPUDevice) copyOcclusionDepth(renderPass *RenderPass) {
 	g.TransitionImageLayout(dstId, GPUImageLayoutShaderReadOnlyOptimal,
 		GPUImageAspectDepthBit, GPUAccessShaderReadBit, cmd)
 	g.TransitionImageLayout(srcId, srcLayout, GPUImageAspectDepthBit, srcAccess, cmd)
+	renderPass.occlusionDepthCopyReady = true
 }
 
 func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {

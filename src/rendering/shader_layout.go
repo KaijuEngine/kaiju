@@ -160,17 +160,20 @@ func (l *ShaderLayout) DescriptorType() vulkan_const.DescriptorType {
 	if l.Type == "StorageBuffer" {
 		return vulkan_const.DescriptorTypeStorageBuffer
 	}
+	if l.Binding >= 0 && l.Source == "buffer" {
+		return vulkan_const.DescriptorTypeStorageBuffer
+	}
 	if l.Binding >= 0 && l.Set >= 0 {
 		switch l.Source {
 		case "uniform":
 			return vulkan_const.DescriptorTypeUniformBuffer
-		case "buffer":
-			return vulkan_const.DescriptorTypeStorageBuffer
 		}
 	}
 	switch l.Type {
 	case "subpassInput":
 		return vulkan_const.DescriptorTypeInputAttachment
+	case "image2D", "image3D", "imageCube":
+		return vulkan_const.DescriptorTypeStorageImage
 	case "sampler2D", "samplerCube":
 		return vulkan_const.DescriptorTypeCombinedImageSampler
 	default:

@@ -21,6 +21,7 @@
         "editor/editor_embedded_content/editor_content/renderer/shaders/particle_transparent.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/light_cube_depth.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/light_depth.shader",
+        "editor/editor_embedded_content/editor_content/renderer/shaders/hiz_downsample.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/combine.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/composite.shader",
         "editor/editor_embedded_content/editor_content/renderer/shaders/grid.shader",

@@ -1,0 +1,23 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D srcDepth;
+layout(binding = 1, r32f) uniform image2D dstDepth;
+
+void main() {
+	ivec2 dstCoord = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 dstSize = imageSize(dstDepth);
+	if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) {
+		return;
+	}
+	ivec2 srcSize = textureSize(srcDepth, 0);
+	ivec2 maxCoord = srcSize - ivec2(1);
+	ivec2 srcBase = dstCoord * 2;
+	float d0 = texelFetch(srcDepth, clamp(srcBase, ivec2(0), maxCoord), 0).r;
+	float d1 = texelFetch(srcDepth, clamp(srcBase + ivec2(1, 0), ivec2(0), maxCoord), 0).r;
+	float d2 = texelFetch(srcDepth, clamp(srcBase + ivec2(0, 1), ivec2(0), maxCoord), 0).r;
+	float d3 = texelFetch(srcDepth, clamp(srcBase + ivec2(1, 1), ivec2(0), maxCoord), 0).r;
+	float nearestDepth = min(min(d0, d1), min(d2, d3));
+	imageStore(dstDepth, dstCoord, vec4(nearestDepth, 0.0, 0.0, 0.0));
+}

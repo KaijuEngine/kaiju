@@ -84,6 +84,10 @@ func (g *GPUDevice) OcclusionDepthSource() (*Texture, bool) {
 	return pass.OcclusionDepthSource()
 }
 
+func (g *GPUDevice) HiZPyramidLevels() ([]*Texture, bool) {
+	return g.Painter.HiZPyramidLevels()
+}
+
 func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)

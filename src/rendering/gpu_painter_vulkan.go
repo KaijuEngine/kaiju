@@ -50,6 +50,20 @@ func (g *GPUPainter) executeCompute(device *GPUDevice) {
 	ds := [1]vk.DescriptorSet{}
 	computeCmd := device.beginSingleTimeCommands()
 	for _, task := range g.computeTasks {
+		for i := range task.SampledImages {
+			img := &task.SampledImages[i]
+			if img.Texture != nil {
+				device.TransitionImageLayout(img.Texture, GPUImageLayoutShaderReadOnlyOptimal,
+					img.Aspect, GPUAccessShaderReadBit, computeCmd)
+			}
+		}
+		for i := range task.StorageImages {
+			img := &task.StorageImages[i]
+			if img.Texture != nil {
+				device.TransitionImageLayout(img.Texture, GPUImageLayoutGeneral,
+					img.Aspect, GPUAccessShaderWriteBit, computeCmd)
+			}
+		}
 		vk.CmdBindPipeline(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, vk.Pipeline(task.Shader.RenderId.computePipeline.handle))
 		ds[0] = vk.DescriptorSet(task.DescriptorSets[g.currentFrame].handle)
 		if len(ds) > 0 {
@@ -59,6 +73,13 @@ func (g *GPUPainter) executeCompute(device *GPUDevice) {
 				uint32(len(ds)), &ds[0], 0, nil)
 		}
 		vk.CmdDispatch(computeCmd.buffer, task.WorkGroups[0], task.WorkGroups[1], task.WorkGroups[2])
+		for i := range task.StorageImages {
+			img := &task.StorageImages[i]
+			if img.Texture != nil {
+				device.TransitionImageLayout(img.Texture, GPUImageLayoutShaderReadOnlyOptimal,
+					img.Aspect, GPUAccessShaderReadBit, computeCmd)
+			}
+		}
 	}
 	barrier := vk.MemoryBarrier{
 		SType:         vulkan_const.StructureTypeMemoryBarrier,

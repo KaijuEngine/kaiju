@@ -46,6 +46,7 @@ type GPUPainter struct {
 	imageIndex            [maxFramesInFlight]uint32
 	descriptorPools       []GPUDescriptorPool
 	currentFrame          int
+	hiZPyramid            HiZPyramid
 	combinedDrawings      Drawings
 	combinedDrawingCuller combinedDrawingCuller
 	preRuns               []func()
@@ -67,6 +68,13 @@ type ComputeTask struct {
 	Shader         *Shader
 	DescriptorSets []GPUDescriptorSet
 	WorkGroups     [3]uint32
+	SampledImages  []ComputeTaskImage
+	StorageImages  []ComputeTaskImage
+}
+
+type ComputeTaskImage struct {
+	Texture *TextureId
+	Aspect  GPUImageAspectFlags
 }
 
 func (g *GPUPainter) forceQueueCommand(cmd CommandRecorder, isPrePass bool) {
