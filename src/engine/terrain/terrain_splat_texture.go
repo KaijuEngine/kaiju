@@ -53,6 +53,8 @@ type TerrainSplatTexture struct {
 	LayerCount int
 	Pixels     []byte
 	Dirty      DirtyRegion
+
+	uploadPixels []byte
 }
 
 type SplatLayerChannel struct {
@@ -144,7 +146,9 @@ func (t *Terrain) SplatTextureWriteRequest(texture int, region DirtyRegion) rend
 	if !region.Valid {
 		return rendering.GPUImageWriteRequest{}
 	}
-	pixels := packSplatTextureRegion(t.LayerSet.EffectiveWeightMapForPreview(), texture, region)
+	weightMap := t.LayerSet.EffectiveWeightMapForPreview()
+	pixels := packSplatTextureRegionInto(weightMap, texture, region, t.SplatTextures[texture].uploadPixels)
+	t.SplatTextures[texture].uploadPixels = pixels
 	return rendering.GPUImageWriteRequest{
 		Region: matrix.Vec4i{
 			int32(region.MinX),
@@ -247,6 +251,10 @@ func packSplatTexture(weightMap *TextureWeightMap, texture int) []byte {
 }
 
 func packSplatTextureRegion(weightMap *TextureWeightMap, texture int, region DirtyRegion) []byte {
+	return packSplatTextureRegionInto(weightMap, texture, region, nil)
+}
+
+func packSplatTextureRegionInto(weightMap *TextureWeightMap, texture int, region DirtyRegion, pixels []byte) []byte {
 	if weightMap == nil || texture < 0 || texture >= splatTextureCount(weightMap.Layers) || !region.Valid {
 		return nil
 	}
@@ -256,7 +264,11 @@ func packSplatTextureRegion(weightMap *TextureWeightMap, texture int, region Dir
 	}
 	width := region.MaxX - region.MinX + 1
 	height := region.MaxZ - region.MinZ + 1
-	pixels := make([]byte, width*height*splatTextureChannels)
+	required := width * height * splatTextureChannels
+	if cap(pixels) < required {
+		pixels = make([]byte, required)
+	}
+	pixels = pixels[:required]
 	layerStart := texture * splatTextureChannels
 	for z := region.MinZ; z <= region.MaxZ; z++ {
 		for x := region.MinX; x <= region.MaxX; x++ {

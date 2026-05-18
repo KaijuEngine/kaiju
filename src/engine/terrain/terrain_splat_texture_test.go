@@ -137,3 +137,119 @@ func TestTerrainTexturePaintingTracksSplatDirtyWithoutMeshDirty(t *testing.T) {
 		t.Fatalf("expected layer 5 to pack into splat texture 1 channel 1, got %v", request.Pixels)
 	}
 }
+
+func TestTerrainTexturePaintStrokeDoesNotAllocateAfterWarmup(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      33,
+		PaintResolution: 257,
+		WorldSize:       matrix.NewVec2(256, 256),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	for i := 0; i < 6; i++ {
+		model.AddLayer(NewTerrainLayer("extra"))
+	}
+	stroke := TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(0, 0),
+		Radius:   16,
+		Strength: 0.25,
+		Falloff:  FalloffSmooth,
+		Spacing:  4,
+	}
+	erase := stroke
+	erase.Mode = TextureBrushErase
+	model.PaintTextureLayer(paint, stroke)
+	model.PaintTextureLayer(paint, erase)
+	allocs := testing.AllocsPerRun(100, func() {
+		model.PaintTextureLayer(paint, stroke)
+		model.PaintTextureLayer(paint, erase)
+	})
+	if allocs != 0 {
+		t.Fatalf("expected warmed texture brush strokes to avoid allocations, got %.2f", allocs)
+	}
+}
+
+func TestTerrainTexturePaintLineMergesSplatDirtyRegions(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      33,
+		PaintResolution: 257,
+		WorldSize:       matrix.NewVec2(256, 256),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	for i := range model.SplatTextures {
+		model.SplatTextures[i].Dirty = DirtyRegion{}
+	}
+	model.HeightField.ClearDirty()
+	result := model.PaintTextureLine(
+		paint,
+		matrix.NewVec2(-96, -96),
+		matrix.NewVec2(96, 96),
+		TexturePaintStroke{
+			Mode:     TextureBrushPaint,
+			Radius:   12,
+			Strength: 0.5,
+			Falloff:  FalloffSmooth,
+			Spacing:  3,
+		},
+	)
+	if !result.Dirty.Valid {
+		t.Fatal("expected long texture stroke to dirty the weight map")
+	}
+	for i := range model.SplatTextures {
+		if model.SplatTextures[i].Dirty != result.Dirty {
+			t.Fatalf("expected splat texture %d to keep merged dirty region %+v, got %+v",
+				i, result.Dirty, model.SplatTextures[i].Dirty)
+		}
+	}
+	if model.HeightField.DirtyRegion().Valid {
+		t.Fatal("texture paint line should not dirty or rebuild terrain mesh vertices")
+	}
+}
+
+func TestTerrainTexturePaintLongStrokeManyLayersStress(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      33,
+		PaintResolution: 257,
+		WorldSize:       matrix.NewVec2(256, 256),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 16; i++ {
+		model.AddLayer(NewTerrainLayer("layer"))
+	}
+	for i := range model.SplatTextures {
+		model.SplatTextures[i].Dirty = DirtyRegion{}
+	}
+	model.HeightField.ClearDirty()
+	result := model.PaintTextureLine(
+		12,
+		matrix.NewVec2(-120, -120),
+		matrix.NewVec2(120, 120),
+		TexturePaintStroke{
+			Mode:     TextureBrushPaint,
+			Radius:   18,
+			Strength: 0.4,
+			Falloff:  FalloffSmooth,
+			Spacing:  4,
+		},
+	)
+	if !result.Dirty.Valid {
+		t.Fatal("expected long many-layer stroke to dirty weights")
+	}
+	if got := model.SplatTextureCount(); got != 4 {
+		t.Fatalf("expected sixteen layers to use four splat textures, got %d", got)
+	}
+	if model.HeightField.DirtyRegion().Valid {
+		t.Fatal("many-layer texture stroke should not dirty terrain mesh vertices")
+	}
+	assertTextureWeightsNormalized(t, model.LayerSet.WeightMap)
+}

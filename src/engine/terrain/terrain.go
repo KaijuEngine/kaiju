@@ -436,21 +436,27 @@ func (t *Terrain) PaintLine(from, to matrix.Vec2, stroke PaintStroke) DirtyRegio
 }
 
 func (t *Terrain) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult {
+	return t.paintTextureLayer(layer, stroke, true)
+}
+
+func (t *Terrain) paintTextureLayer(layer int, stroke TexturePaintStroke, applyDirty bool) TexturePaintResult {
 	if t == nil || t.LayerSet == nil || t.LayerSet.WeightMap == nil {
 		return TexturePaintResult{}
 	}
 	gridStroke := t.localTextureStrokeToWeightGrid(stroke)
 	filter := t.texturePaintConstraintFilter(stroke.Constraints)
 	result := t.LayerSet.WeightMap.paintTextureLayer(layer, gridStroke, filter, t.LayerSet.lockedLayers())
-	t.MarkTextureRegionDirty(result.Dirty)
-	t.ApplyTextureDirty(result.Dirty)
+	if applyDirty {
+		t.MarkTextureRegionDirty(result.Dirty)
+		t.ApplyTextureDirty(result.Dirty)
+	}
 	return result
 }
 
 func (t *Terrain) PaintTextureLine(layer int, from, to matrix.Vec2, stroke TexturePaintStroke) TexturePaintResult {
 	var merged TexturePaintResult
 	t.VisitTexturePaintLineStamps(from, to, stroke, func(stamp TexturePaintStroke) bool {
-		result := t.PaintTextureLayer(layer, stamp)
+		result := t.paintTextureLayer(layer, stamp, false)
 		if result.Dirty.Valid {
 			merged.Dirty = mergeDirtyRegions(merged.Dirty, result.Dirty)
 		}
@@ -461,6 +467,8 @@ func (t *Terrain) PaintTextureLine(layer int, from, to matrix.Vec2, stroke Textu
 		}
 		return true
 	})
+	t.MarkTextureRegionDirty(merged.Dirty)
+	t.ApplyTextureDirty(merged.Dirty)
 	return merged
 }
 
