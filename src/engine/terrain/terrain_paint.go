@@ -38,6 +38,7 @@ package terrain
 
 import (
 	"errors"
+	"strings"
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
@@ -122,6 +123,12 @@ type TerrainLayerSet struct {
 	lockedScratch []bool
 }
 
+type TerrainLayerTextureDiagnostic struct {
+	Layer            int
+	Name             string
+	TextureContentID string
+}
+
 type AutoMaterialRule struct {
 	Name          string
 	Layer         int
@@ -161,6 +168,29 @@ func NewTerrainLayer(textureContentID string) TerrainLayer {
 		Tiling:           matrix.Vec2One(),
 		Tint:             matrix.ColorWhite(),
 	}
+}
+
+func MissingTerrainLayerTextures(layers []TerrainLayer, textureExists func(string) bool) []TerrainLayerTextureDiagnostic {
+	if textureExists == nil {
+		return nil
+	}
+	missing := make([]TerrainLayerTextureDiagnostic, 0)
+	for i := range layers {
+		id := strings.TrimSpace(layers[i].TextureContentID)
+		if id == "" || textureExists(id) {
+			continue
+		}
+		name := strings.TrimSpace(layers[i].Name)
+		if name == "" {
+			name = id
+		}
+		missing = append(missing, TerrainLayerTextureDiagnostic{
+			Layer:            i,
+			Name:             name,
+			TextureContentID: id,
+		})
+	}
+	return missing
 }
 
 func NewTerrainLayerSet(resolution int) (*TerrainLayerSet, error) {

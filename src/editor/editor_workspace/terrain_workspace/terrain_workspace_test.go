@@ -91,6 +91,24 @@ func TestTextureToolNames(t *testing.T) {
 	}
 }
 
+func TestTerrainLayerTextureDiagnosticStatus(t *testing.T) {
+	status := terrainLayerTextureDiagnosticStatus([]terrain.TerrainLayerTextureDiagnostic{{
+		Layer:            2,
+		Name:             "Rock",
+		TextureContentID: "missing-rock",
+	}})
+	if !strings.Contains(status, "L3") || !strings.Contains(status, "missing-rock") {
+		t.Fatalf("expected missing texture status to include layer and texture id, got %q", status)
+	}
+	status = terrainLayerTextureDiagnosticStatus([]terrain.TerrainLayerTextureDiagnostic{
+		{Layer: 0, TextureContentID: "a"},
+		{Layer: 1, TextureContentID: "b"},
+	})
+	if !strings.Contains(status, "2 missing") {
+		t.Fatalf("expected aggregate missing texture status, got %q", status)
+	}
+}
+
 func TestTerrainWorkspaceMarkupSplitsToolRows(t *testing.T) {
 	data, err := os.ReadFile("../../editor_embedded_content/editor_content/editor/ui/workspace/terrain_workspace.go.html")
 	if err != nil {

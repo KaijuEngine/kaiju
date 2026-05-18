@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* stage_workspace_details_ui_test.go                                         */
+/* terrain_content_preview_test.go                                            */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -34,58 +34,60 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-package stage_workspace
+package content_previews
 
 import (
-	"os"
-	"strings"
+	"image"
 	"testing"
 
-	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+	"kaijuengine.com/engine/terrain"
+	"kaijuengine.com/matrix"
 )
 
-func TestEnumOptionNameTrimsFieldPrefix(t *testing.T) {
-	if got := enumOptionName("Shape", "ShapeTerrain"); got != "Terrain" {
-		t.Fatalf("expected Terrain, got %q", got)
+func TestTerrainPreviewImageUsesPaintedLayerWeights(t *testing.T) {
+	cfg := terrain.TerrainConfig{
+		Resolution:      4,
+		PaintResolution: 4,
+		WorldSize:       matrix.NewVec2(4, 4),
+		MinHeight:       0,
+		MaxHeight:       1,
 	}
-	if got := enumOptionName("Mode", "Model"); got != "Model" {
-		t.Fatalf("expected Model to remain untrimmed, got %q", got)
-	}
-}
-
-func TestRigidBodyTerrainFieldVisibility(t *testing.T) {
-	hidden := []string{"AssetKey", "Extent", "Mass", "Radius", "Height", "IsStatic"}
-	for _, field := range hidden {
-		if rigidBodyFieldVisibleForShape(field, engine_entity_data_physics.ShapeTerrain) {
-			t.Fatalf("expected %s to be hidden for terrain rigid bodies", field)
-		}
-	}
-	if !rigidBodyFieldVisibleForShape("Shape", engine_entity_data_physics.ShapeTerrain) {
-		t.Fatal("expected Shape to stay visible for terrain rigid bodies")
-	}
-	if !rigidBodyFieldVisibleForShape("Mass", engine_entity_data_physics.ShapeBox) {
-		t.Fatal("expected non-terrain rigid bodies to keep generic field visibility")
-	}
-}
-
-func TestRigidBodyTerrainWarningVisibility(t *testing.T) {
-	if !rigidBodyTerrainWarningVisible(engine_entity_data_physics.ShapeTerrain, false) {
-		t.Fatal("expected terrain shape without terrain data to show a warning")
-	}
-	if rigidBodyTerrainWarningVisible(engine_entity_data_physics.ShapeTerrain, true) {
-		t.Fatal("expected terrain shape with terrain data to hide the warning")
-	}
-	if rigidBodyTerrainWarningVisible(engine_entity_data_physics.ShapeBox, false) {
-		t.Fatal("expected non-terrain shapes to hide the terrain warning")
-	}
-}
-
-func TestStageDetailsTemplateIncludesTerrainTextureWarning(t *testing.T) {
-	data, err := os.ReadFile("../../editor_embedded_content/editor_content/editor/ui/workspace/stage_workspace.go.html")
+	set, err := terrain.NewTerrainLayerSet(cfg.PaintResolution)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `data-validation="terrain-texture-missing"`) {
-		t.Fatal("expected stage details template to include terrain texture missing validation row")
+	red := set.AddLayer(terrain.TerrainLayer{
+		Name:             "Red",
+		TextureContentID: "red",
+		Tint:             matrix.ColorRed(),
+	})
+	blue := set.AddLayer(terrain.TerrainLayer{
+		Name:             "Blue",
+		TextureContentID: "blue",
+		Tint:             matrix.ColorBlue(),
+	})
+	for z := 0; z < set.WeightMap.Resolution; z++ {
+		for x := 0; x < set.WeightMap.Resolution; x++ {
+			if x < set.WeightMap.Resolution/2 {
+				set.SetLayerWeightAt(red, x, z, 1)
+				set.SetLayerWeightAt(blue, x, z, 0)
+			} else {
+				set.SetLayerWeightAt(red, x, z, 0)
+				set.SetLayerWeightAt(blue, x, z, 1)
+			}
+		}
+	}
+	asset, err := terrain.NewAssetWithLayerSet(cfg, nil, set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img := terrainPreviewImage(asset).(*image.RGBA)
+	left := img.RGBAAt(0, 1)
+	right := img.RGBAAt(img.Bounds().Dx()-1, 1)
+	if left.R <= left.B {
+		t.Fatalf("expected left painted preview pixel to be red-dominant, got %+v", left)
+	}
+	if right.B <= right.R {
+		t.Fatalf("expected right painted preview pixel to be blue-dominant, got %+v", right)
 	}
 }

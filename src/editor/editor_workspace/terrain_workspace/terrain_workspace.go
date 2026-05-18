@@ -1509,19 +1509,21 @@ func (w *TerrainWorkspace) validateLayerTextures() bool {
 	if w.active == nil || w.active.LayerSet == nil {
 		return true
 	}
-	for i := range w.active.LayerSet.Layers {
-		id := w.active.LayerSet.Layers[i].TextureContentID
-		if !w.textureExists(id) {
-			w.setStatus("Missing texture " + id + "; using " + assets.TextureSquare)
-			return false
-		}
+	missing := terrain.MissingTerrainLayerTextures(w.active.LayerSet.Layers, w.textureExists)
+	if len(missing) > 0 {
+		w.setStatus(terrainLayerTextureDiagnosticStatus(missing))
+		return false
 	}
 	return true
 }
 
 func (w *TerrainWorkspace) setLayerTextureStatus(id, okStatus string) {
 	if !w.textureExists(id) {
-		w.setStatus("Missing texture " + id + "; using " + assets.TextureSquare)
+		w.setStatus(terrainLayerTextureDiagnosticStatus([]terrain.TerrainLayerTextureDiagnostic{{
+			Layer:            w.readTextureLayer(),
+			Name:             w.layerDisplayName(w.readTextureLayer()),
+			TextureContentID: id,
+		}}))
 		return
 	}
 	w.setStatus(okStatus)
@@ -1614,6 +1616,18 @@ func textureToolName(mode terrain.TextureBrushMode) string {
 	default:
 		return "Paint"
 	}
+}
+
+func terrainLayerTextureDiagnosticStatus(missing []terrain.TerrainLayerTextureDiagnostic) string {
+	if len(missing) == 0 {
+		return ""
+	}
+	if len(missing) == 1 {
+		d := missing[0]
+		return "Missing texture L" + strconv.Itoa(d.Layer+1) + " " + d.TextureContentID +
+			"; using " + assets.TextureSquare
+	}
+	return strconv.Itoa(len(missing)) + " missing terrain layer textures; using " + assets.TextureSquare + " fallbacks"
 }
 
 func fmtFloat(v matrix.Float) string {

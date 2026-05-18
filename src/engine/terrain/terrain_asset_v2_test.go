@@ -145,6 +145,52 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 	}
 }
 
+func TestTerrainAssetFromTerrainSavesPaintedLayerStack(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      5,
+		PaintResolution: 5,
+		WorldSize:       matrix.NewVec2(8, 8),
+		MinHeight:       0,
+		MaxHeight:       4,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := model.AddLayer(TerrainLayer{Name: "Base", TextureContentID: "base"})
+	rock := model.AddLayer(TerrainLayer{Name: "Rock", TextureContentID: "rock", Tint: matrix.ColorGray()})
+	model.LayerSet.SetLayerWeightAt(base, 2, 2, 0.2)
+	model.LayerSet.SetLayerWeightAt(rock, 2, 2, 0.8)
+	model.NormalizeWeightsAt(2, 2)
+	asset, err := NewAssetFromTerrain(model)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if asset.Version != AssetVersion {
+		t.Fatalf("expected saved terrain asset version %d, got %d", AssetVersion, asset.Version)
+	}
+	data, err := asset.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loadedAsset, err := DeserializeAsset(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reverted, err := NewModelFromAsset(loadedAsset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reverted.LayerCount(); got != 2 {
+		t.Fatalf("expected reverted terrain to restore two layers, got %d", got)
+	}
+	if got := reverted.LayerSet.Layers[1].Name; got != "Rock" {
+		t.Fatalf("expected reverted layer stack to preserve Rock layer, got %q", got)
+	}
+	if got := reverted.LayerWeightAt(rock, 2, 2); !matrix.ApproxTo(got, 0.8, 0.001) {
+		t.Fatalf("expected reverted paint weight 0.8, got %f", got)
+	}
+}
+
 func TestTerrainAssetVersion1LoadsWithDefaultPaintLayer(t *testing.T) {
 	config := TerrainConfig{
 		Resolution:    2,

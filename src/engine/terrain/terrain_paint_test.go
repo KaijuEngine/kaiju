@@ -98,6 +98,26 @@ func TestTerrainLayersAddAndStorePaintFields(t *testing.T) {
 	}
 }
 
+func TestMissingTerrainLayerTexturesReportsLayerDiagnostics(t *testing.T) {
+	layers := []TerrainLayer{
+		{Name: "Grass", TextureContentID: "grass"},
+		{Name: "Rock", TextureContentID: "missing-rock"},
+		{TextureContentID: "missing-snow"},
+	}
+	missing := MissingTerrainLayerTextures(layers, func(id string) bool {
+		return id == "grass"
+	})
+	if len(missing) != 2 {
+		t.Fatalf("expected two missing texture diagnostics, got %d", len(missing))
+	}
+	if missing[0].Layer != 1 || missing[0].Name != "Rock" || missing[0].TextureContentID != "missing-rock" {
+		t.Fatalf("unexpected first missing texture diagnostic: %+v", missing[0])
+	}
+	if missing[1].Layer != 2 || missing[1].Name != "missing-snow" {
+		t.Fatalf("expected missing layer without name to use texture id, got %+v", missing[1])
+	}
+}
+
 func TestTextureWeightMapNormalizeWeightsAt(t *testing.T) {
 	set, err := NewTerrainLayerSet(3)
 	if err != nil {

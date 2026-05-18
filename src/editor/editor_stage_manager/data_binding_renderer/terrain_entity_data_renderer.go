@@ -99,7 +99,9 @@ func (r *TerrainEntityDataRenderer) Detatched(host *engine.Host, manager *editor
 func (r *TerrainEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("TerrainEntityDataRenderer.Show").End()
 	// Terrain visuals are persistent and do not depend on selection state.
-	// Update will only reload if the terrain ID has changed.
+	if g, ok := r.Terrains[target]; ok && g.terrain != nil {
+		return
+	}
 	r.Update(host, target, data)
 }
 
@@ -128,9 +130,6 @@ func (r *TerrainEntityDataRenderer) Update(host *engine.Host, target *editor_sta
 	sid := string(id)
 	if sid == "" {
 		return
-	}
-	if g.id == sid && g.terrain != nil {
-		return // no change
 	}
 	if g.terrain != nil {
 		g.terrain.Destroy(nil)

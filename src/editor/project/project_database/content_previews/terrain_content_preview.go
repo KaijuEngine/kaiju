@@ -94,6 +94,7 @@ func terrainPreviewImage(asset terrain.TerrainAsset) image.Image {
 	size := min(terrainPreviewSize, max(2, asset.Config.Resolution))
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
 	maxIdx := asset.Config.Resolution - 1
+	layerSet, _ := asset.LayerSet()
 	for y := 0; y < size; y++ {
 		z := y * maxIdx / (size - 1)
 		for x := 0; x < size; x++ {
@@ -105,13 +106,60 @@ func terrainPreviewImage(asset terrain.TerrainAsset) image.Image {
 			back := terrainPreviewHeight(asset, gx, z+1)
 			slope := uint8(min(48, int((absTerrainFloat(right-left)+absTerrainFloat(back-front))*6)))
 			v := uint8(h >> 8)
-			r := clampByte(int(v) - 18 + int(slope))
-			g := clampByte(int(v) + 8 + int(slope/2))
-			b := clampByte(int(v) - 20)
+			base := terrainPreviewLayerColor(layerSet, x, y, size)
+			shade := matrix.Float(v)/255*0.45 + 0.55 + matrix.Float(slope)/255
+			r := clampByte(int(base.R()*255*shade) - 18 + int(slope))
+			g := clampByte(int(base.G()*255*shade) + 8 + int(slope/2))
+			b := clampByte(int(base.B()*255*shade) - 20)
 			img.SetRGBA(x, y, color.RGBA{R: r, G: g, B: b, A: 255})
 		}
 	}
 	return img
+}
+
+func terrainPreviewLayerColor(layerSet *terrain.TerrainLayerSet, x, y, previewSize int) matrix.Color {
+	if layerSet == nil || layerSet.WeightMap == nil || layerSet.WeightMap.Layers == 0 || previewSize <= 1 {
+		return matrix.ColorRGBInt(92, 118, 77)
+	}
+	weights := layerSet.WeightMap
+	wx := x * (weights.Resolution - 1) / (previewSize - 1)
+	wz := y * (weights.Resolution - 1) / (previewSize - 1)
+	var out matrix.Color
+	var sum matrix.Float
+	for layer := 0; layer < weights.Layers && layer < len(layerSet.Layers); layer++ {
+		weight := weights.WeightAt(layer, wx, wz)
+		if weight <= matrix.Tiny {
+			continue
+		}
+		tint := layerSet.Layers[layer].Tint
+		if tint == matrix.ColorZero() || tint == matrix.ColorWhite() {
+			tint = terrainPreviewFallbackLayerColor(layer)
+		}
+		out.SetR(out.R() + tint.R()*weight)
+		out.SetG(out.G() + tint.G()*weight)
+		out.SetB(out.B() + tint.B()*weight)
+		sum += weight
+	}
+	if sum <= matrix.Tiny {
+		return terrainPreviewFallbackLayerColor(0)
+	}
+	out.SetR(out.R() / sum)
+	out.SetG(out.G() / sum)
+	out.SetB(out.B() / sum)
+	out.SetA(1)
+	return out
+}
+
+func terrainPreviewFallbackLayerColor(layer int) matrix.Color {
+	palette := []matrix.Color{
+		matrix.ColorRGBInt(88, 126, 62),
+		matrix.ColorRGBInt(116, 113, 106),
+		matrix.ColorRGBInt(204, 207, 194),
+		matrix.ColorRGBInt(137, 96, 54),
+		matrix.ColorRGBInt(71, 106, 122),
+		matrix.ColorRGBInt(113, 95, 137),
+	}
+	return palette[layer%len(palette)]
 }
 
 func terrainPreviewHeight(asset terrain.TerrainAsset, x, z int) matrix.Float {

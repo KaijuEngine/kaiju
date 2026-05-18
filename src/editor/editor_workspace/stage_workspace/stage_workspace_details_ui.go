@@ -57,6 +57,8 @@ import (
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/terrain"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/engine_entity_data/content_id"
@@ -650,11 +652,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 }
 
 func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element, entities ...*editor_stage_manager.StageEntity) {
-	if g == nil || bindingElement == nil || !isRigidBodyBinding(g) {
-		return
-	}
-	shape, ok := rigidBodyShape(g)
-	if !ok {
+	if g == nil || bindingElement == nil {
 		return
 	}
 	var entity *editor_stage_manager.StageEntity
@@ -664,18 +662,37 @@ func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_dat
 	if entity == nil {
 		entity = dui.selectedEntity()
 	}
+	terrainTextureMessage, terrainTextureWarning := dui.terrainMissingTextureWarning(g)
+	isRigidBody := isRigidBodyBinding(g)
+	shape := engine_entity_data_physics.ShapeBox
+	if isRigidBody {
+		shape, _ = rigidBodyShape(g)
+	}
 	hasTerrain := entityHasTerrainData(entity)
 	for _, row := range bindingElement.Children {
 		if row.HasClass("entityDataValidation") {
-			if row.Attribute("data-validation") != "terrain-missing" {
+			switch row.Attribute("data-validation") {
+			case "terrain-missing":
+				if isRigidBody && rigidBodyTerrainWarningVisible(shape, hasTerrain) {
+					row.UI.Show()
+				} else {
+					row.UI.Hide()
+				}
+			case "terrain-texture-missing":
+				if terrainTextureWarning {
+					if len(row.Children) > 0 && row.Children[0].InnerLabel() != nil {
+						row.Children[0].InnerLabel().SetText(terrainTextureMessage)
+					}
+					row.UI.Show()
+				} else {
+					row.UI.Hide()
+				}
+			default:
 				row.UI.Hide()
-				continue
 			}
-			if rigidBodyTerrainWarningVisible(shape, hasTerrain) {
-				row.UI.Show()
-			} else {
-				row.UI.Hide()
-			}
+			continue
+		}
+		if !isRigidBody {
 			continue
 		}
 		idx, err := strconv.Atoi(row.Attribute("data-fieldidx"))
@@ -696,6 +713,43 @@ func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_dat
 	if parent := bindingElement.Parent.Value(); parent != nil {
 		parent.UI.SetDirty(ui.DirtyTypeLayout)
 	}
+}
+
+func (dui *WorkspaceDetailsUI) terrainMissingTextureWarning(g *entity_data_binding.EntityDataEntry) (string, bool) {
+	if !isTerrainBinding(g) {
+		return "", false
+	}
+	id, ok := terrainBindingContentID(g)
+	if !ok || id == "" {
+		return "", false
+	}
+	w := dui.workspace.Value()
+	if w == nil || w.ed == nil {
+		return "", false
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return "Terrain asset is missing from content cache: " + id, true
+	}
+	data, err := w.ed.ProjectFileSystem().ReadFile(cc.ContentPath())
+	if err != nil {
+		return "Terrain asset file is missing: " + id, true
+	}
+	asset, err := terrain.DeserializeAsset(data)
+	if err != nil {
+		return "Terrain asset could not be read: " + id, true
+	}
+	missing := terrain.MissingTerrainLayerTextures(asset.Layers, func(textureID string) bool {
+		return stageTerrainTextureExists(w, textureID)
+	})
+	if len(missing) == 0 {
+		return "", false
+	}
+	if len(missing) == 1 {
+		return "Missing terrain texture L" + strconv.Itoa(missing[0].Layer+1) + ": " +
+			missing[0].TextureContentID + " (using fallback)", true
+	}
+	return strconv.Itoa(len(missing)) + " terrain layer textures are missing (using fallbacks)", true
 }
 
 func (dui *WorkspaceDetailsUI) selectedEntity() *editor_stage_manager.StageEntity {
@@ -742,6 +796,59 @@ func isRigidBodyBinding(g *entity_data_binding.EntityDataEntry) bool {
 	return t != nil &&
 		t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_physics" &&
 		t.Name() == "RigidBodyEntityData"
+}
+
+func isTerrainBinding(g *entity_data_binding.EntityDataEntry) bool {
+	if g == nil {
+		return false
+	}
+	if g.Gen.RegisterKey == engine_entity_data_terrain.BindingKey() {
+		return true
+	}
+	t := reflect.TypeOf(g.BoundData)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t != nil &&
+		t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_terrain" &&
+		t.Name() == "TerrainEntityData"
+}
+
+func terrainBindingContentID(g *entity_data_binding.EntityDataEntry) (string, bool) {
+	v := g.FieldValueByName("Id")
+	switch id := v.(type) {
+	case content_id.Terrain:
+		return string(id), string(id) != ""
+	case string:
+		return id, id != ""
+	default:
+		rv := reflect.ValueOf(v)
+		if !rv.IsValid() {
+			return "", false
+		}
+		if rv.Kind() == reflect.String {
+			id := rv.String()
+			return id, id != ""
+		}
+		return "", false
+	}
+}
+
+func stageTerrainTextureExists(w *StageWorkspace, id string) bool {
+	if id == "" {
+		return false
+	}
+	if id == assets.TextureSquare {
+		return true
+	}
+	if w == nil || w.ed == nil || w.ed.Cache() == nil {
+		return true
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return false
+	}
+	return cc.Config.Type == (content_database.Texture{}).TypeName()
 }
 
 func rigidBodyShape(g *entity_data_binding.EntityDataEntry) (engine_entity_data_physics.Shape, bool) {
