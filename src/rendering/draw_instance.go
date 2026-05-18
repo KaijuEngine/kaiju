@@ -400,6 +400,7 @@ func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights Ligh
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
 		d.updateOcclusionEligibility(instanceBase)
+		device.Painter.QueueOcclusionCandidate(device, instanceBase)
 		d.countVisibility(instanceBase)
 		if instanceBase.IsInView() {
 			if d.MaterialInstance.IsLit {

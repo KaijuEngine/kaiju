@@ -432,6 +432,8 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	}
 	painter.preRuns = klib.WipeSlice(painter.preRuns)
 	painter.QueueHiZPyramid(g)
+	painter.QueueOcclusionTests(g, camera)
 	painter.executeCompute(g)
+	painter.ApplyOcclusionResults()
 	return true
 }

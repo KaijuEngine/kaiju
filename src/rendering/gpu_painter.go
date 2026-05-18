@@ -47,6 +47,7 @@ type GPUPainter struct {
 	descriptorPools       []GPUDescriptorPool
 	currentFrame          int
 	hiZPyramid            HiZPyramid
+	occlusionTester       GPUOcclusionTester
 	combinedDrawings      Drawings
 	combinedDrawingCuller combinedDrawingCuller
 	preRuns               []func()

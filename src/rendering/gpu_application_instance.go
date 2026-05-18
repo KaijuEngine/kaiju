@@ -170,6 +170,7 @@ func (g *GPUApplicationInstance) Destroy() {
 		}
 		device.Painter.preRuns = make([]func(), 0)
 		device.Painter.DestroyHiZPyramid(device)
+		device.Painter.DestroyOcclusionTester(device)
 		device.Painter.caches = nil
 		for i := range device.Painter.combineCmds {
 			device.Painter.combineCmds[i].Destroy(device)
