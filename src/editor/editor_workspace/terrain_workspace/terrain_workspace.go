@@ -194,6 +194,7 @@ func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		"clickTextureClear":   w.clickTextureClear,
 		"clickAutoMaterial":   w.clickAutoMaterial,
 		"clickAddLayer":       w.clickAddLayer,
+		"clickReplaceLayer":   w.clickReplaceLayer,
 		"clickRemoveLayer":    w.clickRemoveLayer,
 		"clickLayerUp":        w.clickLayerUp,
 		"clickLayerDown":      w.clickLayerDown,
@@ -299,6 +300,11 @@ func (w *TerrainWorkspace) Shutdown() {
 func (w *TerrainWorkspace) Open() {
 	defer tracing.NewRegion("TerrainWorkspace.Open").End()
 	w.CommonOpen()
+	w.hideCreateDialog()
+	if w.textureSwatchTemplate != nil {
+		w.textureSwatchTemplate.UI.Hide()
+	}
+	w.refreshToolPanels()
 	w.stageView.Open()
 	if w.tooltip != nil {
 		w.tooltip.UI.Hide()
@@ -630,7 +636,7 @@ func (w *TerrainWorkspace) textureBrushChanged(*document.Element) {
 func (w *TerrainWorkspace) textureLayerChanged(*document.Element) {
 	w.textureLayer = w.readTextureLayer()
 	w.refreshTextureLayerFields()
-	w.refreshLayerPalette()
+	w.refreshLayerPaletteSelection()
 	w.refreshToolReadout()
 }
 
@@ -655,6 +661,42 @@ func (w *TerrainWorkspace) clickAddLayer(*document.Element) {
 		w.refreshTextureLayerFields()
 		w.refreshLayerPalette()
 		w.setLayerTextureStatus(id, "Added texture layer")
+	}, w.ed.FocusInterface)
+}
+
+func (w *TerrainWorkspace) clickReplaceLayer(*document.Element) {
+	defer tracing.NewRegion("TerrainWorkspace.clickReplaceLayer").End()
+	if w.ed == nil || w.active == nil || w.active.LayerSet == nil {
+		return
+	}
+	layer := w.readTextureLayer()
+	if layer < 0 || layer >= w.active.LayerCount() {
+		return
+	}
+	w.ed.BlurInterface()
+	content_selector.Show(w.Host, (content_database.Texture{}).TypeName(), w.ed.Cache(), func(id string) {
+		w.ed.FocusInterface()
+		if id == "" {
+			return
+		}
+		before := w.active.LayerSetState()
+		beforeLayer := layer
+		next := w.active.LayerSet.Layers[layer]
+		oldName := strings.TrimSpace(next.Name)
+		oldTexture := next.TextureContentID
+		next.TextureContentID = id
+		if oldName == "" || oldName == oldTexture || oldName == w.textureNameForID(oldTexture) {
+			next.Name = w.textureNameForID(id)
+		}
+		if !w.active.SetLayer(layer, next) {
+			return
+		}
+		w.textureLayer = layer
+		w.addTextureLayerSetHistory(before, beforeLayer)
+		w.refreshLayerSelector()
+		w.refreshTextureLayerFields()
+		w.refreshLayerPalette()
+		w.setLayerTextureStatus(id, "Replaced texture layer")
 	}, w.ed.FocusInterface)
 }
 
@@ -791,8 +833,11 @@ func (w *TerrainWorkspace) clickLayerSwatch(e *document.Element) {
 	if e == nil {
 		return
 	}
-	layer, err := strconv.Atoi(e.Attribute("data-layer"))
-	if err != nil {
+	layer, ok := textureLayerFromElement(e)
+	if !ok {
+		return
+	}
+	if w.active != nil && (layer < 0 || layer >= w.active.LayerCount()) {
 		return
 	}
 	w.textureLayer = layer
@@ -800,8 +845,9 @@ func (w *TerrainWorkspace) clickLayerSwatch(e *document.Element) {
 		w.textureLayerSelect.UI.ToSelect().PickOptionWithoutEvent(layer)
 	}
 	w.refreshTextureLayerFields()
-	w.refreshLayerPalette()
+	w.refreshLayerPaletteSelection()
 	w.refreshToolReadout()
+	w.setStatus("Selected texture layer " + strconv.Itoa(layer+1))
 }
 
 func (w *TerrainWorkspace) openTerrain(id string) {
@@ -1234,6 +1280,7 @@ func (w *TerrainWorkspace) setStatus(text string) {
 
 func (w *TerrainWorkspace) refreshToolPanels() {
 	heightActive := w.toolMode == TerrainToolHeightSculpt
+	textureActive := w.toolMode == TerrainToolTexturePaint
 	if w.heightToolRow != nil {
 		if heightActive {
 			w.heightToolRow.UI.Show()
@@ -1249,10 +1296,20 @@ func (w *TerrainWorkspace) refreshToolPanels() {
 		}
 	}
 	if w.textureRow != nil {
-		if w.toolMode == TerrainToolTexturePaint {
+		if textureActive {
 			w.textureRow.UI.Show()
 		} else {
 			w.textureRow.UI.Hide()
+		}
+	}
+	if w.textureSwatchTemplate != nil && !textureActive {
+		w.textureSwatchTemplate.UI.Hide()
+	}
+	for i := range w.textureSwatches {
+		if textureActive {
+			w.textureSwatches[i].UI.Show()
+		} else {
+			w.textureSwatches[i].UI.Hide()
 		}
 	}
 	w.refreshModeButtonClasses()
@@ -1296,6 +1353,7 @@ func (w *TerrainWorkspace) refreshLayerPalette() {
 	if w.textureSwatchTemplate == nil {
 		return
 	}
+	defer w.refreshToolPanels()
 	for i := range w.textureSwatches {
 		w.Doc.RemoveElementWithoutApplyStyles(w.textureSwatches[i])
 	}
@@ -1316,10 +1374,28 @@ func (w *TerrainWorkspace) refreshLayerPalette() {
 			classes = append(classes, "active")
 		}
 		w.Doc.SetElementClassesWithoutApply(swatch, classes...)
+		if w.toolMode != TerrainToolTexturePaint {
+			swatch.UI.Hide()
+		}
 		if len(swatch.Children) > 1 && swatch.Children[1].InnerLabel() != nil {
 			swatch.Children[1].InnerLabel().SetText(w.layerDisplayName(i))
 		}
 		w.loadLayerSwatchTexture(swatch, i)
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *TerrainWorkspace) refreshLayerPaletteSelection() {
+	if w.Doc == nil || len(w.textureSwatches) == 0 {
+		w.refreshLayerPalette()
+		return
+	}
+	for i := range w.textureSwatches {
+		classes := []string{"layerSwatch"}
+		if i == w.textureLayer {
+			classes = append(classes, "active")
+		}
+		w.Doc.SetElementClassesWithoutApply(w.textureSwatches[i], classes...)
 	}
 	w.Doc.ApplyStyles()
 }
@@ -1447,6 +1523,17 @@ func textureFilterOptionIndex(filter rendering.TextureFilter) int {
 		return 1
 	}
 	return 0
+}
+
+func textureLayerFromElement(e *document.Element) (int, bool) {
+	for e != nil {
+		if value := e.Attribute("data-layer"); value != "" {
+			layer, err := strconv.Atoi(value)
+			return layer, err == nil
+		}
+		e = e.Parent.Value()
+	}
+	return 0, false
 }
 
 func (w *TerrainWorkspace) layerDisplayName(layer int) string {

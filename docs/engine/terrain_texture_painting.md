@@ -40,6 +40,10 @@ capture history because they only change the selected layer. Fill and sample
 strokes are single-shot operations; paint, erase, and blend can be line-stamped
 between pointer positions.
 
+Layer swatches select the active texture layer for painting. Use the replace
+layer texture button next to add/remove to choose a different content texture
+for the selected layer; selecting a swatch does not open the texture picker.
+
 ## Splat Textures
 
 Runtime materials read terrain weights from RGBA splat textures. Four layers fit

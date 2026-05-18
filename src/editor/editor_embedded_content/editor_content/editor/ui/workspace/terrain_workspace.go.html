@@ -27,13 +27,20 @@
 				color: #D8D8D8;
 			}
 			#terrainPanel button {
+				/* width: 2.35em; */
 				height: 2em;
 				margin-right: 0.25em;
 				margin-bottom: 0.35em;
+				padding: 0;
 				background-color: #282828;
 				color: #DDD;
 				border: 2px solid #575757;
 			}
+			/* #terrainPanel button:not(.materialIcon) {
+				width: auto;
+				padding-left: 0.55em;
+				padding-right: 0.55em;
+			} */
 			#terrainPanel button:hover {
 				background-color: #575757;
 				color: white;
@@ -64,6 +71,7 @@
 				margin-bottom: 0.35em;
 			}
 			#texturePaintRow {
+				width: 100%;
 				margin-top: 0.35em;
 			}
 			#textureLayerPalette {
@@ -97,6 +105,7 @@
 			.materialIcon {
 				font-family: 'MaterialIcons-Regular';
 				font-size: 1.75em;
+				width: 2.35em;
 			}
 			.materialIcon.active {
 				background-color: #682A2D;
@@ -139,7 +148,7 @@
 		<div id="terrainPanel">
 			<h2>Terrain</h2>
 			<input id="activeTerrainName" type="text" placeholder="Terrain name..." onsubmit="renameTerrain" />
-			<button class="materialIcon" onclick="clickSelectTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select existing terrain from content">&#xE1BC;</button>
+			<button class="materialIcon" onclick="clickSelectTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select existing terrain from content">&#xE43F;</button>
 			<button class="materialIcon" onclick="clickCreateTerrain" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Create a new terrain asset">&#xE43E;</button>
 
 			<h3>Tools</h3>
@@ -178,13 +187,13 @@
 				<h3>Texture Paint</h3>
 				<div class="toolRow">
 					<button group="textureTool" class="materialIcon active" onclick="clickTexturePaint" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Paint selected texture layer">&#xE3AE;</button>
-					<button group="textureTool" class="materialIcon" onclick="clickTextureErase" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Erase selected texture layer">&#xE14C;</button>
+					<button group="textureTool" class="materialIcon" onclick="clickTextureErase" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Erase selected texture layer">&#xE3bC;</button>
 					<button group="textureTool" class="materialIcon" onclick="clickTextureSmooth" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Smooth/blend texture weights">&#xE3A2;</button>
-					<button group="textureTool" class="materialIcon" onclick="clickTextureFill" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill terrain with selected texture layer">&#xE243;</button>
-					<button group="textureTool" class="materialIcon" onclick="clickTexturePick" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Pick/sample texture layer from terrain">&#xE3B7;</button>
+					<!-- <button group="textureTool" class="materialIcon" onclick="clickTextureFill" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill terrain with selected texture layer (on click)">&#xE23A;</button> -->
+					<button group="textureTool" class="materialIcon" onclick="clickTexturePick" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Pick/sample texture layer from terrain">&#xE3B8;</button>
 				</div>
 				<div class="toolRow">
-					<button class="materialIcon" onclick="clickFillLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill entire terrain with selected texture layer">&#xE243;</button>
+					<button class="materialIcon" onclick="clickFillLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Fill entire terrain with selected texture layer">&#xE23A;</button>
 					<button class="materialIcon" onclick="clickTextureClear" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Clear selected texture layer weights">&#xE872;</button>
 					<button class="materialIcon" onclick="clickAutoMaterial" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Generate grass/rock/snow weights from slope and height">&#xE8B8;</button>
 					<button class="materialIcon" onclick="clickWeightDebug" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Show selected layer weight-map debug readout">&#xE8F4;</button>
@@ -197,6 +206,7 @@
 				</div>
 				<div class="toolRow">
 					<button class="materialIcon" onclick="clickAddLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Add texture layer">&#xE145;</button>
+					<button class="materialIcon" onclick="clickReplaceLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Replace selected layer texture">&#xE3C9;</button>
 					<button class="materialIcon" onclick="clickRemoveLayer" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Remove selected texture layer">&#xE872;</button>
 					<button class="materialIcon" onclick="clickLayerUp" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Move selected texture layer up">&#xE5D8;</button>
 					<button class="materialIcon" onclick="clickLayerDown" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Move selected texture layer down">&#xE5DB;</button>
@@ -206,7 +216,7 @@
 					<button class="materialIcon" onclick="clickTriplanar" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Toggle triplanar cliff projection for selected layer">&#xE3B6;</button>
 				</div>
 				<div id="textureLayerPalette">
-					<span id="textureLayerSwatchTemplate" class="layerSwatch" onclick="clickLayerSwatch" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select texture layer">
+					<span id="textureLayerSwatchTemplate" class="layerSwatch" onclick="clickLayerSwatch" onmouseenter="buttonMouseEnter" onmouseleave="buttonMouseLeave" onmousemove="buttonMouseMove" data-tooltip="Select texture layer for painting">
 						<span class="layerSwatchThumb"></span>
 						<span class="layerSwatchLabel">Layer</span>
 					</span>

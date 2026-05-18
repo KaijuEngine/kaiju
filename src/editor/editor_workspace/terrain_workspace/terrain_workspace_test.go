@@ -164,6 +164,7 @@ func TestTerrainWorkspaceMarkupSplitsToolRows(t *testing.T) {
 		`id="texturePaintRow"`,
 		`onclick="clickModeTexture"`,
 		`onclick="clickTexturePaint"`,
+		`onclick="clickReplaceLayer"`,
 		`id="textureLayerSelect"`,
 		`id="textureLayerPalette"`,
 		`id="textureLayerName"`,
