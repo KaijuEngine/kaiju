@@ -49,19 +49,20 @@ import (
 )
 
 type Material struct {
-	Id              string
-	shaderInfo      ShaderDataCompiled
-	renderPass      *RenderPass
-	pipelineInfo    ShaderPipelineDataCompiled
-	Shader          *Shader
-	Textures        []*Texture
-	Instances       map[string]*Material
-	Root            weak.Pointer[Material]
-	PrepassMaterial weak.Pointer[Material]
-	mutex           sync.Mutex
-	IsLit           bool
-	ReceivesShadows bool
-	CastsShadows    bool
+	Id               string
+	shaderInfo       ShaderDataCompiled
+	renderPass       *RenderPass
+	pipelineInfo     ShaderPipelineDataCompiled
+	Shader           *Shader
+	Textures         []*Texture
+	Instances        map[string]*Material
+	Root             weak.Pointer[Material]
+	PrepassMaterial  weak.Pointer[Material]
+	mutex            sync.Mutex
+	OcclusionCulling OcclusionCullingMode
+	IsLit            bool
+	ReceivesShadows  bool
+	CastsShadows     bool
 }
 
 func (m *Material) RenderPass() *RenderPass { return m.renderPass }
@@ -84,14 +85,19 @@ type MaterialTextureData struct {
 }
 
 type MaterialData struct {
-	Shader          string `options:""`                  // Blank = fallback
-	RenderPass      string `options:""`                  // Blank = fallback
-	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
-	Textures        []MaterialTextureData
-	PrepassMaterial string
-	IsLit           bool
-	ReceivesShadows bool
-	CastsShadows    bool
+	Shader           string `options:""`                  // Blank = fallback
+	RenderPass       string `options:""`                  // Blank = fallback
+	ShaderPipeline   string `options:"" label:"Pipeline"` // Blank = fallback
+	Textures         []MaterialTextureData
+	PrepassMaterial  string
+	OcclusionCulling string `options:"OcclusionCullingMode"`
+	IsLit            bool
+	ReceivesShadows  bool
+	CastsShadows     bool
+}
+
+func (d MaterialData) ListOcclusionCulling() []string {
+	return []string{"Default", "Enabled", "Disabled"}
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
@@ -145,11 +151,12 @@ func (d *MaterialData) Compile(assets assets.Database, device *GPUDevice) (*Mate
 func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, copyShader bool) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.CompileExt").End()
 	c := &Material{
-		Textures:        make([]*Texture, len(d.Textures)),
-		Instances:       make(map[string]*Material),
-		IsLit:           d.IsLit,
-		ReceivesShadows: d.ReceivesShadows,
-		CastsShadows:    d.CastsShadows,
+		Textures:         make([]*Texture, len(d.Textures)),
+		Instances:        make(map[string]*Material),
+		OcclusionCulling: ParseOcclusionCullingMode(d.OcclusionCulling),
+		IsLit:            d.IsLit,
+		ReceivesShadows:  d.ReceivesShadows,
+		CastsShadows:     d.CastsShadows,
 	}
 	sd := ShaderData{}
 	rp := RenderPassData{}

@@ -58,6 +58,11 @@ func (g *GPUDevice) CopyBufferToImage(buffer GPUBuffer, image GPUImage, width, h
 	g.copyBufferToImageImpl(buffer, image, width, height, layerCount)
 }
 
+func (g *GPUDevice) CopyImage(src, dst GPUImage, width, height uint32, aspect GPUImageAspectFlags, cmd *CommandRecorder) {
+	defer tracing.NewRegion("GPUDevice.CopyImage").End()
+	g.copyImageImpl(src, dst, width, height, aspect, cmd)
+}
+
 func (g *GPUDevice) WriteBufferToImageRegion(image GPUImage, requests []GPUImageWriteRequest) error {
 	defer tracing.NewRegion("GPUDevice.WriteBufferToImageRegion").End()
 	return g.writeBufferToImageRegionImpl(image, requests)

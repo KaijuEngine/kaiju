@@ -621,6 +621,7 @@ var (
 		"StringVkImageUsageFlagBits":     StringVkImageUsageFlagBits,
 		"StringVkMemoryPropertyFlagBits": StringVkMemoryPropertyFlagBits,
 		"StringVkImageAspectFlagBits":    StringVkImageAspectFlagBits,
+		"OcclusionCullingMode":           StringOcclusionCullingMode,
 	}
 )
 

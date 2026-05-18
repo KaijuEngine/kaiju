@@ -76,6 +76,14 @@ func (g *GPUDevice) BlitTargets(passes []*RenderPass) {
 	g.blitTargetsImpl(passes)
 }
 
+func (g *GPUDevice) OcclusionDepthSource() (*Texture, bool) {
+	pass, ok := g.LogicalDevice.renderPassCache["opaque"]
+	if !ok || pass == nil {
+		return nil, false
+	}
+	return pass.OcclusionDepthSource()
+}
+
 func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)

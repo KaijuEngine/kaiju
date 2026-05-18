@@ -159,7 +159,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
 			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
-			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
+			UI:      cameras.NewUIContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
 		},
 	}
 	host.workGroup.Init()

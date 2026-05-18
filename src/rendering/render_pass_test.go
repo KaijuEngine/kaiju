@@ -213,3 +213,46 @@ func TestRenderPassDataCompile(t *testing.T) {
 		t.Fatalf("subpass data = %+v", compiled.Subpass)
 	}
 }
+
+func TestFindOpaqueDepthAttachment(t *testing.T) {
+	pass := RenderPass{
+		construction: RenderPassDataCompiled{
+			Name: "opaque",
+			AttachmentDescriptions: []RenderPassAttachmentDescriptionCompiled{
+				{Image: RenderPassAttachmentImageCompiled{Name: "opaque.color"}, Format: GPUFormatR8g8b8a8Unorm},
+				{Image: RenderPassAttachmentImageCompiled{Name: "opaque.depth"}, Format: GPUFormatD32Sfloat},
+			},
+		},
+	}
+	idx, ok := pass.findOpaqueDepthAttachment()
+	if !ok || idx != 1 {
+		t.Fatalf("opaque depth attachment = %d, %v", idx, ok)
+	}
+	pass.construction.Name = "transparent"
+	if _, ok := pass.findOpaqueDepthAttachment(); ok {
+		t.Fatalf("non-opaque pass should not expose an occlusion depth source")
+	}
+}
+
+func TestAttachmentFinalAccess(t *testing.T) {
+	cases := []struct {
+		name string
+		desc RenderPassAttachmentDescriptionCompiled
+		want GPUAccessFlags
+	}{
+		{"shader read", RenderPassAttachmentDescriptionCompiled{FinalLayout: GPUImageLayoutShaderReadOnlyOptimal}, GPUAccessShaderReadBit},
+		{"transfer source", RenderPassAttachmentDescriptionCompiled{FinalLayout: GPUImageLayoutTransferSrcOptimal}, GPUAccessTransferReadBit},
+		{"depth write explicit", RenderPassAttachmentDescriptionCompiled{
+			FinalLayout: GPUImageLayoutDepthStencilAttachmentOptimal,
+			Image:       RenderPassAttachmentImageCompiled{Access: GPUAccessDepthStencilAttachmentWriteBit},
+		}, GPUAccessDepthStencilAttachmentWriteBit},
+		{"depth write inferred", RenderPassAttachmentDescriptionCompiled{
+			FinalLayout: GPUImageLayoutDepthStencilAttachmentOptimal,
+		}, GPUAccessDepthStencilAttachmentReadBit | GPUAccessDepthStencilAttachmentWriteBit},
+	}
+	for _, tc := range cases {
+		if got := attachmentFinalAccess(&tc.desc); got != tc.want {
+			t.Fatalf("%s access = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

@@ -52,16 +52,18 @@ import (
 )
 
 type RenderPass struct {
-	Handle       vk.RenderPass
-	Buffer       GPUFrameBuffer
-	textures     []Texture
-	construction RenderPassDataCompiled
-	subpasses    []RenderPassSubpass
-	cmd          [maxFramesInFlight]CommandRecorder
-	cmdSecondary [maxFramesInFlight]CommandRecorderSecondary
-	currentIdx   int
-	subpassIdx   int
-	frame        int
+	Handle                 vk.RenderPass
+	Buffer                 GPUFrameBuffer
+	textures               []Texture
+	occlusionDepthCopy     Texture
+	occlusionDepthCopyFrom int
+	construction           RenderPassDataCompiled
+	subpasses              []RenderPassSubpass
+	cmd                    [maxFramesInFlight]CommandRecorder
+	cmdSecondary           [maxFramesInFlight]CommandRecorderSecondary
+	currentIdx             int
+	subpassIdx             int
+	frame                  int
 }
 
 type RenderPassSubpass struct {
@@ -78,6 +80,13 @@ func (r *RenderPass) Width() int  { return r.construction.Width }
 func (r *RenderPass) Height() int { return r.construction.Height }
 
 func (r *RenderPass) Texture(index int) *Texture { return &r.textures[index] }
+
+func (r *RenderPass) OcclusionDepthSource() (*Texture, bool) {
+	if !r.occlusionDepthCopy.RenderId.IsValid() {
+		return nil, false
+	}
+	return &r.occlusionDepthCopy, true
+}
 
 func (r *RenderPass) IsShadowPass() bool {
 	// TODO:  Need another way to denote this is a shadow pass
@@ -207,8 +216,13 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 	return nil
 }
 
-func (r *RenderPass) endSubpasses() {
+func (r *RenderPass) endRenderPass(device *GPUDevice) {
 	vk.CmdEndRenderPass(r.cmd[r.frame].buffer)
+	r.markAttachmentFinalLayouts(device)
+}
+
+func (r *RenderPass) endSubpasses(device *GPUDevice) {
+	r.endRenderPass(device)
 	r.cmd[r.frame].End()
 }
 
@@ -267,8 +281,9 @@ func isDepthFormat(format vulkan_const.Format) bool {
 
 func NewRenderPass(device *GPUDevice, setup *RenderPassDataCompiled) (*RenderPass, error) {
 	p := &RenderPass{
-		construction: *setup,
-		textures:     make([]Texture, 0, len(setup.AttachmentDescriptions)),
+		occlusionDepthCopyFrom: -1,
+		construction:           *setup,
+		textures:               make([]Texture, len(setup.AttachmentDescriptions)),
 	}
 	for i := range len(setup.AttachmentDescriptions) {
 		a := &setup.AttachmentDescriptions[i]
@@ -280,7 +295,7 @@ func NewRenderPass(device *GPUDevice, setup *RenderPassDataCompiled) (*RenderPas
 		if k == "" {
 			k = fmt.Sprintf("renderPass-%s-%d", setup.Name, i)
 		}
-		p.textures = append(p.textures, Texture{Key: k})
+		p.textures[i] = Texture{Key: k}
 	}
 	return p, p.Recontstruct(device)
 }
@@ -353,6 +368,9 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				device.TransitionImageLayout(&p.textures[i].RenderId,
 					a.InitialLayout, img.Aspect, img.Access, nil)
 			}
+		}
+		if err := p.createOcclusionDepthCopy(device, w, h); err != nil {
+			return err
 		}
 	}
 	attachments := make([]vk.AttachmentDescription, len(r.AttachmentDescriptions))
@@ -496,6 +514,9 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 		device.LogicalDevice.FreeTexture(&p.textures[i].RenderId)
 		p.textures[i].RenderId = TextureId{}
 	}
+	device.LogicalDevice.FreeTexture(&p.occlusionDepthCopy.RenderId)
+	p.occlusionDepthCopy = Texture{}
+	p.occlusionDepthCopyFrom = -1
 	for i := range p.subpasses {
 		for j := range len(p.subpasses[i].cmd) {
 			p.subpasses[i].cmd[j].Destroy(device)
@@ -507,5 +528,116 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 	}
 	for i := range p.cmdSecondary {
 		p.cmdSecondary[i].Destroy(device)
+	}
+}
+
+func (p *RenderPass) createOcclusionDepthCopy(device *GPUDevice, width, height int32) error {
+	sourceIdx, ok := p.findOpaqueDepthAttachment()
+	if !ok {
+		return nil
+	}
+	source := &p.construction.AttachmentDescriptions[sourceIdx]
+	if source.Image.Usage&GPUImageUsageTransferSrcBit == 0 {
+		slog.Warn("opaque depth attachment is not copyable; occlusion depth reuse disabled",
+			"renderPass", p.construction.Name, "attachment", source.Image.Name)
+		return nil
+	}
+	p.occlusionDepthCopyFrom = sourceIdx
+	p.occlusionDepthCopy = Texture{
+		Key:    "opaque.occlusion_depth",
+		Width:  int(width),
+		Height: int(height),
+	}
+	id := &p.occlusionDepthCopy.RenderId
+	err := device.CreateImage(id, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+		ImageType:   GPUImageType2d,
+		Extent:      matrix.Vec3i{width, height, 1},
+		MipLevels:   1,
+		ArrayLayers: 1,
+		Format:      source.Format,
+		Tiling:      GPUImageTilingOptimal,
+		Usage:       GPUImageUsageTransferDstBit | GPUImageUsageSampledBit,
+		Samples:     GPUSampleCount1Bit,
+	})
+	if err != nil {
+		return err
+	}
+	if err = device.LogicalDevice.CreateImageView(id, GPUImageAspectDepthBit, GPUImageViewType2d); err != nil {
+		device.LogicalDevice.FreeTexture(id)
+		return err
+	}
+	id.Sampler, err = device.CreateTextureSampler(1, GPUFilterLinear)
+	if err != nil {
+		device.LogicalDevice.FreeTexture(id)
+		return err
+	}
+	device.TransitionImageLayout(id, GPUImageLayoutShaderReadOnlyOptimal,
+		GPUImageAspectDepthBit, GPUAccessShaderReadBit, nil)
+	return nil
+}
+
+func (p *RenderPass) findOpaqueDepthAttachment() (int, bool) {
+	if p.construction.Name != "opaque" {
+		return -1, false
+	}
+	for i := range p.construction.AttachmentDescriptions {
+		if p.construction.AttachmentDescriptions[i].Image.Name == "opaque.depth" &&
+			p.construction.AttachmentDescriptions[i].IsDepthFormat() {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func (p *RenderPass) attachmentTexture(device *GPUDevice, attachment int) (*Texture, bool) {
+	if attachment < 0 || attachment >= len(p.construction.AttachmentDescriptions) {
+		return nil, false
+	}
+	img := &p.construction.AttachmentDescriptions[attachment].Image
+	if !img.IsInvalid() {
+		return &p.textures[attachment], p.textures[attachment].RenderId.IsValid()
+	}
+	if img.ExistingImage == "" {
+		return nil, false
+	}
+	for _, pass := range device.LogicalDevice.renderPassCache {
+		if tex, ok := pass.findTextureByName(img.ExistingImage); ok {
+			return tex, true
+		}
+	}
+	return nil, false
+}
+
+func (p *RenderPass) markAttachmentFinalLayouts(device *GPUDevice) {
+	for i := range p.construction.AttachmentDescriptions {
+		desc := &p.construction.AttachmentDescriptions[i]
+		tex, ok := p.attachmentTexture(device, i)
+		if !ok {
+			continue
+		}
+		tex.RenderId.Layout = desc.FinalLayout
+		tex.RenderId.Access = attachmentFinalAccess(desc)
+	}
+}
+
+func attachmentFinalAccess(desc *RenderPassAttachmentDescriptionCompiled) GPUAccessFlags {
+	switch desc.FinalLayout {
+	case GPUImageLayoutShaderReadOnlyOptimal:
+		return GPUAccessShaderReadBit
+	case GPUImageLayoutTransferSrcOptimal:
+		return GPUAccessTransferReadBit
+	case GPUImageLayoutTransferDstOptimal:
+		return GPUAccessTransferWriteBit
+	case GPUImageLayoutColorAttachmentOptimal:
+		return GPUAccessColorAttachmentReadBit | GPUAccessColorAttachmentWriteBit
+	case GPUImageLayoutDepthStencilReadOnlyOptimal, GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal:
+		return GPUAccessDepthStencilAttachmentReadBit
+	case GPUImageLayoutDepthStencilAttachmentOptimal, GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal:
+		if desc.Image.Access != 0 {
+			return desc.Image.Access
+		}
+		return GPUAccessDepthStencilAttachmentReadBit | GPUAccessDepthStencilAttachmentWriteBit
+	default:
+		return desc.Image.Access
 	}
 }

@@ -123,15 +123,16 @@ func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
 
 type ShaderDataBase struct {
-	aabb        graviton.AABB
-	destroyed   bool
-	deactivated bool
-	viewCulled  bool
-	visibility  VisibilityState
-	shadows     []DrawInstance
-	transform   *matrix.Transform
-	InitModel   matrix.Mat4
-	model       matrix.Mat4
+	aabb             graviton.AABB
+	destroyed        bool
+	deactivated      bool
+	viewCulled       bool
+	visibility       VisibilityState
+	occlusionCulling OcclusionCullingMode
+	shadows          []DrawInstance
+	transform        *matrix.Transform
+	InitModel        matrix.Mat4
+	model            matrix.Mat4
 }
 
 type ShaderDataCombine struct {
@@ -165,6 +166,9 @@ func (s *ShaderDataBase) IsInView() bool                           { return !s.d
 func (s *ShaderDataBase) Model() matrix.Mat4                       { return s.model }
 func (s *ShaderDataBase) ModelPtr() *matrix.Mat4                   { return &s.model }
 func (s *ShaderDataBase) VisibilityState() *VisibilityState        { return &s.visibility }
+func (s *ShaderDataBase) SetOcclusionCullingMode(mode OcclusionCullingMode) {
+	s.occlusionCulling = mode
+}
 
 func (s *ShaderDataBase) Destroy() {
 	s.destroyed = true
@@ -395,6 +399,7 @@ func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights Ligh
 			continue
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
+		d.updateOcclusionEligibility(instanceBase)
 		d.countVisibility(instanceBase)
 		if instanceBase.IsInView() {
 			if d.MaterialInstance.IsLit {

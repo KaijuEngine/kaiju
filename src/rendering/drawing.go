@@ -61,6 +61,8 @@ type Drawing struct {
 	Sort int
 	// ViewCuller optionally culls the drawing based on the view frustum.
 	ViewCuller ViewCuller
+	// OcclusionCulling overrides the material/default occlusion eligibility policy.
+	OcclusionCulling OcclusionCullingMode
 }
 
 // IsValid reports whether the Drawing is properly configured for rendering.
@@ -154,6 +156,7 @@ func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGro
 		draw = &rpGroup.draws[len(rpGroup.draws)-1]
 	}
 	drawing.ShaderData.setTransform(drawing.Transform)
+	drawing.ShaderData.Base().occlusionCulling = drawing.OcclusionCulling
 	idx := d.matchGroup(draw, drawing)
 	if idx >= 0 && !draw.instanceGroups[idx].destroyed {
 		draw.instanceGroups[idx].AddInstance(drawing.ShaderData)

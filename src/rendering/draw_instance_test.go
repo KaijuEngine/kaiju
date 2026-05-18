@@ -40,6 +40,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/matrix"
 )
@@ -341,6 +342,186 @@ func TestDrawingsVisibilityCounters(t *testing.T) {
 	}
 	if got := drawings.VisibilityCounters(); got != want {
 		t.Fatalf("visibility counters = %+v, want %+v", got, want)
+	}
+}
+
+func testOcclusionRenderPass(name string, hasDepth bool) *RenderPass {
+	pass := &RenderPass{construction: RenderPassDataCompiled{Name: name}}
+	subpass := RenderPassSubpassDescriptionCompiled{}
+	if hasDepth {
+		subpass.DepthStencilAttachment = []RenderPassAttachmentReferenceCompiled{{Attachment: 1}}
+	}
+	pass.construction.SubpassDescriptions = []RenderPassSubpassDescriptionCompiled{subpass}
+	return pass
+}
+
+func testOcclusionMaterial(id string, pass *RenderPass, depthWrite, blend bool) *Material {
+	return &Material{
+		Id:         id,
+		renderPass: pass,
+		pipelineInfo: ShaderPipelineDataCompiled{
+			DepthStencil: ShaderPipelineDepthStencilCompiled{
+				DepthTestEnable:  true,
+				DepthWriteEnable: depthWrite,
+			},
+			ColorBlendAttachments: []ShaderPipelineColorBlendAttachmentsCompiled{{
+				BlendEnable: blend,
+			}},
+		},
+	}
+}
+
+func testOcclusionGroup(material *Material, culler ViewCuller) DrawInstanceGroup {
+	return DrawInstanceGroup{
+		Mesh:             NewMesh("mesh", testVerts(), []uint32{0, 1}),
+		MaterialInstance: material,
+		viewCuller:       culler,
+	}
+}
+
+func testOcclusionBase(bounds graviton.AABB) ShaderDataBase {
+	base := NewShaderDataBase()
+	base.UpdateModel(nil, bounds)
+	return base
+}
+
+func testOcclusionCameraContainer() cameras.Container {
+	camera := cameras.NewStandardCamera(800, 600, 800, 600, matrix.Vec3{0, 0, 5})
+	return cameras.NewContainer(camera)
+}
+
+func TestOcclusionEligibilityDefaults(t *testing.T) {
+	container := testOcclusionCameraContainer()
+	pass := testOcclusionRenderPass("opaque", true)
+	base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	group := testOcclusionGroup(testOcclusionMaterial("basic", pass, true, false), &container)
+	group.updateOcclusionEligibility(&base)
+	if !base.VisibilityState().OcclusionEligible {
+		t.Fatalf("opaque depth-writing primary-camera drawing should be eligible")
+	}
+
+	cases := []struct {
+		name     string
+		material *Material
+		culler   ViewCuller
+	}{
+		{"no depth attachment", testOcclusionMaterial("basic", testOcclusionRenderPass("opaque", false), true, false), &container},
+		{"no depth write", testOcclusionMaterial("basic", pass, false, false), &container},
+		{"transparent material", testOcclusionMaterial("basic_transparent", pass, true, false), &container},
+		{"transparent blend", testOcclusionMaterial("basic", pass, true, true), &container},
+		{"transparent pass", testOcclusionMaterial("basic", testOcclusionRenderPass("transparent", true), true, false), &container},
+		{"shadow pass", testOcclusionMaterial("basic", testOcclusionRenderPass("light_offscreen", true), true, false), &container},
+		{"gizmo pass", testOcclusionMaterial("basic", testOcclusionRenderPass("gizmo_overlay", true), true, false), &container},
+		{"particle material", testOcclusionMaterial("particle", pass, true, false), &container},
+	}
+	uiContainer := cameras.NewUIContainer(container.Camera)
+	cases = append(cases, struct {
+		name     string
+		material *Material
+		culler   ViewCuller
+	}{"ui camera", testOcclusionMaterial("basic", pass, true, false), &uiContainer})
+
+	for _, tc := range cases {
+		base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+		base.VisibilityState().LastOcclusionVisible = false
+		group := testOcclusionGroup(tc.material, tc.culler)
+		group.updateOcclusionEligibility(&base)
+		if base.VisibilityState().OcclusionEligible {
+			t.Fatalf("%s should be ineligible by default", tc.name)
+		}
+		if !base.VisibilityState().LastOcclusionVisible {
+			t.Fatalf("%s should fail open", tc.name)
+		}
+	}
+}
+
+func TestOcclusionEligibilityOverrides(t *testing.T) {
+	container := testOcclusionCameraContainer()
+	pass := testOcclusionRenderPass("opaque", true)
+
+	particle := testOcclusionMaterial("particle", pass, true, false)
+	particle.EnableOcclusionCulling()
+	base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	group := testOcclusionGroup(particle, &container)
+	group.updateOcclusionEligibility(&base)
+	if !base.VisibilityState().OcclusionEligible {
+		t.Fatalf("explicitly enabled particle material should be eligible")
+	}
+
+	disabled := testOcclusionMaterial("basic", pass, true, false)
+	disabled.DisableOcclusionCulling()
+	base = testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	group = testOcclusionGroup(disabled, &container)
+	group.updateOcclusionEligibility(&base)
+	if base.VisibilityState().OcclusionEligible {
+		t.Fatalf("explicitly disabled material should be ineligible")
+	}
+
+	enabledMaterial := testOcclusionMaterial("basic", pass, true, false)
+	base = testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	base.SetOcclusionCullingMode(OcclusionCullingDisabled)
+	group = testOcclusionGroup(enabledMaterial, &container)
+	group.updateOcclusionEligibility(&base)
+	if base.VisibilityState().OcclusionEligible {
+		t.Fatalf("drawing/instance opt-out should override eligible material")
+	}
+
+	transparent := testOcclusionMaterial("basic_transparent", pass, true, false)
+	base = testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	base.SetOcclusionCullingMode(OcclusionCullingEnabled)
+	group = testOcclusionGroup(transparent, &container)
+	group.updateOcclusionEligibility(&base)
+	if !base.VisibilityState().OcclusionEligible {
+		t.Fatalf("drawing/instance opt-in should override default transparent ineligibility")
+	}
+}
+
+func TestDrawingOcclusionOverrideIsCopiedToInstance(t *testing.T) {
+	pass := testOcclusionRenderPass("opaque", true)
+	material := testOcclusionMaterial("basic", pass, true, false)
+	mesh := NewMesh("mesh", testVerts(), []uint32{0, 1})
+	instance := newTestDrawInstance()
+	drawing := Drawing{Material: material, Mesh: mesh, ShaderData: instance}
+	drawing.DisableOcclusionCulling()
+	drawings := NewDrawings()
+	group := RenderPassGroup{renderPass: pass}
+	drawings.addToRenderPassGroup(&drawing, &group)
+	if instance.Base().occlusionCulling != OcclusionCullingDisabled {
+		t.Fatalf("drawing occlusion override was not copied to instance")
+	}
+}
+
+func TestOcclusionEligibilityConservativeThresholds(t *testing.T) {
+	container := testOcclusionCameraContainer()
+	pass := testOcclusionRenderPass("opaque", true)
+	material := testOcclusionMaterial("basic", pass, true, false)
+
+	tiny := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), DefaultOcclusionMinExtent*0.5))
+	group := testOcclusionGroup(material, &container)
+	group.updateOcclusionEligibility(&tiny)
+	if tiny.VisibilityState().OcclusionEligible {
+		t.Fatalf("tiny object should be ineligible")
+	}
+
+	nearCamera := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3{0, 0, 4.9}, 0.05))
+	group.updateOcclusionEligibility(&nearCamera)
+	if nearCamera.VisibilityState().OcclusionEligible {
+		t.Fatalf("near-camera object should be ineligible")
+	}
+
+	touchingNearPlane := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3{0, 0, 4.99}, 0.02))
+	group.updateOcclusionEligibility(&touchingNearPlane)
+	if touchingNearPlane.VisibilityState().OcclusionEligible {
+		t.Fatalf("near-plane object should be ineligible")
+	}
+
+	var invalidContainer cameras.Container
+	invalid := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	invalid.VisibilityState().LastOcclusionVisible = false
+	group = testOcclusionGroup(material, &invalidContainer)
+	group.updateOcclusionEligibility(&invalid)
+	if invalid.VisibilityState().OcclusionEligible || !invalid.VisibilityState().LastOcclusionVisible {
+		t.Fatalf("invalid camera state should fail open: %+v", *invalid.VisibilityState())
 	}
 }
 

@@ -39,14 +39,24 @@ package cameras
 import "kaijuengine.com/engine/graviton"
 
 type Container struct {
-	Camera Camera
+	Camera           Camera
+	occlusionCulling bool
 }
 
-func NewContainer(camera Camera) Container      { return Container{camera} }
-func (c *Container) ChangeCamera(camera Camera) { c.Camera = camera }
-func (c *Container) IsValid() bool              { return c.Camera != nil }
-func (c *Container) Equal(other Camera) bool    { return c.Camera == other }
-func (c *Container) ViewChanged() bool          { return c.Camera.IsDirty() }
+func NewContainer(camera Camera) Container {
+	return Container{Camera: camera, occlusionCulling: true}
+}
+
+func NewUIContainer(camera Camera) Container {
+	return Container{Camera: camera, occlusionCulling: false}
+}
+
+func (c *Container) ChangeCamera(camera Camera)       { c.Camera = camera }
+func (c *Container) IsValid() bool                    { return c.Camera != nil }
+func (c *Container) Equal(other Camera) bool          { return c.Camera == other }
+func (c *Container) ViewChanged() bool                { return c.Camera.IsDirty() }
+func (c *Container) SetOcclusionCulling(enabled bool) { c.occlusionCulling = enabled }
+func (c *Container) OcclusionCullingEnabled() bool    { return c.occlusionCulling }
 
 func (c *Container) IsInView(box graviton.AABB) bool {
 	return box.IntersectsFrustum(c.Camera.Frustum())

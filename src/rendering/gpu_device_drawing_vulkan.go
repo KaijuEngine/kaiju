@@ -140,11 +140,38 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		vk.CmdDrawIndexed(cmd.buffer, mid.indexCount, 1, 0, 0, 0)
 		renderPass.ExecuteSecondaryCommands()
 	}
-	renderPass.endSubpasses()
+	renderPass.endRenderPass(g)
+	g.copyOcclusionDepth(renderPass)
+	renderPass.cmd[g.Painter.currentFrame].End()
 	// TODO:  Make this more generic so that there can be a sequence of stages
 	// that require other stages to be done. For now I'm just adding the pre and
 	// post stages to make sure shadows go first
 	g.Painter.forceQueueCommand(renderPass.cmd[g.Painter.currentFrame], renderPass.IsShadowPass())
+}
+
+func (g *GPUDevice) copyOcclusionDepth(renderPass *RenderPass) {
+	defer tracing.NewRegion("GPUDevice.copyOcclusionDepth").End()
+	if renderPass.occlusionDepthCopyFrom < 0 || !renderPass.occlusionDepthCopy.RenderId.IsValid() {
+		return
+	}
+	source, ok := renderPass.attachmentTexture(g, renderPass.occlusionDepthCopyFrom)
+	if !ok || !source.RenderId.IsValid() {
+		return
+	}
+	srcId := &source.RenderId
+	dstId := &renderPass.occlusionDepthCopy.RenderId
+	cmd := &renderPass.cmd[g.Painter.currentFrame]
+	srcLayout := srcId.Layout
+	srcAccess := srcId.Access
+	g.TransitionImageLayout(srcId, GPUImageLayoutTransferSrcOptimal,
+		GPUImageAspectDepthBit, GPUAccessTransferReadBit, cmd)
+	g.TransitionImageLayout(dstId, GPUImageLayoutTransferDstOptimal,
+		GPUImageAspectDepthBit, GPUAccessTransferWriteBit, cmd)
+	g.CopyImage(srcId.Image, dstId.Image, uint32(srcId.Width), uint32(srcId.Height),
+		GPUImageAspectDepthBit, cmd)
+	g.TransitionImageLayout(dstId, GPUImageLayoutShaderReadOnlyOptimal,
+		GPUImageAspectDepthBit, GPUAccessShaderReadBit, cmd)
+	g.TransitionImageLayout(srcId, srcLayout, GPUImageAspectDepthBit, srcAccess, cmd)
 }
 
 func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {

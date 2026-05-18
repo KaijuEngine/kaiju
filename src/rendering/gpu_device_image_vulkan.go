@@ -221,6 +221,40 @@ func (g *GPUDevice) copyBufferToImageImpl(buffer GPUBuffer, image GPUImage, widt
 	}
 }
 
+func (g *GPUDevice) copyImageImpl(src, dst GPUImage, width, height uint32, aspect GPUImageAspectFlags, cmd *CommandRecorder) {
+	defer tracing.NewRegion("Vulkan.copyImageImpl").End()
+	commandBuffer := cmd
+	if cmd == nil {
+		commandBuffer = g.beginSingleTimeCommands()
+		defer g.endSingleTimeCommands(commandBuffer)
+	}
+	if aspect == 0 {
+		aspect = GPUImageAspectColorBit
+	}
+	region := vk.ImageCopy{
+		SrcSubresource: vk.ImageSubresourceLayers{
+			AspectMask:     aspect.toVulkan(),
+			MipLevel:       0,
+			BaseArrayLayer: 0,
+			LayerCount:     1,
+		},
+		DstSubresource: vk.ImageSubresourceLayers{
+			AspectMask:     aspect.toVulkan(),
+			MipLevel:       0,
+			BaseArrayLayer: 0,
+			LayerCount:     1,
+		},
+		Extent: vk.Extent3D{
+			Width:  width,
+			Height: height,
+			Depth:  1,
+		},
+	}
+	vk.CmdCopyImage(commandBuffer.buffer, vk.Image(src.handle),
+		vulkan_const.ImageLayoutTransferSrcOptimal, vk.Image(dst.handle),
+		vulkan_const.ImageLayoutTransferDstOptimal, 1, &region)
+}
+
 func (g *GPUDevice) writeBufferToImageRegionImpl(image GPUImage, requests []GPUImageWriteRequest) error {
 	defer tracing.NewRegion("Vulkan.writeBufferToImageRegion").End()
 	// TODO:  Might need to match up the color here...
