@@ -99,6 +99,12 @@ type TexturePaintResult struct {
 	SampledWeight matrix.Float
 }
 
+// TerrainLayer describes one paintable material layer on a terrain.
+//
+// TextureContentID is the albedo texture currently consumed by the terrain
+// material. NormalContentID and RoughnessContentID are stored for authoring and
+// future material expansion. Locked layers preserve their current contribution
+// during painting, while Hidden and Solo only affect preview packing.
 type TerrainLayer struct {
 	Name               string
 	TextureContentID   string
@@ -117,6 +123,12 @@ type TerrainLayer struct {
 	TriplanarSlope     matrix.Float
 }
 
+// TerrainLayerSet owns the ordered TerrainLayer list and the normalized weight
+// map with matching layer indexes.
+//
+// Mutate layers through this type when possible. Add, remove, move, fill, clear,
+// and paint operations keep the TextureWeightMap shape aligned with Layers and
+// preserve per-texel normalization.
 type TerrainLayerSet struct {
 	Layers        []TerrainLayer
 	WeightMap     *TextureWeightMap
@@ -151,6 +163,13 @@ type TerrainAutoMaterialPreset struct {
 	NoiseSeed     int
 }
 
+// TextureWeightMap stores terrain texture blend weights in cell-major order.
+//
+// The backing layout is ((x + z*Resolution) * Layers) + layer. Every texel is
+// expected to normalize across all layers. Use SetWeightAt followed by
+// NormalizeWeightsAt for direct edits, or prefer PaintTextureLayer for editor
+// brush behavior with falloff, locks, smoothing, replace, sampling, and fill
+// modes.
 type TextureWeightMap struct {
 	Resolution int
 	Layers     int

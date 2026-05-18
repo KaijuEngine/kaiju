@@ -62,6 +62,9 @@ func TestAdjustTerrainBrushValueScalesAndClamps(t *testing.T) {
 }
 
 func TestEffectiveTerrainBrushModeModifiers(t *testing.T) {
+	if got := effectiveTerrainBrushMode(terrain.BrushRaise, false, false); got != terrain.BrushRaise {
+		t.Fatalf("unmodified raise should stay raise, got %d", got)
+	}
 	if got := effectiveTerrainBrushMode(terrain.BrushRaise, true, true); got != terrain.BrushSmooth {
 		t.Fatalf("shift should temporarily smooth, got %d", got)
 	}
@@ -73,6 +76,45 @@ func TestEffectiveTerrainBrushModeModifiers(t *testing.T) {
 	}
 	if got := effectiveTerrainBrushMode(terrain.BrushSmooth, false, true); got != terrain.BrushSmooth {
 		t.Fatalf("ctrl should leave smooth unchanged, got %d", got)
+	}
+}
+
+func TestTerrainWorkspaceToolModeSwitching(t *testing.T) {
+	var w TerrainWorkspace
+	w.toolMode = TerrainToolHeightSculpt
+	w.mode = terrain.BrushRaise
+	w.textureMode = terrain.TextureBrushPaint
+
+	w.clickModeTexture(nil)
+	if w.toolMode != TerrainToolTexturePaint {
+		t.Fatalf("expected texture mode after texture mode click, got %d", w.toolMode)
+	}
+	if w.mode != terrain.BrushRaise {
+		t.Fatalf("texture mode switching should not change height brush, got %d", w.mode)
+	}
+
+	w.clickTextureErase(nil)
+	if w.textureMode != terrain.TextureBrushErase {
+		t.Fatalf("expected texture erase tool, got %d", w.textureMode)
+	}
+	if w.toolMode != TerrainToolTexturePaint {
+		t.Fatalf("texture tool click should leave workspace in texture mode, got %d", w.toolMode)
+	}
+
+	w.clickToolSmooth(nil)
+	if w.toolMode != TerrainToolHeightSculpt {
+		t.Fatalf("height tool click should return to height sculpt mode, got %d", w.toolMode)
+	}
+	if w.mode != terrain.BrushSmooth {
+		t.Fatalf("expected smooth height brush, got %d", w.mode)
+	}
+	if w.textureMode != terrain.TextureBrushErase {
+		t.Fatalf("height tool switching should not change selected texture brush, got %d", w.textureMode)
+	}
+
+	w.clickToolLower(nil)
+	if w.toolMode != TerrainToolHeightSculpt || w.mode != terrain.BrushLower {
+		t.Fatalf("expected lower height brush in height mode, got mode %d brush %d", w.toolMode, w.mode)
 	}
 }
 

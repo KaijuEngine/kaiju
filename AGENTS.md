@@ -517,6 +517,44 @@ rendering.NewMeshCube(cache, size)
 rendering.NewMeshPlane(cache, width, depth)
 ```
 
+## Terrain Texture Painting (`src/engine/terrain`, `src/editor/editor_workspace/terrain_workspace`)
+
+Terrain texture painting uses a separate layer/weight-map path from height
+sculpting:
+
+- `TerrainConfig.Resolution` controls height vertices; `TerrainConfig.PaintResolution`
+  controls texture weights and defaults to the height resolution when unset.
+- `TerrainLayerSet` owns the ordered `TerrainLayer` list plus one
+  `TextureWeightMap`. Layer indexes and weight-map channels must stay aligned.
+- `TextureWeightMap.Weights` is cell-major:
+  `((x + z*Resolution) * Layers) + layer`. Each texel should normalize to `1`
+  across all layers after edits.
+- Prefer `TerrainLayerSet`/`Terrain` helpers (`AddLayer`, `MoveLayer`,
+  `PaintTextureLayer`, `FillLayer`, `ClearLayer`, `ApplyTextureWeightRegion`) over
+  direct slice edits so locks, undo, dirty regions, and splat uploads remain
+  correct.
+- Locked layers preserve their weights during painting. Hidden and Solo affect
+  preview/effective splat packing, not the stored weights.
+- Four terrain layers pack into one RGBA splat texture. Layer 0 maps to R, 1 to
+  G, 2 to B, 3 to A, and layer 4 starts the next splat texture.
+- Texture painting should dirty splat texture regions only; it must not dirty or
+  rebuild heightfield mesh vertices. Height sculpting remains responsible for
+  mesh vertex dirty regions.
+- Editor height brush modifiers are temporary: Shift forces smooth, Ctrl/Cmd
+  inverts raise/lower, and Shift wins when both are held.
+- Terrain UI markup still maps `onclick` to a single Go function name; do not add
+  JavaScript-style chained calls.
+
+Shader/material contract:
+
+- The stock terrain material binds sampler 0 as `Weight Map 0` and samplers 1-4
+  as `Layer Albedo 0` through `Layer Albedo 3`.
+- Keep `terrainWeightMapSlots`, `terrainAlbedoLayerSlots`, terrain material
+  texture labels, generated `terrain.shader` sampler count, and
+  `terrain.frag`'s terrain layer constants in sync.
+- See `docs/engine/terrain_texture_painting.md` for regression notes and the
+  editor smoke-test checklist.
+
 ## UI System (`src/engine/ui/`)
 
 The Kaiju Engine features an optional web-inspired UI system with HTML/CSS-like layout, full event handling, and a markup system for declarative UI creation. The UI renders on a separate orthographic camera (`host.Cameras.UI`) from the main 3D rendering. You can choose to construct the UI without using any HTML/CSS markup, developers can create stylizers directly.

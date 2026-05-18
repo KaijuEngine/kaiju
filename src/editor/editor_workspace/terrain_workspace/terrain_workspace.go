@@ -444,6 +444,9 @@ func (w *TerrainWorkspace) clickConfirmCreate(*document.Element) {
 }
 
 func (w *TerrainWorkspace) highlightButtons(buttons []*document.Element, e *document.Element) {
+	if w.Doc == nil || e == nil {
+		return
+	}
 	for i := range buttons {
 		w.Doc.SetElementClassesWithoutApply(buttons[i], "materialIcon")
 	}
