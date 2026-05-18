@@ -91,6 +91,19 @@ func NewDrawings() Drawings {
 
 func (d *Drawings) HasDrawings() bool { return len(d.renderPassGroups) > 0 }
 
+func (d *Drawings) VisibilityCounters() VisibilityCounters {
+	counters := VisibilityCounters{}
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			draw := &d.renderPassGroups[i].draws[j]
+			for k := range draw.instanceGroups {
+				counters.Add(draw.instanceGroups[k].VisibilityCounters())
+			}
+		}
+	}
+	return counters
+}
+
 func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	defer tracing.NewRegion("Drawings.matchGroup").End()
 	idx := -1

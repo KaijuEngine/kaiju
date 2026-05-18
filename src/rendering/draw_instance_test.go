@@ -71,6 +71,11 @@ func (c *testViewCuller) IsInView(box graviton.AABB) bool {
 
 func (c *testViewCuller) ViewChanged() bool { return c.viewChanged }
 
+func aabbApprox(a, b graviton.AABB) bool {
+	return matrix.Vec3ApproxTo(a.Min(), b.Min(), 0.0001) &&
+		matrix.Vec3ApproxTo(a.Max(), b.Max(), 0.0001)
+}
+
 func TestReflectDuplicateDrawInstance(t *testing.T) {
 	if ReflectDuplicateDrawInstance(nil) != nil {
 		t.Fatalf("nil duplicate should be nil")
@@ -127,6 +132,38 @@ func TestShaderDataBaseActivationAndDestroy(t *testing.T) {
 	}
 }
 
+func TestVisibilityStateDefaultsAndOverrides(t *testing.T) {
+	base := NewShaderDataBase()
+	visibility := base.VisibilityState()
+	if !visibility.FrustumVisible || visibility.OcclusionEligible ||
+		!visibility.LastOcclusionVisible || visibility.ForceVisible {
+		t.Fatalf("default visibility state = %+v", *visibility)
+	}
+	if !base.IsInView() {
+		t.Fatalf("new base should be visible by default")
+	}
+	visibility.FrustumVisible = false
+	if base.IsInView() {
+		t.Fatalf("frustum-hidden instance should not be visible")
+	}
+	visibility.ForceVisible = true
+	if !base.IsInView() {
+		t.Fatalf("force visible should bypass culling state")
+	}
+	base.Deactivate()
+	if base.IsInView() {
+		t.Fatalf("deactivation should still hide force-visible instances")
+	}
+	base.Activate()
+	visibility.ForceVisible = false
+	visibility.FrustumVisible = true
+	visibility.OcclusionEligible = true
+	visibility.LastOcclusionVisible = false
+	if base.IsInView() {
+		t.Fatalf("occlusion-hidden eligible instance should not be visible")
+	}
+}
+
 func TestShaderDataBaseTransformModelAndBounds(t *testing.T) {
 	base := NewShaderDataBase()
 	container := graviton.AABBFromMinMax(matrix.Vec3{-1, -1, -1}, matrix.Vec3{1, 1, 1})
@@ -151,16 +188,45 @@ func TestShaderDataBaseTransformModelAndBounds(t *testing.T) {
 	}
 }
 
+func TestShaderDataBaseTransformBoundsUsesAllCorners(t *testing.T) {
+	base := NewShaderDataBase()
+	container := graviton.AABBFromMinMax(matrix.Vec3{-2, -1, -0.5}, matrix.Vec3{2, 1, 0.5})
+
+	var transform matrix.Transform
+	transform.SetupRawTransform()
+	transform.SetScale(matrix.Vec3{1, 3, 2})
+	transform.SetRotation(matrix.Vec3{0, 0, 45})
+	transform.SetPosition(matrix.Vec3{5, -2, 1})
+	base.setTransform(&transform)
+
+	culler := &testViewCuller{inView: true}
+	base.UpdateModel(culler, container)
+
+	want := container.Transform(base.Model())
+	if !aabbApprox(base.renderBounds(), want) {
+		t.Fatalf("bounds = %+v, want %+v", base.renderBounds(), want)
+	}
+	if !aabbApprox(culler.seen, want) {
+		t.Fatalf("culler saw bounds = %+v, want %+v", culler.seen, want)
+	}
+	renderBounds := base.renderBounds()
+	for _, corner := range container.Transform(base.Model()).Corners() {
+		if !renderBounds.Contains(corner) {
+			t.Fatalf("bounds %+v did not contain transformed corner %v", renderBounds, corner)
+		}
+	}
+}
+
 func TestShaderDataBaseCulling(t *testing.T) {
 	base := NewShaderDataBase()
 	culler := &testViewCuller{inView: false, viewChanged: true}
 	base.UpdateModel(culler, graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
-	if !base.viewCulled || base.IsInView() {
+	if !base.viewCulled || base.VisibilityState().FrustumVisible || base.IsInView() {
 		t.Fatalf("out-of-view culling was not applied")
 	}
 	culler.inView = true
 	base.UpdateModel(culler, graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
-	if base.viewCulled || !base.IsInView() {
+	if base.viewCulled || !base.VisibilityState().FrustumVisible || !base.IsInView() {
 		t.Fatalf("in-view culling was not applied")
 	}
 }
@@ -211,6 +277,70 @@ func TestDrawInstanceGroupAddInstance(t *testing.T) {
 	}
 	if len(group.boundInstanceData) != 3 || group.boundInstanceData[2].length != inst.InstanceBoundDataSize() {
 		t.Fatalf("bound data was not grown: %+v", group.boundInstanceData)
+	}
+}
+
+func TestDrawInstanceGroupVisibilityCounters(t *testing.T) {
+	group := NewDrawInstanceGroup(NewMesh("mesh", testVerts(), []uint32{0, 1}), 16, nil)
+	visible := NewShaderDataBase()
+	group.countVisibility(&visible)
+
+	frustumCulled := NewShaderDataBase()
+	frustumCulled.VisibilityState().FrustumVisible = false
+	group.countVisibility(&frustumCulled)
+
+	occlusionCulled := NewShaderDataBase()
+	occlusionCulled.VisibilityState().OcclusionEligible = true
+	occlusionCulled.VisibilityState().LastOcclusionVisible = false
+	group.countVisibility(&occlusionCulled)
+
+	forced := NewShaderDataBase()
+	forced.VisibilityState().FrustumVisible = false
+	forced.VisibilityState().OcclusionEligible = true
+	forced.VisibilityState().LastOcclusionVisible = false
+	forced.VisibilityState().ForceVisible = true
+	group.countVisibility(&forced)
+
+	deactivated := NewShaderDataBase()
+	deactivated.Deactivate()
+	group.countVisibility(&deactivated)
+
+	want := VisibilityCounters{
+		TotalInstances:  5,
+		FrustumCulled:   1,
+		OcclusionTested: 1,
+		OcclusionCulled: 1,
+		Visible:         2,
+	}
+	if got := group.VisibilityCounters(); got != want {
+		t.Fatalf("visibility counters = %+v, want %+v", got, want)
+	}
+}
+
+func TestDrawingsVisibilityCounters(t *testing.T) {
+	first := DrawInstanceGroup{visibilityCounters: VisibilityCounters{
+		TotalInstances: 2,
+		FrustumCulled:  1,
+		Visible:        1,
+	}}
+	second := DrawInstanceGroup{visibilityCounters: VisibilityCounters{
+		TotalInstances:  3,
+		OcclusionTested: 2,
+		OcclusionCulled: 1,
+		Visible:         2,
+	}}
+	drawings := Drawings{renderPassGroups: []RenderPassGroup{{
+		draws: []ShaderDraw{{instanceGroups: []DrawInstanceGroup{first, second}}},
+	}}}
+	want := VisibilityCounters{
+		TotalInstances:  5,
+		FrustumCulled:   1,
+		OcclusionTested: 2,
+		OcclusionCulled: 1,
+		Visible:         3,
+	}
+	if got := drawings.VisibilityCounters(); got != want {
+		t.Fatalf("visibility counters = %+v, want %+v", got, want)
 	}
 }
 

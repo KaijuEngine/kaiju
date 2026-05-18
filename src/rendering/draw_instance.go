@@ -73,6 +73,43 @@ type DrawInstance interface {
 	renderBounds() graviton.AABB
 }
 
+type VisibilityState struct {
+	FrustumVisible       bool
+	OcclusionEligible    bool
+	LastOcclusionVisible bool
+	ForceVisible         bool
+}
+
+func NewVisibilityState() VisibilityState {
+	return VisibilityState{
+		FrustumVisible:       true,
+		LastOcclusionVisible: true,
+	}
+}
+
+func (v VisibilityState) IsVisible() bool {
+	if v.ForceVisible {
+		return true
+	}
+	return v.FrustumVisible && (!v.OcclusionEligible || v.LastOcclusionVisible)
+}
+
+type VisibilityCounters struct {
+	TotalInstances  int
+	FrustumCulled   int
+	OcclusionTested int
+	OcclusionCulled int
+	Visible         int
+}
+
+func (c *VisibilityCounters) Add(other VisibilityCounters) {
+	c.TotalInstances += other.TotalInstances
+	c.FrustumCulled += other.FrustumCulled
+	c.OcclusionTested += other.OcclusionTested
+	c.OcclusionCulled += other.OcclusionCulled
+	c.Visible += other.Visible
+}
+
 func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
 	val := reflect.ValueOf(target)
 	if !val.IsValid() {
@@ -90,7 +127,7 @@ type ShaderDataBase struct {
 	destroyed   bool
 	deactivated bool
 	viewCulled  bool
-	_           [1]byte // Byte alignment
+	visibility  VisibilityState
 	shadows     []DrawInstance
 	transform   *matrix.Transform
 	InitModel   matrix.Mat4
@@ -113,6 +150,7 @@ func NewShaderDataBase() ShaderDataBase {
 }
 
 func (s *ShaderDataBase) Setup() {
+	s.visibility = NewVisibilityState()
 	s.SetModel(matrix.Mat4Identity())
 }
 
@@ -123,9 +161,10 @@ func (s *ShaderDataBase) Base() *ShaderDataBase                    { return s }
 func (s *ShaderDataBase) SkinningHeader() *SkinnedShaderDataHeader { return nil }
 func (s *ShaderDataBase) CancelDestroy()                           { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool                        { return s.destroyed }
-func (s *ShaderDataBase) IsInView() bool                           { return !s.deactivated && !s.viewCulled }
+func (s *ShaderDataBase) IsInView() bool                           { return !s.deactivated && s.visibility.IsVisible() }
 func (s *ShaderDataBase) Model() matrix.Mat4                       { return s.model }
 func (s *ShaderDataBase) ModelPtr() *matrix.Mat4                   { return &s.model }
+func (s *ShaderDataBase) VisibilityState() *VisibilityState        { return &s.visibility }
 
 func (s *ShaderDataBase) Destroy() {
 	s.destroyed = true
@@ -184,15 +223,18 @@ func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container graviton.A
 	}
 	if s.transform != nil && s.transform.IsDirty() {
 		s.forceUpdateTransformModel()
-		a := s.model.TransformPoint(container.Min())
-		b := s.model.TransformPoint(container.Max())
-		s.aabb = graviton.AABBFromMinMax(a, b)
+		s.aabb = container.Transform(s.model)
 		recalcCulling = true
 	} else if s.transform == nil {
 		s.aabb = container
 	}
 	if recalcCulling {
-		s.viewCulled = !viewCuller.IsInView(s.aabb)
+		if viewCuller != nil {
+			s.visibility.FrustumVisible = viewCuller.IsInView(s.aabb)
+		} else {
+			s.visibility.FrustumVisible = true
+		}
+		s.viewCulled = !s.visibility.FrustumVisible
 	}
 }
 
@@ -223,15 +265,16 @@ func InstanceCopyDataNew(padding int) InstanceCopyData {
 type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
-	MaterialInstance  *Material
-	viewCuller        ViewCuller
-	Instances         []DrawInstance
-	rawData           InstanceCopyData
-	boundInstanceData []InstanceCopyData
-	instanceSize      int
-	visibleCount      int
-	sort              int
-	destroyed         bool
+	MaterialInstance   *Material
+	viewCuller         ViewCuller
+	Instances          []DrawInstance
+	rawData            InstanceCopyData
+	boundInstanceData  []InstanceCopyData
+	instanceSize       int
+	visibleCount       int
+	visibilityCounters VisibilityCounters
+	sort               int
+	destroyed          bool
 }
 
 func NewDrawInstanceGroup(mesh *Mesh, dataSize int, viewCuller ViewCuller) DrawInstanceGroup {
@@ -294,6 +337,9 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 
 func (d *DrawInstanceGroup) AnyVisible() bool  { return d.visibleCount > 0 }
 func (d *DrawInstanceGroup) VisibleCount() int { return d.visibleCount }
+func (d *DrawInstanceGroup) VisibilityCounters() VisibilityCounters {
+	return d.visibilityCounters
+}
 
 func (d *DrawInstanceGroup) VisibleSize() int {
 	return d.visibleCount * (d.instanceSize + d.rawData.padding)
@@ -313,12 +359,30 @@ func (d *DrawInstanceGroup) updateBoundData(index, bindingId int, instance DrawI
 	}
 }
 
+func (d *DrawInstanceGroup) countVisibility(instanceBase *ShaderDataBase) {
+	d.visibilityCounters.TotalInstances++
+	visibility := instanceBase.VisibilityState()
+	if !visibility.ForceVisible && !visibility.FrustumVisible {
+		d.visibilityCounters.FrustumCulled++
+	}
+	if !visibility.ForceVisible && visibility.FrustumVisible && visibility.OcclusionEligible {
+		d.visibilityCounters.OcclusionTested++
+		if !visibility.LastOcclusionVisible {
+			d.visibilityCounters.OcclusionCulled++
+		}
+	}
+	if instanceBase.IsInView() {
+		d.visibilityCounters.Visible++
+	}
+}
+
 func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
 	offset := uintptr(0)
 	count := len(d.Instances)
 	d.visibleCount = 0
+	d.visibilityCounters = VisibilityCounters{}
 	instanceIndex := 0
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
@@ -331,6 +395,7 @@ func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights Ligh
 			continue
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
+		d.countVisibility(instanceBase)
 		if instanceBase.IsInView() {
 			if d.MaterialInstance.IsLit {
 				instance.SelectLights(lights)
