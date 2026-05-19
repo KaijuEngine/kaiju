@@ -40,6 +40,7 @@ import (
 	"sort"
 	"sync"
 
+	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -229,7 +230,7 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 	}
 }
 
-func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
+func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, occlusionCamera cameras.Camera) {
 	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
@@ -248,12 +249,19 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
 			shadowIdx++
 		}
 	}
-	sort.Slice(passes, func(i, j int) bool {
+	sort.SliceStable(passes, func(i, j int) bool {
 		return passes[i].construction.Sort < passes[j].construction.Sort
 	})
-	for i := range d.renderPassGroups {
-		rp := d.renderPassGroups[i].renderPass
-		device.Draw(rp, d.renderPassGroups[i].draws, lights, shadows[:])
+	for i := range passes {
+		rp := passes[i]
+		rpGroup, ok := d.findRenderPassGroup(rp)
+		if !ok {
+			continue
+		}
+		device.Draw(rp, rpGroup.draws, lights, shadows[:])
+		if rp.HasOcclusionDepthSource() {
+			device.Painter.QueueOcclusionWork(device, occlusionCamera)
+		}
 	}
 	if len(passes) > 0 {
 		device.BlitTargets(passes)

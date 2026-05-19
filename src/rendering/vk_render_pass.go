@@ -89,6 +89,10 @@ func (r *RenderPass) OcclusionDepthSource() (*Texture, bool) {
 	return &r.occlusionDepthCopy, true
 }
 
+func (r *RenderPass) HasOcclusionDepthSource() bool {
+	return r.occlusionDepthCopyFrom >= 0 && r.occlusionDepthCopy.RenderId.IsValid()
+}
+
 func (r *RenderPass) IsShadowPass() bool {
 	// TODO:  Need another way to denote this is a shadow pass
 	return strings.HasPrefix(r.construction.Name, "light_offscreen")
