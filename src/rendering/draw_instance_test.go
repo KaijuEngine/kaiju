@@ -395,7 +395,7 @@ func TestOcclusionEligibilityDefaults(t *testing.T) {
 	pass := testOcclusionRenderPass("opaque", true)
 	base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	group := testOcclusionGroup(testOcclusionMaterial("basic", pass, true, false), &container)
-	group.updateOcclusionEligibility(&base)
+	group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
 	if !base.VisibilityState().OcclusionEligible {
 		t.Fatalf("opaque depth-writing primary-camera drawing should be eligible")
 	}
@@ -425,7 +425,7 @@ func TestOcclusionEligibilityDefaults(t *testing.T) {
 		base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 		base.VisibilityState().LastOcclusionVisible = false
 		group := testOcclusionGroup(tc.material, tc.culler)
-		group.updateOcclusionEligibility(&base)
+		group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
 		if base.VisibilityState().OcclusionEligible {
 			t.Fatalf("%s should be ineligible by default", tc.name)
 		}
@@ -443,7 +443,7 @@ func TestOcclusionEligibilityOverrides(t *testing.T) {
 	particle.EnableOcclusionCulling()
 	base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	group := testOcclusionGroup(particle, &container)
-	group.updateOcclusionEligibility(&base)
+	group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
 	if !base.VisibilityState().OcclusionEligible {
 		t.Fatalf("explicitly enabled particle material should be eligible")
 	}
@@ -452,7 +452,7 @@ func TestOcclusionEligibilityOverrides(t *testing.T) {
 	disabled.DisableOcclusionCulling()
 	base = testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	group = testOcclusionGroup(disabled, &container)
-	group.updateOcclusionEligibility(&base)
+	group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
 	if base.VisibilityState().OcclusionEligible {
 		t.Fatalf("explicitly disabled material should be ineligible")
 	}
@@ -461,7 +461,7 @@ func TestOcclusionEligibilityOverrides(t *testing.T) {
 	base = testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	base.SetOcclusionCullingMode(OcclusionCullingDisabled)
 	group = testOcclusionGroup(enabledMaterial, &container)
-	group.updateOcclusionEligibility(&base)
+	group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
 	if base.VisibilityState().OcclusionEligible {
 		t.Fatalf("drawing/instance opt-out should override eligible material")
 	}
@@ -470,7 +470,7 @@ func TestOcclusionEligibilityOverrides(t *testing.T) {
 	base = testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	base.SetOcclusionCullingMode(OcclusionCullingEnabled)
 	group = testOcclusionGroup(transparent, &container)
-	group.updateOcclusionEligibility(&base)
+	group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
 	if !base.VisibilityState().OcclusionEligible {
 		t.Fatalf("drawing/instance opt-in should override default transparent ineligibility")
 	}
@@ -498,19 +498,19 @@ func TestOcclusionEligibilityConservativeThresholds(t *testing.T) {
 
 	tiny := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), DefaultOcclusionMinExtent*0.5))
 	group := testOcclusionGroup(material, &container)
-	group.updateOcclusionEligibility(&tiny)
+	group.updateOcclusionEligibility(&tiny, DefaultOcclusionTuning())
 	if tiny.VisibilityState().OcclusionEligible {
 		t.Fatalf("tiny object should be ineligible")
 	}
 
 	nearCamera := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3{0, 0, 4.9}, 0.05))
-	group.updateOcclusionEligibility(&nearCamera)
+	group.updateOcclusionEligibility(&nearCamera, DefaultOcclusionTuning())
 	if nearCamera.VisibilityState().OcclusionEligible {
 		t.Fatalf("near-camera object should be ineligible")
 	}
 
 	touchingNearPlane := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3{0, 0, 4.99}, 0.02))
-	group.updateOcclusionEligibility(&touchingNearPlane)
+	group.updateOcclusionEligibility(&touchingNearPlane, DefaultOcclusionTuning())
 	if touchingNearPlane.VisibilityState().OcclusionEligible {
 		t.Fatalf("near-plane object should be ineligible")
 	}
@@ -519,7 +519,7 @@ func TestOcclusionEligibilityConservativeThresholds(t *testing.T) {
 	invalid := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	invalid.VisibilityState().LastOcclusionVisible = false
 	group = testOcclusionGroup(material, &invalidContainer)
-	group.updateOcclusionEligibility(&invalid)
+	group.updateOcclusionEligibility(&invalid, DefaultOcclusionTuning())
 	if invalid.VisibilityState().OcclusionEligible || !invalid.VisibilityState().LastOcclusionVisible {
 		t.Fatalf("invalid camera state should fail open: %+v", *invalid.VisibilityState())
 	}

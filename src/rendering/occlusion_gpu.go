@@ -78,6 +78,9 @@ func (g *GPUPainter) QueueOcclusionCandidate(device *GPUDevice, instanceBase *Sh
 	if instanceBase == nil {
 		return
 	}
+	if !g.OcclusionRuntimeMode().QueuesWork() {
+		return
+	}
 	visibility := instanceBase.VisibilityState()
 	if visibility.ForceVisible || !visibility.FrustumVisible || !visibility.OcclusionEligible {
 		return
@@ -90,6 +93,9 @@ func (g *GPUPainter) QueueOcclusionCandidate(device *GPUDevice, instanceBase *Sh
 
 func (g *GPUPainter) QueueOcclusionTests(device *GPUDevice, camera cameras.Camera) {
 	defer tracing.NewRegion("GPUPainter.QueueOcclusionTests").End()
+	if !g.OcclusionRuntimeMode().QueuesWork() {
+		return
+	}
 	g.occlusionTester.queueTests(device, g, camera)
 }
 
@@ -100,6 +106,9 @@ func (g *GPUPainter) ApplyOcclusionResults() {
 
 func (g *GPUPainter) QueueOcclusionWork(device *GPUDevice, camera cameras.Camera) {
 	defer tracing.NewRegion("GPUPainter.QueueOcclusionWork").End()
+	if !g.OcclusionRuntimeMode().QueuesWork() {
+		return
+	}
 	g.QueueHiZPyramid(device)
 	g.QueueOcclusionTests(device, camera)
 	g.executeCompute(device)
@@ -115,7 +124,8 @@ func (t *GPUOcclusionTester) queueCandidate(device *GPUDevice, frameIdx int, ins
 	if err := t.ensureFrameCapacity(device, frameIdx, frame.candidateCount+1); err != nil {
 		return err
 	}
-	candidate := newGPUOcclusionCandidate(instanceBase.renderBounds(), instanceBase.VisibilityState().LastOcclusionVisible)
+	candidate := newGPUOcclusionCandidate(instanceBase.renderBounds(),
+		instanceBase.VisibilityState().LastOcclusionVisible, device.Painter.OcclusionTuning())
 	idx := frame.candidateCount
 	dst := unsafe.Pointer(uintptr(frame.candidateMapping) + uintptr(idx)*unsafe.Sizeof(candidate))
 	*(*GPUOcclusionCandidate)(dst) = candidate
@@ -160,8 +170,8 @@ func (t *GPUOcclusionTester) queueTests(device *GPUDevice, painter *GPUPainter, 
 		DepthSizePadding: matrix.Vec4{
 			matrix.Float(levels[0].Width),
 			matrix.Float(levels[0].Height),
-			DefaultOcclusionNearPlanePadding,
-			DefaultOcclusionMissingFar,
+			painter.OcclusionTuning().NearPlanePadding,
+			painter.OcclusionTuning().MissingFar,
 		},
 	}
 	*(*GPUOcclusionTestParams)(frame.paramsMapping) = params
@@ -378,7 +388,7 @@ func (t *GPUOcclusionTester) destroyFrame(device *GPUDevice, frameIdx int) {
 	*frame = GPUOcclusionTestFrame{}
 }
 
-func newGPUOcclusionCandidate(bounds graviton.AABB, previousVisible bool) GPUOcclusionCandidate {
+func newGPUOcclusionCandidate(bounds graviton.AABB, previousVisible bool, tuning OcclusionTuning) GPUOcclusionCandidate {
 	minimum := bounds.Min()
 	maximum := bounds.Max()
 	prev := matrix.Float(0)
@@ -387,9 +397,9 @@ func newGPUOcclusionCandidate(bounds graviton.AABB, previousVisible bool) GPUOcc
 	}
 	return GPUOcclusionCandidate{
 		WorldMinPrevious: matrix.Vec4{minimum.X(), minimum.Y(), minimum.Z(), prev},
-		WorldMaxPadding:  matrix.Vec4{maximum.X(), maximum.Y(), maximum.Z(), DefaultOcclusionRectPadPx},
+		WorldMaxPadding:  matrix.Vec4{maximum.X(), maximum.Y(), maximum.Z(), tuning.RectPadPx},
 		ScreenRect:       matrix.Vec4{0, 0, 1, 1},
-		DepthParams:      matrix.Vec4{DefaultOcclusionDepthBias, DefaultOcclusionMinRectPx, 0, 0},
+		DepthParams:      matrix.Vec4{tuning.DepthBias, tuning.MinRectPx, 0, 0},
 	}
 }
 

@@ -39,6 +39,7 @@ package profiler
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
@@ -51,6 +52,7 @@ import (
 	"kaijuengine.com/klib"
 	"kaijuengine.com/klib/contexts"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 func consoleTop(host *engine.Host) string {
@@ -345,6 +347,96 @@ GOMAXPROCS: %d
 	)
 }
 
+func occlusionDevice(host *engine.Host) (*rendering.GPUDevice, bool) {
+	if host == nil || host.Window == nil || host.Window.GpuInstance == nil || len(host.Window.GpuInstance.Devices) == 0 {
+		return nil, false
+	}
+	return host.Window.GpuInstance.PrimaryDevice(), true
+}
+
+func occlusionStatsString(host *engine.Host) string {
+	counters := host.Drawings.VisibilityCounters()
+	mode := rendering.OcclusionRuntimeConservative
+	visual := rendering.OcclusionVisualizationNone
+	levelCount, mip, width, height, hiZOK := 0, 0, 0, 0, false
+	if device, ok := occlusionDevice(host); ok {
+		mode = device.OcclusionRuntimeMode()
+		visual = device.OcclusionVisualizationMode()
+		levelCount, mip, width, height, hiZOK = device.OcclusionHiZLevelInfo()
+	}
+	hiZText := "not ready"
+	if hiZOK {
+		hiZText = fmt.Sprintf("%d levels, preview mip %d (%dx%d)", levelCount, mip, width, height)
+	}
+	return fmt.Sprintf(`Occlusion
+Mode: %s
+Visualization: %s
+Instances: total=%d visible=%d frustumCulled=%d occlusionTested=%d occlusionCulled=%d
+Hi-Z: %s`,
+		mode.String(),
+		visual.String(),
+		counters.TotalInstances,
+		counters.Visible,
+		counters.FrustumCulled,
+		counters.OcclusionTested,
+		counters.OcclusionCulled,
+		hiZText)
+}
+
+func occlusionCommands(host *engine.Host, arg string) string {
+	arg = klib.ReplaceStringRecursive(strings.TrimSpace(arg), "  ", " ")
+	args := []string{}
+	if arg != "" {
+		args = strings.Split(arg, " ")
+	}
+	if len(args) == 0 || args[0] == "stats" {
+		return occlusionStatsString(host)
+	}
+	device, ok := occlusionDevice(host)
+	if !ok {
+		return "Renderer is not initialized"
+	}
+	switch args[0] {
+	case "mode":
+		if len(args) < 2 {
+			return "Current occlusion mode: " + device.OcclusionRuntimeMode().String()
+		}
+		mode, ok := rendering.ParseOcclusionRuntimeMode(args[1])
+		if !ok {
+			return "Expected mode: off, stats-only, conservative, or aggressive"
+		}
+		device.SetOcclusionRuntimeMode(mode)
+		return "Occlusion mode set to " + mode.String()
+	case "visual", "visualization":
+		if len(args) < 2 {
+			return "Current occlusion visualization: " + device.OcclusionVisualizationMode().String()
+		}
+		mode, ok := rendering.ParseOcclusionVisualizationMode(args[1])
+		if !ok {
+			return "Expected visualization: none, tested-bounds, occluded-bounds, or hiz-mip-preview"
+		}
+		device.SetOcclusionVisualizationMode(mode)
+		return "Occlusion visualization set to " + mode.String()
+	case "hiz-mip":
+		if len(args) < 2 {
+			_, mip, _, _, _ := device.OcclusionHiZLevelInfo()
+			return fmt.Sprintf("Current Hi-Z preview mip: %d", mip)
+		}
+		var mip int
+		if _, err := fmt.Sscanf(args[1], "%d", &mip); err != nil {
+			return "Expected integer Hi-Z mip index"
+		}
+		device.Painter.SetOcclusionHiZPreviewMip(mip)
+		return fmt.Sprintf("Hi-Z preview mip set to %d", device.Painter.OcclusionHiZPreviewMip())
+	case "log":
+		stats := occlusionStatsString(host)
+		slog.Info("occlusion stats", "stats", stats)
+		return stats
+	default:
+		return "Expected: stats, mode, visual, hiz-mip, or log"
+	}
+}
+
 func SetupConsole(host *engine.Host) {
 	defer tracing.NewRegion("profiler.SetupConsole").End()
 	c := console.For(host)
@@ -360,4 +452,5 @@ func SetupConsole(host *engine.Host) {
 	})
 	console.For(host).AddCommand("gc", "Forces garbage collection", gc)
 	console.For(host).AddCommand("memstats", "Shows current memory stats", memStats)
+	console.For(host).AddCommand("occlusion", "Occlusion controls: stats, mode off|stats-only|conservative|aggressive, visual none|tested-bounds|occluded-bounds|hiz-mip-preview, log", occlusionCommands)
 }

@@ -41,11 +41,26 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
+const maxOcclusionDebugBounds = 512
+
+type OcclusionDebugBound struct {
+	Bounds   graviton.AABB
+	Occluded bool
+}
+
+type OcclusionDebugState struct {
+	RuntimeMode       OcclusionRuntimeMode
+	VisualizationMode OcclusionVisualizationMode
+	HiZPreviewMip     int
+	Bounds            []OcclusionDebugBound
+}
+
 type GPUPainter struct {
 	caches                RenderCaches
 	imageIndex            [maxFramesInFlight]uint32
 	descriptorPools       []GPUDescriptorPool
 	currentFrame          int
+	occlusionDebug        OcclusionDebugState
 	hiZPyramid            HiZPyramid
 	occlusionTester       GPUOcclusionTester
 	combinedDrawings      Drawings
@@ -86,6 +101,69 @@ func (g *GPUPainter) forceQueueCommand(cmd CommandRecorder, isPrePass bool) {
 		cmd.stage = 1
 	}
 	g.writtenCommands = append(g.writtenCommands, cmd)
+}
+
+func (g *GPUPainter) SetOcclusionRuntimeMode(mode OcclusionRuntimeMode) {
+	g.occlusionDebug.RuntimeMode = mode
+}
+
+func (g *GPUPainter) OcclusionRuntimeMode() OcclusionRuntimeMode {
+	return g.occlusionDebug.RuntimeMode
+}
+
+func (g *GPUPainter) SetOcclusionVisualizationMode(mode OcclusionVisualizationMode) {
+	g.occlusionDebug.VisualizationMode = mode
+}
+
+func (g *GPUPainter) OcclusionVisualizationMode() OcclusionVisualizationMode {
+	return g.occlusionDebug.VisualizationMode
+}
+
+func (g *GPUPainter) SetOcclusionHiZPreviewMip(mip int) {
+	g.occlusionDebug.HiZPreviewMip = max(0, mip)
+}
+
+func (g *GPUPainter) OcclusionHiZPreviewMip() int {
+	return g.occlusionDebug.HiZPreviewMip
+}
+
+func (g *GPUPainter) OcclusionTuning() OcclusionTuning {
+	return g.occlusionDebug.RuntimeMode.Tuning()
+}
+
+func (g *GPUPainter) BeginOcclusionDebugFrame() {
+	g.occlusionDebug.Bounds = g.occlusionDebug.Bounds[:0]
+}
+
+func (g *GPUPainter) OcclusionDebugBounds() []OcclusionDebugBound {
+	out := make([]OcclusionDebugBound, len(g.occlusionDebug.Bounds))
+	copy(out, g.occlusionDebug.Bounds)
+	return out
+}
+
+func (g *GPUPainter) recordOcclusionDebugBound(instanceBase *ShaderDataBase) {
+	if instanceBase == nil || len(g.occlusionDebug.Bounds) >= maxOcclusionDebugBounds {
+		return
+	}
+	visibility := instanceBase.VisibilityState()
+	if !visibility.FrustumVisible || !visibility.OcclusionEligible {
+		return
+	}
+	occluded := !visibility.LastOcclusionVisible
+	switch g.occlusionDebug.VisualizationMode {
+	case OcclusionVisualizationTestedBounds:
+		g.occlusionDebug.Bounds = append(g.occlusionDebug.Bounds, OcclusionDebugBound{
+			Bounds:   instanceBase.renderBounds(),
+			Occluded: occluded,
+		})
+	case OcclusionVisualizationOccludedBounds:
+		if occluded {
+			g.occlusionDebug.Bounds = append(g.occlusionDebug.Bounds, OcclusionDebugBound{
+				Bounds:   instanceBase.renderBounds(),
+				Occluded: true,
+			})
+		}
+	}
 }
 
 func (g *GPUPainter) DestroyDescriptorPools(device *GPUDevice) {

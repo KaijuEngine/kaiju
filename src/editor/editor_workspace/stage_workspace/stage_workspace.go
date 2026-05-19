@@ -97,7 +97,9 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	w.stageView.Initialize(host, ed)
 	w.pageData.SetupUIData(w.ed.Cache(), ed.StageView().Camera().ModeString())
 	funcs := map[string]func(*document.Element){
-		"toggleDimension": w.toggleDimension,
+		"toggleDimension":           w.toggleDimension,
+		"setOcclusionMode":          w.setOcclusionMode,
+		"setOcclusionVisualization": w.setOcclusionVisualization,
 	}
 	funcs = klib.MapJoin(funcs, w.contentUI.setupFuncs())
 	funcs = klib.MapJoin(funcs, w.hierarchyUI.setupFuncs())
@@ -145,6 +147,7 @@ func (w *StageWorkspace) Open() {
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
+	w.updateOcclusionDebugUI()
 	w.Doc.MarkDirty()
 }
 
@@ -182,6 +185,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	if w.IsBlurred || w.UiMan.Group.HasRequests() {
 		return
 	}
+	w.updateOcclusionDebugUI()
 	w.detailsUI.update()
 	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
 	if !didKeyboardActions {

@@ -197,6 +197,44 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
+			#occlusionDebug {
+				position: absolute;
+				top: 2.4em;
+				left: calc(50% + 3em);
+				width: 32em;
+				color: white;
+				background-color: rgba(20, 20, 20, 0.85);
+				border: 2px solid #575757;
+				padding: 0.25em;
+				font-size: 0.6em;
+				z-index: 20;
+			}
+			.occlusionTools {
+				width: 100%;
+				height: 2em;
+			}
+			.occlusionTool {
+				width: 7.2em;
+				height: 1.4em;
+				padding: 0.15em 0.4em;
+				margin-right: 0.25em;
+				background-color: #282828;
+				color: #AAA;
+				border: 1px solid #575757;
+			}
+			.occlusionTool:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.occlusionTool.active {
+				background-color: #682A2D;
+				color: white;
+				border-color: #AAA;
+			}
+			#occlusionStats {
+				width: 100%;
+				color: #DDD;
+			}
 			#detailsName {
 				margin-top: 0.5em;
 			}
@@ -396,6 +434,21 @@
 	<body>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
+		<div id="occlusionDebug">
+			<div class="occlusionTools">
+				<span id="occModeOff" class="occlusionTool" data-mode="off" onclick="setOcclusionMode">Off</span>
+				<span id="occModeStats" class="occlusionTool" data-mode="stats-only" onclick="setOcclusionMode">Stats</span>
+				<span id="occModeConservative" class="occlusionTool active" data-mode="conservative" onclick="setOcclusionMode">Conservative</span>
+				<span id="occModeAggressive" class="occlusionTool" data-mode="aggressive" onclick="setOcclusionMode">Aggressive</span>
+			</div>
+			<div class="occlusionTools">
+				<span id="occVisNone" class="occlusionTool active" data-visual="none" onclick="setOcclusionVisualization">None</span>
+				<span id="occVisTested" class="occlusionTool" data-visual="tested-bounds" onclick="setOcclusionVisualization">Tested</span>
+				<span id="occVisOccluded" class="occlusionTool" data-visual="occluded-bounds" onclick="setOcclusionVisualization">Occluded</span>
+				<span id="occVisHiZ" class="occlusionTool" data-visual="hiz-mip-preview" onclick="setOcclusionVisualization">Hi-Z</span>
+			</div>
+			<div id="occlusionStats">total 0 | visible 0 | frustum 0 | tested 0 | hidden 0</div>
+		</div>
 		<!-- Hierarchy UI -->
 		<div id="hierarchyArea" class="edPanelBg sideBarStandard" ondrop="hierarchyDrop">
 			<input type="text" class="topSearch" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />

@@ -14,14 +14,14 @@ import (
 
 func TestGPUOcclusionCandidatePacking(t *testing.T) {
 	bounds := graviton.AABBFromMinMax(matrix.Vec3{-1, -2, -3}, matrix.Vec3{4, 5, 6})
-	candidate := newGPUOcclusionCandidate(bounds, false)
+	candidate := newGPUOcclusionCandidate(bounds, false, DefaultOcclusionTuning())
 	if candidate.WorldMinPrevious != (matrix.Vec4{-1, -2, -3, 0}) {
 		t.Fatalf("world min/previous = %v", candidate.WorldMinPrevious)
 	}
 	if candidate.WorldMaxPadding != (matrix.Vec4{4, 5, 6, DefaultOcclusionRectPadPx}) {
 		t.Fatalf("world max/padding = %v", candidate.WorldMaxPadding)
 	}
-	candidate = newGPUOcclusionCandidate(bounds, true)
+	candidate = newGPUOcclusionCandidate(bounds, true, DefaultOcclusionTuning())
 	if candidate.WorldMinPrevious.W() != 1 {
 		t.Fatalf("previous visible flag = %f, want 1", candidate.WorldMinPrevious.W())
 	}

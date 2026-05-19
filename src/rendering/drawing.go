@@ -252,6 +252,7 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, occlusionCa
 	sort.SliceStable(passes, func(i, j int) bool {
 		return passes[i].construction.Sort < passes[j].construction.Sort
 	})
+	device.Painter.BeginOcclusionDebugFrame()
 	for i := range passes {
 		rp := passes[i]
 		rpGroup, ok := d.findRenderPassGroup(rp)
@@ -259,7 +260,7 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, occlusionCa
 			continue
 		}
 		device.Draw(rp, rpGroup.draws, lights, shadows[:])
-		if rp.HasOcclusionDepthSource() {
+		if rp.HasOcclusionDepthSource() && device.Painter.OcclusionRuntimeMode().QueuesWork() {
 			device.Painter.QueueOcclusionWork(device, occlusionCamera)
 		}
 	}

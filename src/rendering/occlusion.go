@@ -41,6 +41,24 @@ import (
 
 type OcclusionCullingMode int
 
+type OcclusionRuntimeMode int
+
+const (
+	OcclusionRuntimeConservative OcclusionRuntimeMode = iota
+	OcclusionRuntimeOff
+	OcclusionRuntimeStatsOnly
+	OcclusionRuntimeAggressive
+)
+
+type OcclusionVisualizationMode int
+
+const (
+	OcclusionVisualizationNone OcclusionVisualizationMode = iota
+	OcclusionVisualizationTestedBounds
+	OcclusionVisualizationOccludedBounds
+	OcclusionVisualizationHiZMipPreview
+)
+
 const (
 	OcclusionCullingDefault OcclusionCullingMode = iota
 	OcclusionCullingEnabled
@@ -53,10 +71,105 @@ const (
 	DefaultOcclusionNearPlanePadding  matrix.Float = 0.001
 )
 
+type OcclusionTuning struct {
+	MinExtent         matrix.Float
+	MinCameraDistance matrix.Float
+	NearPlanePadding  matrix.Float
+	DepthBias         matrix.Float
+	RectPadPx         matrix.Float
+	MinRectPx         matrix.Float
+	MissingFar        matrix.Float
+}
+
+func DefaultOcclusionTuning() OcclusionTuning {
+	return OcclusionTuning{
+		MinExtent:         DefaultOcclusionMinExtent,
+		MinCameraDistance: DefaultOcclusionMinCameraDistance,
+		NearPlanePadding:  DefaultOcclusionNearPlanePadding,
+		DepthBias:         DefaultOcclusionDepthBias,
+		RectPadPx:         DefaultOcclusionRectPadPx,
+		MinRectPx:         DefaultOcclusionMinRectPx,
+		MissingFar:        DefaultOcclusionMissingFar,
+	}
+}
+
+func (m OcclusionRuntimeMode) Tuning() OcclusionTuning {
+	tuning := DefaultOcclusionTuning()
+	if m == OcclusionRuntimeAggressive {
+		tuning.MinExtent = DefaultOcclusionMinExtent * 0.25
+		tuning.MinCameraDistance = DefaultOcclusionMinCameraDistance * 0.25
+		tuning.NearPlanePadding = DefaultOcclusionNearPlanePadding * 0.5
+		tuning.DepthBias = DefaultOcclusionDepthBias * 0.25
+		tuning.RectPadPx = 0
+		tuning.MinRectPx = 0
+	}
+	return tuning
+}
+
 var StringOcclusionCullingMode = map[string]OcclusionCullingMode{
 	"Default":  OcclusionCullingDefault,
 	"Enabled":  OcclusionCullingEnabled,
 	"Disabled": OcclusionCullingDisabled,
+}
+
+func (m OcclusionRuntimeMode) String() string {
+	switch m {
+	case OcclusionRuntimeOff:
+		return "off"
+	case OcclusionRuntimeStatsOnly:
+		return "stats-only"
+	case OcclusionRuntimeAggressive:
+		return "aggressive"
+	default:
+		return "conservative"
+	}
+}
+
+func ParseOcclusionRuntimeMode(value string) (OcclusionRuntimeMode, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "off", "disabled", "disable", "none":
+		return OcclusionRuntimeOff, true
+	case "stats", "stats-only", "statsonly", "statistics":
+		return OcclusionRuntimeStatsOnly, true
+	case "conservative", "safe", "on", "enabled", "enable", "":
+		return OcclusionRuntimeConservative, true
+	case "aggressive", "fast":
+		return OcclusionRuntimeAggressive, true
+	default:
+		return OcclusionRuntimeConservative, false
+	}
+}
+
+func (m OcclusionRuntimeMode) QueuesWork() bool {
+	return m == OcclusionRuntimeConservative || m == OcclusionRuntimeAggressive
+}
+
+func (m OcclusionVisualizationMode) String() string {
+	switch m {
+	case OcclusionVisualizationTestedBounds:
+		return "tested-bounds"
+	case OcclusionVisualizationOccludedBounds:
+		return "occluded-bounds"
+	case OcclusionVisualizationHiZMipPreview:
+		return "hiz-mip-preview"
+	default:
+		return "none"
+	}
+}
+
+func ParseOcclusionVisualizationMode(value string) (OcclusionVisualizationMode, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "none", "off", "":
+		return OcclusionVisualizationNone, true
+	case "tested", "tested-bounds", "testedbounds", "bounds":
+		return OcclusionVisualizationTestedBounds, true
+	case "occluded", "occluded-bounds", "occludedbounds":
+		return OcclusionVisualizationOccludedBounds, true
+	case "hiz", "hi-z", "hiz-preview", "hiz-mip-preview", "mip", "mip-preview":
+		return OcclusionVisualizationHiZMipPreview, true
+	default:
+		return OcclusionVisualizationNone, false
+	}
 }
 
 func ParseOcclusionCullingMode(value string) OcclusionCullingMode {
@@ -137,7 +250,7 @@ func (m *Material) hasDepthAttachment() bool {
 	return false
 }
 
-func (d *DrawInstanceGroup) updateOcclusionEligibility(instanceBase *ShaderDataBase) {
+func (d *DrawInstanceGroup) updateOcclusionEligibility(instanceBase *ShaderDataBase, tuning OcclusionTuning) {
 	if instanceBase == nil {
 		return
 	}
@@ -163,14 +276,14 @@ func (d *DrawInstanceGroup) updateOcclusionEligibility(instanceBase *ShaderDataB
 		visibility.LastOcclusionVisible = true
 		return
 	}
-	if !d.viewCullerAllowsOcclusion(instanceBase.renderBounds()) {
+	if !d.viewCullerAllowsOcclusion(instanceBase.renderBounds(), tuning) {
 		visibility.LastOcclusionVisible = true
 		return
 	}
 	visibility.OcclusionEligible = true
 }
 
-func (d *DrawInstanceGroup) viewCullerAllowsOcclusion(bounds graviton.AABB) bool {
+func (d *DrawInstanceGroup) viewCullerAllowsOcclusion(bounds graviton.AABB, tuning OcclusionTuning) bool {
 	container, ok := d.viewCuller.(*cameras.Container)
 	if !ok || container == nil || !container.OcclusionCullingEnabled() || !container.IsValid() {
 		return false
@@ -187,7 +300,7 @@ func (d *DrawInstanceGroup) viewCullerAllowsOcclusion(bounds graviton.AABB) bool
 		camera.Forward().IsZero() {
 		return false
 	}
-	if bounds.Extent.LongestAxisValue() < DefaultOcclusionMinExtent {
+	if bounds.Extent.LongestAxisValue() < tuning.MinExtent {
 		return false
 	}
 	forward := camera.Forward().Normal()
@@ -200,10 +313,10 @@ func (d *DrawInstanceGroup) viewCullerAllowsOcclusion(bounds graviton.AABB) bool
 	if nearPlane < 0 {
 		nearPlane = 0
 	}
-	if closestDistance <= nearPlane+DefaultOcclusionNearPlanePadding {
+	if closestDistance <= nearPlane+tuning.NearPlanePadding {
 		return false
 	}
-	if closestDistance <= DefaultOcclusionMinCameraDistance {
+	if closestDistance <= tuning.MinCameraDistance {
 		return false
 	}
 	return true

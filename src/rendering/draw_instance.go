@@ -382,12 +382,22 @@ func (d *DrawInstanceGroup) countVisibility(instanceBase *ShaderDataBase) {
 
 func (d *DrawInstanceGroup) applyOcclusionCulling(device *GPUDevice, instanceBase *ShaderDataBase) {
 	visibility := instanceBase.VisibilityState()
+	if device == nil || device.Painter.OcclusionRuntimeMode() == OcclusionRuntimeOff {
+		visibility.OcclusionEligible = false
+		visibility.LastOcclusionVisible = true
+		return
+	}
 	if instanceBase.deactivated || (!visibility.ForceVisible && !visibility.FrustumVisible) {
 		visibility.OcclusionEligible = false
 		visibility.LastOcclusionVisible = true
 		return
 	}
-	d.updateOcclusionEligibility(instanceBase)
+	d.updateOcclusionEligibility(instanceBase, device.Painter.OcclusionTuning())
+	device.Painter.recordOcclusionDebugBound(instanceBase)
+	if device.Painter.OcclusionRuntimeMode() == OcclusionRuntimeStatsOnly {
+		visibility.LastOcclusionVisible = true
+		return
+	}
 	device.Painter.QueueOcclusionCandidate(device, instanceBase)
 }
 

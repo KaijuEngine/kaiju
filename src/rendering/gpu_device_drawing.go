@@ -88,6 +88,35 @@ func (g *GPUDevice) HiZPyramidLevels() ([]*Texture, bool) {
 	return g.Painter.HiZPyramidLevels()
 }
 
+func (g *GPUDevice) SetOcclusionRuntimeMode(mode OcclusionRuntimeMode) {
+	g.Painter.SetOcclusionRuntimeMode(mode)
+}
+
+func (g *GPUDevice) OcclusionRuntimeMode() OcclusionRuntimeMode {
+	return g.Painter.OcclusionRuntimeMode()
+}
+
+func (g *GPUDevice) SetOcclusionVisualizationMode(mode OcclusionVisualizationMode) {
+	g.Painter.SetOcclusionVisualizationMode(mode)
+}
+
+func (g *GPUDevice) OcclusionVisualizationMode() OcclusionVisualizationMode {
+	return g.Painter.OcclusionVisualizationMode()
+}
+
+func (g *GPUDevice) OcclusionDebugBounds() []OcclusionDebugBound {
+	return g.Painter.OcclusionDebugBounds()
+}
+
+func (g *GPUDevice) OcclusionHiZLevelInfo() (levelCount, previewMip, width, height int, ok bool) {
+	levels, hasLevels := g.Painter.HiZPyramidLevels()
+	if !hasLevels || len(levels) == 0 {
+		return 0, g.Painter.OcclusionHiZPreviewMip(), 0, 0, false
+	}
+	mip := min(g.Painter.OcclusionHiZPreviewMip(), len(levels)-1)
+	return len(levels), mip, levels[mip].Width, levels[mip].Height, true
+}
+
 func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
