@@ -37,6 +37,8 @@
 package rendering
 
 import (
+	"log/slog"
+
 	"kaijuengine.com/platform/profiler/tracing"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
@@ -46,9 +48,18 @@ func (g *GPUPainter) executeCompute(device *GPUDevice) {
 	if len(g.computeTasks) == 0 {
 		return
 	}
-	// TODO:  Cache this for reuse on subsequent calls
 	ds := [1]vk.DescriptorSet{}
-	computeCmd := device.beginSingleTimeCommands()
+	computeCmd := &g.computeCmds[g.currentFrame]
+	if computeCmd.buffer == vk.NullCommandBuffer {
+		var err error
+		*computeCmd, err = NewCommandRecorder(device)
+		if err != nil {
+			slog.Error("failed to create compute command recorder", "error", err)
+			g.computeTasks = g.computeTasks[:0]
+			return
+		}
+	}
+	computeCmd.Begin()
 	for _, task := range g.computeTasks {
 		for i := range task.SampledImages {
 			img := &task.SampledImages[i]
@@ -84,13 +95,14 @@ func (g *GPUPainter) executeCompute(device *GPUDevice) {
 	barrier := vk.MemoryBarrier{
 		SType:         vulkan_const.StructureTypeMemoryBarrier,
 		SrcAccessMask: vk.AccessFlags(vulkan_const.AccessShaderWriteBit),
-		DstAccessMask: vk.AccessFlags(vulkan_const.AccessShaderReadBit | vulkan_const.AccessVertexAttributeReadBit),
+		DstAccessMask: vk.AccessFlags(vulkan_const.AccessShaderReadBit | vulkan_const.AccessVertexAttributeReadBit | vulkan_const.AccessHostReadBit),
 	}
 	vk.CmdPipelineBarrier(computeCmd.buffer,
 		vk.PipelineStageFlags(vulkan_const.PipelineStageComputeShaderBit),
-		vk.PipelineStageFlags(vulkan_const.PipelineStageVertexInputBit|vulkan_const.PipelineStageVertexShaderBit|vulkan_const.PipelineStageFragmentShaderBit),
+		vk.PipelineStageFlags(vulkan_const.PipelineStageVertexInputBit|vulkan_const.PipelineStageVertexShaderBit|vulkan_const.PipelineStageFragmentShaderBit|vulkan_const.PipelineStageHostBit),
 		0, 1, &barrier, 0, nil, 0, nil)
-	device.endSingleTimeCommands(computeCmd)
+	computeCmd.End()
+	g.forceQueueCommand(*computeCmd, false)
 	g.computeTasks = g.computeTasks[:0]
 }
 

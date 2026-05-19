@@ -465,7 +465,9 @@ func (host *Host) Render() {
 		if gpuInstance.PrimaryDevice().ReadyFrame(gpuInstance, host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
-			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)
+			device := gpuInstance.PrimaryDevice()
+			host.Drawings.Render(device, lights)
+			device.Painter.QueueOcclusionWork(device, host.Cameras.Primary.Camera)
 			skipSwap = false
 		}
 	}

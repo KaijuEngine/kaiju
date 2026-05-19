@@ -380,6 +380,17 @@ func (d *DrawInstanceGroup) countVisibility(instanceBase *ShaderDataBase) {
 	}
 }
 
+func (d *DrawInstanceGroup) applyOcclusionCulling(device *GPUDevice, instanceBase *ShaderDataBase) {
+	visibility := instanceBase.VisibilityState()
+	if instanceBase.deactivated || (!visibility.ForceVisible && !visibility.FrustumVisible) {
+		visibility.OcclusionEligible = false
+		visibility.LastOcclusionVisible = true
+		return
+	}
+	d.updateOcclusionEligibility(instanceBase)
+	device.Painter.QueueOcclusionCandidate(device, instanceBase)
+}
+
 func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	base := d.rawData.byteMapping[frame]
@@ -399,8 +410,7 @@ func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights Ligh
 			continue
 		}
 		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
-		d.updateOcclusionEligibility(instanceBase)
-		device.Painter.QueueOcclusionCandidate(device, instanceBase)
+		d.applyOcclusionCulling(device, instanceBase)
 		d.countVisibility(instanceBase)
 		if instanceBase.IsInView() {
 			if d.MaterialInstance.IsLit {

@@ -54,6 +54,7 @@ type GPUPainter struct {
 	writtenCommands       []CommandRecorder
 	combineCmds           [maxFramesInFlight]CommandRecorder
 	blitCmds              [maxFramesInFlight]CommandRecorder
+	computeCmds           [maxFramesInFlight]CommandRecorder
 	fallbackShadowMap     *Texture
 	fallbackCubeShadowMap *Texture
 	computeTasks          []ComputeTask

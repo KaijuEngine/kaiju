@@ -127,6 +127,11 @@ func (g *GPUApplicationInstance) Initialize(window RenderingContainer, app *GPUA
 			return err
 		}
 	}
+	for i := range len(device.Painter.computeCmds) {
+		if device.Painter.computeCmds[i], err = NewCommandRecorder(device); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -177,6 +182,9 @@ func (g *GPUApplicationInstance) Destroy() {
 		}
 		for i := range device.Painter.blitCmds {
 			device.Painter.blitCmds[i].Destroy(device)
+		}
+		for i := range device.Painter.computeCmds {
+			device.Painter.computeCmds[i].Destroy(device)
 		}
 		device.singleTimeCommandPool.All(func(elm *CommandRecorder) {
 			if elm.buffer != vk.NullCommandBuffer {

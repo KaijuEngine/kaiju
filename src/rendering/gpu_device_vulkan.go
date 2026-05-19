@@ -400,6 +400,7 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	ld := &g.LogicalDevice
 	fences := [...]GPUFence{ld.SwapChain.renderFences[painter.currentFrame]}
 	ld.WaitForFences(fences[:])
+	painter.ApplyOcclusionResults()
 	vkFences := [...]vk.Fence{vk.Fence(fences[0].handle)}
 	vk.ResetFences(vk.Device(ld.handle), 1, &vkFences[0])
 	frame := painter.currentFrame
@@ -431,9 +432,5 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		r()
 	}
 	painter.preRuns = klib.WipeSlice(painter.preRuns)
-	painter.QueueHiZPyramid(g)
-	painter.QueueOcclusionTests(g, camera)
-	painter.executeCompute(g)
-	painter.ApplyOcclusionResults()
 	return true
 }

@@ -63,6 +63,7 @@ type GPUOcclusionTestFrame struct {
 	targets          []*ShaderDataBase
 	capacity         int
 	candidateCount   int
+	resultsPending   bool
 }
 
 type GPUOcclusionTester struct {
@@ -97,6 +98,13 @@ func (g *GPUPainter) ApplyOcclusionResults() {
 	g.occlusionTester.applyResults(g.currentFrame)
 }
 
+func (g *GPUPainter) QueueOcclusionWork(device *GPUDevice, camera cameras.Camera) {
+	defer tracing.NewRegion("GPUPainter.QueueOcclusionWork").End()
+	g.QueueHiZPyramid(device)
+	g.QueueOcclusionTests(device, camera)
+	g.executeCompute(device)
+}
+
 func (g *GPUPainter) DestroyOcclusionTester(device *GPUDevice) {
 	defer tracing.NewRegion("GPUPainter.DestroyOcclusionTester").End()
 	g.occlusionTester.destroy(device)
@@ -124,6 +132,7 @@ func (t *GPUOcclusionTester) queueTests(device *GPUDevice, painter *GPUPainter, 
 	if frame.candidateCount == 0 {
 		return
 	}
+	frame.resultsPending = false
 	levels, ok := painter.HiZPyramidLevels()
 	if !ok || len(levels) == 0 || camera == nil {
 		t.failOpenFrame(frameIdx)
@@ -170,12 +179,17 @@ func (t *GPUOcclusionTester) queueTests(device *GPUDevice, painter *GPUPainter, 
 		WorkGroups:     occlusionDispatchGroups(frame.candidateCount),
 		SampledImages:  sampledImages,
 	})
+	frame.resultsPending = true
 }
 
 func (t *GPUOcclusionTester) applyResults(frameIdx int) {
 	frame := &t.frames[frameIdx]
 	if frame.candidateCount == 0 {
 		frame.targets = frame.targets[:0]
+		return
+	}
+	if !frame.resultsPending {
+		t.failOpenFrame(frameIdx)
 		return
 	}
 	if frame.resultMapping == nil {
@@ -191,6 +205,7 @@ func (t *GPUOcclusionTester) applyResults(frameIdx int) {
 		}
 	}
 	frame.candidateCount = 0
+	frame.resultsPending = false
 	clear(frame.targets)
 	frame.targets = frame.targets[:0]
 }
@@ -203,6 +218,7 @@ func (t *GPUOcclusionTester) failOpenFrame(frameIdx int) {
 		}
 	}
 	frame.candidateCount = 0
+	frame.resultsPending = false
 	clear(frame.targets)
 	frame.targets = frame.targets[:0]
 }

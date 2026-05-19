@@ -54,6 +54,7 @@ func TestGPUOcclusionApplyResults(t *testing.T) {
 	frame := &tester.frames[0]
 	frame.capacity = len(results)
 	frame.candidateCount = len(results)
+	frame.resultsPending = true
 	frame.resultMapping = unsafe.Pointer(&results[0])
 	frame.targets = []*ShaderDataBase{&visible, &hidden}
 	tester.applyResults(0)
@@ -65,5 +66,24 @@ func TestGPUOcclusionApplyResults(t *testing.T) {
 	}
 	if frame.candidateCount != 0 || len(frame.targets) != 0 {
 		t.Fatalf("frame was not reset after applying results")
+	}
+	if frame.resultsPending {
+		t.Fatalf("frame still has pending results after applying")
+	}
+}
+
+func TestGPUOcclusionApplyResultsWithoutPendingResultsFailsOpen(t *testing.T) {
+	hidden := NewShaderDataBase()
+	hidden.VisibilityState().LastOcclusionVisible = false
+	tester := GPUOcclusionTester{}
+	frame := &tester.frames[0]
+	frame.candidateCount = 1
+	frame.targets = []*ShaderDataBase{&hidden}
+	tester.applyResults(0)
+	if !hidden.VisibilityState().LastOcclusionVisible {
+		t.Fatalf("unsubmitted occlusion work should fail open")
+	}
+	if frame.candidateCount != 0 || len(frame.targets) != 0 || frame.resultsPending {
+		t.Fatalf("frame was not reset after fail-open apply")
 	}
 }
