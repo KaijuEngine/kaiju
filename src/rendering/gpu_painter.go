@@ -37,6 +37,7 @@
 package rendering
 
 import (
+	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -63,6 +64,7 @@ type GPUPainter struct {
 	occlusionDebug        OcclusionDebugState
 	hiZPyramid            HiZPyramid
 	occlusionTester       GPUOcclusionTester
+	occlusionBatch        occlusionCandidateBatch
 	combinedDrawings      Drawings
 	combinedDrawingCuller combinedDrawingCuller
 	preRuns               []func()
@@ -74,6 +76,13 @@ type GPUPainter struct {
 	fallbackCubeShadowMap *Texture
 	computeTasks          []ComputeTask
 	computeQueue          GPUQueue
+}
+
+type occlusionCandidateBatch struct {
+	renderPass *RenderPass
+	camera     cameras.Camera
+	frame      int
+	active     bool
 }
 
 type combinedDrawingCuller struct{}
@@ -129,6 +138,52 @@ func (g *GPUPainter) OcclusionHiZPreviewMip() int {
 
 func (g *GPUPainter) OcclusionTuning() OcclusionTuning {
 	return g.occlusionDebug.RuntimeMode.Tuning()
+}
+
+func (g *GPUPainter) BeginOcclusionCandidateBatch(renderPass *RenderPass, camera cameras.Camera) {
+	g.occlusionBatch = occlusionCandidateBatch{}
+	if renderPass == nil || camera == nil || !g.OcclusionRuntimeMode().QueuesWork() {
+		return
+	}
+	if !renderPass.HasOcclusionDepthSource() {
+		return
+	}
+	frame := &g.occlusionTester.frames[g.currentFrame]
+	if frame.candidateCount > 0 || frame.resultsPending {
+		return
+	}
+	g.occlusionBatch = occlusionCandidateBatch{
+		renderPass: renderPass,
+		camera:     camera,
+		frame:      g.currentFrame,
+		active:     true,
+	}
+}
+
+func (g *GPUPainter) EndOcclusionCandidateBatch(renderPass *RenderPass, camera cameras.Camera) {
+	if !g.occlusionBatch.active {
+		return
+	}
+	if g.occlusionBatch.renderPass == renderPass &&
+		g.occlusionBatch.camera == camera &&
+		g.occlusionBatch.frame == g.currentFrame {
+		g.occlusionBatch = occlusionCandidateBatch{}
+	}
+}
+
+func (g *GPUPainter) hasActiveOcclusionCandidateBatch() bool {
+	return g.occlusionBatch.active && g.occlusionBatch.frame == g.currentFrame
+}
+
+func (g *GPUPainter) occlusionCandidateBatchAllows(viewCuller ViewCuller) bool {
+	if !g.hasActiveOcclusionCandidateBatch() {
+		return false
+	}
+	container, ok := viewCuller.(*cameras.Container)
+	if !ok || container == nil {
+		return false
+	}
+	return container.Camera == g.occlusionBatch.camera
 }
 
 func (g *GPUPainter) BeginOcclusionDebugFrame() {

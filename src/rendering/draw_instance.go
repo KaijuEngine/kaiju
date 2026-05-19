@@ -398,7 +398,7 @@ func (d *DrawInstanceGroup) applyOcclusionCulling(device *GPUDevice, instanceBas
 		visibility.LastOcclusionVisible = true
 		return
 	}
-	device.Painter.QueueOcclusionCandidate(device, instanceBase)
+	device.Painter.QueueOcclusionCandidate(device, instanceBase, d.viewCuller)
 }
 
 func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender) {

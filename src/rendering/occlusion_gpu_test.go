@@ -87,3 +87,34 @@ func TestGPUOcclusionApplyResultsWithoutPendingResultsFailsOpen(t *testing.T) {
 		t.Fatalf("frame was not reset after fail-open apply")
 	}
 }
+
+func TestOcclusionCandidateBatchRequiresDepthSource(t *testing.T) {
+	painter := GPUPainter{}
+	painter.SetOcclusionRuntimeMode(OcclusionRuntimeConservative)
+	camera := testOcclusionCameraContainer().Camera
+	pass := &RenderPass{occlusionDepthCopyFrom: -1}
+	painter.BeginOcclusionCandidateBatch(pass, camera)
+	if painter.hasActiveOcclusionCandidateBatch() {
+		t.Fatalf("pass without occlusion depth source should not open a candidate batch")
+	}
+
+	pass.occlusionDepthCopyFrom = 0
+	pass.occlusionDepthCopy.RenderId.Image.handle = unsafe.Pointer(uintptr(1))
+	painter.BeginOcclusionCandidateBatch(pass, camera)
+	if !painter.hasActiveOcclusionCandidateBatch() {
+		t.Fatalf("valid occlusion depth source should open a candidate batch")
+	}
+	container := testOcclusionCameraContainer()
+	container.ChangeCamera(camera)
+	if !painter.occlusionCandidateBatchAllows(&container) {
+		t.Fatalf("matching camera container should be allowed into the active batch")
+	}
+	other := testOcclusionCameraContainer()
+	if painter.occlusionCandidateBatchAllows(&other) {
+		t.Fatalf("different camera container should not be allowed into the active batch")
+	}
+	painter.EndOcclusionCandidateBatch(pass, camera)
+	if painter.hasActiveOcclusionCandidateBatch() {
+		t.Fatalf("candidate batch should close after matching pass/camera flush")
+	}
+}

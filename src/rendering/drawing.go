@@ -79,9 +79,10 @@ type RenderPassGroup struct {
 }
 
 type Drawings struct {
-	renderPassGroups []RenderPassGroup
-	backDraws        []Drawing
-	mutex            sync.RWMutex
+	renderPassGroups  []RenderPassGroup
+	backDraws         []Drawing
+	renderPassScratch []*RenderPass
+	mutex             sync.RWMutex
 }
 
 func NewDrawings() Drawings {
@@ -235,7 +236,8 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, occlusionCa
 	if len(d.renderPassGroups) == 0 {
 		return
 	}
-	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
+	d.renderPassScratch = d.renderPassScratch[:0]
+	passes := d.renderPassScratch
 	shadows := [MaxLocalLights]TextureId{}
 	shadowIdx := 0
 	for i := range d.renderPassGroups {
@@ -249,6 +251,7 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, occlusionCa
 			shadowIdx++
 		}
 	}
+	d.renderPassScratch = passes
 	sort.SliceStable(passes, func(i, j int) bool {
 		return passes[i].construction.Sort < passes[j].construction.Sort
 	})
@@ -259,10 +262,12 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, occlusionCa
 		if !ok {
 			continue
 		}
+		device.Painter.BeginOcclusionCandidateBatch(rp, occlusionCamera)
 		device.Draw(rp, rpGroup.draws, lights, shadows[:])
 		if rp.HasOcclusionDepthSource() && device.Painter.OcclusionRuntimeMode().QueuesWork() {
 			device.Painter.QueueOcclusionWork(device, occlusionCamera)
 		}
+		device.Painter.EndOcclusionCandidateBatch(rp, occlusionCamera)
 	}
 	if len(passes) > 0 {
 		device.BlitTargets(passes)
@@ -277,6 +282,7 @@ func (d *Drawings) Destroy(device *GPUDevice) {
 		}
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)
+	d.renderPassScratch = klib.WipeSlice(d.renderPassScratch)
 	d.renderPassGroups = klib.WipeSlice(d.renderPassGroups)
 }
 

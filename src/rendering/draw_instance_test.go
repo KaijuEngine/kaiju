@@ -515,6 +515,12 @@ func TestOcclusionEligibilityConservativeThresholds(t *testing.T) {
 		t.Fatalf("near-plane object should be ineligible")
 	}
 
+	farSubPixel := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3{0, 0, -200}, DefaultOcclusionMinExtent*4))
+	group.updateOcclusionEligibility(&farSubPixel, DefaultOcclusionTuning())
+	if farSubPixel.VisibilityState().OcclusionEligible {
+		t.Fatalf("sub-pixel object should be ineligible")
+	}
+
 	var invalidContainer cameras.Container
 	invalid := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	invalid.VisibilityState().LastOcclusionVisible = false
@@ -539,5 +545,71 @@ func TestDrawInstanceGroupClear(t *testing.T) {
 	group.Clear()
 	if inst.IsDestroyed() {
 		t.Fatalf("Clear should no-op after destruction")
+	}
+}
+
+func BenchmarkOcclusionEligibilityThousandsCubes(b *testing.B) {
+	container := testOcclusionCameraContainer()
+	pass := testOcclusionRenderPass("opaque", true)
+	material := testOcclusionMaterial("basic", pass, true, false)
+	group := testOcclusionGroup(material, &container)
+	tuning := DefaultOcclusionTuning()
+	const count = 10000
+	bounds := make([]graviton.AABB, count)
+	for i := range bounds {
+		x := matrix.Float((i % 100) - 50)
+		y := matrix.Float((i / 100) % 20)
+		z := -matrix.Float(5 + (i / 200))
+		bounds[i] = graviton.AABBFromWidth(matrix.Vec3{x, y, z}, 1)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		eligible := 0
+		for i := range bounds {
+			base := testOcclusionBase(bounds[i])
+			group.updateOcclusionEligibility(&base, tuning)
+			if base.VisibilityState().OcclusionEligible {
+				eligible++
+			}
+		}
+		if eligible == 0 {
+			b.Fatalf("stress scene unexpectedly produced no eligible cubes")
+		}
+	}
+}
+
+func BenchmarkOcclusionEligibilityTerrainChunks(b *testing.B) {
+	container := testOcclusionCameraContainer()
+	pass := testOcclusionRenderPass("opaque", true)
+	material := testOcclusionMaterial("terrain_chunk", pass, true, false)
+	group := testOcclusionGroup(material, &container)
+	tuning := DefaultOcclusionTuning()
+	const side = 96
+	bounds := make([]graviton.AABB, 0, side*side)
+	for z := 0; z < side; z++ {
+		for x := 0; x < side; x++ {
+			center := matrix.Vec3{
+				matrix.Float(x - side/2),
+				-1,
+				-matrix.Float(8 + z),
+			}
+			bounds = append(bounds, graviton.AABBFromWidth(center, 2))
+		}
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		eligible := 0
+		for i := range bounds {
+			base := testOcclusionBase(bounds[i])
+			group.updateOcclusionEligibility(&base, tuning)
+			if base.VisibilityState().OcclusionEligible {
+				eligible++
+			}
+		}
+		if eligible == 0 {
+			b.Fatalf("stress scene unexpectedly produced no eligible terrain chunks")
+		}
 	}
 }

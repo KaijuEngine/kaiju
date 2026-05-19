@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"unsafe"
 
 	"kaijuengine.com/engine/cameras"
@@ -61,6 +62,8 @@ type GPUOcclusionTestFrame struct {
 	paramsMemory     GPUDeviceMemory
 	paramsMapping    unsafe.Pointer
 	targets          []*ShaderDataBase
+	sampledImages    []ComputeTaskImage
+	imageInfos       [maxOcclusionHiZLevels]vk.DescriptorImageInfo
 	capacity         int
 	candidateCount   int
 	resultsPending   bool
@@ -73,12 +76,15 @@ type GPUOcclusionTester struct {
 	frames         [maxFramesInFlight]GPUOcclusionTestFrame
 }
 
-func (g *GPUPainter) QueueOcclusionCandidate(device *GPUDevice, instanceBase *ShaderDataBase) {
+func (g *GPUPainter) QueueOcclusionCandidate(device *GPUDevice, instanceBase *ShaderDataBase, viewCuller ViewCuller) {
 	defer tracing.NewRegion("GPUPainter.QueueOcclusionCandidate").End()
 	if instanceBase == nil {
 		return
 	}
 	if !g.OcclusionRuntimeMode().QueuesWork() {
+		return
+	}
+	if !g.occlusionCandidateBatchAllows(viewCuller) {
 		return
 	}
 	visibility := instanceBase.VisibilityState()
@@ -176,9 +182,9 @@ func (t *GPUOcclusionTester) queueTests(device *GPUDevice, painter *GPUPainter, 
 	}
 	*(*GPUOcclusionTestParams)(frame.paramsMapping) = params
 	t.writeDescriptors(device, frameIdx, levels)
-	sampledImages := make([]ComputeTaskImage, 0, min(len(levels), maxOcclusionHiZLevels))
+	frame.sampledImages = frame.sampledImages[:0]
 	for i := 0; i < len(levels) && i < maxOcclusionHiZLevels; i++ {
-		sampledImages = append(sampledImages, ComputeTaskImage{
+		frame.sampledImages = append(frame.sampledImages, ComputeTaskImage{
 			Texture: &levels[i].RenderId,
 			Aspect:  GPUImageAspectColorBit,
 		})
@@ -187,7 +193,7 @@ func (t *GPUOcclusionTester) queueTests(device *GPUDevice, painter *GPUPainter, 
 		Shader:         t.shader,
 		DescriptorSets: t.descriptorSets[:],
 		WorkGroups:     occlusionDispatchGroups(frame.candidateCount),
-		SampledImages:  sampledImages,
+		SampledImages:  frame.sampledImages,
 	})
 	frame.resultsPending = true
 }
@@ -277,11 +283,29 @@ func (t *GPUOcclusionTester) ensureFrameCapacity(device *GPUDevice, frameIdx, re
 		frame.paramsBuffer.IsValid() {
 		return nil
 	}
+	oldCount := frame.candidateCount
+	oldPending := frame.resultsPending
+	oldSampledImages := frame.sampledImages
+	oldImageInfos := frame.imageInfos
+	var oldCandidates []GPUOcclusionCandidate
+	var oldResults []uint32
+	var oldTargets []*ShaderDataBase
+	if oldCount > 0 {
+		if frame.candidateMapping != nil {
+			oldCandidates = slices.Clone(unsafe.Slice((*GPUOcclusionCandidate)(frame.candidateMapping), oldCount))
+		}
+		if frame.resultMapping != nil {
+			oldResults = slices.Clone(unsafe.Slice((*uint32)(frame.resultMapping), oldCount))
+		}
+		oldTargets = slices.Clone(frame.targets[:min(oldCount, len(frame.targets))])
+	}
 	newCapacity := max(occlusionInitialCapacity, required)
 	for newCapacity < required {
 		newCapacity *= 2
 	}
 	t.destroyFrame(device, frameIdx)
+	frame.sampledImages = oldSampledImages
+	frame.imageInfos = oldImageInfos
 	candidateSize := unsafe.Sizeof(GPUOcclusionCandidate{}) * uintptr(newCapacity)
 	resultSize := unsafe.Sizeof(uint32(0)) * uintptr(newCapacity)
 	paramsSize := unsafe.Sizeof(GPUOcclusionTestParams{})
@@ -320,6 +344,17 @@ func (t *GPUOcclusionTester) ensureFrameCapacity(device *GPUDevice, frameIdx, re
 	}
 	frame.capacity = newCapacity
 	frame.targets = make([]*ShaderDataBase, 0, newCapacity)
+	if oldCount > 0 {
+		if len(oldCandidates) == oldCount {
+			copy(unsafe.Slice((*GPUOcclusionCandidate)(frame.candidateMapping), oldCount), oldCandidates)
+		}
+		if len(oldResults) == oldCount {
+			copy(unsafe.Slice((*uint32)(frame.resultMapping), oldCount), oldResults)
+		}
+		frame.targets = append(frame.targets, oldTargets...)
+		frame.candidateCount = oldCount
+		frame.resultsPending = oldPending
+	}
 	return nil
 }
 
@@ -329,7 +364,7 @@ func (t *GPUOcclusionTester) writeDescriptors(device *GPUDevice, frameIdx int, l
 	candidateInfo := bufferInfo(vk.Buffer(frame.candidateBuffer.handle), vk.DeviceSize(vulkan_const.WholeSize))
 	resultInfo := bufferInfo(vk.Buffer(frame.resultBuffer.handle), vk.DeviceSize(vulkan_const.WholeSize))
 	paramsInfo := bufferInfo(vk.Buffer(frame.paramsBuffer.handle), vk.DeviceSize(unsafe.Sizeof(GPUOcclusionTestParams{})))
-	imageInfos := make([]vk.DescriptorImageInfo, maxOcclusionHiZLevels)
+	imageInfos := frame.imageInfos[:]
 	last := levels[len(levels)-1]
 	for i := range imageInfos {
 		level := last
