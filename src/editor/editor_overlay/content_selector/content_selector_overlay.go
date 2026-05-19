@@ -48,6 +48,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 )
 
 type ContentSelector struct {
@@ -126,7 +127,7 @@ func (o *ContentSelector) Close() {
 }
 
 func (o *ContentSelector) closeInternal() {
-	o.uiMan.Host.Window.CursorStandard()
+	o.uiMan.Host.Window.SetCursor(windowing.CursorKindDefault)
 	o.doc.Destroy()
 	o.uiMan.Host.Window.Keyboard.RemoveKeyCallback(o.keyKb)
 }

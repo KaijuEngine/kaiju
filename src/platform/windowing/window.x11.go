@@ -53,11 +53,7 @@ package windowing
 #cgo noescape window_set_size
 #cgo noescape window_width_mm
 #cgo noescape window_height_mm
-#cgo noescape window_cursor_standard
-#cgo noescape window_cursor_ibeam
-#cgo noescape window_cursor_size_all
-#cgo noescape window_cursor_size_ns
-#cgo noescape window_cursor_size_we
+#cgo noescape window_set_cursor
 #cgo noescape window_show_cursor
 #cgo noescape window_hide_cursor
 #cgo noescape window_dpi
@@ -127,24 +123,8 @@ func (w *Window) poll() {
 	C.window_poll(w.handle)
 }
 
-func (w *Window) cursorStandard() {
-	C.window_cursor_standard(w.handle)
-}
-
-func (w *Window) cursorIbeam() {
-	C.window_cursor_ibeam(w.handle)
-}
-
-func (w *Window) cursorSizeAll() {
-	C.window_cursor_size_all(w.handle)
-}
-
-func (w *Window) cursorSizeNS() {
-	C.window_cursor_size_ns(w.handle)
-}
-
-func (w *Window) cursorSizeWE() {
-	C.window_cursor_size_we(w.handle)
+func (w *Window) setCursor(kind CursorKind) {
+	C.window_set_cursor(w.handle, C.int(kind))
 }
 
 func (w *Window) copyToClipboard(text string) {

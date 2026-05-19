@@ -165,11 +165,7 @@ func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
 func (w *Window) showWindow()                       {}
-func (w *Window) cursorStandard()                   {}
-func (w *Window) cursorIbeam()                      {}
-func (w *Window) cursorSizeAll()                    {}
-func (w *Window) cursorSizeNS()                     {}
-func (w *Window) cursorSizeWE()                     {}
+func (w *Window) setCursor(kind CursorKind)         {}
 func (w *Window) focus()                            {}
 func (w *Window) position() (x, y int)              { return 0, 0 }
 func (w *Window) setPosition(x, y int)              {}

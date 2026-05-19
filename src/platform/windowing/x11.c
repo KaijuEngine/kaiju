@@ -645,34 +645,113 @@ int screen_count(void* state) {
 	return 1; // TODO
 }
 
-void window_cursor_standard(void* state) {
-	X11State* s = state;
-	Cursor c = XcursorLibraryLoadCursor(s->d, "arrow");
-	XDefineCursor(s->d, s->w, c);
+static Cursor load_cursor(Display* d, const char** names) {
+	for (int i = 0; names[i] != NULL; i++) {
+		Cursor c = XcursorLibraryLoadCursor(d, names[i]);
+		if (c != None) {
+			return c;
+		}
+	}
+	return XcursorLibraryLoadCursor(d, "arrow");
 }
 
-void window_cursor_ibeam(void* state) {
-	X11State* s = state;
-	Cursor c = XcursorLibraryLoadCursor(s->d, "xterm");
-	XDefineCursor(s->d, s->w, c);
-}
+void window_set_cursor(void* state, int kind) {
+	if (kind == 2) { // CursorKindNone
+		window_hide_cursor(state);
+		return;
+	}
 
-void window_cursor_size_all(void* state) {
 	X11State* s = state;
-	Cursor c = XcursorLibraryLoadCursor(s->d, "sizing");
-	XDefineCursor(s->d, s->w, c);
-}
+	const char* arrow[] = {"default", "arrow", "left_ptr", NULL};
+	const char* text[] = {"text", "xterm", NULL};
+	const char* hand[] = {"pointer", "hand2", "hand1", NULL};
+	const char* help[] = {"help", "question_arrow", "left_ptr", NULL};
+	const char* wait[] = {"wait", "watch", NULL};
+	const char* progress[] = {"progress", "left_ptr_watch", "watch", NULL};
+	const char* crosshair[] = {"crosshair", "cross", NULL};
+	const char* move[] = {"move", "fleur", "sizing", NULL};
+	const char* no[] = {"not-allowed", "no-drop", "crossed_circle", NULL};
+	const char* grab[] = {"grab", "openhand", "hand2", NULL};
+	const char* grabbing[] = {"grabbing", "closedhand", "fleur", NULL};
+	const char* ns[] = {"ns-resize", "row-resize", "sb_v_double_arrow", NULL};
+	const char* ew[] = {"ew-resize", "col-resize", "sb_h_double_arrow", NULL};
+	const char* nesw[] = {"nesw-resize", "ne-resize", "sw-resize", "bottom_left_corner", "top_right_corner", NULL};
+	const char* nwse[] = {"nwse-resize", "nw-resize", "se-resize", "bottom_right_corner", "top_left_corner", NULL};
+	const char* zoom_in[] = {"zoom-in", "plus", NULL};
+	const char* zoom_out[] = {"zoom-out", "minus", NULL};
+	const char** names = arrow;
 
-void window_cursor_size_ns(void* state) {
-	X11State* s = state;
-	Cursor c = XcursorLibraryLoadCursor(s->d, "sb_v_double_arrow");
-	XDefineCursor(s->d, s->w, c);
-}
+	switch (kind) {
+		case 3:  // CursorKindContextMenu
+		case 6:  // CursorKindPointer
+		case 12: // CursorKindAlias
+		case 13: // CursorKindCopy
+			names = hand;
+			break;
+		case 4:  // CursorKindText
+		case 5:  // CursorKindVerticalText
+			names = text;
+			break;
+		case 7:  // CursorKindHelp
+			names = help;
+			break;
+		case 8:  // CursorKindWait
+			names = wait;
+			break;
+		case 9:  // CursorKindProgress
+			names = progress;
+			break;
+		case 10: // CursorKindCrosshair
+		case 11: // CursorKindCell
+			names = crosshair;
+			break;
+		case 14: // CursorKindMove
+		case 33: // CursorKindResizeAll
+			names = move;
+			break;
+		case 15: // CursorKindNoDrop
+		case 16: // CursorKindNotAllowed
+			names = no;
+			break;
+		case 17: // CursorKindGrab
+			names = grab;
+			break;
+		case 18: // CursorKindGrabbing
+			names = grabbing;
+			break;
+		case 19: // CursorKindResizeN
+		case 21: // CursorKindResizeS
+		case 27: // CursorKindResizeNS
+		case 32: // CursorKindResizeRow
+			names = ns;
+			break;
+		case 20: // CursorKindResizeE
+		case 22: // CursorKindResizeW
+		case 28: // CursorKindResizeEW
+		case 31: // CursorKindResizeCol
+			names = ew;
+			break;
+		case 23: // CursorKindResizeNE
+		case 26: // CursorKindResizeSW
+		case 30: // CursorKindResizeNESW
+			names = nesw;
+			break;
+		case 24: // CursorKindResizeNW
+		case 25: // CursorKindResizeSE
+		case 29: // CursorKindResizeNWSE
+			names = nwse;
+			break;
+		case 34: // CursorKindZoomIn
+			names = zoom_in;
+			break;
+		case 35: // CursorKindZoomOut
+			names = zoom_out;
+			break;
+	}
 
-void window_cursor_size_we(void* state) {
-	X11State* s = state;
-	Cursor c = XcursorLibraryLoadCursor(s->d, "sb_h_double_arrow");
+	Cursor c = load_cursor(s->d, names);
 	XDefineCursor(s->d, s->w, c);
+	XFlush(s->d);
 }
 
 void window_show_cursor(void* state) {

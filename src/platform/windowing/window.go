@@ -312,37 +312,17 @@ func DPI2PXF(pixels, mm, targetMM float64) float64 {
 	return targetMM * (pixels / mm)
 }
 
-func (w *Window) CursorStandard() {
-	w.cursorChangeCount = max(0, w.cursorChangeCount-1)
-	if w.cursorChangeCount == 0 {
-		w.cursorStandard()
+func (w *Window) SetCursor(kind CursorKind) {
+	if kind == CursorKindDefault || kind == CursorKindAuto {
+		w.cursorChangeCount = max(0, w.cursorChangeCount-1)
+		if w.cursorChangeCount == 0 {
+			w.setCursor(kind)
+		}
+		return
 	}
-}
 
-func (w *Window) CursorIbeam() {
 	if w.canChangeCursor() {
-		w.cursorIbeam()
-	}
-	w.cursorChangeCount++
-}
-
-func (w *Window) CursorSizeAll() {
-	if w.canChangeCursor() {
-		w.cursorSizeAll()
-	}
-	w.cursorChangeCount++
-}
-
-func (w *Window) CursorSizeNS() {
-	if w.canChangeCursor() {
-		w.cursorSizeNS()
-	}
-	w.cursorChangeCount++
-}
-
-func (w *Window) CursorSizeWE() {
-	if w.canChangeCursor() {
-		w.cursorSizeWE()
+		w.setCursor(kind)
 	}
 	w.cursorChangeCount++
 }
@@ -371,7 +351,7 @@ func (w *Window) Destroy() {
 func (w *Window) Focus() {
 	defer tracing.NewRegion("Window.Focus").End()
 	w.focus()
-	w.cursorStandard()
+	w.setCursor(CursorKindDefault)
 }
 
 func (w *Window) Position() (x int, y int) {
@@ -676,7 +656,7 @@ func (w *Window) becameInactive() {
 
 func (w *Window) becameActive() {
 	defer tracing.NewRegion("Window.becameActive").End()
-	w.cursorStandard()
+	w.setCursor(CursorKindDefault)
 	idx := -1
 	for i := range activeWindows {
 		if activeWindows[i] == w {

@@ -49,6 +49,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 )
 
 type ColorPicker struct {
@@ -123,7 +124,7 @@ func Show(host *engine.Host, config Config) (*ColorPicker, error) {
 func (p *ColorPicker) Close() {
 	defer tracing.NewRegion("ColorPicker.Close").End()
 	host := p.uiMan.Host
-	host.Window.CursorStandard()
+	host.Window.SetCursor(windowing.CursorKindDefault)
 	p.doc.Destroy()
 }
 

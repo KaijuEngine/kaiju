@@ -55,8 +55,7 @@ import (
 #cgo noescape window_main
 #cgo noescape window_show
 #cgo noescape window_destroy
-#cgo noescape window_cursor_standard
-#cgo noescape window_cursor_ibeam
+#cgo noescape window_set_cursor
 #cgo noescape window_dpi
 #cgo noescape screen_width_mm
 #cgo noescape screen_height_mm
@@ -135,24 +134,8 @@ func (w *Window) poll() {
 	w.pollEvents()
 }
 
-func (w *Window) cursorStandard() {
-	C.window_cursor_standard(w.handle)
-}
-
-func (w *Window) cursorIbeam() {
-	C.window_cursor_ibeam(w.handle)
-}
-
-func (w *Window) cursorSizeAll() {
-	C.window_cursor_size_all(w.handle)
-}
-
-func (w *Window) cursorSizeNS() {
-	C.window_cursor_size_ns(w.handle)
-}
-
-func (w *Window) cursorSizeWE() {
-	C.window_cursor_size_we(w.handle)
+func (w *Window) setCursor(kind CursorKind) {
+	C.window_set_cursor(w.handle, C.int(kind))
 }
 
 func (w *Window) copyToClipboard(text string) {

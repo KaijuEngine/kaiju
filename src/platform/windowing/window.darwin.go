@@ -101,12 +101,7 @@ func (w *Window) poll() {
 	}
 }
 
-// Cursor variants (private)
-func (w *Window) cursorStandard() { C.cocoa_cursor_standard() }
-func (w *Window) cursorIbeam()    { C.cocoa_cursor_ibeam() }
-func (w *Window) cursorSizeAll()  { C.cocoa_cursor_size_all() }
-func (w *Window) cursorSizeNS()   { C.cocoa_cursor_size_ns() }
-func (w *Window) cursorSizeWE()   { C.cocoa_cursor_size_we() }
+func (w *Window) setCursor(kind CursorKind) { C.cocoa_set_cursor(C.int(kind)) }
 
 // Clipboard (private)
 func (w *Window) copyToClipboard(text string) {
