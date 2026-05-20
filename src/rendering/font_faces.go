@@ -21,6 +21,7 @@ const (
 	FontRegular         = FontFace("OpenSans-Regular")
 	FontSemiBold        = FontFace("OpenSans-SemiBold")
 	FontSemiBoldItalic  = FontFace("OpenSans-SemiBoldItalic")
+	FontMono            = FontFace("JetBrainsMono-Regular")
 )
 
 func (f FontFace) IsBold() bool {

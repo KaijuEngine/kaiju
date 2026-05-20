@@ -237,6 +237,9 @@ func (label *Label) labelRender() {
 		label.deactivateDrawings()
 	}
 	label.updateColors()
+	for i := range ld.colorRanges {
+		label.colorRange(ld.colorRanges[i])
+	}
 	ld.renderRequired = false
 }
 
@@ -321,6 +324,9 @@ func (label *Label) SetColor(newColor matrix.Color) {
 	}
 	ld.fgColor = newColor
 	label.updateColors()
+	for i := range ld.colorRanges {
+		label.colorRange(ld.colorRanges[i])
+	}
 }
 
 func (label *Label) EnforceFGColor(color matrix.Color) {
@@ -367,6 +373,9 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 	}
 	ld.bgColor = newColor
 	label.updateColors()
+	for i := range ld.colorRanges {
+		label.colorRange(ld.colorRanges[i])
+	}
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -424,15 +433,23 @@ func (label *Label) SetWidthAutoHeight(width float32) {
 func (label *Label) findColorRange(start, end int) *colorRange {
 	// TODO:  Remove/update overlapped ranges
 	ld := label.LabelData()
+	return appendColorRange(ld, start, end)
+}
+
+// appendColorRange appends a new colorRange seeded with the label's current
+// fgColor/bgColor to ld.colorRanges and returns a pointer to the freshly
+// stored element. It exists as a small package-private helper so the storage
+// invariant (returned pointer is a slice element, not a stack local) can be
+// exercised by an in-package unit test without standing up a font cache.
+func appendColorRange(ld *labelData, start, end int) *colorRange {
 	newRange := colorRange{
 		start: start,
 		end:   end,
 		hue:   ld.fgColor,
 		bgHue: ld.bgColor,
 	}
-	//label.colorRanges = append(label.colorRanges, newRange)
-	//return &label.colorRanges[len(label.colorRanges)-1]
-	return &newRange
+	ld.colorRanges = append(ld.colorRanges, newRange)
+	return &ld.colorRanges[len(ld.colorRanges)-1]
 }
 
 func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
@@ -440,6 +457,15 @@ func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
 	cRange.hue = newColor
 	cRange.bgHue = bgColor
 	label.colorRange(*cRange)
+	label.updateColors()
+}
+
+// ClearColorRanges drops every persisted color range overlay on this
+// label and re-runs the base color pass. Use this when a consumer
+// wants to wipe all overlays without changing the underlying text.
+func (label *Label) ClearColorRanges() {
+	ld := label.LabelData()
+	ld.colorRanges = ld.colorRanges[:0]
 	label.updateColors()
 }
 
