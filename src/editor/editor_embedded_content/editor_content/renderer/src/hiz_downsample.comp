@@ -18,6 +18,6 @@ void main() {
 	float d1 = texelFetch(srcDepth, clamp(srcBase + ivec2(1, 0), ivec2(0), maxCoord), 0).r;
 	float d2 = texelFetch(srcDepth, clamp(srcBase + ivec2(0, 1), ivec2(0), maxCoord), 0).r;
 	float d3 = texelFetch(srcDepth, clamp(srcBase + ivec2(1, 1), ivec2(0), maxCoord), 0).r;
-	float nearestDepth = min(min(d0, d1), min(d2, d3));
-	imageStore(dstDepth, dstCoord, vec4(nearestDepth, 0.0, 0.0, 0.0));
+	float farthestDepth = max(max(d0, d1), max(d2, d3));
+	imageStore(dstDepth, dstCoord, vec4(farthestDepth, 0.0, 0.0, 0.0));
 }

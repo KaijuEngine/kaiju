@@ -25,9 +25,9 @@ func TestHiZDispatchGroups(t *testing.T) {
 	}
 }
 
-func TestHiZReduceDepthUsesNearestDepth(t *testing.T) {
-	if got := hiZReduceDepth(0.7, 0.2, 1.0, 0.4); got != 0.2 {
-		t.Fatalf("Hi-Z reduction = %f, want nearest/min depth", got)
+func TestHiZReduceDepthUsesFarthestDepth(t *testing.T) {
+	if got := hiZReduceDepth(0.7, 0.2, 1.0, 0.4); got != 1.0 {
+		t.Fatalf("Hi-Z reduction = %f, want farthest/max depth", got)
 	}
 	if got := hiZReduceDepth(); got != 1 {
 		t.Fatalf("empty Hi-Z reduction = %f, want far clear depth", got)

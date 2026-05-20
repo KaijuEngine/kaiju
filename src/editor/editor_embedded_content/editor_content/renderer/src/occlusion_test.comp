@@ -94,10 +94,10 @@ void main() {
 	uint mip = uint(clamp(floor(log2(max(maxExtent, 1.0))) - 1.0, 0.0, float(levelCount - 1u)));
 	vec2 center = (rectMin + rectMax) * 0.5;
 	float sampledDepth = texture(hizDepth[mip], center).r;
-	sampledDepth = min(sampledDepth, texture(hizDepth[mip], rectMin).r);
-	sampledDepth = min(sampledDepth, texture(hizDepth[mip], vec2(rectMax.x, rectMin.y)).r);
-	sampledDepth = min(sampledDepth, texture(hizDepth[mip], vec2(rectMin.x, rectMax.y)).r);
-	sampledDepth = min(sampledDepth, texture(hizDepth[mip], rectMax).r);
+	sampledDepth = max(sampledDepth, texture(hizDepth[mip], rectMin).r);
+	sampledDepth = max(sampledDepth, texture(hizDepth[mip], vec2(rectMax.x, rectMin.y)).r);
+	sampledDepth = max(sampledDepth, texture(hizDepth[mip], vec2(rectMin.x, rectMax.y)).r);
+	sampledDepth = max(sampledDepth, texture(hizDepth[mip], rectMax).r);
 
 	if (sampledDepth >= depthSizePadding.w || sampledDepth <= 0.0 || isnan(sampledDepth) || isinf(sampledDepth)) {
 		markVisible(idx);

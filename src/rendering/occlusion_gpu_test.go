@@ -146,6 +146,31 @@ func TestGPUOcclusionReferenceDoesNotOccludeOffsetSphere(t *testing.T) {
 	}
 }
 
+func TestGPUOcclusionReferenceOccludesCoveredSphere(t *testing.T) {
+	cameraPosition := matrix.Vec3{0, 4.233, -9.681}
+	camera := cameras.NewStandardCamera(1280, 720, 1280, 720, cameraPosition)
+	camera.SetPositionAndLookAt(cameraPosition, matrix.Vec3{0, 4.233, 0})
+	camera.SetProperties(60, 0.01, 500, 1280, 720)
+
+	sphereBounds := graviton.AABBFromWidth(matrix.Vec3{-0.029, 3.127, -0.17}, 0.5)
+	cubeBounds := graviton.AABBFromMinMax(
+		matrix.Vec3{-14.458 * 0.5, 4.095 - 10.464*0.5, -2.883 - 0.657*0.5},
+		matrix.Vec3{14.458 * 0.5, 4.095 + 10.464*0.5, -2.883 + 0.657*0.5},
+	)
+	tuning := DefaultOcclusionTuning()
+	visible := testGPUOcclusionReferenceVisible(sphereBounds, camera, tuning,
+		func(uv matrix.Vec2) matrix.Float {
+			depth, ok := testDepthFromAABBAtUV(cubeBounds, camera, 60, uv)
+			if !ok {
+				return tuning.MissingFar
+			}
+			return depth
+		})
+	if visible {
+		t.Fatalf("covered sphere should be occluded by the cube")
+	}
+}
+
 func testGPUOcclusionReferenceVisible(bounds graviton.AABB, camera cameras.Camera, tuning OcclusionTuning, depthAt func(matrix.Vec2) matrix.Float) bool {
 	rectMin := matrix.Vec2{1, 1}
 	rectMax := matrix.Vec2{0, 0}
@@ -170,7 +195,7 @@ func testGPUOcclusionReferenceVisible(bounds graviton.AABB, camera cameras.Camer
 	rectMin = matrix.Vec2Max(rectMin.Subtract(padUv), matrix.Vec2Zero())
 	rectMax = matrix.Vec2Min(rectMax.Add(padUv), matrix.Vec2One())
 	center := rectMin.Add(rectMax).Scale(0.5)
-	sampledDepth := tuning.MissingFar
+	sampledDepth := matrix.Float(0)
 	for _, uv := range []matrix.Vec2{
 		center,
 		rectMin,
@@ -178,7 +203,7 @@ func testGPUOcclusionReferenceVisible(bounds graviton.AABB, camera cameras.Camer
 		{rectMin.X(), rectMax.Y()},
 		rectMax,
 	} {
-		sampledDepth = min(sampledDepth, depthAt(uv))
+		sampledDepth = max(sampledDepth, depthAt(uv))
 	}
 	if sampledDepth >= tuning.MissingFar || sampledDepth <= 0 ||
 		math.IsNaN(float64(sampledDepth)) || math.IsInf(float64(sampledDepth), 0) {

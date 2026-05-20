@@ -252,7 +252,7 @@ func hiZReduceDepth(depths ...float32) float32 {
 	}
 	out := depths[0]
 	for i := 1; i < len(depths); i++ {
-		out = min(out, depths[i])
+		out = max(out, depths[i])
 	}
 	return out
 }
