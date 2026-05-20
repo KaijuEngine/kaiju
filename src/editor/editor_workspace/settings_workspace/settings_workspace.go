@@ -82,18 +82,18 @@ type editorWorkspaceController interface {
 
 type SettingsWorkspace struct {
 	common_workspace.CommonWorkspace
-	projectSettingsBox  *document.Element
-	editorSettingsBox   *document.Element
-	pluginSettingsBox   *document.Element
+	projectSettingsBox   *document.Element
+	editorSettingsBox    *document.Element
+	pluginSettingsBox    *document.Element
 	workspaceSettingsBox *document.Element
-	editor              editor_workspace.WorkspaceEditorInterface
-	editorSettings      *editor_settings.Settings
-	projectSettings     *project.Settings
-	plugins             []editor_plugin.PluginInfo
-	pluginInitStates    []bool
-	reloadRequested     bool
-	recompiling         bool
-	downloadingPlugin   bool
+	editor               editor_workspace.WorkspaceEditorInterface
+	editorSettings       *editor_settings.Settings
+	projectSettings      *project.Settings
+	plugins              []editor_plugin.PluginInfo
+	pluginInitStates     []bool
+	reloadRequested      bool
+	recompiling          bool
+	downloadingPlugin    bool
 }
 
 // workspaceRowData is the per-row data the Workspaces panel template loops over.
@@ -301,6 +301,7 @@ func (w *SettingsWorkspace) valueChanged(e *document.Element) {
 	defer tracing.NewRegion("SettingsWorkspace.valueChanged").End()
 	if w.editorSettingsBox.UI.Entity().IsActive() {
 		common_workspace.SetObjectValueFromUI(w.editorSettings, e)
+		w.editor.UpdateSettings()
 	} else if w.projectSettingsBox.UI.Entity().IsActive() {
 		common_workspace.SetObjectValueFromUI(w.projectSettings, e)
 	}
@@ -501,7 +502,16 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 	for i := range w.plugins {
 		w.pluginInitStates[i] = w.plugins[i].Config.Enabled
 	}
-	listings := map[string][]ui.SelectOption{}
+	listings := map[string][]ui.SelectOption{
+		"CursorMode": {
+			{Name: "Native", Value: "native"},
+			{Name: "Virtual", Value: "virtual"},
+			{Name: "Auto", Value: "auto"},
+		},
+		"CursorTheme": {
+			{Name: "Kenney", Value: "kenney"},
+		},
+	}
 	cache := w.editor.Project().CacheDatabase()
 	return settingsWorkspaceData{
 		Editor: common_workspace.ReflectUIStructure(cache,
