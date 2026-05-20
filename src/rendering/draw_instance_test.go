@@ -408,7 +408,6 @@ func TestOcclusionEligibilityDefaults(t *testing.T) {
 		{"no depth attachment", testOcclusionMaterial("basic", testOcclusionRenderPass("opaque", false), true, false), &container},
 		{"no depth write", testOcclusionMaterial("basic", pass, false, false), &container},
 		{"transparent material", testOcclusionMaterial("basic_transparent", pass, true, false), &container},
-		{"transparent blend", testOcclusionMaterial("basic", pass, true, true), &container},
 		{"transparent pass", testOcclusionMaterial("basic", testOcclusionRenderPass("transparent", true), true, false), &container},
 		{"shadow pass", testOcclusionMaterial("basic", testOcclusionRenderPass("light_offscreen", true), true, false), &container},
 		{"gizmo pass", testOcclusionMaterial("basic", testOcclusionRenderPass("gizmo_overlay", true), true, false), &container},
@@ -432,6 +431,17 @@ func TestOcclusionEligibilityDefaults(t *testing.T) {
 		if !base.VisibilityState().LastOcclusionVisible {
 			t.Fatalf("%s should fail open", tc.name)
 		}
+	}
+}
+
+func TestOcclusionEligibilityAllowsBlendedOpaqueDepthWriters(t *testing.T) {
+	container := testOcclusionCameraContainer()
+	pass := testOcclusionRenderPass("opaque", true)
+	base := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
+	group := testOcclusionGroup(testOcclusionMaterial("basic", pass, true, true), &container)
+	group.updateOcclusionEligibility(&base, DefaultOcclusionTuning())
+	if !base.VisibilityState().OcclusionEligible {
+		t.Fatalf("opaque depth-writing material should be eligible even when a color attachment blends")
 	}
 }
 

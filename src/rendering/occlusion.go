@@ -208,11 +208,6 @@ func (m *Material) transparentByDefault() bool {
 	if strings.Contains(strings.ToLower(m.Id), "transparent") {
 		return true
 	}
-	for i := range m.pipelineInfo.ColorBlendAttachments {
-		if m.pipelineInfo.ColorBlendAttachments[i].BlendEnable {
-			return true
-		}
-	}
 	rp := m.RenderPass()
 	return rp != nil && strings.Contains(strings.ToLower(rp.construction.Name), "transparent")
 }

@@ -330,18 +330,24 @@ func (t *GPUOcclusionTester) ensureFrameCapacity(device *GPUDevice, frameIdx, re
 		t.destroyFrame(device, frameIdx)
 		return err
 	}
-	if err = device.MapMemory(frame.candidateMemory, 0, candidateSize, 0, &frame.candidateMapping); err != nil {
+	var candidateMapping unsafe.Pointer
+	var resultMapping unsafe.Pointer
+	var paramsMapping unsafe.Pointer
+	if err = device.MapMemory(frame.candidateMemory, 0, candidateSize, 0, &candidateMapping); err != nil {
 		t.destroyFrame(device, frameIdx)
 		return err
 	}
-	if err = device.MapMemory(frame.resultMemory, 0, resultSize, 0, &frame.resultMapping); err != nil {
+	frame.candidateMapping = candidateMapping
+	if err = device.MapMemory(frame.resultMemory, 0, resultSize, 0, &resultMapping); err != nil {
 		t.destroyFrame(device, frameIdx)
 		return err
 	}
-	if err = device.MapMemory(frame.paramsMemory, 0, paramsSize, 0, &frame.paramsMapping); err != nil {
+	frame.resultMapping = resultMapping
+	if err = device.MapMemory(frame.paramsMemory, 0, paramsSize, 0, &paramsMapping); err != nil {
 		t.destroyFrame(device, frameIdx)
 		return err
 	}
+	frame.paramsMapping = paramsMapping
 	frame.capacity = newCapacity
 	frame.targets = make([]*ShaderDataBase, 0, newCapacity)
 	if oldCount > 0 {
