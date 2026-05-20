@@ -70,6 +70,7 @@ const (
 	DefaultOcclusionMinCameraDistance matrix.Float = 0.25
 	DefaultOcclusionNearPlanePadding  matrix.Float = 0.001
 	DefaultOcclusionMinProjectedPx    matrix.Float = 2.0
+	DefaultOcclusionMaxProjectedRatio matrix.Float = 0.45
 )
 
 type OcclusionTuning struct {
@@ -80,6 +81,7 @@ type OcclusionTuning struct {
 	DepthBias         matrix.Float
 	RectPadPx         matrix.Float
 	MinRectPx         matrix.Float
+	MaxProjectedRatio matrix.Float
 	MissingFar        matrix.Float
 }
 
@@ -92,6 +94,7 @@ func DefaultOcclusionTuning() OcclusionTuning {
 		DepthBias:         DefaultOcclusionDepthBias,
 		RectPadPx:         DefaultOcclusionRectPadPx,
 		MinRectPx:         DefaultOcclusionMinRectPx,
+		MaxProjectedRatio: DefaultOcclusionMaxProjectedRatio,
 		MissingFar:        DefaultOcclusionMissingFar,
 	}
 }
@@ -106,6 +109,7 @@ func (m OcclusionRuntimeMode) Tuning() OcclusionTuning {
 		tuning.DepthBias = DefaultOcclusionDepthBias * 0.25
 		tuning.RectPadPx = 0
 		tuning.MinRectPx = 0
+		tuning.MaxProjectedRatio = 0.75
 	}
 	return tuning
 }
@@ -322,9 +326,12 @@ func (d *DrawInstanceGroup) viewCullerAllowsOcclusion(bounds graviton.AABB, tuni
 	if h := matrix.Float(camera.Height()); h < screenMin {
 		screenMin = h
 	}
-	if tuning.MinProjectedPx > 0 && screenMin > 0 {
+	if screenMin > 0 {
 		projectedExtentPx := bounds.Extent.LongestAxisValue() * screenMin / closestDistance
-		if projectedExtentPx < tuning.MinProjectedPx {
+		if tuning.MinProjectedPx > 0 && projectedExtentPx < tuning.MinProjectedPx {
+			return false
+		}
+		if tuning.MaxProjectedRatio > 0 && projectedExtentPx > screenMin*tuning.MaxProjectedRatio {
 			return false
 		}
 	}

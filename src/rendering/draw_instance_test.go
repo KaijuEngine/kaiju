@@ -531,6 +531,12 @@ func TestOcclusionEligibilityConservativeThresholds(t *testing.T) {
 		t.Fatalf("sub-pixel object should be ineligible")
 	}
 
+	largeOnScreen := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 3))
+	group.updateOcclusionEligibility(&largeOnScreen, DefaultOcclusionTuning())
+	if largeOnScreen.VisibilityState().OcclusionEligible {
+		t.Fatalf("large on-screen occluder should not be occlusion-culled by default")
+	}
+
 	var invalidContainer cameras.Container
 	invalid := testOcclusionBase(graviton.AABBFromWidth(matrix.Vec3Zero(), 1))
 	invalid.VisibilityState().LastOcclusionVisible = false
