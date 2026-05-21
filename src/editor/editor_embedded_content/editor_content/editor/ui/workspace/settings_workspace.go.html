@@ -188,6 +188,28 @@
 			.workspaceRequired { color: #cc6; margin-right: 1em; }
 			.workspaceToggle { margin-right: 0.5em; }
 			.workspaceMoveBtn { margin-left: 0.25em; }
+			.cursorAutoTestGrid {
+				width: 100%;
+				margin-top: 1em;
+			}
+			.cursorAutoTestBox {
+				width: 150px;
+				height: 34px;
+				margin: 4px;
+				padding: 8px;
+				background-color: #313232;
+				color: white;
+				border: 1px solid #575757;
+			}
+			.cursorAutoDefault { cursor: default; }
+			.cursorAutoPointer { cursor: pointer; }
+			.cursorAutoText { cursor: text; }
+			.cursorAutoWait { cursor: wait; }
+			.cursorAutoProgress { cursor: progress; }
+			.cursorAutoResizeNWSE { cursor: nwse-resize; }
+			.cursorAutoResizeNESW { cursor: nesw-resize; }
+			.cursorAutoZoomIn { cursor: zoom-in; }
+			.cursorAutoZoomOut { cursor: zoom-out; }
 		
 			
 			.gitDownloadRow {
@@ -226,6 +248,18 @@
 				<div id="editorSettingsBox" class="settingsBox">
 					<h1>Editor Settings</h1>
 					{{template "section" .Editor}}
+					<h2>Cursor Auto Test</h2>
+					<div class="cursorAutoTestGrid">
+						<div class="cursorAutoTestBox cursorAutoDefault">default</div>
+						<div class="cursorAutoTestBox cursorAutoPointer">pointer</div>
+						<div class="cursorAutoTestBox cursorAutoText">text</div>
+						<div class="cursorAutoTestBox cursorAutoWait">wait</div>
+						<div class="cursorAutoTestBox cursorAutoProgress">progress</div>
+						<div class="cursorAutoTestBox cursorAutoResizeNWSE">nwse-resize</div>
+						<div class="cursorAutoTestBox cursorAutoResizeNESW">nesw-resize</div>
+						<div class="cursorAutoTestBox cursorAutoZoomIn">zoom-in</div>
+						<div class="cursorAutoTestBox cursorAutoZoomOut">zoom-out</div>
+					</div>
 				</div>
 				<div id="workspaceSettingsBox" class="settingsBox">
 					<h1>Workspaces</h1>

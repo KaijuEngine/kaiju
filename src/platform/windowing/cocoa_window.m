@@ -580,24 +580,28 @@ void cocoa_set_cursor(int kind) {
 					cocoa_set_cursor_hidden(YES);
 					break;
 				case 4: // CursorKindText
-				case 5: // CursorKindVerticalText
 					cocoa_set_cursor_hidden(NO);
 					[[NSCursor IBeamCursor] set];
 					break;
+				case 5: // CursorKindVerticalText
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor IBeamCursorForVerticalLayout] set];
+					break;
 				case 3: // CursorKindContextMenu
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor contextualMenuCursor] set];
+					break;
 				case 6: // CursorKindPointer
-				case 7: // CursorKindHelp
-				case 12: // CursorKindAlias
-				case 13: // CursorKindCopy
 					cocoa_set_cursor_hidden(NO);
 					[[NSCursor pointingHandCursor] set];
 					break;
-				case 8: // CursorKindWait
-				case 9: // CursorKindProgress
-				case 34: // CursorKindZoomIn
-				case 35: // CursorKindZoomOut
+				case 12: // CursorKindAlias
 					cocoa_set_cursor_hidden(NO);
-					[[NSCursor arrowCursor] set];
+					[[NSCursor dragLinkCursor] set];
+					break;
+				case 13: // CursorKindCopy
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor dragCopyCursor] set];
 					break;
 				case 10: // CursorKindCrosshair
 				case 11: // CursorKindCell
@@ -633,12 +637,6 @@ void cocoa_set_cursor(int kind) {
 					cocoa_set_cursor_hidden(NO);
 					[[NSCursor resizeLeftRightCursor] set];
 					break;
-				case 23: // CursorKindResizeNE
-				case 24: // CursorKindResizeNW
-				case 25: // CursorKindResizeSE
-				case 26: // CursorKindResizeSW
-				case 29: // CursorKindResizeNWSE
-				case 30: // CursorKindResizeNESW
 				default:
 					cocoa_set_cursor_hidden(NO);
 					[[NSCursor arrowCursor] set];
@@ -651,7 +649,7 @@ void cocoa_set_cursor(int kind) {
 void cocoa_show_cursor(void) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
-			[NSCursor unhide];
+			cocoa_set_cursor_hidden(NO);
 		}
 	});
 }
@@ -659,7 +657,7 @@ void cocoa_show_cursor(void) {
 void cocoa_hide_cursor(void) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
-			[NSCursor hide];
+			cocoa_set_cursor_hidden(YES);
 		}
 	});
 }

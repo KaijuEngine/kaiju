@@ -567,7 +567,7 @@ func (ui *UI) anyChildDirty() bool {
 
 func (ui *UI) updateFromManager(deltaTime float64) {
 	defer tracing.NewRegion("UI.updateFromManager").End()
-	if !ui.IsActive() {
+	if !ui.IsActive() && ui.elmType != ElementTypeCursor {
 		return
 	}
 	switch ui.elmType {

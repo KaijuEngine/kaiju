@@ -325,6 +325,20 @@ func (w *Window) CursorMode() CursorMode {
 	return w.cursorMode
 }
 
+func (w *Window) cursorRenderMode() CursorMode {
+	if w.cursorMode != CursorModeAuto {
+		return w.cursorMode
+	}
+	if NativeCursorSupported(w.cursorKind) {
+		return CursorModeNative
+	}
+	return CursorModeVirtual
+}
+
+func (w *Window) UsesVirtualCursor() bool {
+	return w.cursorRenderMode() == CursorModeVirtual
+}
+
 func (w *Window) CursorVisible() bool {
 	return w.cursorVisible
 }
@@ -334,22 +348,11 @@ func (w *Window) CursorVisible() bool {
 // render it instead.
 func (w *Window) SetCursorMode(mode CursorMode) {
 	if w.cursorMode == mode {
+		w.applyCursor()
 		return
 	}
-	oldMode := w.cursorMode
 	w.cursorMode = mode
-	if oldMode == CursorModeVirtual && w.cursorVisible {
-		w.showCursor()
-	}
-	if mode == CursorModeVirtual {
-		if w.cursorVisible {
-			w.hideCursor()
-		}
-		return
-	}
-	if w.cursorVisible {
-		w.setCursor(w.cursorKind)
-	}
+	w.applyCursor()
 }
 
 func (w *Window) ResetCursor() {
@@ -361,9 +364,7 @@ func (w *Window) SetCursor(kind CursorKind) {
 		kind = CursorKindDefault
 	}
 	w.cursorKind = kind
-	if w.cursorMode != CursorModeVirtual && w.cursorVisible {
-		w.setCursor(w.cursorKind)
-	}
+	w.applyCursor()
 }
 
 // HideCursor is a visibility override. They do not change the
@@ -377,11 +378,7 @@ func (w *Window) HideCursor() {
 // current cursor mode or semantic cursor kind.
 func (w *Window) ShowCursor() {
 	w.cursorVisible = true
-	if w.cursorMode == CursorModeVirtual {
-		return
-	}
-	w.showCursor()
-	w.setCursor(w.cursorKind)
+	w.applyCursor()
 }
 
 func (w *Window) applyCursor() {
@@ -389,7 +386,7 @@ func (w *Window) applyCursor() {
 		w.hideCursor()
 		return
 	}
-	if w.cursorMode == CursorModeVirtual {
+	if w.UsesVirtualCursor() {
 		w.hideCursor()
 		return
 	}

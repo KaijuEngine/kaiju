@@ -171,13 +171,13 @@ func (c *Cursor) SetTheme(theme CursorTheme) {
 	c.setKind(c.Base().Host().Window.CursorKind())
 }
 
-func (c *Cursor) SyndWithWindow() {
+func (c *Cursor) SyncWithWindow() {
 	base := c.Base()
 	host := base.Host()
 	if host == nil {
 		return
 	}
-	if host.Window.CursorMode() != windowing.CursorModeVirtual ||
+	if !host.Window.UsesVirtualCursor() ||
 		!host.Window.CursorVisible() ||
 		host.Window.CursorKind() == windowing.CursorKindNone {
 		base.Hide()
@@ -234,7 +234,7 @@ func (c *Cursor) update(deltaTime float64) {
 		return
 	}
 
-	if host.Window.CursorMode() != windowing.CursorModeVirtual ||
+	if !host.Window.UsesVirtualCursor() ||
 		!host.Window.CursorVisible() ||
 		host.Window.CursorKind() == windowing.CursorKindNone {
 		base.Hide()

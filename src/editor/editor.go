@@ -203,7 +203,7 @@ func (ed *Editor) UpdateSettings() {
 
 	ed.host.Window.ResetCursor()
 	ed.host.Window.SetCursorMode(cursorModeFromSetting(ed.settings.CursorMode))
-	ed.cursor.SyndWithWindow()
+	ed.cursor.SyncWithWindow()
 
 	if err := ed.settings.Save(); err != nil {
 		slog.Error("failed to save the editor settings", "error", err)

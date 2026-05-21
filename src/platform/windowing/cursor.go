@@ -84,3 +84,13 @@ const (
 	CursorModeVirtual
 	CursorModeAuto
 )
+
+func NativeCursorSupported(kind CursorKind) bool {
+	switch kind {
+	case CursorKindAuto:
+		kind = CursorKindDefault
+	case CursorKindDefault, CursorKindNone:
+		return true
+	}
+	return nativeCursorSupported(kind)
+}
