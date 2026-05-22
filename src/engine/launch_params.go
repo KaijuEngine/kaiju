@@ -50,6 +50,7 @@ type LaunchParameters struct {
 	UpgradeProject  string
 	ProjectName     string
 	ProjectTemplate string
+	IntegrationTest string
 	StartStage      string
 	Trace           bool
 	RecordPGO       bool
@@ -62,6 +63,7 @@ func LoadLaunchParams() {
 	flag.StringVar(&LaunchParams.UpgradeProject, "upgradeproject", "", "Upgrade the engine code at the specified path")
 	flag.StringVar(&LaunchParams.ProjectName, "projectname", "", "Name of the project to create (used with -newproject)")
 	flag.StringVar(&LaunchParams.ProjectTemplate, "projecttemplate", "", "Path to a template zip to use (used with -newproject)")
+	flag.StringVar(&LaunchParams.IntegrationTest, "integrationtest", "", "The name of an integration test that should be ran")
 	if build.Debug {
 		flag.BoolVar(&LaunchParams.Trace, "trace", false, "If supplied, the entire run will be traced")
 		flag.StringVar(&LaunchParams.StartStage, "startStage", "", "Used to force the build to start on a specific stage")

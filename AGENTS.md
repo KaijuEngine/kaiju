@@ -10,6 +10,38 @@ Kaiju Engine is a 2D/3D game engine written in Go (Golang) backed by Vulkan. It 
 - **Go Version**: 1.25.0+
 - **Build Tags**: `debug`, `editor`, platform-specific (`.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`)
 
+## Integration testing
+If you want to test visuals or non-unit testable behavior, you can use the integration testing framework. In the `src/integration_testing` folder is where integration tests should be placed. In the `init` function of your integration testing file, you should register your test launch function to the `tests` package map.
+
+You will need to build the executable from within the `src/` folder after creating your integration test by running `go build -tags="debug,editor,filedrop" -o ../ ./`. This will create a `kaijuengine.com.exe` in the project root folder. You can run your integration test by running the executable with the `integrationtest` argument like `kaijuengine.com.exe -integrationtest=screenshot`.
+
+Below is an example of an integration test that takes a screenshot of a red sphere and outputs a png file you can review for accuracy.
+```go
+package integration_testing
+
+import (
+	"os"
+
+	"kaijuengine.com/engine"
+)
+
+// This test will generate a screenshot file in the working directory named
+// "integration_test.png". This image can be analyzed by external tools to
+// ensure it presents a red circle.
+
+func init() {
+	tests["screenshot"] = IntegrationTestScreenshot
+}
+
+func IntegrationTestScreenshot(host *engine.Host) {
+	createRedSphere(host)
+	host.RunAfterFrames(3, func() {
+		takeScreenshot(host)
+		os.Exit(0)
+	})
+}
+```
+
 ## Project Structure
 
 ```

@@ -41,13 +41,23 @@ import (
 	"kaijuengine.com/engine"
 	_ "kaijuengine.com/engine/ui/markup/css/properties" // Run init functions
 	_ "kaijuengine.com/engine_entity_data/content_id"   // Run the content id init
+	"kaijuengine.com/integration_testing"
 	"kaijuengine.com/platform/profiler"
 	"kaijuengine.com/plugins"
 )
 
 func _main(platformState any) {
 	engine.LoadLaunchParams()
-	game := getGame()
+	var game bootstrap.GameInterface
+	if engine.LaunchParams.IntegrationTest != "" {
+		var err error
+		game, err = integration_testing.IntegrationTestGame(engine.LaunchParams.IntegrationTest)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		game = getGame()
+	}
 	if engine.LaunchParams.Generate != "" {
 		switch engine.LaunchParams.Generate {
 		case "pluginapi":
