@@ -50,7 +50,6 @@ func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host
 	if elm.Stylizer.HasRule("line-height") {
 		return
 	}
-
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
 		height := helpers.NumFromLengthWithFont(size, host.Window,
@@ -68,7 +67,6 @@ func (p LineHeight) Process(panel *ui.Panel, elm *document.Element, values []rul
 	if len(values) != 1 {
 		return errors.New("LineHeight requires exactly 1 value")
 	}
-
 	for _, child := range elm.Children {
 		setChildrenLineHeight(child, values[0].Str, host)
 	}
