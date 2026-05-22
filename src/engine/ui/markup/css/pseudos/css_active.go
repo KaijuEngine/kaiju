@@ -47,7 +47,7 @@ func (p Active) Process(elm *document.Element, value rules.SelectorPart) ([]*doc
 
 func (p Active) AlterRules(inRules []rules.Rule) []rules.Rule {
 	for i := range inRules {
-		inRules[i].Invocation = rules.RuleInvokeActive
+		inRules[i].Invocation = inRules[i].Invocation.With(rules.RuleInvokeActive)
 	}
 	return inRules
 }

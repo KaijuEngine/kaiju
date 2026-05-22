@@ -38,14 +38,23 @@ package rules
 
 import "slices"
 
-type RuleInvoke = int
+type RuleInvoke uint16
 
 const (
-	RuleInvokeImmediate RuleInvoke = iota
-	RuleInvokeHover
+	RuleInvokeImmediate RuleInvoke = 0
+	RuleInvokeHover     RuleInvoke = 1 << (iota - 1)
 	RuleInvokeActive
 	RuleInvokeFocus
+	RuleInvokeVisited
 )
+
+func (r RuleInvoke) Matches(state RuleInvoke) bool {
+	return r == RuleInvokeImmediate || state&r == r
+}
+
+func (r RuleInvoke) With(state RuleInvoke) RuleInvoke {
+	return r | state
+}
 
 type PropertyValue struct {
 	Str     string
@@ -77,12 +86,22 @@ type Rule struct {
 
 func (r *Rule) Clone() Rule {
 	out := Rule{
-		Property:   r.Property,
-		Invocation: r.Invocation,
-		Values:     make([]PropertyValue, len(r.Values)),
+		Property:     r.Property,
+		Invocation:   r.Invocation,
+		Sort:         r.Sort,
+		SelfDestruct: r.SelfDestruct,
+		Values:       make([]PropertyValue, len(r.Values)),
 	}
 	for i := range r.Values {
 		out.Values[i] = r.Values[i].Clone()
+	}
+	return out
+}
+
+func CloneRules(in []Rule) []Rule {
+	out := make([]Rule, len(in))
+	for i := range in {
+		out[i] = in[i].Clone()
 	}
 	return out
 }

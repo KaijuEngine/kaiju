@@ -47,7 +47,7 @@ func (p Focus) Process(elm *document.Element, value rules.SelectorPart) ([]*docu
 
 func (p Focus) AlterRules(inRules []rules.Rule) []rules.Rule {
 	for i := range inRules {
-		inRules[i].Invocation = rules.RuleInvokeFocus
+		inRules[i].Invocation = inRules[i].Invocation.With(rules.RuleInvokeFocus)
 	}
 	return inRules
 }

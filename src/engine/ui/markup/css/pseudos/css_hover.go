@@ -47,7 +47,7 @@ func (p Hover) Process(elm *document.Element, value rules.SelectorPart) ([]*docu
 
 func (p Hover) AlterRules(inRules []rules.Rule) []rules.Rule {
 	for i := range inRules {
-		inRules[i].Invocation = rules.RuleInvokeHover
+		inRules[i].Invocation = inRules[i].Invocation.With(rules.RuleInvokeHover)
 	}
 	return inRules
 }

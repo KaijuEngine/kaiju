@@ -95,7 +95,8 @@ type ElementLayoutStylizer struct {
 		upId    events.Id
 		exitId  events.Id
 	}
-	currentInvoke rules.RuleInvoke
+	currentState     rules.RuleInvoke
+	interestedStates rules.RuleInvoke
 }
 
 func (s *ElementLayoutStylizer) HasRule(rule string) bool {
@@ -141,6 +142,7 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	s.activeEvt.upId = 0
 	s.activateEvtId = 0
 	s.deactivateEvtId = 0
+	s.interestedStates = rules.RuleInvokeImmediate
 }
 
 func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
@@ -155,54 +157,68 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 	}
 	rule.Sort = p.Sort()
 	s.styleRules = append(s.styleRules, rule)
-	switch rule.Invocation {
-	case rules.RuleInvokeHover:
+	s.interestedStates = s.interestedStates.With(rule.Invocation)
+	if rule.Invocation&rules.RuleInvokeHover != 0 {
 		if s.hoverEvtId == 0 {
 			s.hoverEvtId = elm.UI.AddEvent(ui.EventTypeEnter, func() {
-				s.currentInvoke = rules.RuleInvokeHover
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeHover, true)
 			})
 			s.hoverExitEvtId = elm.UI.AddEvent(ui.EventTypeExit, func() {
-				s.currentInvoke = rules.RuleInvokeImmediate
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeHover, false)
 			})
 		}
-	case rules.RuleInvokeFocus:
+	}
+	if rule.Invocation&rules.RuleInvokeFocus != 0 {
 		if s.focusEvt.clickId == 0 {
 			s.focusEvt.clickId = elm.UI.AddEvent(ui.EventTypeClick, func() {
-				s.currentInvoke = rules.RuleInvokeFocus
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeFocus, true)
 			})
 			s.focusEvt.missId = elm.UI.AddEvent(ui.EventTypeMiss, func() {
-				s.currentInvoke = rules.RuleInvokeImmediate
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeFocus, false)
 			})
 		}
-	case rules.RuleInvokeActive:
+	}
+	if rule.Invocation&rules.RuleInvokeActive != 0 {
 		if s.activeEvt.enterId == 0 {
 			s.activeEvt.enterId = elm.UI.AddEvent(ui.EventTypeEnter, func() {
 				if elm.UI.IsDown() {
-					s.currentInvoke = rules.RuleInvokeActive
-					elm.UI.SetDirty(ui.DirtyTypeGenerated)
+					s.setState(rules.RuleInvokeActive, true)
 				}
 			})
 			s.activeEvt.downId = elm.UI.AddEvent(ui.EventTypeDown, func() {
-				s.currentInvoke = rules.RuleInvokeActive
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeActive, true)
 			})
 			s.activeEvt.upId = elm.UI.AddEvent(ui.EventTypeUp, func() {
-				s.currentInvoke = rules.RuleInvokeHover
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeActive, false)
 			})
 			s.activeEvt.exitId = elm.UI.AddEvent(ui.EventTypeExit, func() {
-				s.currentInvoke = rules.RuleInvokeImmediate
-				elm.UI.SetDirty(ui.DirtyTypeGenerated)
+				s.setState(rules.RuleInvokeActive, false)
 			})
 			elm.UIEventIds[ui.EventTypeEnter] = append(elm.UIEventIds[ui.EventTypeEnter], s.activeEvt.enterId)
 			elm.UIEventIds[ui.EventTypeDown] = append(elm.UIEventIds[ui.EventTypeDown], s.activeEvt.downId)
 			elm.UIEventIds[ui.EventTypeUp] = append(elm.UIEventIds[ui.EventTypeUp], s.activeEvt.upId)
 			elm.UIEventIds[ui.EventTypeExit] = append(elm.UIEventIds[ui.EventTypeExit], s.activeEvt.exitId)
 		}
+	}
+}
+
+func (s *ElementLayoutStylizer) setState(state rules.RuleInvoke, enabled bool) {
+	if s.interestedStates&state == 0 {
+		return
+	}
+	elm := s.element.Value()
+	if elm == nil {
+		return
+	}
+	next := s.currentState
+	if enabled {
+		next = next.With(state)
+	} else {
+		next &^= state
+	}
+	if next != s.currentState {
+		s.currentState = next
+		elm.UI.SetDirty(ui.DirtyTypeGenerated)
 	}
 }
 
@@ -220,9 +236,9 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
 	a := make([]rules.Rule, 0, len(s.styleRules))
 	b := make([]rules.Rule, 0, len(s.styleRules))
 	for i := 0; i < len(s.styleRules); i++ {
-		if s.currentInvoke != rules.RuleInvokeImmediate && s.styleRules[i].Invocation == rules.RuleInvokeImmediate {
+		if s.currentState != rules.RuleInvokeImmediate && s.styleRules[i].Invocation == rules.RuleInvokeImmediate {
 			a = append(a, s.styleRules[i])
-		} else if s.styleRules[i].Invocation == s.currentInvoke {
+		} else if s.styleRules[i].Invocation.Matches(s.currentState) {
 			b = append(b, s.styleRules[i])
 		}
 		if s.styleRules[i].SelfDestruct {
@@ -251,7 +267,7 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
 			all = all[:i+len(subRules)]
 		}
 	}
-	slices.SortFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
+	slices.SortStableFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
 	isLabel := layout.Ui().IsType(ui.ElementTypeLabel)
 	for i := range all {
 		if isLabel && isPanelOnlyProperty(all[i].Property) {

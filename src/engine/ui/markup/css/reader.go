@@ -50,19 +50,20 @@ import (
 
 type CSSMap map[*ui.UI][]rules.Rule
 
-func (m CSSMap) add(elm *ui.UI, rules []rules.Rule) {
+func (m CSSMap) add(elm *ui.UI, inRules []rules.Rule) {
+	addRules := rules.CloneRules(inRules)
 	if c, ok := m[elm]; !ok {
-		m[elm] = slices.Clone(rules)
+		m[elm] = addRules
 	} else {
 		for i := len(c) - 1; i >= 0; i-- {
-			for j := range rules {
-				if c[i].Property == rules[j].Property && c[i].Invocation == rules[j].Invocation {
+			for j := range addRules {
+				if c[i].Property == addRules[j].Property && c[i].Invocation == addRules[j].Invocation {
 					c = klib.RemoveUnordered(c, i)
 					break
 				}
 			}
 		}
-		c = append(c, rules...)
+		c = append(c, addRules...)
 		m[elm] = c
 	}
 }
@@ -103,6 +104,7 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 }
 
 func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
+	selectorRules := rules.CloneRules(applyRules)
 	elms := make([]*document.Element, 0)
 	switch parts[0].SelectType {
 	case rules.ReadingId:
@@ -145,7 +147,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 					for i := range lastTargets {
 						if selects, err := p.Process(lastTargets[i], part); err == nil {
 							targets = klib.AppendUnique(targets, selects...)
-							applyRules = p.AlterRules(applyRules)
+							selectorRules = p.AlterRules(selectorRules)
 						}
 					}
 				}
@@ -153,7 +155,7 @@ func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *doc
 		}
 	}
 	for _, target := range targets {
-		cssMap.add(target.UI, applyRules)
+		cssMap.add(target.UI, selectorRules)
 	}
 }
 
@@ -189,6 +191,7 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 			for k := range e.UIEventIds[j] {
 				e.UI.RemoveEvent(j, e.UIEventIds[j][k])
 			}
+			e.UIEventIds[j] = e.UIEventIds[j][:0]
 		}
 	}
 	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
