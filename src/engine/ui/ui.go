@@ -330,6 +330,13 @@ func (ui *UI) GenerateScissor() {
 		pos.X() + size.X()*0.5,
 		pos.Y() + size.Y()*0.5,
 	}
+	if !ui.IsType(ElementTypeLabel) {
+		outset := ui.ToPanel().OutlineOutset()
+		bounds.SetX(bounds.X() - outset)
+		bounds.SetY(bounds.Y() - outset)
+		bounds.SetZ(bounds.Z() + outset)
+		bounds.SetW(bounds.W() + outset)
+	}
 	if !ui.entity.IsRoot() {
 		p := FirstPanelOnEntity(ui.entity.Parent)
 		for p.PanelData().overflow == OverflowVisible && !p.entity.IsRoot() {

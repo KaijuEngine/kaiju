@@ -9,6 +9,8 @@ layout(location = 5) in mat4 fragBorderColorsLTRB;
 layout(location = 9) in vec2 fragTexCoord;
 layout(location = 10) in vec2 fragNineSliceEdgeLen;
 layout(location = 11) in vec4 fragUvs;
+layout(location = 12) in vec4 fragOutlineColor;
+layout(location = 13) in vec2 fragOutlineSize;
 
 layout(binding = 1) uniform sampler2D texSampler;
 
@@ -42,17 +44,25 @@ float roundedBoxSDF(vec2 centerPosition, vec2 size, vec4 radius) {
 
 void main(void) {
 	vec2 normUV = (fragTexCoord - fragUvs.xy) / fragUvs.zw;
-	vec2 scaledNormUV = vec2(
-		processAxis(normUV.x, fragNineSliceEdgeLen.x / fragSize2D.z, fragSize2D.z / fragSize2D.x),
-    	processAxis(normUV.y, fragNineSliceEdgeLen.y / fragSize2D.w, fragSize2D.w / fragSize2D.y)
-	);
-	vec2 newUV = fragUvs.xy + scaledNormUV * fragUvs.zw;
-	vec4 unWeightedColor = texture(texSampler, newUV) * fragColor;
-	// Border
-	{
-		vec2 dimensions = fragSize2D.xy;
-		vec2 size = dimensions/2.0;
-		vec2 pixPos = fragTexCoord.xy * dimensions;
+	float outlineWidth = max(0.0, fragOutlineSize.x);
+	float outlineOffset = max(0.0, fragOutlineSize.y);
+	float outlineOutset = outlineWidth + outlineOffset;
+	vec2 dimensions = fragSize2D.xy;
+	vec2 expandedDimensions = dimensions + vec2(outlineOutset * 2.0);
+	vec2 expandedPixPos = normUV * expandedDimensions;
+	vec2 pixPos = expandedPixPos - vec2(outlineOutset);
+	vec4 unWeightedColor = vec4(0.0);
+	bool insidePanel = pixPos.x >= 0.0 && pixPos.y >= 0.0 && pixPos.x <= dimensions.x && pixPos.y <= dimensions.y;
+	if (insidePanel) {
+		vec2 panelUV = pixPos / dimensions;
+		vec2 scaledNormUV = vec2(
+			processAxis(panelUV.x, fragNineSliceEdgeLen.x / fragSize2D.z, fragSize2D.z / fragSize2D.x),
+			processAxis(panelUV.y, fragNineSliceEdgeLen.y / fragSize2D.w, fragSize2D.w / fragSize2D.y)
+		);
+		vec2 newUV = fragUvs.xy + scaledNormUV * fragUvs.zw;
+		unWeightedColor = texture(texSampler, newUV) * fragColor;
+		// Border
+		vec2 size = dimensions / 2.0;
 		vec2 centerPixPos = size-pixPos;
 		// Pre-select what color in the color matrix should be used, the order
 		// of colors are [0] = left, [1] = top, [2] = right, [3] = bottom
@@ -81,6 +91,13 @@ void main(void) {
 		// Border color
 		unWeightedColor = mix(unWeightedColor, borderColor, smoothedBorderAlpha);
 		unWeightedColor.a = smoothedAlpha * unWeightedColor.a;
+	} else if (outlineWidth > 0.0 && fragOutlineColor.a > 0.0) {
+		vec2 outside = max(max(-pixPos, pixPos - dimensions), vec2(0.0));
+		float outsideDistance = max(outside.x, outside.y);
+		float outerAlpha = 1.0 - smoothstep(outlineOffset + outlineWidth, outlineOffset + outlineWidth + edgeSoftness, outsideDistance);
+		float innerAlpha = smoothstep(outlineOffset, outlineOffset + edgeSoftness, outsideDistance);
+		unWeightedColor = fragOutlineColor;
+		unWeightedColor.a *= outerAlpha * innerAlpha;
 	}
 #include "inc_fragment_oit_block.inl"
 }

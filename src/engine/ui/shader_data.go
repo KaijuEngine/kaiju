@@ -54,6 +54,8 @@ type ShaderData struct {
 	BorderSize   matrix.Vec4
 	BorderColor  [4]matrix.Color
 	BorderLen    matrix.Vec2
+	OutlineColor matrix.Color
+	OutlineSize  matrix.Vec2
 }
 
 func (s ShaderData) Size() int {

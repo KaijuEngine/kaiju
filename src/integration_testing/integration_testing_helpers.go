@@ -10,6 +10,7 @@ import (
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
@@ -57,6 +58,20 @@ func writeScreenshotImage(img image.Image, path string) error {
 		return err
 	}
 	return os.WriteFile(path, buf.Bytes(), os.ModePerm)
+}
+
+func elementBoundsPixels(host *engine.Host, bounds image.Rectangle, elmUI *ui.UI) (float32, float32, float32, float32) {
+	pos := elmUI.Entity().Transform.WorldPosition()
+	size := elmUI.Layout().PixelSize()
+	imgW := float32(bounds.Dx())
+	imgH := float32(bounds.Dy())
+	scaleX := imgW / float32(host.Window.Width())
+	scaleY := imgH / float32(host.Window.Height())
+	centerX := (float32(pos.X()) + float32(host.Window.Width())*0.5) * scaleX
+	centerY := (float32(host.Window.Height())*0.5 - float32(pos.Y())) * scaleY
+	halfW := float32(size.X()) * scaleX * 0.5
+	halfH := float32(size.Y()) * scaleY * 0.5
+	return centerX - halfW, centerY - halfH, centerX + halfW, centerY + halfH
 }
 
 func createRedSphere(host *engine.Host) *engine.Entity {

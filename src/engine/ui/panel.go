@@ -1353,6 +1353,10 @@ func (p *Panel) BorderColor() [4]matrix.Color {
 	return p.shaderData.BorderColor
 }
 
+func (p *Panel) OutlineOutset() float32 {
+	return p.shaderData.OutlineSize.X() + p.shaderData.OutlineSize.Y()
+}
+
 func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
 	p.shaderData.BorderRadius = matrix.Vec4{
 		bottomLeft, bottomRight, topRight, topLeft}
@@ -1376,6 +1380,27 @@ func (p *Panel) SetBorderStyle(left, top, right, bottom BorderStyle) {
 
 func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 	p.shaderData.BorderColor = [4]matrix.Color{left, top, right, bottom}
+}
+
+func (p *Panel) OutlineColor() matrix.Color { return p.shaderData.OutlineColor }
+
+func (p *Panel) OutlineWidth() float32 { return p.shaderData.OutlineSize.X() }
+
+func (p *Panel) OutlineOffset() float32 { return p.shaderData.OutlineSize.Y() }
+
+func (p *Panel) SetOutline(width, offset float32, color matrix.Color) {
+	if width < 0 {
+		width = 0
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if width > 0 && color.A() > 0 {
+		p.ensureBGExists(nil)
+	}
+	p.shaderData.OutlineSize = matrix.NewVec2(width, offset)
+	p.shaderData.OutlineColor = color
+	p.Base().SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) SetUseBlending(useBlending bool) {
