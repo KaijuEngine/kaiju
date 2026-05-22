@@ -341,6 +341,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				input := panel.Base().ToInput()
 				input.Init(e.Attribute("placeholder"))
 				input.SetType(inputType)
+				input.SetRequired(e.HasAttribute("required"))
 				input.SetTextWithoutEvent(e.Attribute("value"))
 				if d.firstInput == nil {
 					d.firstInput = input

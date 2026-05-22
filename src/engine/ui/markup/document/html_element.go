@@ -255,6 +255,15 @@ func (e *Element) Attribute(key string) string {
 	return ""
 }
 
+func (e *Element) HasAttribute(key string) bool {
+	for i := range e.attr {
+		if e.attr[i].Key == key {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Element) FindElementById(id string) *Element {
 	if e.Attribute("id") == id {
 		return e

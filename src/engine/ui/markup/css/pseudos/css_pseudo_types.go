@@ -220,9 +220,8 @@ func (p InRange) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:invalid
 type Invalid struct{}
 
-func (p Invalid) Key() string                                { return "invalid" }
-func (p Invalid) IsFunction() bool                           { return false }
-func (p Invalid) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
+func (p Invalid) Key() string      { return "invalid" }
+func (p Invalid) IsFunction() bool { return false }
 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:is
 type Is struct{}
@@ -465,9 +464,8 @@ func (p UserInvalid) AlterRules(rules []rules.Rule) []rules.Rule { return rules 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:valid
 type Valid struct{}
 
-func (p Valid) Key() string                                { return "valid" }
-func (p Valid) IsFunction() bool                           { return false }
-func (p Valid) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
+func (p Valid) Key() string      { return "valid" }
+func (p Valid) IsFunction() bool { return false }
 
 // https://developer.mozilla.org/en-US/docs/Web/CSS/:visited
 type Visited struct{}

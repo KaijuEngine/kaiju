@@ -84,6 +84,7 @@ type inputData struct {
 	dragStartClick, cursorBlink       float32
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
+	required                          bool
 	isActive                          bool
 	prevFocusInput                    weak.Pointer[Input]
 	nextFocusInput                    weak.Pointer[Input]
@@ -346,6 +347,7 @@ func (input *Input) setSelect(start, end int) {
 
 func (input *Input) setText(text string, skipEvent bool) {
 	data := input.InputData()
+	wasValid := input.IsValid()
 	data.label.SetText(text)
 	// Setting the select here fixes a delayed mem stomping bug with colors and text
 	data.selectStart = 0
@@ -353,6 +355,9 @@ func (input *Input) setText(text string, skipEvent bool) {
 	input.updatePlaceholderVisibility()
 	if !skipEvent {
 		input.change()
+	}
+	if wasValid != input.IsValid() {
+		input.Base().SetDirty(DirtyTypeGenerated)
 	}
 	input.hideHighlight()
 }
@@ -700,6 +705,22 @@ func (input *Input) SetDescription(text string) {
 
 func (input *Input) SetType(inputType InputType) {
 	input.InputData().inputType = inputType
+}
+
+func (input *Input) IsRequired() bool {
+	return input.InputData().required
+}
+
+func (input *Input) SetRequired(required bool) {
+	data := input.InputData()
+	if data.required != required {
+		data.required = required
+		input.Base().SetDirty(DirtyTypeGenerated)
+	}
+}
+
+func (input *Input) IsValid() bool {
+	return !input.IsRequired() || input.Text() != ""
 }
 
 func (input *Input) SetFGColor(newColor matrix.Color) {

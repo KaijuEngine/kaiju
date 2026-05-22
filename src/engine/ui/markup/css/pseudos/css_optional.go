@@ -37,12 +37,13 @@
 package pseudos
 
 import (
-	"errors"
-
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
 func (p Optional) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
-	return []*document.Element{elm}, errors.New("not implemented")
+	if elm.Data == "input" && !elm.HasAttribute("required") {
+		return []*document.Element{elm}, nil
+	}
+	return []*document.Element{}, nil
 }

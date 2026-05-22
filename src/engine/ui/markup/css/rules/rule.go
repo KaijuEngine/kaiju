@@ -46,6 +46,8 @@ const (
 	RuleInvokeActive
 	RuleInvokeFocus
 	RuleInvokeVisited
+	RuleInvokeInvalid
+	RuleInvokeValid
 )
 
 func (r RuleInvoke) Matches(state RuleInvoke) bool {

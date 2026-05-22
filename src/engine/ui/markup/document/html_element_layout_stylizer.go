@@ -200,6 +200,7 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 			elm.UIEventIds[ui.EventTypeExit] = append(elm.UIEventIds[ui.EventTypeExit], s.activeEvt.exitId)
 		}
 	}
+	s.syncValidationState()
 }
 
 func (s *ElementLayoutStylizer) setState(state rules.RuleInvoke, enabled bool) {
@@ -222,6 +223,23 @@ func (s *ElementLayoutStylizer) setState(state rules.RuleInvoke, enabled bool) {
 	}
 }
 
+func (s *ElementLayoutStylizer) syncValidationState() {
+	if s.interestedStates&(rules.RuleInvokeInvalid|rules.RuleInvokeValid) == 0 {
+		return
+	}
+	elm := s.element.Value()
+	if elm == nil || !elm.UI.IsType(ui.ElementTypeInput) {
+		return
+	}
+	if elm.UI.ToInput().IsValid() {
+		s.currentState &^= rules.RuleInvokeInvalid
+		s.currentState = s.currentState.With(rules.RuleInvokeValid)
+	} else {
+		s.currentState &^= rules.RuleInvokeValid
+		s.currentState = s.currentState.With(rules.RuleInvokeInvalid)
+	}
+}
+
 func (s *ElementLayoutStylizer) ProcessStyle(layout *ui.Layout) []error {
 	return s.processRules(layout)
 }
@@ -232,6 +250,7 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
 	if elm == nil {
 		return []error{errors.New("missing element when processing rules")}
 	}
+	s.syncValidationState()
 	host := elm.UI.Host()
 	a := make([]rules.Rule, 0, len(s.styleRules))
 	b := make([]rules.Rule, 0, len(s.styleRules))

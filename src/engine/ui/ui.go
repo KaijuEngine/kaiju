@@ -663,7 +663,12 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 		}
 	case ElementTypeInput:
 		t := ui.ToInput()
-		cpy.ToInput().Init(t.InputData().placeholder.Text())
+		tData := t.InputData()
+		cpyInput := cpy.ToInput()
+		cpyInput.Init(tData.placeholder.Text())
+		cpyInput.SetType(tData.inputType)
+		cpyInput.SetRequired(tData.required)
+		cpyInput.SetTextWithoutEvent(t.Text())
 	case ElementTypeProgressBar:
 		t := ui.ToProgressBar()
 		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background())
