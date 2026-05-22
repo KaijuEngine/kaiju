@@ -38,6 +38,7 @@ package main
 
 import (
 	"kaijuengine.com/bootstrap"
+	"kaijuengine.com/build"
 	"kaijuengine.com/engine"
 	_ "kaijuengine.com/engine/ui/markup/css/properties" // Run init functions
 	_ "kaijuengine.com/engine_entity_data/content_id"   // Run the content id init
@@ -49,7 +50,7 @@ import (
 func _main(platformState any) {
 	engine.LoadLaunchParams()
 	var game bootstrap.GameInterface
-	if engine.LaunchParams.IntegrationTest != "" {
+	if build.Debug && engine.LaunchParams.IntegrationTest != "" {
 		var err error
 		game, err = integration_testing.IntegrationTestGame(engine.LaunchParams.IntegrationTest)
 		if err != nil {
