@@ -38,6 +38,8 @@ package properties
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,16 +48,30 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
+func (LineHeight) Sort() int { return 1 }
+
+func lineHeightFromStr(str string, lbl *ui.Label, host *engine.Host) float32 {
+	str = strings.TrimSpace(str)
+	if str == "normal" {
+		return 0
+	}
+	if v, err := strconv.ParseFloat(str, 32); err == nil {
+		return lbl.FontSize() * float32(v)
+	}
+	height := helpers.NumFromLengthWithFont(str, host.Window, lbl.FontSize())
+	if strings.HasSuffix(str, "%") {
+		height *= lbl.FontSize()
+	}
+	return height
+}
+
 func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host) {
 	if elm.Stylizer.HasRule("line-height") {
 		return
 	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		height := helpers.NumFromLengthWithFont(size, host.Window,
-			host.FontCache().EMSize(lbl.FontFace()))
-		height = elm.Parent.Value().UI.Layout().PixelSize().Y() * height
-		lbl.SetLineHeight(height)
+		lbl.SetLineHeight(lineHeightFromStr(size, lbl, host))
 	} else {
 		for _, child := range elm.Children {
 			setChildrenLineHeight(child, size, host)

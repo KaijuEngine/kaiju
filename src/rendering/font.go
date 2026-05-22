@@ -410,9 +410,6 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 	defer tracing.NewRegion("FontCache.RenderMeshes").End()
 	cache.requireFace(face)
 	es := rootScale
-	if lineHeight != 0 {
-		baseline = FontBaselineCenter
-	}
 	left := -es.X() * 0.5
 	inverseWidth := 1.0 / es.X()
 	inverseHeight := 1.0 / es.Y()
@@ -439,12 +436,13 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 	charLen := textLen
 	//size_t lenLeft = textLen;
 	current := 0
-	height := float32(0.0)
 	fontMeshes := make([]Drawing, 0)
-	maxHeight := fontFace.metrics.LineHeight * -scale
-	if lineHeight != 0 {
-		maxHeight = -lineHeight * 0.5 / fontFace.metrics.LineHeight
+	lineAdvance := fontFace.metrics.LineHeight * scale
+	if lineHeight > 0 {
+		lineAdvance = lineHeight
 	}
+	lineAdvanceNormalized := lineAdvance * inverseHeight
+	maxHeight := -lineAdvance
 	for current < textLen {
 		if maxWidth > 0 {
 			charLen = cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, letterSpacing)
@@ -592,12 +590,10 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 				if justifySpaceAdvance > 0 && unicode.IsSpace(c) && c != '\n' {
 					cx += justifySpaceAdvance * inverseWidth
 				}
-				ay := fontFace.metrics.LineHeight * scale * inverseHeight
-				height = matrix.Max(height, ay)
 			}
 		}
 		cx = x
-		cy -= height
+		cy -= lineAdvanceNormalized
 		//lenLeft -= charLen;
 		current += charLen
 	}
@@ -636,7 +632,7 @@ func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
 	if lineHeight != 0 {
-		maxHeight = max(maxHeight, lineHeight)
+		maxHeight = lineHeight
 	}
 	var x, y float32 = 0.0, 0.0
 	clip := []rune(text)
