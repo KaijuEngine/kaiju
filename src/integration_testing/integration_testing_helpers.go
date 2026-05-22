@@ -2,6 +2,7 @@ package integration_testing
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/png"
 	"log/slog"
@@ -23,29 +24,39 @@ func takeScreenshot(host *engine.Host) {
 }
 
 func takeScreenshotToFile(host *engine.Host, path string) {
-	device := host.Window.GpuHost.FirstInstance().PrimaryDevice()
-	pixels, err := device.Screenshot()
+	img, err := captureScreenshotImage(host)
 	if err != nil {
 		slog.Error("Failed to capture the screenshot", "error", err)
 		return
 	}
-	if len(pixels) == 0 {
-		slog.Error("No pixels were returned for the frame")
-		return
-	}
-	size := device.LogicalDevice.SwapChain.Extent
-	img := image.NewRGBA(image.Rect(0, 0, int(size.X()), int(size.Y())))
-	copy(img.Pix, pixels)
-	var buf bytes.Buffer
-	if err = png.Encode(&buf, img); err != nil {
-		slog.Error("Failed to encode the png file", "error", err)
-		return
-	}
-	if err := os.WriteFile(path, buf.Bytes(), os.ModePerm); err != nil {
+	if err = writeScreenshotImage(img, path); err != nil {
 		slog.Error("Failed to write the screenshot file", "path", path, "error", err)
 		return
 	}
 	slog.Info("Screenshot captured", "path", path)
+}
+
+func captureScreenshotImage(host *engine.Host) (*image.RGBA, error) {
+	device := host.Window.GpuHost.FirstInstance().PrimaryDevice()
+	pixels, err := device.Screenshot()
+	if err != nil {
+		return nil, err
+	}
+	if len(pixels) == 0 {
+		return nil, fmt.Errorf("no pixels were returned for the frame")
+	}
+	size := device.LogicalDevice.SwapChain.Extent
+	img := image.NewRGBA(image.Rect(0, 0, int(size.X()), int(size.Y())))
+	copy(img.Pix, pixels)
+	return img, nil
+}
+
+func writeScreenshotImage(img image.Image, path string) error {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return err
+	}
+	return os.WriteFile(path, buf.Bytes(), os.ModePerm)
 }
 
 func createRedSphere(host *engine.Host) *engine.Entity {

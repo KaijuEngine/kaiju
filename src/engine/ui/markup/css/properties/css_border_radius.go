@@ -55,9 +55,9 @@ func (p BorderRadius) Process(panel *ui.Panel, elm *document.Element, values []r
 		b[3] = b[0]
 	} else if len(values) == 2 {
 		b[0] = helpers.NumFromLength(values[0].Str, host.Window)
-		b[1] = b[0]
-		b[2] = helpers.NumFromLength(values[1].Str, host.Window)
-		b[3] = b[2]
+		b[1] = helpers.NumFromLength(values[1].Str, host.Window)
+		b[2] = b[0]
+		b[3] = b[1]
 	} else if len(values) == 3 {
 		b[0] = helpers.NumFromLength(values[0].Str, host.Window)
 		b[1] = helpers.NumFromLength(values[1].Str, host.Window)
