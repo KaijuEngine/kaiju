@@ -60,6 +60,7 @@ type labelData struct {
 	textLength        int
 	fontSize          float32
 	lineHeight        float32
+	letterSpacing     float32
 	overrideMaxWidth  float32
 	fgColor           matrix.Color
 	bgColor           matrix.Color
@@ -195,8 +196,8 @@ func (label *Label) updateHeight(maxWidth float32) {
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	ld := label.LabelData()
-	return label.man.Value().Host.FontCache().MeasureStringWithin(ld.fontFace,
-		ld.text, ld.fontSize, maxWidth, ld.lineHeight)
+	return label.man.Value().Host.FontCache().MeasureStringWithinWithLetterSpacing(ld.fontFace,
+		ld.text, ld.fontSize, maxWidth, ld.lineHeight, ld.letterSpacing)
 }
 
 func (label *Label) renderText() {
@@ -218,11 +219,11 @@ func (label *Label) renderText() {
 		}
 		label.layout.ScaleHeight(label.Measure().Height())
 		host := label.man.Value().Host
-		ld.runeDrawings = host.FontCache().RenderMeshes(
+		ld.runeDrawings = host.FontCache().RenderMeshesWithLetterSpacing(
 			host, ld.text, 0, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
-			true, false, ld.fontFace, ld.lineHeight, &host.Cameras.UI)
+			true, false, ld.fontFace, ld.lineHeight, ld.letterSpacing, &host.Cameras.UI)
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
@@ -293,6 +294,18 @@ func (label *Label) SetLineHeight(height float32) {
 }
 
 func (label *Label) LineHeight() float32 { return label.LabelData().lineHeight }
+
+func (label *Label) SetLetterSpacing(spacing float32) {
+	ld := label.LabelData()
+	if matrix.Approx(ld.letterSpacing, spacing) {
+		return
+	}
+	ld.letterSpacing = spacing
+	ld.renderRequired = true
+	label.Base().SetDirty(DirtyTypeGenerated)
+}
+
+func (label *Label) LetterSpacing() float32 { return label.LabelData().letterSpacing }
 
 func (label *Label) Text() string { return label.LabelData().text }
 
@@ -428,8 +441,8 @@ func (label *Label) MaxWidth() float32 {
 func (label *Label) SetWidthAutoHeight(width float32) {
 	defer tracing.NewRegion("Label.SetWidthAutoHeight").End()
 	ld := label.LabelData()
-	textSize := label.Base().man.Value().Host.FontCache().MeasureStringWithin(
-		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
+	textSize := label.Base().man.Value().Host.FontCache().MeasureStringWithinWithLetterSpacing(
+		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight, ld.letterSpacing)
 	label.layout.Scale(width, textSize.Y())
 }
 
@@ -553,6 +566,7 @@ func (label *Label) Clone(to *Label) {
 	toLD.diffScore = ld.diffScore
 	to.SetFontSize(ld.fontSize)
 	to.SetLineHeight(ld.lineHeight)
+	to.SetLetterSpacing(ld.letterSpacing)
 	to.SetMaxWidth(ld.overrideMaxWidth)
 	to.SetColor(ld.fgColor)
 	to.SetBGColor(ld.bgColor)

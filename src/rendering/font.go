@@ -216,7 +216,7 @@ func findBinChar(font fontBin, letter rune) fontBinChar {
 	return cached
 }
 
-func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale float32) int {
+func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale, letterSpacing float32) int {
 	wrap := false
 	spaceIndex := 0
 	wx := float32(0.0)
@@ -232,6 +232,9 @@ func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, s
 		// TODO:  Optimize this to use a linear array
 		ch := findBinChar(font, r)
 		wx += ch.advance * scale
+		if i < textLen-1 {
+			wx += letterSpacing
+		}
 		if wx >= maxWidth && spaceIndex != 0 {
 			wrap = true
 			break
@@ -395,6 +398,15 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
 	is3D bool, face FontFace, lineHeight float32, cam *cameras.Container) []Drawing {
+	return cache.RenderMeshesWithLetterSpacing(caches, text, x, y, z, scale, maxWidth,
+		fgColor, bgColor, justify, baseline, rootScale, instanced, is3D, face,
+		lineHeight, 0, cam)
+}
+
+func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
+	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
+	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
+	is3D bool, face FontFace, lineHeight, letterSpacing float32, cam *cameras.Container) []Drawing {
 	defer tracing.NewRegion("FontCache.RenderMeshes").End()
 	cache.requireFace(face)
 	es := rootScale
@@ -435,14 +447,17 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 	}
 	for current < textLen {
 		if maxWidth > 0 {
-			charLen = cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale)
+			charLen = cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, letterSpacing)
 		}
 		lineWidth := float32(0.0)
 		if charLen > 0 || unicode.IsSpace(runes[current]) {
-			for _, c := range runes[current : current+charLen] {
+			for i, c := range runes[current : current+charLen] {
 				if c != '\n' {
 					ch := findBinChar(fontFace, c)
 					lineWidth += ch.advance * scale
+					if i < charLen-1 {
+						lineWidth += letterSpacing
+					}
 				}
 			}
 		}
@@ -571,6 +586,9 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				}
 				fontMeshes = append(fontMeshes, drawing)
 				cx += ch.advance * scale * inverseWidth
+				if i < current+charLen-1 {
+					cx += letterSpacing * inverseWidth
+				}
 				if justifySpaceAdvance > 0 && unicode.IsSpace(c) && c != '\n' {
 					cx += justifySpaceAdvance * inverseWidth
 				}
@@ -587,14 +605,22 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 }
 
 func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32 {
+	return cache.MeasureStringWithLetterSpacing(face, text, scale, 0)
+}
+
+func (cache *FontCache) MeasureStringWithLetterSpacing(face FontFace, text string, scale, letterSpacing float32) float32 {
 	cache.requireFace(face)
 	x, maxX := float32(0.0), float32(0.0)
-	for _, r := range text {
+	runes := []rune(text)
+	for i, r := range runes {
 		if r == '\n' {
 			x = 0.0
 		} else {
 			ch := findBinChar(cache.fontFaces[face.string()], r)
 			x += ch.advance * scale
+			if i < len(runes)-1 && runes[i+1] != '\n' {
+				x += letterSpacing
+			}
 			maxX = matrix.Max(maxX, x)
 		}
 	}
@@ -602,6 +628,10 @@ func (cache *FontCache) MeasureString(face FontFace, text string, scale float32)
 }
 
 func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2 {
+	return cache.MeasureStringWithinWithLetterSpacing(face, text, scale, maxWidth, lineHeight, 0)
+}
+
+func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text string, scale, maxWidth float32, lineHeight float32, letterSpacing float32) matrix.Vec2 {
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
@@ -611,8 +641,8 @@ func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, m
 	var x, y float32 = 0.0, 0.0
 	clip := []rune(text)
 	for len(clip) > 0 {
-		count := klib.Clamp(cache.charCountInWidth(fontFace, clip, maxWidth, scale), 0, len(clip))
-		x = max(x, cache.MeasureString(face, string(clip[:count]), scale))
+		count := klib.Clamp(cache.charCountInWidth(fontFace, clip, maxWidth, scale, letterSpacing), 0, len(clip))
+		x = max(x, cache.MeasureStringWithLetterSpacing(face, string(clip[:count]), scale, letterSpacing))
 		y += maxHeight
 		clip = []rune(clip)[count:]
 	}
@@ -629,7 +659,7 @@ func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, 
 	runes := []rune(text)
 	for current < len(runes) {
 		offset := current
-		count := cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale)
+		count := cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, 0)
 		x = 0.0
 		for _, r := range runes[offset : offset+count] {
 			ch := findBinChar(fontFace, r)
@@ -654,7 +684,7 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 	current := 0
 	fontFace := cache.fontFaces[face.string()]
 	for current < textLen {
-		current += cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale)
+		current += cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, 0)
 		lines++
 	}
 	return max(1, lines)

@@ -51,7 +51,6 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 	if len(values) != 1 {
 		return errors.New("left expects 1 value")
 	}
-
 	offsetX := panel.Base().Layout().InnerOffset().Left()
 	s := values[0].Str
 	layout := elm.UI.Layout()
@@ -78,6 +77,5 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		}
 	}
 	layout.SetInnerOffsetLeft(offsetX)
-
 	return nil
 }
