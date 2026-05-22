@@ -85,6 +85,15 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	sel := Selector{
 		Parts: make([]SelectorPart, 0),
 	}
+	pseudoFunctionDepth := 0
+	appendPseudoArg := func(data string) bool {
+		if pseudoFunctionDepth == 0 {
+			return false
+		}
+		idx := len(sel.Parts) - 1
+		sel.Parts[idx].Args = append(sel.Parts[idx].Args, data)
+		return true
+	}
 	for _, val := range cssParser.Values() {
 		switch val.TokenType {
 		case css.IdentToken:
@@ -92,9 +101,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		case css.StringToken:
 			fallthrough
 		case css.NumberToken:
-			if s.state == ReadingPseudoFunction {
-				idx := len(sel.Parts) - 1
-				sel.Parts[idx].Args = append(sel.Parts[idx].Args, string(val.Data))
+			if appendPseudoArg(string(val.Data)) {
 			} else {
 				d := string(val.Data)
 				if s.state == ReadingConditionAssignment {
@@ -107,43 +114,76 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			}
 		case css.HashToken:
 			id := strings.TrimPrefix(string(val.Data), "#")
-			sel.Parts = append(sel.Parts, SelectorPart{
-				Name:       id,
-				SelectType: ReadingId,
-			})
+			if appendPseudoArg("#" + id) {
+			} else {
+				sel.Parts = append(sel.Parts, SelectorPart{
+					Name:       id,
+					SelectType: ReadingId,
+				})
+			}
 		case css.ColonToken:
-			s.state = ReadingPseudo
-		case css.FunctionToken:
-			s.state = ReadingPseudoFunction
-			sel.Parts = append(sel.Parts, SelectorPart{
-				Name:       strings.TrimSuffix(string(val.Data), "("),
-				SelectType: ReadingPseudoFunction,
-			})
-		case css.RightParenthesisToken:
-			s.state = ReadingPseudo
-		case css.WhitespaceToken:
-			s.state = ReadingTag
-		case css.LeftBracketToken:
-			s.state = ReadingCondition
-		case css.RightBracketToken:
-			s.state = ReadingTag
-		case css.DelimToken:
-			switch string(val.Data) {
-			case "#":
-				s.state = ReadingId
-			case ".":
-				s.state = ReadingClass
-			case ">":
-				s.state = ReadingChild
-			case "~":
-				s.state = ReadingSibling
-			case "+":
-				s.state = ReadingAdjacent
-			case ":":
+			if appendPseudoArg(":") {
+			} else {
 				s.state = ReadingPseudo
-			case "=":
-				if s.state == ReadingCondition {
-					s.state = ReadingConditionAssignment
+			}
+		case css.FunctionToken:
+			name := strings.TrimSuffix(string(val.Data), "(")
+			if appendPseudoArg(name + "(") {
+				pseudoFunctionDepth++
+			} else {
+				s.state = ReadingPseudoFunction
+				pseudoFunctionDepth = 1
+				sel.Parts = append(sel.Parts, SelectorPart{
+					Name:       name,
+					SelectType: ReadingPseudoFunction,
+				})
+			}
+		case css.RightParenthesisToken:
+			if pseudoFunctionDepth > 1 {
+				appendPseudoArg(")")
+				pseudoFunctionDepth--
+			} else {
+				pseudoFunctionDepth = 0
+				s.state = ReadingPseudo
+			}
+		case css.CommaToken:
+			appendPseudoArg(",")
+		case css.WhitespaceToken:
+			appendPseudoArg(" ")
+			if pseudoFunctionDepth == 0 {
+				s.state = ReadingTag
+			}
+		case css.LeftBracketToken:
+			if appendPseudoArg("[") {
+			} else {
+				s.state = ReadingCondition
+			}
+		case css.RightBracketToken:
+			if appendPseudoArg("]") {
+			} else {
+				s.state = ReadingTag
+			}
+		case css.DelimToken:
+			delim := string(val.Data)
+			if appendPseudoArg(delim) {
+			} else {
+				switch delim {
+				case "#":
+					s.state = ReadingId
+				case ".":
+					s.state = ReadingClass
+				case ">":
+					s.state = ReadingChild
+				case "~":
+					s.state = ReadingSibling
+				case "+":
+					s.state = ReadingAdjacent
+				case ":":
+					s.state = ReadingPseudo
+				case "=":
+					if s.state == ReadingCondition {
+						s.state = ReadingConditionAssignment
+					}
 				}
 			}
 		}

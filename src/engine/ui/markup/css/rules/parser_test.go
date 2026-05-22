@@ -42,6 +42,8 @@ const testCSSNarrowTag = `.entry span { display: none; }`
 const testCSSNarrowClass = `.entry .wide { display: none; }`
 const testCSSCommaId = `#id1, #id2, #id3 { display: none; }`
 const testCSSInputText = `input[type="text"] { display: none; }`
+const testCSSNotClass = `button:not(.materialIcon) { display: none; }`
+const testCSSNotId = `.idTile:not(#idBlocked) { display: none; }`
 const testCSSVarDeclare = `:root { --ed-menu-bar-height: 24px; }
 .test { height: var(--ed-menu-bar-height); }`
 const testCSSVarInCalc = `:root { --ed-menu-bar-height: 24px; }
@@ -152,6 +154,60 @@ func TestParseTextSubType(t *testing.T) {
 	}
 	if p[2].Name != "text" {
 		t.FailNow()
+	}
+}
+
+func TestParseNotFunction(t *testing.T) {
+	s := NewStyleSheet()
+	s.Parse(testCSSNotClass, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.FailNow()
+	}
+	if len(s.Groups[0].Selectors) != 1 {
+		t.FailNow()
+	}
+	p := s.Groups[0].Selectors[0].Parts
+	if len(p) != 2 {
+		t.Fatalf("expected selector to have 2 parts, got %d", len(p))
+	}
+	if p[0].Name != "button" || p[0].SelectType != ReadingTag {
+		t.FailNow()
+	}
+	if p[1].Name != "not" || p[1].SelectType != ReadingPseudoFunction {
+		t.FailNow()
+	}
+	expectedArgs := []string{".", "materialIcon"}
+	if len(p[1].Args) != len(expectedArgs) {
+		t.Fatalf("expected %d :not args, got %d: %#v", len(expectedArgs), len(p[1].Args), p[1].Args)
+	}
+	for i := range expectedArgs {
+		if p[1].Args[i] != expectedArgs[i] {
+			t.Fatalf("expected arg %d to be %q, got %q", i, expectedArgs[i], p[1].Args[i])
+		}
+	}
+}
+
+func TestParseNotFunctionId(t *testing.T) {
+	s := NewStyleSheet()
+	s.Parse(testCSSNotId, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.Fatalf("expected 1 group, got %d: %#v", len(s.Groups), s.Groups)
+	}
+	if len(s.Groups[0].Selectors) != 1 {
+		t.Fatalf("expected 1 selector, got %d: %#v", len(s.Groups[0].Selectors), s.Groups[0].Selectors)
+	}
+	p := s.Groups[0].Selectors[0].Parts
+	if len(p) != 2 {
+		t.Fatalf("expected selector to have 2 parts, got %d", len(p))
+	}
+	expectedArgs := []string{"#idBlocked"}
+	if len(p[1].Args) != len(expectedArgs) {
+		t.Fatalf("expected %d :not args, got %d: %#v", len(expectedArgs), len(p[1].Args), p[1].Args)
+	}
+	for i := range expectedArgs {
+		if p[1].Args[i] != expectedArgs[i] {
+			t.Fatalf("expected arg %d to be %q, got %q in %#v", i, expectedArgs[i], p[1].Args[i], p[1].Args)
+		}
 	}
 }
 
