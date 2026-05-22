@@ -38,6 +38,8 @@ package ui
 
 import (
 	"math"
+	"strconv"
+	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -60,6 +62,8 @@ const (
 	InputTypeNumber
 	InputTypePhone
 	InputTypeDatetime
+	InputTypeEmail
+	InputTypePassword
 )
 
 const (
@@ -77,6 +81,7 @@ type inputData struct {
 	placeholder                       *Label
 	highlight                         *Panel
 	cursor                            *Panel
+	text                              string
 	title                             string
 	description                       string
 	onUpDown                          events.Event
@@ -271,7 +276,7 @@ func (input *Input) updatePlaceholderVisibility() {
 	if !input.entity.IsActive() {
 		return
 	}
-	if data.label.Text() == "" {
+	if data.text == "" {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
@@ -280,7 +285,7 @@ func (input *Input) updatePlaceholderVisibility() {
 
 func (input *Input) moveCursor(newPos int) {
 	data := input.InputData()
-	data.cursorOffset = klib.Clamp(newPos, 0, utf8.RuneCountInString(data.label.Text()))
+	data.cursorOffset = klib.Clamp(newPos, 0, utf8.RuneCountInString(data.text))
 	if data.isActive {
 		input.updateCursorPosition()
 	}
@@ -324,8 +329,8 @@ func (input *Input) setSelect(start, end int) {
 	if end < start {
 		start, end = end, start
 	}
-	start = klib.Clamp(start, 0, utf8.RuneCountInString(data.label.Text()))
-	end = klib.Clamp(end, 0, utf8.RuneCountInString(data.label.Text()))
+	start = klib.Clamp(start, 0, utf8.RuneCountInString(data.text))
+	end = klib.Clamp(end, 0, utf8.RuneCountInString(data.text))
 	if data.selectStart != start || data.selectEnd != end {
 		data.selectStart = start
 		data.selectEnd = end
@@ -348,7 +353,8 @@ func (input *Input) setSelect(start, end int) {
 func (input *Input) setText(text string, skipEvent bool) {
 	data := input.InputData()
 	wasValid := input.IsValid()
-	data.label.SetText(text)
+	data.text = input.sanitizeText(text)
+	data.label.SetText(input.displayText(data.text))
 	// Setting the select here fixes a delayed mem stomping bug with colors and text
 	data.selectStart = 0
 	data.selectEnd = 0
@@ -362,30 +368,63 @@ func (input *Input) setText(text string, skipEvent bool) {
 	input.hideHighlight()
 }
 
+func (input *Input) displayText(text string) string {
+	if input.InputData().inputType == InputTypePassword {
+		return strings.Repeat("*", utf8.RuneCountInString(text))
+	}
+	return text
+}
+
+func (input *Input) sanitizeText(text string) string {
+	if input.InputData().inputType == InputTypeDefault {
+		return text
+	}
+	out := strings.Builder{}
+	for _, r := range text {
+		if input.acceptsRune(r) {
+			out.WriteRune(r)
+		}
+	}
+	return out.String()
+}
+
+func (input *Input) acceptsRune(r rune) bool {
+	switch input.InputData().inputType {
+	case InputTypeNumber:
+		return unicode.IsDigit(r) || r == '-' || r == '+' || r == '.' || r == 'e' || r == 'E'
+	case InputTypeEmail:
+		return r > 32 && !unicode.IsSpace(r)
+	case InputTypePhone:
+		return unicode.IsDigit(r) || r == '+' || r == '-' || r == '(' || r == ')' ||
+			r == '.' || r == ' ' || r == '\t'
+	default:
+		return true
+	}
+}
+
 func (input *Input) resetSelect() {
 	input.setSelect(0, 0)
 }
 
 func (input *Input) findNextBreak(start, dir int) int {
 	data := input.InputData()
-	ld := data.label.LabelData()
 	// TODO:  This is a mess, simplify it
 	if start < 0 {
 		return 0
-	} else if start > utf8.RuneCountInString(data.label.Text()) {
-		return utf8.RuneCountInString(data.label.Text())
+	} else if start > utf8.RuneCountInString(data.text) {
+		return utf8.RuneCountInString(data.text)
 	}
 	i := start
-	runes := []rune(ld.text)
+	runes := []rune(data.text)
 	for dir < 0 && i > 0 && unicode.IsSpace(runes[i]) {
 		i += dir
 	}
 	if dir > 0 && unicode.IsSpace(runes[i-1]) {
-		for i < ld.textLength && unicode.IsSpace(runes[i]) {
+		for i < len(runes) && unicode.IsSpace(runes[i]) {
 			i += dir
 		}
 	}
-	for i > 0 && i < ld.textLength && !unicode.IsSpace(runes[i]) {
+	for i > 0 && i < len(runes) && !unicode.IsSpace(runes[i]) {
 		i += dir
 	}
 	if i < 0 {
@@ -404,7 +443,7 @@ func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 		if dir < 0 {
 			newPos = 0
 		} else {
-			newPos = utf8.RuneCountInString(data.label.Text())
+			newPos = utf8.RuneCountInString(data.text)
 		}
 	} else if kb.HasCtrl() || kb.HasAlt() {
 		newPos = input.findNextBreak(newPos, dir)
@@ -434,19 +473,19 @@ func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 }
 
 func (input *Input) textRightOf(pos int, outLen *int) string {
-	l := input.InputData().label
-	right := l.Text()[pos:]
-	*outLen = utf8.RuneCountInString(l.Text()) - pos
+	text := input.InputData().text
+	right := text[pos:]
+	*outLen = utf8.RuneCountInString(text) - pos
 	return right
 }
 
 func (input *Input) InsertText(text string) {
 	data := input.InputData()
+	text = input.sanitizeText(text)
 	if len(text) > 0 {
 		input.deleteSelection(true)
-		ld := data.label.LabelData()
-		lhs := ld.text[:data.cursorOffset]
-		rhs := ld.text[data.cursorOffset:]
+		lhs := data.text[:data.cursorOffset]
+		rhs := data.text[data.cursorOffset:]
 		str := lhs + text + rhs
 		input.setText(str, false)
 		data.cursorOffset += utf8.RuneCountInString(text)
@@ -471,13 +510,13 @@ func (input *Input) pasteFromClipboard() {
 func (input *Input) SelectAll() {
 	data := input.InputData()
 	data.label.Base().Clean()
-	input.setSelect(0, utf8.RuneCountInString(data.label.LabelData().text))
+	input.setSelect(0, utf8.RuneCountInString(data.text))
 }
 
 func (input *Input) pointerPosWithin() int {
 	data := input.InputData()
 	ld := data.label.LabelData()
-	if len(ld.text) == 0 {
+	if len(data.text) == 0 {
 		return 0
 	} else {
 		host := input.man.Value().Host
@@ -634,7 +673,7 @@ func (input *Input) deactivated() {
 func (input *Input) activated() {
 	data := input.InputData()
 	input.hideCursor()
-	if len(data.label.LabelData().text) == 0 {
+	if len(data.text) == 0 {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
@@ -671,7 +710,7 @@ func (input *Input) focusPrevious() {
 }
 
 func (input *Input) Text() string {
-	return input.InputData().label.LabelData().text
+	return input.InputData().text
 }
 
 func (input *Input) SetText(text string) {
@@ -704,7 +743,18 @@ func (input *Input) SetDescription(text string) {
 }
 
 func (input *Input) SetType(inputType InputType) {
-	input.InputData().inputType = inputType
+	data := input.InputData()
+	if data.inputType != inputType {
+		wasValid := input.IsValid()
+		data.inputType = inputType
+		data.text = input.sanitizeText(data.text)
+		data.label.SetText(input.displayText(data.text))
+		input.updatePlaceholderVisibility()
+		input.moveCursor(data.cursorOffset)
+		if wasValid != input.IsValid() {
+			input.Base().SetDirty(DirtyTypeGenerated)
+		}
+	}
 }
 
 func (input *Input) IsRequired() bool {
@@ -720,7 +770,51 @@ func (input *Input) SetRequired(required bool) {
 }
 
 func (input *Input) IsValid() bool {
-	return !input.IsRequired() || input.Text() != ""
+	text := input.Text()
+	if input.IsRequired() && text == "" {
+		return false
+	}
+	if text == "" {
+		return true
+	}
+	switch input.InputData().inputType {
+	case InputTypeEmail:
+		return inputTextIsEmail(text)
+	case InputTypeNumber:
+		return inputTextIsNumber(text)
+	case InputTypePhone:
+		return inputTextIsPhone(text)
+	default:
+		return true
+	}
+}
+
+func inputTextIsEmail(text string) bool {
+	if strings.ContainsAny(text, " \t\r\n") {
+		return false
+	}
+	at := strings.IndexRune(text, '@')
+	return at > 0 && at == strings.LastIndex(text, "@") && at < len(text)-1
+}
+
+func inputTextIsNumber(text string) bool {
+	if strings.TrimSpace(text) != text {
+		return false
+	}
+	v, err := strconv.ParseFloat(text, 64)
+	return err == nil && !math.IsInf(v, 0) && !math.IsNaN(v)
+}
+
+func inputTextIsPhone(text string) bool {
+	hasDigit := false
+	for _, r := range text {
+		if unicode.IsDigit(r) {
+			hasDigit = true
+		} else if !(r == '+' || r == '-' || r == '(' || r == ')' || r == '.' || unicode.IsSpace(r)) {
+			return false
+		}
+	}
+	return hasDigit
 }
 
 func (input *Input) SetFGColor(newColor matrix.Color) {
@@ -798,7 +892,7 @@ func (input *Input) SetFontSize(fontSize float32) {
 
 func (input *Input) SetCursorOffset(offset int) {
 	offset = klib.Clamp(offset, 0,
-		utf8.RuneCountInString(input.InputData().label.LabelData().text))
+		utf8.RuneCountInString(input.InputData().text))
 	input.moveCursor(offset)
 }
 
@@ -913,9 +1007,8 @@ func (input *Input) deleteSelection(skipEvent bool) {
 	data := input.InputData()
 	if data.selectStart != data.selectEnd {
 		sStart := data.selectStart
-		ld := data.label.LabelData()
-		lhs := ld.text[:data.selectStart]
-		rhs := ld.text[data.selectEnd:]
+		lhs := data.text[:data.selectStart]
+		rhs := data.text[data.selectEnd:]
 		str := lhs + rhs
 		input.moveCursor(sStart)
 		input.setText(str, skipEvent)
@@ -926,7 +1019,6 @@ func (input *Input) deleteSelection(skipEvent bool) {
 
 func (input *Input) backspace(kb *hid.Keyboard) {
 	data := input.InputData()
-	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection(false)
 	} else if kb.HasMeta() {
@@ -936,9 +1028,9 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 		from := input.findNextBreak(data.cursorOffset-1, -1)
 		input.setSelect(from, data.cursorOffset)
 		input.deleteSelection(false)
-	} else if len(ld.text) > 0 && data.cursorOffset > 0 {
-		lhs := ld.text[:data.cursorOffset-1]
-		rhs := ld.text[data.cursorOffset:]
+	} else if len(data.text) > 0 && data.cursorOffset > 0 {
+		lhs := data.text[:data.cursorOffset-1]
+		rhs := data.text[data.cursorOffset:]
 		str := lhs + rhs
 		input.moveCursor(data.cursorOffset - 1)
 		input.setText(str, false)
@@ -947,16 +1039,15 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 
 func (input *Input) delete(kb *hid.Keyboard) {
 	data := input.InputData()
-	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection(false)
 	} else if kb.HasCtrl() {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
 		input.deleteSelection(false)
-	} else if data.cursorOffset < ld.textLength {
-		lhs := ld.text[:data.cursorOffset]
-		rhs := ld.text[data.cursorOffset+1:]
+	} else if data.cursorOffset < utf8.RuneCountInString(data.text) {
+		lhs := data.text[:data.cursorOffset]
+		rhs := data.text[data.cursorOffset+1:]
 		str := lhs + rhs
 		input.moveCursor(data.cursorOffset)
 		input.setText(str, false)
@@ -971,9 +1062,8 @@ func (input *Input) forceLabelAndPlaceholderRerender() {
 
 func (input *Input) internalCopyToClipboard() {
 	data := input.InputData()
-	l := data.label
 	if data.selectEnd != data.selectStart {
-		str := l.LabelData().text[data.selectStart:data.selectEnd]
+		str := data.text[data.selectStart:data.selectEnd]
 		input.Base().Host().Window.CopyToClipboard(str)
 	}
 }

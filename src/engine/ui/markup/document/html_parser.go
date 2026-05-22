@@ -91,8 +91,10 @@ type htmlInputType int
 const (
 	htmlInputTypeText htmlInputType = iota
 	htmlInputTypeCheckbox
+	htmlInputTypeEmail
 	htmlInputTypeSlider
 	htmlInputTypeNumber
+	htmlInputTypePassword
 	htmlInputTypePhone
 	htmlInputTypeDatetime
 )
@@ -101,10 +103,14 @@ func classifyHTMLInputType(rawType string) htmlInputType {
 	switch strings.ToLower(strings.TrimSpace(rawType)) {
 	case "checkbox":
 		return htmlInputTypeCheckbox
+	case "email":
+		return htmlInputTypeEmail
 	case "slider", "range":
 		return htmlInputTypeSlider
 	case "number":
 		return htmlInputTypeNumber
+	case "password":
+		return htmlInputTypePassword
 	case "tel":
 		return htmlInputTypePhone
 	case "datetime", "datetime-local", "date", "time":
@@ -370,6 +376,10 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				}
 			case htmlInputTypeNumber:
 				initTextInput(ui.InputTypeNumber)
+			case htmlInputTypeEmail:
+				initTextInput(ui.InputTypeEmail)
+			case htmlInputTypePassword:
+				initTextInput(ui.InputTypePassword)
 			case htmlInputTypePhone:
 				initTextInput(ui.InputTypePhone)
 			case htmlInputTypeDatetime:

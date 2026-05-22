@@ -42,7 +42,7 @@ import (
 )
 
 func (p Invalid) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
-	if elm.Data == "input" && elm.HasAttribute("required") {
+	if elm.Data == "input" {
 		return []*document.Element{elm}, nil
 	}
 	return []*document.Element{}, nil

@@ -34,7 +34,7 @@ func TestRequiredPseudoMatchesBooleanRequiredAttribute(t *testing.T) {
 	}
 }
 
-func TestInvalidPseudoOnlyTargetsRequiredInputs(t *testing.T) {
+func TestInvalidPseudoTargetsInputsWithPotentialConstraints(t *testing.T) {
 	requiredInput := validationInput(t, `<input required>`)
 	got, err := (Invalid{}).Process(requiredInput, rules.SelectorPart{})
 	if err != nil {
@@ -49,7 +49,7 @@ func TestInvalidPseudoOnlyTargetsRequiredInputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 0 {
-		t.Fatal(":invalid should not target optional inputs without constraints")
+	if len(got) != 1 || got[0] != optionalInput {
+		t.Fatal(":invalid rules should be attached to inputs and gated by runtime validity")
 	}
 }
