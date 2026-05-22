@@ -45,6 +45,8 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
+func (p Position) Sort() int { return -1 }
+
 // static|absolute|fixed|relative|sticky|initial|inherit
 func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
@@ -65,7 +67,7 @@ func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules
 		panel.Base().Layout().SetPositioning(ui.PositioningStatic)
 	case "inherit":
 		if elm.Parent.Value() != nil {
-			panel.Base().Layout().SetPositioning(elm.UI.Layout().Positioning())
+			panel.Base().Layout().SetPositioning(elm.Parent.Value().UI.Layout().Positioning())
 		}
 	default:
 		return errors.New("Position invalid position value")
