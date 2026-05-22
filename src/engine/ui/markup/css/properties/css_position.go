@@ -50,7 +50,6 @@ func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules
 	if len(values) != 1 {
 		return errors.New("Position requires 1 value")
 	}
-
 	switch values[0].Str {
 	case "static":
 		panel.Base().Layout().SetPositioning(ui.PositioningStatic)
@@ -71,6 +70,5 @@ func (p Position) Process(panel *ui.Panel, elm *document.Element, values []rules
 	default:
 		return errors.New("Position invalid position value")
 	}
-
 	return nil
 }
