@@ -392,6 +392,7 @@ type gridLayoutItem struct {
 	row     int
 	col     int
 	rowSpan int
+	colSpan int
 }
 
 func (rb rowBuilder) Height() float32 {
@@ -973,57 +974,90 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
 	return out
 }
 
-func gridRowSpan(layout *Layout) int {
-	start := layout.GridRowStart()
-	end := layout.GridRowEnd()
+func gridTrackSpan(start, end int) int {
 	if start > 0 && end > start {
 		return end - start
 	}
 	return 1
 }
 
-func isGridCellFree(occupied map[int]map[int]bool, row, col, span int) bool {
-	for i := 0; i < span; i++ {
-		if occupied[row+i][col] {
-			return false
+func isGridAreaFree(occupied map[int]map[int]bool, columns, row, col, rowSpan, colSpan int) bool {
+	if col < 0 || col+colSpan > columns {
+		return false
+	}
+	for y := 0; y < rowSpan; y++ {
+		for x := 0; x < colSpan; x++ {
+			if occupied[row+y][col+x] {
+				return false
+			}
 		}
 	}
 	return true
 }
 
-func occupyGridCell(occupied map[int]map[int]bool, row, col, span int) {
-	for i := 0; i < span; i++ {
-		r := row + i
+func occupyGridArea(occupied map[int]map[int]bool, row, col, rowSpan, colSpan int) {
+	for y := 0; y < rowSpan; y++ {
+		r := row + y
 		if _, ok := occupied[r]; !ok {
 			occupied[r] = map[int]bool{}
 		}
-		occupied[r][col] = true
+		for x := 0; x < colSpan; x++ {
+			occupied[r][col+x] = true
+		}
 	}
 }
 
-func nextGridCell(occupied map[int]map[int]bool, columns, row, col, span int) (int, int) {
+func nextGridCell(occupied map[int]map[int]bool, columns, row, col, rowSpan, colSpan int) (int, int) {
 	for {
-		if col >= columns {
+		if col >= columns || col+colSpan > columns {
 			row++
 			col = 0
 		}
 		if _, ok := occupied[row]; !ok {
 			occupied[row] = map[int]bool{}
 		}
-		if isGridCellFree(occupied, row, col, span) {
+		if isGridAreaFree(occupied, columns, row, col, rowSpan, colSpan) {
 			return row, col
 		}
 		col++
 	}
 }
 
-func firstGridCellInRow(occupied map[int]map[int]bool, columns, row, span int) (int, int) {
+func nextGridCellInColumn(occupied map[int]map[int]bool, columns, row, col, rowSpan, colSpan int) (int, int) {
+	if col+colSpan > columns {
+		return nextGridCell(occupied, columns, row, 0, rowSpan, colSpan)
+	}
+	for {
+		if _, ok := occupied[row]; !ok {
+			occupied[row] = map[int]bool{}
+		}
+		if isGridAreaFree(occupied, columns, row, col, rowSpan, colSpan) {
+			return row, col
+		}
+		row++
+	}
+}
+
+func firstGridCellInRow(occupied map[int]map[int]bool, columns, row, rowSpan, colSpan int) (int, int) {
 	for col := 0; col < columns; col++ {
-		if isGridCellFree(occupied, row, col, span) {
+		if isGridAreaFree(occupied, columns, row, col, rowSpan, colSpan) {
 			return row, col
 		}
 	}
-	return nextGridCell(occupied, columns, row+1, 0, span)
+	return nextGridCell(occupied, columns, row+1, 0, rowSpan, colSpan)
+}
+
+func requestedGridCell(occupied map[int]map[int]bool, columns, cursorRow, cursorCol, rowStart, colStart, rowSpan, colSpan int) (int, int) {
+	if rowStart > 0 && colStart > 0 {
+		return nextGridCellInColumn(occupied, columns, rowStart-1, colStart-1, rowSpan, colSpan)
+	}
+	if rowStart > 0 {
+		return firstGridCellInRow(occupied, columns, rowStart-1, rowSpan, colSpan)
+	}
+	if colStart > 0 {
+		return nextGridCellInColumn(occupied, columns, cursorRow, colStart-1, rowSpan, colSpan)
+	}
+	return nextGridCell(occupied, columns, cursorRow, cursorCol, rowSpan, colSpan)
 }
 
 func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps matrix.Vec2) matrix.Vec2 {
@@ -1064,21 +1098,24 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		case PositioningAbsolute, PositioningFixed, PositioningSticky:
 			continue
 		}
-		span := gridRowSpan(kLayout)
-		row, col := 0, 0
-		if start := kLayout.GridRowStart(); start > 0 {
-			row, col = firstGridCellInRow(occupied, pd.gridColumns, start-1, span)
-		} else {
-			row, col = nextGridCell(occupied, pd.gridColumns, cursorRow, cursorCol, span)
-			cursorRow, cursorCol = row, col+1
+		rowSpan := gridTrackSpan(kLayout.GridRowStart(), kLayout.GridRowEnd())
+		colSpan := gridTrackSpan(kLayout.GridColumnStart(), kLayout.GridColumnEnd())
+		if colSpan > pd.gridColumns {
+			colSpan = pd.gridColumns
 		}
-		occupyGridCell(occupied, row, col, span)
-		rowCount = max(rowCount, row+span)
+		row, col := requestedGridCell(occupied, pd.gridColumns, cursorRow, cursorCol,
+			kLayout.GridRowStart(), kLayout.GridColumnStart(), rowSpan, colSpan)
+		if kLayout.GridRowStart() == 0 && kLayout.GridColumnStart() == 0 {
+			cursorRow, cursorCol = row, col+colSpan
+		}
+		occupyGridArea(occupied, row, col, rowSpan, colSpan)
+		rowCount = max(rowCount, row+rowSpan)
 		items = append(items, gridLayoutItem{
 			ui:      kui,
 			row:     row,
 			col:     col,
-			rowSpan: span,
+			rowSpan: rowSpan,
+			colSpan: colSpan,
 		})
 	}
 	if rowCount == 0 {

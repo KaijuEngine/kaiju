@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,38 @@ import (
 )
 
 func (p GridColumn) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("GridColumn not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	startValues, endValues := splitGridLineValues(values)
+	start, err := parseGridLineValue(startValues, p.Key())
+	if err != nil {
+		return err
+	}
+	end, err := parseGridLineValue(endValues, p.Key())
+	if err != nil {
+		return err
+	}
+	startLine := start.line
+	endLine := end.line
+	if start.isSpan {
+		if endLine == 0 {
+			return fmt.Errorf("grid-column start span requires an explicit end line")
+		}
+		startLine = endLine - start.span
+		if startLine < 1 {
+			startLine = 1
+		}
+	}
+	if end.isSpan {
+		if startLine == 0 {
+			return fmt.Errorf("grid-column end span requires an explicit start line")
+		}
+		endLine = startLine + end.span
+	}
+	if startLine > 0 && endLine > 0 && endLine <= startLine {
+		return fmt.Errorf("grid-column end line must be greater than start line")
+	}
+	panel.Base().Layout().SetGridColumn(startLine, endLine)
+	return nil
 }

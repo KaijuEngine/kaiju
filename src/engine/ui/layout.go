@@ -66,6 +66,8 @@ type Layout struct {
 	margin           matrix.Vec4
 	gridRowStart     int
 	gridRowEnd       int
+	gridColumnStart  int
+	gridColumnEnd    int
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
@@ -82,6 +84,8 @@ func (l *Layout) ClearStyles() {
 	l.margin = matrix.Vec4{}
 	l.gridRowStart = 0
 	l.gridRowEnd = 0
+	l.gridColumnStart = 0
+	l.gridColumnEnd = 0
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
@@ -238,6 +242,8 @@ func (l *Layout) Margin() matrix.Vec4      { return l.margin }
 func (l *Layout) Offset() matrix.Vec2      { return matrix.Vec2{l.offset.X(), l.offset.Y()} }
 func (l *Layout) GridRowStart() int        { return l.gridRowStart }
 func (l *Layout) GridRowEnd() int          { return l.gridRowEnd }
+func (l *Layout) GridColumnStart() int     { return l.gridColumnStart }
+func (l *Layout) GridColumnEnd() int       { return l.gridColumnEnd }
 
 func (l *Layout) SetGridRow(start, end int) {
 	if start < 0 {
@@ -251,6 +257,21 @@ func (l *Layout) SetGridRow(start, end int) {
 	}
 	l.gridRowStart = start
 	l.gridRowEnd = end
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetGridColumn(start, end int) {
+	if start < 0 {
+		start = 0
+	}
+	if end < 0 {
+		end = 0
+	}
+	if l.gridColumnStart == start && l.gridColumnEnd == end {
+		return
+	}
+	l.gridColumnStart = start
+	l.gridColumnEnd = end
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 

@@ -58,11 +58,11 @@ func (p GridRow) Process(panel *ui.Panel, elm *document.Element, values []rules.
 		return nil
 	}
 	startValues, endValues := splitGridLineValues(values)
-	start, err := parseGridLineValue(startValues)
+	start, err := parseGridLineValue(startValues, p.Key())
 	if err != nil {
 		return err
 	}
-	end, err := parseGridLineValue(endValues)
+	end, err := parseGridLineValue(endValues, p.Key())
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func splitGridLineValues(values []rules.PropertyValue) ([]rules.PropertyValue, [
 	return values, nil
 }
 
-func parseGridLineValue(values []rules.PropertyValue) (gridLineValue, error) {
+func parseGridLineValue(values []rules.PropertyValue, property string) (gridLineValue, error) {
 	if len(values) == 0 {
 		return gridLineValue{}, nil
 	}
@@ -118,20 +118,20 @@ func parseGridLineValue(values []rules.PropertyValue) (gridLineValue, error) {
 		case "auto", "initial", "inherit", "unset":
 			return gridLineValue{}, nil
 		case "span":
-			return gridLineValue{}, fmt.Errorf("grid-row span requires a positive integer")
+			return gridLineValue{}, fmt.Errorf("%s span requires a positive integer", property)
 		}
 		line, err := strconv.Atoi(parts[0])
 		if err != nil || line <= 0 {
-			return gridLineValue{}, fmt.Errorf("grid-row line must be a positive integer")
+			return gridLineValue{}, fmt.Errorf("%s line must be a positive integer", property)
 		}
 		return gridLineValue{line: line}, nil
 	}
 	if len(parts) == 2 && parts[0] == "span" {
 		span, err := strconv.Atoi(parts[1])
 		if err != nil || span <= 0 {
-			return gridLineValue{}, fmt.Errorf("grid-row span must be a positive integer")
+			return gridLineValue{}, fmt.Errorf("%s span must be a positive integer", property)
 		}
 		return gridLineValue{span: span, isSpan: true}, nil
 	}
-	return gridLineValue{}, fmt.Errorf("unsupported grid-row line value %q", strings.Join(parts, " "))
+	return gridLineValue{}, fmt.Errorf("unsupported %s line value %q", property, strings.Join(parts, " "))
 }
