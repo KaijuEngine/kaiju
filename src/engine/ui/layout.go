@@ -64,6 +64,8 @@ type Layout struct {
 	border           matrix.Vec4
 	padding          matrix.Vec4
 	margin           matrix.Vec4
+	gridRowStart     int
+	gridRowEnd       int
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
@@ -78,6 +80,8 @@ func (l *Layout) ClearStyles() {
 	l.border = matrix.Vec4{}
 	l.padding = matrix.Vec4{}
 	l.margin = matrix.Vec4{}
+	l.gridRowStart = 0
+	l.gridRowEnd = 0
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
@@ -232,6 +236,23 @@ func (l *Layout) Border() matrix.Vec4      { return l.border }
 func (l *Layout) Padding() matrix.Vec4     { return l.padding }
 func (l *Layout) Margin() matrix.Vec4      { return l.margin }
 func (l *Layout) Offset() matrix.Vec2      { return matrix.Vec2{l.offset.X(), l.offset.Y()} }
+func (l *Layout) GridRowStart() int        { return l.gridRowStart }
+func (l *Layout) GridRowEnd() int          { return l.gridRowEnd }
+
+func (l *Layout) SetGridRow(start, end int) {
+	if start < 0 {
+		start = 0
+	}
+	if end < 0 {
+		end = 0
+	}
+	if l.gridRowStart == start && l.gridRowEnd == end {
+		return
+	}
+	l.gridRowStart = start
+	l.gridRowEnd = end
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
 
 func (l *Layout) SetBorder(left, top, right, bottom float32) {
 	b := matrix.Vec4{left, top, right, bottom}

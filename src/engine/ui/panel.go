@@ -387,6 +387,13 @@ func (rb rowBuilder) Width() float32 {
 	return rb.x
 }
 
+type gridLayoutItem struct {
+	ui      *UI
+	row     int
+	col     int
+	rowSpan int
+}
+
 func (rb rowBuilder) Height() float32 {
 	return rb.height + rb.maxMarginTop + rb.maxMarginBottom
 }
@@ -966,6 +973,59 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
 	return out
 }
 
+func gridRowSpan(layout *Layout) int {
+	start := layout.GridRowStart()
+	end := layout.GridRowEnd()
+	if start > 0 && end > start {
+		return end - start
+	}
+	return 1
+}
+
+func isGridCellFree(occupied map[int]map[int]bool, row, col, span int) bool {
+	for i := 0; i < span; i++ {
+		if occupied[row+i][col] {
+			return false
+		}
+	}
+	return true
+}
+
+func occupyGridCell(occupied map[int]map[int]bool, row, col, span int) {
+	for i := 0; i < span; i++ {
+		r := row + i
+		if _, ok := occupied[r]; !ok {
+			occupied[r] = map[int]bool{}
+		}
+		occupied[r][col] = true
+	}
+}
+
+func nextGridCell(occupied map[int]map[int]bool, columns, row, col, span int) (int, int) {
+	for {
+		if col >= columns {
+			row++
+			col = 0
+		}
+		if _, ok := occupied[row]; !ok {
+			occupied[row] = map[int]bool{}
+		}
+		if isGridCellFree(occupied, row, col, span) {
+			return row, col
+		}
+		col++
+	}
+}
+
+func firstGridCellInRow(occupied map[int]map[int]bool, columns, row, span int) (int, int) {
+	for col := 0; col < columns; col++ {
+		if isGridCellFree(occupied, row, col, span) {
+			return row, col
+		}
+	}
+	return nextGridCell(occupied, columns, row+1, 0, span)
+}
+
 func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps matrix.Vec2) matrix.Vec2 {
 	defer tracing.NewRegion("Panel.layoutGridChildren").End()
 	innerLeft := p.layout.padding.Left() + p.layout.border.Left()
@@ -985,10 +1045,11 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		gapY = 0
 	}
 	colWidths := p.computeGridColumnWidths(innerWidth, gapX)
-	col := 0
-	y := startY
-	rowMaxHeight := float32(0)
-	contentSize := matrix.Vec2{innerWidth, innerTop}
+	items := make([]gridLayoutItem, 0, len(p.entity.Children))
+	occupied := map[int]map[int]bool{}
+	cursorRow := 0
+	cursorCol := 0
+	rowCount := 0
 	for _, kid := range p.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -1003,30 +1064,56 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		case PositioningAbsolute, PositioningFixed, PositioningSticky:
 			continue
 		}
+		span := gridRowSpan(kLayout)
+		row, col := 0, 0
+		if start := kLayout.GridRowStart(); start > 0 {
+			row, col = firstGridCellInRow(occupied, pd.gridColumns, start-1, span)
+		} else {
+			row, col = nextGridCell(occupied, pd.gridColumns, cursorRow, cursorCol, span)
+			cursorRow, cursorCol = row, col+1
+		}
+		occupyGridCell(occupied, row, col, span)
+		rowCount = max(rowCount, row+span)
+		items = append(items, gridLayoutItem{
+			ui:      kui,
+			row:     row,
+			col:     col,
+			rowSpan: span,
+		})
+	}
+	if rowCount == 0 {
+		return matrix.Vec2{innerWidth, innerTop + p.layout.padding.Bottom() + p.layout.border.Bottom()}
+	}
+	rowHeights := make([]float32, rowCount)
+	for i := range items {
+		kLayout := items[i].ui.Layout()
+		kSize := kLayout.PixelSize()
+		margin := kLayout.Margin()
+		rowHeights[items[i].row] = matrix.Max(rowHeights[items[i].row], kSize.Y()+margin.Vertical())
+	}
+	rowOffsets := make([]float32, rowCount)
+	y := startY
+	for i := 0; i < rowCount; i++ {
+		rowOffsets[i] = y
+		y += rowHeights[i] + gapY
+	}
+	contentSize := matrix.Vec2{innerWidth, innerTop}
+	for i := range items {
+		kui := items[i].ui
+		kLayout := kui.Layout()
 		kSize := kLayout.PixelSize()
 		margin := kLayout.Margin()
 		cellX := startX
-		for i := 0; i < col && i < len(colWidths); i++ {
-			cellX += colWidths[i] + gapX
+		for col := 0; col < items[i].col && col < len(colWidths); col++ {
+			cellX += colWidths[col] + gapX
 		}
 		x := cellX + margin.X() // left aligned like CSS start
-		itemY := y + margin.Y()
+		itemY := rowOffsets[items[i].row] + margin.Y()
 		kLayout.SetRowLayoutOffset(matrix.NewVec2(x, itemY))
 		right := (x - startX) + kSize.X() + margin.Z()
 		contentSize.SetX(matrix.Max(contentSize.X(), right))
-		itemHeight := kSize.Y() + margin.Vertical()
-		rowMaxHeight = matrix.Max(rowMaxHeight, itemHeight)
-		col++
-		if col >= pd.gridColumns {
-			y += rowMaxHeight + gapY
-			contentSize.SetY(y - offsetStart.Y())
-			rowMaxHeight = 0
-			col = 0
-		}
-	}
-	if rowMaxHeight > 0 {
-		y += rowMaxHeight + gapY
-		contentSize.SetY(y - offsetStart.Y())
+		bottom := itemY - offsetStart.Y() + kSize.Y() + margin.W()
+		contentSize.SetY(matrix.Max(contentSize.Y(), bottom))
 	}
 	contentSize.SetY(contentSize.Y() + p.layout.padding.Bottom() + p.layout.border.Bottom())
 	return contentSize
