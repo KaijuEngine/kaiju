@@ -48,7 +48,6 @@ func (p GridGap) Process(panel *ui.Panel, elm *document.Element, values []rules.
 	if len(values) == 0 || values[0].Str == "initial" || values[0].Str == "inherit" {
 		return nil
 	}
-
 	gapX := float32(8)
 	gapY := float32(8)
 	if len(values) > 0 {

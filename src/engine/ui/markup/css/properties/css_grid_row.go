@@ -47,6 +47,5 @@ import (
 
 func (p GridRow) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	problems := []error{errors.New("GridRow not implemented")}
-
 	return problems[0]
 }

@@ -50,11 +50,9 @@ func (p Grid) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 	if len(values) == 0 {
 		return nil
 	}
-
 	if values[0].Str == "initial" || values[0].Str == "none" {
 		return nil
 	}
-
 	// Shorthand can specify template columns/rows; for now enable grid with parsed or default columns
 	cols := 3
 	if len(values) > 0 {
