@@ -189,6 +189,12 @@ func (hui *WorkspaceHierarchyUI) entityContextMenu(e *document.Element) {
 			Call:  func() { hui.alignEntityWithView(entity) },
 		},
 	}
+	if entity.Parent != nil {
+		options = append(options, context_menu.ContextMenuOption{
+			Label: "Remove from parent",
+			Call:  func() { hui.removeEntityFromParent(entity) },
+		})
+	}
 	w.ed.BlurInterface()
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)
 }
@@ -204,6 +210,14 @@ func (hui *WorkspaceHierarchyUI) deleteContextEntity(entity *editor_stage_manage
 		man.SelectEntityById(entity.StageData.Description.Id)
 	}
 	man.DestroySelected()
+}
+
+func (hui *WorkspaceHierarchyUI) removeEntityFromParent(entity *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.removeEntityFromParent").End()
+	if entity == nil || entity.IsDeleted() || entity.IsLocked() || entity.Parent == nil {
+		return
+	}
+	hui.workspace.Value().stageView.Manager().SetEntityParent(entity, nil)
 }
 
 func (hui *WorkspaceHierarchyUI) alignEntityWithView(entity *editor_stage_manager.StageEntity) {
