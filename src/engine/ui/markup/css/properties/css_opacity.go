@@ -53,16 +53,13 @@ func (p Opacity) Process(panel *ui.Panel, elm *document.Element, values []rules.
 	if !panel.HasBackground() {
 		return errors.New("can't set opacity on panel without an image/color")
 	}
-
 	if len(values) != 1 {
 		return fmt.Errorf("expected 1 argument to opacity but got %d", len(values))
 	}
-
 	opacity, err := strconv.ParseFloat(values[0].Str, 64)
 	if err != nil {
 		return err
 	}
-
 	c := panel.Color()
 	c.SetA(klib.Clamp(matrix.Float(opacity), 0, 1))
 	panel.SetColor(c)
