@@ -43,7 +43,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
-	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/windowing"
 )
 
 func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -53,81 +53,85 @@ func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 
 	panel.Base().AddEvent(ui.EventTypeEnter, func() {
 		switch values[0].Str {
-		case "text":
-			host.Window.CursorIbeam()
+		case "auto":
+			host.Window.SetCursor(windowing.CursorKindAuto)
 		case "default":
-			host.Window.CursorStandard()
+			host.Window.SetCursor(windowing.CursorKindDefault)
+		case "none":
+			host.Window.SetCursor(windowing.CursorKindNone)
 		case "context-menu":
-			fallthrough
-		case "help":
-			fallthrough
-		case "pointer":
-			fallthrough
-		case "progress":
-			fallthrough
-		case "wait":
-			fallthrough
-		case "cell":
-			fallthrough
-		case "crosshair":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindContextMenu)
+		case "text":
+			host.Window.SetCursor(windowing.CursorKindText)
 		case "vertical-text":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindVerticalText)
+		case "pointer":
+			host.Window.SetCursor(windowing.CursorKindPointer)
+		case "help":
+			host.Window.SetCursor(windowing.CursorKindHelp)
+		case "progress":
+			host.Window.SetCursor(windowing.CursorKindProgress)
+		case "wait":
+			host.Window.SetCursor(windowing.CursorKindWait)
+		case "cell":
+			host.Window.SetCursor(windowing.CursorKindCell)
+		case "crosshair":
+			host.Window.SetCursor(windowing.CursorKindCrosshair)
 		case "alias":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindAlias)
 		case "copy":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindCopy)
 		case "move":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindMove)
 		case "no-drop":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindNoDrop)
 		case "not-allowed":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindNotAllowed)
 		case "grab":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindGrab)
 		case "grabbing":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindGrabbing)
 		case "all-scroll":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeAll)
 		case "col-resize":
-			fallthrough
-		case "row-resize":
-			fallthrough
-		case "n-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeCol)
 		case "e-resize":
-			fallthrough
-		case "s-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeE)
 		case "w-resize":
-			fallthrough
-		case "ne-resize":
-			fallthrough
-		case "nw-resize":
-			fallthrough
-		case "se-resize":
-			fallthrough
-		case "sw-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeW)
 		case "ew-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeEW)
+		case "row-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeRow)
+		case "n-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeN)
+		case "s-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeS)
 		case "ns-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeNS)
+		case "ne-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeNE)
+		case "sw-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeSW)
 		case "nesw-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeNESW)
+		case "nw-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeNW)
+		case "se-resize":
+			host.Window.SetCursor(windowing.CursorKindResizeSE)
 		case "nwse-resize":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindResizeNWSE)
 		case "zoom-in":
-			fallthrough
+			host.Window.SetCursor(windowing.CursorKindZoomIn)
 		case "zoom-out":
-			klib.NotYetImplemented(180)
+			host.Window.SetCursor(windowing.CursorKindZoomOut)
 		default:
-			host.Window.CursorStandard()
+			host.Window.SetCursor(windowing.CursorKindDefault)
 		}
 	})
 
 	panel.Base().AddEvent(ui.EventTypeExit, func() {
-		host.Window.CursorStandard()
+		host.Window.SetCursor(windowing.CursorKindDefault)
 	})
 
 	return nil

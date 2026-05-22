@@ -51,6 +51,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
 )
 
@@ -612,11 +613,11 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
-	input.man.Value().Host.Window.CursorIbeam()
+	input.man.Value().Host.Window.SetCursor(windowing.CursorKindText)
 }
 
 func (input *Input) onExit() {
-	input.man.Value().Host.Window.CursorStandard()
+	input.man.Value().Host.Window.SetCursor(windowing.CursorKindDefault)
 }
 
 func (input *Input) onDown() {
@@ -663,7 +664,7 @@ func (input *Input) detectDoubleClick() bool {
 
 func (input *Input) onMiss() {
 	input.RemoveFocus()
-	input.man.Value().Host.Window.CursorStandard()
+	input.man.Value().Host.Window.SetCursor(windowing.CursorKindDefault)
 }
 
 func (input *Input) deactivated() {
@@ -877,7 +878,7 @@ func (input *Input) RemoveFocus() {
 		}
 		man := input.man.Value()
 		if man != nil {
-			man.Host.Window.CursorStandard()
+			man.Host.Window.SetCursor(windowing.CursorKindDefault)
 			man.Group.setFocus(nil)
 		}
 		input.blur()

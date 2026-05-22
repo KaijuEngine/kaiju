@@ -86,7 +86,7 @@ type Window struct {
 	width, height            int
 	left, top, right, bottom int // Full window including title and borders
 	resetDragDataInFrames    int
-	cursorChangeCount        int
+	cursorVisible            bool
 	cachedScreenSizeWidthMM  int
 	cacheScreenSizeHeightMM  int
 	windowSync               chan struct{}
@@ -98,6 +98,8 @@ type Window struct {
 	fatalFromNativeAPI       bool
 	resizedFromNativeAPI     bool
 	isFullScreen             bool
+	cursorKind               CursorKind
+	cursorMode               CursorMode
 }
 
 type FileSearch struct {
@@ -132,21 +134,24 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 	debug.Assert(height > 0, "window height must be greater than zero")
 	debug.Assert(adb != nil, "asset database cannot be nil")
 	w := &Window{
-		Keyboard:   hid.NewKeyboard(),
-		Mouse:      hid.NewMouse(),
-		Touch:      hid.NewTouch(),
-		Stylus:     hid.NewStylus(),
-		Controller: hid.NewController(),
-		width:      width,
-		height:     height,
-		x:          x,
-		y:          y,
-		left:       x,
-		top:        y,
-		right:      x + width,
-		bottom:     y + height,
-		title:      windowName,
-		windowSync: make(chan struct{}),
+		Keyboard:      hid.NewKeyboard(),
+		Mouse:         hid.NewMouse(),
+		Touch:         hid.NewTouch(),
+		Stylus:        hid.NewStylus(),
+		Controller:    hid.NewController(),
+		width:         width,
+		height:        height,
+		x:             x,
+		y:             y,
+		left:          x,
+		top:           y,
+		right:         x + width,
+		bottom:        y + height,
+		title:         windowName,
+		cursorKind:    CursorKindDefault,
+		cursorMode:    CursorModeNative,
+		cursorVisible: true,
+		windowSync:    make(chan struct{}),
 	}
 	keys := w.checkToggleKeyState()
 	for key, pressed := range keys {
@@ -312,39 +317,81 @@ func DPI2PXF(pixels, mm, targetMM float64) float64 {
 	return targetMM * (pixels / mm)
 }
 
-func (w *Window) CursorStandard() {
-	w.cursorChangeCount = max(0, w.cursorChangeCount-1)
-	if w.cursorChangeCount == 0 {
-		w.cursorStandard()
-	}
+func (w *Window) CursorKind() CursorKind {
+	return w.cursorKind
 }
 
-func (w *Window) CursorIbeam() {
-	if w.canChangeCursor() {
-		w.cursorIbeam()
-	}
-	w.cursorChangeCount++
+func (w *Window) CursorMode() CursorMode {
+	return w.cursorMode
 }
 
-func (w *Window) CursorSizeAll() {
-	if w.canChangeCursor() {
-		w.cursorSizeAll()
+func (w *Window) cursorRenderMode() CursorMode {
+	if w.cursorMode != CursorModeAuto {
+		return w.cursorMode
 	}
-	w.cursorChangeCount++
+	if NativeCursorSupported(w.cursorKind) {
+		return CursorModeNative
+	}
+	return CursorModeVirtual
 }
 
-func (w *Window) CursorSizeNS() {
-	if w.canChangeCursor() {
-		w.cursorSizeNS()
-	}
-	w.cursorChangeCount++
+func (w *Window) UsesVirtualCursor() bool {
+	return w.cursorRenderMode() == CursorModeVirtual
 }
 
-func (w *Window) CursorSizeWE() {
-	if w.canChangeCursor() {
-		w.cursorSizeWE()
+func (w *Window) CursorVisible() bool {
+	return w.cursorVisible
+}
+
+// SetCursorMode selects the cursor renderer. Native mode delegates cursor
+// drawing to the platform; virtual mode hides the platform cursor so UI can
+// render it instead.
+func (w *Window) SetCursorMode(mode CursorMode) {
+	if w.cursorMode == mode {
+		w.applyCursor()
+		return
 	}
-	w.cursorChangeCount++
+	w.cursorMode = mode
+	w.applyCursor()
+}
+
+func (w *Window) ResetCursor() {
+	w.SetCursor(CursorKindDefault)
+}
+
+func (w *Window) SetCursor(kind CursorKind) {
+	if kind == CursorKindAuto {
+		kind = CursorKindDefault
+	}
+	w.cursorKind = kind
+	w.applyCursor()
+}
+
+// HideCursor is a visibility override. They do not change the
+// current cursor mode or semantic cursor kind.
+func (w *Window) HideCursor() {
+	w.cursorVisible = false
+	w.hideCursor()
+}
+
+// ShowCursor is a visibility override. They do not change the
+// current cursor mode or semantic cursor kind.
+func (w *Window) ShowCursor() {
+	w.cursorVisible = true
+	w.applyCursor()
+}
+
+func (w *Window) applyCursor() {
+	if !w.cursorVisible {
+		w.hideCursor()
+		return
+	}
+	if w.UsesVirtualCursor() {
+		w.hideCursor()
+		return
+	}
+	w.showCursor()
+	w.setCursor(w.cursorKind)
 }
 
 func (w *Window) CopyToClipboard(text string) { w.copyToClipboard(text) }
@@ -371,7 +418,7 @@ func (w *Window) Destroy() {
 func (w *Window) Focus() {
 	defer tracing.NewRegion("Window.Focus").End()
 	w.focus()
-	w.cursorStandard()
+	w.applyCursor()
 }
 
 func (w *Window) Position() (x int, y int) {
@@ -397,8 +444,6 @@ func (w *Window) SetSize(width, height int) {
 
 func (w *Window) RemoveBorder()      { w.removeBorder() }
 func (w *Window) AddBorder()         { w.addBorder() }
-func (w *Window) ShowCursor()        { w.showCursor() }
-func (w *Window) HideCursor()        { w.hideCursor() }
 func (w *Window) IsFullScreen() bool { return w.isFullScreen }
 func (w *Window) UnlockCursor()      { w.unlockCursor() }
 
@@ -489,8 +534,6 @@ func (w *Window) ReadApplicationAsset(path string) ([]byte, error) {
 func (w *Window) requestSync() {
 	w.syncRequest = true
 }
-
-func (w *Window) canChangeCursor() bool { return w.cursorChangeCount == 0 }
 
 func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 	w.width = int(evt.width)
@@ -676,7 +719,7 @@ func (w *Window) becameInactive() {
 
 func (w *Window) becameActive() {
 	defer tracing.NewRegion("Window.becameActive").End()
-	w.cursorStandard()
+	w.applyCursor()
 	idx := -1
 	for i := range activeWindows {
 		if activeWindows[i] == w {

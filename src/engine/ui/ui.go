@@ -50,9 +50,11 @@ import (
 	"kaijuengine.com/rendering"
 )
 
-type DirtyType = int
-type ElementType = uint8
-type uiBits uint8
+type (
+	DirtyType   = int
+	ElementType = uint8
+	uiBits      uint8
+)
 
 const (
 	DirtyTypeNone = iota
@@ -80,6 +82,7 @@ const (
 	ElementTypeProgressBar
 	ElementTypeSelect
 	ElementTypeSlider
+	ElementTypeCursor
 )
 
 const (
@@ -342,7 +345,7 @@ func (ui *UI) GenerateScissor() {
 		for p.PanelData().overflow == OverflowVisible && !p.entity.IsRoot() {
 			p = FirstPanelOnEntity(p.entity.Parent)
 		}
-		//if !p.entity.IsRoot() {
+		// if !p.entity.IsRoot() {
 		ps := p.Base().selfScissor()
 		bounds.SetX(max(bounds.X(), ps.X()))
 		bounds.SetY(max(bounds.Y(), ps.Y()))
@@ -571,7 +574,7 @@ func (ui *UI) anyChildDirty() bool {
 
 func (ui *UI) updateFromManager(deltaTime float64) {
 	defer tracing.NewRegion("UI.updateFromManager").End()
-	if !ui.IsActive() {
+	if !ui.IsActive() && ui.elmType != ElementTypeCursor {
 		return
 	}
 	switch ui.elmType {
@@ -591,6 +594,8 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 		ui.ToImage().update(deltaTime)
 	case ElementTypeCheckbox:
 		ui.ToPanel().update(deltaTime)
+	case ElementTypeCursor:
+		ui.ToCursor().update(deltaTime)
 	}
 }
 

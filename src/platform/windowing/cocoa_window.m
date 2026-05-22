@@ -560,42 +560,88 @@ char* cocoa_clipboard_contents(void) {
 	}
 }
 
-void cocoa_cursor_standard(void) {
-	dispatch_async(dispatch_get_main_queue(), ^{
-		@autoreleasepool {
-			[[NSCursor arrowCursor] set];
-		}
-	});
+static BOOL gCursorHiddenByKaiju = NO;
+
+static void cocoa_set_cursor_hidden(BOOL hidden) {
+	if (hidden && !gCursorHiddenByKaiju) {
+		[NSCursor hide];
+		gCursorHiddenByKaiju = YES;
+	} else if (!hidden && gCursorHiddenByKaiju) {
+		[NSCursor unhide];
+		gCursorHiddenByKaiju = NO;
+	}
 }
 
-void cocoa_cursor_ibeam(void) {
+void cocoa_set_cursor(int kind) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
-			[[NSCursor IBeamCursor] set];
-		}
-	});
-}
-
-void cocoa_cursor_size_all(void) {
-	dispatch_async(dispatch_get_main_queue(), ^{
-		@autoreleasepool {
-			[[NSCursor closedHandCursor] set];
-		}
-	});
-}
-
-void cocoa_cursor_size_ns(void) {
-	dispatch_async(dispatch_get_main_queue(), ^{
-		@autoreleasepool {
-			[[NSCursor resizeUpDownCursor] set];
-		}
-	});
-}
-
-void cocoa_cursor_size_we(void) {
-	dispatch_async(dispatch_get_main_queue(), ^{
-		@autoreleasepool {
-			[[NSCursor resizeLeftRightCursor] set];
+			switch (kind) {
+				case 2: // CursorKindNone
+					cocoa_set_cursor_hidden(YES);
+					break;
+				case 4: // CursorKindText
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor IBeamCursor] set];
+					break;
+				case 5: // CursorKindVerticalText
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor IBeamCursorForVerticalLayout] set];
+					break;
+				case 3: // CursorKindContextMenu
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor contextualMenuCursor] set];
+					break;
+				case 6: // CursorKindPointer
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor pointingHandCursor] set];
+					break;
+				case 12: // CursorKindAlias
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor dragLinkCursor] set];
+					break;
+				case 13: // CursorKindCopy
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor dragCopyCursor] set];
+					break;
+				case 10: // CursorKindCrosshair
+				case 11: // CursorKindCell
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor crosshairCursor] set];
+					break;
+				case 14: // CursorKindMove
+				case 18: // CursorKindGrabbing
+				case 33: // CursorKindResizeAll
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor closedHandCursor] set];
+					break;
+				case 15: // CursorKindNoDrop
+				case 16: // CursorKindNotAllowed
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor operationNotAllowedCursor] set];
+					break;
+				case 17: // CursorKindGrab
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor openHandCursor] set];
+					break;
+				case 19: // CursorKindResizeN
+				case 21: // CursorKindResizeS
+				case 27: // CursorKindResizeNS
+				case 32: // CursorKindResizeRow
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor resizeUpDownCursor] set];
+					break;
+				case 20: // CursorKindResizeE
+				case 22: // CursorKindResizeW
+				case 28: // CursorKindResizeEW
+				case 31: // CursorKindResizeCol
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor resizeLeftRightCursor] set];
+					break;
+				default:
+					cocoa_set_cursor_hidden(NO);
+					[[NSCursor arrowCursor] set];
+					break;
+			}
 		}
 	});
 }
@@ -603,7 +649,7 @@ void cocoa_cursor_size_we(void) {
 void cocoa_show_cursor(void) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
-			[NSCursor unhide];
+			cocoa_set_cursor_hidden(NO);
 		}
 	});
 }
@@ -611,7 +657,7 @@ void cocoa_show_cursor(void) {
 void cocoa_hide_cursor(void) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
-			[NSCursor hide];
+			cocoa_set_cursor_hidden(YES);
 		}
 	});
 }

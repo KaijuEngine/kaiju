@@ -62,6 +62,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
 
 	// Built-in workspace packages register themselves with
@@ -109,6 +110,8 @@ type Editor struct {
 	contentPreviewer content_previews.ContentPreviewer
 	updateId         engine.UpdateId
 	blurred          bool
+	cursorUI         ui.Manager
+	cursor           *ui.Cursor
 }
 
 type globalUI struct {
@@ -160,6 +163,28 @@ func (ed *Editor) IsInputFocused() bool {
 	return ed.currentWorkspace.IsFocusedOnInput()
 }
 
+func (ed *Editor) ensureCursor() {
+	if ed.cursor != nil {
+		return
+	}
+
+	ed.cursorUI.Init(ed.host)
+
+	ed.cursor = ed.cursorUI.Add().ToCursor()
+	ed.cursor.Init(ui.CursorThemeByName(ed.settings.CursorTheme))
+}
+
+func cursorModeFromSetting(mode string) windowing.CursorMode {
+	switch mode {
+	case "virtual":
+		return windowing.CursorModeVirtual
+	case "auto":
+		return windowing.CursorModeAuto
+	default:
+		return windowing.CursorModeNative
+	}
+}
+
 func (ed *Editor) earlyLoadUI() {
 	defer tracing.NewRegion("Editor.earlyLoadUI").End()
 	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
@@ -172,6 +197,14 @@ func (ed *Editor) UpdateSettings() {
 		ed.settings.UIScrollSpeed = 1
 	}
 	ui.UIScrollSpeed = ed.settings.UIScrollSpeed
+
+	ed.ensureCursor()
+	ed.cursor.SetTheme(ui.CursorThemeByName(ed.settings.CursorTheme))
+
+	ed.host.Window.ResetCursor()
+	ed.host.Window.SetCursorMode(cursorModeFromSetting(ed.settings.CursorMode))
+	ed.cursor.SyncWithWindow()
+
 	if err := ed.settings.Save(); err != nil {
 		slog.Error("failed to save the editor settings", "error", err)
 		return

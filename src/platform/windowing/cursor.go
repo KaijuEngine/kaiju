@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* win32.h                                                                    */
+/* cursor.go                                                                  */
 /******************************************************************************/
 /*                            This file is part of                            */
 /*                                KAIJU ENGINE                                */
@@ -22,9 +22,8 @@
 /* and/or sell copies of the Software, and to permit persons to whom the      */
 /* Software is furnished to do so, subject to the following conditions:       */
 /*                                                                            */
-/* The above copyright, blessing, biblical verse, notice and                  */
-/* this permission notice shall be included in all copies or                  */
-/* substantial portions of the Software.                                      */
+/* The above copyright notice and this permission notice shall be included in */
+/* all copies or substantial portions of the Software.                        */
 /*                                                                            */
 /* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
 /* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
@@ -35,45 +34,63 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
-#ifndef WINDOWING_WIN32_H
-#define WINDOWING_WIN32_H
+package windowing
 
-#include <wchar.h>
-#include <stdint.h>
-#include <stdbool.h>
+type CursorKind int
 
-unsigned int get_toggle_key_state();
-void window_main(const wchar_t* windowTitle,
-	int width, int height, int x, int y, uint64_t goWindow);
-void window_show(void* hwnd);
-void window_poll_controller(void* hwnd);
-void window_poll(void* hwnd);
-void window_destroy(void* hwnd);
-void window_set_cursor(void* hwnd, int kind);
-float window_dpi(void* hwnd);
-int screen_width_mm(void* hwnd);
-int screen_height_mm(void* hwnd);
-int screen_count(void* hwnd);
-void window_focus(void* hwnd);
-void window_position(void* hwnd, int* x, int* y);
-void window_set_position(void* hwnd, int x, int y);
-void window_set_size(void* hwnd, int width, int height);
-void window_remove_border(void* hwnd);
-void window_add_border(void* hwnd);
-void window_show_cursor(void* hwnd);
-void window_hide_cursor(void* hwnd);
-void window_lock_cursor(void* hwnd, int x, int y);
-void window_unlock_cursor(void* hwnd);
-void window_set_fullscreen(void* hwnd);
-void window_set_windowed(void* hwnd, int width, int height);
-void window_enable_raw_mouse(void* hwnd);
-void window_disable_raw_mouse(void* hwnd);
-void window_set_title(void* hwnd, const wchar_t* windowTitle);
-void window_set_title_bar_mode(void* hwnd, int mode);
-void window_set_cursor_position(void* hwnd, int x, int y);
-void window_set_icon(void* hwnd, int width, int height, const uint8_t* pixelData);
-#if KAIJU_ENABLE_FILEDROP
-void window_set_file_drop_enabled(void* hwnd, bool enabled);
-#endif
+const (
+	CursorKindAuto CursorKind = iota
+	CursorKindDefault
+	CursorKindNone
+	CursorKindContextMenu
+	CursorKindText
+	CursorKindVerticalText
+	CursorKindPointer
+	CursorKindHelp
+	CursorKindWait
+	CursorKindProgress
+	CursorKindCrosshair
+	CursorKindCell
+	CursorKindAlias
+	CursorKindCopy
+	CursorKindMove
+	CursorKindNoDrop
+	CursorKindNotAllowed
+	CursorKindGrab
+	CursorKindGrabbing
+	CursorKindResizeN
+	CursorKindResizeE
+	CursorKindResizeS
+	CursorKindResizeW
+	CursorKindResizeNE
+	CursorKindResizeNW
+	CursorKindResizeSE
+	CursorKindResizeSW
+	CursorKindResizeNS
+	CursorKindResizeEW
+	CursorKindResizeNWSE
+	CursorKindResizeNESW
+	CursorKindResizeCol
+	CursorKindResizeRow
+	CursorKindResizeAll
+	CursorKindZoomIn
+	CursorKindZoomOut
+)
 
-#endif
+type CursorMode int
+
+const (
+	CursorModeNative CursorMode = iota
+	CursorModeVirtual
+	CursorModeAuto
+)
+
+func NativeCursorSupported(kind CursorKind) bool {
+	switch kind {
+	case CursorKindAuto:
+		kind = CursorKindDefault
+	case CursorKindDefault, CursorKindNone:
+		return true
+	}
+	return nativeCursorSupported(kind)
+}

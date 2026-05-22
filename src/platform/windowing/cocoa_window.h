@@ -41,12 +41,7 @@ void cocoa_set_title(void* nsWindow, const char* title);
 void cocoa_copy_to_clipboard(const char* text);
 char* cocoa_clipboard_contents(void);
 
-// Cursor variants
-void cocoa_cursor_standard(void);
-void cocoa_cursor_ibeam(void);
-void cocoa_cursor_size_all(void);
-void cocoa_cursor_size_ns(void);
-void cocoa_cursor_size_we(void);
+void cocoa_set_cursor(int kind);
 void cocoa_show_cursor(void);
 void cocoa_hide_cursor(void);
 

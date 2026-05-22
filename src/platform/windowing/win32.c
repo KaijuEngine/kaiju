@@ -696,7 +696,7 @@ void window_main(const wchar_t* windowTitle,
 		shared_mem_flush_events(sm);
 		return;
     }
-	window_cursor_standard(hwnd);
+	window_set_cursor(hwnd, 1); // CursorKindDefault
 	sm->windowWidth = width;
 	sm->windowHeight = height;
 	shared_mem_add_event(sm, (WindowEvent) {
@@ -896,24 +896,80 @@ void window_destroy(void* hwnd) {
 	free(sm);
 }
 
-void window_cursor_standard(void* hwnd) {
-	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_ARROW, 0);
-}
+void window_set_cursor(void* hwnd, int kind) {
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+	if (kind == 2) { // CursorKindNone
+		if (sm != NULL) {
+			sm->cursorHidden = true;
+		}
+		SetCursor(NULL);
+		while (ShowCursor(FALSE) >= 0) {}
+		return;
+	}
+	if (sm != NULL && sm->cursorHidden) {
+		sm->cursorHidden = false;
+		while (ShowCursor(TRUE) < 0) {}
+	}
 
-void window_cursor_ibeam(void* hwnd) {
-	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
-}
-
-void window_cursor_size_all(void* hwnd) {
-	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_ALL, 0);
-}
-
-void window_cursor_size_ns(void* hwnd) {
-	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_NS, 0);
-}
-
-void window_cursor_size_we(void* hwnd) {
-	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_SIZE_WE, 0);
+	int cursor = CURSOR_ARROW;
+	switch (kind) {
+		case 4:  // CursorKindText
+		case 5:  // CursorKindVerticalText
+			cursor = CURSOR_IBEAM;
+			break;
+		case 6:  // CursorKindPointer
+		case 3:  // CursorKindContextMenu
+		case 12: // CursorKindAlias
+		case 13: // CursorKindCopy
+		case 17: // CursorKindGrab
+		case 18: // CursorKindGrabbing
+			cursor = CURSOR_HAND;
+			break;
+		case 7:  // CursorKindHelp
+			cursor = CURSOR_HELP;
+			break;
+		case 8:  // CursorKindWait
+			cursor = CURSOR_WAIT;
+			break;
+		case 9:  // CursorKindProgress
+			cursor = CURSOR_APP_STARTING;
+			break;
+		case 10: // CursorKindCrosshair
+		case 11: // CursorKindCell
+			cursor = CURSOR_CROSS;
+			break;
+		case 14: // CursorKindMove
+		case 33: // CursorKindResizeAll
+			cursor = CURSOR_SIZE_ALL;
+			break;
+		case 15: // CursorKindNoDrop
+		case 16: // CursorKindNotAllowed
+			cursor = CURSOR_NO;
+			break;
+		case 19: // CursorKindResizeN
+		case 21: // CursorKindResizeS
+		case 27: // CursorKindResizeNS
+		case 32: // CursorKindResizeRow
+			cursor = CURSOR_SIZE_NS;
+			break;
+		case 20: // CursorKindResizeE
+		case 22: // CursorKindResizeW
+		case 28: // CursorKindResizeEW
+		case 31: // CursorKindResizeCol
+			cursor = CURSOR_SIZE_WE;
+			break;
+		case 23: // CursorKindResizeNE
+		case 26: // CursorKindResizeSW
+		case 30: // CursorKindResizeNESW
+			cursor = CURSOR_SIZE_NESW;
+			break;
+		case 24: // CursorKindResizeNW
+		case 25: // CursorKindResizeSE
+		case 29: // CursorKindResizeNWSE
+			cursor = CURSOR_SIZE_NWSE;
+			break;
+	}
+	PostMessageA(hwnd, UWM_SET_CURSOR, cursor, 0);
 }
 
 float window_dpi(void* hwnd) {
