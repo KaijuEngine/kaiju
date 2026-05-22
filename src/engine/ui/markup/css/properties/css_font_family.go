@@ -51,7 +51,6 @@ import (
 
 func setChildrenFontFace(elm *document.Element, face rendering.FontFace) {
 	defer tracing.NewRegion("properties.setChildrenFontFace").End()
-
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
 		lbl.SetFontFace(face)
@@ -66,17 +65,14 @@ func setChildrenFontFace(elm *document.Element, face rendering.FontFace) {
 
 func (p FontFamily) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	defer tracing.NewRegion("FontFamily.Process").End()
-
 	// TODO:  Support monospace
 	if values[0].Str[0] != '\'' && values[0].Str[0] != '"' {
 		return fmt.Errorf("expected first value to be a string of the font name, but was: %s", values[0].Str)
 	}
-
 	faceName := strings.TrimSpace(strings.Trim(strings.Trim(values[0].Str, "'"), `"`))
 	if faceName == "" {
 		return errors.New("the font face supplied to CSS font-family was blank")
 	}
-
 	setChildrenFontFace(elm, rendering.FontFace(faceName))
 	return nil
 }

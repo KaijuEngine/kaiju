@@ -52,7 +52,6 @@ func (p BorderBottomColor) Process(panel *ui.Panel, elm *document.Element, value
 	if len(values) != 1 {
 		return errors.New("BorderLeftColor requires 1 value")
 	}
-
 	value := values[0].Str
 	switch value {
 	case "transparent":
@@ -70,7 +69,6 @@ func (p BorderBottomColor) Process(panel *ui.Panel, elm *document.Element, value
 		}
 		return nil
 	}
-
 	if newHex, ok := helpers.ColorMap[value]; ok {
 		value = newHex
 	}
