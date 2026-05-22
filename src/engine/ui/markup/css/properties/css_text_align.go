@@ -67,9 +67,23 @@ func (p TextAlign) Process(panel *ui.Panel, elm *document.Element, values []rule
 			l.SetJustify(rendering.FontJustifyCenter)
 		}
 	case "justify":
-		// TODO:  Support text justification
+		for _, l := range labels {
+			l.SetJustify(rendering.FontJustifyJustify)
+		}
 	case "initial":
+		for _, l := range labels {
+			l.SetJustify(rendering.FontJustifyLeft)
+		}
 	case "inherit":
+		inherited := rendering.FontJustifyLeft
+		if parent := elm.Parent.Value(); parent != nil {
+			if parentLabels := childLabels(parent); len(parentLabels) > 0 {
+				inherited = parentLabels[0].Justify()
+			}
+		}
+		for _, l := range labels {
+			l.SetJustify(inherited)
+		}
 	}
 
 	return nil

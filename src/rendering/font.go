@@ -71,6 +71,7 @@ const (
 	FontJustifyLeft = FontJustify(iota)
 	FontJustifyCenter
 	FontJustifyRight
+	FontJustifyJustify
 )
 
 type FontBaseline int
@@ -451,6 +452,8 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 			xOffset = left + (maxWidth - lineWidth)
 		case FontJustifyCenter:
 			xOffset = -(lineWidth * 0.5)
+		case FontJustifyJustify:
+			xOffset = left
 		case FontJustifyLeft:
 			xOffset = left
 		default:
@@ -468,6 +471,18 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 		xOffset *= inverseWidth
 		yOffset -= fontFace.metrics.Descender * scale
 		yOffset *= inverseHeight
+		justifySpaceAdvance := float32(0)
+		if justify == FontJustifyJustify && current+charLen < textLen && maxWidth > lineWidth {
+			spaceCount := 0
+			for _, c := range runes[current : current+charLen] {
+				if unicode.IsSpace(c) && c != '\n' {
+					spaceCount++
+				}
+			}
+			if spaceCount > 0 {
+				justifySpaceAdvance = (maxWidth - lineWidth) / float32(spaceCount)
+			}
+		}
 		if charLen > 0 || (unicode.IsSpace(runes[current]) && runes[current] != '\n') {
 			for i := current; i < current+charLen; i++ {
 				c := runes[i]
@@ -556,6 +571,9 @@ func (cache *FontCache) RenderMeshes(caches RenderCaches,
 				}
 				fontMeshes = append(fontMeshes, drawing)
 				cx += ch.advance * scale * inverseWidth
+				if justifySpaceAdvance > 0 && unicode.IsSpace(c) && c != '\n' {
+					cx += justifySpaceAdvance * inverseWidth
+				}
 				ay := fontFace.metrics.LineHeight * scale * inverseHeight
 				height = matrix.Max(height, ay)
 			}

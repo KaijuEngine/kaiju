@@ -179,8 +179,8 @@ func (label *Label) labelPostLayoutUpdate() {
 	if l.wordWrap {
 		if label.entity.Parent != nil {
 			p := FirstOnEntity(label.entity.Parent)
-			o := p.layout.padding
-			maxWidth = max(maxWidth, label.layout.PixelSize().Width()-o.X()-o.Z())
+			o := p.layout.padding.Add(p.layout.border)
+			maxWidth = label.layout.PixelSize().Width() - o.X() - o.Z()
 		} else {
 			maxWidth = label.MaxWidth()
 		}
@@ -206,17 +206,20 @@ func (label *Label) renderText() {
 	if ld.textLength > 0 {
 		maxWidth := label.MaxWidth()
 		if label.entity.Parent != nil && !matrix.Approx(label.entity.Transform.Scale().X(), 0) {
-			label.layout.ScaleWidth(label.entity.Parent.Transform.WorldScale().X())
+			pl := &FirstPanelOnEntity(label.entity.Parent).layout
+			contentWidth := label.entity.Parent.Transform.WorldScale().X() -
+				pl.padding.Horizontal() - pl.border.Horizontal()
+			if contentWidth > 0 {
+				label.layout.ScaleWidth(contentWidth)
+				if ld.overrideMaxWidth <= 0 || maxWidth > contentWidth {
+					maxWidth = contentWidth
+				}
+			}
 		}
 		label.layout.ScaleHeight(label.Measure().Height())
-		pl := &FirstPanelOnEntity(label.entity.Parent).layout
-		xOffset := float32(0)
-		if ld.justify == rendering.FontJustifyCenter {
-			xOffset = -pl.padding.Left() - pl.border.Left()
-		}
 		host := label.man.Value().Host
 		ld.runeDrawings = host.FontCache().RenderMeshes(
-			host, ld.text, xOffset, 0, 0, ld.fontSize,
+			host, ld.text, 0, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight, &host.Cameras.UI)
@@ -388,6 +391,8 @@ func (label *Label) SetJustify(justify rendering.FontJustify) {
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
+func (label *Label) Justify() rendering.FontJustify { return label.LabelData().justify }
+
 func (label *Label) SetBaseline(baseline rendering.FontBaseline) {
 	ld := label.LabelData()
 	if ld.baseline == baseline {
@@ -523,6 +528,9 @@ func (label *Label) CalculateMaxWidth() float32 {
 		w := parent.Transform.WorldScale().X()
 		if panel.FittingContentWidth() {
 			w = label.measure(matrix.FloatMax).X() + o.X() + o.Z() + 1
+		} else {
+			o = o.Add(panel.layout.Border())
+			w -= o.X() + o.Z()
 		}
 		maxWidth = w
 	}

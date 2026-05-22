@@ -19,6 +19,10 @@ const (
 )
 
 func takeScreenshot(host *engine.Host) {
+	takeScreenshotToFile(host, standardScreenshotOutput)
+}
+
+func takeScreenshotToFile(host *engine.Host, path string) {
 	device := host.Window.GpuHost.FirstInstance().PrimaryDevice()
 	pixels, err := device.Screenshot()
 	if err != nil {
@@ -37,11 +41,11 @@ func takeScreenshot(host *engine.Host) {
 		slog.Error("Failed to encode the png file", "error", err)
 		return
 	}
-	if err := os.WriteFile(standardScreenshotOutput, buf.Bytes(), os.ModePerm); err != nil {
-		slog.Error("Failed to write the screenshot file", "path", standardScreenshotOutput, "error", err)
+	if err := os.WriteFile(path, buf.Bytes(), os.ModePerm); err != nil {
+		slog.Error("Failed to write the screenshot file", "path", path, "error", err)
 		return
 	}
-	slog.Info("Screenshot captured", "path", standardScreenshotOutput)
+	slog.Info("Screenshot captured", "path", path)
 }
 
 func createRedSphere(host *engine.Host) *engine.Entity {
