@@ -37,7 +37,6 @@
 package properties
 
 import (
-	"errors"
 	"fmt"
 
 	"kaijuengine.com/engine"
@@ -47,30 +46,91 @@ import (
 	"kaijuengine.com/rendering"
 )
 
+func (p VerticalAlign) Sort() int { return 1 }
+
+func directChildLabels(elm *document.Element) []*ui.Label {
+	labels := make([]*ui.Label, 0)
+	for _, child := range elm.Children {
+		if child.IsText() {
+			labels = append(labels, child.UI.ToLabel())
+		}
+	}
+	return labels
+}
+
+func verticalAlignOffset(value string, elm *document.Element) (float32, bool, error) {
+	switch value {
+	case "auto", "baseline", "top", "text-top", "initial":
+		return 0, false, nil
+	case "middle":
+		return 0.5, false, nil
+	case "bottom", "text-bottom":
+		return 1, false, nil
+	case "sub":
+		return 0, true, nil
+	case "super":
+		return 0, true, nil
+	case "inherit":
+		if parent := elm.Parent.Value(); parent != nil {
+			if labels := directChildLabels(parent); len(labels) > 0 {
+				return labelVerticalAlignOffset(labels[0]), false, nil
+			}
+		}
+		return 0, false, nil
+	default:
+		return 0, false, fmt.Errorf("unsupported vertical-align value: %s", value)
+	}
+}
+
+func labelVerticalAlignOffset(label *ui.Label) float32 {
+	parent := label.Base().Entity().Parent
+	if parent == nil {
+		return 0
+	}
+	parentLayout := ui.FirstOnEntity(parent).Layout()
+	available := parentLayout.ContentSize().Y() - label.Measure().Y()
+	if available <= 0 {
+		return 0
+	}
+	return -label.Base().Layout().InnerOffset().Top() / available
+}
+
+func setLabelVerticalAlign(label *ui.Label, align float32, shifted bool, value string) {
+	label.SetBaseline(rendering.FontBaselineTop)
+	alignOffset := float32(0)
+	if parent := label.Base().Entity().Parent; parent != nil {
+		parentLayout := ui.FirstOnEntity(parent).Layout()
+		contentHeight := parentLayout.ContentSize().Y()
+		labelHeight := label.Measure().Y()
+		if contentHeight > labelHeight {
+			alignOffset = (contentHeight - labelHeight) * align
+		}
+	}
+	layout := label.Base().Layout()
+	layout.SetInnerOffsetTop(-alignOffset)
+	local := layout.LocalInnerOffset()
+	offset := float32(0)
+	if shifted {
+		offset = label.FontSize() * 0.35
+		if value == "sub" {
+			offset = -offset
+		}
+	}
+	layout.SetLocalInnerOffset(local.Left(), offset, local.Right(), local.Bottom())
+}
+
 // auto|baseline|bottom|middle|sub|super|text-bottom|text-top|top|initial|inherit
 func (p VerticalAlign) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
 	}
-
-	labels := childLabels(elm)
-
-	switch values[0].Str {
-	case "middle":
-		for _, l := range labels {
-			base := l.Base()
-			layout := base.Layout()
-			pl := ui.FirstOnEntity(l.Base().Entity().Parent).Layout()
-			pp := pl.Padding()
-			pb := pl.Border()
-			//ph := pl.PixelSize().Y() - pp.Vertical() - pb.Vertical()
-			//th := l.Measure().Height()
-			layout.SetInnerOffsetTop(pp.Top()*0.5 - pb.Top()*0.5)
-			l.SetBaseline(rendering.FontBaselineCenter)
-		}
-	default:
-		return errors.New("VerticalAlign not implemented")
+	align, shifted, err := verticalAlignOffset(values[0].Str, elm)
+	if err != nil {
+		return err
 	}
-
+	labels := directChildLabels(elm)
+	for _, l := range labels {
+		setLabelVerticalAlign(l, align, shifted, values[0].Str)
+	}
 	return nil
 }
