@@ -37,8 +37,6 @@
 package properties
 
 import (
-	"errors"
-
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
@@ -46,7 +44,10 @@ import (
 )
 
 func (p GridAutoRows) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("GridAutoRows not implemented")}
-
-	return problems[0]
+	size, err := gridAutoTrackSize(p.Key(), values, host)
+	if err != nil {
+		return err
+	}
+	panel.SetGridAutoRows(size)
+	return nil
 }

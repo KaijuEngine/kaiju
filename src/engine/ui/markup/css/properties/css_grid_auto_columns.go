@@ -37,16 +37,38 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
 func (p GridAutoColumns) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("GridAutoColumns not implemented")}
+	size, err := gridAutoTrackSize(p.Key(), values, host)
+	if err != nil {
+		return err
+	}
+	panel.SetGridAutoColumns(size)
+	return nil
+}
 
-	return problems[0]
+func gridAutoTrackSize(property string, values []rules.PropertyValue, host *engine.Host) (float32, error) {
+	if len(values) == 0 {
+		return 0, nil
+	}
+	if len(values) != 1 {
+		return 0, fmt.Errorf("%s expects exactly one track size", property)
+	}
+	switch values[0].Str {
+	case "auto", "initial", "inherit", "unset":
+		return 0, nil
+	}
+	size := helpers.NumFromLength(values[0].Str, host.Window)
+	if size <= 0 {
+		return 0, fmt.Errorf("%s expects a positive length", property)
+	}
+	return size, nil
 }

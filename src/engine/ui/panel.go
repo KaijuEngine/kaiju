@@ -120,6 +120,8 @@ type panelData struct {
 	gridGap                   matrix.Vec2
 	// Positive values are fixed pixel widths, negative values are fr units.
 	gridTemplateColumns []float32
+	gridAutoColumns     float32
+	gridAutoRows        float32
 	requestScrollX      requestScroll
 	requestScrollY      requestScroll
 	overflow            Overflow
@@ -179,6 +181,8 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	pd.gridColumns = 0
 	pd.gridGap = matrix.Vec2Zero()
 	pd.gridTemplateColumns = nil
+	pd.gridAutoColumns = 0
+	pd.gridAutoRows = 0
 	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
@@ -919,6 +923,30 @@ func (p *Panel) SetGridTemplateColumns(columns []float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
+func (p *Panel) SetGridAutoColumns(width float32) {
+	if width < 0 {
+		width = 0
+	}
+	pd := p.PanelData()
+	if matrix.Approx(pd.gridAutoColumns, width) {
+		return
+	}
+	pd.gridAutoColumns = width
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetGridAutoRows(height float32) {
+	if height < 0 {
+		height = 0
+	}
+	pd := p.PanelData()
+	if matrix.Approx(pd.gridAutoRows, height) {
+		return
+	}
+	pd.gridAutoRows = height
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
 func (p *Panel) SetGridGap(x, y float32) {
 	pd := p.PanelData()
 	if matrix.Approx(pd.gridGap.X(), x) && matrix.Approx(pd.gridGap.Y(), y) {
@@ -929,26 +957,37 @@ func (p *Panel) SetGridGap(x, y float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
+func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int) []float32 {
 	pd := p.PanelData()
 	cols := pd.gridColumns
+	if len(columns) > 0 && columns[0] > cols {
+		cols = columns[0]
+	}
 	if cols <= 0 {
 		return []float32{}
 	}
 	out := make([]float32, cols)
-	if len(pd.gridTemplateColumns) != cols {
-		colW := (innerWidth - float32(cols-1)*gapX) / float32(cols)
+	explicitCols := pd.gridColumns
+	if explicitCols <= 0 {
+		explicitCols = cols
+	}
+	if len(pd.gridTemplateColumns) != explicitCols {
+		colW := (innerWidth - float32(explicitCols-1)*gapX) / float32(explicitCols)
 		if colW < 1 {
 			colW = 1
 		}
 		for i := 0; i < cols; i++ {
-			out[i] = colW
+			if i < explicitCols || pd.gridAutoColumns <= 0 {
+				out[i] = colW
+			} else {
+				out[i] = pd.gridAutoColumns
+			}
 		}
 		return out
 	}
 	totalFixed := float32(0)
 	totalFr := float32(0)
-	for i := 0; i < cols; i++ {
+	for i := 0; i < explicitCols; i++ {
 		v := pd.gridTemplateColumns[i]
 		if v >= 0 {
 			totalFixed += v
@@ -961,6 +1000,17 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
 		remaining = 0
 	}
 	for i := 0; i < cols; i++ {
+		if i >= explicitCols {
+			if pd.gridAutoColumns > 0 {
+				out[i] = pd.gridAutoColumns
+			} else {
+				out[i] = innerWidth / float32(explicitCols)
+			}
+			if out[i] < 1 {
+				out[i] = 1
+			}
+			continue
+		}
 		v := pd.gridTemplateColumns[i]
 		if v >= 0 {
 			out[i] = v
@@ -1078,7 +1128,26 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 	if gapY < 0 {
 		gapY = 0
 	}
-	colWidths := p.computeGridColumnWidths(innerWidth, gapX)
+	effectiveColumns := pd.gridColumns
+	for _, kid := range p.entity.Children {
+		if !kid.IsActive() || kid.IsDestroyed() {
+			continue
+		}
+		kui := FirstOnEntity(kid)
+		if kui == nil {
+			continue
+		}
+		kLayout := kui.Layout()
+		switch kLayout.Positioning() {
+		case PositioningAbsolute, PositioningFixed, PositioningSticky:
+			continue
+		}
+		if start := kLayout.GridColumnStart(); start > 0 {
+			span := gridTrackSpan(start, kLayout.GridColumnEnd())
+			effectiveColumns = max(effectiveColumns, start+span-1)
+		}
+	}
+	colWidths := p.computeGridColumnWidths(innerWidth, gapX, effectiveColumns)
 	items := make([]gridLayoutItem, 0, len(p.entity.Children))
 	occupied := map[int]map[int]bool{}
 	cursorRow := 0
@@ -1100,10 +1169,10 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		}
 		rowSpan := gridTrackSpan(kLayout.GridRowStart(), kLayout.GridRowEnd())
 		colSpan := gridTrackSpan(kLayout.GridColumnStart(), kLayout.GridColumnEnd())
-		if colSpan > pd.gridColumns {
-			colSpan = pd.gridColumns
+		if colSpan > effectiveColumns {
+			colSpan = effectiveColumns
 		}
-		row, col := requestedGridCell(occupied, pd.gridColumns, cursorRow, cursorCol,
+		row, col := requestedGridCell(occupied, effectiveColumns, cursorRow, cursorCol,
 			kLayout.GridRowStart(), kLayout.GridColumnStart(), rowSpan, colSpan)
 		if kLayout.GridRowStart() == 0 && kLayout.GridColumnStart() == 0 {
 			cursorRow, cursorCol = row, col+colSpan
@@ -1122,6 +1191,11 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		return matrix.Vec2{innerWidth, innerTop + p.layout.padding.Bottom() + p.layout.border.Bottom()}
 	}
 	rowHeights := make([]float32, rowCount)
+	if pd.gridAutoRows > 0 {
+		for i := range rowHeights {
+			rowHeights[i] = pd.gridAutoRows
+		}
+	}
 	for i := range items {
 		kLayout := items[i].ui.Layout()
 		kSize := kLayout.PixelSize()
