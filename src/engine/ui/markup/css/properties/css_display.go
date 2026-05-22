@@ -50,7 +50,6 @@ func (p Display) Process(panel *ui.Panel, elm *document.Element, values []rules.
 	if len(values) == 0 {
 		return errors.New("no values for display")
 	}
-
 	switch values[0].Str {
 	case "none":
 		panel.Base().Hide()

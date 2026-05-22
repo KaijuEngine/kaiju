@@ -221,7 +221,6 @@ func (p Font) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 	if err != nil {
 		return err
 	}
-
 	// Apply the family first so subsequent style/weight operations select the
 	// matching face variant from that family.
 	if err := (FontFamily{}).Process(panel, elm, font.family, host); err != nil {
@@ -241,6 +240,5 @@ func (p Font) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 			return err
 		}
 	}
-
 	return nil
 }
