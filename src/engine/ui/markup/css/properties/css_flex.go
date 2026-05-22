@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,55 @@ import (
 )
 
 func (p Flex) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("Flex not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	layout := panel.Base().Layout()
+	if len(values) == 1 {
+		switch values[0].Str {
+		case "none":
+			layout.SetFlexGrow(0)
+			layout.SetFlexShrink(0)
+			layout.SetFlexBasisAuto()
+			return nil
+		case "auto":
+			layout.SetFlexGrow(1)
+			layout.SetFlexShrink(1)
+			layout.SetFlexBasisAuto()
+			return nil
+		case "initial", "inherit", "unset":
+			layout.SetFlexGrow(0)
+			layout.SetFlexShrink(1)
+			layout.SetFlexBasisAuto()
+			return nil
+		}
+		if grow, ok := parseFlexFloat(values[0].Str); ok {
+			layout.SetFlexGrow(grow)
+			layout.SetFlexShrink(1)
+			layout.SetFlexBasis(0, false)
+			return nil
+		}
+		layout.SetFlexGrow(0)
+		layout.SetFlexShrink(1)
+		setFlexBasis(layout, values[0].Str, host)
+		return nil
+	}
+	if grow, ok := parseFlexFloat(values[0].Str); ok {
+		layout.SetFlexGrow(grow)
+	} else {
+		return fmt.Errorf("invalid flex-grow value %q", values[0].Str)
+	}
+	basisIdx := 1
+	if shrink, ok := parseFlexFloat(values[1].Str); ok {
+		layout.SetFlexShrink(shrink)
+		basisIdx = 2
+	} else {
+		layout.SetFlexShrink(1)
+	}
+	if basisIdx < len(values) {
+		setFlexBasis(layout, values[basisIdx].Str, host)
+	} else {
+		layout.SetFlexBasis(0, false)
+	}
+	return nil
 }

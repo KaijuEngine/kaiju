@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,13 @@ import (
 )
 
 func (p AlignSelf) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("AlignSelf not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	align, ok := parseFlexAlign(values[0].Str)
+	if !ok {
+		return fmt.Errorf("invalid align-self value %q", values[0].Str)
+	}
+	panel.Base().Layout().SetAlignSelf(align)
+	return nil
 }

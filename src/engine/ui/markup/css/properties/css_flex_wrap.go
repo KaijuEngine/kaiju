@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,11 @@ import (
 )
 
 func (p FlexWrap) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("FlexWrap not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	if !setFlexWrap(panel, values[0].Str) {
+		return fmt.Errorf("invalid flex-wrap value %q", values[0].Str)
+	}
+	return nil
 }

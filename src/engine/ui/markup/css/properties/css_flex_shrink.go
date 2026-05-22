@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,17 @@ import (
 )
 
 func (p FlexShrink) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("FlexShrink not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	if values[0].Str == "initial" || values[0].Str == "inherit" || values[0].Str == "unset" {
+		panel.Base().Layout().SetFlexShrink(1)
+		return nil
+	}
+	shrink, ok := parseFlexFloat(values[0].Str)
+	if !ok {
+		return fmt.Errorf("invalid flex-shrink value %q", values[0].Str)
+	}
+	panel.Base().Layout().SetFlexShrink(shrink)
+	return nil
 }

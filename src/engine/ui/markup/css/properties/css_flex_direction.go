@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,11 @@ import (
 )
 
 func (p FlexDirection) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("FlexDirection not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	if !setFlexDirection(panel, values[0].Str) {
+		return fmt.Errorf("invalid flex-direction value %q", values[0].Str)
+	}
+	return nil
 }

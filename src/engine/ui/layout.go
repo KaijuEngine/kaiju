@@ -45,6 +45,7 @@ const (
 )
 
 type Positioning = int
+type FlexAlign = int
 
 const (
 	PositioningStatic = Positioning(iota)
@@ -52,6 +53,14 @@ const (
 	PositioningFixed
 	PositioningRelative
 	PositioningSticky
+)
+
+const (
+	FlexAlignAuto = FlexAlign(iota)
+	FlexAlignStart
+	FlexAlignEnd
+	FlexAlignCenter
+	FlexAlignStretch
 )
 
 type Layout struct {
@@ -68,6 +77,13 @@ type Layout struct {
 	gridRowEnd       int
 	gridColumnStart  int
 	gridColumnEnd    int
+	flexGrow         float32
+	flexShrink       float32
+	flexBasis        float32
+	flexBasisAuto    bool
+	flexBasisPercent bool
+	flexOrder        int
+	alignSelf        FlexAlign
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
@@ -86,6 +102,13 @@ func (l *Layout) ClearStyles() {
 	l.gridRowEnd = 0
 	l.gridColumnStart = 0
 	l.gridColumnEnd = 0
+	l.flexGrow = 0
+	l.flexShrink = 1
+	l.flexBasis = 0
+	l.flexBasisAuto = true
+	l.flexBasisPercent = false
+	l.flexOrder = 0
+	l.alignSelf = FlexAlignAuto
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
@@ -244,6 +267,74 @@ func (l *Layout) GridRowStart() int        { return l.gridRowStart }
 func (l *Layout) GridRowEnd() int          { return l.gridRowEnd }
 func (l *Layout) GridColumnStart() int     { return l.gridColumnStart }
 func (l *Layout) GridColumnEnd() int       { return l.gridColumnEnd }
+func (l *Layout) FlexGrow() float32        { return l.flexGrow }
+func (l *Layout) FlexShrink() float32      { return l.flexShrink }
+func (l *Layout) FlexBasis() float32       { return l.flexBasis }
+func (l *Layout) FlexBasisAuto() bool      { return l.flexBasisAuto }
+func (l *Layout) FlexBasisPercent() bool   { return l.flexBasisPercent }
+func (l *Layout) FlexOrder() int           { return l.flexOrder }
+func (l *Layout) AlignSelf() FlexAlign     { return l.alignSelf }
+
+func (l *Layout) SetFlexGrow(grow float32) {
+	if grow < 0 {
+		grow = 0
+	}
+	if matrix.Approx(l.flexGrow, grow) {
+		return
+	}
+	l.flexGrow = grow
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexShrink(shrink float32) {
+	if shrink < 0 {
+		shrink = 0
+	}
+	if matrix.Approx(l.flexShrink, shrink) {
+		return
+	}
+	l.flexShrink = shrink
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexBasisAuto() {
+	if l.flexBasisAuto && matrix.Approx(l.flexBasis, 0) && !l.flexBasisPercent {
+		return
+	}
+	l.flexBasis = 0
+	l.flexBasisAuto = true
+	l.flexBasisPercent = false
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexBasis(basis float32, percent bool) {
+	if basis < 0 {
+		basis = 0
+	}
+	if !l.flexBasisAuto && matrix.Approx(l.flexBasis, basis) && l.flexBasisPercent == percent {
+		return
+	}
+	l.flexBasis = basis
+	l.flexBasisAuto = false
+	l.flexBasisPercent = percent
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexOrder(order int) {
+	if l.flexOrder == order {
+		return
+	}
+	l.flexOrder = order
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetAlignSelf(align FlexAlign) {
+	if l.alignSelf == align {
+		return
+	}
+	l.alignSelf = align
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
 
 func (l *Layout) SetGridRow(start, end int) {
 	if start < 0 {
@@ -426,6 +517,9 @@ func (l *Layout) bounds() matrix.Vec2 {
 
 func (l *Layout) initialize(ui *UI) {
 	l.ui = ui
+	l.flexShrink = 1
+	l.flexBasisAuto = true
+	l.alignSelf = FlexAlignAuto
 	//l.prepare()
 	//l.update()
 }

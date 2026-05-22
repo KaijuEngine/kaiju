@@ -53,7 +53,7 @@ func (p GridTemplateColumns) Process(panel *ui.Panel, elm *document.Element, val
 	}
 
 	if values[0].Str == "initial" || values[0].Str == "none" {
-		panel.SetGrid(0)
+		panel.SetFlowLayout()
 		panel.SetGridTemplateColumns(nil)
 		return nil
 	}

@@ -38,6 +38,7 @@ package ui
 
 import (
 	"log/slog"
+	"sort"
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
@@ -51,6 +52,11 @@ type BorderStyle = int32
 type ContentFit = int32
 type Overflow = int
 type panelBits uint8
+type LayoutMode = int
+type FlexDirection = int
+type FlexWrap = int
+type FlexJustify = int
+type FlexAlignContent = int
 
 const (
 	PanelScrollDirectionNone       = 0x00
@@ -90,6 +96,44 @@ const (
 )
 
 const (
+	LayoutModeFlow = LayoutMode(iota)
+	LayoutModeGrid
+	LayoutModeFlex
+)
+
+const (
+	FlexDirectionRow = FlexDirection(iota)
+	FlexDirectionRowReverse
+	FlexDirectionColumn
+	FlexDirectionColumnReverse
+)
+
+const (
+	FlexWrapNoWrap = FlexWrap(iota)
+	FlexWrapWrap
+	FlexWrapWrapReverse
+)
+
+const (
+	FlexJustifyStart = FlexJustify(iota)
+	FlexJustifyEnd
+	FlexJustifyCenter
+	FlexJustifySpaceBetween
+	FlexJustifySpaceAround
+	FlexJustifySpaceEvenly
+)
+
+const (
+	FlexAlignContentStart = FlexAlignContent(iota)
+	FlexAlignContentEnd
+	FlexAlignContentCenter
+	FlexAlignContentStretch
+	FlexAlignContentSpaceBetween
+	FlexAlignContentSpaceAround
+	FlexAlignContentSpaceEvenly
+)
+
+const (
 	panelBitsIsScrolling panelBits = 1 << iota
 	panelBitsIsDragging
 	panelBitsIsFrozen
@@ -125,6 +169,12 @@ type panelData struct {
 	requestScrollX      requestScroll
 	requestScrollY      requestScroll
 	overflow            Overflow
+	layoutMode          LayoutMode
+	flexDirection       FlexDirection
+	flexWrap            FlexWrap
+	flexJustify         FlexJustify
+	flexAlignItems      FlexAlign
+	flexAlignContent    FlexAlignContent
 	enforcedColorStack  []matrix.Color
 	flags               panelBits
 	minSize             matrix.Vec2
@@ -183,6 +233,12 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	pd.gridTemplateColumns = nil
 	pd.gridAutoColumns = 0
 	pd.gridAutoRows = 0
+	pd.layoutMode = LayoutModeFlow
+	pd.flexDirection = FlexDirectionRow
+	pd.flexWrap = FlexWrapNoWrap
+	pd.flexJustify = FlexJustifyStart
+	pd.flexAlignItems = FlexAlignStretch
+	pd.flexAlignContent = FlexAlignContentStretch
 	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
@@ -500,6 +556,9 @@ func (p *Panel) panelPostLayoutUpdate() {
 	maxRowsX := matrix.Float(0)
 	if p.IsGrid() && pd.gridColumns > 0 {
 		maxSize = p.layoutGridChildren(pd, offsetStart, ps)
+		maxRowsX = maxSize.X()
+	} else if p.IsFlex() {
+		maxSize = p.layoutFlexChildren(pd, offsetStart, ps)
 		maxRowsX = maxSize.X()
 	} else {
 		rows := make([]rowBuilder, 0)
@@ -846,7 +905,20 @@ func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	}
 }
 
-func (p *Panel) IsGrid() bool { return p.GridColumns() > 0 }
+func (p *Panel) SetFlowLayout() {
+	pd := p.PanelData()
+	if pd.layoutMode == LayoutModeFlow {
+		return
+	}
+	pd.layoutMode = LayoutModeFlow
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) IsGrid() bool {
+	return p.PanelData().layoutMode == LayoutModeGrid && p.GridColumns() > 0
+}
+
+func (p *Panel) IsFlex() bool { return p.PanelData().layoutMode == LayoutModeFlex }
 
 func (p *Panel) GridColumns() int { return p.PanelData().gridColumns }
 
@@ -893,9 +965,10 @@ func (p *Panel) SetGrid(columns int) {
 	if columns <= 0 {
 		columns = 3 // default for display: grid or auto
 	}
-	if p.IsGrid() && pd.gridColumns == columns {
+	if pd.layoutMode == LayoutModeGrid && pd.gridColumns == columns {
 		return
 	}
+	pd.layoutMode = LayoutModeGrid
 	pd.gridColumns = columns
 	if len(pd.gridTemplateColumns) != columns {
 		pd.gridTemplateColumns = nil
@@ -916,6 +989,7 @@ func (p *Panel) SetGridTemplateColumns(columns []float32) {
 		return
 	}
 	pd.gridTemplateColumns = append(pd.gridTemplateColumns[:0], columns...)
+	pd.layoutMode = LayoutModeGrid
 	pd.gridColumns = len(columns)
 	if pd.gridGap.X() == 0 && pd.gridGap.Y() == 0 {
 		pd.gridGap = matrix.NewVec2(8, 8)
@@ -955,6 +1029,466 @@ func (p *Panel) SetGridGap(x, y float32) {
 	pd.gridGap.SetX(x)
 	pd.gridGap.SetY(y)
 	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlex() {
+	pd := p.PanelData()
+	if pd.layoutMode == LayoutModeFlex {
+		return
+	}
+	pd.layoutMode = LayoutModeFlex
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexDirection(direction FlexDirection) {
+	pd := p.PanelData()
+	if pd.flexDirection == direction {
+		return
+	}
+	pd.flexDirection = direction
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexWrap(wrap FlexWrap) {
+	pd := p.PanelData()
+	if pd.flexWrap == wrap {
+		return
+	}
+	pd.flexWrap = wrap
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexJustify(justify FlexJustify) {
+	pd := p.PanelData()
+	if pd.flexJustify == justify {
+		return
+	}
+	pd.flexJustify = justify
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexAlignItems(align FlexAlign) {
+	if align == FlexAlignAuto {
+		align = FlexAlignStretch
+	}
+	pd := p.PanelData()
+	if pd.flexAlignItems == align {
+		return
+	}
+	pd.flexAlignItems = align
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexAlignContent(align FlexAlignContent) {
+	pd := p.PanelData()
+	if pd.flexAlignContent == align {
+		return
+	}
+	pd.flexAlignContent = align
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+type flexLayoutItem struct {
+	ui        *UI
+	order     int
+	baseMain  float32
+	finalMain float32
+	cross     float32
+	margin    matrix.Vec4
+}
+
+type flexLayoutLine struct {
+	items []*flexLayoutItem
+	main  float32
+	cross float32
+}
+
+func flexItemSize(kui *UI) matrix.Vec2 {
+	if kui.elmType == ElementTypeLabel {
+		size := kui.ToLabel().Measure()
+		size[matrix.Vx] += 0.1
+		return size
+	}
+	return kui.Layout().PixelSize()
+}
+
+func flexMainSize(size matrix.Vec2, row bool) float32 {
+	if row {
+		return size.X()
+	}
+	return size.Y()
+}
+
+func flexCrossSize(size matrix.Vec2, row bool) float32 {
+	if row {
+		return size.Y()
+	}
+	return size.X()
+}
+
+func flexMainMargin(margin matrix.Vec4, row bool) float32 {
+	if row {
+		return margin.Horizontal()
+	}
+	return margin.Vertical()
+}
+
+func flexCrossMargin(margin matrix.Vec4, row bool) float32 {
+	if row {
+		return margin.Vertical()
+	}
+	return margin.Horizontal()
+}
+
+func flexSetMainSize(kui *UI, row bool, size float32) {
+	if size < 1 {
+		size = 1
+	}
+	if row {
+		kui.Layout().ScaleWidth(size)
+	} else {
+		kui.Layout().ScaleHeight(size)
+	}
+}
+
+func flexSetCrossSize(kui *UI, row bool, size float32) {
+	if size < 1 {
+		size = 1
+	}
+	if row {
+		kui.Layout().ScaleHeight(size)
+	} else {
+		kui.Layout().ScaleWidth(size)
+	}
+}
+
+func clampFlexItemSize(kui *UI, row bool, size float32) float32 {
+	if kui.IsType(ElementTypeLabel) {
+		return size
+	}
+	p := kui.ToPanel()
+	pd := p.PanelData()
+	if row {
+		if pd.HasMinWidth() && size < pd.minSize.X() {
+			size = pd.minSize.X()
+		}
+		if pd.HasMaxWidth() && size > pd.maxSize.X() {
+			size = pd.maxSize.X()
+		}
+	} else {
+		if pd.HasMinHeight() && size < pd.minSize.Y() {
+			size = pd.minSize.Y()
+		}
+		if pd.HasMaxHeight() && size > pd.maxSize.Y() {
+			size = pd.maxSize.Y()
+		}
+	}
+	return size
+}
+
+func (p *Panel) collectFlexItems(pd *panelData, row bool, containerMain float32) []*flexLayoutItem {
+	items := make([]*flexLayoutItem, 0, len(p.entity.Children))
+	for _, kid := range p.entity.Children {
+		if !kid.IsActive() || kid.IsDestroyed() {
+			continue
+		}
+		kui := FirstOnEntity(kid)
+		if kui == nil {
+			slog.Error("No UI component on entity")
+			continue
+		}
+		kLayout := kui.Layout()
+		switch kLayout.Positioning() {
+		case PositioningAbsolute, PositioningFixed, PositioningSticky:
+			continue
+		}
+		size := flexItemSize(kui)
+		baseMain := flexMainSize(size, row)
+		if !kLayout.FlexBasisAuto() {
+			baseMain = kLayout.FlexBasis()
+			if kLayout.FlexBasisPercent() {
+				baseMain *= containerMain
+			}
+		}
+		baseMain = clampFlexItemSize(kui, row, baseMain)
+		items = append(items, &flexLayoutItem{
+			ui:        kui,
+			order:     kLayout.FlexOrder(),
+			baseMain:  baseMain,
+			finalMain: baseMain,
+			cross:     flexCrossSize(size, row),
+			margin:    kLayout.Margin(),
+		})
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].order < items[j].order
+	})
+	if pd.flexDirection == FlexDirectionRowReverse || pd.flexDirection == FlexDirectionColumnReverse {
+		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+			items[i], items[j] = items[j], items[i]
+		}
+	}
+	return items
+}
+
+func appendFlexLine(lines *[]flexLayoutLine, line flexLayoutLine) {
+	if len(line.items) > 0 {
+		*lines = append(*lines, line)
+	}
+}
+
+func buildFlexLines(items []*flexLayoutItem, row, wrap bool, containerMain, gapMain float32) []flexLayoutLine {
+	lines := make([]flexLayoutLine, 0, 1)
+	line := flexLayoutLine{}
+	for i := range items {
+		item := items[i]
+		outerMain := item.baseMain + flexMainMargin(item.margin, row)
+		if !wrap {
+			outerMain = item.baseMain
+		}
+		if len(line.items) > 0 {
+			outerMain += gapMain
+		}
+		if wrap && len(line.items) > 0 && line.main+outerMain > containerMain {
+			appendFlexLine(&lines, line)
+			line = flexLayoutLine{}
+			outerMain = item.baseMain + flexMainMargin(item.margin, row)
+		}
+		line.items = append(line.items, item)
+		line.main += outerMain
+		line.cross = matrix.Max(line.cross, item.cross)
+	}
+	appendFlexLine(&lines, line)
+	return lines
+}
+
+func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain float32) {
+	totalOuter := float32(0)
+	totalGrow := float32(0)
+	totalShrink := float32(0)
+	for i := range line.items {
+		item := line.items[i]
+		totalOuter += item.baseMain + flexMainMargin(item.margin, row)
+		totalGrow += item.ui.Layout().FlexGrow()
+		totalShrink += item.ui.Layout().FlexShrink() * item.baseMain
+	}
+	if len(line.items) > 1 {
+		totalOuter += float32(len(line.items)-1) * gapMain
+	}
+	free := containerMain - totalOuter
+	for i := range line.items {
+		item := line.items[i]
+		item.finalMain = item.baseMain
+		if free > 0 && totalGrow > 0 {
+			item.finalMain += free * (item.ui.Layout().FlexGrow() / totalGrow)
+		} else if free < 0 && totalShrink > 0 {
+			item.finalMain += free * ((item.ui.Layout().FlexShrink() * item.baseMain) / totalShrink)
+		}
+		item.finalMain = clampFlexItemSize(item.ui, row, item.finalMain)
+		flexSetMainSize(item.ui, row, item.finalMain)
+	}
+	line.main = 0
+	line.cross = 0
+	for i := range line.items {
+		item := line.items[i]
+		size := flexItemSize(item.ui)
+		item.finalMain = flexMainSize(size, row)
+		item.cross = flexCrossSize(size, row)
+		line.main += item.finalMain + flexMainMargin(item.margin, row)
+		line.cross = matrix.Max(line.cross, item.cross+flexCrossMargin(item.margin, row))
+	}
+	if len(line.items) > 1 {
+		line.main += float32(len(line.items)-1) * gapMain
+	}
+}
+
+func flexDistributedStart(free float32, count int, justify FlexJustify) (float32, float32) {
+	if free < 0 {
+		free = 0
+	}
+	switch justify {
+	case FlexJustifyEnd:
+		return free, 0
+	case FlexJustifyCenter:
+		return free * 0.5, 0
+	case FlexJustifySpaceBetween:
+		if count > 1 {
+			return 0, free / float32(count-1)
+		}
+	case FlexJustifySpaceAround:
+		if count > 0 {
+			gap := free / float32(count)
+			return gap * 0.5, gap
+		}
+	case FlexJustifySpaceEvenly:
+		if count > 0 {
+			gap := free / float32(count+1)
+			return gap, gap
+		}
+	}
+	return 0, 0
+}
+
+func flexAlignContentStart(free float32, count int, align FlexAlignContent) (float32, float32) {
+	if free < 0 {
+		free = 0
+	}
+	switch align {
+	case FlexAlignContentEnd:
+		return free, 0
+	case FlexAlignContentCenter:
+		return free * 0.5, 0
+	case FlexAlignContentSpaceBetween:
+		if count > 1 {
+			return 0, free / float32(count-1)
+		}
+	case FlexAlignContentSpaceAround:
+		if count > 0 {
+			gap := free / float32(count)
+			return gap * 0.5, gap
+		}
+	case FlexAlignContentSpaceEvenly:
+		if count > 0 {
+			gap := free / float32(count+1)
+			return gap, gap
+		}
+	}
+	return 0, 0
+}
+
+func flexItemCrossOffset(lineCross, itemCross float32, margin matrix.Vec4, row bool, align FlexAlign) float32 {
+	outerCross := itemCross + flexCrossMargin(margin, row)
+	switch align {
+	case FlexAlignEnd:
+		if row {
+			return lineCross - outerCross + margin.Top()
+		}
+		return lineCross - outerCross + margin.Left()
+	case FlexAlignCenter:
+		if row {
+			return (lineCross-outerCross)*0.5 + margin.Top()
+		}
+		return (lineCross-outerCross)*0.5 + margin.Left()
+	default:
+		if row {
+			return margin.Top()
+		}
+		return margin.Left()
+	}
+}
+
+func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps matrix.Vec2) matrix.Vec2 {
+	defer tracing.NewRegion("Panel.layoutFlexChildren").End()
+	row := pd.flexDirection == FlexDirectionRow || pd.flexDirection == FlexDirectionRowReverse
+	innerLeft := p.layout.padding.Left() + p.layout.border.Left()
+	innerTop := p.layout.padding.Top() + p.layout.border.Top()
+	startX := offsetStart.X() + innerLeft
+	startY := offsetStart.Y() + innerTop
+	innerWidth := ps.X() - p.layout.padding.Horizontal() - p.layout.border.Horizontal()
+	innerHeight := ps.Y() - p.layout.padding.Vertical() - p.layout.border.Vertical()
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+	containerMain := innerWidth
+	containerCross := innerHeight
+	gapMain := pd.gridGap.X()
+	gapCross := pd.gridGap.Y()
+	if !row {
+		containerMain = innerHeight
+		containerCross = innerWidth
+		gapMain = pd.gridGap.Y()
+		gapCross = pd.gridGap.X()
+	}
+	if gapMain < 0 {
+		gapMain = 0
+	}
+	if gapCross < 0 {
+		gapCross = 0
+	}
+	items := p.collectFlexItems(pd, row, containerMain)
+	if len(items) == 0 {
+		return matrix.NewVec2(innerLeft+p.layout.padding.Right()+p.layout.border.Right(),
+			innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
+	}
+	wrap := pd.flexWrap != FlexWrapNoWrap
+	lines := buildFlexLines(items, row, wrap, containerMain, gapMain)
+	for i := range lines {
+		distributeFlexLine(&lines[i], row, containerMain, gapMain)
+	}
+	if pd.flexWrap == FlexWrapWrapReverse {
+		for i, j := 0, len(lines)-1; i < j; i, j = i+1, j-1 {
+			lines[i], lines[j] = lines[j], lines[i]
+		}
+	}
+	totalCross := float32(0)
+	for i := range lines {
+		totalCross += lines[i].cross
+	}
+	if len(lines) > 1 {
+		totalCross += float32(len(lines)-1) * gapCross
+	}
+	fittingCrossContent := (row && p.FittingContentHeight()) || (!row && p.FittingContentWidth())
+	if fittingCrossContent {
+		containerCross = totalCross
+	}
+	extraCross := containerCross - totalCross
+	if extraCross < 0 {
+		extraCross = 0
+	}
+	if pd.flexAlignContent == FlexAlignContentStretch && len(lines) > 0 {
+		add := extraCross / float32(len(lines))
+		for i := range lines {
+			lines[i].cross += add
+		}
+		extraCross = 0
+	}
+	lineStart, lineExtraGap := flexAlignContentStart(extraCross, len(lines), pd.flexAlignContent)
+	maxMainUsed := float32(0)
+	maxCrossUsed := float32(0)
+	crossPos := lineStart
+	for lineIdx := range lines {
+		line := &lines[lineIdx]
+		mainFree := containerMain - line.main
+		mainStart, extraMainGap := flexDistributedStart(mainFree, len(line.items), pd.flexJustify)
+		mainPos := mainStart
+		for itemIdx := range line.items {
+			item := line.items[itemIdx]
+			align := item.ui.Layout().AlignSelf()
+			if align == FlexAlignAuto {
+				align = pd.flexAlignItems
+			}
+			itemCross := item.cross
+			if align == FlexAlignStretch {
+				itemCross = line.cross - flexCrossMargin(item.margin, row)
+				flexSetCrossSize(item.ui, row, itemCross)
+				item.cross = flexCrossSize(flexItemSize(item.ui), row)
+			}
+			crossOffset := flexItemCrossOffset(line.cross, item.cross, item.margin, row, align)
+			if row {
+				x := startX + mainPos + item.margin.Left()
+				y := startY + crossPos + crossOffset
+				item.ui.Layout().SetRowLayoutOffset(matrix.NewVec2(x, y))
+				mainPos += item.finalMain + item.margin.Horizontal() + gapMain + extraMainGap
+			} else {
+				x := startX + crossPos + crossOffset
+				y := startY + mainPos + item.margin.Top()
+				item.ui.Layout().SetRowLayoutOffset(matrix.NewVec2(x, y))
+				mainPos += item.finalMain + item.margin.Vertical() + gapMain + extraMainGap
+			}
+		}
+		maxMainUsed = matrix.Max(maxMainUsed, line.main)
+		maxCrossUsed = matrix.Max(maxCrossUsed, crossPos+line.cross)
+		crossPos += line.cross + gapCross + lineExtraGap
+	}
+	if row {
+		return matrix.NewVec2(maxMainUsed+innerLeft+p.layout.padding.Right()+p.layout.border.Right(),
+			maxCrossUsed+innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
+	}
+	return matrix.NewVec2(maxCrossUsed+innerLeft+p.layout.padding.Right()+p.layout.border.Right(),
+		maxMainUsed+innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
 }
 
 func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int) []float32 {

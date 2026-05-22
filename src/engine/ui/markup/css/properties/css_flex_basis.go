@@ -37,8 +37,6 @@
 package properties
 
 import (
-	"errors"
-
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
@@ -46,7 +44,9 @@ import (
 )
 
 func (p FlexBasis) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("FlexBasis not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	setFlexBasis(panel.Base().Layout(), values[0].Str, host)
+	return nil
 }

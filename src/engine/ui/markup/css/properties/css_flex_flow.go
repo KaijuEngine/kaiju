@@ -37,7 +37,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -46,7 +46,19 @@ import (
 )
 
 func (p FlexFlow) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("FlexFlow not implemented")}
-
-	return problems[0]
+	if len(values) == 0 {
+		return nil
+	}
+	seen := false
+	for i := range values {
+		if setFlexDirection(panel, values[i].Str) || setFlexWrap(panel, values[i].Str) {
+			seen = true
+		} else {
+			return fmt.Errorf("invalid flex-flow value %q", values[i].Str)
+		}
+	}
+	if !seen {
+		panel.SetFlex()
+	}
+	return nil
 }
