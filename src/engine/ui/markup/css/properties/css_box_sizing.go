@@ -67,6 +67,5 @@ func (p BoxSizing) Process(panel *ui.Panel, elm *document.Element, values []rule
 	default:
 		return fmt.Errorf("unsupported box-sizing value: %s", values[0].Str)
 	}
-
 	return nil
 }
