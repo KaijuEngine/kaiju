@@ -504,11 +504,15 @@ func (label *Label) SetFontWeight(weight string) {
 	ld := label.LabelData()
 	face := ld.fontFace
 	switch weight {
-	case "normal":
+	case "normal", "400":
 		face = face.RemoveBold()
-	case "bold":
+	case "100", "200", "300":
+		face = face.AsLight()
+	case "500", "600":
+		face = face.AsSemiBold()
+	case "bold", "700":
 		face = face.AsBold()
-	case "bolder":
+	case "bolder", "800", "900":
 		face = face.AsExtraBold()
 	case "lighter":
 		face = face.AsLight()

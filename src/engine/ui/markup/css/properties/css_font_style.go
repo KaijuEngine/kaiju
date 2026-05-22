@@ -50,7 +50,7 @@ func setChildrenFontStyle(elm *document.Element, style string) {
 		lbl := elm.UI.ToLabel()
 		lbl.SetFontStyle(style)
 	} else if elm.UI.IsType(ui.ElementTypeInput) {
-		elm.UI.ToInput().SetFontWeight(style)
+		elm.UI.ToInput().SetFontStyle(style)
 	} else {
 		for _, child := range elm.Children {
 			setChildrenFontStyle(child, style)
