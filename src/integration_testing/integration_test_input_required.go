@@ -23,6 +23,11 @@ func IntegrationTestInputRequired(host *engine.Host) {
 	uiMan.Init(host)
 	doc := markup.DocumentFromHTMLString(&uiMan, inputRequiredHTML, "", nil, nil, nil)
 
+	host.RunAfterFrames(4, func() {
+		focusInputRequiredElement(doc, "focusInvalid")
+		focusInputRequiredElement(doc, "invalidFocus")
+		focusInputRequiredElement(doc, "focusValid")
+	})
 	host.RunAfterFrames(8, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
@@ -54,6 +59,10 @@ func assertInputRequired(host *engine.Host, doc *document.Document, img *image.R
 		{id: "requiredEmpty", want: inputRequiredColorRed, required: true, valid: false},
 		{id: "requiredFilled", want: inputRequiredColorGreen, required: true, valid: true},
 		{id: "optionalEmpty", want: inputRequiredColorGreen, required: false, valid: true},
+		{id: "requiredInvalid", want: inputRequiredColorYellow, required: true, valid: false},
+		{id: "focusInvalid", want: inputRequiredColorBlue, required: true, valid: false},
+		{id: "invalidFocus", want: inputRequiredColorPurple, required: true, valid: false},
+		{id: "focusValid", want: inputRequiredColorGreen, required: true, valid: true},
 	}
 	for _, test := range tests {
 		elm, ok := doc.GetElementById(test.id)
@@ -74,12 +83,22 @@ func assertInputRequired(host *engine.Host, doc *document.Document, img *image.R
 	return nil
 }
 
+func focusInputRequiredElement(doc *document.Document, id string) {
+	elm, ok := doc.GetElementById(id)
+	if ok {
+		elm.UI.ExecuteEvent(ui.EventTypeFocus)
+	}
+}
+
 type inputRequiredColor string
 
 const (
 	inputRequiredColorUnknown inputRequiredColor = "unknown"
 	inputRequiredColorRed     inputRequiredColor = "red"
 	inputRequiredColorGreen   inputRequiredColor = "green"
+	inputRequiredColorYellow  inputRequiredColor = "yellow"
+	inputRequiredColorBlue    inputRequiredColor = "blue"
+	inputRequiredColorPurple  inputRequiredColor = "purple"
 )
 
 func sampleInputRequiredColor(host *engine.Host, img *image.RGBA, elm *document.Element) inputRequiredColor {
@@ -92,6 +111,12 @@ func sampleInputRequiredColor(host *engine.Host, img *image.RGBA, elm *document.
 		return inputRequiredColorRed
 	case c.R < 100 && c.G > 130 && c.B < 110:
 		return inputRequiredColorGreen
+	case c.R > 170 && c.G > 130 && c.B < 100:
+		return inputRequiredColorYellow
+	case c.R < 100 && c.G > 70 && c.B > 160:
+		return inputRequiredColorBlue
+	case c.R > 100 && c.G < 120 && c.B > 150:
+		return inputRequiredColorPurple
 	default:
 		return inputRequiredColorUnknown
 	}
@@ -116,6 +141,15 @@ const inputRequiredHTML = `
 			input:invalid {
 				background-color: #d42a35;
 			}
+			#requiredInvalid:required:invalid {
+				background-color: #d7b72b;
+			}
+			#focusInvalid:focus:invalid {
+				background-color: #2d6cdf;
+			}
+			#invalidFocus:invalid:focus {
+				background-color: #8d40d8;
+			}
 			#requiredEmpty {
 				left: 40px;
 				top: 40px;
@@ -128,12 +162,32 @@ const inputRequiredHTML = `
 				left: 40px;
 				top: 216px;
 			}
+			#requiredInvalid {
+				left: 320px;
+				top: 40px;
+			}
+			#focusInvalid {
+				left: 320px;
+				top: 128px;
+			}
+			#invalidFocus {
+				left: 320px;
+				top: 216px;
+			}
+			#focusValid {
+				left: 600px;
+				top: 128px;
+			}
 		</style>
 	</head>
 	<body>
 		<input id="requiredEmpty" required>
 		<input id="requiredFilled" required value="ready">
 		<input id="optionalEmpty">
+		<input id="requiredInvalid" required>
+		<input id="focusInvalid" required>
+		<input id="invalidFocus" required>
+		<input id="focusValid" required value="focused">
 	</body>
 </html>
 `

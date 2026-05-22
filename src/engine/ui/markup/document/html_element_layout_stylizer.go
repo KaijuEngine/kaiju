@@ -88,6 +88,8 @@ type ElementLayoutStylizer struct {
 	focusEvt        struct {
 		clickId events.Id
 		missId  events.Id
+		focusId events.Id
+		blurId  events.Id
 	}
 	activeEvt struct {
 		enterId events.Id
@@ -118,6 +120,8 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	e.UI.RemoveEvent(ui.EventTypeExit, s.hoverExitEvtId)
 	e.UI.RemoveEvent(ui.EventTypeClick, s.focusEvt.clickId)
 	e.UI.RemoveEvent(ui.EventTypeMiss, s.focusEvt.missId)
+	e.UI.RemoveEvent(ui.EventTypeFocus, s.focusEvt.focusId)
+	e.UI.RemoveEvent(ui.EventTypeBlur, s.focusEvt.blurId)
 	e.UI.RemoveEvent(ui.EventTypeEnter, s.activeEvt.enterId)
 	e.UI.RemoveEvent(ui.EventTypeExit, s.activeEvt.exitId)
 	e.UI.RemoveEvent(ui.EventTypeDown, s.activeEvt.downId)
@@ -136,6 +140,8 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	s.hoverExitEvtId = 0
 	s.focusEvt.clickId = 0
 	s.focusEvt.missId = 0
+	s.focusEvt.focusId = 0
+	s.focusEvt.blurId = 0
 	s.activeEvt.enterId = 0
 	s.activeEvt.exitId = 0
 	s.activeEvt.downId = 0
@@ -174,6 +180,12 @@ func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
 				s.setState(rules.RuleInvokeFocus, true)
 			})
 			s.focusEvt.missId = elm.UI.AddEvent(ui.EventTypeMiss, func() {
+				s.setState(rules.RuleInvokeFocus, false)
+			})
+			s.focusEvt.focusId = elm.UI.AddEvent(ui.EventTypeFocus, func() {
+				s.setState(rules.RuleInvokeFocus, true)
+			})
+			s.focusEvt.blurId = elm.UI.AddEvent(ui.EventTypeBlur, func() {
 				s.setState(rules.RuleInvokeFocus, false)
 			})
 		}
