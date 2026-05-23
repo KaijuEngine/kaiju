@@ -105,7 +105,7 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 
 func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
 	p.transform.Initialize(host.WorkGroup())
-	m := rendering.NewMeshUnitQuad(host.MeshCache())
+	m := newTranslationGizmoPlaneMesh(host.MeshCache())
 	mat, _ := host.MaterialCache().Material("gizmo_overlay.material")
 	p.shaderData = shader_data_registry.Create("unlit")
 	sd := p.shaderData.(*shader_data_registry.ShaderDataUnlit)
@@ -135,19 +135,43 @@ func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
 	host.Drawings.AddDrawing(draw)
 }
 
+func newTranslationGizmoPlaneMesh(cache *rendering.MeshCache) *rendering.Mesh {
+	const key = "_editor_translation_gizmo_plane"
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	verts := make([]rendering.Vertex, 4)
+	verts[0].Position = matrix.Vec3{-1.0, -1.0, 0.0}
+	verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[0].UV0 = matrix.Vec2{0.0, 1.0}
+	verts[0].Color = matrix.ColorWhite()
+	verts[1].Position = matrix.Vec3{-1.0, 1.0, 0.0}
+	verts[1].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[1].UV0 = matrix.Vec2{0.0, 0.0}
+	verts[1].Color = matrix.ColorWhite()
+	verts[2].Position = matrix.Vec3{1.0, 1.0, 0.0}
+	verts[2].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[2].UV0 = matrix.Vec2{1.0, 0.0}
+	verts[2].Color = matrix.ColorWhite()
+	verts[3].Position = matrix.Vec3{1.0, -1.0, 0.0}
+	verts[3].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[3].UV0 = matrix.Vec2{1.0, 1.0}
+	verts[3].Color = matrix.ColorWhite()
+	indexes := []uint32{
+		0, 2, 1, 0, 3, 2,
+		0, 1, 2, 0, 2, 3,
+	}
+	return cache.Mesh(key, verts, indexes)
+}
+
 func (t *TranslationTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
-	axis := len(t.arrows)
-	is2D := t.cameraMode == editor_controls.EditorCameraMode2d
-	if is2D {
-		axis = 2
-	}
-	for i := range axis {
+	for i := range t.visibleArrowCount() {
 		t.arrows[i].shaderData.Activate()
-		if is2D && i == 0 {
-			t.planes[i].shaderData.Activate()
-		}
+	}
+	for i := range t.visiblePlaneCount() {
+		t.planes[i].shaderData.Activate()
 	}
 	t.updateHitBoxes()
 }
@@ -225,6 +249,20 @@ func (t *TranslationTool) updateHitBoxes() {
 	}
 }
 
+func (t *TranslationTool) visibleArrowCount() int {
+	if t.cameraMode == editor_controls.EditorCameraMode2d {
+		return 2
+	}
+	return len(t.arrows)
+}
+
+func (t *TranslationTool) visiblePlaneCount() int {
+	if t.cameraMode == editor_controls.EditorCameraMode2d {
+		return 1
+	}
+	return len(t.planes)
+}
+
 func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
@@ -233,7 +271,7 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	dist := matrix.FloatMax
 	target := -1
 	targetType := TRANSLATION_TYPE_NONE
-	for i := range t.arrows {
+	for i := range t.visibleArrowCount() {
 		if hit, ok := t.arrows[i].hitBox.RayHit(ray); ok {
 			d := ray.Origin.Distance(hit)
 			if d < dist {
@@ -244,7 +282,7 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 			}
 		}
 	}
-	for i := range t.planes {
+	for i := range t.visiblePlaneCount() {
 		if hit, ok := t.planes[i].hitBox.RayHit(ray); ok {
 			d := ray.Origin.Distance(hit)
 			if d < dist {
@@ -322,19 +360,7 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, sna
 		t.OnDragStart.Execute(t.root.Position())
 	} else if t.dragging {
 		rp := t.root.Position()
-		nml := matrix.Vec3Backward()
-		if t.cameraMode != editor_controls.EditorCameraMode2d {
-			cp := cam.Position()
-			switch t.currentAxis {
-			case matrix.Vx:
-				cp.SetX(rp.X())
-			case matrix.Vy:
-				cp.SetY(rp.Y())
-			case matrix.Vz:
-				cp.SetZ(rp.Z())
-			}
-			nml = cp.Subtract(rp)
-		}
+		nml := t.dragPlaneNormal(cam, rp)
 		if hit, ok := cam.TryPlaneHit(t.cursorPosition(&host.Window.Cursor), rp, nml); ok {
 			p := hit.Add(t.rootHitOffset)
 			if snap {
@@ -375,4 +401,31 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, sna
 			t.Show(t.root.Position())
 		}
 	}
+}
+
+func (t *TranslationTool) dragPlaneNormal(cam cameras.Camera, rootPos matrix.Vec3) matrix.Vec3 {
+	if t.currentType == TRANSLATION_TYPE_PLANE {
+		switch t.currentAxis {
+		case matrix.Vx:
+			return matrix.Vec3Forward()
+		case matrix.Vy:
+			return matrix.Vec3Right()
+		case matrix.Vz:
+			return matrix.Vec3Up()
+		}
+	}
+	nml := matrix.Vec3Backward()
+	if t.cameraMode != editor_controls.EditorCameraMode2d {
+		cp := cam.Position()
+		switch t.currentAxis {
+		case matrix.Vx:
+			cp.SetX(rootPos.X())
+		case matrix.Vy:
+			cp.SetY(rootPos.Y())
+		case matrix.Vz:
+			cp.SetZ(rootPos.Z())
+		}
+		nml = cp.Subtract(rootPos)
+	}
+	return nml
 }
