@@ -214,29 +214,30 @@ func (m *StageManager) SelectionPivotCenter() matrix.Vec3 {
 
 func (m *StageManager) SelectionBounds() graviton.AABB {
 	defer tracing.NewRegion("StageManager.SelectionBounds").End()
-	low := matrix.Vec3Inf(1)
-	high := matrix.Vec3Inf(-1)
-	center := matrix.Vec3Zero()
+	var bounds graviton.AABB
+	hasBounds := false
 	for _, e := range m.selected {
-		p := e.Transform.Position()
+		if e == nil || e.IsDeleted() {
+			continue
+		}
 		var b graviton.AABB
 		if e.StageData.Bvh != nil {
+			e.StageData.Bvh.Refit()
 			b = e.StageData.Bvh.Bounds()
-			b.Extent.MultiplyAssign(e.Transform.WorldScale())
-			b.Center.AddAssign(p)
 		} else {
 			b = graviton.AABBFromTransform(&e.Transform)
 		}
-		center.AddAssign(b.Center)
-		ex := matrix.Vec3Max(matrix.Vec3Zero(), b.Extent)
-		low = matrix.Vec3Min(low, p.Subtract(ex))
-		high = matrix.Vec3Max(high, p.Add(ex))
+		if !hasBounds {
+			bounds = b
+			hasBounds = true
+		} else {
+			bounds = graviton.AABBUnion(bounds, b)
+		}
 	}
-	center.ShrinkAssign(float32(len(m.selected)))
-	return graviton.AABB{
-		Center: center,
-		Extent: high.Subtract(low).Scale(0.5),
+	if !hasBounds {
+		return graviton.NullAABB
 	}
+	return bounds
 }
 
 func (m *StageManager) setShaderDataFlag(root *StageEntity) {
