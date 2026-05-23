@@ -32,6 +32,7 @@ type textareaData struct {
 	cursor              *Panel
 	selectionContainer  *Panel
 	selectionPanels     []*Panel
+	selectionColor      matrix.Color
 	text                string
 	onUpDown            events.Event
 	cursorOffset        int
@@ -125,6 +126,7 @@ func (textarea *TextArea) Init(placeholderText string) {
 	base.AddEvent(EventTypeEnter, textarea.onEnter)
 	base.AddEvent(EventTypeExit, textarea.onExit)
 	base.AddEvent(EventTypeDown, textarea.onDown)
+	base.AddEvent(EventTypeDoubleClick, textarea.onDoubleClick)
 	base.AddEvent(EventTypeMiss, textarea.onMiss)
 	base.AddEvent(EventTypeRebuild, textarea.onRebuild)
 	id := host.Window.Keyboard.AddKeyCallback(textarea.keyPressed)
@@ -163,6 +165,7 @@ func (textarea *TextArea) ensureSelectionPanelIndex(index int) *Panel {
 	panel := textarea.man.Value().Add().ToPanel()
 	panel.Init(tex, ElementTypePanel)
 	panel.DontFitContent()
+	panel.SetColor(data.selectionColor)
 	panel.layout.SetPositioning(PositioningAbsolute)
 	panel.layout.SetZ(1)
 	panel.AllowClickThrough()
@@ -208,6 +211,14 @@ func (textarea *TextArea) update(deltaTime float64) {
 			textarea.showCursor()
 		}
 		data.cursorBlink = cursorBlinkRate
+	}
+	if textarea.flags.drag() {
+		offset := textarea.pointerPosWithin()
+		data.cursorOffset = editableTextClampOffset(data.text, offset)
+		data.hasPreferredCursorX = false
+		textarea.setSelect(data.selectAnchor, data.cursorOffset)
+		textarea.showCursor()
+		textarea.updateCursorPosition()
 	}
 }
 
@@ -437,6 +448,58 @@ func textareaLineEndOffset(text string, rects []matrix.Vec4, offset int, fallbac
 	return ranges[editableTextClamp(line, 0, len(ranges)-1)].end
 }
 
+func textareaSelectedText(text string, start, end int) string {
+	return editableTextSlice(text, start, end)
+}
+
+func textareaSelectionLineEndX(line textareaLineRange, rects []matrix.Vec4, contentWidth float32) float32 {
+	if line.end > line.start && line.end-1 < len(rects) {
+		rect := rects[line.end-1]
+		return rect.X() + rect.Z()
+	}
+	return contentWidth
+}
+
+func textareaSelectionPanelRects(text string, rects []matrix.Vec4, start, end int, contentWidth, fallbackHeight float32) []matrix.Vec4 {
+	start, end = editableTextNormalizeSelection(text, start, end)
+	if start == end {
+		return nil
+	}
+	if contentWidth <= 0 {
+		contentWidth = 0.001
+	}
+	ranges := textareaLineRanges(text, rects, fallbackHeight)
+	runes := []rune(text)
+	out := make([]matrix.Vec4, 0, len(ranges))
+	for _, line := range ranges {
+		lineEndsWithNewline := line.end < len(runes) && runes[line.end] == '\n'
+		if end < line.start || start > line.end ||
+			(start == line.end && !lineEndsWithNewline) ||
+			(end == line.start && start != end) {
+			continue
+		}
+		if line.start == line.end && (start > line.start || end < line.end) {
+			continue
+		}
+		startX := float32(0)
+		if start > line.start {
+			if start >= line.end && lineEndsWithNewline {
+				startX = textareaSelectionLineEndX(line, rects, contentWidth)
+			} else {
+				startX = textareaCaretFromRuneRects(text, rects, start, line.height).x
+			}
+		}
+		endX := contentWidth
+		if end < line.end {
+			endX = textareaCaretFromRuneRects(text, rects, end, line.height).x
+		} else if line.end > line.start {
+			endX = textareaSelectionLineEndX(line, rects, contentWidth)
+		}
+		out = append(out, matrix.Vec4{startX, line.y, max(float32(0.001), endX-startX), line.height})
+	}
+	return out
+}
+
 func textareaInsertTextAt(text string, cursorOffset, selectStart, selectEnd int, insert string) (string, int, bool) {
 	if insert == "" {
 		return text, editableTextClampOffset(text, cursorOffset), false
@@ -501,7 +564,7 @@ func textareaRuneOffsetFromPoint(text string, rects []matrix.Vec4, point matrix.
 
 func (textarea *TextArea) pointerOffsetAtPosition(point matrix.Vec2) int {
 	point.SetX(point.X() - textareaPadding)
-	point.SetY(point.Y() - textareaPadding)
+	point.SetY(point.Y() - textareaPadding + (*Panel)(textarea).ScrollY())
 	return textareaRuneOffsetFromPoint(textarea.Data().text, textarea.runeRects(), point)
 }
 
@@ -540,34 +603,16 @@ func (textarea *TextArea) updateSelectionPanels() {
 	}
 	rects := textarea.runeRects()
 	ld := data.label.LabelData()
-	ranges := textareaLineRanges(data.text, rects, textareaLineHeight(ld))
-	panelIndex := 0
 	start, end := editableTextNormalizeSelection(data.text, data.selectStart, data.selectEnd)
-	for _, line := range ranges {
-		if end < line.start || start > line.end || (end == line.start && start != end) {
-			continue
-		}
-		if line.start == line.end && (start > line.start || end < line.end) {
-			continue
-		}
-		startX := float32(0)
-		if start > line.start {
-			startX = textareaCaretFromRuneRects(data.text, rects, start, line.height).x
-		}
-		endX := textarea.contentWidth()
-		if end <= line.end {
-			endX = textareaCaretFromRuneRects(data.text, rects, end, line.height).x
-		} else if line.end > line.start {
-			endX = textareaCaretFromRuneRects(data.text, rects, line.end, line.height).x
-		}
-		width := max(float32(0.001), endX-startX)
+	panelRects := textareaSelectionPanelRects(data.text, rects, start, end,
+		textarea.contentWidth(), textareaLineHeight(ld))
+	for panelIndex, rect := range panelRects {
 		panel := textarea.ensureSelectionPanelIndex(panelIndex)
-		panel.layout.SetOffset(startX, line.y)
-		panel.layout.Scale(width, line.height)
+		panel.layout.SetOffset(rect.X(), rect.Y())
+		panel.layout.Scale(rect.Z(), rect.W())
 		panel.entity.SetActive(true)
-		panelIndex++
 	}
-	for i := panelIndex; i < len(data.selectionPanels); i++ {
+	for i := len(panelRects); i < len(data.selectionPanels); i++ {
 		data.selectionPanels[i].entity.SetActive(false)
 	}
 	textarea.showSelection()
@@ -693,8 +738,15 @@ func (textarea *TextArea) onExit() {
 func (textarea *TextArea) onDown() {
 	textarea.Focus()
 	textarea.resetSelect()
-	textarea.SetCursorOffset(textarea.pointerPosWithin())
+	offset := textarea.pointerPosWithin()
+	textarea.SetCursorOffset(offset)
+	textarea.Data().selectAnchor = offset
 	textarea.showCursor()
+}
+
+func (textarea *TextArea) onDoubleClick() {
+	textarea.Focus()
+	textarea.SelectAll()
 }
 
 func (textarea *TextArea) onMiss() {
@@ -703,6 +755,7 @@ func (textarea *TextArea) onMiss() {
 
 func (textarea *TextArea) onRebuild() {
 	textarea.forceLabelAndPlaceholderRerender()
+	textarea.updateSelectionPanels()
 	textarea.updateCursorPosition()
 }
 
@@ -822,7 +875,7 @@ func (textarea *TextArea) SelectAll() {
 func (textarea *TextArea) copyToClipboard() {
 	data := textarea.Data()
 	if data.selectStart != data.selectEnd {
-		str := editableTextSlice(data.text, data.selectStart, data.selectEnd)
+		str := textareaSelectedText(data.text, data.selectStart, data.selectEnd)
 		textarea.Base().Host().Window.CopyToClipboard(str)
 	}
 }
@@ -954,24 +1007,28 @@ func (textarea *TextArea) SetFontFace(face rendering.FontFace) {
 	data := textarea.Data()
 	data.label.SetFontFace(face)
 	data.placeholder.SetFontFace(face)
+	textarea.updateSelectionPanels()
 }
 
 func (textarea *TextArea) SetFontWeight(weight string) {
 	data := textarea.Data()
 	data.label.SetFontWeight(weight)
 	data.placeholder.SetFontWeight(weight)
+	textarea.updateSelectionPanels()
 }
 
 func (textarea *TextArea) SetFontStyle(style string) {
 	data := textarea.Data()
 	data.label.SetFontStyle(style)
 	data.placeholder.SetFontStyle(style)
+	textarea.updateSelectionPanels()
 }
 
 func (textarea *TextArea) SetFontSize(fontSize float32) {
 	data := textarea.Data()
 	data.label.SetFontSize(fontSize)
 	data.placeholder.SetFontSize(fontSize)
+	textarea.updateSelectionPanels()
 	textarea.updateCursorPosition()
 }
 
@@ -996,7 +1053,9 @@ func (textarea *TextArea) SetCursorColor(newColor matrix.Color) {
 }
 
 func (textarea *TextArea) SetSelectColor(newColor matrix.Color) {
-	for _, panel := range textarea.Data().selectionPanels {
+	data := textarea.Data()
+	data.selectionColor = newColor
+	for _, panel := range data.selectionPanels {
 		panel.SetColor(newColor)
 	}
 }

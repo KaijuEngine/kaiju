@@ -14,6 +14,18 @@ func assertCaret(t *testing.T, got textareaCaretGeometry, line int, x, y, height
 	}
 }
 
+func assertVec4s(t *testing.T, got, want []matrix.Vec4) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("len = %d, want %d; got %#v", len(got), len(want), got)
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Fatalf("rect[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
 func TestTextAreaCaretGeometryShortLine(t *testing.T) {
 	t.Parallel()
 
@@ -153,4 +165,59 @@ func TestTextAreaMovementOffsets(t *testing.T) {
 	if got := textareaLineEndOffset(text, rects, 5, 20); got != 6 {
 		t.Fatalf("textareaLineEndOffset() = %d, want %d", got, 6)
 	}
+}
+
+func TestTextAreaSelectedTextUsesLogicalRuneRanges(t *testing.T) {
+	t.Parallel()
+
+	if got := textareaSelectedText("abcd", 1, 3); got != "bc" {
+		t.Fatalf("textareaSelectedText(wrapped logical range) = %q, want %q", got, "bc")
+	}
+	if got := textareaSelectedText("ab\ncd", 1, 4); got != "b\nc" {
+		t.Fatalf("textareaSelectedText(newline range) = %q, want %q", got, "b\nc")
+	}
+	if got := textareaSelectedText("a\u03b2\n\u0394d", 1, 4); got != "\u03b2\n\u0394" {
+		t.Fatalf("textareaSelectedText(multibyte range) = %q, want %q", got, "\u03b2\n\u0394")
+	}
+}
+
+func TestTextAreaSelectionPanelRectsWrappedLines(t *testing.T) {
+	t.Parallel()
+
+	rects := []matrix.Vec4{
+		{0, 0, 10, 20},
+		{10, 0, 10, 20},
+		{0, 20, 10, 20},
+		{10, 20, 10, 20},
+	}
+	got := textareaSelectionPanelRects("abcd", rects, 1, 3, 40, 20)
+	want := []matrix.Vec4{
+		{10, 0, 10, 20},
+		{0, 20, 10, 20},
+	}
+	assertVec4s(t, got, want)
+}
+
+func TestTextAreaSelectionPanelRectsExplicitNewlines(t *testing.T) {
+	t.Parallel()
+
+	rects := []matrix.Vec4{
+		{0, 0, 10, 20},
+		{10, 0, 10, 20},
+		{20, 0, 0, 20},
+		{0, 20, 10, 20},
+		{10, 20, 10, 20},
+	}
+	got := textareaSelectionPanelRects("ab\ncd", rects, 1, 4, 40, 20)
+	want := []matrix.Vec4{
+		{10, 0, 10, 20},
+		{0, 20, 10, 20},
+	}
+	assertVec4s(t, got, want)
+
+	got = textareaSelectionPanelRects("ab\ncd", rects, 2, 3, 40, 20)
+	want = []matrix.Vec4{
+		{20, 0, 0.001, 20},
+	}
+	assertVec4s(t, got, want)
 }
