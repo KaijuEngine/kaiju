@@ -21,14 +21,18 @@ import (
 	"kaijuengine.com/rendering"
 )
 
-const selectionOutlineScreenshotOutput = "integration_test_selection_outline_occluder.png"
+const (
+	selectionOutlineScreenshotOutput    = "integration_test_selection_outline_occluder.png"
+	selectedPairOutlineScreenshotOutput = "integration_test_selection_outline_selected_pair.png"
+)
 
 func init() {
 	tests["selection-outline-occluder"] = IntegrationTestSelectionOutlineOccluder
+	tests["selection-outline-selected-pair"] = IntegrationTestSelectionOutlineSelectedPair
 }
 
 func IntegrationTestSelectionOutlineOccluder(host *engine.Host) {
-	sphereCenter, sphereRadius := createSelectionOutlineScene(host)
+	sphereCenter, sphereRadius := createSelectionOutlineScene(host, false)
 	host.RunAfterFrames(8, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
@@ -50,7 +54,30 @@ func IntegrationTestSelectionOutlineOccluder(host *engine.Host) {
 	})
 }
 
-func createSelectionOutlineScene(host *engine.Host) (matrix.Vec3, float32) {
+func IntegrationTestSelectionOutlineSelectedPair(host *engine.Host) {
+	sphereCenter, sphereRadius := createSelectionOutlineScene(host, true)
+	host.RunAfterFrames(8, func() {
+		img, err := captureScreenshotImage(host)
+		if err != nil {
+			slog.Error("selected pair outline integration test failed", "error", err)
+			os.Exit(1)
+		}
+		if err := assertSelectionOutlineSelectedPair(host, img, sphereCenter, sphereRadius); err != nil {
+			if writeErr := writeScreenshotImage(img, selectedPairOutlineScreenshotOutput); writeErr != nil {
+				slog.Error("failed to write selected pair outline screenshot", "error", writeErr)
+			}
+			slog.Error("selected pair outline integration test failed", "error", err)
+			os.Exit(1)
+		}
+		if err := writeScreenshotImage(img, selectedPairOutlineScreenshotOutput); err != nil {
+			slog.Error("failed to write selected pair outline screenshot", "error", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	})
+}
+
+func createSelectionOutlineScene(host *engine.Host, selectSphere bool) (matrix.Vec3, float32) {
 	host.PrimaryCamera().SetPositionAndLookAt(
 		matrix.NewVec3(0, 4.0, 5.2),
 		matrix.NewVec3(0, 0, 0),
@@ -68,6 +95,10 @@ func createSelectionOutlineScene(host *engine.Host) (matrix.Vec3, float32) {
 	sphereCenter := matrix.NewVec3(0.0, sphereRadius, 0.0)
 	sphereData := shader_data_registry.Create("basic")
 	sphereData.(*shader_data_registry.ShaderDataStandard).Color = matrix.ColorSky()
+	if selectSphere {
+		shader_data_registry.StandardShaderDataFlagsSet(
+			sphereData, shader_data_registry.ShaderDataStandardFlagOutline)
+	}
 	sphere := engine.NewEntity(host.WorkGroup())
 	sphere.Transform.SetPosition(sphereCenter)
 	sphere.Transform.SetScale(matrix.NewVec3(sphereRadius, sphereRadius, sphereRadius))
@@ -108,6 +139,24 @@ func assertSelectionOutlineOccluder(host *engine.Host, img *image.RGBA, sphereCe
 	haloPixels := countOutlinePixelsInAnnulus(img, centerX, centerY, radius-5, radius+8, haloBounds)
 	if haloPixels > 4 {
 		return fmt.Errorf("expected no selected outline around unselected sphere, found %d outline pixels", haloPixels)
+	}
+	return nil
+}
+
+func assertSelectionOutlineSelectedPair(host *engine.Host, img *image.RGBA, sphereCenter matrix.Vec3, sphereRadius float32) error {
+	outlinePixels := countOutlinePixels(img, img.Bounds())
+	if outlinePixels < 80 {
+		return fmt.Errorf("expected visible outline around selected objects, found %d outline pixels", outlinePixels)
+	}
+
+	centerX, centerY, radius, ok := projectedSphereBounds(host, img, sphereCenter, sphereRadius)
+	if !ok {
+		return fmt.Errorf("failed to project sphere into screenshot")
+	}
+	haloBounds := annulusBounds(img.Bounds(), centerX, centerY, radius+8)
+	haloPixels := countOutlinePixelsInAnnulus(img, centerX, centerY, radius-5, radius+8, haloBounds)
+	if haloPixels < 20 {
+		return fmt.Errorf("expected selected sphere boundary outline, found %d outline pixels", haloPixels)
 	}
 	return nil
 }
