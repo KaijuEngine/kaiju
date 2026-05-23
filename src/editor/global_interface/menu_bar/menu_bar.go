@@ -159,13 +159,15 @@ func (b *MenuBar) renderDocument() error {
 	}
 	b.doc = doc
 	b.doc.Clean()
-	for _, m := range b.doc.GetElementsByClass("menuEntry") {
-		target := m.Attribute("data-target")
-		pop, _ := b.doc.GetElementById(target)
-		b.setPopupUiPos(m, pop)
-	}
-	b.doc.Clean()
-	b.hidePopups()
+	b.host.RunAfterNextUIClean(func() {
+		for _, m := range b.doc.GetElementsByClass("menuEntry") {
+			target := m.Attribute("data-target")
+			pop, _ := b.doc.GetElementById(target)
+			b.setPopupUiPos(m, pop)
+		}
+		b.doc.Clean()
+		b.hidePopups()
+	})
 	return nil
 }
 
@@ -199,7 +201,6 @@ func (b *MenuBar) openMenuTarget(e *document.Element) {
 			}
 		}
 		pop.UI.Show()
-		b.setPopupUiPos(e, pop)
 		b.handler.BlurInterface()
 		b.uiMan.Host.RunOnMainThread(b.Focus)
 	}
