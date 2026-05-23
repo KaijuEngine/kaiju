@@ -41,6 +41,13 @@ type textareaData struct {
 
 func (t *textareaData) innerPanelData() *panelData { return &t.panelData }
 
+type textareaCaretGeometry struct {
+	line   int
+	x      float32
+	y      float32
+	height float32
+}
+
 type TextArea Panel
 
 func (u *UI) ToTextArea() *TextArea            { return (*TextArea)(u) }
@@ -128,9 +135,8 @@ func (textarea *TextArea) ensureSelectionPanel() *Panel {
 
 func (textarea *TextArea) onLayoutUpdating() {
 	data := textarea.Data()
-	ps := textarea.layout.PixelSize()
-	width := max(float32(0.001), ps.Width()-textareaPadding*2)
-	height := max(float32(0.001), ps.Height()-textareaPadding*2)
+	width := textarea.contentWidth()
+	height := textarea.contentHeight()
 
 	for _, label := range []*Label{data.label, data.placeholder} {
 		label.layout.SetOffset(textareaPadding, textareaPadding)
@@ -144,7 +150,6 @@ func (textarea *TextArea) onLayoutUpdating() {
 		selection.layout.SetOffset(0, 0)
 		selection.layout.Scale(width, data.label.LabelData().fontSize)
 	}
-	data.cursor.layout.Scale(cursorWidth, max(float32(0.001), data.label.LabelData().fontSize))
 	textarea.updateCursorPosition()
 }
 
@@ -189,7 +194,150 @@ func (textarea *TextArea) hideCursor() {
 
 func (textarea *TextArea) updateCursorPosition() {
 	data := textarea.Data()
-	data.cursor.layout.SetOffset(textareaPadding, textareaPadding)
+	caret := textarea.caretGeometry(data.cursorOffset)
+	data.cursor.layout.Scale(cursorWidth, max(float32(0.001), caret.height))
+	data.cursor.layout.SetOffset(textareaPadding+caret.x, textareaPadding+caret.y)
+}
+
+func (textarea *TextArea) contentWidth() float32 {
+	ps := textarea.layout.PixelSize()
+	return max(float32(0.001), ps.Width()-textareaPadding*2)
+}
+
+func (textarea *TextArea) contentHeight() float32 {
+	ps := textarea.layout.PixelSize()
+	return max(float32(0.001), ps.Height()-textareaPadding*2)
+}
+
+func (textarea *TextArea) runeRects() []matrix.Vec4 {
+	data := textarea.Data()
+	ld := data.label.LabelData()
+	return textarea.man.Value().Host.FontCache().StringRectsWithinWithLetterSpacing(
+		ld.fontFace, data.text, ld.fontSize, textarea.contentWidth(),
+		ld.lineHeight, ld.letterSpacing)
+}
+
+func (textarea *TextArea) caretGeometry(offset int) textareaCaretGeometry {
+	data := textarea.Data()
+	ld := data.label.LabelData()
+	return textareaCaretFromRuneRects(data.text, textarea.runeRects(),
+		offset, textareaLineHeight(ld))
+}
+
+func textareaLineHeight(ld *labelData) float32 {
+	if ld.lineHeight > 0 {
+		return ld.lineHeight
+	}
+	return ld.fontSize
+}
+
+func textareaCaretFromRuneRects(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) textareaCaretGeometry {
+	offset = editableTextClampOffset(text, offset)
+	if fallbackHeight <= 0 {
+		fallbackHeight = LabelFontSize
+	}
+	if len(rects) == 0 || offset == 0 {
+		if len(rects) > 0 {
+			return textareaCaretGeometry{
+				line:   textareaLineIndex(rects, 0),
+				x:      rects[0].X(),
+				y:      rects[0].Y(),
+				height: rects[0].W(),
+			}
+		}
+		return textareaCaretGeometry{height: fallbackHeight}
+	}
+
+	runes := []rune(text)
+	prevIndex := min(offset-1, len(rects)-1)
+	prev := rects[prevIndex]
+	if prevIndex < len(runes) && runes[prevIndex] == '\n' {
+		return textareaCaretGeometry{
+			line:   textareaLineIndex(rects, prevIndex) + 1,
+			x:      0,
+			y:      prev.Y() + prev.W(),
+			height: prev.W(),
+		}
+	}
+	if offset < len(rects) && rects[offset].Y() != prev.Y() {
+		next := rects[offset]
+		return textareaCaretGeometry{
+			line:   textareaLineIndex(rects, offset),
+			x:      next.X(),
+			y:      next.Y(),
+			height: next.W(),
+		}
+	}
+	return textareaCaretGeometry{
+		line:   textareaLineIndex(rects, prevIndex),
+		x:      prev.X() + prev.Z(),
+		y:      prev.Y(),
+		height: prev.W(),
+	}
+}
+
+func textareaLineIndex(rects []matrix.Vec4, rectIndex int) int {
+	if len(rects) == 0 {
+		return 0
+	}
+	rectIndex = editableTextClamp(rectIndex, 0, len(rects)-1)
+	line := 0
+	y := rects[0].Y()
+	for i := 1; i <= rectIndex; i++ {
+		if rects[i].Y() != y {
+			line++
+			y = rects[i].Y()
+		}
+	}
+	return line
+}
+
+func textareaRuneOffsetFromPoint(text string, rects []matrix.Vec4, point matrix.Vec2) int {
+	if len(rects) == 0 {
+		return 0
+	}
+	runes := []rune(text)
+	lastInLine := 0
+	pointLineEnd := -1
+	for i, rect := range rects {
+		if point.Y() < rect.Y() {
+			if pointLineEnd >= 0 {
+				return pointLineEnd
+			}
+			return i
+		}
+		if point.Y() >= rect.Y() && point.Y() <= rect.Y()+rect.W() {
+			lastInLine = i
+			if point.X() < rect.X()+rect.Z()*0.5 || (i < len(runes) && runes[i] == '\n') {
+				return i
+			}
+			pointLineEnd = i + 1
+			continue
+		}
+		if point.Y() > rect.Y()+rect.W() {
+			lastInLine = i + 1
+		}
+	}
+	if pointLineEnd >= 0 {
+		return editableTextClamp(pointLineEnd, 0, editableTextRuneCount(text))
+	}
+	return editableTextClamp(lastInLine, 0, editableTextRuneCount(text))
+}
+
+func (textarea *TextArea) pointerOffsetAtPosition(point matrix.Vec2) int {
+	point.SetX(point.X() - textareaPadding)
+	point.SetY(point.Y() - textareaPadding)
+	return textareaRuneOffsetFromPoint(textarea.Data().text, textarea.runeRects(), point)
+}
+
+func (textarea *TextArea) pointerPosWithin() int {
+	host := textarea.man.Value().Host
+	pos := textarea.Base().cursorPos(&host.Window.Cursor)
+	wp := textarea.entity.Transform.WorldPosition()
+	ws := textarea.entity.Transform.WorldScale()
+	pos.SetX(pos.X() - (wp.X() - ws.X()*0.5))
+	pos.SetY(pos.Y() - (wp.Y() - ws.Y()*0.5))
+	return textarea.pointerOffsetAtPosition(pos)
 }
 
 func (textarea *TextArea) showSelection() {
@@ -273,6 +421,7 @@ func (textarea *TextArea) onExit() {
 func (textarea *TextArea) onDown() {
 	textarea.Focus()
 	textarea.resetSelect()
+	textarea.SetCursorOffset(textarea.pointerPosWithin())
 	textarea.showCursor()
 }
 
