@@ -771,6 +771,135 @@ func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
+// SetElementStylePropertyWithoutApply adds or overwrites a single inline CSS
+// property on the given element without applying styles. This is useful when
+// changing several runtime style values before calling ApplyStyles once.
+func (d *Document) SetElementStylePropertyWithoutApply(elm *Element, property, value string) {
+	property = strings.TrimSpace(property)
+	value = strings.TrimSpace(value)
+	value = strings.TrimSuffix(value, ";")
+	value = strings.TrimSpace(value)
+	if property == "" {
+		return
+	}
+	next := setInlineStyleProperty(elm.Attribute("style"), property, value)
+	if next == elm.Attribute("style") {
+		return
+	}
+	elm.SetAttribute("style", next)
+	if elm.UI != nil {
+		elm.UI.SetDirty(ui.DirtyTypeGenerated)
+	}
+}
+
+// SetElementStyleProperty adds or overwrites a single inline CSS property on
+// the given element and reapplies document styles.
+func (d *Document) SetElementStyleProperty(elm *Element, property, value string) {
+	d.SetElementStylePropertyWithoutApply(elm, property, value)
+	if elm.UI != nil {
+		elm.UI.Layout().ClearStyles()
+	}
+	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func setInlineStyleProperty(style, property, value string) string {
+	declarations := splitInlineStyleDeclarations(style)
+	out := make([]string, 0, len(declarations)+1)
+	replaced := false
+	for _, declaration := range declarations {
+		declaration = strings.TrimSpace(declaration)
+		if declaration == "" {
+			continue
+		}
+		name, ok := inlineStyleDeclarationName(declaration)
+		if !ok || !strings.EqualFold(name, property) {
+			out = append(out, declaration)
+			continue
+		}
+		if !replaced {
+			out = append(out, property+": "+value)
+			replaced = true
+		}
+	}
+	if !replaced {
+		out = append(out, property+": "+value)
+	}
+	return strings.Join(out, "; ") + ";"
+}
+
+func splitInlineStyleDeclarations(style string) []string {
+	declarations := make([]string, 0)
+	start := 0
+	depth := 0
+	escaped := false
+	var quote rune
+	for i, r := range style {
+		if escaped {
+			escaped = false
+			continue
+		}
+		if quote != 0 {
+			if r == '\\' {
+				escaped = true
+			} else if r == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch r {
+		case '\'', '"':
+			quote = r
+		case '(':
+			depth++
+		case ')':
+			depth = max(0, depth-1)
+		case ';':
+			if depth == 0 {
+				declarations = append(declarations, style[start:i])
+				start = i + 1
+			}
+		}
+	}
+	if start < len(style) {
+		declarations = append(declarations, style[start:])
+	}
+	return declarations
+}
+
+func inlineStyleDeclarationName(declaration string) (string, bool) {
+	depth := 0
+	escaped := false
+	var quote rune
+	for i, r := range declaration {
+		if escaped {
+			escaped = false
+			continue
+		}
+		if quote != 0 {
+			if r == '\\' {
+				escaped = true
+			} else if r == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch r {
+		case '\'', '"':
+			quote = r
+		case '(':
+			depth++
+		case ')':
+			depth = max(0, depth-1)
+		case ':':
+			if depth == 0 {
+				name := strings.TrimSpace(declaration[:i])
+				return name, name != ""
+			}
+		}
+	}
+	return "", false
+}
+
 // ApplyStyles will go through and apply styles to all elements within the
 // document. This is typically used after [SetElementClassesWithoutApply]. The
 // typical flow is to call [SetElementClassesWithoutApply] in a loop to change

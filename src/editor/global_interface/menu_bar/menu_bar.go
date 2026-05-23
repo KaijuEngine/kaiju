@@ -27,6 +27,7 @@ import (
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
@@ -159,15 +160,12 @@ func (b *MenuBar) renderDocument() error {
 	}
 	b.doc = doc
 	b.doc.Clean()
-	b.host.RunAfterNextUIClean(func() {
-		for _, m := range b.doc.GetElementsByClass("menuEntry") {
-			target := m.Attribute("data-target")
-			pop, _ := b.doc.GetElementById(target)
-			b.setPopupUiPos(m, pop)
-		}
-		b.doc.Clean()
-		b.hidePopups()
-	})
+	for _, m := range b.doc.GetElementsByClass("menuEntry") {
+		target := m.Attribute("data-target")
+		pop, _ := b.doc.GetElementById(target)
+		b.setPopupUiPos(m, pop)
+	}
+	b.hidePopups()
 	return nil
 }
 
@@ -183,7 +181,7 @@ func (b *MenuBar) setPopupUiPos(e *document.Element, pop *document.Element) {
 	t := &e.UI.Entity().Transform
 	x := t.WorldPosition().X() + float32(b.uiMan.Host.Window.Width())*0.5 -
 		e.UI.Layout().PixelSize().X()*0.5
-	pop.UI.Layout().SetInnerOffsetLeft(x)
+	b.doc.SetElementStylePropertyWithoutApply(pop, "left", fmt.Sprintf("%dpx", int(matrix.Round(x))))
 }
 
 func (b *MenuBar) openMenuTarget(e *document.Element) {

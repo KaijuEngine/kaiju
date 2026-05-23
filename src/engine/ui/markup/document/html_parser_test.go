@@ -103,6 +103,49 @@ func TestParseTextAreaTagLookup(t *testing.T) {
 	}
 }
 
+func TestSetElementStylePropertyWithoutApplyAddsProperty(t *testing.T) {
+	t.Parallel()
+
+	doc := Document{}
+	elm := &Element{}
+
+	doc.SetElementStylePropertyWithoutApply(elm, "color", "red")
+
+	if got := elm.Attribute("style"); got != "color: red;" {
+		t.Fatalf("style = %q, want %q", got, "color: red;")
+	}
+}
+
+func TestSetElementStylePropertyWithoutApplyOverwritesProperty(t *testing.T) {
+	t.Parallel()
+
+	doc := Document{}
+	elm := &Element{}
+	elm.SetAttribute("style", "width: 10px; color: red; color: blue; height: 20px;")
+
+	doc.SetElementStylePropertyWithoutApply(elm, "color", "green")
+
+	want := "width: 10px; color: green; height: 20px;"
+	if got := elm.Attribute("style"); got != want {
+		t.Fatalf("style = %q, want %q", got, want)
+	}
+}
+
+func TestSetElementStylePropertyWithoutApplyPreservesComplexValues(t *testing.T) {
+	t.Parallel()
+
+	doc := Document{}
+	elm := &Element{}
+	elm.SetAttribute("style", `background-image: url("data:image/svg+xml;utf8,<svg></svg>"); transform: translate(calc(100% - 4px), 0);`)
+
+	doc.SetElementStylePropertyWithoutApply(elm, "opacity", "0.5;")
+
+	want := `background-image: url("data:image/svg+xml;utf8,<svg></svg>"); transform: translate(calc(100% - 4px), 0); opacity: 0.5;`
+	if got := elm.Attribute("style"); got != want {
+		t.Fatalf("style = %q, want %q", got, want)
+	}
+}
+
 func mustFindTextArea(t *testing.T, html string) *Element {
 	t.Helper()
 	root := NewHTML(html)
