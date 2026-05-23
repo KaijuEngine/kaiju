@@ -8,7 +8,6 @@ package ui_workspace
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -73,13 +72,11 @@ func (w *UIWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) e
 	w.ratio = matrix.NewVec2(16, 9)
 	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/ui_workspace.go.html", w.ratio, map[string]func(*document.Element){
-			"clickFile":                   w.clickFile,
-			"clickEdit":                   w.clickEdit,
-			"clickLoadData":               w.clickLoadData,
-			"changeWidthRatio":            w.changeWidthRatio,
-			"changeHeightRatio":           w.changeHeightRatio,
-			"toggleTextareaSmokeStyle":    w.toggleTextareaSmokeStyle,
-			"duplicateTextareaSmokeField": w.duplicateTextareaSmokeField,
+			"clickFile":         w.clickFile,
+			"clickEdit":         w.clickEdit,
+			"clickLoadData":     w.clickLoadData,
+			"changeWidthRatio":  w.changeWidthRatio,
+			"changeHeightRatio": w.changeHeightRatio,
 		}); err != nil {
 		return err
 	}
@@ -171,88 +168,6 @@ func (w *UIWorkspace) clickLoadData(e *document.Element) {
 
 func (w *UIWorkspace) changeWidthRatio(*document.Element)  { w.readRatio() }
 func (w *UIWorkspace) changeHeightRatio(*document.Element) { w.readRatio() }
-
-func (w *UIWorkspace) toggleTextareaSmokeStyle(e *document.Element) {
-	target := e.Parent.Value()
-	for target != nil && !target.HasClass("textareaSmoke") {
-		target = target.Parent.Value()
-	}
-	if target == nil {
-		return
-	}
-	if target.HasClass("textareaSmokeAlt") {
-		w.Doc.SetElementClasses(target, "textareaSmoke")
-	} else {
-		w.Doc.SetElementClasses(target, "textareaSmoke", "textareaSmokeAlt")
-	}
-}
-
-func (w *UIWorkspace) duplicateTextareaSmokeField(*document.Element) {
-	template, ok := w.Doc.GetElementById("textareaSmokeTemplate")
-	if !ok {
-		return
-	}
-	w.Doc.DuplicateElement(template)
-	w.Doc.SetupInputTabIndexs()
-}
-
-func (w *UIWorkspace) RunTextAreaSmokeTest() error {
-	template, ok := w.Doc.GetElementById("textareaSmokeTemplate")
-	if !ok {
-		return fmt.Errorf("textarea smoke template missing")
-	}
-	inputs := template.FindElementsByTag("input")
-	if len(inputs) < 2 {
-		return fmt.Errorf("textarea smoke template expected two tab-order inputs, got %d", len(inputs))
-	}
-	textareaElement := template.FindElementByTag("textarea")
-	if textareaElement == nil {
-		return fmt.Errorf("textarea smoke template missing textarea")
-	}
-	textarea := textareaElement.UI.ToTextArea()
-	if textarea.Text() == "" || !strings.Contains(textarea.Text(), "\n") {
-		return fmt.Errorf("textarea smoke sample should start with multi-line text")
-	}
-	inputs[0].UI.ToInput().Focus()
-	if !w.IsFocusedOnInput() {
-		return fmt.Errorf("input focus was not reported to the editor workspace")
-	}
-	inputs[0].UI.ToInput().RemoveFocus()
-	textarea.Focus()
-	if !w.IsFocusedOnInput() {
-		return fmt.Errorf("textarea focus was not reported to the editor workspace")
-	}
-	textarea.SetText(strings.Join([]string{
-		"Smoke paragraph one: real editor markup path.",
-		"Smoke paragraph two: enough wrapped content to scroll.",
-		"Smoke paragraph three: duplicate and style changes stay valid.",
-	}, "\n\n"))
-	textarea.SetCursorOffset(len([]rune(textarea.Text())))
-	textarea.RemoveFocus()
-
-	var toggleButton *document.Element
-	for _, button := range template.FindElementsByTag("button") {
-		if label := button.InnerLabel(); label != nil && label.Text() == "Toggle style" {
-			toggleButton = button
-			break
-		}
-	}
-	if toggleButton == nil {
-		return fmt.Errorf("textarea smoke style button missing")
-	}
-	w.toggleTextareaSmokeStyle(toggleButton)
-	if !template.HasClass("textareaSmokeAlt") {
-		return fmt.Errorf("textarea smoke style toggle did not apply alternate class")
-	}
-	before := len(w.Doc.GetElementsByTagName("textarea"))
-	w.duplicateTextareaSmokeField(nil)
-	after := len(w.Doc.GetElementsByTagName("textarea"))
-	if after != before+1 {
-		return fmt.Errorf("textarea smoke duplicate expected %d textareas, got %d", before+1, after)
-	}
-	w.applyRatio()
-	return nil
-}
 
 func (w *UIWorkspace) readRatio() {
 	if r, err := strconv.ParseFloat(w.ratioX.UI.ToInput().Text(), 64); err == nil {

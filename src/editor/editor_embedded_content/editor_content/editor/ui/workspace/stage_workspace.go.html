@@ -569,8 +569,7 @@
 		<img id="dragPreview" src="editor/textures/icons/file.png" />
 		<div id="contentArea">
 			<div class="left edPanelBg" id="filterArea">
-				<textarea></textarea>
-				<!-- <input type="text" class="topSearch" placeholder="Content search..." onchange="inputFilter" /> -->
+				<input type="text" class="topSearch" placeholder="Content search..." onchange="inputFilter" />
 				{{range $filter , $count := .Filters}}
 				<span class="filterBtn" data-type="{{$filter}}" onclick="clickFilter">{{$filter}}</span>
 				{{end}}
