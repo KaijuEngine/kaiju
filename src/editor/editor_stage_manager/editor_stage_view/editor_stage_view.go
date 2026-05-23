@@ -69,7 +69,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.gridVisible = ed.Settings().ShowGrid
 	v.manager.NewStage()
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
-	v.transformMan.Initialize(v, ed.History(), &ed.Settings().Snapping)
+	v.transformMan.Initialize(v, ed.History(), ed.Settings())
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
 	v.applyGridVisibility()

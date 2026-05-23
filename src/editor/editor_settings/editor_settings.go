@@ -24,17 +24,18 @@ const (
 )
 
 type Settings struct {
-	RecentProjects []string `visible:"false"`
-	RefreshRate    int32    `clamp:"60,0,320"`
-	CodeEditor     string   `default:"code"`
-	ImageEditor    string
-	MeshEditor     string
-	AudioEditor    string
-	UIScrollSpeed  float32 `default:"20" label:"UI Scroll Speed"`
-	ShowGrid       bool    `default:"true" label:"Show Viewport Grid"`
-	EditorCamera   EditorCameraSettings
-	Snapping       SnapSettings
-	BuildTools     BuildToolSettings
+	RecentProjects         []string `visible:"false"`
+	RefreshRate            int32    `clamp:"60,0,320"`
+	CodeEditor             string   `default:"code"`
+	ImageEditor            string
+	MeshEditor             string
+	AudioEditor            string
+	UIScrollSpeed          float32 `default:"20" label:"UI Scroll Speed"`
+	ShowGrid               bool    `default:"true" label:"Show Viewport Grid"`
+	UseWERTransformHotkeys bool    `label:"Use W/E/R Transform Hotkeys"`
+	EditorCamera           EditorCameraSettings
+	Snapping               SnapSettings
+	BuildTools             BuildToolSettings
 	// Workspaces is the persisted enable / visible / order state for every
 	// known workspace, keyed by Workspace.ID(). Slice order is the load /
 	// tab order. The editor's reconcile step on startup adds defaults for

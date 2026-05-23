@@ -41,6 +41,7 @@ type TransformationManager struct {
 	history        *memento.History
 	memento        *transformHistory
 	snapSettings   *editor_settings.SnapSettings
+	settings       *editor_settings.Settings
 	project        *project.Project
 	currentTool    ToolState
 	isBusy         bool
@@ -49,9 +50,10 @@ type TransformationManager struct {
 
 func (t *TransformationManager) IsBusy() bool { return t.isBusy }
 
-func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, snapSettings *editor_settings.SnapSettings) {
+func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, settings *editor_settings.Settings) {
 	t.view = weak.Make(stageView)
-	t.snapSettings = snapSettings
+	t.settings = settings
+	t.snapSettings = &settings.Snapping
 	t.translateTool.Initialize(stageView.host)
 	t.rotationTool.Initialize(stageView.host)
 	t.scalingTool.Initialize(stageView.host)
@@ -94,11 +96,12 @@ func (t *TransformationManager) Update(host *engine.Host, proj *project.Project)
 		if t.manager.HasSelection() {
 			pos = t.manager.LastSelected().Transform.Position()
 		}
-		if kb.KeyDown(hid.KeyboardKeyG) {
+		translateKey, rotateKey, scaleKey := t.toolHotkeys()
+		if kb.KeyDown(translateKey) {
 			t.setToolState(ToolStateMove, pos)
-		} else if kb.KeyDown(hid.KeyboardKeyR) {
+		} else if kb.KeyDown(rotateKey) {
 			t.setToolState(ToolStateRotate, pos)
-		} else if kb.KeyDown(hid.KeyboardKeyS) {
+		} else if kb.KeyDown(scaleKey) {
 			t.setToolState(ToolStateScale, pos)
 		}
 	}
@@ -107,6 +110,13 @@ func (t *TransformationManager) Update(host *engine.Host, proj *project.Project)
 	t.isBusy = t.translateTool.Update(host, snap, ss.TranslateIncrement) ||
 		t.rotationTool.Update(host, snap, ss.RotateIncrement) ||
 		t.scalingTool.Update(host, snap, ss.ScaleIncrement)
+}
+
+func (t *TransformationManager) toolHotkeys() (translate, rotate, scale hid.KeyboardKey) {
+	if t.settings != nil && t.settings.UseWERTransformHotkeys {
+		return hid.KeyboardKeyW, hid.KeyboardKeyE, hid.KeyboardKeyR
+	}
+	return hid.KeyboardKeyG, hid.KeyboardKeyR, hid.KeyboardKeyS
 }
 
 func (t *TransformationManager) EnableTranslationTool() {
