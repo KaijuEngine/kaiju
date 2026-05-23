@@ -97,6 +97,9 @@ func (ed *Editor) ContentPreviewer() *content_previews.ContentPreviewer {
 // includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) FocusInterface() {
 	defer tracing.NewRegion("Editor.FocusInterface").End()
+	if !ed.blurred {
+		return
+	}
 	ed.globalInterfaces.menuBar.Focus()
 	ed.globalInterfaces.statusBar.Focus()
 	if ed.currentWorkspace != nil {
@@ -110,6 +113,9 @@ func (ed *Editor) FocusInterface() {
 // includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) BlurInterface() {
 	defer tracing.NewRegion("Editor.BlurInterface").End()
+	if ed.blurred {
+		return
+	}
 	ed.globalInterfaces.menuBar.Blur()
 	ed.globalInterfaces.statusBar.Blur()
 	if ed.currentWorkspace != nil {
