@@ -407,14 +407,17 @@ func (c *StandardCamera) internalRayCast(cursorPosition matrix.Vec2, pos matrix.
 
 func (c *StandardCamera) callUpdateView() {
 	c.updateView()
+	c.markChanged()
+}
+
+func (c *StandardCamera) markChanged() {
 	c.frameDirty = true
 	c.csmDirty = true
 }
 
 func (c *StandardCamera) callUpdateProjection() {
 	c.updateProjection()
-	c.frameDirty = true
-	c.csmDirty = true
+	c.markChanged()
 }
 
 func (c *StandardCamera) updateCSM() {

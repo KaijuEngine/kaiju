@@ -97,11 +97,7 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	e.UI.RemoveEvent(ui.EventTypeDown, s.activeEvt.downId)
 	e.UI.RemoveEvent(ui.EventTypeUp, s.activeEvt.upId)
 	if !e.UI.IsType(ui.ElementTypeLabel) {
-		l := e.UI.Layout()
-		e.UI.ToPanel().FitContent()
-		l.SetInnerOffset(0, 0, 0, 0)
-		l.SetLocalInnerOffset(0, 0, 0, 0)
-		l.SetMargin(0, 0, 0, 0)
+		e.UI.ToPanel().ClearLayoutStyles()
 	}
 	entity := e.UI.Entity()
 	entity.OnActivate.Remove(s.activateEvtId)
@@ -299,6 +295,5 @@ func (s *ElementLayoutStylizer) clone(newElm *Element) ElementLayoutStylizer {
 	for i := range s.styleRules {
 		out.AddRule(s.styleRules[i].Clone())
 	}
-	newElm.UI.Layout().Stylizer = s
 	return out
 }

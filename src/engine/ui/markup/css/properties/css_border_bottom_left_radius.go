@@ -16,6 +16,10 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
+func (p BorderBottomLeftRadius) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	return preprocLeftTopRightBottom(values, ruleList, "border-radius")
+}
+
 func (p BorderBottomLeftRadius) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("border-bottom-left-radus expects exactly 1 argument")

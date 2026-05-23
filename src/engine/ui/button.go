@@ -55,7 +55,7 @@ func (b *Button) Init(texture *rendering.Texture, text string) {
 
 	// Create the label for the button
 	lbl := b.man.Value().Add().ToLabel()
-	lbl.Init("")
+	lbl.Init(text)
 	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{weak.Make(b.Base())}}
 	lbl.SetColor(matrix.ColorBlack())
 	lbl.SetBGColor(b.shaderData.FgColor)

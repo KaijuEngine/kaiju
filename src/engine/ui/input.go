@@ -197,13 +197,13 @@ func (input *Input) onLayoutUpdating() {
 	ll := &data.label.layout
 	ll.SetOffset(horizontalPadding+data.labelShift, 0)
 	pLayout := FirstOnEntity(ll.Ui().Entity().Parent).Layout()
-	ps := pLayout.PixelSize()
-	ll.ScaleWidth(ps.Width())
+	contentSize := pLayout.ContentSize()
+	ll.ScaleWidth(max(0.001, contentSize.Width()))
 
 	// Placeholder
 	pl := &data.placeholder.layout
 	pl.SetOffset(horizontalPadding, 0)
-	pl.ScaleWidth(ps.Width())
+	pl.ScaleWidth(max(0.001, contentSize.Width()))
 
 	if data.highlight.entity.IsActive() {
 		startX := input.charX(data.selectStart)

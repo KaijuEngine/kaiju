@@ -145,6 +145,9 @@ func (label *Label) clearDrawings() {
 
 func (label *Label) labelPostLayoutUpdate() {
 	defer tracing.NewRegion("Label.labelPostLayoutUpdate").End()
+	if label.layout.stylizerControlsHeight() {
+		return
+	}
 	maxWidth := label.MaxWidth()
 	l := label.LabelData()
 	if l.wordWrap && l.overrideMaxWidth <= 0 {
@@ -160,6 +163,9 @@ func (label *Label) labelPostLayoutUpdate() {
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
+	if label.layout.stylizerControlsHeight() {
+		return
+	}
 	m := label.measure(maxWidth)
 	label.layout.ScaleHeight(m.Y())
 }
@@ -189,7 +195,9 @@ func (label *Label) renderText() {
 				}
 			}
 		}
-		label.layout.ScaleHeight(label.measure(maxWidth).Height())
+		if !label.layout.stylizerControlsHeight() {
+			label.layout.ScaleHeight(label.measure(maxWidth).Height())
+		}
 		host := label.man.Value().Host
 		ld.runeDrawings = host.FontCache().RenderMeshesWithLetterSpacing(
 			host, ld.text, 0, 0, 0, ld.fontSize,

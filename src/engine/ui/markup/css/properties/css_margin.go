@@ -25,16 +25,16 @@ func marginSizeFromStr(str string, window *windowing.Window) float32 {
 	return helpers.NumFromLength(str, window)
 }
 
-func preprocLeftTopRightBottom(values []rules.PropertyValue, rules []rules.Rule, propName string) ([]rules.PropertyValue, []rules.Rule) {
-	for i := 1; i < len(rules); i++ {
-		if rules[i].Property == propName {
-			return values, rules[1:]
+func preprocLeftTopRightBottom(values []rules.PropertyValue, ruleList []rules.Rule, propName string) ([]rules.PropertyValue, []rules.Rule) {
+	for i := 1; i < len(ruleList); i++ {
+		if ruleList[i].Property == propName {
+			return values, ruleList[1:]
 		}
 	}
-	return values, rules
+	return values, ruleList
 }
 
-func (Margin) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+func (Margin) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
 	switch len(values) {
 	case 1:
 		for i := range 3 {
@@ -47,28 +47,29 @@ func (Margin) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]ru
 		values = append(values, values[1])
 	}
 
-	for i := 1; i < len(rules); i++ {
+	for i := 1; i < len(ruleList); i++ {
 		removeRule := false
-		switch rules[i].Property {
+		switch ruleList[i].Property {
 		case "margin-top":
-			values[0] = rules[i].Values[0]
+			values[0] = ruleList[i].Values[0]
 			removeRule = true
 		case "margin-right":
-			values[1] = rules[i].Values[0]
+			values[1] = ruleList[i].Values[0]
 			removeRule = true
 		case "margin-bottom":
-			values[2] = rules[i].Values[0]
+			values[2] = ruleList[i].Values[0]
 			removeRule = true
 		case "margin-left":
-			values[3] = rules[i].Values[0]
+			values[3] = ruleList[i].Values[0]
 			removeRule = true
 		}
 		if removeRule {
-			rules = slices.Delete(rules, i, i+1)
+			ruleList = slices.Delete(ruleList, i, i+1)
 			i--
 		}
 	}
-	return values, rules
+	ruleList[0].Values = values
+	return values, ruleList
 }
 
 func (Margin) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
