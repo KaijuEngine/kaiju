@@ -739,18 +739,21 @@ func (d *Document) DuplicateElementWithoutApplyStyles(elm *Element) *Element {
 }
 
 func (d *Document) SetupInputTabIndexs() {
-	var lastInput *ui.Input
+	var lastInput *ui.UI
 	var setupTabs func(e *Element)
 	setupTabs = func(e *Element) {
 		if e.UI == nil || e.IsText() {
 			return
 		}
-		if e.UI.IsType(ui.ElementTypeInput) {
-			input := e.UI.ToInput()
+		if e.UI.IsType(ui.ElementTypeInput) || e.UI.IsType(ui.ElementTypeTextArea) {
 			if lastInput != nil {
-				lastInput.SetNextFocusedInput(input)
+				if lastInput.IsType(ui.ElementTypeInput) {
+					lastInput.ToInput().SetNextFocusedElement(e.UI)
+				} else if lastInput.IsType(ui.ElementTypeTextArea) {
+					lastInput.ToTextArea().SetNextFocusedElement(e.UI)
+				}
 			}
-			lastInput = input
+			lastInput = e.UI
 		} else {
 			for _, c := range e.Children {
 				setupTabs(c)

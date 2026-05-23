@@ -8,11 +8,15 @@ package ui
 
 import (
 	"math"
+	"time"
+	"unicode"
+	"unicode/utf8"
 	"weak"
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 )
@@ -23,20 +27,25 @@ const (
 
 type textareaData struct {
 	panelData
-	label              *Label
-	placeholder        *Label
-	cursor             *Panel
-	selectionContainer *Panel
-	selectionPanels    []*Panel
-	text               string
-	onUpDown           events.Event
-	cursorOffset       int
-	cursorBlink        float32
-	selectStart        int
-	selectEnd          int
-	required           bool
-	isActive           bool
-	textOnFocus        string
+	label               *Label
+	placeholder         *Label
+	cursor              *Panel
+	selectionContainer  *Panel
+	selectionPanels     []*Panel
+	text                string
+	onUpDown            events.Event
+	cursorOffset        int
+	cursorBlink         float32
+	selectStart         int
+	selectEnd           int
+	selectAnchor        int
+	preferredCursorX    float32
+	hasPreferredCursorX bool
+	required            bool
+	isActive            bool
+	prevFocusElement    weak.Pointer[UI]
+	nextFocusElement    weak.Pointer[UI]
+	textOnFocus         string
 }
 
 func (t *textareaData) innerPanelData() *panelData { return &t.panelData }
@@ -44,6 +53,13 @@ func (t *textareaData) innerPanelData() *panelData { return &t.panelData }
 type textareaCaretGeometry struct {
 	line   int
 	x      float32
+	y      float32
+	height float32
+}
+
+type textareaLineRange struct {
+	start  int
+	end    int
 	y      float32
 	height float32
 }
@@ -111,14 +127,36 @@ func (textarea *TextArea) Init(placeholderText string) {
 	base.AddEvent(EventTypeDown, textarea.onDown)
 	base.AddEvent(EventTypeMiss, textarea.onMiss)
 	base.AddEvent(EventTypeRebuild, textarea.onRebuild)
+	id := host.Window.Keyboard.AddKeyCallback(textarea.keyPressed)
+	base.AddEvent(EventTypeDestroy, func() {
+		host.Window.Keyboard.RemoveKeyCallback(id)
+	})
 	textarea.entity.OnDeactivate.Add(textarea.deactivated)
 	textarea.entity.OnActivate.Add(textarea.activated)
 }
 
-func (textarea *TextArea) ensureSelectionPanel() *Panel {
+func (textarea *TextArea) SetNextFocusedElement(next *UI) {
+	if next == nil {
+		return
+	}
 	data := textarea.Data()
-	if len(data.selectionPanels) > 0 {
-		return data.selectionPanels[0]
+	data.nextFocusElement = weak.Make(next)
+	switch next.Type() {
+	case ElementTypeInput:
+		next.ToInput().InputData().prevFocusElement = weak.Make(textarea.Base())
+	case ElementTypeTextArea:
+		next.ToTextArea().Data().prevFocusElement = weak.Make(textarea.Base())
+	}
+}
+
+func (textarea *TextArea) ensureSelectionPanel() *Panel {
+	return textarea.ensureSelectionPanelIndex(0)
+}
+
+func (textarea *TextArea) ensureSelectionPanelIndex(index int) *Panel {
+	data := textarea.Data()
+	if len(data.selectionPanels) > index {
+		return data.selectionPanels[index]
 	}
 	tex, _ := textarea.man.Value().Host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
@@ -146,9 +184,7 @@ func (textarea *TextArea) onLayoutUpdating() {
 	data.selectionContainer.layout.SetOffset(textareaPadding, textareaPadding)
 	data.selectionContainer.layout.Scale(width, height)
 	if data.selectStart != data.selectEnd {
-		selection := textarea.ensureSelectionPanel()
-		selection.layout.SetOffset(0, 0)
-		selection.layout.Scale(width, data.label.LabelData().fontSize)
+		textarea.updateSelectionPanels()
 	}
 	textarea.updateCursorPosition()
 }
@@ -197,6 +233,23 @@ func (textarea *TextArea) updateCursorPosition() {
 	caret := textarea.caretGeometry(data.cursorOffset)
 	data.cursor.layout.Scale(cursorWidth, max(float32(0.001), caret.height))
 	data.cursor.layout.SetOffset(textareaPadding+caret.x, textareaPadding+caret.y)
+	textarea.scrollCaretIntoView(caret)
+}
+
+func (textarea *TextArea) scrollCaretIntoView(caret textareaCaretGeometry) {
+	viewportHeight := textarea.contentHeight()
+	if viewportHeight <= 0 {
+		return
+	}
+	panel := (*Panel)(textarea)
+	scrollY := panel.ScrollY()
+	top := caret.y
+	bottom := caret.y + caret.height
+	if top < scrollY {
+		panel.SetScrollY(top)
+	} else if bottom > scrollY+viewportHeight {
+		panel.SetScrollY(bottom - viewportHeight)
+	}
 }
 
 func (textarea *TextArea) contentWidth() float32 {
@@ -292,6 +345,128 @@ func textareaLineIndex(rects []matrix.Vec4, rectIndex int) int {
 	return line
 }
 
+func textareaLineRanges(text string, rects []matrix.Vec4, fallbackHeight float32) []textareaLineRange {
+	count := editableTextRuneCount(text)
+	if fallbackHeight <= 0 {
+		fallbackHeight = LabelFontSize
+	}
+	if len(rects) == 0 {
+		return []textareaLineRange{{height: fallbackHeight}}
+	}
+	runes := []rune(text)
+	ranges := make([]textareaLineRange, 0)
+	start := 0
+	y := rects[0].Y()
+	height := rects[0].W()
+	for i := 1; i <= len(rects); i++ {
+		if i == len(rects) || rects[i].Y() != y {
+			end := i
+			if end > start && end-1 < len(runes) && runes[end-1] == '\n' {
+				end--
+			}
+			ranges = append(ranges, textareaLineRange{
+				start:  start,
+				end:    end,
+				y:      y,
+				height: height,
+			})
+			if i < len(rects) {
+				start = i
+				y = rects[i].Y()
+				height = rects[i].W()
+			}
+		}
+	}
+	if count > 0 && len(runes) > 0 && runes[count-1] == '\n' {
+		last := rects[len(rects)-1]
+		ranges = append(ranges, textareaLineRange{
+			start:  count,
+			end:    count,
+			y:      last.Y() + last.W(),
+			height: last.W(),
+		})
+	}
+	return ranges
+}
+
+func textareaLineForOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) int {
+	caret := textareaCaretFromRuneRects(text, rects, offset, fallbackHeight)
+	return caret.line
+}
+
+func textareaLineOffsetForX(ranges []textareaLineRange, rects []matrix.Vec4, line int, x float32) int {
+	if len(ranges) == 0 {
+		return 0
+	}
+	line = editableTextClamp(line, 0, len(ranges)-1)
+	r := ranges[line]
+	for i := r.start; i < r.end && i < len(rects); i++ {
+		rect := rects[i]
+		if x < rect.X()+rect.Z()*0.5 {
+			return i
+		}
+	}
+	return r.end
+}
+
+func textareaMoveVerticalOffset(text string, rects []matrix.Vec4, offset, dir int, preferredX, fallbackHeight float32) int {
+	ranges := textareaLineRanges(text, rects, fallbackHeight)
+	if len(ranges) == 0 || dir == 0 {
+		return editableTextClampOffset(text, offset)
+	}
+	line := textareaLineForOffset(text, rects, offset, fallbackHeight)
+	target := editableTextClamp(line+dir, 0, len(ranges)-1)
+	return textareaLineOffsetForX(ranges, rects, target, preferredX)
+}
+
+func textareaLineStartOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) int {
+	ranges := textareaLineRanges(text, rects, fallbackHeight)
+	line := textareaLineForOffset(text, rects, offset, fallbackHeight)
+	if len(ranges) == 0 {
+		return 0
+	}
+	return ranges[editableTextClamp(line, 0, len(ranges)-1)].start
+}
+
+func textareaLineEndOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) int {
+	ranges := textareaLineRanges(text, rects, fallbackHeight)
+	line := textareaLineForOffset(text, rects, offset, fallbackHeight)
+	if len(ranges) == 0 {
+		return editableTextRuneCount(text)
+	}
+	return ranges[editableTextClamp(line, 0, len(ranges)-1)].end
+}
+
+func textareaInsertTextAt(text string, cursorOffset, selectStart, selectEnd int, insert string) (string, int, bool) {
+	if insert == "" {
+		return text, editableTextClampOffset(text, cursorOffset), false
+	}
+	cursorOffset = editableTextClampOffset(text, cursorOffset)
+	if selectStart != selectEnd {
+		var deleted bool
+		text, cursorOffset, deleted = editableTextDeleteRange(text, selectStart, selectEnd)
+		if !deleted {
+			cursorOffset = editableTextClampOffset(text, cursorOffset)
+		}
+	}
+	text = editableTextInsert(text, cursorOffset, insert)
+	return text, cursorOffset + utf8.RuneCountInString(insert), true
+}
+
+func textareaBackspaceText(text string, cursorOffset, selectStart, selectEnd int) (string, int, bool) {
+	if selectStart != selectEnd {
+		return editableTextDeleteRange(text, selectStart, selectEnd)
+	}
+	return editableTextDeleteBefore(text, cursorOffset)
+}
+
+func textareaDeleteText(text string, cursorOffset, selectStart, selectEnd int) (string, int, bool) {
+	if selectStart != selectEnd {
+		return editableTextDeleteRange(text, selectStart, selectEnd)
+	}
+	return editableTextDeleteAfter(text, cursorOffset)
+}
+
 func textareaRuneOffsetFromPoint(text string, rects []matrix.Vec4, point matrix.Vec2) int {
 	if len(rects) == 0 {
 		return 0
@@ -345,9 +520,6 @@ func (textarea *TextArea) showSelection() {
 	if !data.selectionContainer.entity.IsActive() {
 		data.selectionContainer.entity.SetActive(true)
 	}
-	for _, panel := range data.selectionPanels {
-		panel.entity.SetActive(true)
-	}
 }
 
 func (textarea *TextArea) hideSelection() {
@@ -358,6 +530,47 @@ func (textarea *TextArea) hideSelection() {
 	for _, panel := range data.selectionPanels {
 		panel.entity.SetActive(false)
 	}
+}
+
+func (textarea *TextArea) updateSelectionPanels() {
+	data := textarea.Data()
+	if data.selectStart == data.selectEnd {
+		textarea.hideSelection()
+		return
+	}
+	rects := textarea.runeRects()
+	ld := data.label.LabelData()
+	ranges := textareaLineRanges(data.text, rects, textareaLineHeight(ld))
+	panelIndex := 0
+	start, end := editableTextNormalizeSelection(data.text, data.selectStart, data.selectEnd)
+	for _, line := range ranges {
+		if end < line.start || start > line.end || (end == line.start && start != end) {
+			continue
+		}
+		if line.start == line.end && (start > line.start || end < line.end) {
+			continue
+		}
+		startX := float32(0)
+		if start > line.start {
+			startX = textareaCaretFromRuneRects(data.text, rects, start, line.height).x
+		}
+		endX := textarea.contentWidth()
+		if end <= line.end {
+			endX = textareaCaretFromRuneRects(data.text, rects, end, line.height).x
+		} else if line.end > line.start {
+			endX = textareaCaretFromRuneRects(data.text, rects, line.end, line.height).x
+		}
+		width := max(float32(0.001), endX-startX)
+		panel := textarea.ensureSelectionPanelIndex(panelIndex)
+		panel.layout.SetOffset(startX, line.y)
+		panel.layout.Scale(width, line.height)
+		panel.entity.SetActive(true)
+		panelIndex++
+	}
+	for i := panelIndex; i < len(data.selectionPanels); i++ {
+		data.selectionPanels[i].entity.SetActive(false)
+	}
+	textarea.showSelection()
 }
 
 func (textarea *TextArea) updatePlaceholderVisibility() {
@@ -381,11 +594,67 @@ func (textarea *TextArea) setSelect(start, end int) {
 		textarea.hideSelection()
 	} else {
 		textarea.showSelection()
+		textarea.updateSelectionPanels()
 	}
 }
 
 func (textarea *TextArea) resetSelect() {
 	textarea.setSelect(0, 0)
+}
+
+func (textarea *TextArea) moveCursor(offset int, extendSelection, keepPreferredX bool) {
+	data := textarea.Data()
+	oldOffset := data.cursorOffset
+	data.cursorOffset = editableTextClampOffset(data.text, offset)
+	if extendSelection {
+		if data.selectStart == data.selectEnd {
+			data.selectAnchor = oldOffset
+		}
+		textarea.setSelect(data.selectAnchor, data.cursorOffset)
+	} else {
+		textarea.resetSelect()
+		data.selectAnchor = data.cursorOffset
+	}
+	if !keepPreferredX {
+		data.hasPreferredCursorX = false
+	}
+	textarea.showCursor()
+	textarea.updateCursorPosition()
+}
+
+func (textarea *TextArea) deleteSelection(skipEvent bool) bool {
+	data := textarea.Data()
+	if data.selectStart == data.selectEnd {
+		return false
+	}
+	str, cursorOffset, deleted := editableTextDeleteRange(data.text,
+		data.selectStart, data.selectEnd)
+	if !deleted {
+		return false
+	}
+	textarea.setText(str, skipEvent)
+	data.cursorOffset = cursorOffset
+	data.selectAnchor = cursorOffset
+	data.hasPreferredCursorX = false
+	textarea.resetSelect()
+	textarea.updateCursorPosition()
+	return true
+}
+
+func (textarea *TextArea) InsertText(text string) {
+	data := textarea.Data()
+	str, cursorOffset, changed := textareaInsertTextAt(data.text,
+		data.cursorOffset, data.selectStart, data.selectEnd, text)
+	if !changed {
+		return
+	}
+	textarea.setText(str, false)
+	data.cursorOffset = cursorOffset
+	data.selectAnchor = cursorOffset
+	data.hasPreferredCursorX = false
+	textarea.resetSelect()
+	textarea.showCursor()
+	textarea.updateCursorPosition()
 }
 
 func (textarea *TextArea) setText(text string, skipEvent bool) {
@@ -394,6 +663,8 @@ func (textarea *TextArea) setText(text string, skipEvent bool) {
 	data.text = text
 	data.label.SetText(text)
 	data.cursorOffset = editableTextClampOffset(data.text, data.cursorOffset)
+	data.selectAnchor = data.cursorOffset
+	data.hasPreferredCursorX = false
 	data.selectStart = 0
 	data.selectEnd = 0
 	textarea.updatePlaceholderVisibility()
@@ -408,6 +679,7 @@ func (textarea *TextArea) setText(text string, skipEvent bool) {
 
 func (textarea *TextArea) focus()  { textarea.Base().requestEvent(EventTypeFocus) }
 func (textarea *TextArea) blur()   { textarea.Base().requestEvent(EventTypeBlur) }
+func (textarea *TextArea) submit() { textarea.Base().requestEvent(EventTypeSubmit) }
 func (textarea *TextArea) change() { textarea.Base().requestEvent(EventTypeChange) }
 
 func (textarea *TextArea) onEnter() {
@@ -501,6 +773,11 @@ func (textarea *TextArea) RemoveFocus() {
 	data.isActive = false
 	textarea.resetSelect()
 	textarea.hideCursor()
+	txt := textarea.Text()
+	if data.textOnFocus != txt {
+		data.textOnFocus = txt
+		textarea.submit()
+	}
 	man := textarea.man.Value()
 	if man != nil {
 		man.Host.Window.CursorStandard()
@@ -511,8 +788,166 @@ func (textarea *TextArea) RemoveFocus() {
 	textarea.blur()
 }
 
+func (textarea *TextArea) changeFocusToAnotherElement(target *UI) {
+	if target == nil || !target.entity.IsActive() {
+		return
+	}
+	if !textarea.Data().isActive {
+		return
+	}
+	textarea.RemoveFocus()
+	focusEditableElement(target)
+}
+
+func (textarea *TextArea) focusNext() {
+	if n := textarea.Data().nextFocusElement.Value(); n != nil {
+		textarea.changeFocusToAnotherElement(n)
+	}
+}
+
+func (textarea *TextArea) focusPrevious() {
+	if p := textarea.Data().prevFocusElement.Value(); p != nil {
+		textarea.changeFocusToAnotherElement(p)
+	}
+}
+
 func (textarea *TextArea) SelectAll() {
-	textarea.setSelect(0, editableTextRuneCount(textarea.Data().text))
+	data := textarea.Data()
+	data.selectAnchor = 0
+	textarea.setSelect(0, editableTextRuneCount(data.text))
+	data.cursorOffset = editableTextRuneCount(data.text)
+	textarea.updateCursorPosition()
+}
+
+func (textarea *TextArea) copyToClipboard() {
+	data := textarea.Data()
+	if data.selectStart != data.selectEnd {
+		str := editableTextSlice(data.text, data.selectStart, data.selectEnd)
+		textarea.Base().Host().Window.CopyToClipboard(str)
+	}
+}
+
+func (textarea *TextArea) cutToClipboard() {
+	textarea.copyToClipboard()
+	textarea.deleteSelection(false)
+}
+
+func (textarea *TextArea) pasteFromClipboard() {
+	text := textarea.man.Value().Host.Window.ClipboardContents()
+	textarea.InsertText(text)
+}
+
+func (textarea *TextArea) lineHeight() float32 {
+	return textareaLineHeight(textarea.Data().label.LabelData())
+}
+
+func (textarea *TextArea) movementRects() ([]matrix.Vec4, float32) {
+	return textarea.runeRects(), textarea.lineHeight()
+}
+
+func (textarea *TextArea) moveHorizontal(kb *hid.Keyboard, dir int) {
+	data := textarea.Data()
+	newPos := data.cursorOffset + dir
+	if kb.HasMeta() {
+		rects, height := textarea.movementRects()
+		if dir < 0 {
+			newPos = textareaLineStartOffset(data.text, rects, data.cursorOffset, height)
+		} else {
+			newPos = textareaLineEndOffset(data.text, rects, data.cursorOffset, height)
+		}
+	} else if kb.HasCtrl() || kb.HasAlt() {
+		newPos = editableTextWordBoundary(data.text, newPos, dir)
+	}
+	textarea.moveCursor(newPos, kb.HasShift(), false)
+}
+
+func (textarea *TextArea) moveVertical(kb *hid.Keyboard, dir int) {
+	data := textarea.Data()
+	count := editableTextRuneCount(data.text)
+	if kb.HasCtrl() || kb.HasMeta() {
+		if dir < 0 {
+			textarea.moveCursor(0, kb.HasShift(), false)
+		} else {
+			textarea.moveCursor(count, kb.HasShift(), false)
+		}
+		return
+	}
+	rects, height := textarea.movementRects()
+	if !data.hasPreferredCursorX {
+		data.preferredCursorX = textareaCaretFromRuneRects(data.text, rects,
+			data.cursorOffset, height).x
+		data.hasPreferredCursorX = true
+	}
+	newPos := textareaMoveVerticalOffset(data.text, rects, data.cursorOffset,
+		dir, data.preferredCursorX, height)
+	textarea.moveCursor(newPos, kb.HasShift(), true)
+}
+
+func (textarea *TextArea) moveLineBoundary(kb *hid.Keyboard, end bool) {
+	data := textarea.Data()
+	count := editableTextRuneCount(data.text)
+	newPos := 0
+	if kb.HasCtrl() || kb.HasMeta() {
+		if end {
+			newPos = count
+		}
+	} else {
+		rects, height := textarea.movementRects()
+		if end {
+			newPos = textareaLineEndOffset(data.text, rects, data.cursorOffset, height)
+		} else {
+			newPos = textareaLineStartOffset(data.text, rects, data.cursorOffset, height)
+		}
+	}
+	textarea.moveCursor(newPos, kb.HasShift(), false)
+}
+
+func (textarea *TextArea) backspace(kb *hid.Keyboard) {
+	data := textarea.Data()
+	if data.selectStart != data.selectEnd {
+		textarea.deleteSelection(false)
+	} else if kb.HasMeta() {
+		textarea.setSelect(0, data.cursorOffset)
+		textarea.deleteSelection(false)
+	} else if kb.HasCtrl() || kb.HasAlt() {
+		from := editableTextWordBoundary(data.text, data.cursorOffset-1, -1)
+		textarea.setSelect(from, data.cursorOffset)
+		textarea.deleteSelection(false)
+	} else {
+		str, cursorOffset, changed := textareaBackspaceText(data.text,
+			data.cursorOffset, data.selectStart, data.selectEnd)
+		if changed {
+			textarea.setText(str, false)
+			data.cursorOffset = cursorOffset
+			data.selectAnchor = cursorOffset
+			textarea.updateCursorPosition()
+		}
+	}
+	data.hasPreferredCursorX = false
+}
+
+func (textarea *TextArea) delete(kb *hid.Keyboard) {
+	data := textarea.Data()
+	if data.selectStart != data.selectEnd {
+		textarea.deleteSelection(false)
+	} else if kb.HasMeta() {
+		textarea.setSelect(data.cursorOffset, editableTextRuneCount(data.text))
+		textarea.deleteSelection(false)
+	} else if kb.HasCtrl() || kb.HasAlt() {
+		to := editableTextWordBoundary(data.text, data.cursorOffset+1, 1)
+		textarea.setSelect(data.cursorOffset, to)
+		textarea.deleteSelection(false)
+	} else {
+		str, cursorOffset, changed := textareaDeleteText(data.text,
+			data.cursorOffset, data.selectStart, data.selectEnd)
+		if changed {
+			textarea.setText(str, false)
+			data.cursorOffset = cursorOffset
+			data.selectAnchor = cursorOffset
+			textarea.updateCursorPosition()
+		}
+	}
+	data.hasPreferredCursorX = false
 }
 
 func (textarea *TextArea) SetFontFace(face rendering.FontFace) {
@@ -573,7 +1008,115 @@ func (textarea *TextArea) IsFocused() bool {
 func (textarea *TextArea) SetCursorOffset(offset int) {
 	data := textarea.Data()
 	data.cursorOffset = editableTextClampOffset(data.text, offset)
+	data.selectAnchor = data.cursorOffset
+	data.hasPreferredCursorX = false
 	textarea.updateCursorPosition()
+}
+
+func (textarea *TextArea) keyPressed(keyId int, keyState hid.KeyState) {
+	host := textarea.man.Value().Host
+	data := textarea.Data()
+	if !textarea.entity.IsActive() || !data.isActive {
+		return
+	}
+	kb := &host.Window.Keyboard
+	switch keyState {
+	case hid.KeyStateDown:
+		if keyId == hid.KeyboardKeyEscape {
+			textarea.SetTextWithoutEvent(data.textOnFocus)
+			textarea.RemoveFocus()
+			return
+		}
+		c := kb.KeyToRune(keyId)
+		if c != 0 {
+			if !kb.HasCtrlOrMeta() {
+				if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock) {
+					textarea.InsertText(string(unicode.ToUpper(c)))
+				} else {
+					textarea.InsertText(string(c))
+				}
+			} else {
+				switch c {
+				case 'c':
+					textarea.copyToClipboard()
+				case 'x':
+					textarea.cutToClipboard()
+				case 'v':
+					textarea.pasteFromClipboard()
+				case 'a':
+					textarea.SelectAll()
+				}
+			}
+			if textarea.events[EventTypeKeyDown].IsEmpty() {
+				textarea.man.Value().Group.triggerRequestStartState()
+			}
+		} else {
+			switch keyId {
+			case hid.KeyboardKeyBackspace:
+				textarea.backspace(kb)
+			case hid.KeyboardKeyDelete:
+				textarea.delete(kb)
+			case hid.KeyboardKeyRight:
+				textarea.moveHorizontal(kb, 1)
+			case hid.KeyboardKeyLeft:
+				textarea.moveHorizontal(kb, -1)
+			case hid.KeyboardKeyUp:
+				textarea.moveVertical(kb, -1)
+			case hid.KeyboardKeyDown:
+				textarea.moveVertical(kb, 1)
+			case hid.KeyboardKeyHome:
+				textarea.moveLineBoundary(kb, false)
+			case hid.KeyboardKeyEnd:
+				textarea.moveLineBoundary(kb, true)
+			case hid.KeyboardKeyReturn:
+				fallthrough
+			case hid.KeyboardKeyEnter:
+				textarea.InsertText("\n")
+			case hid.KeyboardKeyTab:
+				if host.Window.Keyboard.HasShift() {
+					host.RunAfterFrames(1, textarea.focusPrevious)
+				} else {
+					host.RunAfterFrames(1, textarea.focusNext)
+				}
+			}
+		}
+		textarea.Base().requestEvent(EventTypeKeyDown)
+	case hid.KeyStateUp:
+		textarea.Base().requestEvent(EventTypeKeyUp)
+	case hid.KeyStateHeld:
+		switch keyId {
+		case hid.KeyboardKeyBackspace:
+			prev := kb.GetKeyLastClicked(keyId)
+			if time.Since(prev).Milliseconds() > holdKeyPressedDuration {
+				textarea.backspace(kb)
+			}
+		case hid.KeyboardKeyDelete:
+			prev := kb.GetKeyLastClicked(keyId)
+			if time.Since(prev).Milliseconds() > holdKeyPressedDuration {
+				textarea.delete(kb)
+			}
+		case hid.KeyboardKeyLeft:
+			prev := kb.GetKeyLastClicked(keyId)
+			if time.Since(prev).Milliseconds() > holdKeyPressedDuration {
+				textarea.moveHorizontal(kb, -1)
+			}
+		case hid.KeyboardKeyRight:
+			prev := kb.GetKeyLastClicked(keyId)
+			if time.Since(prev).Milliseconds() > holdKeyPressedDuration {
+				textarea.moveHorizontal(kb, 1)
+			}
+		case hid.KeyboardKeyUp:
+			prev := kb.GetKeyLastClicked(keyId)
+			if time.Since(prev).Milliseconds() > holdKeyPressedDuration {
+				textarea.moveVertical(kb, -1)
+			}
+		case hid.KeyboardKeyDown:
+			prev := kb.GetKeyLastClicked(keyId)
+			if time.Since(prev).Milliseconds() > holdKeyPressedDuration {
+				textarea.moveVertical(kb, 1)
+			}
+		}
+	}
 }
 
 func (textarea *TextArea) forceLabelAndPlaceholderRerender() {

@@ -62,6 +62,8 @@ type inputData struct {
 	isActive                          bool
 	prevFocusInput                    weak.Pointer[Input]
 	nextFocusInput                    weak.Pointer[Input]
+	prevFocusElement                  weak.Pointer[UI]
+	nextFocusElement                  weak.Pointer[UI]
 	labelShift                        float32
 	textOnFocus                       string
 	lastClickTime                     time.Time
@@ -80,8 +82,23 @@ func (input *Input) InputData() *inputData {
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
+	input.SetNextFocusedElement(next.Base())
 	next.InputData().prevFocusInput = weak.Make(input)
 	input.InputData().nextFocusInput = weak.Make(next)
+}
+
+func (input *Input) SetNextFocusedElement(next *UI) {
+	if next == nil {
+		return
+	}
+	data := input.InputData()
+	data.nextFocusElement = weak.Make(next)
+	switch next.Type() {
+	case ElementTypeInput:
+		next.ToInput().InputData().prevFocusElement = weak.Make(input.Base())
+	case ElementTypeTextArea:
+		next.ToTextArea().Data().prevFocusElement = weak.Make(input.Base())
+	}
 }
 
 func (input *Input) Init(placeholderText string) {
@@ -621,20 +638,43 @@ func (input *Input) activated() {
 	input.hideHighlight()
 }
 
-func (input *Input) changeFocusToAnother(target *Input) {
+func focusEditableElement(target *UI) {
 	if target == nil || !target.entity.IsActive() {
 		return
 	}
+	switch target.Type() {
+	case ElementTypeInput:
+		input := target.ToInput()
+		input.Focus()
+		input.SelectAll()
+	case ElementTypeTextArea:
+		textarea := target.ToTextArea()
+		textarea.Focus()
+		textarea.SelectAll()
+	}
+}
+
+func (input *Input) changeFocusToAnotherElement(target *UI) {
 	data := input.InputData()
 	if !data.isActive {
 		return
 	}
 	input.RemoveFocus()
-	target.Focus()
-	target.SelectAll()
+	focusEditableElement(target)
+}
+
+func (input *Input) changeFocusToAnother(target *Input) {
+	if target == nil {
+		return
+	}
+	input.changeFocusToAnotherElement(target.Base())
 }
 
 func (input *Input) focusNext() {
+	if n := input.InputData().nextFocusElement.Value(); n != nil {
+		input.changeFocusToAnotherElement(n)
+		return
+	}
 	n := input.InputData().nextFocusInput.Value()
 	if n != nil {
 		input.changeFocusToAnother(n)
@@ -642,6 +682,10 @@ func (input *Input) focusNext() {
 }
 
 func (input *Input) focusPrevious() {
+	if p := input.InputData().prevFocusElement.Value(); p != nil {
+		input.changeFocusToAnotherElement(p)
+		return
+	}
 	p := input.InputData().prevFocusInput.Value()
 	if p != nil {
 		input.changeFocusToAnother(p)

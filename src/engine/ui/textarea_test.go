@@ -90,3 +90,67 @@ func TestTextAreaPointerOffsetFromPoint(t *testing.T) {
 		})
 	}
 }
+
+func TestTextAreaTextMutationOffsets(t *testing.T) {
+	t.Parallel()
+
+	text, cursor, changed := textareaInsertTextAt("one two", 3, 0, 0, "\n")
+	if !changed || text != "one\n two" || cursor != 4 {
+		t.Fatalf("textareaInsertTextAt(newline) = (%q, %d, %v), want (%q, %d, %v)",
+			text, cursor, changed, "one\n two", 4, true)
+	}
+
+	text, cursor, changed = textareaInsertTextAt("aβb", 3, 1, 2, "Δ")
+	if !changed || text != "aΔb" || cursor != 2 {
+		t.Fatalf("textareaInsertTextAt(selection) = (%q, %d, %v), want (%q, %d, %v)",
+			text, cursor, changed, "aΔb", 2, true)
+	}
+
+	text, cursor, changed = textareaBackspaceText("ab\ncd", 3, 0, 0)
+	if !changed || text != "abcd" || cursor != 2 {
+		t.Fatalf("textareaBackspaceText(line boundary) = (%q, %d, %v), want (%q, %d, %v)",
+			text, cursor, changed, "abcd", 2, true)
+	}
+
+	text, cursor, changed = textareaDeleteText("ab\ncd", 2, 0, 0)
+	if !changed || text != "abcd" || cursor != 2 {
+		t.Fatalf("textareaDeleteText(line boundary) = (%q, %d, %v), want (%q, %d, %v)",
+			text, cursor, changed, "abcd", 2, true)
+	}
+
+	text, cursor, changed = textareaBackspaceText("ab\ncd", 5, 1, 4)
+	if !changed || text != "ad" || cursor != 1 {
+		t.Fatalf("textareaBackspaceText(selection) = (%q, %d, %v), want (%q, %d, %v)",
+			text, cursor, changed, "ad", 1, true)
+	}
+}
+
+func TestTextAreaMovementOffsets(t *testing.T) {
+	t.Parallel()
+
+	text := "ab\ncde\nfg"
+	rects := []matrix.Vec4{
+		{0, 0, 10, 20},
+		{10, 0, 10, 20},
+		{20, 0, 0, 20},
+		{0, 20, 10, 20},
+		{10, 20, 10, 20},
+		{20, 20, 10, 20},
+		{30, 20, 0, 20},
+		{0, 40, 10, 20},
+		{10, 40, 10, 20},
+	}
+
+	if got := textareaMoveVerticalOffset(text, rects, 5, -1, 20, 20); got != 2 {
+		t.Fatalf("textareaMoveVerticalOffset(up) = %d, want %d", got, 2)
+	}
+	if got := textareaMoveVerticalOffset(text, rects, 2, 1, 20, 20); got != 5 {
+		t.Fatalf("textareaMoveVerticalOffset(down) = %d, want %d", got, 5)
+	}
+	if got := textareaLineStartOffset(text, rects, 5, 20); got != 3 {
+		t.Fatalf("textareaLineStartOffset() = %d, want %d", got, 3)
+	}
+	if got := textareaLineEndOffset(text, rects, 5, 20); got != 6 {
+		t.Fatalf("textareaLineEndOffset() = %d, want %d", got, 6)
+	}
+}
