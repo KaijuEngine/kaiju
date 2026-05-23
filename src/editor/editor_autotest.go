@@ -43,6 +43,7 @@ import (
 	"os"
 
 	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_workspace/ui_workspace"
 	"kaijuengine.com/engine"
 )
 
@@ -73,6 +74,8 @@ func (ed *Editor) initAutoTest() bool {
 			{label: "Testing redo operation", call: ed.history.Redo, wait: 5},
 			{label: "Switching to content workspace", call: func() { ed.WorkspaceSelected("content") }, wait: 5},
 			{label: "Switching back to stage workspace", call: func() { ed.WorkspaceSelected("stage") }, wait: 5},
+			{label: "Switching to UI workspace", call: func() { ed.WorkspaceSelected("ui") }, wait: 5},
+			{label: "Testing textarea editor smoke sample", call: ed.runTextAreaSmokeAutoTest, wait: 5},
 		}
 		slog.Info("AutoTest mode enabled - will run automated integration tests")
 		return true
@@ -96,5 +99,17 @@ func (ed *Editor) runAutoTest(deltaTime float64) {
 		slog.Info("AutoTest: All tests completed successfully!")
 		slog.Info("AutoTest: Exiting with success code")
 		os.Exit(0)
+	}
+}
+
+func (ed *Editor) runTextAreaSmokeAutoTest() {
+	workspace, ok := ed.currentWorkspace.(*ui_workspace.UIWorkspace)
+	if !ok {
+		slog.Error("AutoTest: expected UI workspace for textarea smoke test")
+		os.Exit(1)
+	}
+	if err := workspace.RunTextAreaSmokeTest(); err != nil {
+		slog.Error("AutoTest: textarea smoke test failed", "error", err)
+		os.Exit(1)
 	}
 }

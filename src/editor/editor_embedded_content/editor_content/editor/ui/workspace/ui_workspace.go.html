@@ -19,6 +19,52 @@
 				background-color: black;
 				color: white;
 				padding: 1em;
+				overflow: auto;
+			}
+			.textareaSmoke {
+				width: 48em;
+				max-width: calc(100% - 2em);
+				margin-top: 1em;
+				padding: 0.75em;
+				background-color: #1f2528;
+				border: 1px solid #4d6068;
+			}
+			.textareaSmokeHeader {
+				color: #ddd;
+				font-size: 1.1em;
+				margin-bottom: 0.5em;
+			}
+			.textareaSmokeRow {
+				display: flex;
+				gap: 0.5em;
+				margin-bottom: 0.5em;
+			}
+			.textareaSmokeRow input {
+				width: 100%;
+				height: 2em;
+				margin-left: 0;
+			}
+			.textareaSmokeField {
+				width: 100%;
+				height: 10em;
+				color: #e9f0f2;
+				background-color: #111719;
+				caret-color: #ffd65a;
+				font-size: 14px;
+				line-height: 1.35em;
+				margin-bottom: 0.5em;
+				word-wrap: normal;
+			}
+			.textareaSmokeAlt .textareaSmokeField {
+				color: #f5efe2;
+				background-color: #2f1f27;
+				border-color: #bd8a4b;
+				caret-color: #81d8ff;
+				font-size: 16px;
+			}
+			.textareaSmokeActions {
+				display: flex;
+				gap: 0.5em;
 			}
 			.menu {
 				position: absolute;
@@ -52,6 +98,22 @@
 					- As you edit the file, this UI preview will dynamically
 					update to reflect your changes.
 				</p>
+				<div id="textareaSmokeTemplate" class="textareaSmoke">
+					<div class="textareaSmokeHeader">Textarea smoke field</div>
+					<div class="textareaSmokeRow">
+						<input type="text" placeholder="Tab starts here..." value="first field" />
+					</div>
+					<textarea class="textareaSmokeField" placeholder="Write multiple paragraphs...">A real editor markup textarea.
+
+Use this field to type multiple paragraphs, select wrapped text, scroll vertically, resize the editor window, and tab between this textarea and the adjacent inputs.</textarea>
+					<div class="textareaSmokeRow">
+						<input type="text" placeholder="Tab lands here after textarea..." value="last field" />
+					</div>
+					<div class="textareaSmokeActions">
+						<button onclick="toggleTextareaSmokeStyle">Toggle style</button>
+						<button onclick="duplicateTextareaSmokeField">Duplicate field</button>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class="menu">
