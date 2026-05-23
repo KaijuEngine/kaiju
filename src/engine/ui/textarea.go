@@ -22,7 +22,9 @@ import (
 )
 
 const (
-	textareaPadding float32 = 5.0
+	textareaPadding       float32 = 5.0
+	textareaDefaultWidth  float32 = 320.0
+	textareaDefaultHeight float32 = 96.0
 )
 
 type textareaData struct {
@@ -84,6 +86,7 @@ func (textarea *TextArea) Init(placeholderText string) {
 	host := man.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, ElementTypeTextArea)
+	p.layout.Scale(textareaDefaultWidth, textareaDefaultHeight)
 	p.DontFitContent()
 	p.SetOverflow(OverflowScroll)
 	p.SetScrollDirection(PanelScrollDirectionVertical)

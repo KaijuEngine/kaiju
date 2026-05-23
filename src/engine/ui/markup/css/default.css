@@ -446,6 +446,8 @@ input[type="text"]:focus {
 }
 textarea {
 	display: block;
+	width: 320px;
+	height: 96px;
 	color: white;
 	background-color: #151515;
 	border: 2px solid #151515;

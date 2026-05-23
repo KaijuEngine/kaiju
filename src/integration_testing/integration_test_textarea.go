@@ -5,12 +5,14 @@ import (
 	"image"
 	"image/png"
 	"log/slog"
+	"math"
 	"os"
 	"strings"
 	"unicode/utf8"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
@@ -20,6 +22,7 @@ const textareaFinalLine = "FINAL LINE END"
 
 func init() {
 	tests["textarea"] = IntegrationTestTextArea
+	tests["textarea-default"] = IntegrationTestTextAreaDefault
 }
 
 func IntegrationTestTextArea(host *engine.Host) {
@@ -72,6 +75,59 @@ func IntegrationTestTextArea(host *engine.Host) {
 		}
 		os.Exit(0)
 	})
+}
+
+func IntegrationTestTextAreaDefault(host *engine.Host) {
+	uiMan := ui.Manager{}
+	uiMan.Init(host)
+
+	doc := markup.DocumentFromHTMLString(&uiMan, `
+		<div style="width: 420px; height: 180px;">
+			<textarea id="bareNotes">Bare textarea starts with UA defaults.</textarea>
+		</div>
+	`, "", nil, nil, nil)
+	elm, ok := doc.GetElementById("bareNotes")
+	if !ok {
+		slog.Error("textarea default integration test failed", "error", "missing bare textarea")
+		os.Exit(1)
+	}
+	textarea := elm.UI.ToTextArea()
+
+	host.RunAfterFrames(8, func() {
+		initialSize := textarea.Base().Layout().PixelSize()
+		longText := strings.Join([]string{
+			"First paragraph uses a textarea with no inline size or class.",
+			"Second paragraph should overflow vertically instead of resizing the element.",
+			"Third paragraph keeps going to force a scroll range.",
+			"Fourth paragraph confirms the height remains stable.",
+			"Fifth paragraph gives the caret somewhere deeper to land.",
+		}, "\n\n")
+		textarea.Focus()
+		textarea.SetText(longText)
+		textarea.SetCursorOffset(utf8.RuneCountInString(longText))
+		host.RunAfterFrames(10, func() {
+			if err := assertTextAreaDefaultStable(textarea, initialSize.Y()); err != nil {
+				slog.Error("textarea default integration test failed", "error", err)
+				os.Exit(1)
+			}
+			os.Exit(0)
+		})
+	})
+}
+
+func assertTextAreaDefaultStable(textarea *ui.TextArea, initialHeight float32) error {
+	panel := textarea.Base().ToPanel()
+	size := textarea.Base().Layout().PixelSize()
+	if size.X() < 300 || size.Y() < 90 {
+		return fmt.Errorf("expected default textarea size around 320x96, got %.2fx%.2f", size.X(), size.Y())
+	}
+	if math.Abs(float64(size.Y()-initialHeight)) > 1 {
+		return fmt.Errorf("expected bare textarea height to remain stable at %.2f, got %.2f", initialHeight, size.Y())
+	}
+	if panel.MaxScroll().Y() <= 0 {
+		return fmt.Errorf("expected bare textarea to scroll vertically after long text, max scroll %.2f", panel.MaxScroll().Y())
+	}
+	return nil
 }
 
 func readScreenshotImage(path string) (image.Image, error) {
