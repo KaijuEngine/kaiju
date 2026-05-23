@@ -428,7 +428,7 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	#ifdef HAS_GBUFFER
 		void processGBuffer(vec3 nml) {
 		#ifndef OIT
-			outPosition = vec4(fragPos, uintBitsToFloat(fragFlags));
+			outPosition = vec4(fragPos, uintBitsToFloat(fragFlags | 0x40000000u));
 			outNormal = vec4(nml, 0.0);
 		#endif
 		}
