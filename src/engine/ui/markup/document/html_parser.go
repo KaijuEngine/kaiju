@@ -266,6 +266,13 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
+		if parent := e.Parent.Value(); parent != nil && parent.IsButton() && parent.UI != nil {
+			label.Base().Layout().Stylizer = ui.StretchCenterStylizer{
+				BasicStylizer: ui.BasicStylizer{Parent: weak.Make(parent.UI)},
+			}
+			label.SetJustify(rendering.FontJustifyCenter)
+			label.SetBaseline(rendering.FontBaselineCenter)
+		}
 		appendElement(label.Base(), nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 		panel := uiMan.Add().ToPanel()

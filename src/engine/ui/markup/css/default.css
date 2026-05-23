@@ -47,7 +47,7 @@ blockquote {
 }
 body {
 	display: block;
-	margin: 8px;
+	margin: 0;
 }
 /* body:focus {
 	outline: none;

@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/engine"
-	"kaijuengine.com/engine/assets"
 )
 
 var tests = map[string]func(host *engine.Host){}
@@ -23,10 +21,5 @@ func IntegrationTestGame(testName string) (*IntegrationGame, error) {
 }
 
 func (IntegrationGame) PluginRegistry() []reflect.Type { return []reflect.Type{} }
-
-func (IntegrationGame) ContentDatabase() (assets.Database, error) {
-	// TODO:  Only do this if it is the editor, otherwise use standard content
-	return &editor_embedded_content.EditorContent{}, nil
-}
 
 func (g *IntegrationGame) Launch(host *engine.Host) { g.test(host) }

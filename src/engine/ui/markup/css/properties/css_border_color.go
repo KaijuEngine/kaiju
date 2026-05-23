@@ -8,6 +8,7 @@ package properties
 
 import (
 	"fmt"
+	"slices"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -16,6 +17,33 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
 )
+
+func (p BorderColor) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	values = expandFourSideValues(values)
+	for i := 1; i < len(ruleList); i++ {
+		removeRule := false
+		switch ruleList[i].Property {
+		case "border-top-color":
+			values[0] = ruleList[i].Values[0]
+			removeRule = true
+		case "border-right-color":
+			values[1] = ruleList[i].Values[0]
+			removeRule = true
+		case "border-bottom-color":
+			values[2] = ruleList[i].Values[0]
+			removeRule = true
+		case "border-left-color":
+			values[3] = ruleList[i].Values[0]
+			removeRule = true
+		}
+		if removeRule {
+			ruleList = slices.Delete(ruleList, i, i+1)
+			i--
+		}
+	}
+	ruleList[0].Values = values
+	return values, ruleList
+}
 
 func colorValues(values []rules.PropertyValue) []string {
 	hexes := make([]string, len(values))

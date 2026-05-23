@@ -27,7 +27,8 @@ func (p Bottom) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 	parent := elm.Parent.Value()
 	height := float32(host.Window.Height())
 	if parent != nil {
-		height = parent.UI.Layout().PixelSize().Y()
+		parentLayout := parent.UI.Layout()
+		height = parentLayout.PixelSize().Y() - parentLayout.Border().Vertical()
 	}
 
 	s := values[0].Str

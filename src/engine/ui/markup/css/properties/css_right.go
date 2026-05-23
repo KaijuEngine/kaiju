@@ -25,13 +25,10 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 
 	offset := panel.Base().Layout().InnerOffset().Right()
 	parent := elm.Parent.Value()
-	pad := float32(0)
-	border := float32(0)
 	width := float32(host.Window.Width())
 	if parent != nil {
-		width = parent.UI.Layout().PixelSize().X()
-		pad = parent.UI.Layout().Padding().Right()
-		border = parent.UI.Layout().Border().Right()
+		parentLayout := parent.UI.Layout()
+		width = parentLayout.PixelSize().X() - parentLayout.Border().Horizontal()
 	}
 
 	s := values[0].Str
@@ -59,7 +56,7 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		}
 	}
 	selfWidth := layout.PixelSize().X()
-	layout.SetInnerOffsetLeft(width - selfWidth - offset - pad - border)
+	layout.SetInnerOffsetLeft(width - selfWidth - offset)
 
 	return nil
 }
