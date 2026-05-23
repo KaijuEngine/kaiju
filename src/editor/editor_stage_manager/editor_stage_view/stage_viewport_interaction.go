@@ -9,13 +9,14 @@ package editor_stage_view
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"kaijuengine.com/editor/project"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
 const menuBarHeightArea = 30
 
-func (v *StageView) processViewportInteractions() {
+func (v *StageView) processViewportInteractions(proj *project.Project) {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &v.host.Window.Mouse
 	kb := &v.host.Window.Keyboard
@@ -30,7 +31,7 @@ func (v *StageView) processViewportInteractions() {
 	if v.transformTool.Update() {
 		return
 	}
-	v.transformMan.Update(v.host)
+	v.transformMan.Update(v.host, proj)
 	if v.transformMan.IsBusy() {
 		return
 	}

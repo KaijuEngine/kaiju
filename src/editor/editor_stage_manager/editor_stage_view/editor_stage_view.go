@@ -125,7 +125,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	// If we are currently using any of the transformation tools, we shouldn't
 	// do any of the other updates like camera
 	if v.transformMan.IsBusy() {
-		v.transformMan.Update(v.host)
+		v.transformMan.Update(v.host, proj)
 		return true
 	}
 	if v.camera.Update(v.host, deltaTime) {
@@ -134,7 +134,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 		v.selectTool.Cancel()
 		return true
 	} else {
-		v.processViewportInteractions()
+		v.processViewportInteractions(proj)
 	}
 	kb := &v.host.Window.Keyboard
 	if kb.KeyDown(hid.KeyboardKeyDelete) {

@@ -241,6 +241,24 @@ func (m *StageManager) DuplicateSelected(proj *project.Project) {
 	}
 }
 
+func (m *StageManager) DuplicateSelectionInPlace(proj *project.Project) []*StageEntity {
+	defer tracing.NewRegion("StageManager.DuplicateSelectionInPlace").End()
+	if proj == nil {
+		return nil
+	}
+	sel := slices.Clone(m.Selection())
+	duplicates := make([]*StageEntity, 0, len(sel))
+	for _, e := range sel {
+		dup, err := m.duplicateEntity(e, proj)
+		if err != nil {
+			slog.Error("failed to duplicate entity in place", "error", err)
+			continue
+		}
+		duplicates = append(duplicates, dup)
+	}
+	return duplicates
+}
+
 func (m *StageManager) LastSelected() *StageEntity {
 	return m.selected[len(m.selected)-1]
 }

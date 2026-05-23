@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
@@ -40,8 +41,10 @@ type TransformationManager struct {
 	history        *memento.History
 	memento        *transformHistory
 	snapSettings   *editor_settings.SnapSettings
+	project        *project.Project
 	currentTool    ToolState
 	isBusy         bool
+	translateDupTx bool
 }
 
 func (t *TransformationManager) IsBusy() bool { return t.isBusy }
@@ -83,7 +86,8 @@ func (t *TransformationManager) cameraModeChanged(mode editor_controls.EditorCam
 	t.scalingTool.SetDimensions(mode)
 }
 
-func (t *TransformationManager) Update(host *engine.Host) {
+func (t *TransformationManager) Update(host *engine.Host, proj *project.Project) {
+	t.project = proj
 	kb := &host.Window.Keyboard
 	if !t.isBusy {
 		pos := matrix.Vec3NaN()
@@ -140,6 +144,7 @@ func (t *TransformationManager) showToolState(state ToolState, pos matrix.Vec3) 
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
 	defer tracing.NewRegion("TransformationManager.translateStart").End()
 	t.transformStart = pos
+	t.beginTranslateDuplicateTransaction()
 	t.setupMemento()
 }
 
@@ -158,6 +163,24 @@ func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
 	t.translateMove(pos)
 	t.history.Add(t.memento)
 	t.manager.RefitBVH(t.manager.Selection()[0])
+	if t.translateDupTx {
+		t.history.CommitTransaction()
+		t.translateDupTx = false
+	}
+}
+
+func (t *TransformationManager) beginTranslateDuplicateTransaction() {
+	t.translateDupTx = false
+	view := t.view.Value()
+	if view == nil || t.project == nil || !t.manager.HasSelection() {
+		return
+	}
+	if !view.host.Window.Keyboard.HasShift() {
+		return
+	}
+	t.history.BeginTransaction()
+	t.translateDupTx = true
+	t.manager.DuplicateSelectionInPlace(t.project)
 }
 
 func (t *TransformationManager) rotateStart(rot matrix.Vec4) {
