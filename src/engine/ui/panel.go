@@ -884,6 +884,28 @@ func (p *Panel) SetFlowLayout() {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
+func (p *Panel) ClearLayoutStyles() {
+	pd := p.PanelData()
+	pd.layoutMode = LayoutModeFlow
+	pd.gridColumns = 0
+	pd.gridGap = matrix.Vec2Zero()
+	pd.gridTemplateColumns = nil
+	pd.gridAutoColumns = 0
+	pd.gridAutoRows = 0
+	pd.flexDirection = FlexDirectionRow
+	pd.flexWrap = FlexWrapNoWrap
+	pd.flexJustify = FlexJustifyStart
+	pd.flexAlignItems = FlexAlignStretch
+	pd.flexAlignContent = FlexAlignContentStretch
+	pd.minSize = matrix.NewVec2(-1, -1)
+	pd.maxSize = matrix.NewVec2(-1, -1)
+	pd.aspectRatio = 0
+	pd.usesBorderBox = false
+	pd.fitContent = ContentFitBoth
+	p.layout.ClearStyles()
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
 func (p *Panel) IsGrid() bool {
 	return p.PanelData().layoutMode == LayoutModeGrid && p.GridColumns() > 0
 }

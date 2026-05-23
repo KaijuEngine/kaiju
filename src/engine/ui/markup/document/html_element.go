@@ -301,5 +301,6 @@ func (e *Element) Clone(parent *Element) *Element {
 		e.Children[i].Clone(elm)
 	}
 	elm.Stylizer = e.Stylizer.clone(elm)
+	elm.UI.Layout().Stylizer = &elm.Stylizer
 	return elm
 }

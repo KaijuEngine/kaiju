@@ -79,6 +79,7 @@ func (l *Layout) ClearStyles() {
 	l.flexBasisPercent = false
 	l.flexOrder = 0
 	l.alignSelf = FlexAlignAuto
+	l.positioning = PositioningStatic
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
