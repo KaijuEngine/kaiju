@@ -30,6 +30,7 @@ type textareaData struct {
 	label               *Label
 	placeholder         *Label
 	cursor              *Panel
+	content             *Panel
 	selectionContainer  *Panel
 	selectionPanels     []*Panel
 	selectionColor      matrix.Color
@@ -42,6 +43,7 @@ type textareaData struct {
 	selectAnchor        int
 	preferredCursorX    float32
 	hasPreferredCursorX bool
+	ensureVisibleNext   bool
 	required            bool
 	isActive            bool
 	prevFocusElement    weak.Pointer[UI]
@@ -83,37 +85,44 @@ func (textarea *TextArea) Init(placeholderText string) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, ElementTypeTextArea)
 	p.DontFitContent()
+	p.SetOverflow(OverflowScroll)
 	p.SetScrollDirection(PanelScrollDirectionVertical)
+
+	data.content = man.Add().ToPanel()
+	data.content.Init(nil, ElementTypePanel)
+	data.content.DontFitContent()
+	data.content.AllowClickThrough()
+	p.AddChild(data.content.Base())
 
 	data.selectionContainer = man.Add().ToPanel()
 	data.selectionContainer.Init(nil, ElementTypePanel)
 	data.selectionContainer.DontFitContent()
 	data.selectionContainer.layout.SetPositioning(PositioningAbsolute)
 	data.selectionContainer.AllowClickThrough()
-	p.AddChild(data.selectionContainer.Base())
+	data.content.AddChild(data.selectionContainer.Base())
 
 	data.label = man.Add().ToLabel()
 	data.label.Init("")
-	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
+	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(data.content.Base())}}
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.SetBaseline(rendering.FontBaselineTop)
 	data.label.SetWrap(true)
-	p.AddChild(data.label.Base())
+	data.content.AddChild(data.label.Base())
 
 	data.placeholder = man.Add().ToLabel()
 	data.placeholder.Init(placeholderText)
-	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
+	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(data.content.Base())}}
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.SetBaseline(rendering.FontBaselineTop)
 	data.placeholder.SetWrap(true)
-	p.AddChild(data.placeholder.Base())
+	data.content.AddChild(data.placeholder.Base())
 
 	data.cursor = man.Add().ToPanel()
 	data.cursor.Init(tex, ElementTypePanel)
 	data.cursor.DontFitContent()
 	data.cursor.SetColor(matrix.ColorBlack())
 	data.cursor.layout.SetPositioning(PositioningAbsolute)
-	p.AddChild(data.cursor.Base())
+	data.content.AddChild(data.cursor.Base())
 
 	textarea.ensureSelectionPanel()
 	textarea.SetFGColor(matrix.ColorBlack())
@@ -177,15 +186,16 @@ func (textarea *TextArea) ensureSelectionPanelIndex(index int) *Panel {
 func (textarea *TextArea) onLayoutUpdating() {
 	data := textarea.Data()
 	width := textarea.contentWidth()
-	height := textarea.contentHeight()
+	scrollHeight := textarea.scrollContentHeight()
 
+	data.content.layout.Scale(width+textareaPadding*2, scrollHeight)
 	for _, label := range []*Label{data.label, data.placeholder} {
 		label.layout.SetOffset(textareaPadding, textareaPadding)
 		label.layout.ScaleWidth(width)
 		label.SetMaxWidth(width)
 	}
 	data.selectionContainer.layout.SetOffset(textareaPadding, textareaPadding)
-	data.selectionContainer.layout.Scale(width, height)
+	data.selectionContainer.layout.Scale(width, scrollHeight-textareaPadding*2)
 	if data.selectStart != data.selectEnd {
 		textarea.updateSelectionPanels()
 	}
@@ -218,7 +228,11 @@ func (textarea *TextArea) update(deltaTime float64) {
 		data.hasPreferredCursorX = false
 		textarea.setSelect(data.selectAnchor, data.cursorOffset)
 		textarea.showCursor()
-		textarea.updateCursorPosition()
+		textarea.requestEnsureCursorVisible()
+	}
+	if data.ensureVisibleNext {
+		data.ensureVisibleNext = false
+		textarea.ensureCursorVisible(textarea.updateCursorPosition())
 	}
 }
 
@@ -239,15 +253,15 @@ func (textarea *TextArea) hideCursor() {
 	data.cursorBlink = cursorBlinkRate
 }
 
-func (textarea *TextArea) updateCursorPosition() {
+func (textarea *TextArea) updateCursorPosition() textareaCaretGeometry {
 	data := textarea.Data()
 	caret := textarea.caretGeometry(data.cursorOffset)
 	data.cursor.layout.Scale(cursorWidth, max(float32(0.001), caret.height))
 	data.cursor.layout.SetOffset(textareaPadding+caret.x, textareaPadding+caret.y)
-	textarea.scrollCaretIntoView(caret)
+	return caret
 }
 
-func (textarea *TextArea) scrollCaretIntoView(caret textareaCaretGeometry) {
+func (textarea *TextArea) ensureCursorVisible(caret textareaCaretGeometry) {
 	viewportHeight := textarea.contentHeight()
 	if viewportHeight <= 0 {
 		return
@@ -263,6 +277,11 @@ func (textarea *TextArea) scrollCaretIntoView(caret textareaCaretGeometry) {
 	}
 }
 
+func (textarea *TextArea) requestEnsureCursorVisible() {
+	textarea.Data().ensureVisibleNext = true
+	textarea.updateCursorPosition()
+}
+
 func (textarea *TextArea) contentWidth() float32 {
 	ps := textarea.layout.PixelSize()
 	return max(float32(0.001), ps.Width()-textareaPadding*2)
@@ -271,6 +290,20 @@ func (textarea *TextArea) contentWidth() float32 {
 func (textarea *TextArea) contentHeight() float32 {
 	ps := textarea.layout.PixelSize()
 	return max(float32(0.001), ps.Height()-textareaPadding*2)
+}
+
+func (textarea *TextArea) scrollContentHeight() float32 {
+	data := textarea.Data()
+	ld := data.label.LabelData()
+	lineHeight := textareaLineHeight(ld)
+	height := textarea.contentHeight()
+	rects := textarea.runeRects()
+	ranges := textareaLineRanges(data.text, rects, lineHeight)
+	if len(ranges) > 0 {
+		last := ranges[len(ranges)-1]
+		height = max(height, last.y+last.height)
+	}
+	return height + textareaPadding*2
 }
 
 func (textarea *TextArea) runeRects() []matrix.Vec4 {
@@ -664,7 +697,7 @@ func (textarea *TextArea) moveCursor(offset int, extendSelection, keepPreferredX
 		data.hasPreferredCursorX = false
 	}
 	textarea.showCursor()
-	textarea.updateCursorPosition()
+	textarea.requestEnsureCursorVisible()
 }
 
 func (textarea *TextArea) deleteSelection(skipEvent bool) bool {
@@ -682,7 +715,7 @@ func (textarea *TextArea) deleteSelection(skipEvent bool) bool {
 	data.selectAnchor = cursorOffset
 	data.hasPreferredCursorX = false
 	textarea.resetSelect()
-	textarea.updateCursorPosition()
+	textarea.requestEnsureCursorVisible()
 	return true
 }
 
@@ -699,7 +732,7 @@ func (textarea *TextArea) InsertText(text string) {
 	data.hasPreferredCursorX = false
 	textarea.resetSelect()
 	textarea.showCursor()
-	textarea.updateCursorPosition()
+	textarea.requestEnsureCursorVisible()
 }
 
 func (textarea *TextArea) setText(text string, skipEvent bool) {
@@ -869,7 +902,7 @@ func (textarea *TextArea) SelectAll() {
 	data.selectAnchor = 0
 	textarea.setSelect(0, editableTextRuneCount(data.text))
 	data.cursorOffset = editableTextRuneCount(data.text)
-	textarea.updateCursorPosition()
+	textarea.requestEnsureCursorVisible()
 }
 
 func (textarea *TextArea) copyToClipboard() {
@@ -973,7 +1006,7 @@ func (textarea *TextArea) backspace(kb *hid.Keyboard) {
 			textarea.setText(str, false)
 			data.cursorOffset = cursorOffset
 			data.selectAnchor = cursorOffset
-			textarea.updateCursorPosition()
+			textarea.requestEnsureCursorVisible()
 		}
 	}
 	data.hasPreferredCursorX = false
@@ -997,7 +1030,7 @@ func (textarea *TextArea) delete(kb *hid.Keyboard) {
 			textarea.setText(str, false)
 			data.cursorOffset = cursorOffset
 			data.selectAnchor = cursorOffset
-			textarea.updateCursorPosition()
+			textarea.requestEnsureCursorVisible()
 		}
 	}
 	data.hasPreferredCursorX = false
@@ -1069,7 +1102,7 @@ func (textarea *TextArea) SetCursorOffset(offset int) {
 	data.cursorOffset = editableTextClampOffset(data.text, offset)
 	data.selectAnchor = data.cursorOffset
 	data.hasPreferredCursorX = false
-	textarea.updateCursorPosition()
+	textarea.requestEnsureCursorVisible()
 }
 
 func (textarea *TextArea) keyPressed(keyId int, keyState hid.KeyState) {
