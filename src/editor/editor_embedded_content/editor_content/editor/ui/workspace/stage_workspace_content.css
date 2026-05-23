@@ -14,7 +14,7 @@
 }
 #tooltip {
 	position: absolute;
-	padding: 5px;
+	padding: 0 5px;
 	background-color: #282828;
 	border: 2px solid white;
 	color: #AAA;
