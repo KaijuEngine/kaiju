@@ -1,0 +1,150 @@
+<div id="detailsArea" class="edPanelBg sideBarStandard">
+	<div class="detailsBody">
+		<input id="detailsName" type="text" placeholder="Name..." onsubmit="submitDetailsName" data-copypaste="entityName" onrightclick="onRightClick" />
+		<div data-copypaste="entityPosition" onrightclick="onRightClick">Position</div>
+		<span class="tformX"></span><input id="detailsPosX" class="tformInput" type="text" placeholder="X..." onchange="setPosX" />
+		<span class="tformY"></span><input id="detailsPosY" class="tformInput" type="text" placeholder="Y..." onchange="setPosY" />
+		<span class="tformZ"></span><input id="detailsPosZ" class="tformInput" type="text" placeholder="Z..." onchange="setPosZ" />
+		<div data-copypaste="entityRotation" onrightclick="onRightClick">Rotation</div>
+		<span class="tformX"></span><input id="detailsRotX" class="tformInput" type="text" placeholder="X..." onchange="setRotX" />
+		<span class="tformY"></span><input id="detailsRotY" class="tformInput" type="text" placeholder="Y..." onchange="setRotY" />
+		<span class="tformZ"></span><input id="detailsRotZ" class="tformInput" type="text" placeholder="Z..." onchange="setRotZ" />
+		<div data-copypaste="entityScale" onrightclick="onRightClick">Scale</div>
+		<span class="tformX"></span><input id="detailsScaleX" class="tformInput" type="text" placeholder="X..." onchange="setScaleX" />
+		<span class="tformY"></span><input id="detailsScaleY" class="tformInput" type="text" placeholder="Y..." onchange="setScaleY" />
+		<span class="tformZ"></span><input id="detailsScaleZ" class="tformInput" type="text" placeholder="Z..." onchange="setScaleZ" />
+		<div id="detailsMultiSelect">Multiple objects selected...</div>
+		<div id="detailsMeshBlock">
+			<div>Mesh</div>
+			<div id="detailsMesh" class="dataContentId" data-type="Mesh" onclick="clickSelectMesh" ondrop="meshIdDrop" ondragenter="meshIdDragEnter" ondragleave="meshIdDragExit">empty &lpar;Mesh&rpar;</div>
+		</div>
+		<div id="detailsMaterialBlock">
+			<div>Material</div>
+			<div id="detailsMaterial" class="dataContentId" data-type="Material" onclick="clickSelectMaterial" ondrop="materialIdDrop" ondragenter="materialIdDragEnter" ondragleave="materialIdDragExit">empty &lpar;Material&rpar;</div>
+		</div>
+		<div id="shaderInstanceData" class="dataTable">
+			<div id="shaderInstanceDataList">
+				<div id="shaderInstanceDataTemplate" class="dataBindingBlock">
+					<div class="center">Shader name...</div>
+					<div class="entityDataField" data-fieldidx="" data-bindidx="">
+						<span>Field name...</span>
+						<!-- Text input -->
+						<div>
+							<input class="dataInput" type="text" placeholder="Input..." onchange="changeShaderData" />
+						</div>
+						<!-- Checkbox input -->
+						<div>
+							<input class="dataCheck" type="checkbox" onchange="changeShaderData" />
+						</div>
+						<!-- Vec2 -->
+						<div>
+							<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+							<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+						</div>
+						<!-- Vec3 -->
+						<div>
+							<input class="smallInput" type="text" placeholder="X..." onchange="changeShaderData" />
+							<input class="smallInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+							<input class="smallInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+						</div>
+						<!-- Vec4 -->
+						<div>
+							<input class="smallerInput" type="text" placeholder="X..." onchange="changeShaderData" />
+							<input class="smallerInput" type="text" placeholder="Y..." onchange="changeShaderData" />
+							<input class="smallerInput" type="text" placeholder="Z..." onchange="changeShaderData" />
+							<input class="smallerInput" type="text" placeholder="W..." onchange="changeShaderData" />
+						</div>
+						<!-- Color -->
+						<div>
+							<div class="edColorPickInput" data-shader="true" onclick="showColorPicker"></div>
+						</div>
+						<!-- Select input -->
+						<div>
+							<select class="dataInput" onchange="changeShaderData"></select>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="detailsEntityDataTable" class="dataTable">
+			<div id="boundEntityDataList">
+				<div id="boundEntityDataTemplate" class="dataBindingBlock">
+					<div class="dataControls">
+						<button class="pasteIcon" data-bindidx="" onclick="pasteEntityData">&#xE14F;</button>
+						<button class="copyIcon" data-bindidx="" onclick="copyEntityData">&#xE14D;</button>
+						<button class="deleteButton" data-bindidx="" onclick="removeEntityData">&#xE872;</button>
+					</div>
+					<div class="center">Data name...</div>
+					<div class="entityDataValidation entityDataValidationWarning" data-validation="terrain-missing" data-bindidx="">
+						<span>Terrain collider needs TerrainEntityData on this entity.</span>
+					</div>
+					<div class="entityDataValidation entityDataValidationWarning" data-validation="terrain-texture-missing" data-bindidx="">
+						<span>Terrain layer texture is missing; using fallback.</span>
+					</div>
+					<div class="entityDataField" data-fieldidx="" data-bindidx="">
+						<span>Field name...</span>
+						<!-- Text input -->
+						<div>
+							<input class="dataInput" type="text" placeholder="Input..." onchange="changeData" />
+						</div>
+						<!-- Checkbox input -->
+						<div>
+							<input class="dataCheck" type="checkbox" onchange="changeData" />
+						</div>
+						<!-- Vec2 -->
+						<div>
+							<input class="smallInput" type="text" placeholder="X..." onchange="changeData" />
+							<input class="smallInput" type="text" placeholder="Y..." onchange="changeData" />
+						</div>
+						<!-- Vec3 -->
+						<div>
+							<input class="smallInput" type="text" placeholder="X..." onchange="changeData" />
+							<input class="smallInput" type="text" placeholder="Y..." onchange="changeData" />
+							<input class="smallInput" type="text" placeholder="Z..." onchange="changeData" />
+						</div>
+						<!-- Vec4 -->
+						<div>
+							<input class="smallerInput" type="text" placeholder="X..." onchange="changeData" />
+							<input class="smallerInput" type="text" placeholder="Y..." onchange="changeData" />
+							<input class="smallerInput" type="text" placeholder="Z..." onchange="changeData" />
+							<input class="smallerInput" type="text" placeholder="W..." onchange="changeData" />
+						</div>
+						<!-- Color -->
+						<div>
+							<div class="edColorPickInput" onclick="showColorPicker"></div>
+						</div>
+						<!-- Select input -->
+						<div>
+							<select class="dataInput" onchange="changeData"></select>
+						</div>
+						<!-- ContentId input -->
+						<div>
+							<div class="dataContentId" data-type="" onclick="clickSelectContentId" ondrop="contentIdDrop" ondragenter="contentIdDragEnter" ondragleave="contentIdDragExit">empty &lpar;TypeName&rpar;</div>
+						</div>
+						<!-- EntityId input -->
+						<div>
+							<div class="dataEntityId" data-entityid="" onclick="clickSelectEntityId" ondrop="entityIdDrop" ondragenter="entityIdDragEnter" ondragleave="entityIdDragExit">empty &lpar;Entity&rpar;</div>
+							<button class="dataEntityIdClear" onclick="clearEntityId">&#xE14C;</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div>
+				<button class="addEntityDataButton" onclick="showEntityDataSelector">Add entity data</button>
+				<button class="pasteIcon" onclick="pasteEntityDataAsNew">&#xE14F;</button>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="entityDataSelectorOverlay">
+	<div id="entityDataSelectorWindow">
+		<div id="entityDataSelectorHeader">
+			<span>Add entity data</span>
+			<button onclick="closeEntityDataSelector">&#xE14C;</button>
+		</div>
+		<input id="entityDataSearch" type="text" placeholder="Search entity data..." onchange="searchEntityData" onkeyup="searchEntityData" />
+		<div id="entityDataList">
+			<div id="entityDataListTemplate" class="entityDataListEntry" onclick="addEntityData">Name...</div>
+		</div>
+	</div>
+</div>
