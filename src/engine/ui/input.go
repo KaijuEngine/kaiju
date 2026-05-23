@@ -17,7 +17,6 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
-	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -255,7 +254,7 @@ func (input *Input) updatePlaceholderVisibility() {
 
 func (input *Input) moveCursor(newPos int) {
 	data := input.InputData()
-	data.cursorOffset = klib.Clamp(newPos, 0, utf8.RuneCountInString(data.text))
+	data.cursorOffset = editableTextClampOffset(data.text, newPos)
 	if data.isActive {
 		input.updateCursorPosition()
 	}
@@ -270,7 +269,7 @@ func (input *Input) charX(index int) float32 {
 	data := input.InputData()
 	left := horizontalPadding
 	strWidth := float32(0)
-	tmp := data.label.LabelData().text[:index]
+	tmp := editableTextSlice(data.label.LabelData().text, 0, index)
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
@@ -296,11 +295,7 @@ func (input *Input) setBgColors() {
 
 func (input *Input) setSelect(start, end int) {
 	data := input.InputData()
-	if end < start {
-		start, end = end, start
-	}
-	start = klib.Clamp(start, 0, utf8.RuneCountInString(data.text))
-	end = klib.Clamp(end, 0, utf8.RuneCountInString(data.text))
+	start, end = editableTextNormalizeSelection(data.text, start, end)
 	if data.selectStart != start || data.selectEnd != end {
 		data.selectStart = start
 		data.selectEnd = end
@@ -377,32 +372,7 @@ func (input *Input) resetSelect() {
 }
 
 func (input *Input) findNextBreak(start, dir int) int {
-	data := input.InputData()
-	// TODO:  This is a mess, simplify it
-	if start < 0 {
-		return 0
-	} else if start > utf8.RuneCountInString(data.text) {
-		return utf8.RuneCountInString(data.text)
-	}
-	i := start
-	runes := []rune(data.text)
-	for dir < 0 && i > 0 && unicode.IsSpace(runes[i]) {
-		i += dir
-	}
-	if dir > 0 && unicode.IsSpace(runes[i-1]) {
-		for i < len(runes) && unicode.IsSpace(runes[i]) {
-			i += dir
-		}
-	}
-	for i > 0 && i < len(runes) && !unicode.IsSpace(runes[i]) {
-		i += dir
-	}
-	if i < 0 {
-		i = 0
-	} else if dir < 0 && unicode.IsSpace(runes[i]) {
-		i++
-	}
-	return i
+	return editableTextWordBoundary(input.InputData().text, start, dir)
 }
 
 func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
@@ -413,7 +383,7 @@ func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 		if dir < 0 {
 			newPos = 0
 		} else {
-			newPos = utf8.RuneCountInString(data.text)
+			newPos = editableTextRuneCount(data.text)
 		}
 	} else if kb.HasCtrl() || kb.HasAlt() {
 		newPos = input.findNextBreak(newPos, dir)
@@ -444,9 +414,10 @@ func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 
 func (input *Input) textRightOf(pos int, outLen *int) string {
 	text := input.InputData().text
-	right := text[pos:]
-	*outLen = utf8.RuneCountInString(text) - pos
-	return right
+	count := editableTextRuneCount(text)
+	pos = editableTextClamp(pos, 0, count)
+	*outLen = count - pos
+	return editableTextSlice(text, pos, count)
 }
 
 func (input *Input) InsertText(text string) {
@@ -454,9 +425,7 @@ func (input *Input) InsertText(text string) {
 	text = input.sanitizeText(text)
 	if len(text) > 0 {
 		input.deleteSelection(true)
-		lhs := data.text[:data.cursorOffset]
-		rhs := data.text[data.cursorOffset:]
-		str := lhs + text + rhs
+		str := editableTextInsert(data.text, data.cursorOffset, text)
 		input.setText(str, false)
 		data.cursorOffset += utf8.RuneCountInString(text)
 		input.showCursor()
@@ -480,7 +449,7 @@ func (input *Input) pasteFromClipboard() {
 func (input *Input) SelectAll() {
 	data := input.InputData()
 	data.label.Base().Clean()
-	input.setSelect(0, utf8.RuneCountInString(data.text))
+	input.setSelect(0, editableTextRuneCount(data.text))
 }
 
 func (input *Input) pointerPosWithin() int {
@@ -861,8 +830,7 @@ func (input *Input) SetFontSize(fontSize float32) {
 }
 
 func (input *Input) SetCursorOffset(offset int) {
-	offset = klib.Clamp(offset, 0,
-		utf8.RuneCountInString(input.InputData().text))
+	offset = editableTextClampOffset(input.InputData().text, offset)
 	input.moveCursor(offset)
 }
 
@@ -976,12 +944,10 @@ func cursorFit(layout *Layout) {
 func (input *Input) deleteSelection(skipEvent bool) {
 	data := input.InputData()
 	if data.selectStart != data.selectEnd {
-		sStart := data.selectStart
-		lhs := data.text[:data.selectStart]
-		rhs := data.text[data.selectEnd:]
-		str := lhs + rhs
-		input.moveCursor(sStart)
+		str, cursorOffset, _ := editableTextDeleteRange(data.text,
+			data.selectStart, data.selectEnd)
 		input.setText(str, skipEvent)
+		input.moveCursor(cursorOffset)
 		input.resetSelect()
 		input.hideHighlight()
 	}
@@ -999,11 +965,9 @@ func (input *Input) backspace(kb *hid.Keyboard) {
 		input.setSelect(from, data.cursorOffset)
 		input.deleteSelection(false)
 	} else if len(data.text) > 0 && data.cursorOffset > 0 {
-		lhs := data.text[:data.cursorOffset-1]
-		rhs := data.text[data.cursorOffset:]
-		str := lhs + rhs
-		input.moveCursor(data.cursorOffset - 1)
+		str, cursorOffset, _ := editableTextDeleteBefore(data.text, data.cursorOffset)
 		input.setText(str, false)
+		input.moveCursor(cursorOffset)
 	}
 }
 
@@ -1015,12 +979,10 @@ func (input *Input) delete(kb *hid.Keyboard) {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
 		input.deleteSelection(false)
-	} else if data.cursorOffset < utf8.RuneCountInString(data.text) {
-		lhs := data.text[:data.cursorOffset]
-		rhs := data.text[data.cursorOffset+1:]
-		str := lhs + rhs
-		input.moveCursor(data.cursorOffset)
+	} else if data.cursorOffset < editableTextRuneCount(data.text) {
+		str, cursorOffset, _ := editableTextDeleteAfter(data.text, data.cursorOffset)
 		input.setText(str, false)
+		input.moveCursor(cursorOffset)
 	}
 }
 
@@ -1033,7 +995,7 @@ func (input *Input) forceLabelAndPlaceholderRerender() {
 func (input *Input) internalCopyToClipboard() {
 	data := input.InputData()
 	if data.selectEnd != data.selectStart {
-		str := data.text[data.selectStart:data.selectEnd]
+		str := editableTextSlice(data.text, data.selectStart, data.selectEnd)
 		input.Base().Host().Window.CopyToClipboard(str)
 	}
 }
