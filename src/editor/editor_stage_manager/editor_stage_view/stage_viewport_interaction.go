@@ -28,6 +28,9 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	if v.toolOwner != nil && v.toolOwner.UpdateViewportTool(v) {
 		return
 	}
+	if v.vertexSnap.Update(v.host) {
+		return
+	}
 	if v.transformTool.Update() {
 		return
 	}

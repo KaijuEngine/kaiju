@@ -33,6 +33,7 @@ type StageView struct {
 	gridVisible   bool
 	manager       editor_stage_manager.StageManager
 	transformTool transform_tools.TransformTool
+	vertexSnap    VertexSnapTool
 	selectTool    select_tool.SelectTool
 	transformMan  TransformationManager
 	toolOwner     ViewportToolOwner
@@ -70,6 +71,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.manager.NewStage()
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
 	v.transformMan.Initialize(v, ed.History(), ed.Settings())
+	v.vertexSnap.Initialize(host, v, &v.transformMan)
 	v.selectTool.Init(host, &v.manager)
 	v.createViewportGrid()
 	v.applyGridVisibility()
@@ -126,6 +128,10 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	// do any of the other updates like camera
 	if v.transformMan.IsBusy() {
 		v.transformMan.Update(v.host, proj)
+		return true
+	}
+	if v.vertexSnap.IsBusy() {
+		v.vertexSnap.Update(v.host)
 		return true
 	}
 	if v.camera.Update(v.host, deltaTime) {

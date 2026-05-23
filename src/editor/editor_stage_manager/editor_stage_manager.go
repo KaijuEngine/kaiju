@@ -66,6 +66,7 @@ type StageEntityEditorData struct {
 	Bvh                   *graviton.BVH
 	WorldBvh              *graviton.BVH
 	Mesh                  *rendering.Mesh
+	SnapVertices          []matrix.Vec3
 	ShaderData            rendering.DrawInstance
 	Description           stages.EntityDescription
 	PendingMaterialChange bool
@@ -718,6 +719,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		}
 	}
 	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
+	e.StageData.SnapVertices = snapVerticesFromMesh(km.Verts)
 	if materialId == "" {
 		slog.Warn("no material provided for SpawnMesh, will use fallback material")
 		materialId = assets.MaterialDefinitionBasic

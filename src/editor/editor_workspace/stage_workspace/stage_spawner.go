@@ -101,6 +101,7 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 	man := w.stageView.Manager()
 	e := man.AddEntity(primitiveName(primitive), matrix.Vec3Zero())
 	e.StageData.Mesh = mesh
+	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(verts)
 	e.StageData.Description.Mesh = mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
@@ -332,6 +333,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 		km.Verts, km.Indexes = rendering.MeshQuadData()
 	}
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
+	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(km.Verts)
 	// Not using mat.Id here due to the material being assets.MaterialDefinitionBasic
 	e.StageData.Description.Material = mat.Id
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
@@ -403,6 +405,7 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	man := w.stageView.Manager()
 	e := man.AddEntity(cc.Config.Name, matrix.Vec3Zero())
 	e.StageData.Mesh = w.Host.MeshCache().Mesh(cc.Id(), km.Verts, km.Indexes)
+	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(km.Verts)
 	e.StageData.Description.Mesh = e.StageData.Mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.Transform.SetPosition(point)
@@ -459,6 +462,7 @@ func (w *StageWorkspace) setEntityMesh(e *editor_stage_manager.StageEntity, mesh
 	man := w.stageView.Manager()
 	man.RemoveEntityBVH(e)
 	e.StageData.Mesh = mesh
+	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(km.Verts)
 	e.StageData.Description.Mesh = meshId
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
 	man.AddBVH(e)
@@ -490,6 +494,7 @@ func (w *StageWorkspace) clearEntityMesh(e *editor_stage_manager.StageEntity) bo
 	w.stageView.Manager().RemoveEntityBVH(e)
 	e.StageData.Bvh = nil
 	e.StageData.Mesh = nil
+	e.StageData.SnapVertices = nil
 	e.StageData.Description.Mesh = ""
 	return true
 }
