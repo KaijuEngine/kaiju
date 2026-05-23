@@ -16,6 +16,7 @@ import (
 	"strings"
 	"weak"
 
+	xhtml "golang.org/x/net/html"
 	"kaijuengine.com/debug"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
@@ -92,21 +93,20 @@ func classifyHTMLInputType(rawType string) htmlInputType {
 }
 
 type Document struct {
-	host             weak.Pointer[engine.Host]
-	Elements         []*Element
-	TopElements      []*Element
-	HeadElements     []*Element
-	onWindowResizeId events.Id
-	groups           map[string][]*Element
-	ids              map[string]*Element
-	classElements    map[string][]*Element
-	tagElements      map[string][]*Element
-	style            rules.StyleSheet
-	stylizer         Stylizer
-	// TODO:  Should this be here?
-	firstInput *ui.Input
-	lastInput  *ui.Input
-	funcMap    map[string]func(*Element)
+	host              weak.Pointer[engine.Host]
+	Elements          []*Element
+	TopElements       []*Element
+	HeadElements      []*Element
+	onWindowResizeId  events.Id
+	groups            map[string][]*Element
+	ids               map[string]*Element
+	classElements     map[string][]*Element
+	tagElements       map[string][]*Element
+	style             rules.StyleSheet
+	stylizer          Stylizer
+	firstFocusElement *ui.UI
+	lastFocusElement  *ui.UI
+	funcMap           map[string]func(*Element)
 	//Debug      struct {
 	//	ReloadEventId events.Id
 	//}
@@ -319,14 +319,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				input.SetType(inputType)
 				input.SetRequired(e.HasAttribute("required"))
 				input.SetTextWithoutEvent(e.Attribute("value"))
-				if d.firstInput == nil {
-					d.firstInput = input
-				}
-				if d.lastInput != nil {
-					d.lastInput.SetNextFocusedInput(input)
-				}
-				d.lastInput = input
-				input.SetNextFocusedInput(d.firstInput)
+				d.linkFocusableElement(input.Base())
 			}
 			switch classifyHTMLInputType(e.Attribute("type")) {
 			case htmlInputTypeCheckbox:
@@ -358,6 +351,13 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				initTextInput(ui.InputTypeText)
 			}
 			panel.SetOverflow(ui.OverflowVisible)
+		} else if e.IsTextArea() {
+			textarea := panel.Base().ToTextArea()
+			textarea.Init(e.Attribute("placeholder"))
+			textarea.SetRequired(e.HasAttribute("required"))
+			textarea.SetTextWithoutEvent(e.textAreaInitialValue())
+			e.Children = nil
+			d.linkFocusableElement(textarea.Base())
 		} else if e.IsSelect() {
 			sel := panel.Base().ToSelect()
 			sel.Init("", []ui.SelectOption{})
@@ -389,8 +389,10 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			panel.SetOverflow(ui.OverflowVisible)
 		}
 		entry := appendElement(panel.Base(), panel)
-		for i := range e.Children {
-			d.createUIElement(uiMan, e.Children[i], panel)
+		if !e.IsTextArea() {
+			for i := range e.Children {
+				d.createUIElement(uiMan, e.Children[i], panel)
+			}
 		}
 		id := e.Attribute("id")
 		group := e.Attribute("group")
@@ -415,6 +417,55 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			}
 		}
 		d.tagElement(entry, tag.Key())
+	}
+}
+
+func (e *Element) textAreaInitialValue() string {
+	if e.HasAttribute("value") {
+		return e.Attribute("value")
+	}
+	return strings.ReplaceAll(e.textContent(), "\r", "")
+}
+
+func (e *Element) textContent() string {
+	sb := strings.Builder{}
+	var collect func(target *Element)
+	collect = func(target *Element) {
+		if target.Type == xhtml.TextNode {
+			sb.WriteString(target.Data)
+			return
+		}
+		for i := range target.Children {
+			collect(target.Children[i])
+		}
+	}
+	collect(e)
+	return sb.String()
+}
+
+func (d *Document) linkFocusableElement(next *ui.UI) {
+	if next == nil {
+		return
+	}
+	if d.firstFocusElement == nil {
+		d.firstFocusElement = next
+	}
+	if d.lastFocusElement != nil {
+		setNextFocusableElement(d.lastFocusElement, next)
+	}
+	d.lastFocusElement = next
+	setNextFocusableElement(d.lastFocusElement, d.firstFocusElement)
+}
+
+func setNextFocusableElement(current, next *ui.UI) {
+	if current == nil || next == nil {
+		return
+	}
+	switch current.Type() {
+	case ui.ElementTypeInput:
+		current.ToInput().SetNextFocusedElement(next)
+	case ui.ElementTypeTextArea:
+		current.ToTextArea().SetNextFocusedElement(next)
 	}
 }
 
@@ -739,6 +790,7 @@ func (d *Document) DuplicateElementWithoutApplyStyles(elm *Element) *Element {
 }
 
 func (d *Document) SetupInputTabIndexs() {
+	var firstInput *ui.UI
 	var lastInput *ui.UI
 	var setupTabs func(e *Element)
 	setupTabs = func(e *Element) {
@@ -746,12 +798,11 @@ func (d *Document) SetupInputTabIndexs() {
 			return
 		}
 		if e.UI.IsType(ui.ElementTypeInput) || e.UI.IsType(ui.ElementTypeTextArea) {
+			if firstInput == nil {
+				firstInput = e.UI
+			}
 			if lastInput != nil {
-				if lastInput.IsType(ui.ElementTypeInput) {
-					lastInput.ToInput().SetNextFocusedElement(e.UI)
-				} else if lastInput.IsType(ui.ElementTypeTextArea) {
-					lastInput.ToTextArea().SetNextFocusedElement(e.UI)
-				}
+				setNextFocusableElement(lastInput, e.UI)
 			}
 			lastInput = e.UI
 		} else {
@@ -762,6 +813,9 @@ func (d *Document) SetupInputTabIndexs() {
 	}
 	for _, h := range d.TopElements {
 		setupTabs(h)
+	}
+	if lastInput != nil {
+		setNextFocusableElement(lastInput, firstInput)
 	}
 }
 

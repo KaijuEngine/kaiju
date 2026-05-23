@@ -135,6 +135,10 @@ func (e *Element) IsInput() bool {
 	return e.Data == "input"
 }
 
+func (e *Element) IsTextArea() bool {
+	return e.Data == "textarea"
+}
+
 func (e *Element) IsImage() bool {
 	return e.Data == "img"
 }

@@ -26,6 +26,8 @@ func setChildrenFontFace(elm *document.Element, face rendering.FontFace) {
 		lbl.SetFontFace(face)
 	} else if elm.UI.IsType(ui.ElementTypeInput) {
 		elm.UI.ToInput().SetFontFace(face)
+	} else if elm.UI.IsType(ui.ElementTypeTextArea) {
+		elm.UI.ToTextArea().SetFontFace(face)
 	} else {
 		for _, child := range elm.Children {
 			setChildrenFontFace(child, face)

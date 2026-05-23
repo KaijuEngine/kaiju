@@ -21,6 +21,8 @@ func setChildrenFontWeight(elm *document.Element, weight string) {
 		lbl.SetFontWeight(weight)
 	} else if elm.UI.IsType(ui.ElementTypeInput) {
 		elm.UI.ToInput().SetFontWeight(weight)
+	} else if elm.UI.IsType(ui.ElementTypeTextArea) {
+		elm.UI.ToTextArea().SetFontWeight(weight)
 	} else {
 		for _, child := range elm.Children {
 			setChildrenFontWeight(child, weight)
