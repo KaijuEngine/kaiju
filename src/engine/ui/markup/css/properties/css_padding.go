@@ -38,7 +38,7 @@ func paddingSizeFromString(elm *document.Element, str string, idx matrix.VectorC
 	return current, nil
 }
 
-func (Padding) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+func (Padding) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
 	switch len(values) {
 	case 1:
 		for i := range 3 {
@@ -50,28 +50,29 @@ func (Padding) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]r
 	case 3:
 		values = append(values, values[1])
 	}
-	for i := 1; i < len(rules); i++ {
+	for i := 1; i < len(ruleList); i++ {
 		removeRule := false
-		switch rules[i].Property {
+		switch ruleList[i].Property {
 		case "padding-top":
-			values[0] = rules[i].Values[0]
+			values[0] = ruleList[i].Values[0]
 			removeRule = true
 		case "padding-right":
-			values[1] = rules[i].Values[0]
+			values[1] = ruleList[i].Values[0]
 			removeRule = true
 		case "padding-bottom":
-			values[2] = rules[i].Values[0]
+			values[2] = ruleList[i].Values[0]
 			removeRule = true
 		case "padding-left":
-			values[3] = rules[i].Values[0]
+			values[3] = ruleList[i].Values[0]
 			removeRule = true
 		}
 		if removeRule {
-			rules = slices.Delete(rules, i, i+1)
+			ruleList = slices.Delete(ruleList, i, i+1)
 			i--
 		}
 	}
-	return values, rules
+	ruleList[0].Values = values
+	return values, ruleList
 }
 
 // length|initial|inherit

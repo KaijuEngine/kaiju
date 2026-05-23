@@ -223,6 +223,9 @@ func (c *Console) submit(input *ui.Input) {
 
 func (c *Console) update(deltaTime float64) {
 	defer tracing.NewRegion("console.update").End()
+	if !c.isActive {
+		return
+	}
 	host := c.host.Value()
 	debug.EnsureNotNil(host)
 	kb := &host.Window.Keyboard

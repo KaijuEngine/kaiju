@@ -8,6 +8,7 @@ package properties
 
 import (
 	"errors"
+	"slices"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -15,6 +16,33 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 )
+
+func (p BorderWidth) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	values = expandFourSideValues(values)
+	for i := 1; i < len(ruleList); i++ {
+		removeRule := false
+		switch ruleList[i].Property {
+		case "border-top-width":
+			values[0] = ruleList[i].Values[0]
+			removeRule = true
+		case "border-right-width":
+			values[1] = ruleList[i].Values[0]
+			removeRule = true
+		case "border-bottom-width":
+			values[2] = ruleList[i].Values[0]
+			removeRule = true
+		case "border-left-width":
+			values[3] = ruleList[i].Values[0]
+			removeRule = true
+		}
+		if removeRule {
+			ruleList = slices.Delete(ruleList, i, i+1)
+			i--
+		}
+	}
+	ruleList[0].Values = values
+	return values, ruleList
+}
 
 func (p BorderWidth) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	b := [4]float32{}

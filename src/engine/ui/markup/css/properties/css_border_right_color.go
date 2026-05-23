@@ -18,6 +18,10 @@ import (
 )
 
 // color|transparent|initial|inherit
+func (p BorderRightColor) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	return preprocLeftTopRightBottom(values, ruleList, "border-color")
+}
+
 func (p BorderRightColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderLeftColor requires 1 value")

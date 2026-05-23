@@ -20,6 +20,77 @@ import (
 
 type CSSMap map[*ui.UI][]rules.Rule
 
+var cssShorthandLonghands = map[string]map[string]struct{}{
+	"margin": {
+		"margin-top":    {},
+		"margin-right":  {},
+		"margin-bottom": {},
+		"margin-left":   {},
+	},
+	"padding": {
+		"padding-top":    {},
+		"padding-right":  {},
+		"padding-bottom": {},
+		"padding-left":   {},
+	},
+	"border": {
+		"border-top":          {},
+		"border-right":        {},
+		"border-bottom":       {},
+		"border-left":         {},
+		"border-top-width":    {},
+		"border-right-width":  {},
+		"border-bottom-width": {},
+		"border-left-width":   {},
+		"border-top-style":    {},
+		"border-right-style":  {},
+		"border-bottom-style": {},
+		"border-left-style":   {},
+		"border-top-color":    {},
+		"border-right-color":  {},
+		"border-bottom-color": {},
+		"border-left-color":   {},
+		"border-width":        {},
+		"border-style":        {},
+		"border-color":        {},
+	},
+	"border-width": {
+		"border-top-width":    {},
+		"border-right-width":  {},
+		"border-bottom-width": {},
+		"border-left-width":   {},
+	},
+	"border-style": {
+		"border-top-style":    {},
+		"border-right-style":  {},
+		"border-bottom-style": {},
+		"border-left-style":   {},
+	},
+	"border-color": {
+		"border-top-color":    {},
+		"border-right-color":  {},
+		"border-bottom-color": {},
+		"border-left-color":   {},
+	},
+	"border-radius": {
+		"border-top-left-radius":     {},
+		"border-top-right-radius":    {},
+		"border-bottom-right-radius": {},
+		"border-bottom-left-radius":  {},
+	},
+}
+
+func cssPropertyOverrides(later, earlier string) bool {
+	if later == earlier {
+		return true
+	}
+	if longhands, ok := cssShorthandLonghands[later]; ok {
+		_, ok = longhands[earlier]
+		return ok
+	}
+	return false
+}
+
 func (m CSSMap) add(elm *ui.UI, inRules []rules.Rule) {
 	addRules := rules.CloneRules(inRules)
 	if c, ok := m[elm]; !ok {
@@ -27,8 +98,9 @@ func (m CSSMap) add(elm *ui.UI, inRules []rules.Rule) {
 	} else {
 		for i := len(c) - 1; i >= 0; i-- {
 			for j := range addRules {
-				if c[i].Property == addRules[j].Property && c[i].Invocation == addRules[j].Invocation {
-					c = klib.RemoveUnordered(c, i)
+				if c[i].Invocation == addRules[j].Invocation &&
+					cssPropertyOverrides(addRules[j].Property, c[i].Property) {
+					c = slices.Delete(c, i, i+1)
 					break
 				}
 			}
@@ -138,7 +210,8 @@ func cleanMapDuplicates(cssMap CSSMap) {
 				continue
 			}
 			for j := i + 1; j < len(v); j++ {
-				if v[i].Property == v[j].Property && v[i].Invocation == v[j].Invocation {
+				if v[i].Invocation == v[j].Invocation &&
+					cssPropertyOverrides(v[j].Property, v[i].Property) {
 					v = slices.Delete(v, i, i+1)
 					i--
 					break
