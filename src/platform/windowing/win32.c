@@ -89,10 +89,11 @@ static bool user_prefers_dark_mode(void);
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
-#define UWM_SET_CURSOR         (WM_USER + 0x0001)
-#define UWM_SET_TITLE_BAR_MODE (WM_USER + 0x0002)
+#define UWM_SET_CURSOR            (WM_USER + 0x0001)
+#define UWM_SET_TITLE_BAR_MODE    (WM_USER + 0x0002)
+#define UWM_SET_CURSOR_VISIBILITY (WM_USER + 0x0004)
 #if KAIJU_ENABLE_FILEDROP
-#define UWM_SET_FILE_DROP      (WM_USER + 0x0003)
+#define UWM_SET_FILE_DROP         (WM_USER + 0x0003)
 #endif
 #define CURSOR_ARROW           1
 #define CURSOR_IBEAM           2
@@ -609,8 +610,35 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				//	break;
 			}
 			if (c != NULL) {
-				SetCursor(c);
 				SetClassLongPtr(hwnd, GCLP_HCURSOR, (LONG_PTR)c);
+				if (sm != NULL && sm->cursorHidden) {
+					SetCursor(NULL);
+				} else {
+					SetCursor(c);
+				}
+			}
+			break;
+		}
+		case UWM_SET_CURSOR_VISIBILITY:
+		{
+			if (sm == NULL) {
+				break;
+			}
+			if (wParam) {
+				if (!sm->cursorHidden) {
+					sm->cursorHidden = true;
+					SetCursor(NULL);
+					// Hide cursor: bring counter to -1 (hidden)
+					while (ShowCursor(FALSE) >= 0) {}
+				}
+			} else if (sm->cursorHidden) {
+				sm->cursorHidden = false;
+				// Restore cursor visibility: bring counter back to 0 (visible)
+				while (ShowCursor(TRUE) < 0) {}
+				HCURSOR c = (HCURSOR)GetClassLongPtr(hwnd, GCLP_HCURSOR);
+				if (c != NULL) {
+					SetCursor(c);
+				}
 			}
 			break;
 		}
@@ -991,22 +1019,11 @@ void window_add_border(void* hwnd) {
 }
 
 void window_show_cursor(void* hwnd) {
-	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	if (sm != NULL && sm->cursorHidden) {
-		sm->cursorHidden = false;
-		// Restore cursor visibility: bring counter back to 0 (visible)
-		while (ShowCursor(TRUE) < 0) {}
-	}
+	PostMessageA(hwnd, UWM_SET_CURSOR_VISIBILITY, FALSE, 0);
 }
 
 void window_hide_cursor(void* hwnd) {
-	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	if (sm != NULL && !sm->cursorHidden) {
-		sm->cursorHidden = true;
-		SetCursor(NULL);
-		// Hide cursor: bring counter to -1 (hidden)
-		while (ShowCursor(FALSE) >= 0) {}
-	}
+	PostMessageA(hwnd, UWM_SET_CURSOR_VISIBILITY, TRUE, 0);
 }
 
 void window_lock_cursor(void* hwnd, int x, int y) {
