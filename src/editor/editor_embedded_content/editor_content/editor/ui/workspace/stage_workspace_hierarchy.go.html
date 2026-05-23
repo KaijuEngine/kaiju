@@ -1,0 +1,16 @@
+<div id="hierarchyArea" class="edPanelBg sideBarStandard" ondrop="hierarchyDrop">
+	<input type="text" class="topSearch" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
+	<div id="entityList">
+		<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" onrightclick="entityContextMenu" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
+			<div class="entryHeader">
+				<span class="entryActionIcon" onclick="entityToggleVisibility">&#xE8F4;</span>
+				<span class="entryActionIcon" onclick="entityToggleLock">&#xE898;</span>
+				<span class="hierarchyToggle" onclick="entityToggleChildren">&#xE5C5;</span>
+				<div class="entryName">
+					<span>Name...</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />

@@ -93,41 +93,8 @@
 				left: 0;
 				z-index: 20;
 			}
-			#hierarchyArea {
-				top: var(--ed-menu-bar-height);
-				width: 18%;
-				color: white;
-				border-right: 2px solid black;
-			}
-			.topSearch { margin-top: 0.5em; margin-bottom: 0.5em; }
 			.sideBarStandard { height: calc(70% - 3em); }
 			.sideBarTall { height: calc(100% - 3em); }
-			#entityList {
-				width: 100%;
-				height: calc(100% - 3em);
-				overflow-y: scroll;
-			}
-			.hierarchyEntry {
-				width: 100%;
-				min-height: 18px;
-				color: white;
-				background-color: #1C1C1C;
-			}
-			.entryHeader {
-				position: relative;
-				width: 100%;
-				height: 18px;
-				overflow: hidden;
-			}
-			.hierarchyEntry:hover {
-				background-color: #313232;
-			}
-			.hierarchyEntrySelected {
-				background-color: #536b7a;
-			}
-			.hierarchyEntryDragHover:hover {
-				background-color: #682A2D;
-			}
 			.arrow {
 				height: 24px;
 				text-align: center;
@@ -136,53 +103,6 @@
 				margin-left: 2em;
 				width: calc(100% - 2em);
 				height: 2em;
-			}
-			.hierarchyEntry img {
-				position: absolute;
-				width: 16px;
-				height: 16px;
-				left: 0;
-				top: 4px;
-			}
-			.hierarchyToggle {
-				position: absolute;
-				width: 16px;
-				height: 24px;
-				left: 40px;
-				top: 0;
-				font-family: 'MaterialIcons-Regular';
-				font-size: 1.2em;
-				text-align: center;
-			}
-			.hierarchyToggle:hover {
-				color: #AAA;
-			}
-			.entryEye { background-color: rgb(200, 200, 200); }
-			.entryEye:hover { background-color: rgb(255, 255, 255); }
-			.entryEye:active { background-color: rgb(200, 200, 200); }
-			.entryActionIcon {
-				width: 16px;
-				height: 16px;
-				top: 0;
-				font-family: 'MaterialIcons-Regular';
-				font-size: 1.2em;
-				text-align: center;
-			}
-			.entryActionIcon:hover { color: #AAA; }
-			.entryName {
-				position: absolute;
-				left: 58px;
-				top: 0;
-				width: calc(100% - 58px);
-				height: 18px;
-				overflow: hidden;
-				word-wrap: unset;
-			}
-			#hierarchyDragPreview {
-				position: absolute;
-				width: 2em;
-				height: 2em;
-				z-index: 10;
 			}
 			#dimensionToggle {
 				position: absolute;
@@ -393,27 +313,13 @@
 			.tformY { background-color: #080; }
 			.tformZ { background-color: #00C; }
 		</style>
+		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
 	</head>
 	<body>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
-		<div id="hierarchyArea" class="edPanelBg sideBarStandard" ondrop="hierarchyDrop">
-			<input type="text" class="topSearch" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
-			<div id="entityList">
-				<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" onrightclick="entityContextMenu" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
-					<div class="entryHeader">
-						<span class="entryActionIcon" onclick="entityToggleVisibility">&#xE8F4;</span>
-						<span class="entryActionIcon" onclick="entityToggleLock">&#xE898;</span>
-						<span class="hierarchyToggle" onclick="entityToggleChildren">&#xE5C5;</span>
-						<div class="entryName">
-							<span>Name...</span>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />
+		<kaiju-include src="editor/ui/workspace/stage_workspace_hierarchy.go.html"></kaiju-include>
 		<!-- Details UI -->
 		<div id="detailsArea" class="edPanelBg sideBarStandard">
 			<div class="detailsBody">
