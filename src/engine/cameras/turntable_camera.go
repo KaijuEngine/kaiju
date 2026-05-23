@@ -129,6 +129,7 @@ func (c *TurntableCamera) FlyUpdateView() {
 	c.iView = c.view
 	c.iView.Inverse()
 	c.updateFrustum()
+	c.markChanged()
 }
 
 // SetYaw sets the yaw of the camera.
