@@ -97,6 +97,7 @@ void main(void) {
 		}
 		if (bottomSide < closestSide) {
 			sideIdx = 3;
+			closestSide = bottomSide;
 		}
 		vec4 borderColor = fragBorderColorsLTRB[sideIdx];
 
