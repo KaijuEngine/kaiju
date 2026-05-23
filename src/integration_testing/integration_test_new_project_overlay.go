@@ -1,3 +1,5 @@
+//go:build editor
+
 package integration_testing
 
 import (
