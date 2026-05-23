@@ -41,6 +41,7 @@ type MenuBar struct {
 	handler       MenuBarHandler
 	tabs          []WorkspaceTab
 	activeTabID   string
+	menuOpen      bool
 }
 
 type menuBarTemplateData struct {
@@ -109,6 +110,7 @@ func (b *MenuBar) renderDocument() error {
 			"clickCreate":              b.openMenuTarget,
 			"clickView":                b.openMenuTarget,
 			"clickHelp":                b.openMenuTarget,
+			"hoverMenuTarget":          b.hoverMenuTarget,
 			"clickToggleGrid":          b.clickToggleGrid,
 			"clickScreenshot":          b.clickScreenshot,
 			"clickWorkspace":           b.clickWorkspace,
@@ -159,6 +161,8 @@ func (b *MenuBar) renderDocument() error {
 		return err
 	}
 	b.doc = doc
+	b.menuOpen = false
+	b.selectedPopup = nil
 	b.doc.Clean()
 	for _, m := range b.doc.GetElementsByClass("menuEntry") {
 		target := m.Attribute("data-target")
@@ -186,22 +190,49 @@ func (b *MenuBar) setPopupUiPos(e *document.Element, pop *document.Element) {
 
 func (b *MenuBar) openMenuTarget(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.openMenuTarget").End()
-	target := e.Attribute("data-target")
-	pop, _ := b.doc.GetElementById(target)
-	b.selectedPopup = pop
+	pop := b.popupForMenuTarget(e)
+	if pop == nil {
+		return
+	}
 	if pop.UI.Entity().IsActive() {
 		b.hidePopups()
-	} else {
-		pops := b.doc.GetElementsByClass("popup")
-		for i := range pops {
-			if pop != pops[i] {
-				pops[i].UI.Hide()
-			}
-		}
-		pop.UI.Show()
-		b.handler.BlurInterface()
-		b.uiMan.Host.RunOnMainThread(b.Focus)
+		return
 	}
+	b.menuOpen = true
+	b.showPopup(pop)
+}
+
+func (b *MenuBar) hoverMenuTarget(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.hoverMenuTarget").End()
+	if !b.menuOpen {
+		return
+	}
+	pop := b.popupForMenuTarget(e)
+	if pop == nil || pop == b.selectedPopup {
+		return
+	}
+	b.showPopup(pop)
+}
+
+func (b *MenuBar) popupForMenuTarget(e *document.Element) *document.Element {
+	target := e.Attribute("data-target")
+	pop, _ := b.doc.GetElementById(target)
+	return pop
+}
+
+func (b *MenuBar) showPopup(pop *document.Element) {
+	defer tracing.NewRegion("MenuBar.showPopup").End()
+	b.selectedPopup = pop
+	pops := b.doc.GetElementsByClass("popup")
+	for i := range pops {
+		if pop == pops[i] {
+			continue
+		}
+		pops[i].UI.Hide()
+	}
+	pop.UI.Show()
+	b.handler.BlurInterface()
+	b.uiMan.Host.RunOnMainThread(b.Focus)
 }
 
 // clickWorkspace is the single shared click handler for all workspace tabs.
@@ -613,6 +644,7 @@ func (b *MenuBar) hidePopups() {
 		pops[i].UI.Hide()
 	}
 	b.selectedPopup = nil
+	b.menuOpen = false
 	b.handler.FocusInterface()
 	b.uiMan.Host.RunOnMainThread(b.handler.FocusInterface)
 }

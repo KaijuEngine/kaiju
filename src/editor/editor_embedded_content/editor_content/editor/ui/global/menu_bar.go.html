@@ -55,12 +55,12 @@
 	</head>
 	<body>
 		<div class="bar">
-			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
-			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
-			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
-			<span class="menuEntry" data-target="createPopup" onclick="clickCreate">Create</span>
-			<span class="menuEntry" data-target="viewPopup" onclick="clickView">View</span>
-			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
+			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" onmouseenter="hoverMenuTarget" />
+			<span class="menuEntry" data-target="filePopup" onclick="clickFile" onmouseenter="hoverMenuTarget">File</span>
+			<span class="menuEntry" data-target="editPopup" onclick="clickEdit" onmouseenter="hoverMenuTarget">Edit</span>
+			<span class="menuEntry" data-target="createPopup" onclick="clickCreate" onmouseenter="hoverMenuTarget">Create</span>
+			<span class="menuEntry" data-target="viewPopup" onclick="clickView" onmouseenter="hoverMenuTarget">View</span>
+			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp" onmouseenter="hoverMenuTarget">Help</span>
 			{{range .WorkspaceTabs}}<span id="tab_{{.ID}}" data-workspace-id="{{.ID}}" group="tabs" class="workspaceTab edPanelBgHoverable{{if eq .ID $.ActiveTabID}} tabSelected{{end}}" onclick="clickWorkspace">{{.DisplayName}}</span>{{end}}
 		</div>
 		<div id="logoPopup" class="popup" onmiss="popupMiss">
