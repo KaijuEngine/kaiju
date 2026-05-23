@@ -873,6 +873,26 @@ func (input *Input) SetFontSize(fontSize float32) {
 	data.placeholder.SetFontSize(fontSize)
 }
 
+func (input *Input) FontSize() float32 {
+	return input.InputData().label.FontSize()
+}
+
+func (input *Input) FontFace() rendering.FontFace {
+	return input.InputData().label.FontFace()
+}
+
+func (input *Input) SetLineHeight(lineHeight float32) {
+	data := input.InputData()
+	data.label.SetLineHeight(lineHeight)
+	data.placeholder.SetLineHeight(lineHeight)
+}
+
+func (input *Input) SetWrap(wrap bool) {
+	data := input.InputData()
+	data.label.SetWrap(wrap)
+	data.placeholder.SetWrap(wrap)
+}
+
 func (input *Input) SetCursorOffset(offset int) {
 	offset = editableTextClampOffset(input.InputData().text, offset)
 	input.moveCursor(offset)

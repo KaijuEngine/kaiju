@@ -444,6 +444,18 @@ input[type="text"] {
 input[type="text"]:focus {
 	border: 2px solid #363636;
 }
+textarea {
+	display: block;
+	color: white;
+	background-color: #151515;
+	border: 2px solid #151515;
+	padding: 4px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+textarea:focus {
+	border: 2px solid #363636;
+}
 .filterBtn {
 	padding: 2px 5px;
 	background-color: #1C1C1C;

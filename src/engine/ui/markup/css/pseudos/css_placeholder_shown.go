@@ -7,12 +7,13 @@
 package pseudos
 
 import (
-	"errors"
-
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
 func (p PlaceholderShown) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
-	return []*document.Element{elm}, errors.New("not implemented")
+	if isValidationControl(elm) && elm.HasAttribute("placeholder") {
+		return []*document.Element{elm}, nil
+	}
+	return []*document.Element{}, nil
 }

@@ -28,7 +28,7 @@ func (p OverflowY) Process(panel *ui.Panel, elm *document.Element, values []rule
 	case "hidden":
 		panel.SetOverflow(ui.OverflowHidden)
 		panel.Base().GenerateScissor()
-		panel.SetScrollDirection(panel.ScrollDirection() ^ ui.PanelScrollDirectionVertical)
+		panel.SetScrollDirection(panel.ScrollDirection() &^ ui.PanelScrollDirectionVertical)
 	case "auto":
 		fallthrough
 	case "scroll":

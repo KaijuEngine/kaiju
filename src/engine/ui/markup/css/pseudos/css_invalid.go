@@ -12,7 +12,7 @@ import (
 )
 
 func (p Invalid) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
-	if elm.Data == "input" {
+	if isValidationControl(elm) {
 		return []*document.Element{elm}, nil
 	}
 	return []*document.Element{}, nil

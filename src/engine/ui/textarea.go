@@ -1065,6 +1065,30 @@ func (textarea *TextArea) SetFontSize(fontSize float32) {
 	textarea.updateCursorPosition()
 }
 
+func (textarea *TextArea) FontSize() float32 {
+	return textarea.Data().label.FontSize()
+}
+
+func (textarea *TextArea) FontFace() rendering.FontFace {
+	return textarea.Data().label.FontFace()
+}
+
+func (textarea *TextArea) SetLineHeight(lineHeight float32) {
+	data := textarea.Data()
+	data.label.SetLineHeight(lineHeight)
+	data.placeholder.SetLineHeight(lineHeight)
+	textarea.updateSelectionPanels()
+	textarea.updateCursorPosition()
+}
+
+func (textarea *TextArea) SetWrap(wrap bool) {
+	data := textarea.Data()
+	data.label.SetWrap(wrap)
+	data.placeholder.SetWrap(wrap)
+	textarea.updateSelectionPanels()
+	textarea.updateCursorPosition()
+}
+
 func (textarea *TextArea) SetFGColor(newColor matrix.Color) {
 	data := textarea.Data()
 	data.label.SetColor(newColor)
