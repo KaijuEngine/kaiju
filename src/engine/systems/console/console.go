@@ -223,23 +223,28 @@ func (c *Console) submit(input *ui.Input) {
 
 func (c *Console) update(deltaTime float64) {
 	defer tracing.NewRegion("console.update").End()
-	if !c.isActive {
-		return
-	}
 	host := c.host.Value()
 	debug.EnsureNotNil(host)
 	kb := &host.Window.Keyboard
+	if !kb.HasModifier() && kb.KeyDown(hid.KeyboardKeyF1) {
+		c.toggle()
+	}
+	if !c.isActive {
+		return
+	}
 
 	lblParent, ok := c.doc.GetElementById("consoleContent")
 	if ok && matrix.Abs(matrix.Float(lblParent.UIPanel.ScrollY())-lblParent.UIPanel.MaxScroll()[1]) < 50 {
 		lblParent.UIPanel.SetScrollY(matrix.FloatMax)
 	}
 
-	if !kb.HasModifier() && kb.KeyDown(hid.KeyboardKeyF1) {
-		c.toggle()
-	} else if kb.KeyDown(hid.KeyboardKeyUp) {
-		c.input.SetText(c.history.back())
+	if kb.KeyDown(hid.KeyboardKeyUp) {
+		cmd := c.history.back()
+		c.input.SetText(cmd)
+		c.input.SetCursorOffset(len(cmd))
 	} else if kb.KeyDown(hid.KeyboardKeyDown) {
-		c.input.SetText(c.history.forward())
+		cmd := c.history.forward()
+		c.input.SetText(cmd)
+		c.input.SetCursorOffset(len(cmd))
 	}
 }
