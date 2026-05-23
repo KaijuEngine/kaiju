@@ -25,7 +25,8 @@ func (s StretchWidthStylizer) ProcessStyle(layout *Layout) []error {
 	}
 	sw := parent.layout.PixelSize().X()
 	pPad := parent.layout.Padding()
-	sw -= pPad.X() + pPad.Z()
+	pBorder := parent.layout.Border()
+	sw -= pPad.X() + pPad.Z() + pBorder.X() + pBorder.Z()
 	p := layout.Padding()
 	w := sw - p.X() - p.Z()
 	layout.ScaleWidth(w)
@@ -39,7 +40,8 @@ func (s StretchHeightStylizer) ProcessStyle(layout *Layout) []error {
 	}
 	sh := parent.layout.PixelSize().Y()
 	pPad := parent.layout.Padding()
-	sh -= pPad.Y() + pPad.W()
+	pBorder := parent.layout.Border()
+	sh -= pPad.Y() + pPad.W() + pBorder.Y() + pBorder.W()
 	p := layout.Padding()
 	h := sh - p.Y() - p.W()
 	layout.ScaleHeight(h)
@@ -50,6 +52,15 @@ func (s StretchCenterStylizer) ProcessStyle(layout *Layout) []error {
 	errs := StretchWidthStylizer(s).ProcessStyle(layout)
 	errs = append(errs, StretchHeightStylizer(s).ProcessStyle(layout)...)
 	return errs
+}
+
+func (l *Layout) stylizerControlsHeight() bool {
+	switch l.Stylizer.(type) {
+	case StretchHeightStylizer, StretchCenterStylizer:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s RightStylizer) ProcessStyle(layout *Layout) []error {
