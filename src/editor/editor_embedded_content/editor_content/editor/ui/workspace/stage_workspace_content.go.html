@@ -1,0 +1,22 @@
+<img id="dragPreview" src="editor/textures/icons/file.png" />
+<div id="contentArea">
+	<div id="filterArea" class="left edPanelBg">
+		<input type="text" class="topSearch" placeholder="Content search..." onchange="inputFilter" />
+		{{range $filter , $count := .Filters}}
+			<span class="filterBtn" data-type="{{$filter}}" onclick="clickFilter">{{$filter}}</span>
+		{{end}}
+		<input type="text" placeholder="Tag search..." onchange="tagFilter" />
+		<div id="tagFilterList">
+			{{range $tag , $count := .Tags}}
+			<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter">{{$tag}}</span>
+			{{end}}
+		</div>
+	</div>
+	<div id="contentPreviewArea" class="right edPanelBgDark">
+		<span id="entryTemplate" data-type="" group="entry" class="entry" ondblclick="dblClickEntry" ondragstart="entryDragStart" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
+			<img class="preview" src="editor/textures/icons/file.png" />
+			<div>Name...</div>
+			<img class="typeThumb" src="editor/textures/icons/file.png" />
+		</span>
+	</div>
+</div>

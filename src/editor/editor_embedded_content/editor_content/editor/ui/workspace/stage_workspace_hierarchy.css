@@ -4,7 +4,6 @@
 	color: white;
 	border-right: 2px solid black;
 }
-.topSearch { margin-top: 0.5em; margin-bottom: 0.5em; }
 #entityList {
 	width: 100%;
 	height: calc(100% - 3em);

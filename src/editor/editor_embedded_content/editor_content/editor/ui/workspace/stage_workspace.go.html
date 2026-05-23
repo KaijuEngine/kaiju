@@ -3,14 +3,7 @@
 	<head>
 		<style>
 			div { width: 100%; }
-			#contentArea {
-				position: absolute;
-				bottom: 1.3em;
-				width: 100%;
-				height: 30%;
-				border-top: 2px solid black;
-				background-color: black;
-			}
+			.topSearch { margin-top: 0.5em; margin-bottom: 0.5em; }
 			#ftdePrompt {
 				position: absolute;
 				width: 400px;
@@ -36,52 +29,10 @@
 				height: 100%;
 				overflow-y: scroll;
 			}
-			.right {
-				width: calc(100% - 15em);
-				height: 100%;
-				overflow-y: scroll;
-				padding: 10px;
-			}
 			input {
 				width: calc(100% - 1em);
 				height: 2em;
 				margin-left: 0.25em;
-			}
-			.entry {
-				overflow: hidden;
-				width: 5em;
-				height: 6em;
-				background-color: #282828;
-				color: #AAA;
-				margin-top: 5px;
-				margin-right: 5px;
-				font-size: 0.7em;
-			}
-			.entrySelected {
-				background-color: #575757;
-				color: white;
-			}
-			.entry:hover {
-				background-color: #575757;
-				color: white;
-			}
-			.preview {
-				width: 5em;
-				height: 5em;
-			}
-			#dragPreview {
-				position: absolute;
-				width: 3em;
-				height: 3em;
-				z-index: 10;
-			}
-			.typeThumb {
-				position: absolute;
-				width: 16px;
-				height: 16px;
-				top: 0;
-				left: 0;
-				z-index: 1;
 			}
 			#tooltip {
 				position: absolute;
@@ -314,6 +265,7 @@
 			.tformZ { background-color: #00C; }
 		</style>
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
+		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_content.css" />
 	</head>
 	<body>
 		<!-- Floating UI -->
@@ -472,28 +424,7 @@
 			</div>
 		</div>
 		<!-- Content UI -->
-		<img id="dragPreview" src="editor/textures/icons/file.png" />
-		<div id="contentArea">
-			<div class="left edPanelBg" id="filterArea">
-				<input type="text" class="topSearch" placeholder="Content search..." onchange="inputFilter" />
-				{{range $filter , $count := .Filters}}
-				<span class="filterBtn" data-type="{{$filter}}" onclick="clickFilter">{{$filter}}</span>
-				{{end}}
-				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
-				<div id="tagFilterList">
-					{{range $tag , $count := .Tags}}
-					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter">{{$tag}}</span>
-					{{end}}
-				</div>
-			</div>
-			<div class="right edPanelBgDark" id="contentPreviewArea">
-				<span id="entryTemplate" data-type="" group="entry" class="entry" ondblclick="dblClickEntry" ondragstart="entryDragStart" onmouseenter="entryMouseEnter" onmouseleave="entryMouseLeave" onmousemove="entryMouseMove" onrightclick="rightClickContent">
-					<img class="preview" src="editor/textures/icons/file.png" />
-					<div>Name...</div>
-					<img class="typeThumb" src="editor/textures/icons/file.png" />
-				</span>
-			</div>
-		</div>
+		<kaiju-include src="editor/ui/workspace/stage_workspace_content.go.html"></kaiju-include>
 		<div id="ftdePrompt">
 			<div id="ftdeArrow">^</div>
 			<br />
