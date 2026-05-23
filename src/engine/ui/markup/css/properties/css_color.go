@@ -51,6 +51,10 @@ func (p Color) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		panel.Base().ToInput().SetFGColor(color)
 		return nil
 	}
+	if panel.Base().IsType(ui.ElementTypeTextArea) {
+		panel.Base().ToTextArea().SetFGColor(color)
+		return nil
+	}
 
 	setChildTextColor(elm, color)
 	return nil

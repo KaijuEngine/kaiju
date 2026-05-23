@@ -21,6 +21,8 @@ func setChildrenFontStyle(elm *document.Element, style string) {
 		lbl.SetFontStyle(style)
 	} else if elm.UI.IsType(ui.ElementTypeInput) {
 		elm.UI.ToInput().SetFontStyle(style)
+	} else if elm.UI.IsType(ui.ElementTypeTextArea) {
+		elm.UI.ToTextArea().SetFontStyle(style)
 	} else {
 		for _, child := range elm.Children {
 			setChildrenFontStyle(child, style)

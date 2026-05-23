@@ -206,10 +206,19 @@ func (s *ElementLayoutStylizer) syncValidationState() {
 		return
 	}
 	elm := s.element.Value()
-	if elm == nil || !elm.UI.IsType(ui.ElementTypeInput) {
+	if elm == nil {
 		return
 	}
-	if elm.UI.ToInput().IsValid() {
+	valid := false
+	switch elm.UI.Type() {
+	case ui.ElementTypeInput:
+		valid = elm.UI.ToInput().IsValid()
+	case ui.ElementTypeTextArea:
+		valid = elm.UI.ToTextArea().IsValid()
+	default:
+		return
+	}
+	if valid {
 		s.currentState &^= rules.RuleInvokeInvalid
 		s.currentState = s.currentState.With(rules.RuleInvokeValid)
 	} else {

@@ -12,7 +12,7 @@ import (
 )
 
 func (p Required) Process(elm *document.Element, value rules.SelectorPart) ([]*document.Element, error) {
-	if elm.Data == "input" && elm.HasAttribute("required") {
+	if isValidationControl(elm) && elm.HasAttribute("required") {
 		return []*document.Element{elm}, nil
 	}
 	return []*document.Element{}, nil

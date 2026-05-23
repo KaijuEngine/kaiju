@@ -91,6 +91,8 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 	}
 	if panel.Base().IsType(ui.ElementTypeInput) {
 		panel.Base().ToInput().SetBGColor(color)
+	} else if panel.Base().IsType(ui.ElementTypeTextArea) {
+		panel.Base().ToTextArea().SetBGColor(color)
 	} else if !panel.HasEnforcedColor() {
 		setChildTextBackgroundColor(elm, color)
 	}

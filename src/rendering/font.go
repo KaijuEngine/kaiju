@@ -616,25 +616,43 @@ func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text
 }
 
 func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {
+	return cache.StringRectsWithinWithLetterSpacing(face, text, scale, maxWidth, 0, 0)
+}
+
+func (cache *FontCache) StringRectsWithinWithLetterSpacing(face FontFace, text string, scale, maxWidth, lineHeight, letterSpacing float32) []matrix.Vec4 {
 	defer tracing.NewRegion("FontCache.StringRectsWithinNew").End()
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	rects := make([]matrix.Vec4, 0)
 	current := 0
-	var x, y, height float32 = 0.0, 0.0, 0.0
+	var x, y float32 = 0.0, 0.0
+	height := fontFace.metrics.LineHeight * scale
+	if lineHeight > 0 {
+		height = lineHeight
+	}
 	runes := []rune(text)
 	for current < len(runes) {
 		offset := current
-		count := cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, 0)
+		count := len(runes[current:])
+		if maxWidth > 0 {
+			count = cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, letterSpacing)
+		}
 		x = 0.0
-		for _, r := range runes[offset : offset+count] {
-			ch := findBinChar(fontFace, r)
-			w := ch.advance * scale
-			h := fontFace.metrics.LineHeight * scale
-			rects = append(rects, matrix.Vec4{x, y, w, h})
+		for i, r := range runes[offset : offset+count] {
+			w := float32(0)
+			if r != '\n' {
+				ch := findBinChar(fontFace, r)
+				w = ch.advance * scale
+			}
+			rects = append(rects, matrix.Vec4{x, y, w, height})
 			current++
+			if r == '\n' {
+				continue
+			}
 			x += w
-			height = matrix.Max(height, h)
+			if i < count-1 {
+				x += letterSpacing
+			}
 		}
 		y += height
 	}
@@ -662,11 +680,15 @@ func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32)
 }
 
 func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {
+	return cache.PointOffsetWithinWithLetterSpacing(face, text, point, scale, maxWidth, 0, 0)
+}
+
+func (cache *FontCache) PointOffsetWithinWithLetterSpacing(face FontFace, text string, point matrix.Vec2, scale, maxWidth, lineHeight, letterSpacing float32) int {
 	defer tracing.NewRegion("FontCache.PointOffsetWithin").End()
 	cache.requireFace(face)
 	textLen := utf8.RuneCountInString(text)
 	idx := textLen
-	rects := cache.StringRectsWithinNew(face, text, scale, maxWidth)
+	rects := cache.StringRectsWithinWithLetterSpacing(face, text, scale, maxWidth, lineHeight, letterSpacing)
 	for i := 0; i < textLen; i++ {
 		width := rects[i].Z()
 		height := rects[i].W()

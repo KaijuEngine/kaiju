@@ -150,7 +150,7 @@ func (label *Label) labelPostLayoutUpdate() {
 	}
 	maxWidth := label.MaxWidth()
 	l := label.LabelData()
-	if l.wordWrap {
+	if l.wordWrap && l.overrideMaxWidth <= 0 {
 		if label.entity.Parent != nil {
 			p := FirstOnEntity(label.entity.Parent)
 			o := p.layout.padding.Add(p.layout.border)
@@ -187,14 +187,16 @@ func (label *Label) renderText() {
 			contentWidth := label.entity.Parent.Transform.WorldScale().X() -
 				pl.padding.Horizontal() - pl.border.Horizontal()
 			if contentWidth > 0 {
-				label.layout.ScaleWidth(contentWidth)
+				if ld.overrideMaxWidth <= 0 {
+					label.layout.ScaleWidth(contentWidth)
+				}
 				if ld.overrideMaxWidth <= 0 || maxWidth > contentWidth {
 					maxWidth = contentWidth
 				}
 			}
 		}
 		if !label.layout.stylizerControlsHeight() {
-			label.layout.ScaleHeight(label.Measure().Height())
+			label.layout.ScaleHeight(label.measure(maxWidth).Height())
 		}
 		host := label.man.Value().Host
 		ld.runeDrawings = host.FontCache().RenderMeshesWithLetterSpacing(
@@ -534,7 +536,7 @@ func (label *Label) CalculateMaxWidth() float32 {
 
 func (label *Label) Measure() matrix.Vec2 {
 	if label.LabelData().wordWrap {
-		return label.measure(label.CalculateMaxWidth())
+		return label.measure(label.MaxWidth())
 	} else {
 		return label.measure(matrix.FloatMax)
 	}

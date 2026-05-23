@@ -54,8 +54,8 @@ func (group *Group) triggerRequestStartState() {
 }
 
 func (group *Group) requestEvent(ui *UI, eType EventType) {
-	if eType < EventTypeInvalid || eType >= EventTypeEnd {
-		slog.Error("Invalid UI event type")
+	if eType <= EventTypeInvalid || eType >= EventTypeEnd {
+		slog.Error("Invalid UI event type", "eventType", eType)
 		return
 	}
 	if group.hadRequests != requestStateStarted {
@@ -98,7 +98,7 @@ func (group *Group) IsFocusedOnInput() bool {
 	if group.focus == nil || !group.focus.IsActive() {
 		return false
 	}
-	return group.focus.IsType(ElementTypeInput)
+	return group.focus.IsType(ElementTypeInput) || group.focus.IsType(ElementTypeTextArea)
 }
 
 func (group *Group) Attach(host *engine.Host) {
@@ -144,6 +144,10 @@ func (group *Group) lateUpdate() {
 			}
 		}
 		group.isProcessing = true
+		defer func() {
+			group.requests = klib.WipeSlice(group.requests)
+			group.isProcessing = false
+		}()
 		for i := range requestSets {
 			g := requestSets[i]
 			shouldContinue := true
@@ -151,8 +155,9 @@ func (group *Group) lateUpdate() {
 				req := &g[j]
 				if shouldContinue {
 					switch req.eventType {
-					case EventTypeMiss, EventTypeKeyDown, EventTypeKeyUp,
-						EventTypeChange, EventTypeSubmit:
+					case EventTypeMiss, EventTypeFocus, EventTypeBlur,
+						EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,
+						EventTypeSubmit:
 						req.target.ExecuteEvent(req.eventType)
 					case EventTypeEnter, EventTypeMove, EventTypeDown, EventTypeUp,
 						EventTypeRightDown, EventTypeRightUp, EventTypeDropEnter,
@@ -170,14 +175,12 @@ func (group *Group) lateUpdate() {
 							shouldContinue = false
 						}
 					default:
-						slog.Error("Invalid UI event type")
+						slog.Error("Invalid UI event type", "eventType", req.eventType)
 						return
 					}
 				}
 			}
 		}
-		group.requests = klib.WipeSlice(group.requests)
-		group.isProcessing = false
 	}
 	switch group.hadRequests {
 	case requestStateStarted:
