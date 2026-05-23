@@ -75,8 +75,32 @@ func assertNewProjectOverlayScreenshot(img image.Image) error {
 	if redAccentPixels < 400 {
 		return fmt.Errorf("expected visible red accent/button pixels, found %d", redAccentPixels)
 	}
+	if run := longestVerticalRedRun(img); run < bounds.Dy()/2 {
+		return fmt.Errorf("expected continuous left accent border, longest vertical run was %d pixels", run)
+	}
 	if brightTextPixels < 400 {
 		return fmt.Errorf("expected visible title/control text pixels, found %d", brightTextPixels)
 	}
 	return nil
+}
+
+func longestVerticalRedRun(img image.Image) int {
+	bounds := img.Bounds()
+	best := 0
+	for x := bounds.Min.X; x < bounds.Min.X+bounds.Dx()/2; x++ {
+		run := 0
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			r16, g16, b16, _ := img.At(x, y).RGBA()
+			r := int(r16 >> 8)
+			g := int(g16 >> 8)
+			b := int(b16 >> 8)
+			if r > 90 && g < 70 && b < 70 {
+				run++
+				best = max(best, run)
+			} else {
+				run = 0
+			}
+		}
+	}
+	return best
 }

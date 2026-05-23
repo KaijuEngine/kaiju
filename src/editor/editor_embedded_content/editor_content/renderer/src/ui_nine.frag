@@ -42,6 +42,13 @@ float roundedBoxSDF(vec2 centerPosition, vec2 size, vec4 radius) {
     return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - radius.x;
 }
 
+float sideBorderAlpha(float edgeDistance, float borderWidth) {
+	if (borderWidth <= 0.0) {
+		return 0.0;
+	}
+	return 1.0 - smoothstep(borderWidth - 0.5, borderWidth + 0.5, edgeDistance);
+}
+
 void main(void) {
 	vec2 normUV = (fragTexCoord - fragUvs.xy) / fragUvs.zw;
 	float outlineWidth = max(0.0, fragOutlineSize.x);
@@ -64,30 +71,32 @@ void main(void) {
 		// Border
 		vec2 size = dimensions / 2.0;
 		vec2 centerPixPos = size-pixPos;
-		// Pre-select what color in the color matrix should be used, the order
-		// of colors are [0] = left, [1] = top, [2] = right, [3] = bottom
+
+		float leftBorder = sideBorderAlpha(pixPos.x, fragBorderSize.x);
+		float topBorder = sideBorderAlpha(pixPos.y, fragBorderSize.y);
+		float rightBorder = sideBorderAlpha(dimensions.x - pixPos.x, fragBorderSize.z);
+		float bottomBorder = sideBorderAlpha(dimensions.y - pixPos.y, fragBorderSize.w);
+		float smoothedBorderAlpha = max(max(leftBorder, topBorder), max(rightBorder, bottomBorder));
+
 		int sideIdx = 0;
-		if (pixPos.x < fragBorderSize.x) {
-			sideIdx = 0;
-		} else if (pixPos.y < fragBorderSize.y) {
+		float sideAlpha = leftBorder;
+		if (topBorder > sideAlpha) {
 			sideIdx = 1;
-		} else if (pixPos.x > dimensions.x-fragBorderSize.z) {
+			sideAlpha = topBorder;
+		}
+		if (rightBorder > sideAlpha) {
 			sideIdx = 2;
-		} else if (pixPos.y > dimensions.y-fragBorderSize.w) {
+			sideAlpha = rightBorder;
+		}
+		if (bottomBorder > sideAlpha) {
 			sideIdx = 3;
 		}
-        vec4 borderColor = fragBorderColorsLTRB[sideIdx];
+		vec4 borderColor = fragBorderColorsLTRB[sideIdx];
+
 		// Border radius
-		float dist = roundedBoxSDF(centerPixPos, size, fragBorderRadius+fragBorderSize);
+		float dist = roundedBoxSDF(centerPixPos, size, fragBorderRadius);
 		float smoothedAlpha = 1.0-smoothstep(0.0, edgeSoftness, dist);
-		// Border size
-		centerPixPos.x += fragBorderSize.x/2.0-fragBorderSize.z/2.0;
-		centerPixPos.y += fragBorderSize.y/2.0-fragBorderSize.w/2.0;
-		size.x -= (fragBorderSize.x+fragBorderSize.z)/2.0;
-		size.y -= (fragBorderSize.y+fragBorderSize.w)/2.0;
-		float borderDistance = roundedBoxSDF(centerPixPos, size, fragBorderRadius);
-		float innerMask = 1.0-smoothstep(0.0, edgeSoftness, borderDistance);
-		float smoothedBorderAlpha = 1.0 - innerMask;
+
 		// Border color
 		unWeightedColor = mix(unWeightedColor, borderColor, smoothedBorderAlpha);
 		unWeightedColor.a = smoothedAlpha * unWeightedColor.a;

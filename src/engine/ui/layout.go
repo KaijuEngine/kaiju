@@ -414,11 +414,19 @@ func (l *Layout) update() {
 }
 
 func (l *Layout) totalOffsetBounds() matrix.Vec4 {
+	offset := l.CalcOffset()
+	if l.positioning == PositioningAbsolute && !l.ui.Entity().IsRoot() {
+		if parentUI := FirstOnEntity(l.ui.Entity().Parent); parentUI != nil {
+			border := parentUI.Layout().Border()
+			offset.SetX(offset.X() + border.Left())
+			offset.SetY(offset.Y() + border.Top())
+		}
+	}
 	return matrix.Vec4{
-		l.CalcOffset().X(),
-		l.CalcOffset().Y(),
-		l.CalcOffset().X(),
-		l.CalcOffset().Y(),
+		offset.X(),
+		offset.Y(),
+		offset.X(),
+		offset.Y(),
 	}
 }
 
