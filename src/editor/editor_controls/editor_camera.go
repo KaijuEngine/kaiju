@@ -46,6 +46,7 @@ type EditorCamera struct {
 	Settings         *editor_settings.EditorCameraSettings
 	camera           cameras.Camera
 	lastMousePos     matrix.Vec2
+	flyStartMousePos matrix.Vec2
 	mouseDown        matrix.Vec2
 	lastHit          matrix.Vec3
 	yawScale         matrix.Float
@@ -112,15 +113,19 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		kb := &win.Keyboard
 		if !kb.HasAlt() && m.Pressed(hid.MouseButtonRight) {
 			lockX, lockY := win.Width()/2, win.Height()/2
-			host.Window.HideCursor()
-			host.Window.LockCursor(lockX, lockY)
+			e.flyStartMousePos = m.ScreenPosition()
+			win.HideCursor()
+			win.LockCursor(lockX, lockY)
 			e.lastMousePos = matrix.Vec2{matrix.Float(lockX), matrix.Float(win.Height() - lockY)}
 			e.flyCamStarted = true
 			return true
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
 			e.flyCamStarted = false
-			host.Window.UnlockCursor()
-			host.Window.ShowCursor()
+			win.UnlockCursor()
+			win.SetCursorPosition(int(e.flyStartMousePos.X()), int(e.flyStartMousePos.Y()))
+			win.Mouse.SetPosition(e.flyStartMousePos.X(), e.flyStartMousePos.Y(),
+				float32(win.Width()), float32(win.Height()))
+			win.ShowCursor()
 			return false
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
 			e.update3dFly(host, delta)
