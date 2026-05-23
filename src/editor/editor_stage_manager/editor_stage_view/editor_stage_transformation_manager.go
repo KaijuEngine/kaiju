@@ -105,10 +105,21 @@ func (t *TransformationManager) Update(host *engine.Host) {
 		t.scalingTool.Update(host, snap, ss.ScaleIncrement)
 }
 
+func (t *TransformationManager) EnableTranslationTool() {
+	if !t.manager.HasSelection() {
+		return
+	}
+	t.showToolState(ToolStateMove, t.manager.LastSelected().Transform.Position())
+}
+
 func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 	if t.currentTool == state {
 		state = ToolStateNone
 	}
+	t.showToolState(state, pos)
+}
+
+func (t *TransformationManager) showToolState(state ToolState, pos matrix.Vec3) {
 	t.translateTool.Hide()
 	t.rotationTool.Hide()
 	t.scalingTool.Hide()

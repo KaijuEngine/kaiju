@@ -223,6 +223,9 @@ func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 }
 
 func (v *StageView) DuplicateSelected(proj *project.Project) {
+	if !v.manager.HasSelection() {
+		return
+	}
 	v.manager.DuplicateSelected(proj)
 	// The new selection is the duplicated entities
 	weakHost := weak.Make(v.host)
@@ -241,4 +244,5 @@ func (v *StageView) DuplicateSelected(proj *project.Project) {
 	for _, e := range v.manager.HierarchyRespectiveSelection() {
 		callAttachments(e)
 	}
+	v.transformMan.EnableTranslationTool()
 }
