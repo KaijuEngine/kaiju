@@ -100,8 +100,13 @@ void main(void) {
 		}
 		vec4 borderColor = fragBorderColorsLTRB[sideIdx];
 
-		float dist = roundedBoxSDF(centerPixPos, size, fragBorderRadius);
-		float smoothedAlpha = sdfInsideAlpha(dist);
+		bool hasRoundedCorners = dot(step(vec4(0.001), fragBorderRadius), vec4(1.0)) > 0.0;
+		float smoothedAlpha = 1.0;
+		float dist = -1.0;
+		if (hasRoundedCorners) {
+			dist = roundedBoxSDF(centerPixPos, size, fragBorderRadius);
+			smoothedAlpha = sdfInsideAlpha(dist);
+		}
 
 		vec2 innerSize = size - vec2(
 			(fragBorderSize.x + fragBorderSize.z) * 0.5,
@@ -117,8 +122,16 @@ void main(void) {
 			max(fragBorderSize.z, fragBorderSize.y),
 			max(fragBorderSize.x, fragBorderSize.y)
 		), vec4(0.0));
-		float innerDist = roundedBoxSDF(innerCenterPixPos, innerSize, innerBorderRadius);
-		float smoothedBorderAlpha = smoothedAlpha * sdfOutsideAlpha(innerDist);
+		float innerDist = -1.0;
+		float smoothedBorderAlpha = 0.0;
+		if (fragBorderSize.x + fragBorderSize.y + fragBorderSize.z + fragBorderSize.w > 0.0) {
+			if (hasRoundedCorners) {
+				innerDist = roundedBoxSDF(innerCenterPixPos, innerSize, innerBorderRadius);
+				smoothedBorderAlpha = smoothedAlpha * sdfOutsideAlpha(innerDist);
+			} else {
+				smoothedBorderAlpha = closestSide <= 1.0 ? 1.0 : 0.0;
+			}
+		}
 
 		// Border color
 		unWeightedColor = mix(unWeightedColor, borderColor, smoothedBorderAlpha);
