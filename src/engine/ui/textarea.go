@@ -103,7 +103,6 @@ func (textarea *TextArea) Init(placeholderText string) {
 
 	data.label = man.Add().ToLabel()
 	data.label.Init("")
-	data.label.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(data.content.Base())}}
 	data.label.layout.SetPositioning(PositioningAbsolute)
 	data.label.SetBaseline(rendering.FontBaselineTop)
 	data.label.SetWrap(true)
@@ -111,7 +110,6 @@ func (textarea *TextArea) Init(placeholderText string) {
 
 	data.placeholder = man.Add().ToLabel()
 	data.placeholder.Init(placeholderText)
-	data.placeholder.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(data.content.Base())}}
 	data.placeholder.layout.SetPositioning(PositioningAbsolute)
 	data.placeholder.SetBaseline(rendering.FontBaselineTop)
 	data.placeholder.SetWrap(true)
@@ -191,8 +189,8 @@ func (textarea *TextArea) onLayoutUpdating() {
 	data.content.layout.Scale(width+textareaPadding*2, scrollHeight)
 	for _, label := range []*Label{data.label, data.placeholder} {
 		label.layout.SetOffset(textareaPadding, textareaPadding)
-		label.layout.ScaleWidth(width)
 		label.SetMaxWidth(width)
+		label.SetWidthAutoHeight(width)
 	}
 	data.selectionContainer.layout.SetOffset(textareaPadding, textareaPadding)
 	data.selectionContainer.layout.Scale(width, scrollHeight-textareaPadding*2)

@@ -26,26 +26,37 @@ func (p OverflowX) Process(panel *ui.Panel, elm *document.Element, values []rule
 	case "clip":
 		fallthrough
 	case "hidden":
-		panel.SetOverflow(ui.OverflowHidden)
+		direction := panel.ScrollDirection() &^ ui.PanelScrollDirectionHorizontal
+		if direction == ui.PanelScrollDirectionNone {
+			panel.SetOverflow(ui.OverflowHidden)
+		} else {
+			panel.SetOverflow(ui.OverflowScroll)
+		}
+		panel.SetScrollDirection(direction)
 		panel.Base().GenerateScissor()
-		panel.SetScrollDirection(panel.ScrollDirection() &^ ui.PanelScrollDirectionHorizontal)
 	case "auto":
 		fallthrough
 	case "scroll":
+		panel.SetScrollDirection(panel.ScrollDirection() | ui.PanelScrollDirectionHorizontal)
 		panel.SetOverflow(ui.OverflowScroll)
 		panel.Base().GenerateScissor()
-		panel.SetScrollDirection(panel.ScrollDirection() | ui.PanelScrollDirectionHorizontal)
 	case "inherit":
 		if elm.Parent.Value() != nil {
 			parentPanel := elm.Parent.Value().UIPanel
 			panel.SetOverflow(parentPanel.Overflow())
-			panel.Base().GenerateScissor()
 			panel.SetScrollDirection(parentPanel.ScrollDirection() | ui.PanelScrollDirectionHorizontal)
+			panel.Base().GenerateScissor()
 		}
 	case "initial":
 		fallthrough
 	case "visible":
-		panel.SetOverflow(ui.OverflowVisible)
+		direction := panel.ScrollDirection() &^ ui.PanelScrollDirectionHorizontal
+		if direction == ui.PanelScrollDirectionNone {
+			panel.SetOverflow(ui.OverflowVisible)
+		} else {
+			panel.SetOverflow(ui.OverflowScroll)
+		}
+		panel.SetScrollDirection(direction)
 	default:
 		return fmt.Errorf("OverflowX expected a valid value, but got: %s", s)
 	}
