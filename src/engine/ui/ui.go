@@ -50,6 +50,7 @@ const (
 	ElementTypeProgressBar
 	ElementTypeSelect
 	ElementTypeSlider
+	ElementTypeTextArea
 )
 
 const (
@@ -135,6 +136,8 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 			// Labels that make up the input box don't always re-render with
 			// minor events, this is a full window resize so it needs to happen.
 			ui.ToInput().forceLabelAndPlaceholderRerender()
+		} else if ui.Type() == ElementTypeTextArea {
+			ui.ToTextArea().forceLabelAndPlaceholderRerender()
 		}
 	})
 	ui.entity.OnDestroy.Add(func() {
@@ -547,6 +550,8 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	switch ui.elmType {
 	case ElementTypeInput:
 		ui.ToInput().update(deltaTime)
+	case ElementTypeTextArea:
+		ui.ToTextArea().update(deltaTime)
 	case ElementTypeLabel:
 		ui.Update(deltaTime)
 	case ElementTypePanel:
@@ -639,6 +644,13 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 		cpyInput.SetType(tData.inputType)
 		cpyInput.SetRequired(tData.required)
 		cpyInput.SetTextWithoutEvent(t.Text())
+	case ElementTypeTextArea:
+		t := ui.ToTextArea()
+		tData := t.Data()
+		cpyTextArea := cpy.ToTextArea()
+		cpyTextArea.Init(tData.placeholder.Text())
+		cpyTextArea.SetRequired(tData.required)
+		cpyTextArea.SetTextWithoutEvent(t.Text())
 	case ElementTypeProgressBar:
 		t := ui.ToProgressBar()
 		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background())

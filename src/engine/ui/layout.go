@@ -455,6 +455,14 @@ func (l *Layout) prepare() {
 			l.ui.ToInput().onLayoutUpdating()
 			l.runningStylizer = false
 		}
+	case ElementTypeTextArea:
+		if l.runningStylizer {
+			l.ui.ToTextArea().onLayoutUpdating()
+		} else {
+			l.runningStylizer = true
+			l.ui.ToTextArea().onLayoutUpdating()
+			l.runningStylizer = false
+		}
 	case ElementTypeSlider:
 		if l.runningStylizer {
 			l.ui.ToSlider().onLayoutUpdating()

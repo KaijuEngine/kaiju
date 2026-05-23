@@ -98,7 +98,7 @@ func (group *Group) IsFocusedOnInput() bool {
 	if group.focus == nil || !group.focus.IsActive() {
 		return false
 	}
-	return group.focus.IsType(ElementTypeInput)
+	return group.focus.IsType(ElementTypeInput) || group.focus.IsType(ElementTypeTextArea)
 }
 
 func (group *Group) Attach(host *engine.Host) {
