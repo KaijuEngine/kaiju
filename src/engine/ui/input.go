@@ -909,7 +909,7 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 				return
 			}
 			kb := &host.Window.Keyboard
-			c := kb.KeyToRune(keyId)
+			c := host.Localization.KeyToRune(kb, keyId)
 			if c != 0 {
 				if !kb.HasCtrlOrMeta() {
 					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock) {

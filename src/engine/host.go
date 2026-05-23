@@ -24,6 +24,7 @@ import (
 	"kaijuengine.com/engine/systems/logging"
 	"kaijuengine.com/engine/systems/tweening"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/localization"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/audio"
 	"kaijuengine.com/platform/concurrent"
@@ -94,6 +95,7 @@ type Host struct {
 	fontCache         rendering.FontCache
 	materialCache     rendering.MaterialCache
 	Drawings          rendering.Drawings
+	Localization      localization.Localization
 	frame             FrameId
 	frameTime         float64
 	Closing           bool
@@ -123,6 +125,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		Closing:       false,
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
+		Localization:  localization.Select(),
 		entitiesById:  make(map[EntityId]*Entity),
 		CloseSignal:   make(chan struct{}, 1),
 		LogStream:     logStream,
