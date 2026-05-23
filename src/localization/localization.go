@@ -4,12 +4,26 @@ import (
 	"strings"
 
 	"golang.org/x/text/language"
+	"kaijuengine.com/platform/hid"
 )
 
 const defaultLocalization = "en-US"
 
-// Current returns the user's current localization as a canonical language tag.
-func Current() string {
+type Localization interface {
+	KeyToRune(keyboard *hid.Keyboard, key hid.KeyboardKey) rune
+}
+
+func Select() Localization {
+	switch String() {
+	case "en-US":
+		return English{}
+	default:
+		return English{}
+	}
+}
+
+// String returns the user's current localization as a canonical language tag.
+func String() string {
 	return normalizeLocalization(currentLocalization())
 }
 

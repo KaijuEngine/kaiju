@@ -1144,7 +1144,7 @@ func (textarea *TextArea) keyPressed(keyId int, keyState hid.KeyState) {
 			textarea.RemoveFocus()
 			return
 		}
-		c := kb.KeyToRune(keyId)
+		c := host.Localization.KeyToRune(kb, keyId)
 		if c != 0 {
 			if !kb.HasCtrlOrMeta() {
 				if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock) {
