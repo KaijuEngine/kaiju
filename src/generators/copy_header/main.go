@@ -10,7 +10,7 @@ import (
 	"kaijuengine.com/platform/filesystem"
 )
 
-const containsCheck = "Copyright (c) 2015-present Brent Farris."
+const containsCheck = "Copyright (c) 2015-present Brent Farris,"
 
 const header = `/******************************************************************************/
 /* [NAME] */
