@@ -6,9 +6,9 @@ import (
 	"kaijuengine.com/platform/hid"
 )
 
-type English struct{}
+type AmericanEnglish struct{}
 
-func (English) KeyToRune(keyboard *hid.Keyboard, key hid.KeyboardKey) rune {
+func (AmericanEnglish) KeyToRune(keyboard *hid.Keyboard, key hid.KeyboardKey) rune {
 	c := ""
 	isNumpadKey := false
 	switch key {

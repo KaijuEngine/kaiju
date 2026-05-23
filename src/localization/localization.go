@@ -16,9 +16,9 @@ type Localization interface {
 func Select() Localization {
 	switch String() {
 	case "en-US":
-		return English{}
+		return AmericanEnglish{}
 	default:
-		return English{}
+		return AmericanEnglish{}
 	}
 }
 
