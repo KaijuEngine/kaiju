@@ -4,6 +4,8 @@ site_author: 'Brent Farris'
 docs_dir: docs/
 repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
+hooks:
+  - tools/mkdocs/generate_blog_posts_json.py
 nav:
   - Home: index.md
   - Blog: blog/index.md
