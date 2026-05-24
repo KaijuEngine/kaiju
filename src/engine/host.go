@@ -528,6 +528,10 @@ func (host *Host) Teardown() {
 	host.shaderCache.Destroy()
 	host.fontCache.Destroy()
 	host.materialCache.Destroy()
+	for i := range host.plugins {
+		host.plugins[i].Close()
+	}
+	host.plugins = nil
 	host.assetDatabase.Close()
 	host.Window.Destroy()
 	host.threads.Stop()
