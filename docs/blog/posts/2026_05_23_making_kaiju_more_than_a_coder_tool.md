@@ -81,6 +81,12 @@ Kaiju now has the start of a new Terrain editor. This terrain editor allows you 
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/terrain_sculpting.mp4" type="video/mp4">
 </video>
 
+Painting:
+
+<video autoplay muted loop playsinline controls max-width="100%">
+	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/terrain_painting.mp4" type="video/mp4">
+</video>
+
 ## Integration Testing
 You can now create integration tests in Kaiju. This allows you to create tests that actually run integrated tests (non unit test) for complex game or software systems. Something I often use this for is generating screenshots of UI elements, shader results, or other visual elements for further processing and iteration. Check out the `integrationtest` command-line arg, there is a sample `-integrationtest=screenshot` you can run. _Note that this only runs in debug builds, you can change that if you need it for release builds._
 
