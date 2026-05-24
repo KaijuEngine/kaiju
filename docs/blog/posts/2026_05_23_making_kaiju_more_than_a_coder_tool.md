@@ -28,20 +28,20 @@ First impressions are important and having something nice to look at when you in
 
 One new re-usable UI gizmo that we have now is also the color picker.
 
-<video autoplay muted loop playsinline max-width="100%">
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/color_picker.mp4" type="video/mp4">
 </video>
 
 ## Stage Tools
 Vertex snapping is here! You can hold down the "V" key on your keyboard, while you have entities selected, and you'll enter into the vertex snapping mode. This will allow you to select a vertex you wish to snap from within your selection, and drag it over other verts in the scene to snap to them.
 
-<video autoplay muted loop playsinline max-width="100%">
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/vertex_snapping.mp4" type="video/mp4">
 </video>
 
 Next up, I added the ability to duplicate objects by holding Shift and click-dragging the translation gizmo. This also works with snapping when you hold the CTRL/Mod key.
 
-<video autoplay muted loop playsinline max-width="100%">
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/drag_duplicate.mp4" type="video/mp4">
 </video>
 
@@ -51,29 +51,33 @@ I've also added a setting in the Editor Settings to change your gizmo invocation
 
 I have introduced the ability to create primitives through the `Create` drop down in the menu bar. Also, speaking of the menu bar, you can now click to expand a section, then move your mouse back and forth through the other options to expand them; instead of needing to click each one individually.
 
-<video autoplay muted loop playsinline max-width="100%">
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/auto_expand_menus.mp4" type="video/mp4">
 </video>
 
 ## Physics System
 Kaiju now has it's own multi-threaded physics engine built-in, directly in Go. We no longer have a dependency on Bullet3. This implementation is much further along than the previous Bullet3 implementation, so it's a fantasic improvement. The physics system has both constraints and terrain collision support as well.
 
-<video autoplay muted loop playsinline max-width="100%">
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/graviton_initial_test.mp4" type="video/mp4">
 </video>
 
-<video autoplay muted loop playsinline max-width="100%">
+Constraints:
+
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/graviton_constraints.mp4" type="video/mp4">
 </video>
 
-<video autoplay muted loop playsinline max-width="100%">
+Terrain interaction:
+
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/graviton_terrain.mp4" type="video/mp4">
 </video>
 
 ## Terrain Editor
 Kaiju now has the start of a new Terrain editor. This terrain editor allows you to paint terrain heights, it's auto-chunked for rendering performance, and you have the ability to paint textures on it. Currently it does not support foliage, but that will be coming soon.
 
-<video autoplay muted loop playsinline max-width="100%">
+<video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/terrain_sculpting.mp4" type="video/mp4">
 </video>
 
