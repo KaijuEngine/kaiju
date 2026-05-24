@@ -1017,7 +1017,6 @@ func (d *Document) DuplicateElementRepeatWithoutApplyStyles(elm *Element, count 
 		elms[i] = elm.Clone(elm.Parent.Value())
 		d.appendElement(elms[i])
 	}
-	d.stylizer.ApplyStyles(d.style, d)
 	return elms
 }
 
