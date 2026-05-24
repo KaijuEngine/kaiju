@@ -50,7 +50,7 @@ func (b *ProgressBar) SetValue(value float32) {
 	data.fgPanel.layout.ScaleWidth(w*data.value + 1)
 }
 
-func (b ProgressBar) Value() float32 {
+func (b *ProgressBar) Value() float32 {
 	return b.data().value
 }
 

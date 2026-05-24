@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/engine/cameras"
-	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/matrix"
 )
 
@@ -115,7 +115,7 @@ func TestLightMinMaxFromCorners(t *testing.T) {
 	light := Light{}
 	view := matrix.Mat4Identity()
 	view.Translate(matrix.Vec3{10, 0, 0})
-	corners := collision.FrustumCorners{
+	corners := graviton.FrustumCorners{
 		{-1, -2, -3, 1},
 		{4, 5, 6, 1},
 		{0, 0, 0, 1},
