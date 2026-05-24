@@ -24,7 +24,13 @@ For a long time I've been heavily focused on code, performance, and what the exp
 ## UI Updates
 ![New project UI](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/new_project.png)
 
-First impressions are important and having something nice to look at when you initially open the engine becomes more important over time. To achieve this new look, there are several updates to the UI shader to improve outline quality, precision, border shape/size, and other finer details. Recent updates have pushed our CSS implementation much further than it had been originally. Recent updates also bring the new `<kaiju-include>` tag, as seen in `stage_workspace.go.html`, to allow you to break up your large HTML UI files into managable pieces. 
+First impressions are important and having something nice to look at when you initially open the engine becomes more important over time. To achieve this new look, there are several updates to the UI shader to improve outline quality, precision, border shape/size, and other finer details. Recent updates have pushed our CSS implementation much further than it had been originally. Recent updates also bring the new `<kaiju-include>` tag, as seen in `stage_workspace.go.html`, to allow you to break up your large HTML UI files into managable pieces.
+
+One new re-usable UI gizmo that we have now is also the color picker.
+
+<video autoplay muted loop playsinline max-width="100%">
+	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/color_picker.mp4" type="video/mp4">
+</video>
 
 ## Stage Tools
 Vertex snapping is here! You can hold down the "V" key on your keyboard, while you have entities selected, and you'll enter into the vertex snapping mode. This will allow you to select a vertex you wish to snap from within your selection, and drag it over other verts in the scene to snap to them.
