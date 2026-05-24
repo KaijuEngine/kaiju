@@ -151,13 +151,7 @@ func (label *Label) labelPostLayoutUpdate() {
 	maxWidth := label.MaxWidth()
 	l := label.LabelData()
 	if l.wordWrap && l.overrideMaxWidth <= 0 {
-		if label.entity.Parent != nil {
-			p := FirstOnEntity(label.entity.Parent)
-			o := p.layout.padding.Add(p.layout.border)
-			maxWidth = label.layout.PixelSize().Width() - o.X() - o.Z()
-		} else {
-			maxWidth = label.MaxWidth()
-		}
+		maxWidth = label.nonOverrideMaxWidth()
 	}
 	label.updateHeight(maxWidth)
 }
