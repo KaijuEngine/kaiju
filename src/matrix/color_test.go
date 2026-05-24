@@ -109,6 +109,11 @@ func TestColorOklabOklch(t *testing.T) {
 			}
 		})
 	}
+	// Test clamping, this color doesn't have a true RGB equivalent
+	co := OklchToColor(0.9, 0.103, 29.05, 1)
+	if !Approx(co[0], 1.0) {
+		t.Error("oklch clamping failure, want 1.0")
+	}
 }
 
 // ============================================================================

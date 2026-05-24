@@ -85,6 +85,7 @@ func OklabToColor(l, a, b, alpha Float) Color {
 		} else {
 			c[i] = 12.92 * c[i]
 		}
+		c[i] = Max(Min(c[i], 1), 0) // Naive clamping, could instead reduce chroma until no overflow
 	}
 	return c
 }
