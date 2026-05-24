@@ -564,13 +564,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				} else {
 					u.SetTextWithoutEvent(g.FieldString(i))
 				}
-				w.Doc.RemoveElement(checkInput)
+				w.Doc.RemoveElementWithoutApplyStyles(checkInput)
 			}
 		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
 			valReload = func() {
 				checkInput.Children[0].UI.ToCheckbox().SetCheckedWithoutEvent(g.FieldBool(i))
-				w.Doc.RemoveElement(textInput)
+				w.Doc.RemoveElementWithoutApplyStyles(textInput)
 			}
 		} else if g.Fields[i].IsVec2() {
 			vec2Input.UI.Show()
@@ -1553,7 +1553,7 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 		}
 	}
 	for i := len(removed) - 1; i >= 0; i-- {
-		w.Doc.RemoveElement(removed[i])
+		w.Doc.RemoveElementWithoutApplyStyles(removed[i])
 	}
 	if len(missing) > 0 {
 		w.Host.RunOnMainThread(func() {
