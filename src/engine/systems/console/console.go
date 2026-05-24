@@ -167,6 +167,20 @@ func (c *Console) Write(message string) {
 	lbl.SetText(message)
 }
 
+func (c *Console) WriteColor(message string, color matrix.Color) {
+	lbl := c.outputLabel()
+	lbl.SetText(message)
+	lbl.EnforceFGColor(color)
+}
+
+func (c *Console) WriteError(message string) {
+	c.WriteColor(message, matrix.ColorRed())
+}
+
+func (c *Console) WriteSuccess(message string) {
+	c.WriteColor(message, matrix.ColorGreen())
+}
+
 func (c *Console) help(*engine.Host, string) string {
 	sb := strings.Builder{}
 	sb.WriteString("Available Commands:\n")
@@ -192,14 +206,16 @@ func (c *Console) outputLabel() *ui.Label {
 		for i := 1; i < l; i++ {
 			lbl := ui.FirstOnEntity(cc.Children[i-1].UI.Entity()).ToLabel()
 			last = ui.FirstOnEntity(cc.Children[i].UI.Entity()).ToLabel()
+			lbl.UnEnforceFGColor()
+			lbl.EnforceFGColor(last.GetColor())
 			lbl.SetText(last.Text())
 		}
+		last.UnEnforceFGColor()
 		return last
 	}
-	new := cc.Children[len(cc.Children)-1]
-	cc.Children = append(cc.Children, new.Clone(cc))
-	lbl := cc.Children[len(cc.Children)-1].UI.ToLabel()
-	lbl.SetColor(matrix.ColorAquamarine())
+	new := cc.Children[len(cc.Children)-1].Clone(cc)
+	cc.Children = append(cc.Children, new)
+	lbl := new.UI.ToLabel()
 	return lbl
 }
 
