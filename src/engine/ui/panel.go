@@ -902,7 +902,9 @@ func (p *Panel) ClearLayoutStyles() {
 	pd.aspectRatio = 0
 	pd.usesBorderBox = false
 	pd.fitContent = ContentFitBoth
-	p.layout.ClearStyles()
+	// TODO:  This is commented out for now to fix a click-glitch bug
+	// in the editor content browser.
+	// p.layout.ClearStyles()
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
