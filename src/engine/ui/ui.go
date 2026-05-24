@@ -633,6 +633,9 @@ func (ui *UI) cleanIfNeeded() {
 
 func (ui *UI) anyChildDirty() bool {
 	defer tracing.NewRegion("UI.anyChildDirty").End()
+	if !ui.IsActive() || ui.entity.IsDestroyed() {
+		return false
+	}
 	if ui.dirtyType != DirtyTypeNone {
 		return true
 	}
