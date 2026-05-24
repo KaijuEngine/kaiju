@@ -136,6 +136,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
+		cui.allowEntryVisualsClickThrough(cpys[i])
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
@@ -151,6 +152,14 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w.Doc.ApplyStyles()
 	cui.refreshFilterOnContentChange()
 	w.ed.ContentPreviewer().GeneratePreviews(ids)
+}
+
+func (cui *WorkspaceContentUI) allowEntryVisualsClickThrough(e *document.Element) {
+	for i := range e.Children {
+		if e.Children[i].UIPanel != nil {
+			e.Children[i].UIPanel.AllowClickThrough()
+		}
+	}
 }
 
 func (cui *WorkspaceContentUI) removeContent(ids []string) {
