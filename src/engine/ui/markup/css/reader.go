@@ -14,7 +14,6 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/pseudos"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
-	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/windowing"
 )
 
@@ -145,59 +144,129 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 	}
 }
 
-func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
-	selectorRules := rules.CloneRules(applyRules)
-	elms := make([]*document.Element, 0)
-	switch parts[0].SelectType {
-	case rules.ReadingId:
-		if elm, ok := doc.GetElementById(parts[0].Name); ok {
-			elms = append(elms, elm)
-		}
-	case rules.ReadingClass:
-		elms = append(elms, doc.GetElementsByClass(parts[0].Name)...)
-	case rules.ReadingTag:
-		elms = append(elms, doc.GetElementsByTagName(parts[0].Name)...)
+type selectorStep struct {
+	parts      []rules.SelectorPart
+	combinator rules.RuleState
+}
+
+func isCombinator(part rules.SelectorPart) bool {
+	switch part.SelectType {
+	case rules.ReadingDescendant, rules.ReadingChild, rules.ReadingSibling, rules.ReadingAdjacent:
+		return true
+	default:
+		return false
 	}
-	targets := make([]*document.Element, 0)
-	lastTargets := []*document.Element{}
-	for _, elm := range elms {
-		lastTargets = append(lastTargets, elm)
-	partsLoop:
-		for _, part := range parts[1:] {
-			switch part.SelectType {
-			case rules.ReadingCondition:
-				if len(parts) > 2 && elm.Attribute(parts[1].Name) == parts[2].Name {
-					targets = klib.AppendUnique(targets, elm)
-				} else {
-					break partsLoop
-				}
-			case rules.ReadingClass:
-				if elm.HasClass(part.Name) {
-					targets = klib.AppendUnique(targets, elm)
-				}
-			case rules.ReadingTag:
-				tagged := doc.GetElementsByTagName(part.Name)
-				lastTargets = lastTargets[:0]
-				for _, t := range tagged {
-					if t.Parent.Value() == elm {
-						targets = klib.AppendUnique(targets, t)
-						lastTargets = append(lastTargets, t)
-					}
-				}
-			case rules.ReadingPseudo, rules.ReadingPseudoFunction:
-				if p, ok := pseudos.PseudoMap[part.Name]; ok {
-					for i := range lastTargets {
-						if selects, err := p.Process(lastTargets[i], part); err == nil {
-							targets = klib.AppendUnique(targets, selects...)
-							selectorRules = p.AlterRules(selectorRules)
-						}
-					}
-				}
+}
+
+func selectorSteps(parts []rules.SelectorPart) []selectorStep {
+	steps := make([]selectorStep, 0, len(parts))
+	current := selectorStep{parts: make([]rules.SelectorPart, 0), combinator: rules.ReadingTag}
+	for i := range parts {
+		part := parts[i]
+		if isCombinator(part) {
+			if len(current.parts) > 0 {
+				steps = append(steps, current)
+				current = selectorStep{parts: make([]rules.SelectorPart, 0), combinator: part.SelectType}
+			} else if len(steps) > 0 {
+				current.combinator = part.SelectType
+			}
+			continue
+		}
+		current.parts = append(current.parts, part)
+	}
+	if len(current.parts) > 0 {
+		steps = append(steps, current)
+	}
+	return steps
+}
+
+func selectorMatches(elm *document.Element, parts []rules.SelectorPart, applyRules []rules.Rule) (bool, []rules.Rule) {
+	steps := selectorSteps(parts)
+	if len(steps) == 0 {
+		return false, nil
+	}
+	selectorRules := rules.CloneRules(applyRules)
+	if selectorStepMatches(elm, steps, len(steps)-1, &selectorRules) {
+		return true, selectorRules
+	}
+	return false, nil
+}
+
+func selectorStepMatches(elm *document.Element, steps []selectorStep, idx int, selectorRules *[]rules.Rule) bool {
+	if elm == nil || !selectorPartListMatches(elm, steps[idx].parts, selectorRules) {
+		return false
+	}
+	if idx == 0 {
+		return true
+	}
+	switch steps[idx].combinator {
+	case rules.ReadingChild:
+		return selectorStepMatches(elm.Parent.Value(), steps, idx-1, selectorRules)
+	case rules.ReadingDescendant:
+		for parent := elm.Parent.Value(); parent != nil; parent = parent.Parent.Value() {
+			if selectorStepMatches(parent, steps, idx-1, selectorRules) {
+				return true
 			}
 		}
 	}
-	for _, target := range targets {
-		cssMap.add(target.UI, selectorRules)
+	return false
+}
+
+func selectorPartListMatches(elm *document.Element, parts []rules.SelectorPart, selectorRules *[]rules.Rule) bool {
+	for i := 0; i < len(parts); i++ {
+		part := parts[i]
+		switch part.SelectType {
+		case rules.ReadingId:
+			if elm.Attribute("id") != part.Name {
+				return false
+			}
+		case rules.ReadingClass:
+			if !elm.HasClass(part.Name) {
+				return false
+			}
+		case rules.ReadingTag:
+			if elm.IsText() || elm.Data != part.Name {
+				return false
+			}
+		case rules.ReadingCondition:
+			want := ""
+			hasAssignment := i+1 < len(parts) && parts[i+1].SelectType == rules.ReadingConditionAssignment
+			if hasAssignment {
+				want = parts[i+1].Name
+				i++
+			}
+			if !selectorAttributeMatches(elm, part.Name, want, hasAssignment) {
+				return false
+			}
+		case rules.ReadingConditionAssignment:
+			return false
+		case rules.ReadingPseudo, rules.ReadingPseudoFunction:
+			p, ok := pseudos.PseudoMap[part.Name]
+			if !ok {
+				return false
+			}
+			selects, err := p.Process(elm, part)
+			if err != nil || !slices.Contains(selects, elm) {
+				return false
+			}
+			*selectorRules = p.AlterRules(*selectorRules)
+		}
+	}
+	return true
+}
+
+func selectorAttributeMatches(elm *document.Element, key, value string, hasAssignment bool) bool {
+	if !hasAssignment {
+		return elm.HasAttribute(key)
+	}
+	return elm.Attribute(key) == value
+}
+
+func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
+	for _, elm := range doc.Elements {
+		if ok, selectorRules := selectorMatches(elm, parts, applyRules); ok {
+			cssMap.add(elm.UI, selectorRules)
+		}
 	}
 }
 
@@ -252,9 +321,13 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 			}
 		}
 		for _, sel := range group.Selectors {
-			if len(sel.Parts) == 1 {
+			if len(sel.Parts) == 1 && (sel.Parts[0].SelectType == rules.ReadingId ||
+				sel.Parts[0].SelectType == rules.ReadingClass ||
+				sel.Parts[0].SelectType == rules.ReadingTag) {
 				applyDirect(sel.Parts[0], group.Rules, doc, cssMap)
 			} else if len(sel.Parts) > 1 {
+				applyIndirect(sel.Parts, group.Rules, doc, cssMap)
+			} else if len(sel.Parts) == 1 {
 				applyIndirect(sel.Parts, group.Rules, doc, cssMap)
 			}
 		}

@@ -10,6 +10,7 @@ import "testing"
 
 const testCSSNarrowTag = `.entry span { display: none; }`
 const testCSSNarrowClass = `.entry .wide { display: none; }`
+const testCSSChildClass = `.entry > .direct { display: none; }`
 const testCSSCommaId = `#id1, #id2, #id3 { display: none; }`
 const testCSSInputText = `input[type="text"] { display: none; }`
 const testCSSNotClass = `button:not(.materialIcon) { display: none; }`
@@ -36,7 +37,7 @@ func TestParseNarrowTag(t *testing.T) {
 		t.FailNow()
 	}
 	sel := g.Selectors[0]
-	if len(sel.Parts) != 2 {
+	if len(sel.Parts) != 3 {
 		t.FailNow()
 	}
 	if sel.Parts[0].Name != "entry" {
@@ -45,10 +46,16 @@ func TestParseNarrowTag(t *testing.T) {
 	if sel.Parts[0].SelectType != ReadingClass {
 		t.FailNow()
 	}
-	if sel.Parts[1].Name != "span" {
+	if sel.Parts[1].Name != " " {
 		t.FailNow()
 	}
-	if sel.Parts[1].SelectType != ReadingTag {
+	if sel.Parts[1].SelectType != ReadingDescendant {
+		t.FailNow()
+	}
+	if sel.Parts[2].Name != "span" {
+		t.FailNow()
+	}
+	if sel.Parts[2].SelectType != ReadingTag {
 		t.FailNow()
 	}
 }
@@ -64,7 +71,7 @@ func TestParseNarrowClass(t *testing.T) {
 		t.FailNow()
 	}
 	sel := g.Selectors[0]
-	if len(sel.Parts) != 2 {
+	if len(sel.Parts) != 3 {
 		t.FailNow()
 	}
 	if sel.Parts[0].Name != "entry" {
@@ -73,10 +80,41 @@ func TestParseNarrowClass(t *testing.T) {
 	if sel.Parts[0].SelectType != ReadingClass {
 		t.FailNow()
 	}
-	if sel.Parts[1].Name != "wide" {
+	if sel.Parts[1].Name != " " {
 		t.FailNow()
 	}
-	if sel.Parts[1].SelectType != ReadingClass {
+	if sel.Parts[1].SelectType != ReadingDescendant {
+		t.FailNow()
+	}
+	if sel.Parts[2].Name != "wide" {
+		t.FailNow()
+	}
+	if sel.Parts[2].SelectType != ReadingClass {
+		t.FailNow()
+	}
+}
+
+func TestParseChildClass(t *testing.T) {
+	s := NewStyleSheet()
+	s.Parse(testCSSChildClass, dummyWindow{})
+	if len(s.Groups) != 1 {
+		t.FailNow()
+	}
+	g := s.Groups[0]
+	if len(g.Selectors) != 1 {
+		t.FailNow()
+	}
+	sel := g.Selectors[0]
+	if len(sel.Parts) != 3 {
+		t.Fatalf("expected 3 selector parts, got %d: %#v", len(sel.Parts), sel.Parts)
+	}
+	if sel.Parts[0].Name != "entry" || sel.Parts[0].SelectType != ReadingClass {
+		t.FailNow()
+	}
+	if sel.Parts[1].Name != ">" || sel.Parts[1].SelectType != ReadingChild {
+		t.Fatalf("expected child combinator, got %#v", sel.Parts[1])
+	}
+	if sel.Parts[2].Name != "direct" || sel.Parts[2].SelectType != ReadingClass {
 		t.FailNow()
 	}
 }

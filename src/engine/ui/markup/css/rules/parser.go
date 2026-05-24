@@ -55,6 +55,24 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	sel := Selector{
 		Parts: make([]SelectorPart, 0),
 	}
+	appendCombinator := func(selectType RuleState, name string) {
+		if len(sel.Parts) == 0 {
+			return
+		}
+		idx := len(sel.Parts) - 1
+		switch sel.Parts[idx].SelectType {
+		case ReadingDescendant, ReadingChild, ReadingSibling, ReadingAdjacent:
+			sel.Parts[idx] = SelectorPart{
+				Name:       name,
+				SelectType: selectType,
+			}
+		default:
+			sel.Parts = append(sel.Parts, SelectorPart{
+				Name:       name,
+				SelectType: selectType,
+			})
+		}
+	}
 	pseudoFunctionDepth := 0
 	appendPseudoArg := func(data string) bool {
 		if pseudoFunctionDepth == 0 {
@@ -119,8 +137,9 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		case css.CommaToken:
 			appendPseudoArg(",")
 		case css.WhitespaceToken:
-			appendPseudoArg(" ")
-			if pseudoFunctionDepth == 0 {
+			if appendPseudoArg(" ") {
+			} else if pseudoFunctionDepth == 0 {
+				appendCombinator(ReadingDescendant, " ")
 				s.state = ReadingTag
 			}
 		case css.LeftBracketToken:
@@ -143,7 +162,8 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 				case ".":
 					s.state = ReadingClass
 				case ">":
-					s.state = ReadingChild
+					appendCombinator(ReadingChild, ">")
+					s.state = ReadingTag
 				case "~":
 					s.state = ReadingSibling
 				case "+":

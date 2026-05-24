@@ -12,6 +12,7 @@ const (
 	ReadingTag = iota
 	ReadingId
 	ReadingClass
+	ReadingDescendant
 	ReadingChild
 	ReadingSibling
 	ReadingAdjacent
