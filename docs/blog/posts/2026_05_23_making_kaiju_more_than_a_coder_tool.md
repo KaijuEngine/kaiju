@@ -24,7 +24,7 @@ For a long time I've been heavily focused on code, performance, and what the exp
 ## UI Updates
 ![New project UI](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/new_project.png)
 
-First impressions are important and having something nice to look at when you initially open the engine becomes more important over time. To achieve this new look, there are several updates to the UI shader to improve outline quality, precision, border shape/size, and other finer details. Recent updates have pushed our CSS implementation much further than it had been originally. Recent updates also bring the new `<kaiju-include>` tag, as seen in `stage_workspace.go.html`, to allow you to break up your large HTML UI files into managable pieces.
+First impressions are important and having something nice to look at when you initially open the engine becomes more important over time. To achieve this new look, there are several updates to the UI shader to improve outline quality, precision, border shape/size, and other finer details. Recent updates have pushed our CSS implementation much further than it had been originally. Recent updates also bring the new `<kaiju-include>` tag, as seen in `stage_workspace.go.html`, to allow you to break up your large HTML UI files into manageable pieces.
 
 One new re-usable UI gizmo that we have now is also the color picker.
 
@@ -56,7 +56,7 @@ I have introduced the ability to create primitives through the `Create` drop dow
 </video>
 
 ## Graviton - Physics System
-Kaiju now has it's own multi-threaded physics engine built-in, directly in Go, code named Graviton. We no longer have a dependency on Bullet3. This implementation is much further along than the previous Bullet3 implementation, so it's a fantasic improvement. The physics system has both constraints and terrain collision support as well.
+Kaiju now has it's own multi-threaded physics engine built-in, directly in Go, code named Graviton. We no longer have a dependency on Bullet3. This implementation is much further along than the previous Bullet3 implementation, so it's a fantastic improvement. The physics system has both constraints and terrain collision support as well.
 
 <video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/graviton_initial_test.mp4" type="video/mp4">
@@ -94,4 +94,4 @@ You can now create integration tests in Kaiju. This allows you to create tests t
 This is a very tiny mention, but Kaiju now has a `localization` package in the code. This sets the ground work for implementing localized keyboard input, as well as prepping for a string-based localization tabling system.
 
 ## Thank you!
-Thank you to all of the contributors who have stedily made Kaiju even better, improved performance, improved UX, added features, and generally have been a real blessing! The continual support and excitement from people really help inspire me to keep on moving along.
+Thank you to all of the contributors who have steadily made Kaiju even better, improved performance, improved UX, added features, and generally have been a real blessing! The continual support and excitement from people really help inspire me to keep on moving along.
