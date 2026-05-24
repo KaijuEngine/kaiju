@@ -60,6 +60,12 @@ type Layout struct {
 }
 
 func (l *Layout) ClearStyles() {
+	ps := l.PixelSize()
+	if l.padding.Horizontal() != 0 || l.padding.Vertical() != 0 ||
+		l.border.Horizontal() != 0 || l.border.Vertical() != 0 {
+		ps.SetX(ps.X() - l.padding.Horizontal() - l.border.Horizontal())
+		ps.SetY(ps.Y() - l.padding.Vertical() - l.border.Vertical())
+	}
 	l.offset = matrix.Vec2{}
 	l.rowLayoutOffset = matrix.Vec2{}
 	l.innerOffset = matrix.Vec4{}
@@ -80,6 +86,9 @@ func (l *Layout) ClearStyles() {
 	l.flexOrder = 0
 	l.alignSelf = FlexAlignAuto
 	l.positioning = PositioningStatic
+	if ps.X() > 0 && ps.Y() > 0 {
+		l.Scale(ps.X(), ps.Y())
+	}
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
