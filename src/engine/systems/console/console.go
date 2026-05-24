@@ -195,7 +195,11 @@ func (c *Console) help(*engine.Host, string) string {
 }
 
 func (c *Console) clear(*engine.Host, string) string {
-	c.outputLabel().SetText("")
+	cc, _ := c.doc.GetElementById("consoleContent")
+	for _, c := range cc.Children {
+		c.UI.Entity().Deactivate()
+	}
+	cc.UIPanel.SetScrollY(0)
 	return ""
 }
 
@@ -214,7 +218,7 @@ func (c *Console) outputLabel() *ui.Label {
 		return last
 	}
 	new := cc.Children[len(cc.Children)-1].Clone(cc)
-	cc.Children = append(cc.Children, new)
+	cc.UIPanel.AddChild(new.UI)
 	lbl := new.UI.ToLabel()
 	return lbl
 }
