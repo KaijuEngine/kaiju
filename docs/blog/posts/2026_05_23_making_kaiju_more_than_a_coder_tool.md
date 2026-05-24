@@ -55,8 +55,8 @@ I have introduced the ability to create primitives through the `Create` drop dow
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/auto_expand_menus.mp4" type="video/mp4">
 </video>
 
-## Physics System
-Kaiju now has it's own multi-threaded physics engine built-in, directly in Go. We no longer have a dependency on Bullet3. This implementation is much further along than the previous Bullet3 implementation, so it's a fantasic improvement. The physics system has both constraints and terrain collision support as well.
+## Graviton - Physics System
+Kaiju now has it's own multi-threaded physics engine built-in, directly in Go, code named Graviton. We no longer have a dependency on Bullet3. This implementation is much further along than the previous Bullet3 implementation, so it's a fantasic improvement. The physics system has both constraints and terrain collision support as well.
 
 <video autoplay muted loop playsinline controls max-width="100%">
 	<source src="https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/graviton_initial_test.mp4" type="video/mp4">
