@@ -320,6 +320,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
+		w.allowEntryVisualsClickThrough(cpys[i])
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].InnerLabel()
@@ -385,6 +386,15 @@ func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_datab
 				}
 			})
 		}()
+	}
+}
+
+func (w *ContentWorkspace) allowEntryVisualsClickThrough(e *document.Element) {
+	for i := range e.Children {
+		child := e.Children[i]
+		if child.HasClass("preview") || child.HasClass("entryLabel") || child.HasClass("typeThumb") {
+			child.UIPanel.AllowClickThrough()
+		}
 	}
 }
 
