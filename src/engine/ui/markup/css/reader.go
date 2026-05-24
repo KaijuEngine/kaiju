@@ -268,3 +268,83 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 		}
 	}
 }
+
+// ApplyStylesToElement re-evaluates CSS for `target` and its descendants
+// only. Selector matching itself still scans the whole stylesheet against
+// the whole document (the matcher is rules→elements oriented), but the
+// clear/apply phases skip any element not in the subtree, so the dirty
+// cascade and the next-frame Clean stay scoped.
+//
+// Correct under the engine's current selector grammar (id, class, tag,
+// pseudo, attribute condition, descendant). If sibling combinators (`+`,
+// `~`) are added later, callers that previously relied on the doc-wide
+// behavior will need to widen their scope.
+func (z Stylizer) ApplyStylesToElement(s rules.StyleSheet, doc *document.Document, target *document.Element) {
+	if target == nil {
+		return
+	}
+	inSubtree := make(map[*ui.UI]struct{})
+	var walk func(e *document.Element)
+	walk = func(e *document.Element) {
+		if e == nil || e.UI == nil {
+			return
+		}
+		inSubtree[e.UI] = struct{}{}
+		for _, c := range e.Children {
+			walk(c)
+		}
+	}
+	walk(target)
+	for i := range doc.Elements {
+		e := doc.Elements[i]
+		if _, ok := inSubtree[e.UI]; !ok {
+			continue
+		}
+		e.Stylizer.ClearRules()
+		for j := range e.UIEventIds {
+			for k := range e.UIEventIds[j] {
+				e.UI.RemoveEvent(j, e.UIEventIds[j][k])
+			}
+		}
+	}
+	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
+	for _, group := range s.Groups {
+		if group.MediaQuery.IsValid() {
+			switch group.MediaQuery.Key {
+			case "screen":
+			case "max-width":
+				v := helpers.NumFromLength(group.MediaQuery.Value, z.Window)
+				if int(v) <= z.Window.Width() {
+					continue
+				}
+			default:
+				continue
+			}
+		}
+		for _, sel := range group.Selectors {
+			if len(sel.Parts) == 1 {
+				applyDirect(sel.Parts[0], group.Rules, doc, cssMap)
+			} else if len(sel.Parts) > 1 {
+				applyIndirect(sel.Parts, group.Rules, doc, cssMap)
+			}
+		}
+	}
+	cleanMapDuplicates(cssMap)
+	for _, e := range doc.Elements {
+		if _, ok := inSubtree[e.UI]; !ok {
+			continue
+		}
+		if rs, ok := cssMap[e.UI]; ok {
+			applyToElement(rs, e)
+		}
+	}
+	for _, elm := range doc.Elements {
+		if _, ok := inSubtree[elm.UI]; !ok {
+			continue
+		}
+		if inlineStyle := elm.Attribute("style"); inlineStyle != "" {
+			group := s.ParseInline(inlineStyle, z.Window)
+			applyToElement(group.Rules, elm)
+		}
+	}
+}
