@@ -7,6 +7,7 @@
 package matrix
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -60,6 +61,53 @@ func TestColorRGBInt(t *testing.T) {
 	}
 	if !Approx(c.A(), 1.0) {
 		t.Errorf("A should be 1.0, got %v", c.A())
+	}
+}
+
+// https://oklch.com/#0.7,0.1,71,100
+func TestColorOklabOklch(t *testing.T) {
+	half := 0.5 * 255
+	colors := []Color{
+		OklabToColor(0.7, 0.03, 0.09, 1),
+		ColorRGBAInt(198.0, 148.0, 85.0, 255),
+
+		OklabToColor(0.7, 0.03, -0.1, 0.6),
+		ColorRGBAInt(154, 149, 218, 0.6*255),
+
+		OklabToColor(0.7, 0.09, 0.05, 1),
+		ColorRGBAInt(213, 134, 121, 255),
+
+		OklabToColor(0.7, 0.09, 0.05, 0.5),
+		ColorRGBAInt(215, 133, 121, int(half)),
+
+		OklchToColor(1, 0, 0, 1),
+		ColorRGBAInt(255, 255, 255, 255),
+
+		OklchToColor(1, 0, 180, 1),
+		ColorRGBAInt(255, 255, 255, 255),
+
+		OklchToColor(0.7, 0.1, 312, 1),
+		ColorRGBAInt(179, 140, 204, 255),
+
+		OklchToColor(0.7, 0.1, 37, 1),
+		ColorRGBAInt(212, 136, 114, 255),
+
+		OklchToColor(0.595, 0.1, 108, 1),
+		ColorRGBAInt(133, 131, 53, 255),
+	}
+
+	for i := 0; i < len(colors); i += 2 {
+		o := colors[i]
+		rgb := colors[i+1]
+		t.Run(fmt.Sprintf("oklab_%v", o), func(t *testing.T) {
+			t.Parallel()
+			for i, c := range o {
+				rgbValue := rgb[i]
+				if !ApproxTo(c, rgbValue, 0.02) {
+					t.Errorf("got %f, want %f", c, rgbValue)
+				}
+			}
+		})
 	}
 }
 
