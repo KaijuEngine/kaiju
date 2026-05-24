@@ -19,7 +19,7 @@ date: 2026-05-23
 ---
 
 ## Improving engine usability
-For a long time I've been heavily focused on code, performance, and what the experience of the engine is to programmers/developers. The last few months I've decided that I want to improve the tools not only my own use, but also for artists and designers too. This means adding quality of life things, making the UI a little more usable, creating tools for artists, preparing for localization, etc.
+For a long time I've been heavily focused on code, performance, and what the experience of the engine is to programmers/developers. The last few months I've decided that I want to improve the tools not only for my own use, but also for artists and designers too. This means adding quality of life things, making the UI a little more usable, creating tools for artists, preparing for localization, etc.
 
 ## UI Updates
 ![New project UI](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/new_project.png)
