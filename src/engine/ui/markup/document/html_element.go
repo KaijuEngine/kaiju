@@ -70,6 +70,15 @@ func (e *Element) SetAttribute(key, value string) {
 	}
 }
 
+func (e *Element) RemoveAttribute(key string) {
+	for i := range e.attr {
+		if e.attr[i].Key == key {
+			e.attr = slices.Delete(e.attr, i, i+1)
+			return
+		}
+	}
+}
+
 func (e *Element) SetClasses(classes ...string) {
 	const classKey = "class"
 	for i := range e.attr {

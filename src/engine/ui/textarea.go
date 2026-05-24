@@ -762,6 +762,9 @@ func (textarea *TextArea) submit() { textarea.Base().requestEvent(EventTypeSubmi
 func (textarea *TextArea) change() { textarea.Base().requestEvent(EventTypeChange) }
 
 func (textarea *TextArea) onEnter() {
+	if textarea.IsDisabled() {
+		return
+	}
 	textarea.man.Value().Host.Window.CursorIbeam()
 }
 
@@ -770,6 +773,9 @@ func (textarea *TextArea) onExit() {
 }
 
 func (textarea *TextArea) onDown() {
+	if textarea.IsDisabled() {
+		return
+	}
 	textarea.Focus()
 	textarea.resetSelect()
 	offset := textarea.pointerPosWithin()
@@ -779,6 +785,9 @@ func (textarea *TextArea) onDown() {
 }
 
 func (textarea *TextArea) onDoubleClick() {
+	if textarea.IsDisabled() {
+		return
+	}
 	textarea.Focus()
 	textarea.SelectAll()
 }
@@ -837,6 +846,9 @@ func (textarea *TextArea) IsValid() bool {
 }
 
 func (textarea *TextArea) Focus() {
+	if textarea.IsDisabled() {
+		return
+	}
 	data := textarea.Data()
 	if data.isActive {
 		return
@@ -850,6 +862,28 @@ func (textarea *TextArea) Focus() {
 		man.Group.setFocus(textarea.Base())
 	}
 	textarea.focus()
+}
+
+func (textarea *TextArea) removeFocusWithoutEvents() {
+	data := textarea.Data()
+	if !data.isActive {
+		textarea.resetSelect()
+		textarea.hideCursor()
+		textarea.hideSelection()
+		return
+	}
+	data.isActive = false
+	textarea.resetSelect()
+	textarea.hideCursor()
+	textarea.hideSelection()
+	data.textOnFocus = textarea.Text()
+	man := textarea.man.Value()
+	if man != nil {
+		if man.Group.focus == textarea.Base() {
+			man.Group.focus = nil
+		}
+		man.Host.Window.CursorStandard()
+	}
 }
 
 func (textarea *TextArea) RemoveFocus() {
@@ -876,7 +910,7 @@ func (textarea *TextArea) RemoveFocus() {
 }
 
 func (textarea *TextArea) changeFocusToAnotherElement(target *UI) {
-	if target == nil || !target.entity.IsActive() {
+	if target == nil || !target.entity.IsActive() || target.IsDisabled() {
 		return
 	}
 	if !textarea.Data().isActive {
@@ -888,13 +922,13 @@ func (textarea *TextArea) changeFocusToAnotherElement(target *UI) {
 
 func (textarea *TextArea) focusNext() {
 	if n := textarea.Data().nextFocusElement.Value(); n != nil {
-		textarea.changeFocusToAnotherElement(n)
+		textarea.changeFocusToAnotherElement(nextEnabledFocusable(textarea.Base(), n, true))
 	}
 }
 
 func (textarea *TextArea) focusPrevious() {
 	if p := textarea.Data().prevFocusElement.Value(); p != nil {
-		textarea.changeFocusToAnotherElement(p)
+		textarea.changeFocusToAnotherElement(nextEnabledFocusable(textarea.Base(), p, false))
 	}
 }
 
@@ -1122,6 +1156,14 @@ func (textarea *TextArea) IsFocused() bool {
 	return textarea.Data().isActive
 }
 
+func (textarea *TextArea) IsDisabled() bool {
+	return textarea.Base().IsDisabled()
+}
+
+func (textarea *TextArea) SetDisabled(disabled bool) {
+	textarea.Base().SetDisabled(disabled)
+}
+
 func (textarea *TextArea) SetCursorOffset(offset int) {
 	data := textarea.Data()
 	data.cursorOffset = editableTextClampOffset(data.text, offset)
@@ -1131,6 +1173,9 @@ func (textarea *TextArea) SetCursorOffset(offset int) {
 }
 
 func (textarea *TextArea) keyPressed(keyId int, keyState hid.KeyState) {
+	if textarea.IsDisabled() {
+		return
+	}
 	host := textarea.man.Value().Host
 	data := textarea.Data()
 	if !textarea.entity.IsActive() || !data.isActive {

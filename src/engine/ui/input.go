@@ -568,6 +568,9 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
+	if input.IsDisabled() {
+		return
+	}
 	input.man.Value().Host.Window.CursorIbeam()
 }
 
@@ -576,6 +579,9 @@ func (input *Input) onExit() {
 }
 
 func (input *Input) onDown() {
+	if input.IsDisabled() {
+		return
+	}
 	input.Focus()
 	input.resetSelect()
 	offset := input.pointerPosWithin()
@@ -583,6 +589,9 @@ func (input *Input) onDown() {
 }
 
 func (input *Input) onClick() {
+	if input.IsDisabled() {
+		return
+	}
 	if input.detectDoubleClick() {
 		input.onDoubleClick()
 		return
@@ -591,6 +600,9 @@ func (input *Input) onClick() {
 }
 
 func (input *Input) onDoubleClick() {
+	if input.IsDisabled() {
+		return
+	}
 	input.Focus()
 	input.SelectAll()
 }
@@ -639,7 +651,7 @@ func (input *Input) activated() {
 }
 
 func focusEditableElement(target *UI) {
-	if target == nil || !target.entity.IsActive() {
+	if target == nil || !target.entity.IsActive() || target.IsDisabled() {
 		return
 	}
 	switch target.Type() {
@@ -654,9 +666,39 @@ func focusEditableElement(target *UI) {
 	}
 }
 
+func nextEnabledFocusable(start, target *UI, forward bool) *UI {
+	for target != nil && target != start {
+		if target.entity.IsActive() && !target.IsDisabled() {
+			return target
+		}
+		switch target.Type() {
+		case ElementTypeInput:
+			data := target.ToInput().InputData()
+			if forward {
+				target = data.nextFocusElement.Value()
+			} else {
+				target = data.prevFocusElement.Value()
+			}
+		case ElementTypeTextArea:
+			data := target.ToTextArea().Data()
+			if forward {
+				target = data.nextFocusElement.Value()
+			} else {
+				target = data.prevFocusElement.Value()
+			}
+		default:
+			return nil
+		}
+	}
+	return nil
+}
+
 func (input *Input) changeFocusToAnotherElement(target *UI) {
 	data := input.InputData()
 	if !data.isActive {
+		return
+	}
+	if target == nil || !target.entity.IsActive() || target.IsDisabled() {
 		return
 	}
 	input.RemoveFocus()
@@ -672,7 +714,7 @@ func (input *Input) changeFocusToAnother(target *Input) {
 
 func (input *Input) focusNext() {
 	if n := input.InputData().nextFocusElement.Value(); n != nil {
-		input.changeFocusToAnotherElement(n)
+		input.changeFocusToAnotherElement(nextEnabledFocusable(input.Base(), n, true))
 		return
 	}
 	n := input.InputData().nextFocusInput.Value()
@@ -683,7 +725,7 @@ func (input *Input) focusNext() {
 
 func (input *Input) focusPrevious() {
 	if p := input.InputData().prevFocusElement.Value(); p != nil {
-		input.changeFocusToAnotherElement(p)
+		input.changeFocusToAnotherElement(nextEnabledFocusable(input.Base(), p, false))
 		return
 	}
 	p := input.InputData().prevFocusInput.Value()
@@ -832,7 +874,18 @@ func (input *Input) IsFocused() bool {
 	return input.InputData().isActive
 }
 
+func (input *Input) IsDisabled() bool {
+	return input.Base().IsDisabled()
+}
+
+func (input *Input) SetDisabled(disabled bool) {
+	input.Base().SetDisabled(disabled)
+}
+
 func (input *Input) Focus() {
+	if input.IsDisabled() {
+		return
+	}
 	data := input.InputData()
 	if !data.isActive {
 		data.isActive = true
@@ -844,6 +897,28 @@ func (input *Input) Focus() {
 			man.Group.setFocus((*UI)(input))
 		}
 		input.focus()
+	}
+}
+
+func (input *Input) removeFocusWithoutEvents() {
+	data := input.InputData()
+	if !data.isActive {
+		input.resetSelect()
+		input.hideCursor()
+		input.hideHighlight()
+		return
+	}
+	data.isActive = false
+	input.resetSelect()
+	input.hideCursor()
+	input.hideHighlight()
+	data.textOnFocus = input.Text()
+	man := input.man.Value()
+	if man != nil {
+		if man.Group.focus == input.Base() {
+			man.Group.focus = nil
+		}
+		man.Host.Window.CursorStandard()
 	}
 }
 
@@ -899,6 +974,9 @@ func (input *Input) SetCursorOffset(offset int) {
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
+	if input.IsDisabled() {
+		return
+	}
 	host := input.man.Value().Host
 	data := input.InputData()
 	if input.entity.IsActive() && data.isActive {

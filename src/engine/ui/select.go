@@ -337,6 +337,9 @@ func (s *Select) SetTextColor(newColor matrix.Color) {
 }
 
 func (s *Select) onClick() {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	if data.isOpen {
 		s.collapse()
@@ -346,30 +349,45 @@ func (s *Select) onClick() {
 }
 
 func (s *Select) onEnter() {
+	if s.IsDisabled() {
+		return
+	}
 	panel := s.Base().ToPanel()
 	panel.EnforceColor(selectControlHoverColor(panel.Color()))
 	s.SelectData().label.SetBGColor(panel.Color())
 }
 
 func (s *Select) onExit() {
+	if s.IsDisabled() {
+		return
+	}
 	panel := s.Base().ToPanel()
 	panel.UnEnforceColor()
 	s.SelectData().label.SetBGColor(panel.Color())
 }
 
 func (s *Select) onDown() {
+	if s.IsDisabled() {
+		return
+	}
 	panel := s.Base().ToPanel()
 	panel.EnforceColor(selectControlDownColor(panel.Color()))
 	s.SelectData().label.SetBGColor(panel.Color())
 }
 
 func (s *Select) onUp() {
+	if s.IsDisabled() {
+		return
+	}
 	panel := s.Base().ToPanel()
 	panel.UnEnforceColor()
 	s.SelectData().label.SetBGColor(panel.Color())
 }
 
 func (s *Select) onMiss() {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	if data.isOpen {
 		s.collapse()
@@ -377,6 +395,9 @@ func (s *Select) onMiss() {
 }
 
 func (s *Select) expand() {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	data.list.Base().Show()
 	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 0))
@@ -426,6 +447,9 @@ func (s *Select) collapse() {
 }
 
 func (s *Select) optionClick(option *UI) {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	// Scroll bar is a child, can't use data.list.entity.IndexOfChild(&option.entity)
 	idx := 0
@@ -461,6 +485,20 @@ func (s *Select) update(deltaTime float64) {
 	data.label.SetBGColor(s.Base().ToPanel().Color())
 	if data.isOpen {
 		s.updateExpandedTransform()
+	}
+}
+
+func (s *Select) IsDisabled() bool {
+	return s.Base().IsDisabled()
+}
+
+func (s *Select) SetDisabled(disabled bool) {
+	s.Base().SetDisabled(disabled)
+	if disabled {
+		s.collapse()
+		panel := s.Base().ToPanel()
+		panel.UnEnforceColor()
+		s.SelectData().label.SetBGColor(panel.Color())
 	}
 }
 

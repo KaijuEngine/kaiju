@@ -335,6 +335,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				if e.Attribute("checked") != "" {
 					cb.SetCheckedWithoutEvent(true)
 				}
+				cb.SetDisabled(e.HasAttribute("disabled"))
 			case htmlInputTypeSlider:
 				slider := panel.Base().ToSlider()
 				slider.Init()
@@ -344,6 +345,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 						slider.SetValueWithoutEvent(float32(f))
 					}
 				}
+				slider.SetDisabled(e.HasAttribute("disabled"))
 			case htmlInputTypeNumber:
 				initTextInput(ui.InputTypeNumber)
 			case htmlInputTypeEmail:
@@ -363,6 +365,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			textarea.Init(e.Attribute("placeholder"))
 			textarea.SetRequired(e.HasAttribute("required"))
 			textarea.SetTextWithoutEvent(e.textAreaInitialValue())
+			textarea.SetDisabled(e.HasAttribute("disabled"))
 			e.Children = nil
 			d.linkFocusableElement(textarea.Base())
 		} else if e.IsSelect() {
@@ -391,11 +394,13 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					}
 				}
 			}
+			sel.SetDisabled(e.HasAttribute("disabled"))
 		} else {
 			panel.Init(nil, ui.ElementTypePanel)
 			panel.SetOverflow(ui.OverflowVisible)
 		}
 		entry := appendElement(panel.Base(), panel)
+		syncElementDisabledState(entry)
 		if !e.IsTextArea() {
 			for i := range e.Children {
 				d.createUIElement(uiMan, e.Children[i], panel)
@@ -474,6 +479,17 @@ func setNextFocusableElement(current, next *ui.UI) {
 	case ui.ElementTypeTextArea:
 		current.ToTextArea().SetNextFocusedElement(next)
 	}
+}
+
+func elementSupportsDisabled(elm *Element) bool {
+	return elm != nil && (elm.IsInput() || elm.IsButton() || elm.IsSelect() || elm.IsTextArea())
+}
+
+func syncElementDisabledState(elm *Element) {
+	if !elementSupportsDisabled(elm) || elm.UI == nil {
+		return
+	}
+	elm.UI.SetDisabled(elm.HasAttribute("disabled"))
 }
 
 func (d *Document) tagElement(elm *Element, tag string) {
@@ -800,6 +816,25 @@ func (d *Document) SetElementStyleProperty(elm *Element, property, value string)
 		elm.UI.Layout().ClearStyles()
 	}
 	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func (d *Document) SetElementDisabled(elm *Element, disabled bool) {
+	if elm == nil || !elementSupportsDisabled(elm) {
+		return
+	}
+	if disabled {
+		elm.SetAttribute("disabled", "")
+	} else {
+		elm.RemoveAttribute("disabled")
+	}
+	syncElementDisabledState(elm)
+	if elm.UI != nil {
+		elm.UI.Layout().ClearStyles()
+		elm.UI.SetDirty(ui.DirtyTypeGenerated)
+	}
+	if d.stylizer != nil {
+		d.stylizer.ApplyStyles(d.style, d)
+	}
 }
 
 func setInlineStyleProperty(style, property, value string) string {

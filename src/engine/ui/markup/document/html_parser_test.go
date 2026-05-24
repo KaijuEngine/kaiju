@@ -70,6 +70,35 @@ func TestParseTextAreaPlaceholderAndRequired(t *testing.T) {
 	}
 }
 
+func TestParseBooleanDisabledAttribute(t *testing.T) {
+	t.Parallel()
+
+	input := validationElementByTag(t, `<input disabled>`, "input")
+	if input.Attribute("disabled") != "" {
+		t.Fatal("boolean disabled attribute should have an empty value")
+	}
+	if !input.HasAttribute("disabled") {
+		t.Fatal("disabled attribute presence should be detected")
+	}
+}
+
+func TestSetElementDisabledUpdatesAttribute(t *testing.T) {
+	t.Parallel()
+
+	elm := validationElementByTag(t, `<button></button>`, "button")
+	doc := Document{}
+
+	doc.SetElementDisabled(elm, true)
+	if !elm.HasAttribute("disabled") {
+		t.Fatal("SetElementDisabled(true) should add disabled attribute")
+	}
+
+	doc.SetElementDisabled(elm, false)
+	if elm.HasAttribute("disabled") {
+		t.Fatal("SetElementDisabled(false) should remove disabled attribute")
+	}
+}
+
 func TestParseTextAreaValueOverridesInnerText(t *testing.T) {
 	t.Parallel()
 
@@ -148,10 +177,15 @@ func TestSetElementStylePropertyWithoutApplyPreservesComplexValues(t *testing.T)
 
 func mustFindTextArea(t *testing.T, html string) *Element {
 	t.Helper()
+	return validationElementByTag(t, html, "textarea")
+}
+
+func validationElementByTag(t *testing.T, html string, tag string) *Element {
+	t.Helper()
 	root := NewHTML(html)
-	textarea := root.FindElementByTag("textarea")
-	if textarea == nil {
-		t.Fatal("failed to parse textarea element")
+	elm := root.FindElementByTag(tag)
+	if elm == nil {
+		t.Fatalf("failed to parse %s element", tag)
 	}
-	return textarea
+	return elm
 }

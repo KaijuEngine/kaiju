@@ -79,6 +79,10 @@ func (slider *Slider) onLayoutUpdating() {
 func (slider *Slider) update(deltaTime float64) {
 	defer tracing.NewRegion("Slider.update").End()
 	slider.Base().ToPanel().update(deltaTime)
+	if slider.IsDisabled() {
+		slider.SliderData().dragging = false
+		return
+	}
 	if slider.flags.drag() {
 		slider.SetValue(slider.Delta())
 		slider.SliderData().dragging = true
@@ -129,5 +133,19 @@ func (slider *Slider) submit() {
 }
 
 func (slider *Slider) onDown() {
+	if slider.IsDisabled() {
+		return
+	}
 	slider.SetValue(slider.Delta())
+}
+
+func (slider *Slider) IsDisabled() bool {
+	return slider.Base().IsDisabled()
+}
+
+func (slider *Slider) SetDisabled(disabled bool) {
+	slider.Base().SetDisabled(disabled)
+	if disabled {
+		slider.SliderData().dragging = false
+	}
 }

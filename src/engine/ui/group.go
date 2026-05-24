@@ -138,7 +138,7 @@ func (group *Group) lateUpdate() {
 				return sortElements(hovered[i], hovered[j])
 			})
 			for i := 0; i < len(hovered) && top == nil; i++ {
-				if hovered[i].IsType(ElementTypePanel) && !hovered[i].ToPanel().PanelData().flags.allowClickThrough() {
+				if !hovered[i].IsType(ElementTypeLabel) && !hovered[i].ToPanel().PanelData().flags.allowClickThrough() {
 					top = hovered[i]
 				}
 			}
@@ -154,6 +154,12 @@ func (group *Group) lateUpdate() {
 			for j := range g {
 				req := &g[j]
 				if shouldContinue {
+					if req.target.disabledBlocksEvent(req.eventType) {
+						if req.target.disabledEventBlocksSiblings(req.eventType) {
+							shouldContinue = false
+						}
+						continue
+					}
 					switch req.eventType {
 					case EventTypeMiss, EventTypeFocus, EventTypeBlur,
 						EventTypeKeyDown, EventTypeKeyUp, EventTypeChange,

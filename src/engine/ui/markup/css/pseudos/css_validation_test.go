@@ -134,3 +134,41 @@ func TestPlaceholderShownPseudoTargetsTextareaPlaceholders(t *testing.T) {
 		t.Fatal(":placeholder-shown should skip textareas without a placeholder")
 	}
 }
+
+func TestDisabledPseudoMatchesDisableCapableControls(t *testing.T) {
+	elm := validationInput(t, `<input disabled>`)
+	got, err := (Disabled{}).Process(elm, rules.SelectorPart{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != elm {
+		t.Fatal(":disabled should match inputs with a disabled attribute")
+	}
+	textarea := validationTextArea(t, `<textarea disabled></textarea>`)
+	got, err = (Disabled{}).Process(textarea, rules.SelectorPart{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != textarea {
+		t.Fatal(":disabled should match textareas with a disabled attribute")
+	}
+}
+
+func TestEnabledPseudoSkipsDisabledControls(t *testing.T) {
+	enabled := validationInput(t, `<input>`)
+	got, err := (Enabled{}).Process(enabled, rules.SelectorPart{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != enabled {
+		t.Fatal(":enabled should match controls without a disabled attribute")
+	}
+	disabled := validationInput(t, `<input disabled>`)
+	got, err = (Enabled{}).Process(disabled, rules.SelectorPart{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatal(":enabled should skip controls with a disabled attribute")
+	}
+}

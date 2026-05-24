@@ -74,6 +74,9 @@ func (cb *Checkbox) Init() {
 }
 
 func (cb *Checkbox) onHover() {
+	if cb.IsDisabled() {
+		return
+	}
 	data := cb.CheckboxData()
 	if cb.flags.isDown() {
 		if data.isChecked {
@@ -91,6 +94,9 @@ func (cb *Checkbox) onHover() {
 }
 
 func (cb *Checkbox) onBlur() {
+	if cb.IsDisabled() {
+		return
+	}
 	data := cb.CheckboxData()
 	if data.isChecked {
 		cb.setAtlas(checkOnIdleUvX, checkOnIdleUvY)
@@ -100,6 +106,9 @@ func (cb *Checkbox) onBlur() {
 }
 
 func (cb *Checkbox) onDown() {
+	if cb.IsDisabled() {
+		return
+	}
 	data := cb.CheckboxData()
 	if data.isChecked {
 		cb.setAtlas(checkOnDownUvX, checkOnDownUvY)
@@ -109,6 +118,9 @@ func (cb *Checkbox) onDown() {
 }
 
 func (cb *Checkbox) onUp() {
+	if cb.IsDisabled() {
+		return
+	}
 	data := cb.CheckboxData()
 	if data.isChecked {
 		cb.setAtlas(checkOnHoverUvX, checkOnHoverUvY)
@@ -118,6 +130,9 @@ func (cb *Checkbox) onUp() {
 }
 
 func (cb *Checkbox) onClick() {
+	if cb.IsDisabled() {
+		return
+	}
 	data := cb.CheckboxData()
 	cb.SetChecked(!data.isChecked)
 }
@@ -150,6 +165,22 @@ func (cb *Checkbox) SetChecked(isChecked bool) {
 
 func (cb *Checkbox) IsChecked() bool {
 	return cb.CheckboxData().isChecked
+}
+
+func (cb *Checkbox) IsDisabled() bool {
+	return cb.Base().IsDisabled()
+}
+
+func (cb *Checkbox) SetDisabled(disabled bool) {
+	cb.Base().SetDisabled(disabled)
+	if disabled {
+		data := cb.CheckboxData()
+		if data.isChecked {
+			cb.setAtlas(checkOnIdleUvX, checkOnIdleUvY)
+		} else {
+			cb.setAtlas(checkOffIdleUvX, checkOffIdleUvY)
+		}
+	}
 }
 
 func (cb *Checkbox) setAtlas(x, y float32) {

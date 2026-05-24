@@ -67,6 +67,9 @@ func (b *Button) Init(texture *rendering.Texture, text string) {
 func (b *Button) setupEvents() {
 	panel := (*Panel)(b)
 	b.Base().AddEvent(EventTypeEnter, func() {
+		if b.IsDisabled() {
+			return
+		}
 		c := b.ButtonData().color
 		if panel.flags.isDown() {
 			c = c.ScaleWithoutAlpha(0.7)
@@ -77,12 +80,21 @@ func (b *Button) setupEvents() {
 		b.setTempColor(c)
 	})
 	b.Base().AddEvent(EventTypeExit, func() {
+		if b.IsDisabled() {
+			return
+		}
 		b.setTempColor(b.ButtonData().color)
 	})
 	b.Base().AddEvent(EventTypeDown, func() {
+		if b.IsDisabled() {
+			return
+		}
 		b.setTempColor(b.ButtonData().color.ScaleWithoutAlpha(0.7))
 	})
 	b.Base().AddEvent(EventTypeUp, func() {
+		if b.IsDisabled() {
+			return
+		}
 		b.setTempColor(b.ButtonData().color.ScaleWithoutAlpha(0.8))
 	})
 }
@@ -96,4 +108,15 @@ func (b *Button) SetColor(color matrix.Color) {
 func (b *Button) setTempColor(color matrix.Color) {
 	(*Panel)(b).SetColor(color)
 	b.Label().SetBGColor(color)
+}
+
+func (b *Button) IsDisabled() bool {
+	return b.Base().IsDisabled()
+}
+
+func (b *Button) SetDisabled(disabled bool) {
+	b.Base().SetDisabled(disabled)
+	if disabled {
+		b.setTempColor(b.ButtonData().color)
+	}
 }

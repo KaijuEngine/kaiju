@@ -83,7 +83,7 @@ func (man *Manager) update(deltaTime float64) {
 		work[i] = func(threadId int) {
 			e := man.itrAll[i]
 			e.updateFromManager(deltaTime)
-			if e.IsActive() && e.flags.hovering() && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
+			if e.IsActive() && e.flags.hovering() && !e.IsType(ElementTypeLabel) && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)
 			}
 			wg.Done()
