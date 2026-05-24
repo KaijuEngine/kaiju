@@ -237,6 +237,10 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 func RegenerateAPI() error {
 	defer tracing.NewRegion("plugins.RegenerateAPI").End()
 	const apiFile = "plugins/api.lua"
+	return RegenerateAPIForTypes(apiFile, reflectedTypes())
+}
+
+func RegenerateAPIForTypes(apiFile string, types []reflect.Type) error {
 	f, err := os.OpenFile(apiFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err
@@ -244,7 +248,7 @@ func RegenerateAPI() error {
 	defer f.Close()
 	clear(pkgSources)
 	f.WriteString(prefefinedAPIDocs)
-	for _, t := range reflectedTypes() {
+	for _, t := range types {
 		reflectStructAPI(t, f)
 	}
 	return nil

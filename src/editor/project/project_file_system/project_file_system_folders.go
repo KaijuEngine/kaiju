@@ -21,6 +21,7 @@ const (
 	SrcFolder           = "database/src"
 	StockFolder         = "database/stock"
 	DebugFolder         = "database/debug"
+	EditorScriptsFolder = "database/scripts/editor"
 	ProjectConfigFile   = "database/project.json"
 	EditorCache         = "database/.edcache"
 )

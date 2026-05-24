@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			div { width: 100%; }
+			.content {
+				top: var(--ed-menu-bar-height);
+				width: 100%;
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				background-color: #121212;
+				color: #DDD;
+			}
+			.leftPanel {
+				width: 18em;
+				height: 100%;
+				padding: 8px;
+				overflow-y: scroll;
+				border-right: 2px solid #050505;
+			}
+			.rightPanel {
+				width: calc(100% - 18em);
+				height: 100%;
+				padding: 8px;
+			}
+			.toolbar {
+				height: 32px;
+				margin-bottom: 8px;
+			}
+			.toolbarButton {
+				width: 96px;
+				height: 28px;
+				margin-right: 6px;
+				background-color: #2C2C2C;
+				color: #DDD;
+				border: 1px solid #555;
+				border-radius: 4px;
+				text-align: center;
+			}
+			.toolbarButton:hover {
+				background-color: #682A2D;
+			}
+			.scriptList {
+				height: calc(100% - 40px);
+				overflow-y: scroll;
+			}
+			.scriptEntry {
+				height: 32px;
+				margin-bottom: 4px;
+				padding: 6px;
+				background-color: #242424;
+				border: 1px solid #333;
+				border-radius: 4px;
+				color: #CCC;
+			}
+			.scriptEntry:hover {
+				background-color: #682A2D;
+				color: white;
+			}
+			#scriptEntryTemplate {
+				display: none;
+			}
+			.output {
+				height: 100%;
+				padding: 8px;
+				background-color: #181818;
+				border: 1px solid #333;
+				color: #DDD;
+				white-space: pre-wrap;
+				overflow-y: scroll;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="content">
+			<div class="leftPanel">
+				<div class="toolbar">
+					<button class="toolbarButton" onclick="clickReload">Reload</button>
+				</div>
+				<div id="scriptList" class="scriptList">
+					<div id="scriptEntryTemplate" class="scriptEntry" onclick="clickRunScript">
+						<span>script.lua</span>
+					</div>
+				</div>
+			</div>
+			<div class="rightPanel">
+				<div id="scriptOutput" class="output"></div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -12,9 +12,9 @@ package lua
 
 #cgo noescape m_lua_pop
 #cgo noescape m_lua_tostring
-#cgo noescape m_luaL_dostring
 #cgo noescape m_luaL_loadfile
-#cgo noescape m_lua_call
+#cgo noescape m_luaL_loadstring
+#cgo noescape m_lua_pcall
 #cgo noescape m_lua_isboolean
 #cgo noescape m_lua_islightuserdata
 #cgo noescape m_lua_istable
@@ -27,6 +27,8 @@ package lua
 #cgo noescape lua_pushnumber
 #cgo noescape lua_pushboolean
 #cgo noescape lua_pushvalue
+#cgo noescape m_lua_remove
+#cgo noescape m_lua_rawseti
 #cgo noescape lua_setglobal
 #cgo noescape lua_setfield
 #cgo noescape lua_createtable
@@ -36,6 +38,7 @@ package lua
 #cgo noescape luaL_openlibs
 #cgo noescape luaL_newstate
 #cgo noescape lua_pushlightuserdata
+#cgo noescape lua_close
 
 #cgo linux CFLAGS: -DLUA_USE_LINUX
 #cgo linux LDFLAGS: -lm -ldl
@@ -57,20 +60,43 @@ static void m_lua_pop(lua_State *L, int n) {
 	lua_settop(L, -(n)-1);
 }
 
-static const char* m_lua_tostring(lua_State* L, int i) {
-	return lua_tolstring(L, (i), NULL);
+static void m_lua_remove(lua_State *L, int idx) {
+	lua_remove(L, idx);
 }
 
-static int m_luaL_dostring(lua_State* L, const char* s) {
-	return (luaL_loadstring(L, s) || lua_pcall(L, 0, LUA_MULTRET, 0));
+static void m_lua_rawseti(lua_State *L, int idx, lua_Integer n) {
+	lua_rawseti(L, idx, n);
+}
+
+static const char* m_lua_tostring(lua_State* L, int i) {
+	return lua_tolstring(L, (i), NULL);
 }
 
 static int m_luaL_loadfile(lua_State* L, const char* s) {
 	return luaL_loadfile(L, s);
 }
 
-static void m_lua_call(lua_State* L, int n, int r) {
-	lua_callk(L, (n), (r), 0, NULL);
+static int m_luaL_loadstring(lua_State* L, const char* s) {
+	return luaL_loadstring(L, s);
+}
+
+static int traceback_handler(lua_State* L) {
+	const char* msg = lua_tostring(L, 1);
+	if (msg) {
+		luaL_traceback(L, L, msg, 1);
+	} else {
+		lua_pushliteral(L, "(error object is not a string)");
+	}
+	return 1;
+}
+
+static int m_lua_pcall(lua_State* L, int n, int r) {
+	int base = lua_gettop(L) - n;
+	lua_pushcfunction(L, traceback_handler);
+	lua_insert(L, base);
+	int status = lua_pcallk(L, n, r, base, 0, NULL);
+	lua_remove(L, base);
+	return status;
 }
 
 static int m_lua_isboolean(lua_State* L, int n) {
@@ -141,6 +167,7 @@ type State struct {
 	pinned     map[unsafe.Pointer]pinnedPointer
 	funcs      map[int]func(state *State) int
 	nextFuncId int
+	err        error
 }
 
 func pinPointer(ptr any) pinnedPointer {
@@ -177,6 +204,22 @@ func (l *State) OpenLibraries() error {
 	return nil
 }
 
+func (l *State) Close() {
+	if l.state == nil {
+		return
+	}
+	for ptr, pp := range l.pinned {
+		pp.pinner.Unpin()
+		delete(l.pinned, ptr)
+	}
+	state := l.state
+	C.lua_close(l.state)
+	delete(vms, state)
+	l.state = nil
+	l.pinned = nil
+	l.funcs = nil
+}
+
 // disableDangerousLibraries removes dangerous libraries from the Lua state
 // to prevent execution of arbitrary commands and file system access
 func (l *State) disableDangerousLibraries() {
@@ -194,6 +237,7 @@ func (l *State) disableDangerousLibraries() {
 
 	// Remove package library - prevents module loading attacks
 	l.DoString("package = nil")
+	l.DoString("require = function(_) return true end")
 
 	// Remove load and loadstring functions - prevents dynamic code loading
 	l.DoString("load = nil")
@@ -211,24 +255,31 @@ func (l *State) DoFile(file string) error {
 	cStr := C.CString(file)
 	defer C.free(unsafe.Pointer(cStr))
 	if C.m_luaL_loadfile(l.state, cStr) == errorOK {
-		l.Top()
-		l.Call(0, multiReturn)
-		return nil
+		return l.ProtectedCall(0, multiReturn)
 	} else {
-		return fmt.Errorf("failed to load the lua file: %s", file)
+		return l.stackErrorf("failed to load the lua file: %s", file)
 	}
 }
 
 func (l *State) DoString(code string) error {
 	cStr := C.CString(code)
 	defer C.free(unsafe.Pointer(cStr))
-	if C.m_luaL_dostring(l.state, cStr) != errorOK {
-		gString := C.GoString(C.m_lua_tostring(l.state, C.int(-1)))
-		err := fmt.Errorf("failed to execute the code string: %s", gString)
-		l.Pop(1)
-		return err
+	if C.m_luaL_loadstring(l.state, cStr) != errorOK {
+		return l.stackErrorf("failed to load the code string")
 	}
-	return nil
+	return l.ProtectedCall(0, multiReturn)
+}
+
+func (l *State) stackErrorf(format string, args ...any) error {
+	errText := ""
+	if l.Top() > 0 {
+		errText = C.GoString(C.m_lua_tostring(l.state, C.int(-1)))
+		l.Pop(1)
+	}
+	if errText == "" {
+		return fmt.Errorf(format, args...)
+	}
+	return fmt.Errorf("%s: %s", fmt.Sprintf(format, args...), errText)
 }
 
 func (l *State) Field(idx int, name string) {
@@ -261,6 +312,10 @@ func (l *State) SetField(idx int, name string) {
 	C.lua_setfield(l.state, C.int(idx), cStr)
 }
 
+func (l *State) RawSetInt(idx, n int) {
+	C.m_lua_rawseti(l.state, C.int(idx), C.lua_Integer(n))
+}
+
 func (l *State) SetGlobal(name string) {
 	cStr := C.CString(name)
 	defer C.free(unsafe.Pointer(cStr))
@@ -269,6 +324,10 @@ func (l *State) SetGlobal(name string) {
 
 func (l *State) PushValue(idx int) {
 	C.lua_pushvalue(l.state, C.int(idx))
+}
+
+func (l *State) Remove(idx int) {
+	C.m_lua_remove(l.state, C.int(idx))
 }
 
 func (l *State) PushBoolean(value bool) {
@@ -289,6 +348,12 @@ func (l *State) PushString(value string) {
 	C.lua_pushstring(l.state, cStr)
 }
 
+func (l *State) Error(message string) int {
+	l.err = errors.New(message)
+	l.PushString(message)
+	return 1
+}
+
 func (l *State) PushUserData(value reflect.Value) {
 	p := unsafe.Pointer(value.Pointer())
 	if _, ok := l.pinned[p]; !ok {
@@ -304,10 +369,8 @@ func (l *State) ToUserData(idx int) any {
 }
 
 func (l *State) RemovePinnedPointer(idx int) {
-	ptr := unsafe.Pointer(C.lua_touserdata(l.state, C.int(idx)))
-	pp := l.pinned[ptr]
-	pp.pinner.Unpin()
-	delete(l.pinned, ptr)
+	// Pointers are pinned for the VM lifetime. Multiple Lua wrapper tables can
+	// refer to the same Go object, so table finalizers must not unpin eagerly.
 }
 
 func (l *State) PushGoFunction(fn func(state *State) int) {
@@ -323,10 +386,7 @@ func cCallGoFunc(id C.int, L *C.lua_State) C.int {
 	fn, ok := l.funcs[int(id)]
 	if !ok {
 		slog.Error("go function with not found", "id", int(id))
-		errStr := C.CString("Go function not found")
-		defer C.free(unsafe.Pointer(errStr))
-		C.lua_pushstring(L, errStr)
-		C.lua_error(L)
+		l.err = errors.New("Go function not found")
 		return 0
 	}
 	return C.int(fn(l))
@@ -368,6 +428,19 @@ func (l *State) ToString(idx int) string {
 	return C.GoString(C.m_lua_tostring(l.state, C.int(idx)))
 }
 
+func (l *State) ProtectedCall(args, returns int) error {
+	l.err = nil
+	if C.m_lua_pcall(l.state, C.int(args), C.int(returns)) != errorOK {
+		return l.stackErrorf("failed to execute lua")
+	}
+	if l.err != nil {
+		return l.err
+	}
+	return nil
+}
+
 func (l *State) Call(args, returns int) {
-	C.m_lua_call(l.state, C.int(args), C.int(returns))
+	if err := l.ProtectedCall(args, returns); err != nil {
+		panic(err)
+	}
 }

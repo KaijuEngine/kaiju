@@ -36,6 +36,7 @@ var (
 		SrcFolder,
 		StockFolder,
 		DebugFolder,
+		EditorScriptsFolder,
 	}, srcFolders...)
 	contentStructure = []string{
 		ContentAudioFolder,
@@ -139,7 +140,50 @@ func (fs *FileSystem) SetupStructure() error {
 	if err := fs.createCodeProject(); err != nil {
 		return err
 	}
+	if err := fs.createEditorScriptExamples(); err != nil {
+		return err
+	}
 	return fs.copyStockContent()
+}
+
+func (fs *FileSystem) createEditorScriptExamples() error {
+	examples := map[string]string{
+		"rename_selected.lua": `function main(editor)
+	local stage = editor:Stage()
+	local selected = stage:Selection()
+	for i = 1, #selected do
+		selected[i]:SetName("Scripted " .. i)
+	end
+	editor:Log("Renamed " .. #selected .. " selected entities")
+end
+`,
+		"offset_selected.lua": `function main(editor)
+	local selected = editor:Stage():Selection()
+	for i = 1, #selected do
+		local pos = selected[i]:Position()
+		selected[i]:SetPosition(Vec3.New(pos:X() + 1, pos:Y(), pos:Z()))
+	end
+	editor:Log("Offset " .. #selected .. " selected entities")
+end
+`,
+		"list_stage_content.lua": `function main(editor)
+	local ids = editor:Project():ListContentIds("Stage")
+	for i = 1, #ids do
+		editor:Log(ids[i])
+	end
+end
+`,
+	}
+	for name, body := range examples {
+		path := filepath.Join(EditorScriptsFolder, name)
+		if fs.FileExists(path) {
+			continue
+		}
+		if err := fs.WriteFile(path, []byte(body), os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (fs *FileSystem) TryUpgrade() error {
