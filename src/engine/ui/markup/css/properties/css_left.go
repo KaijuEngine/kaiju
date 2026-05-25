@@ -12,6 +12,8 @@ import (
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/functions"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 )
@@ -42,6 +44,13 @@ func (p Left) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 			}
 			pLayout := ui.FirstOnEntity(l.Ui().Entity().Parent).Layout()
 			offsetX = pLayout.ContentSize().X() * val
+		} else if values[0].IsFunction() {
+			if values[0].Str == "calc" {
+				val := values[0]
+				val.Args = append(val.Args, "width")
+				res, _ := functions.Calc{}.Process(panel, elm, val)
+				offsetX = helpers.NumFromLength(res, host.Window)
+			}
 		} else {
 			offsetX = val
 		}
