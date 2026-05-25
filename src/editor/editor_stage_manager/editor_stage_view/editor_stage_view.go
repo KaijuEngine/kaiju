@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -26,17 +27,22 @@ import (
 )
 
 type StageView struct {
-	host          *engine.Host
-	camera        editor_controls.EditorCamera
-	gridTransform matrix.Transform
-	gridShader    *shader_data_registry.ShaderDataGrid
-	gridVisible   bool
-	manager       editor_stage_manager.StageManager
-	transformTool transform_tools.TransformTool
-	vertexSnap    VertexSnapTool
-	selectTool    select_tool.SelectTool
-	transformMan  TransformationManager
-	toolOwner     ViewportToolOwner
+	host            *engine.Host
+	camera          editor_controls.EditorCamera
+	gridTransform   matrix.Transform
+	gridShader      *shader_data_registry.ShaderDataGrid
+	gridVisible     bool
+	manager         editor_stage_manager.StageManager
+	transformTool   transform_tools.TransformTool
+	vertexSnap      VertexSnapTool
+	selectTool      select_tool.SelectTool
+	transformMan    TransformationManager
+	toolOwner       ViewportToolOwner
+	viewportUI      *ui.UI
+	stageTarget     *rendering.RenderTarget
+	stageRenderView *rendering.RenderView
+	stageTexture    *rendering.Texture
+	viewport        stageViewportBounds
 }
 
 type ViewportToolOwner interface {
@@ -72,7 +78,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
 	v.transformMan.Initialize(v, ed.History(), ed.Settings())
 	v.vertexSnap.Initialize(host, v, &v.transformMan)
-	v.selectTool.Init(host, &v.manager)
+	v.selectTool.Init(host, v)
 	v.createViewportGrid()
 	v.applyGridVisibility()
 	v.setupCamera(ed)
@@ -88,6 +94,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
+	v.syncStageViewport()
 	v.applyGridVisibility()
 }
 
@@ -123,6 +130,7 @@ func (v *StageView) applyGridVisibility() {
 // of keyboard actions.
 func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
+	v.syncStageViewport()
 	v.gridTransform.ResetDirty()
 	// If we are currently using any of the transformation tools, we shouldn't
 	// do any of the other updates like camera

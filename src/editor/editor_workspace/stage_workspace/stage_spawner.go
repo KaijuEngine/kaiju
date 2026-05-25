@@ -166,13 +166,7 @@ func (w *StageWorkspace) createDataBoundEntity(name, bindKey string) (*editor_st
 
 func (w *StageWorkspace) spawnContentAtMouse(cc *content_database.CachedContent, m *hid.Mouse) {
 	defer tracing.NewRegion("StageWorkspace.spawnContent").End()
-	var mp matrix.Vec2
-	if w.stageView.IsView3D() {
-		mp = m.Position()
-	} else {
-		mp = m.ScreenPosition()
-	}
-	ray := w.Host.PrimaryCamera().RayCast(mp)
+	ray := w.stageView.Camera().RayCast(m)
 	e, hit, eHitOk := w.stageView.Manager().TryHitEntity(ray)
 	// TODO:  Find the point on the entity that was hit, otherwise fall back
 	// to doing the ground plane/distance hit point

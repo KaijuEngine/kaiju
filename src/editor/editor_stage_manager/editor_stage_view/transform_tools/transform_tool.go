@@ -67,6 +67,10 @@ func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, hist
 	t.wireTransform.ResetDirty()
 }
 
+func (t *TransformTool) IsActive() bool {
+	return t.state != ToolStateNone
+}
+
 func (t *TransformTool) Update() (busy bool) {
 	defer tracing.NewRegion("TransformTool.Update").End()
 	if t.state == ToolStateNone {
@@ -335,7 +339,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 		return
 	}
 	m := &host.Window.Mouse
-	mp := m.Position()
+	mp := t.stage.ViewportMousePosition(m)
 	var delta, point matrix.Vec3
 	switch t.stage.Camera().Mode() {
 	case editor_controls.EditorCameraMode3d:
@@ -375,8 +379,9 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 			t.firstHitUpdate = false
 		}
 		oc := host.PrimaryCamera().(*cameras.StandardCamera)
-		cw := oc.Width() / float32(host.Window.Width())
-		ch := oc.Height() / float32(host.Window.Height())
+		viewportSize := t.stage.ViewportSize()
+		cw := oc.Width() / viewportSize.X()
+		ch := oc.Height() / viewportSize.Y()
 		delta = t.lastHit.Subtract(point).Multiply(matrix.NewVec3(-cw, -ch, 0))
 		switch t.state {
 		case ToolStateMove:

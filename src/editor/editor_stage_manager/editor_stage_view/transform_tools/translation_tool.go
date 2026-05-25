@@ -62,7 +62,8 @@ type TranslationToolPlane struct {
 	hitBox     graviton.AABB
 }
 
-func (t *TranslationTool) Initialize(host *engine.Host) {
+func (t *TranslationTool) Initialize(host *engine.Host, stage StageInterface) {
+	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
 	t.currentType = TRANSLATION_TYPE_NONE

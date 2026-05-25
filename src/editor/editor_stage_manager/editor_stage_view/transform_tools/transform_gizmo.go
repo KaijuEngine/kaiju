@@ -15,6 +15,7 @@ import (
 
 type TransformGizmo struct {
 	root        matrix.Transform
+	stage       StageInterface
 	lastCamPos  matrix.Vec3
 	lastCamSize matrix.Vec2
 	lastHit     matrix.Vec3
@@ -25,6 +26,9 @@ type TransformGizmo struct {
 }
 
 func (t *TransformGizmo) cursorPosition(c *hid.Cursor) matrix.Vec2 {
+	if t.stage != nil {
+		return t.stage.ViewportCursorPosition(t.cameraMode, c)
+	}
 	if t.cameraMode == editor_controls.EditorCameraMode2d {
 		return c.ScreenPosition()
 	} else {

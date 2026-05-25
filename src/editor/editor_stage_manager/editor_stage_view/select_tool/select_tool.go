@@ -37,6 +37,10 @@ func (s *SelectTool) Cancel() {
 	s.panel.Base().Hide()
 }
 
+func (s *SelectTool) IsActive() bool {
+	return s.panel != nil && s.panel.Base().Entity().IsActive()
+}
+
 func (s *SelectTool) Update() {
 	c := &s.uiMan.Host.Window.Cursor
 	if c.Pressed() {

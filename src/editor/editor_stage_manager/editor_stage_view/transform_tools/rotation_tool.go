@@ -39,7 +39,8 @@ type TranslationToolCircle struct {
 	hitCircle  graviton.Circle
 }
 
-func (t *RotationTool) Initialize(host *engine.Host) {
+func (t *RotationTool) Initialize(host *engine.Host, stage StageInterface) {
+	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
 	for i := range t.circles {

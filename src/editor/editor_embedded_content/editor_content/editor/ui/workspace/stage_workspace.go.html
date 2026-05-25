@@ -44,12 +44,22 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
+			#stageViewport {
+				position: absolute;
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 100%;
+				height: calc(100% - var(--ed-menu-bar-height));
+				z-index: -10;
+				background-color: black;
+			}
 		</style>
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_details.css" />
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_content.css" />
 	</head>
 	<body>
+		<img id="stageViewport" src="editor/textures/icons/menu_bar_logo.png" />
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
