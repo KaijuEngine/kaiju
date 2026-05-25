@@ -97,8 +97,31 @@ func TestStageViewportRoutingUsesHoveredAndFocusedViewport(t *testing.T) {
 
 	active, focused, hovered = resolveStageViewportRouting(
 		viewports, active, focused, matrix.NewVec2(20, 50), false, false, true)
+	if active != 1 || focused != -1 || hovered != 0 {
+		t.Fatalf("released routing = active:%d focused:%d hovered:%d, want 1/-1/0",
+			active, focused, hovered)
+	}
+
+	active, focused, hovered = resolveStageViewportRouting(
+		viewports, active, focused, matrix.NewVec2(20, 50), false, false, false)
 	if active != 0 || focused != -1 || hovered != 0 {
-		t.Fatalf("released routing = active:%d focused:%d hovered:%d, want 0/-1/0",
+		t.Fatalf("post-release routing = active:%d focused:%d hovered:%d, want 0/-1/0",
+			active, focused, hovered)
+	}
+}
+
+func TestStageViewportRoutingIgnoresInvalidStaleBounds(t *testing.T) {
+	t.Parallel()
+
+	viewports := []stageRenderViewport{
+		{Kind: StageViewportPerspective, bounds: stageViewportBounds{}},
+		{Kind: StageViewportTop, bounds: stageViewportBounds{Left: 0, Top: 0, Width: 100, Height: 100}},
+	}
+
+	active, focused, hovered := resolveStageViewportRouting(
+		viewports, 0, -1, matrix.NewVec2(50, 50), false, false, false)
+	if active != 1 || focused != -1 || hovered != 1 {
+		t.Fatalf("routing = active:%d focused:%d hovered:%d, want 1/-1/1",
 			active, focused, hovered)
 	}
 }

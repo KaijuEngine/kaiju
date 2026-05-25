@@ -291,6 +291,7 @@ func (v *StageView) syncStageViewport() {
 		viewport := &v.stageViewports[i]
 		bounds := v.currentViewportBoundsFor(viewport)
 		if !bounds.Valid() {
+			viewport.bounds = stageViewportBounds{}
 			continue
 		}
 		viewport.bounds = bounds
@@ -476,11 +477,11 @@ func resolveStageViewportRouting(viewports []stageRenderViewport, current, focus
 	if active < 0 || active >= len(viewports) {
 		active = firstValidStageViewport(viewports)
 	}
-	if released {
-		focused = -1
-	}
 	if focused >= 0 && focused < len(viewports) && held {
 		return focused, focused, hovered
+	}
+	if focused >= 0 && focused < len(viewports) && released {
+		return focused, -1, hovered
 	}
 	if hovered >= 0 {
 		active = hovered

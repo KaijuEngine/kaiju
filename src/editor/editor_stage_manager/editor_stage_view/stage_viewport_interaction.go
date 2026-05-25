@@ -36,8 +36,8 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	if v.transformMan.IsBusy() {
 		return
 	}
-	v.selectTool.Update()
-	if m.Pressed(hid.MouseButtonLeft) {
+	boxSelected := v.selectTool.Update()
+	if m.Released(hid.MouseButtonLeft) && !boxSelected {
 		ray := v.activeCamera().RayCast(m)
 		if kb.HasShift() {
 			v.manager.TryAppendSelect(ray)

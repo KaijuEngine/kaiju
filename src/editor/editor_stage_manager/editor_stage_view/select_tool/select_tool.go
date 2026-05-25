@@ -12,6 +12,8 @@ import (
 	"kaijuengine.com/matrix"
 )
 
+const selectionBoxZ = 2.5
+
 type ResultHandler interface {
 	TryBoxSelect(screenBox matrix.Vec4)
 }
@@ -30,6 +32,7 @@ func (s *SelectTool) Init(host *engine.Host, handler ResultHandler) {
 	s.panel.Init(nil, ui.ElementTypePanel)
 	s.panel.AllowClickThrough()
 	s.panel.SetColor(matrix.NewColor(1, 1, 1, 0.5))
+	s.panel.Base().Layout().SetZ(selectionBoxZ)
 	s.panel.Base().Hide()
 }
 
@@ -41,7 +44,7 @@ func (s *SelectTool) IsActive() bool {
 	return s.panel != nil && s.panel.Base().Entity().IsActive()
 }
 
-func (s *SelectTool) Update() {
+func (s *SelectTool) Update() bool {
 	c := &s.uiMan.Host.Window.Cursor
 	if c.Pressed() {
 		s.start = c.ScreenPosition()
@@ -56,6 +59,8 @@ func (s *SelectTool) Update() {
 		if u.IsActive() {
 			if s.start.Distance(c.ScreenPosition()) > 5 {
 				s.handler.TryBoxSelect(s.box())
+				s.panel.Base().Hide()
+				return true
 			}
 			s.panel.Base().Hide()
 		}
@@ -69,6 +74,7 @@ func (s *SelectTool) Update() {
 		l.Scale(w, h)
 		u.Clean()
 	}
+	return false
 }
 
 func (s *SelectTool) box() matrix.Vec4 {
