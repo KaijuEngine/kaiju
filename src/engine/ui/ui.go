@@ -23,6 +23,7 @@ import (
 type DirtyType = int
 type ElementType = uint8
 type uiBits uint16
+type uiDirtyFlags uint16
 
 const (
 	DirtyTypeNone = iota
@@ -38,6 +39,15 @@ const (
 	DirtyTypeParentReGenerated
 	DirtyTypeParentColorChange
 	DirtyTypeParentScissor
+)
+
+const (
+	uiDirtyStyle uiDirtyFlags = 1 << iota
+	uiDirtyLayoutSelf
+	uiDirtyLayoutChildren
+	uiDirtyRender
+	uiDirtyScissor
+	uiDirtySubtree
 )
 
 const (
@@ -80,7 +90,7 @@ type UI struct {
 	dragStartPos     matrix.Vec3
 	downPos          matrix.Vec2
 	elmType          ElementType
-	dirtyType        DirtyType
+	dirtyFlags       uiDirtyFlags
 	shaderData       *ShaderData
 	textureSize      matrix.Vec2
 	lastClick        float64
@@ -162,11 +172,16 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 	})
 }
 
-func (ui *UI) Entity() *engine.Entity          { return &ui.entity }
-func (ui *UI) Layout() *Layout                 { return &ui.layout }
-func (ui *UI) hasScissor() bool                { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
-func (ui *UI) selfScissor() matrix.Vec4        { return ui.shaderData.Scissor }
-func (ui *UI) dirty() DirtyType                { return ui.dirtyType }
+func (ui *UI) Entity() *engine.Entity   { return &ui.entity }
+func (ui *UI) Layout() *Layout          { return &ui.layout }
+func (ui *UI) hasScissor() bool         { return ui.shaderData.Scissor.X() > -matrix.FloatMax }
+func (ui *UI) selfScissor() matrix.Vec4 { return ui.shaderData.Scissor }
+func (ui *UI) dirty() DirtyType {
+	if ui.dirtyFlags == 0 {
+		return DirtyTypeNone
+	}
+	return DirtyTypeGenerated
+}
 func (ui *UI) ShaderData() *ShaderData         { return ui.shaderData }
 func (ui *UI) IsType(elmType ElementType) bool { return ui.elmType == elmType }
 func (ui *UI) Type() ElementType               { return ui.elmType }
@@ -271,33 +286,117 @@ func (ui *UI) Event(evtType EventType) *events.Event {
 	return &ui.events[evtType]
 }
 
-func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
+func (ui *UI) cleanDirty() { ui.dirtyFlags = 0 }
 
-func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
-	defer tracing.NewRegion("UI.setDirtyInternal").End()
+func dirtyFlagsFromType(dirtyType DirtyType) uiDirtyFlags {
+	switch dirtyType {
+	case DirtyTypeNone:
+		return 0
+	case DirtyTypeColorChange, DirtyTypeParentColorChange:
+		return uiDirtyRender
+	case DirtyTypeScissor, DirtyTypeParentScissor:
+		return uiDirtyScissor | uiDirtyRender
+	case DirtyTypeParent, DirtyTypeParentLayout, DirtyTypeParentResize:
+		return uiDirtyLayoutSelf | uiDirtyScissor | uiDirtyRender
+	case DirtyTypeParentGenerated, DirtyTypeParentReGenerated:
+		return uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyScissor | uiDirtyRender
+	case DirtyTypeLayout, DirtyTypeResize:
+		return uiDirtyLayoutSelf | uiDirtyLayoutChildren | uiDirtyScissor | uiDirtyRender
+	case DirtyTypeGenerated:
+		return uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyLayoutChildren | uiDirtyScissor | uiDirtyRender
+	default:
+		return uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyLayoutChildren | uiDirtyScissor | uiDirtyRender
+	}
+}
+
+func (flags uiDirtyFlags) affectsParentLayout() bool {
+	return (flags & (uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyLayoutChildren)) != 0
+}
+
+func (ui *UI) hasDirty() bool {
+	return ui != nil && ui.dirtyFlags != 0
+}
+
+func (ui *UI) hasActiveDirty() bool {
+	return ui != nil && ui.IsActive() && !ui.entity.IsDestroyed() && ui.hasDirty()
+}
+
+func (ui *UI) hasLocalDirty() bool {
+	return ui != nil && (ui.dirtyFlags&^uiDirtySubtree) != 0
+}
+
+func (ui *UI) layoutCanAffectParent() bool {
+	if ui == nil || !ui.IsValid() {
+		return true
+	}
+	if ui.isControlLayoutChild() {
+		return true
+	}
 	if ui.IsType(ElementTypeLabel) {
-		// TODO:  This isn't needed in some cases
-		ui.ToLabel().LabelData().renderRequired = true
+		return true
+	}
+	return ui.ToPanel().FittingContent()
+}
+
+func (ui *UI) isControlLayoutChild() bool {
+	if ui == nil || ui.entity.Parent == nil {
+		return false
+	}
+	pui := FirstOnEntity(ui.entity.Parent)
+	if pui == nil {
+		return false
+	}
+	switch pui.Type() {
+	case ElementTypeButton, ElementTypeCheckbox, ElementTypeInput,
+		ElementTypeProgressBar, ElementTypeSelect, ElementTypeSlider,
+		ElementTypeTextArea:
+		return true
+	default:
+		return false
+	}
+}
+
+func (ui *UI) noteDirtyEffects(flags uiDirtyFlags) {
+	if ui == nil || !ui.IsValid() {
+		return
+	}
+	if ui.IsType(ElementTypeLabel) {
+		if (flags & (uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyRender)) != 0 {
+			ui.ToLabel().LabelData().renderRequired = true
+		}
 	} else {
 		ui.ToPanel().PanelData().flags.setWasDirtied()
 	}
-	if ui.dirtyType == DirtyTypeNone || ui.dirtyType >= DirtyTypeParent || dirtyType == DirtyTypeGenerated {
-		ui.dirtyType = dirtyType
-		for i := 0; i < len(ui.entity.Children); i++ {
-			kid := ui.entity.Children[i]
-			all := AllOnEntity(kid)
-			for _, cui := range all {
-				if cui.dirty() == DirtyTypeNone || cui.dirty() > DirtyTypeParent {
-					// TODO:  Let it know it was from the parent and what type
-					if ui.dirtyType < DirtyTypeParent {
-						cui.setDirtyInternal(DirtyTypeParent + ui.dirtyType)
-					} else {
-						cui.setDirtyInternal(ui.dirtyType)
-					}
-				}
-			}
+}
+
+func (ui *UI) addDirtyFlags(flags uiDirtyFlags) {
+	if flags == 0 {
+		return
+	}
+	ui.dirtyFlags |= flags
+	ui.noteDirtyEffects(flags)
+}
+
+func (ui *UI) bubbleDirty(flags uiDirtyFlags) {
+	affectsParentLayout := flags.affectsParentLayout()
+	for parent := ui.entity.Parent; parent != nil; parent = parent.Parent {
+		pui := FirstOnEntity(parent)
+		if pui == nil {
+			continue
+		}
+		pui.dirtyFlags |= uiDirtySubtree
+		if affectsParentLayout {
+			pui.addDirtyFlags(uiDirtyLayoutChildren | uiDirtyScissor | uiDirtyRender)
+			affectsParentLayout = pui.layoutCanAffectParent()
 		}
 	}
+}
+
+func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
+	defer tracing.NewRegion("UI.setDirtyInternal").End()
+	flags := dirtyFlagsFromType(dirtyType)
+	ui.addDirtyFlags(flags)
+	ui.bubbleDirty(flags)
 }
 
 func (ui *UI) SetDirty(dirtyType DirtyType) {
@@ -320,13 +419,8 @@ func (ui *UI) rootUI() *UI {
 	return rootUI
 }
 
-func (ui *UI) Clean() {
-	defer tracing.NewRegion("UI.Clean").End()
-	if ui.flags.dontClean() {
-		return
-	}
-	root := ui.rootUI()
-	tree := []*UI{root}
+func (ui *UI) uiTree() []*UI {
+	tree := []*UI{ui}
 	var createTree func(target *engine.Entity)
 	createTree = func(target *engine.Entity) {
 		for _, child := range target.Children {
@@ -337,7 +431,11 @@ func (ui *UI) Clean() {
 			}
 		}
 	}
-	createTree(root.Entity())
+	createTree(ui.Entity())
+	return tree
+}
+
+func (ui *UI) cleanTree(tree []*UI) {
 	stabilized := false
 	maxIterations := 100
 	for !stabilized && maxIterations > 0 {
@@ -349,7 +447,7 @@ func (ui *UI) Clean() {
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
 			tree[i].postLayoutUpdate()
-			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
+			stabilized = stabilized && !tree[i].hasDirty()
 		}
 		maxIterations--
 	}
@@ -359,6 +457,83 @@ func (ui *UI) Clean() {
 		}
 		tree[i].GenerateScissor()
 		tree[i].render()
+	}
+}
+
+func (ui *UI) cleanFull() {
+	if ui.flags.dontClean() {
+		return
+	}
+	ui.cleanTree(ui.uiTree())
+	ui.refreshDirtySubtreeUp()
+}
+
+func (ui *UI) CleanFull() {
+	defer tracing.NewRegion("UI.CleanFull").End()
+	ui.rootUI().cleanFull()
+}
+
+func (ui *UI) Clean() {
+	defer tracing.NewRegion("UI.Clean").End()
+	ui.CleanFull()
+}
+
+func (ui *UI) collectDirtyScopes(scopes *[]*UI) {
+	if !ui.IsActive() || ui.entity.IsDestroyed() || !ui.hasDirty() {
+		return
+	}
+	if ui.hasLocalDirty() {
+		*scopes = append(*scopes, ui)
+		return
+	}
+	for i := range ui.entity.Children {
+		cui := FirstOnEntity(ui.entity.Children[i])
+		if cui != nil {
+			cui.collectDirtyScopes(scopes)
+		}
+	}
+}
+
+func (ui *UI) refreshDirtySubtreeUp() {
+	for target := ui; target != nil; {
+		hasDirtyChild := false
+		for i := range target.entity.Children {
+			cui := FirstOnEntity(target.entity.Children[i])
+			if cui != nil && cui.hasActiveDirty() {
+				hasDirtyChild = true
+				break
+			}
+		}
+		if hasDirtyChild {
+			target.dirtyFlags |= uiDirtySubtree
+		} else {
+			target.dirtyFlags &^= uiDirtySubtree
+		}
+		if target.entity.Parent == nil {
+			break
+		}
+		target = FirstOnEntity(target.entity.Parent)
+	}
+}
+
+func (ui *UI) cleanScopedIfNeeded() {
+	defer tracing.NewRegion("UI.cleanScopedIfNeeded").End()
+	if ui.flags.dontClean() || !ui.IsActive() || ui.entity.IsDestroyed() {
+		return
+	}
+	maxIterations := 100
+	for ui.hasDirty() && maxIterations > 0 {
+		scopes := make([]*UI, 0)
+		ui.collectDirtyScopes(&scopes)
+		if len(scopes) == 0 {
+			ui.refreshDirtySubtreeUp()
+			return
+		}
+		for i := range scopes {
+			scopes[i].cleanFull()
+		}
+		ui.refreshDirtySubtreeUp()
+		maxIterations--
 	}
 }
 
@@ -416,6 +591,8 @@ func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
 		for i := range ld.runeDrawings {
 			ld.runeDrawings[i].ShaderData.(*rendering.TextShaderData).Scissor = scissor
 		}
+	} else if me.IsValid() {
+		me.ToPanel().PanelData().flags.setWasDirtied()
 	}
 }
 
@@ -626,26 +803,12 @@ func (ui *UI) layoutChanged(dirtyType DirtyType) {
 
 func (ui *UI) cleanIfNeeded() {
 	defer tracing.NewRegion("UI.cleanIfNeeded").End()
-	if ui.anyChildDirty() {
-		ui.Clean()
-	}
+	ui.cleanScopedIfNeeded()
 }
 
 func (ui *UI) anyChildDirty() bool {
 	defer tracing.NewRegion("UI.anyChildDirty").End()
-	if !ui.IsActive() || ui.entity.IsDestroyed() {
-		return false
-	}
-	if ui.dirtyType != DirtyTypeNone {
-		return true
-	}
-	for i := range ui.entity.Children {
-		cui := FirstOnEntity(ui.entity.Children[i])
-		if cui != nil && cui.anyChildDirty() {
-			return true
-		}
-	}
-	return false
+	return ui.hasActiveDirty()
 }
 
 func (ui *UI) updateFromManager(deltaTime float64) {

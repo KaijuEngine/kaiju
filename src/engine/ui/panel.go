@@ -290,7 +290,7 @@ func (p *Panel) FitContentWidth() {
 	case ContentFitHeight:
 		pd.fitContent = ContentFitBoth
 	}
-	if p.dirtyType == DirtyTypeNone {
+	if !p.Base().hasDirty() {
 		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
 		p.Base().SetDirty(DirtyTypeGenerated)
@@ -305,7 +305,7 @@ func (p *Panel) FitContentHeight() {
 	case ContentFitWidth:
 		pd.fitContent = ContentFitBoth
 	}
-	if p.dirtyType == DirtyTypeNone {
+	if !p.Base().hasDirty() {
 		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
 		p.Base().SetDirty(DirtyTypeGenerated)
@@ -314,7 +314,7 @@ func (p *Panel) FitContentHeight() {
 
 func (p *Panel) FitContent() {
 	p.PanelData().fitContent = ContentFitBoth
-	if p.dirtyType == DirtyTypeNone {
+	if !p.Base().hasDirty() {
 		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
 		p.Base().SetDirty(DirtyTypeGenerated)
@@ -1990,6 +1990,7 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		}
 	}
 	p.shaderData.FgColor = bgColor
+	p.Base().SetDirty(DirtyTypeColorChange)
 }
 
 func (p *Panel) AllowClickThrough() {

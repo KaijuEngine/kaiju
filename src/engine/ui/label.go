@@ -366,7 +366,7 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 	}
 	ld.bgColor = newColor
 	label.updateColors()
-	label.Base().SetDirty(DirtyTypeGenerated)
+	label.Base().SetDirty(DirtyTypeColorChange)
 }
 
 func (label *Label) SetJustify(justify rendering.FontJustify) {
