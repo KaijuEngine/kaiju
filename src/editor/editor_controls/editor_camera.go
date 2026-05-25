@@ -40,9 +40,11 @@ const (
 	EditorCameraModeTop
 	EditorCameraModeFront
 	EditorCameraModeSide
+	EditorCameraModeLeft
+	EditorCameraModeRight
 )
 
-var cameraModeStrings = []string{"None", "3D", "2D", "Top", "Front", "Side"}
+var cameraModeStrings = []string{"None", "3D", "2D", "Top", "Front", "Side", "Left", "Right"}
 
 type EditorCameraViewport struct {
 	Left    float32
@@ -216,7 +218,8 @@ func (e *EditorCamera) setMode(mode EditorCameraMode, host *engine.Host, bindPri
 			host.Window.OnResize.Remove(e.resizeId)
 			e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
 		}
-	case EditorCameraModeTop, EditorCameraModeFront, EditorCameraModeSide:
+	case EditorCameraModeTop, EditorCameraModeFront, EditorCameraModeSide,
+		EditorCameraModeLeft, EditorCameraModeRight:
 		vw, vh := e.viewportSize(host)
 		e.camera = newFixedOrthographicStageCamera(e.mode, vw, vh)
 	}
@@ -263,7 +266,8 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		}
 	case EditorCameraMode2d:
 		return e.update2d(host, delta)
-	case EditorCameraModeTop, EditorCameraModeFront, EditorCameraModeSide:
+	case EditorCameraModeTop, EditorCameraModeFront, EditorCameraModeSide,
+		EditorCameraModeLeft, EditorCameraModeRight:
 		return e.updateFixedOrthographic(host, delta)
 	case EditorCameraModeNone:
 		fallthrough
@@ -624,6 +628,12 @@ func newFixedOrthographicStageCamera(mode EditorCameraMode, viewWidth, viewHeigh
 		position = matrix.NewVec3(0, 0, distance)
 		up = matrix.Vec3Up()
 	case EditorCameraModeSide:
+		position = matrix.NewVec3(distance, 0, 0)
+		up = matrix.Vec3Up()
+	case EditorCameraModeLeft:
+		position = matrix.NewVec3(-distance, 0, 0)
+		up = matrix.Vec3Up()
+	case EditorCameraModeRight:
 		position = matrix.NewVec3(distance, 0, 0)
 		up = matrix.Vec3Up()
 	}

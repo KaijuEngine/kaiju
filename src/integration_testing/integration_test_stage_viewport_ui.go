@@ -55,9 +55,9 @@ func IntegrationTestStageViewportUI(host *engine.Host) {
 	for _, id := range []string{
 		"ftdePrompt", "dragPreview", "hierarchyDragPreview",
 		"entityDataSelectorOverlay", "tooltip",
-		"stageViewportTop", "stageViewportFront", "stageViewportSide",
+		"stageViewportTop", "stageViewportSide", "stageViewportFront",
 		"stageViewportLabelPerspective", "stageViewportLabelTop",
-		"stageViewportLabelFront", "stageViewportLabelSide",
+		"stageViewportLabelSide", "stageViewportLabelFront",
 	} {
 		hideStageHierarchyElement(doc, id)
 	}

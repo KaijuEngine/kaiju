@@ -150,3 +150,44 @@ func TestStageViewportsOwnDistinctCamerasAndTargets(t *testing.T) {
 		}
 	}
 }
+
+func TestStageViewOpenUsesUIOnlyDefaultViewAndCloseRestores(t *testing.T) {
+	t.Parallel()
+
+	host := &engine.Host{
+		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
+			Name:      rendering.DefaultRenderViewName,
+			LayerMask: rendering.RenderLayerAll,
+			Clear:     true,
+			Sort:      7,
+			ViewMode:  rendering.RenderViewModeWireframe,
+		}),
+	}
+	view := StageView{host: host}
+
+	view.Open()
+
+	defaultView, ok := host.RenderViews.Default()
+	if !ok {
+		t.Fatal("default render view missing after stage open")
+	}
+	if defaultView.LayerMask() != rendering.RenderLayerUI {
+		t.Fatalf("stage default layer mask = %v, want UI only", defaultView.LayerMask())
+	}
+	if defaultView.Sort() != 7 || defaultView.ViewMode() != rendering.RenderViewModeWireframe {
+		t.Fatalf("stage default view did not preserve sort/mode")
+	}
+
+	view.Close()
+
+	defaultView, ok = host.RenderViews.Default()
+	if !ok {
+		t.Fatal("default render view missing after stage close")
+	}
+	if defaultView.LayerMask() != rendering.RenderLayerAll {
+		t.Fatalf("restored default layer mask = %v, want all", defaultView.LayerMask())
+	}
+	if defaultView.Sort() != 7 || defaultView.ViewMode() != rendering.RenderViewModeWireframe {
+		t.Fatalf("restored default view did not preserve sort/mode")
+	}
+}

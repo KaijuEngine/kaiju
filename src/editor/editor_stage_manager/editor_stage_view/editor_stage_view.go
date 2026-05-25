@@ -42,6 +42,10 @@ type StageView struct {
 	hoveredViewport int
 	focusedViewport int
 	viewport        stageViewportBounds
+	defaultView     struct {
+		options rendering.RenderViewOptions
+		active  bool
+	}
 }
 
 type ViewportToolOwner interface {
@@ -94,13 +98,17 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
+	v.useStageRenderTargetDefaultView()
 	v.syncStageViewport()
 	v.applyGridVisibility()
 }
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
-	v.gridShader.Deactivate()
+	v.restoreDefaultRenderView()
+	if v.gridShader != nil {
+		v.gridShader.Deactivate()
+	}
 }
 
 // IsGridVisible returns whether the editor viewport grid is currently shown.
@@ -142,7 +150,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 		v.vertexSnap.Update(v.host)
 		return true
 	}
-	if v.camera.Update(v.host, deltaTime) {
+	if v.activeCamera().Update(v.host, deltaTime) {
 		v.updateGridPosition()
 		v.transformTool.Cancel()
 		v.selectTool.Cancel()
@@ -174,7 +182,8 @@ func (v *StageView) updateGridPosition() {
 	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), -cam.FarPlane()*0.45))
-	case editor_controls.EditorCameraModeSide:
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			cam.FarPlane()*0.45, matrix.Floor(camPos.Y()), matrix.Floor(camPos.Z())))
 	case editor_controls.EditorCameraMode3d, editor_controls.EditorCameraModeTop:

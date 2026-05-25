@@ -27,15 +27,18 @@ type StageViewportKind int
 const (
 	StageViewportPerspective StageViewportKind = iota
 	StageViewportTop
-	StageViewportFront
 	StageViewportSide
+	StageViewportFront
+
+	StageViewportLeft  = StageViewportSide
+	StageViewportRight = StageViewportFront
 )
 
 var stageViewportKinds = []StageViewportKind{
 	StageViewportPerspective,
 	StageViewportTop,
-	StageViewportFront,
 	StageViewportSide,
+	StageViewportFront,
 }
 
 func StageViewportKinds() []StageViewportKind {
@@ -48,10 +51,10 @@ func (k StageViewportKind) Label() string {
 		return "Perspective"
 	case StageViewportTop:
 		return "Top"
-	case StageViewportFront:
-		return "Front"
 	case StageViewportSide:
 		return "Side"
+	case StageViewportFront:
+		return "Front"
 	default:
 		return "Viewport"
 	}
@@ -63,10 +66,10 @@ func (k StageViewportKind) renderName() string {
 		return stageMainRenderTargetName
 	case StageViewportTop:
 		return "stage-top"
-	case StageViewportFront:
-		return "stage-front"
 	case StageViewportSide:
 		return "stage-side"
+	case StageViewportFront:
+		return "stage-front"
 	default:
 		return "stage-viewport"
 	}
@@ -78,10 +81,10 @@ func (k StageViewportKind) cameraMode() editor_controls.EditorCameraMode {
 		return editor_controls.EditorCameraMode3d
 	case StageViewportTop:
 		return editor_controls.EditorCameraModeTop
-	case StageViewportFront:
-		return editor_controls.EditorCameraModeFront
 	case StageViewportSide:
 		return editor_controls.EditorCameraModeSide
+	case StageViewportFront:
+		return editor_controls.EditorCameraModeFront
 	default:
 		return editor_controls.EditorCameraMode3d
 	}
@@ -175,6 +178,31 @@ func (v *StageView) activeStageViewport() *stageRenderViewport {
 	return &v.stageViewports[v.activeViewport]
 }
 
+func (v *StageView) ActiveViewportKind() (StageViewportKind, bool) {
+	if viewport := v.activeStageViewport(); viewport != nil {
+		return viewport.Kind, true
+	}
+	return StageViewportPerspective, false
+}
+
+func (v *StageView) HoveredViewportKind() (StageViewportKind, bool) {
+	v.routeStageViewportInput()
+	if v.hoveredViewport >= 0 && v.hoveredViewport < len(v.stageViewports) {
+		return v.stageViewports[v.hoveredViewport].Kind, true
+	}
+	return StageViewportPerspective, false
+}
+
+func (v *StageView) FocusViewportKind(kind StageViewportKind) {
+	idx := v.stageViewportIndexByKind(kind)
+	if idx < 0 {
+		return
+	}
+	v.activeViewport = idx
+	v.focusedViewport = -1
+	v.bindActiveViewportCamera()
+}
+
 func (v *StageView) activeCamera() *editor_controls.EditorCamera {
 	if viewport := v.activeStageViewport(); viewport != nil && viewport.camera != nil {
 		return viewport.camera
@@ -191,6 +219,37 @@ func (v *StageView) bindActiveViewportCamera() {
 			viewport.renderView.SetCamera(camera.Camera())
 		}
 	}
+}
+
+func (v *StageView) useStageRenderTargetDefaultView() {
+	if v.host == nil {
+		return
+	}
+	view, ok := v.host.RenderViews.Default()
+	if !ok {
+		return
+	}
+	if !v.defaultView.active {
+		v.defaultView.options = view.Options()
+		v.defaultView.active = true
+	}
+	options := view.Options()
+	options.Name = rendering.DefaultRenderViewName
+	options.Target = nil
+	options.LayerMask = rendering.RenderLayerUI
+	if _, err := v.host.RenderViews.ReplaceDefault(options); err != nil {
+		slog.Error("failed to configure stage default render view", "error", err)
+	}
+}
+
+func (v *StageView) restoreDefaultRenderView() {
+	if v.host == nil || !v.defaultView.active {
+		return
+	}
+	if _, err := v.host.RenderViews.ReplaceDefault(v.defaultView.options); err != nil {
+		slog.Error("failed to restore default render view", "error", err)
+	}
+	v.defaultView.active = false
 }
 
 func (v *StageView) stageViewportIndexByKind(kind StageViewportKind) int {

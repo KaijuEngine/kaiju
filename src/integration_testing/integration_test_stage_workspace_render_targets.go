@@ -50,11 +50,12 @@ func IntegrationTestStageWorkspaceRenderTargets(host *engine.Host) {
 		stageWorkspaceRenderTargetsIntegrationFail("load stage workspace UI", err)
 	}
 	hideStageWorkspaceRenderTargetChrome(doc)
+	applyStageWorkspaceRenderTargetsQuadLayout(doc)
 	specs := []stageWorkspaceRenderTargetSpec{
 		{id: "stageViewport", name: "stage-workspace-perspective", mode: editor_controls.EditorCameraMode3d},
 		{id: "stageViewportTop", name: "stage-workspace-top", mode: editor_controls.EditorCameraModeTop},
-		{id: "stageViewportFront", name: "stage-workspace-front", mode: editor_controls.EditorCameraModeFront},
 		{id: "stageViewportSide", name: "stage-workspace-side", mode: editor_controls.EditorCameraModeSide},
+		{id: "stageViewportFront", name: "stage-workspace-front", mode: editor_controls.EditorCameraModeFront},
 	}
 	for i := range specs {
 		viewport, ok := doc.GetElementById(specs[i].id)
@@ -95,6 +96,21 @@ func IntegrationTestStageWorkspaceRenderTargets(host *engine.Host) {
 		}
 		os.Exit(0)
 	})
+}
+
+func applyStageWorkspaceRenderTargetsQuadLayout(doc *document.Document) {
+	classes := map[string]string{
+		"stageViewport":      "stageViewportQuadPerspective",
+		"stageViewportTop":   "stageViewportQuadTop",
+		"stageViewportSide":  "stageViewportQuadSide",
+		"stageViewportFront": "stageViewportQuadFront",
+	}
+	for id, layoutClass := range classes {
+		if elm, ok := doc.GetElementById(id); ok {
+			doc.SetElementClassesWithoutApply(elm, "stageViewport", layoutClass)
+		}
+	}
+	doc.ApplyStyles()
 }
 
 func hideStageWorkspaceRenderTargetChrome(doc *document.Document) {

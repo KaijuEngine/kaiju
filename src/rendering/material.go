@@ -8,6 +8,7 @@ package rendering
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -72,7 +73,7 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	instanceKey := strings.Builder{}
 	for i := range textures {
 		instanceKey.WriteString(textures[i].Key)
-		instanceKey.WriteRune(';')
+		_, _ = fmt.Fprintf(&instanceKey, "@%p;", textures[i])
 	}
 	key := instanceKey.String()
 	// TODO:  Use a read lock?

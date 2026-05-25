@@ -50,8 +50,8 @@ func IntegrationTestStageMultiViewports(host *engine.Host) {
 	specs := []stageViewportIntegrationSpec{
 		{id: "stageViewport", name: "stage-main", label: "Perspective", mode: editor_controls.EditorCameraMode3d},
 		{id: "stageViewportTop", name: "stage-top", label: "Top", mode: editor_controls.EditorCameraModeTop},
-		{id: "stageViewportFront", name: "stage-front", label: "Front", mode: editor_controls.EditorCameraModeFront},
 		{id: "stageViewportSide", name: "stage-side", label: "Side", mode: editor_controls.EditorCameraModeSide},
+		{id: "stageViewportFront", name: "stage-front", label: "Front", mode: editor_controls.EditorCameraModeFront},
 	}
 	createStageMultiViewportLayout(host, &uiMan, specs)
 	createStageViewportSelectedSphere(host)

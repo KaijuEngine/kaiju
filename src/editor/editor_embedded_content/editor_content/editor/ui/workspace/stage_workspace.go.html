@@ -45,41 +45,46 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
-			#stageViewport {
+			.stageViewport {
 				position: absolute;
+				z-index: 2;
+				background-color: white;
+				visibility: visible;
+			}
+			.stageViewportSingle {
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 100%;
+				height: calc(100% - var(--ed-menu-bar-height));
+			}
+			.stageViewportQuadPerspective {
 				left: 0;
 				top: var(--ed-menu-bar-height);
 				width: 50%;
 				height: calc(50% - var(--ed-menu-bar-height));
-				z-index: 2;
-				background-color: white;
 			}
-			#stageViewportTop {
-				position: absolute;
+			.stageViewportQuadTop {
 				left: 50%;
 				top: var(--ed-menu-bar-height);
 				width: 50%;
 				height: calc(50% - var(--ed-menu-bar-height));
-				z-index: 2;
-				background-color: white;
 			}
-			#stageViewportFront {
-				position: absolute;
+			.stageViewportQuadSide {
 				left: 0;
 				top: 50%;
 				width: 50%;
 				height: 50%;
-				z-index: 2;
-				background-color: white;
 			}
-			#stageViewportSide {
-				position: absolute;
+			.stageViewportQuadFront {
 				left: 50%;
 				top: 50%;
 				width: 50%;
 				height: 50%;
-				z-index: 2;
-				background-color: white;
+			}
+			.stageViewportHidden {
+				visibility: hidden;
+				width: 0;
+				height: 0;
 			}
 			.stageViewportLabel {
 				position: absolute;
@@ -90,23 +95,35 @@
 				padding: 0.2em 0.45em;
 				font-size: 0.6em;
 				z-index: 3;
+				visibility: visible;
+			}
+			.stageViewportLabelSingle {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadPerspective {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadTop {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+				left: calc(50% + 0.5em);
+			}
+			.stageViewportLabelQuadSide {
+				top: calc(50% + 0.5em);
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadFront {
+				top: calc(50% + 0.5em);
+				left: calc(50% + 0.5em);
+			}
+			.stageViewportLabelHidden {
+				visibility: hidden;
 			}
 			#hierarchyArea,
 			#detailsArea,
 			#contentArea {
 				z-index: 4;
-			}
-			#stageViewportLabelPerspective,
-			#stageViewportLabelTop {
-				top: calc(var(--ed-menu-bar-height) + 0.5em);
-			}
-			#stageViewportLabelFront,
-			#stageViewportLabelSide {
-				top: calc(50% + 0.5em);
-			}
-			#stageViewportLabelTop,
-			#stageViewportLabelSide {
-				left: calc(50% + 0.5em);
 			}
 		</style>
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
@@ -114,14 +131,14 @@
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_content.css" />
 	</head>
 	<body>
-		<img id="stageViewport" src="editor/textures/icons/menu_bar_logo.png" />
-		<img id="stageViewportTop" src="editor/textures/icons/menu_bar_logo.png" />
-		<img id="stageViewportFront" src="editor/textures/icons/menu_bar_logo.png" />
-		<img id="stageViewportSide" src="editor/textures/icons/menu_bar_logo.png" />
-		<span id="stageViewportLabelPerspective" class="stageViewportLabel">Perspective</span>
-		<span id="stageViewportLabelTop" class="stageViewportLabel">Top</span>
-		<span id="stageViewportLabelFront" class="stageViewportLabel">Front</span>
-		<span id="stageViewportLabelSide" class="stageViewportLabel">Side</span>
+		<img id="stageViewport" class="stageViewport stageViewportSingle" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportTop" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportSide" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportFront" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
+		<span id="stageViewportLabelPerspective" class="stageViewportLabel stageViewportLabelSingle">Perspective</span>
+		<span id="stageViewportLabelTop" class="stageViewportLabel stageViewportLabelHidden">Top</span>
+		<span id="stageViewportLabelSide" class="stageViewportLabel stageViewportLabelHidden">Side</span>
+		<span id="stageViewportLabelFront" class="stageViewportLabel stageViewportLabelHidden">Front</span>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
