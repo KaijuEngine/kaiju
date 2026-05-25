@@ -364,7 +364,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	return true
 }
 
-func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool {
+func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []*RenderView) bool {
 	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
 	painter := &g.Painter
 	ld := &g.LogicalDevice
@@ -393,7 +393,7 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		return false
 	}
 	ld.bufferTrash.Cycle()
-	err := g.updateGlobalUniformBuffer(camera, uiCamera, lights, runtime)
+	err := g.updateGlobalUniformBuffers(views, camera, uiCamera, lights, runtime)
 	if err != nil {
 		return false
 	}

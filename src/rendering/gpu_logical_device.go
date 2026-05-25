@@ -94,19 +94,63 @@ func (g *GPULogicalDevice) RemakeSwapChain(window RenderingContainer, inst *GPUA
 func (g *GPULogicalDevice) DestroyGroup(group *DrawInstanceGroup) {
 	defer tracing.NewRegion("Vulkan.DestroyGroup").End()
 	g.WaitIdle()
+	for _, state := range group.viewStates {
+		g.destroyGroupViewState(state)
+	}
+	group.viewStates = make(map[*RenderView]*DrawInstanceViewState)
+	if !group.instanceBuffer.buffers[0].IsValid() && !group.descriptorSets[0].IsValid() {
+		return
+	}
+	g.destroyGroupViewState(&DrawInstanceViewState{
+		InstanceDriverData: group.InstanceDriverData,
+		rawData:            group.rawData,
+		boundInstanceData:  group.boundInstanceData,
+	})
+	group.InstanceDriverData = InstanceDriverData{}
+	group.rawData.byteMapping = [maxFramesInFlight]unsafe.Pointer{}
+	clear(group.boundInstanceData)
+}
+
+func (g *GPULogicalDevice) destroyGroupViewState(state *DrawInstanceViewState) {
+	if state == nil {
+		return
+	}
+	if !drawInstanceViewStateHasResources(state) {
+		return
+	}
 	pd := bufferTrash{delay: maxFramesInFlight}
-	pd.pool = group.descriptorPool
+	pd.pool = state.descriptorPool
 	for i := 0; i < maxFramesInFlight; i++ {
-		pd.buffers[i] = group.instanceBuffer.buffers[i]
-		pd.memories[i] = group.instanceBuffer.memories[i]
-		pd.sets[i] = group.descriptorSets[i]
-		for k := range group.boundBuffers {
-			pd.namedBuffers[i] = append(pd.namedBuffers[i], group.boundBuffers[k].buffers[i])
-			pd.namedMemories[i] = append(pd.namedMemories[i], group.boundBuffers[k].memories[i])
+		pd.buffers[i] = state.instanceBuffer.buffers[i]
+		pd.memories[i] = state.instanceBuffer.memories[i]
+		pd.sets[i] = state.descriptorSets[i]
+		for k := range state.boundBuffers {
+			pd.namedBuffers[i] = append(pd.namedBuffers[i], state.boundBuffers[k].buffers[i])
+			pd.namedMemories[i] = append(pd.namedMemories[i], state.boundBuffers[k].memories[i])
 		}
 	}
-	clear(group.boundBuffers)
+	clear(state.boundBuffers)
 	g.bufferTrash.Add(pd)
+}
+
+func drawInstanceViewStateHasResources(state *DrawInstanceViewState) bool {
+	if state.descriptorPool.IsValid() {
+		return true
+	}
+	for i := range maxFramesInFlight {
+		if state.descriptorSets[i].IsValid() ||
+			state.instanceBuffer.buffers[i].IsValid() ||
+			state.instanceBuffer.memories[i].IsValid() {
+			return true
+		}
+		for j := range state.boundBuffers {
+			if state.boundBuffers[j].buffers[i].IsValid() ||
+				state.boundBuffers[j].memories[i].IsValid() {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (g *GPULogicalDevice) DestroySemaphore(semaphore *GPUSemaphore) {

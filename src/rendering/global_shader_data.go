@@ -6,7 +6,10 @@
 
 package rendering
 
-import "kaijuengine.com/matrix"
+import (
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/matrix"
+)
 
 const (
 	MaxJoints        = 50
@@ -33,4 +36,41 @@ type GlobalShaderData struct {
 	CascadePlaneDistances [4]float32
 	VertLights            [MaxLocalLights]GPULight
 	LightInfos            [MaxLocalLights]GPULightInfo
+}
+
+func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, screenSize matrix.Vec2) GlobalShaderData {
+	ubo := GlobalShaderData{
+		View:         matrix.Mat4Identity(),
+		Projection:   matrix.Mat4Identity(),
+		UIView:       matrix.Mat4Identity(),
+		UIProjection: matrix.Mat4Identity(),
+		Time:         runtime,
+		ScreenSize:   screenSize,
+	}
+	if camera != nil {
+		camOrtho := matrix.Float(0)
+		if camera.IsOrthographic() {
+			camOrtho = 1
+		}
+		ubo.View = camera.View()
+		ubo.Projection = camera.Projection()
+		ubo.CameraPosition = camera.Position().AsVec4WithW(camOrtho)
+		ubo.CascadeCount = int32(camera.NumCSMCascades())
+		ubo.CascadePlaneDistances = camera.CSMCascadeDistances()
+	}
+	if uiCamera != nil {
+		ubo.UIView = uiCamera.View()
+		ubo.UIProjection = uiCamera.Projection()
+		ubo.UICameraPosition = uiCamera.Position()
+	}
+	if camera != nil {
+		for i := range lights.Lights {
+			if lights.Lights[i].IsValid() {
+				lights.Lights[i].recalculate(camera)
+				ubo.VertLights[i] = lights.Lights[i].transformToGPULight()
+				ubo.LightInfos[i] = lights.Lights[i].transformToGPULightInfo()
+			}
+		}
+	}
+	return ubo
 }

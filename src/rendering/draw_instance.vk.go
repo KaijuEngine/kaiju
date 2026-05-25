@@ -74,23 +74,23 @@ func (b *ComputeShaderBuffer) WriteDescriptors(device *GPUDevice) {
 	vk.UpdateDescriptorSets(vk.Device(device.LogicalDevice.handle), 1, &write, 0, nil)
 }
 
-func (d *DrawInstanceGroup) generateInstanceDriverData(device *GPUDevice, material *Material) {
-	if !d.generatedSets {
-		d.descriptorSets, d.descriptorPool, _ = device.createDescriptorSet(
+func (d *DrawInstanceGroup) generateInstanceDriverData(device *GPUDevice, material *Material, state *DrawInstanceViewState) {
+	if !state.generatedSets {
+		state.descriptorSets, state.descriptorPool, _ = device.createDescriptorSet(
 			material.Shader.RenderId.descriptorSetLayout, 0)
-		d.imageInfos = make([]GPUDescriptorImageInfo, len(d.MaterialInstance.Textures))
-		d.generatedSets = true
-		d.instanceBuffer.bindingId = 1
-		d.boundBuffers = make([]ShaderBuffer, 0)
+		state.imageInfos = make([]GPUDescriptorImageInfo, len(d.MaterialInstance.Textures))
+		state.generatedSets = true
+		state.instanceBuffer.bindingId = 1
+		state.boundBuffers = make([]ShaderBuffer, 0)
 		for i := range material.shaderInfo.LayoutGroups {
 			g := &material.shaderInfo.LayoutGroups[i]
 			for j := range g.Layouts {
 				if g.Layouts[j].IsBuffer() {
-					if len(d.boundBuffers) <= g.Layouts[j].Binding {
-						grow := (g.Layouts[j].Binding + 1) - len(d.boundBuffers)
-						d.boundBuffers = klib.SliceSetLen(d.boundBuffers, grow)
+					if len(state.boundBuffers) <= g.Layouts[j].Binding {
+						grow := (g.Layouts[j].Binding + 1) - len(state.boundBuffers)
+						state.boundBuffers = klib.SliceSetLen(state.boundBuffers, grow)
 					}
-					d.boundBuffers[g.Layouts[j].Binding] = ShaderBuffer{
+					state.boundBuffers[g.Layouts[j].Binding] = ShaderBuffer{
 						bindingId: g.Layouts[j].Binding,
 						stride:    g.Layouts[j].Stride(),
 						capacity:  g.Layouts[j].Capacity(),
@@ -101,5 +101,5 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(device *GPUDevice, materi
 	}
 }
 
-func (d *DrawInstanceGroup) bindInstanceDriverData() {
+func (d *DrawInstanceGroup) bindInstanceDriverData(state *DrawInstanceViewState) {
 }

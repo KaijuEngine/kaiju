@@ -95,7 +95,9 @@ func (m *MeshCache) UpdateMeshVertices(key string, verts []Vertex) {
 	defer m.mutex.Unlock()
 	if mesh, ok := m.meshes[key]; ok {
 		mesh.SetPendingVertices(verts)
-		m.pendingMeshes = append(m.pendingMeshes, mesh)
+		if mesh.IsReady() {
+			m.pendingMeshes = append(m.pendingMeshes, mesh)
+		}
 	}
 }
 

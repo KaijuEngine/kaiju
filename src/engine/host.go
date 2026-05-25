@@ -450,10 +450,11 @@ func (host *Host) Render() {
 		}
 		host.lighting.Update(host.PrimaryCamera().Position())
 		gpuInstance := host.Window.GpuInstance
+		views := host.RenderViews.Views()
 		if gpuInstance.PrimaryDevice().ReadyFrame(gpuInstance, host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
-			lights, float32(host.Runtime())) {
-			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights, host.RenderViews.Views())
+			lights, float32(host.Runtime()), views) {
+			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights, views)
 			skipSwap = false
 		}
 	}

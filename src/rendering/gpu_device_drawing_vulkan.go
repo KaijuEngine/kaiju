@@ -24,7 +24,7 @@ type boundBufferInfo struct {
 	boundBuffer *ShaderBuffer
 }
 
-func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
+func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.drawImpl").End()
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
@@ -33,7 +33,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := g.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, layerMask, &p)
+			writes := g.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, view, layerMask, &p)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -74,7 +74,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 			shader := d.material.Shader
 			s := &shader.RenderId
 			g.renderEach(renderPass.cmdSecondary[g.Painter.currentFrame].buffer,
-				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData, layerMask)
+				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData, view, layerMask)
 		}
 	}
 	renderPass.ExecuteSecondaryCommands()
@@ -159,7 +159,7 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	g.cleanupCombined(cmd)
 }
 
-func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
@@ -177,23 +177,29 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		if !group.IsReady() {
 			continue
 		}
-		g.resizeBuffers(material, group)
-		group.UpdateData(g, g.Painter.currentFrame, lights)
-		if !group.AnyVisible() {
+		state := group.viewStateForView(view)
+		g.resizeBuffers(material, group, state)
+		group.UpdateDataForView(g, g.Painter.currentFrame, lights, view)
+		if !group.AnyVisibleForView(view) {
 			continue
 		}
-		set := group.InstanceDriverData.descriptorSets[g.Painter.currentFrame]
+		set := state.InstanceDriverData.descriptorSets[g.Painter.currentFrame]
+		globalBuffer, err := g.globalUniformBuffer(view, g.Painter.currentFrame)
+		if err != nil {
+			slog.Error("failed to resolve global uniform buffer", "error", err)
+			continue
+		}
 		globalInfo := [1]vk.DescriptorBufferInfo{
-			bufferInfo(vk.Buffer(g.globalUniformBuffers[g.Painter.currentFrame].handle),
+			bufferInfo(vk.Buffer(globalBuffer.handle),
 				vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))),
 		}
 		boundBufferInfos := boundBufferInfos[:0]
-		for k := range group.boundBuffers {
-			if group.boundBuffers[k].size > 0 {
+		for k := range state.boundBuffers {
+			if state.boundBuffers[k].size > 0 {
 				boundBufferInfos = append(boundBufferInfos, boundBufferInfo{
-					info: bufferInfo(vk.Buffer(group.boundBuffers[k].buffers[g.Painter.currentFrame].handle),
-						vk.DeviceSize(group.boundBuffers[k].size)),
-					boundBuffer: &group.boundBuffers[k],
+					info: bufferInfo(vk.Buffer(state.boundBuffers[k].buffers[g.Painter.currentFrame].handle),
+						vk.DeviceSize(state.boundBuffers[k].size)),
+					boundBuffer: &state.boundBuffers[k],
 				})
 			}
 		}
@@ -203,14 +209,14 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		if texCount > 0 {
 			for j := range texCount {
 				t := group.MaterialInstance.Textures[j]
-				group.imageInfos[j] = imageInfo(vk.ImageView(t.RenderId.View.handle),
+				state.imageInfos[j] = imageInfo(vk.ImageView(t.RenderId.View.handle),
 					vk.Sampler(t.RenderId.Sampler.handle))
 			}
-			vkImageInfos := make([]vk.DescriptorImageInfo, len(group.imageInfos))
-			for j := range group.imageInfos {
-				vkImageInfos[j].Sampler = vk.Sampler(group.imageInfos[j].Sampler.handle)
-				vkImageInfos[j].ImageView = vk.ImageView(group.imageInfos[j].ImageView.handle)
-				vkImageInfos[j].ImageLayout = vulkan_const.ImageLayout(group.imageInfos[j].ImageLayout)
+			vkImageInfos := make([]vk.DescriptorImageInfo, len(state.imageInfos))
+			for j := range state.imageInfos {
+				vkImageInfos[j].Sampler = vk.Sampler(state.imageInfos[j].Sampler.handle)
+				vkImageInfos[j].ImageView = vk.ImageView(state.imageInfos[j].ImageView.handle)
+				vkImageInfos[j].ImageLayout = vulkan_const.ImageLayout(state.imageInfos[j].ImageLayout)
 			}
 			addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), vkImageInfos, 1, false))
 			if group.MaterialInstance.ReceivesShadows {
@@ -250,7 +256,7 @@ func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayou
 		s.pipelineInfo.PushConstant.Size, pushConstantData)
 }
 
-func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, layerMask RenderLayerMask) {
+func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, view *RenderView, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, vk.Pipeline(pipeline.handle))
 	writePushConstants(s, cmd, vk.PipelineLayout(layout.handle), pushConstantData)
@@ -266,27 +272,28 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 		if !group.MatchesLayer(layerMask) {
 			continue
 		}
-		if !group.IsReady() || group.VisibleCount() == 0 {
+		state := group.viewStateForView(view)
+		if !group.IsReady() || state.visibleCount == 0 {
 			continue
 		}
-		descriptorSets[0] = vk.DescriptorSet(group.InstanceDriverData.descriptorSets[g.Painter.currentFrame].handle)
+		descriptorSets[0] = vk.DescriptorSet(state.InstanceDriverData.descriptorSets[g.Painter.currentFrame].handle)
 		vk.CmdBindDescriptorSets(cmd, vulkan_const.PipelineBindPointGraphics,
 			vk.PipelineLayout(layout.handle), 0, uint32(len(descriptorSets)), &descriptorSets[0], 0, &dynOffsets[0])
 		meshId := group.Mesh.MeshId
 		vb[0] = vk.Buffer(meshId.vertexBuffer.handle)
 		vk.CmdBindVertexBuffers(cmd, 0, uint32(len(vb)), &vb[0], &vbOffsets[0])
-		instanceBuffers[0] = vk.Buffer(group.instanceBuffer.buffers[g.Painter.currentFrame].handle)
-		vk.CmdBindVertexBuffers(cmd, uint32(group.instanceBuffer.bindingId),
+		instanceBuffers[0] = vk.Buffer(state.instanceBuffer.buffers[g.Painter.currentFrame].handle)
+		vk.CmdBindVertexBuffers(cmd, uint32(state.instanceBuffer.bindingId),
 			uint32(len(instanceBuffers)), &instanceBuffers[0], &ibOffsets[0])
-		for k := range group.boundBuffers {
-			if group.boundBuffers[k].size > 0 {
-				namedBuffers[0] = vk.Buffer(group.boundBuffers[k].buffers[g.Painter.currentFrame].handle)
-				vk.CmdBindVertexBuffers(cmd, uint32(group.boundBuffers[k].bindingId),
+		for k := range state.boundBuffers {
+			if state.boundBuffers[k].size > 0 {
+				namedBuffers[0] = vk.Buffer(state.boundBuffers[k].buffers[g.Painter.currentFrame].handle)
+				vk.CmdBindVertexBuffers(cmd, uint32(state.boundBuffers[k].bindingId),
 					uint32(len(namedBuffers)), &namedBuffers[0], &ibOffsets[0])
 			}
 		}
 		vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
-		vk.CmdDrawIndexed(cmd, meshId.indexCount, uint32(group.VisibleCount()), 0, 0, 0)
+		vk.CmdDrawIndexed(cmd, meshId.indexCount, uint32(state.visibleCount), 0, 0, 0)
 	}
 }
 

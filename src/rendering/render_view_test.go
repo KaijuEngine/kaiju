@@ -81,6 +81,19 @@ func TestRenderViewManagerCreatesImplicitDefaultView(t *testing.T) {
 	}
 }
 
+func TestRenderViewsForDrawKeepsDefaultViewActive(t *testing.T) {
+	manager := NewRenderViewManager(RenderViewOptions{
+		Name:      DefaultRenderViewName,
+		LayerMask: RenderLayerWorld,
+	})
+	other := mustCreateRenderView(t, &manager, RenderViewOptions{Name: "offscreen"})
+	defaultView, _ := manager.Default()
+	selected := renderViewsForDraw([]*RenderView{other, defaultView})
+	if len(selected) != 1 || selected[0] != defaultView {
+		t.Fatalf("selected views = %v, want only default view", selected)
+	}
+}
+
 func mustCreateRenderView(t *testing.T, manager *RenderViewManager, options RenderViewOptions) *RenderView {
 	t.Helper()
 	view, err := manager.Create(options)

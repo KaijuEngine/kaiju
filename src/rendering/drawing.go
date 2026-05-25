@@ -246,7 +246,7 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*Re
 			if !ok || !rpGroup.MatchesLayer(layerMask) {
 				continue
 			}
-			device.Draw(rp, rpGroup.draws, lights, shadows[:], layerMask)
+			device.DrawView(rp, rpGroup.draws, lights, shadows[:], view, layerMask)
 			if _, ok := drawnPassLookup[rp]; !ok {
 				drawnPasses = append(drawnPasses, rp)
 				drawnPassLookup[rp] = struct{}{}
@@ -259,14 +259,20 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*Re
 }
 
 func renderViewsForDraw(views []*RenderView) []*RenderView {
-	selected := make([]*RenderView, 0, len(views))
+	var first *RenderView
 	for i := range views {
-		if views[i] != nil {
-			selected = append(selected, views[i])
+		if views[i] == nil {
+			continue
+		}
+		if views[i].Name() == DefaultRenderViewName {
+			return []*RenderView{views[i]}
+		}
+		if first == nil {
+			first = views[i]
 		}
 	}
-	if len(selected) > 0 {
-		return selected
+	if first != nil {
+		return []*RenderView{first}
 	}
 	return []*RenderView{newRenderView(RenderViewOptions{
 		Name:      DefaultRenderViewName,
