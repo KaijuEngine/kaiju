@@ -190,6 +190,7 @@ func (m *vertexSnapMarker) Initialize(host *engine.Host, color matrix.Color) {
 		Mesh:       mesh,
 		ShaderData: m.shaderData,
 		Transform:  &m.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	m.Hide()

@@ -37,6 +37,7 @@ func DrawRay(host *engine.Host, from, to matrix.Vec3, duration time.Duration) {
 		Material:   material,
 		Mesh:       grid,
 		ShaderData: sd,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	func() {

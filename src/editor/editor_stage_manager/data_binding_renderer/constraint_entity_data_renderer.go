@@ -386,6 +386,7 @@ func constraintAddWireDrawing(host *engine.Host, mesh *rendering.Mesh, transform
 		Mesh:       mesh,
 		ShaderData: gsd,
 		Transform:  transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	return gsd, nil

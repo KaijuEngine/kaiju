@@ -98,6 +98,7 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 		Mesh:       m,
 		ShaderData: a.shaderData,
 		Transform:  &a.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
@@ -130,6 +131,7 @@ func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
 		Mesh:       m,
 		ShaderData: p.shaderData,
 		Transform:  &p.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)

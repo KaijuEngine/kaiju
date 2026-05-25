@@ -70,6 +70,7 @@ func (a *TranslationToolCircle) Initialize(host *engine.Host, vec int) {
 		Mesh:       m,
 		ShaderData: a.shaderData,
 		Transform:  &a.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)

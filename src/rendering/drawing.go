@@ -29,6 +29,8 @@ type Drawing struct {
 	Transform *matrix.Transform
 	// Sort determines the draw order within a render pass.
 	Sort int
+	// Layer controls which render views include this drawing. Zero maps to world.
+	Layer RenderLayerMask
 	// ViewCuller optionally culls the drawing based on the view frustum.
 	ViewCuller ViewCuller
 }
@@ -38,6 +40,14 @@ type Drawing struct {
 // used before submitting the drawing to the render pipeline.
 func (d *Drawing) IsValid() bool {
 	return d.Material != nil
+}
+
+func (d *Drawing) EffectiveLayer() RenderLayerMask {
+	return normalizeRenderLayerMask(d.Layer)
+}
+
+func (d *Drawing) MatchesLayer(mask RenderLayerMask) bool {
+	return d.EffectiveLayer()&mask != 0
 }
 
 type RenderPassGroup struct {
@@ -67,6 +77,7 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
 		g := &sd.instanceGroups[i]
 		if g.Mesh == dg.Mesh &&
+			g.EffectiveLayer() == dg.EffectiveLayer() &&
 			(g.MaterialInstance == dg.Material || g.MaterialInstance.Root.Value() == dg.Material) {
 			idx = i
 		}
@@ -116,6 +127,7 @@ func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGro
 		draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
 	} else {
 		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size(), drawing.ViewCuller)
+		group.Layer = drawing.EffectiveLayer()
 		group.MaterialInstance = drawing.Material
 		group.AddInstance(drawing.ShaderData)
 		group.MaterialInstance.Textures = drawing.Material.Textures
@@ -154,6 +166,7 @@ func (d *Drawings) PreparePending(shadowCascades uint8) {
 func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	drawing.Layer = drawing.EffectiveLayer()
 	if p := drawing.Material.PrepassMaterial.Value(); p != nil {
 		cpy := drawing
 		cpy.Material = p
@@ -168,16 +181,19 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	normalized := make([]Drawing, len(drawings))
 	for i := range drawings {
-		if p := drawings[i].Material.PrepassMaterial.Value(); p != nil {
-			cpy := drawings[i]
+		normalized[i] = drawings[i]
+		normalized[i].Layer = normalized[i].EffectiveLayer()
+		if p := normalized[i].Material.PrepassMaterial.Value(); p != nil {
+			cpy := normalized[i]
 			cpy.Material = p
 			d.backDraws = append(d.backDraws, cpy)
 		}
 	}
-	d.backDraws = append(d.backDraws, drawings...)
-	for i := range drawings {
-		if drawings[i].Mesh == nil || drawings[i].Material == nil {
+	d.backDraws = append(d.backDraws, normalized...)
+	for i := range normalized {
+		if normalized[i].Mesh == nil || normalized[i].Material == nil {
 			panic("no")
 		}
 	}

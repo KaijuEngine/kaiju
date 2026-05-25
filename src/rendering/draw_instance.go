@@ -194,6 +194,7 @@ type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
 	MaterialInstance  *Material
+	Layer             RenderLayerMask
 	viewCuller        ViewCuller
 	Instances         []DrawInstance
 	rawData           InstanceCopyData
@@ -230,6 +231,14 @@ func (d *DrawInstanceGroup) AlterPadding(blockSize int) {
 
 func (d *DrawInstanceGroup) IsEmpty() bool {
 	return len(d.Instances) == 0
+}
+
+func (d *DrawInstanceGroup) EffectiveLayer() RenderLayerMask {
+	return normalizeRenderLayerMask(d.Layer)
+}
+
+func (d *DrawInstanceGroup) MatchesLayer(mask RenderLayerMask) bool {
+	return d.EffectiveLayer()&mask != 0
 }
 
 func (d *DrawInstanceGroup) IsReady() bool {

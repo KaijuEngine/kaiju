@@ -1053,6 +1053,7 @@ func (w *TerrainWorkspace) initBrushRing(host *engine.Host) {
 		Mesh:       mesh,
 		ShaderData: w.brushRingData,
 		Transform:  &w.brushRingTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 }

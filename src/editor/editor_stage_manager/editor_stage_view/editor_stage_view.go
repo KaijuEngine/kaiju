@@ -199,6 +199,7 @@ func (v *StageView) createViewportGrid() {
 		Mesh:       grid,
 		ShaderData: v.gridShader,
 		Transform:  &v.gridTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &v.host.Cameras.Primary,
 	})
 	v.gridTransform.ResetDirty()

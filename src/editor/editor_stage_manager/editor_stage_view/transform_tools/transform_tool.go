@@ -163,6 +163,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 		Mesh:       grid,
 		ShaderData: sd,
 		Transform:  t.wireTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}, nil
 }

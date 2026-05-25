@@ -44,6 +44,7 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 			Mesh:       mesh,
 			ShaderData: sd,
 			Transform:  &target.Transform,
+			Layer:      rendering.RenderLayerEditor,
 			ViewCuller: &host.Cameras.Primary,
 		}
 		host.Drawings.AddDrawing(draw)

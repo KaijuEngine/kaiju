@@ -86,6 +86,7 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 		Mesh:       sm,
 		ShaderData: a.shaftShaderData,
 		Transform:  &a.shaftTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	boxDraw := rendering.Drawing{
@@ -93,6 +94,7 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 		Mesh:       bm,
 		ShaderData: a.boxShaderData,
 		Transform:  &a.boxTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(shaftDraw)
