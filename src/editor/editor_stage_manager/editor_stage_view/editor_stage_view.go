@@ -18,7 +18,6 @@ import (
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
-	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -38,10 +37,10 @@ type StageView struct {
 	selectTool      select_tool.SelectTool
 	transformMan    TransformationManager
 	toolOwner       ViewportToolOwner
-	viewportUI      *ui.UI
-	stageTarget     *rendering.RenderTarget
-	stageRenderView *rendering.RenderView
-	stageTexture    *rendering.Texture
+	stageViewports  []stageRenderViewport
+	activeViewport  int
+	hoveredViewport int
+	focusedViewport int
 	viewport        stageViewportBounds
 }
 
@@ -51,11 +50,11 @@ type ViewportToolOwner interface {
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
 
-func (v *StageView) Camera() *editor_controls.EditorCamera { return &v.camera }
+func (v *StageView) Camera() *editor_controls.EditorCamera { return v.activeCamera() }
 
 func (v *StageView) WorkspaceHost() *engine.Host { return v.host }
 
-func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
+func (v *StageView) LookAtPoint() matrix.Vec3 { return v.activeCamera().LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
@@ -82,6 +81,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.createViewportGrid()
 	v.applyGridVisibility()
 	v.setupCamera(ed)
+	v.setupStageViewports(&ed.Settings().EditorCamera)
 	// Data binding visualizers
 	weakHost := weak.Make(host)
 	v.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -162,18 +162,22 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 
 func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 	defer tracing.NewRegion("StageView.SetCameraMode").End()
-	v.camera.SetMode(mode, v.host)
+	v.activeCamera().SetMode(mode, v.host)
+	v.bindActiveViewportCamera()
 }
 
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
 	cam := v.host.PrimaryCamera()
 	camPos := cam.Position()
-	switch v.camera.Mode() {
-	case editor_controls.EditorCameraMode2d:
+	switch v.activeCamera().Mode() {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), -cam.FarPlane()*0.45))
-	case editor_controls.EditorCameraMode3d:
+	case editor_controls.EditorCameraModeSide:
+		v.gridTransform.SetPosition(matrix.NewVec3(
+			cam.FarPlane()*0.45, matrix.Floor(camPos.Y()), matrix.Floor(camPos.Z())))
+	case editor_controls.EditorCameraMode3d, editor_controls.EditorCameraModeTop:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
 	}

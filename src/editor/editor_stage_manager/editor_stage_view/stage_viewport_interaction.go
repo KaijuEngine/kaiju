@@ -38,7 +38,7 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	}
 	v.selectTool.Update()
 	if m.Pressed(hid.MouseButtonLeft) {
-		ray := v.camera.RayCast(m)
+		ray := v.activeCamera().RayCast(m)
 		if kb.HasShift() {
 			v.manager.TryAppendSelect(ray)
 		} else if kb.HasCtrlOrMeta() {
@@ -49,7 +49,7 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	}
 	if kb.KeyDown(hid.KeyboardKeyF) {
 		if v.manager.HasSelection() {
-			v.camera.Focus(v.manager.SelectionBounds())
+			v.activeCamera().Focus(v.manager.SelectionBounds())
 		}
 	} else if kb.KeyDown(hid.KeyboardKey1) {
 		v.transformTool.Enable(transform_tools.ToolStateMove)
@@ -61,5 +61,5 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 }
 
 func (v *StageView) isCamera3D() bool {
-	return v.camera.Mode() == editor_controls.EditorCameraMode3d
+	return v.activeCamera().Mode() == editor_controls.EditorCameraMode3d
 }

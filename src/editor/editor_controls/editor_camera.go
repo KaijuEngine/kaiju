@@ -37,9 +37,12 @@ const (
 	EditorCameraModeNone = EditorCameraMode(iota)
 	EditorCameraMode3d
 	EditorCameraMode2d
+	EditorCameraModeTop
+	EditorCameraModeFront
+	EditorCameraModeSide
 )
 
-var cameraModeStrings = []string{"None", "3D", "2D"}
+var cameraModeStrings = []string{"None", "3D", "2D", "Top", "Front", "Side"}
 
 type EditorCameraViewport struct {
 	Left    float32
@@ -67,7 +70,19 @@ type EditorCamera struct {
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
-func (e *EditorCamera) ModeString() string     { return cameraModeStrings[e.mode] }
+func (e *EditorCamera) ModeString() string {
+	if e.mode < 0 || e.mode >= len(cameraModeStrings) {
+		return cameraModeStrings[EditorCameraModeNone]
+	}
+	return cameraModeStrings[e.mode]
+}
+func (e *EditorCamera) Camera() cameras.Camera { return e.camera }
+
+func (e *EditorCamera) UseAsPrimary(host *engine.Host) {
+	if host != nil && e.camera != nil {
+		host.Cameras.Primary.ChangeCamera(e.camera)
+	}
+}
 
 func (e *EditorCamera) SetViewportBounds(left, top, width, height float32) {
 	if width <= 0 || height <= 0 {
@@ -158,8 +173,19 @@ func (e *EditorCamera) mouseScreenPositionForRay(mouse *hid.Mouse) matrix.Vec2 {
 }
 
 func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
+	e.setMode(mode, host, true)
+}
+
+func (e *EditorCamera) SetModeForRenderView(mode EditorCameraMode, host *engine.Host) {
+	e.setMode(mode, host, false)
+}
+
+func (e *EditorCamera) setMode(mode EditorCameraMode, host *engine.Host, bindPrimary bool) {
 	defer tracing.NewRegion("EditorCamera.SetMode").End()
-	if e.mode == mode {
+	if e.mode == mode && e.camera != nil {
+		if bindPrimary {
+			e.UseAsPrimary(host)
+		}
 		return
 	}
 	e.flySpeedModifier = 1
@@ -173,9 +199,11 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		tc.SetLookAt(matrix.Vec3Zero())
 		tc.SetZoom(15)
 		e.camera = tc
-		host.Cameras.Primary.ChangeCamera(e.camera)
 	case EditorCameraMode2d:
-		prev := host.Cameras.Primary.Camera
+		prev := e.camera
+		if prev == nil && host != nil {
+			prev = host.Cameras.Primary.Camera
+		}
 		cw := prev.Width()
 		ch := prev.Height()
 		vw, vh := e.viewportSize(host)
@@ -184,9 +212,16 @@ func (e *EditorCamera) SetMode(mode EditorCameraMode, host *engine.Host) {
 		h := (ch / cw) * ratio * 10
 		oc := cameras.NewStandardCameraOrthographic(w, h, vw, vh, matrix.NewVec3(0, 0, 100))
 		e.camera = oc
-		host.Cameras.Primary.ChangeCamera(e.camera)
-		host.Window.OnResize.Remove(e.resizeId)
-		e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
+		if host != nil && host.Window != nil {
+			host.Window.OnResize.Remove(e.resizeId)
+			e.resizeId = host.Window.OnResize.Add(e.OnWindowResize)
+		}
+	case EditorCameraModeTop, EditorCameraModeFront, EditorCameraModeSide:
+		vw, vh := e.viewportSize(host)
+		e.camera = newFixedOrthographicStageCamera(e.mode, vw, vh)
+	}
+	if bindPrimary {
+		e.UseAsPrimary(host)
 	}
 	e.OnModeChange.Execute(e.mode)
 }
@@ -228,6 +263,8 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		}
 	case EditorCameraMode2d:
 		return e.update2d(host, delta)
+	case EditorCameraModeTop, EditorCameraModeFront, EditorCameraModeSide:
+		return e.updateFixedOrthographic(host, delta)
 	case EditorCameraModeNone:
 		fallthrough
 	default:
@@ -502,4 +539,95 @@ func (e *EditorCamera) update2d(host *engine.Host, _ float64) (changed bool) {
 	}
 	e.lastMousePos = mp
 	return changed
+}
+
+func (e *EditorCamera) updateFixedOrthographic(host *engine.Host, _ float64) (changed bool) {
+	defer tracing.NewRegion("EditorCamera.updateFixedOrthographic").End()
+	oc := e.camera.(*cameras.StandardCamera)
+	mouse := &host.Window.Mouse
+	kb := &host.Window.Keyboard
+	mp := e.mousePosition(host)
+	mouseInside := e.mouseInViewport(host)
+	if mouseInside && (mouse.Pressed(hid.MouseButtonMiddle) ||
+		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt())) {
+		e.dragging = true
+		e.mouseDown = mp
+		if mouse.Pressed(hid.MouseButtonMiddle) {
+			changed = true
+		}
+	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
+		e.panFixedOrthographic(oc, mp, host)
+		changed = true
+	} else if mouse.Released(hid.MouseButtonMiddle) ||
+		mouse.Released(hid.MouseButtonRight) {
+		e.lastHit = matrix.Vec3Zero()
+		if mouse.Released(hid.MouseButtonMiddle) {
+			changed = true
+		}
+		e.dragging = false
+	} else if mouseInside && kb.KeyHeld(hid.KeyboardKeySpace) {
+		e.panFixedOrthographic(oc, mp, host)
+		changed = true
+	}
+	if mouseInside && mouse.Scrolled() {
+		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.zoomSpeed())
+		r := oc.Width() / oc.Height()
+		newW := oc.Width() + r*-zoomScale2DScroll*zoomFloor
+		newH := oc.Height() + -zoomScale2DScroll*zoomFloor
+		if newW > matrix.FloatSmallestNonzero && newH > matrix.FloatSmallestNonzero {
+			oc.Resize(newW, newH)
+			changed = true
+		}
+	}
+	e.lastMousePos = mp
+	return changed
+}
+
+func (e *EditorCamera) panFixedOrthographic(oc *cameras.StandardCamera, mp matrix.Vec2, host *engine.Host) {
+	defer tracing.NewRegion("EditorCamera.panFixedOrthographic").End()
+	if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
+		e.lastHit = mp.AsVec3()
+	}
+	vw, vh := e.viewportSize(host)
+	dx := (e.lastHit.X() - mp.X()) * oc.Width() / vw
+	dy := (e.lastHit.Y() - mp.Y()) * oc.Height() / vh
+	delta := oc.Right().Scale(dx).Add(oc.Up().Scale(dy))
+	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
+	e.lastHit = mp.AsVec3()
+}
+
+func (e *EditorCamera) zoomSpeed() float32 {
+	if e.Settings == nil || e.Settings.ZoomSpeed <= 0 {
+		return 120
+	}
+	return e.Settings.ZoomSpeed
+}
+
+func newFixedOrthographicStageCamera(mode EditorCameraMode, viewWidth, viewHeight float32) cameras.Camera {
+	if viewWidth <= 0 {
+		viewWidth = 1
+	}
+	if viewHeight <= 0 {
+		viewHeight = 1
+	}
+	const size float32 = 20
+	width := size * (viewWidth / viewHeight)
+	height := size
+	const distance matrix.Float = 50
+	position := matrix.NewVec3(0, 0, distance)
+	up := matrix.Vec3Up()
+	switch mode {
+	case EditorCameraModeTop:
+		position = matrix.NewVec3(0, distance, 0)
+		up = matrix.Vec3Forward()
+	case EditorCameraModeFront:
+		position = matrix.NewVec3(0, 0, distance)
+		up = matrix.Vec3Up()
+	case EditorCameraModeSide:
+		position = matrix.NewVec3(distance, 0, 0)
+		up = matrix.Vec3Up()
+	}
+	cam := cameras.NewStandardCameraOrthographic(width, height, viewWidth, viewHeight, position)
+	cam.SetLookAtWithUp(matrix.Vec3Zero(), up)
+	return cam
 }

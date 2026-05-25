@@ -76,8 +76,19 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs); err != nil {
 		return err
 	}
-	if viewport, ok := w.Doc.GetElementById("stageViewport"); ok {
-		w.stageView.SetViewportUI(viewport.UI)
+	viewportIDs := []struct {
+		kind editor_stage_view.StageViewportKind
+		id   string
+	}{
+		{editor_stage_view.StageViewportPerspective, "stageViewport"},
+		{editor_stage_view.StageViewportTop, "stageViewportTop"},
+		{editor_stage_view.StageViewportFront, "stageViewportFront"},
+		{editor_stage_view.StageViewportSide, "stageViewportSide"},
+	}
+	for _, viewportID := range viewportIDs {
+		if viewport, ok := w.Doc.GetElementById(viewportID.id); ok {
+			w.stageView.SetViewportUIForKind(viewportID.kind, viewport.UI)
+		}
 	}
 	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
 	w.contentUI.setup(w, w.ed.Events())

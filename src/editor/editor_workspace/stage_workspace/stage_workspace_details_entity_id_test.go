@@ -23,7 +23,7 @@ func TestEntityIdDisplayNameIncludesFriendlyNameAndId(t *testing.T) {
 }
 
 func TestStageDetailsTemplateIncludesEntityIdControl(t *testing.T) {
-	const templatePath = "../../editor_embedded_content/editor_content/editor/ui/workspace/stage_workspace.go.html"
+	const templatePath = "../../editor_embedded_content/editor_content/editor/ui/workspace/stage_workspace_details.go.html"
 	bin, err := os.ReadFile(templatePath)
 	if err != nil {
 		t.Fatal(err)

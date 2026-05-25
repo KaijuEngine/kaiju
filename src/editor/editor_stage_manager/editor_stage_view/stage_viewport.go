@@ -11,6 +11,7 @@ import (
 	"math"
 
 	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
@@ -20,6 +21,82 @@ import (
 )
 
 const stageMainRenderTargetName = "stage-main"
+
+type StageViewportKind int
+
+const (
+	StageViewportPerspective StageViewportKind = iota
+	StageViewportTop
+	StageViewportFront
+	StageViewportSide
+)
+
+var stageViewportKinds = []StageViewportKind{
+	StageViewportPerspective,
+	StageViewportTop,
+	StageViewportFront,
+	StageViewportSide,
+}
+
+func StageViewportKinds() []StageViewportKind {
+	return append([]StageViewportKind{}, stageViewportKinds...)
+}
+
+func (k StageViewportKind) Label() string {
+	switch k {
+	case StageViewportPerspective:
+		return "Perspective"
+	case StageViewportTop:
+		return "Top"
+	case StageViewportFront:
+		return "Front"
+	case StageViewportSide:
+		return "Side"
+	default:
+		return "Viewport"
+	}
+}
+
+func (k StageViewportKind) renderName() string {
+	switch k {
+	case StageViewportPerspective:
+		return stageMainRenderTargetName
+	case StageViewportTop:
+		return "stage-top"
+	case StageViewportFront:
+		return "stage-front"
+	case StageViewportSide:
+		return "stage-side"
+	default:
+		return "stage-viewport"
+	}
+}
+
+func (k StageViewportKind) cameraMode() editor_controls.EditorCameraMode {
+	switch k {
+	case StageViewportPerspective:
+		return editor_controls.EditorCameraMode3d
+	case StageViewportTop:
+		return editor_controls.EditorCameraModeTop
+	case StageViewportFront:
+		return editor_controls.EditorCameraModeFront
+	case StageViewportSide:
+		return editor_controls.EditorCameraModeSide
+	default:
+		return editor_controls.EditorCameraMode3d
+	}
+}
+
+type stageRenderViewport struct {
+	Kind       StageViewportKind
+	Label      string
+	camera     *editor_controls.EditorCamera
+	ui         *ui.UI
+	target     *rendering.RenderTarget
+	renderView *rendering.RenderView
+	texture    *rendering.Texture
+	bounds     stageViewportBounds
+}
 
 type stageViewportBounds struct {
 	Left   float32
@@ -63,13 +140,86 @@ func (b stageViewportBounds) LocalBottomAreaFromScreenArea(area matrix.Vec4) mat
 	)
 }
 
+func (v *StageView) setupStageViewports(settings *editor_settings.EditorCameraSettings) {
+	if len(v.stageViewports) > 0 {
+		return
+	}
+	v.activeViewport = -1
+	v.hoveredViewport = -1
+	v.focusedViewport = -1
+	v.stageViewports = make([]stageRenderViewport, 0, len(stageViewportKinds))
+	for _, kind := range stageViewportKinds {
+		camera := &editor_controls.EditorCamera{Settings: settings}
+		if kind == StageViewportPerspective {
+			camera = &v.camera
+		} else {
+			camera.SetModeForRenderView(kind.cameraMode(), v.host)
+		}
+		v.stageViewports = append(v.stageViewports, stageRenderViewport{
+			Kind:   kind,
+			Label:  kind.Label(),
+			camera: camera,
+		})
+	}
+	v.activeViewport = v.stageViewportIndexByKind(StageViewportPerspective)
+	v.bindActiveViewportCamera()
+}
+
+func (v *StageView) activeStageViewport() *stageRenderViewport {
+	if len(v.stageViewports) == 0 {
+		return nil
+	}
+	if v.activeViewport < 0 || v.activeViewport >= len(v.stageViewports) {
+		v.activeViewport = 0
+	}
+	return &v.stageViewports[v.activeViewport]
+}
+
+func (v *StageView) activeCamera() *editor_controls.EditorCamera {
+	if viewport := v.activeStageViewport(); viewport != nil && viewport.camera != nil {
+		return viewport.camera
+	}
+	return &v.camera
+}
+
+func (v *StageView) bindActiveViewportCamera() {
+	camera := v.activeCamera()
+	camera.UseAsPrimary(v.host)
+	if viewport := v.activeStageViewport(); viewport != nil {
+		v.viewport = viewport.bounds
+		if viewport.renderView != nil {
+			viewport.renderView.SetCamera(camera.Camera())
+		}
+	}
+}
+
+func (v *StageView) stageViewportIndexByKind(kind StageViewportKind) int {
+	for i := range v.stageViewports {
+		if v.stageViewports[i].Kind == kind {
+			return i
+		}
+	}
+	return -1
+}
+
 func (v *StageView) SetViewportUI(viewport *ui.UI) {
-	defer tracing.NewRegion("StageView.SetViewportUI").End()
-	v.viewportUI = viewport
+	v.SetViewportUIForKind(StageViewportPerspective, viewport)
+}
+
+func (v *StageView) SetViewportUIForKind(kind StageViewportKind, viewport *ui.UI) {
+	defer tracing.NewRegion("StageView.SetViewportUIForKind").End()
+	if len(v.stageViewports) == 0 {
+		v.setupStageViewports(nil)
+	}
+	idx := v.stageViewportIndexByKind(kind)
+	if idx < 0 {
+		return
+	}
+	v.stageViewports[idx].ui = viewport
 	if viewport != nil && viewport.IsType(ui.ElementTypeImage) {
 		viewport.ToImage().Base().ToPanel().AllowClickThrough()
 	}
-	v.ensureStageRenderTarget()
+	v.ensureStageRenderTarget(&v.stageViewports[idx])
 	v.syncStageViewport()
 }
 
@@ -78,39 +228,45 @@ func (v *StageView) syncStageViewport() {
 	if v.host == nil {
 		return
 	}
-	bounds := v.currentViewportBounds()
-	if !bounds.Valid() {
-		return
-	}
-	v.viewport = bounds
-	v.camera.SetViewportBounds(bounds.Left, bounds.Top, bounds.Width, bounds.Height)
-	if cam := v.host.PrimaryCamera(); cam != nil {
-		cam.ViewportChanged(bounds.Width, bounds.Height)
-		if v.stageRenderView != nil {
-			v.stageRenderView.SetCamera(cam)
+	for i := range v.stageViewports {
+		viewport := &v.stageViewports[i]
+		bounds := v.currentViewportBoundsFor(viewport)
+		if !bounds.Valid() {
+			continue
 		}
+		viewport.bounds = bounds
+		viewport.camera.SetViewportBounds(bounds.Left, bounds.Top, bounds.Width, bounds.Height)
+		if cam := viewport.camera.Camera(); cam != nil {
+			cam.ViewportChanged(bounds.Width, bounds.Height)
+			if viewport.renderView != nil {
+				viewport.renderView.SetCamera(cam)
+			}
+		}
+		v.ensureStageRenderTarget(viewport)
+		if resizeStageTargetToViewport(viewport.target, bounds.Size()) {
+			v.setViewportPlaceholderTexture(viewport)
+			continue
+		}
+		v.bindStageTargetTexture(viewport)
 	}
-	v.ensureStageRenderTarget()
-	if resizeStageTargetToViewport(v.stageTarget, bounds.Size()) {
-		v.setViewportPlaceholderTexture()
-		return
-	}
-	v.bindStageTargetTexture()
+	v.routeStageViewportInput()
+	v.bindActiveViewportCamera()
 }
 
-func (v *StageView) ensureStageRenderTarget() {
+func (v *StageView) ensureStageRenderTarget(viewport *stageRenderViewport) {
 	defer tracing.NewRegion("StageView.ensureStageRenderTarget").End()
-	if v.host == nil {
+	if v.host == nil || viewport == nil {
 		return
 	}
-	size := v.currentViewportBounds().Size()
+	size := v.currentViewportBoundsFor(viewport).Size()
 	width, height := stageViewportTargetSize(size)
-	if v.stageTarget == nil {
-		if target, ok := v.host.RenderTargets.Target(stageMainRenderTargetName); ok {
-			v.stageTarget = target
+	name := viewport.Kind.renderName()
+	if viewport.target == nil {
+		if target, ok := v.host.RenderTargets.Target(name); ok {
+			viewport.target = target
 		} else {
 			target, err := v.host.RenderTargets.Create(rendering.RenderTargetOptions{
-				Name:   stageMainRenderTargetName,
+				Name:   name,
 				Width:  width,
 				Height: height,
 				Depth:  true,
@@ -118,18 +274,18 @@ func (v *StageView) ensureStageRenderTarget() {
 			if err != nil {
 				slog.Error("failed to create stage render target", "error", err)
 			} else {
-				v.stageTarget = target
+				viewport.target = target
 			}
 		}
 	}
-	if v.stageRenderView == nil {
-		if view, ok := v.host.RenderViews.View(stageMainRenderTargetName); ok {
-			v.stageRenderView = view
-		} else if v.stageTarget != nil {
+	if viewport.renderView == nil {
+		if view, ok := v.host.RenderViews.View(name); ok {
+			viewport.renderView = view
+		} else if viewport.target != nil {
 			view, err := v.host.RenderViews.Create(rendering.RenderViewOptions{
-				Name:      stageMainRenderTargetName,
-				Target:    v.stageTarget,
-				Camera:    v.host.PrimaryCamera(),
+				Name:      name,
+				Target:    viewport.target,
+				Camera:    viewport.camera.Camera(),
 				LayerMask: rendering.RenderLayerWorld | rendering.RenderLayerEditor,
 				Clear:     true,
 				Sort:      -100,
@@ -137,27 +293,37 @@ func (v *StageView) ensureStageRenderTarget() {
 			if err != nil {
 				slog.Error("failed to create stage render view", "error", err)
 			} else {
-				v.stageRenderView = view
+				viewport.renderView = view
 			}
 		}
 	}
 }
 
 func (v *StageView) currentViewportBounds() stageViewportBounds {
+	return v.currentViewportBoundsFor(v.activeStageViewport())
+}
+
+func (v *StageView) currentViewportBoundsFor(viewport *stageRenderViewport) stageViewportBounds {
 	if v.host == nil || v.host.Window == nil {
+		if viewport != nil && viewport.bounds.Valid() {
+			return viewport.bounds
+		}
 		return stageViewportBounds{}
 	}
-	if v.viewportUI == nil {
+	if viewport == nil || viewport.ui == nil {
+		if viewport != nil && viewport.Kind != StageViewportPerspective {
+			return stageViewportBounds{}
+		}
 		return stageViewportBounds{
 			Width:  float32(v.host.Window.Width()),
 			Height: float32(v.host.Window.Height()),
 		}
 	}
-	size := v.viewportUI.Layout().PixelSize()
+	size := viewport.ui.Layout().PixelSize()
 	if size.X() <= 0 || size.Y() <= 0 {
 		return stageViewportBounds{}
 	}
-	pos := v.viewportUI.Entity().Transform.WorldPosition()
+	pos := viewport.ui.Entity().Transform.WorldPosition()
 	windowWidth := float32(v.host.Window.Width())
 	windowHeight := float32(v.host.Window.Height())
 	return stageViewportBounds{
@@ -182,27 +348,109 @@ func resizeStageTargetToViewport(target *rendering.RenderTarget, size matrix.Vec
 	return target.Resize(width, height)
 }
 
-func (v *StageView) bindStageTargetTexture() {
-	if v.viewportUI == nil || !v.viewportUI.IsType(ui.ElementTypeImage) || v.stageTarget == nil {
+func (v *StageView) bindStageTargetTexture(viewport *stageRenderViewport) {
+	if viewport == nil || viewport.ui == nil || !viewport.ui.IsType(ui.ElementTypeImage) || viewport.target == nil {
 		return
 	}
-	tex, err := v.stageTarget.Texture(rendering.RenderTargetOutputColor)
-	if err != nil || tex == nil || tex == v.stageTexture {
+	tex, err := viewport.target.Texture(rendering.RenderTargetOutputColor)
+	if err != nil || tex == nil || tex == viewport.texture {
 		return
 	}
-	v.viewportUI.ToImage().SetTexture(tex)
-	v.stageTexture = tex
+	viewport.ui.ToImage().SetTexture(tex)
+	viewport.texture = tex
 }
 
-func (v *StageView) setViewportPlaceholderTexture() {
-	v.stageTexture = nil
-	if v.viewportUI == nil || !v.viewportUI.IsType(ui.ElementTypeImage) || v.host == nil {
+func (v *StageView) setViewportPlaceholderTexture(viewport *stageRenderViewport) {
+	if viewport == nil {
+		return
+	}
+	viewport.texture = nil
+	if viewport.ui == nil || !viewport.ui.IsType(ui.ElementTypeImage) || v.host == nil {
 		return
 	}
 	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	if err == nil && tex != nil {
-		v.viewportUI.ToImage().SetTexture(tex)
+		viewport.ui.ToImage().SetTexture(tex)
 	}
+}
+
+func (v *StageView) routeStageViewportInput() {
+	if v.host == nil || v.host.Window == nil || len(v.stageViewports) == 0 {
+		return
+	}
+	mouse := &v.host.Window.Mouse
+	active, focused, hovered := resolveStageViewportRouting(
+		v.stageViewports,
+		v.activeViewport,
+		v.focusedViewport,
+		mouse.ScreenPosition(),
+		stageMousePressed(mouse),
+		stageMouseHeld(mouse),
+		stageMouseReleased(mouse),
+	)
+	v.activeViewport = active
+	v.focusedViewport = focused
+	v.hoveredViewport = hovered
+}
+
+func stageMousePressed(mouse *hid.Mouse) bool {
+	return mouse.Pressed(hid.MouseButtonLeft) ||
+		mouse.Pressed(hid.MouseButtonMiddle) ||
+		mouse.Pressed(hid.MouseButtonRight)
+}
+
+func stageMouseHeld(mouse *hid.Mouse) bool {
+	return mouse.Held(hid.MouseButtonLeft) ||
+		mouse.Held(hid.MouseButtonMiddle) ||
+		mouse.Held(hid.MouseButtonRight)
+}
+
+func stageMouseReleased(mouse *hid.Mouse) bool {
+	return mouse.Released(hid.MouseButtonLeft) ||
+		mouse.Released(hid.MouseButtonMiddle) ||
+		mouse.Released(hid.MouseButtonRight)
+}
+
+func resolveStageViewportRouting(viewports []stageRenderViewport, current, focused int, pos matrix.Vec2, pressed, held, released bool) (int, int, int) {
+	hovered := stageViewportIndexAt(viewports, pos)
+	active := current
+	if active < 0 || active >= len(viewports) {
+		active = firstValidStageViewport(viewports)
+	}
+	if released {
+		focused = -1
+	}
+	if focused >= 0 && focused < len(viewports) && held {
+		return focused, focused, hovered
+	}
+	if hovered >= 0 {
+		active = hovered
+		if pressed {
+			focused = hovered
+		}
+	}
+	return active, focused, hovered
+}
+
+func stageViewportIndexAt(viewports []stageRenderViewport, pos matrix.Vec2) int {
+	for i := range viewports {
+		if viewports[i].bounds.ContainsScreenPosition(pos) {
+			return i
+		}
+	}
+	return -1
+}
+
+func firstValidStageViewport(viewports []stageRenderViewport) int {
+	for i := range viewports {
+		if viewports[i].bounds.Valid() {
+			return i
+		}
+	}
+	if len(viewports) > 0 {
+		return 0
+	}
+	return -1
 }
 
 func (v *StageView) ViewportSize() matrix.Vec2 {

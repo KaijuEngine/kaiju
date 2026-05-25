@@ -48,10 +48,59 @@
 				position: absolute;
 				left: 0;
 				top: var(--ed-menu-bar-height);
-				width: 100%;
-				height: calc(100% - var(--ed-menu-bar-height));
+				width: 50%;
+				height: calc(50% - var(--ed-menu-bar-height));
 				z-index: -10;
 				background-color: black;
+			}
+			#stageViewportTop {
+				position: absolute;
+				left: 50%;
+				top: var(--ed-menu-bar-height);
+				width: 50%;
+				height: calc(50% - var(--ed-menu-bar-height));
+				z-index: -10;
+				background-color: black;
+			}
+			#stageViewportFront {
+				position: absolute;
+				left: 0;
+				top: 50%;
+				width: 50%;
+				height: 50%;
+				z-index: -10;
+				background-color: black;
+			}
+			#stageViewportSide {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 50%;
+				height: 50%;
+				z-index: -10;
+				background-color: black;
+			}
+			.stageViewportLabel {
+				position: absolute;
+				left: 0.5em;
+				color: white;
+				background-color: #282828;
+				border: 1px solid #555;
+				padding: 0.2em 0.45em;
+				font-size: 0.6em;
+				z-index: 1;
+			}
+			#stageViewportLabelPerspective,
+			#stageViewportLabelTop {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+			}
+			#stageViewportLabelFront,
+			#stageViewportLabelSide {
+				top: calc(50% + 0.5em);
+			}
+			#stageViewportLabelTop,
+			#stageViewportLabelSide {
+				left: calc(50% + 0.5em);
 			}
 		</style>
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
@@ -60,6 +109,13 @@
 	</head>
 	<body>
 		<img id="stageViewport" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportTop" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportFront" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportSide" src="editor/textures/icons/menu_bar_logo.png" />
+		<span id="stageViewportLabelPerspective" class="stageViewportLabel">Perspective</span>
+		<span id="stageViewportLabelTop" class="stageViewportLabel">Top</span>
+		<span id="stageViewportLabelFront" class="stageViewportLabel">Front</span>
+		<span id="stageViewportLabelSide" class="stageViewportLabel">Side</span>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->

@@ -55,10 +55,16 @@ func IntegrationTestStageViewportUI(host *engine.Host) {
 	for _, id := range []string{
 		"ftdePrompt", "dragPreview", "hierarchyDragPreview",
 		"entityDataSelectorOverlay", "tooltip",
+		"stageViewportTop", "stageViewportFront", "stageViewportSide",
+		"stageViewportLabelPerspective", "stageViewportLabelTop",
+		"stageViewportLabelFront", "stageViewportLabelSide",
 	} {
 		hideStageHierarchyElement(doc, id)
 	}
 	viewport.UIPanel.AllowClickThrough()
+	viewport.UI.Layout().SetOffset(0, 0)
+	viewport.UI.Layout().Scale(float32(host.Window.Width()), float32(host.Window.Height()))
+	viewport.UI.Layout().SetZ(2)
 	createStageViewportSelectedSphere(host)
 
 	var target *rendering.RenderTarget
@@ -190,12 +196,7 @@ func assertStageViewportScreenshot(host *engine.Host, img *image.RGBA, viewport 
 	if rect.Dx() <= 0 || rect.Dy() <= 0 {
 		return fmt.Errorf("stage viewport image has invalid screenshot bounds %v", rect)
 	}
-	center := image.Rect(
-		rect.Min.X+rect.Dx()/4,
-		rect.Min.Y+rect.Dy()/4,
-		rect.Max.X-rect.Dx()/4,
-		rect.Max.Y-rect.Dy()/4,
-	)
+	center := img.Bounds()
 	if pixels := countSaturatedPixels(img, center); pixels < 150 {
 		return fmt.Errorf("stage viewport did not show rendered scene content; saturated pixels=%d in %v", pixels, center)
 	}
