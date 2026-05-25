@@ -13,11 +13,13 @@ import (
 )
 
 func init() {
-	register(func() rendering.DrawInstance {
+	create := func() rendering.DrawInstance {
 		return &ShaderDataEditorPicking{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 		}
-	}, "editor_picking")
+	}
+	register(create, "editor_pick")
+	register(create, "editor_picking")
 }
 
 type ShaderDataEditorPicking struct {

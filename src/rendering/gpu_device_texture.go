@@ -7,6 +7,8 @@
 package rendering
 
 import (
+	"errors"
+
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -24,6 +26,14 @@ func (g *GPUDevice) GenerateMipMaps(texId *TextureId, imageFormat GPUFormat, tex
 func (g *GPUDevice) TextureRead(texture *Texture) ([]byte, error) {
 	defer tracing.NewRegion("GPUDevice.TextureRead").End()
 	return g.textureReadImpl(&texture.RenderId)
+}
+
+func (g *GPUDevice) TextureReadRegion(texture *Texture, rect matrix.Vec4i) ([]byte, error) {
+	defer tracing.NewRegion("GPUDevice.TextureReadRegion").End()
+	if texture == nil {
+		return []byte{}, errors.New("texture is nil")
+	}
+	return g.textureReadRegionImpl(&texture.RenderId, rect)
 }
 
 func (g *GPUDevice) TextureReadPixel(texture *Texture, x, y int) matrix.Color {

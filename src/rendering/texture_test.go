@@ -155,6 +155,46 @@ func TestTextureSetPendingDataDimensions(t *testing.T) {
 	}
 }
 
+func TestTextureReadRegionBufferSizeClamps(t *testing.T) {
+	id := TextureId{Width: 10, Height: 5, Format: GPUFormatR32Uint}
+	rect, size, err := textureReadRegionBufferSize(&id, matrix.Vec4i{-2, 1, 5, 9})
+	if err != nil {
+		t.Fatalf("textureReadRegionBufferSize returned error: %v", err)
+	}
+	if rect != (matrix.Vec4i{0, 1, 3, 4}) {
+		t.Fatalf("clamped rect = %v, want {0 1 3 4}", rect)
+	}
+	if size != 3*4*4 {
+		t.Fatalf("buffer size = %d, want 48", size)
+	}
+}
+
+func TestTextureReadRegionBufferSizeValidates(t *testing.T) {
+	id := TextureId{Width: 10, Height: 5, Format: GPUFormatR32Uint}
+	cases := []matrix.Vec4i{
+		{0, 0, 0, 1},
+		{0, 0, 1, -1},
+		{10, 0, 1, 1},
+		{0, 5, 1, 1},
+	}
+	for _, tc := range cases {
+		if _, _, err := textureReadRegionBufferSize(&id, tc); err == nil {
+			t.Fatalf("textureReadRegionBufferSize(%v) should return an error", tc)
+		}
+	}
+}
+
+func TestTextureReadRegionFullReadByteSizeUnchanged(t *testing.T) {
+	id := TextureId{Width: 7, Height: 3, Format: GPUFormatR8Unorm}
+	_, size, err := textureReadFullBufferSize(&id)
+	if err != nil {
+		t.Fatalf("textureReadFullBufferSize returned error: %v", err)
+	}
+	if size != uintptr(id.Width*id.Height*BytesInPixel) {
+		t.Fatalf("full read size = %d, want %d", size, id.Width*id.Height*BytesInPixel)
+	}
+}
+
 func TestTexturePixelsFromAsset(t *testing.T) {
 	pngData := testPNG(t, []color.RGBA{{R: 1, G: 2, B: 3, A: 255}}, 1, 1)
 	db := assets.NewMockDB(map[string][]byte{

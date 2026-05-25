@@ -15,7 +15,7 @@ import (
 	"kaijuengine.com/rendering"
 )
 
-const editorPickingShaderDataName = "editor_picking"
+const editorPickingShaderDataName = "editor_pick"
 
 func (m *StageManager) AssignPickID(e *StageEntity) uint32 {
 	defer tracing.NewRegion("StageManager.AssignPickID").End()
