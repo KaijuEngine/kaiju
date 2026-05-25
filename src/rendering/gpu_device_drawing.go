@@ -14,11 +14,12 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId) {
+func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.Draw").End()
 	if !g.LogicalDevice.SwapChain.IsValid() || len(drawings) == 0 {
 		return
 	}
+	layerMask = normalizeRenderLayerMask(layerMask)
 	// TODO:  This is some goofy stuff, I'll need to refactor after
 	// getting this shadow stuff working
 	if renderPass.IsShadowPass() {
@@ -35,7 +36,7 @@ func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights L
 			drawings[i].pushConstantData = unsafe.Pointer(&lpc)
 		}
 	}
-	g.drawImpl(renderPass, drawings, lights, shadows)
+	g.drawImpl(renderPass, drawings, lights, shadows, layerMask)
 }
 
 func (g *GPUDevice) BlitTargets(passes []*RenderPass) {

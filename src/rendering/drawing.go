@@ -55,6 +55,17 @@ type RenderPassGroup struct {
 	draws      []ShaderDraw
 }
 
+func (d *RenderPassGroup) MatchesLayer(mask RenderLayerMask) bool {
+	for i := range d.draws {
+		for j := range d.draws[i].instanceGroups {
+			if d.draws[i].instanceGroups[j].MatchesLayer(mask) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 type Drawings struct {
 	renderPassGroups []RenderPassGroup
 	backDraws        []Drawing
@@ -199,11 +210,12 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 	}
 }
 
-func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
+func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*RenderView) {
 	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
 	}
+	views = renderViewsForDraw(views)
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	shadows := [MaxLocalLights]TextureId{}
 	shadowIdx := 0
@@ -221,13 +233,46 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
 	sort.Slice(passes, func(i, j int) bool {
 		return passes[i].construction.Sort < passes[j].construction.Sort
 	})
-	for i := range d.renderPassGroups {
-		rp := d.renderPassGroups[i].renderPass
-		device.Draw(rp, d.renderPassGroups[i].draws, lights, shadows[:])
+	drawnPasses := make([]*RenderPass, 0, len(passes))
+	drawnPassLookup := make(map[*RenderPass]struct{}, len(passes))
+	for _, view := range views {
+		if view.Target() != nil {
+			continue
+		}
+		layerMask := view.LayerMask()
+		for i := range passes {
+			rp := passes[i]
+			rpGroup, ok := d.findRenderPassGroup(rp)
+			if !ok || !rpGroup.MatchesLayer(layerMask) {
+				continue
+			}
+			device.Draw(rp, rpGroup.draws, lights, shadows[:], layerMask)
+			if _, ok := drawnPassLookup[rp]; !ok {
+				drawnPasses = append(drawnPasses, rp)
+				drawnPassLookup[rp] = struct{}{}
+			}
+		}
 	}
-	if len(passes) > 0 {
-		device.BlitTargets(passes)
+	if len(drawnPasses) > 0 {
+		device.BlitTargets(drawnPasses)
 	}
+}
+
+func renderViewsForDraw(views []*RenderView) []*RenderView {
+	selected := make([]*RenderView, 0, len(views))
+	for i := range views {
+		if views[i] != nil {
+			selected = append(selected, views[i])
+		}
+	}
+	if len(selected) > 0 {
+		return selected
+	}
+	return []*RenderView{newRenderView(RenderViewOptions{
+		Name:      DefaultRenderViewName,
+		LayerMask: RenderLayerAll,
+		Clear:     true,
+	}, 0)}
 }
 
 func (d *Drawings) Destroy(device *GPUDevice) {

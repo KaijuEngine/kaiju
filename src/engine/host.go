@@ -96,6 +96,7 @@ type Host struct {
 	materialCache     rendering.MaterialCache
 	Drawings          rendering.Drawings
 	RenderTargets     rendering.RenderTargetManager
+	RenderViews       rendering.RenderViewManager
 	Localization      localization.Localization
 	frame             FrameId
 	frameTime         float64
@@ -120,6 +121,8 @@ type Host struct {
 func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
+	primaryCamera := cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())
+	uiCamera := cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})
 	host := &Host{
 		name:          name,
 		frameTime:     0,
@@ -127,14 +130,20 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
 		RenderTargets: rendering.NewRenderTargetManager(),
-		Localization:  localization.Select(),
-		entitiesById:  make(map[EntityId]*Entity),
-		CloseSignal:   make(chan struct{}, 1),
-		LogStream:     logStream,
-		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
+		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
+			Name:      rendering.DefaultRenderViewName,
+			Camera:    primaryCamera,
+			LayerMask: rendering.RenderLayerWorld,
+			Clear:     true,
+		}),
+		Localization: localization.Select(),
+		entitiesById: make(map[EntityId]*Entity),
+		CloseSignal:  make(chan struct{}, 1),
+		LogStream:    logStream,
+		lighting:     lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
-			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
-			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
+			Primary: cameras.NewContainer(primaryCamera),
+			UI:      cameras.NewContainer(uiCamera),
 		},
 	}
 	host.workGroup.Init()
@@ -422,6 +431,7 @@ func (host *Host) Render() {
 		p()
 	}
 	host.preRenderRunner = host.preRenderRunner[:0]
+	host.RenderViews.SetDefaultCamera(host.Cameras.Primary.Camera)
 	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
 	if host.Window != nil && host.Window.GpuInstance != nil && host.Window.GpuInstance.IsValid() {
 		host.RenderTargets.ProcessPending(host.Window.GpuInstance.PrimaryDevice())
@@ -443,7 +453,7 @@ func (host *Host) Render() {
 		if gpuInstance.PrimaryDevice().ReadyFrame(gpuInstance, host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
 			lights, float32(host.Runtime())) {
-			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)
+			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights, host.RenderViews.Views())
 			skipSwap = false
 		}
 	}

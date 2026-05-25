@@ -24,7 +24,7 @@ type boundBufferInfo struct {
 	boundBuffer *ShaderBuffer
 }
 
-func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId) {
+func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.drawImpl").End()
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
@@ -33,7 +33,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := g.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, &p)
+			writes := g.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, layerMask, &p)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -74,7 +74,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 			shader := d.material.Shader
 			s := &shader.RenderId
 			g.renderEach(renderPass.cmdSecondary[g.Painter.currentFrame].buffer,
-				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData)
+				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData, layerMask)
 		}
 	}
 	renderPass.ExecuteSecondaryCommands()
@@ -159,7 +159,7 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	g.cleanupCombined(cmd)
 }
 
-func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
@@ -171,6 +171,9 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 	}
 	for i := range groups {
 		group := &groups[i]
+		if !group.MatchesLayer(layerMask) {
+			continue
+		}
 		if !group.IsReady() {
 			continue
 		}
@@ -247,7 +250,7 @@ func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayou
 		s.pipelineInfo.PushConstant.Size, pushConstantData)
 }
 
-func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer) {
+func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, vk.Pipeline(pipeline.handle))
 	writePushConstants(s, cmd, vk.PipelineLayout(layout.handle), pushConstantData)
@@ -260,6 +263,9 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 	var namedBuffers [1]vk.Buffer
 	for i := range groups {
 		group := &groups[i]
+		if !group.MatchesLayer(layerMask) {
+			continue
+		}
 		if !group.IsReady() || group.VisibleCount() == 0 {
 			continue
 		}
@@ -360,7 +366,7 @@ func (g *GPUDevice) combineTargets() *TextureId {
 		}
 	}
 	combinePass := g.Painter.combinedDrawings.renderPassGroups[0].renderPass
-	g.Draw(combinePass, draws, LightsForRender{}, []TextureId{})
+	g.Draw(combinePass, draws, LightsForRender{}, []TextureId{}, RenderLayerAll)
 	return &combinePass.textures[0].RenderId
 }
 
