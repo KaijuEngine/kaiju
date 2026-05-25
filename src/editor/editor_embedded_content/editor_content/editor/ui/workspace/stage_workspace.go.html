@@ -40,6 +40,7 @@
 				color: white;
 				background-color: #282828;
 				border: 2px solid #AAA;
+				z-index: 3;
 			}
 			#dimensionToggle:hover {
 				background-color: #AAA;
@@ -50,8 +51,8 @@
 				top: var(--ed-menu-bar-height);
 				width: 50%;
 				height: calc(50% - var(--ed-menu-bar-height));
-				z-index: -10;
-				background-color: black;
+				z-index: 2;
+				background-color: white;
 			}
 			#stageViewportTop {
 				position: absolute;
@@ -59,8 +60,8 @@
 				top: var(--ed-menu-bar-height);
 				width: 50%;
 				height: calc(50% - var(--ed-menu-bar-height));
-				z-index: -10;
-				background-color: black;
+				z-index: 2;
+				background-color: white;
 			}
 			#stageViewportFront {
 				position: absolute;
@@ -68,8 +69,8 @@
 				top: 50%;
 				width: 50%;
 				height: 50%;
-				z-index: -10;
-				background-color: black;
+				z-index: 2;
+				background-color: white;
 			}
 			#stageViewportSide {
 				position: absolute;
@@ -77,8 +78,8 @@
 				top: 50%;
 				width: 50%;
 				height: 50%;
-				z-index: -10;
-				background-color: black;
+				z-index: 2;
+				background-color: white;
 			}
 			.stageViewportLabel {
 				position: absolute;
@@ -88,7 +89,12 @@
 				border: 1px solid #555;
 				padding: 0.2em 0.45em;
 				font-size: 0.6em;
-				z-index: 1;
+				z-index: 3;
+			}
+			#hierarchyArea,
+			#detailsArea,
+			#contentArea {
+				z-index: 4;
 			}
 			#stageViewportLabelPerspective,
 			#stageViewportLabelTop {
