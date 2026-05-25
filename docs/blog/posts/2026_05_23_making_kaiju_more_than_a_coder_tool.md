@@ -22,7 +22,7 @@ date: 2026-05-23
 For a long time I've been heavily focused on code, performance, and what the experience of the engine is to programmers/developers. The last few months I've decided that I want to improve the tools not only for my own use, but also for artists and designers too. This means adding quality of life things, making the UI a little more usable, creating tools for artists, preparing for localization, etc.
 
 ## UI Updates
-![New project UI](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/new_project.png)
+![New project UI](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/blog/2026_05_23/new_project_2.png)
 
 First impressions are important and having something nice to look at when you initially open the engine becomes more important over time. To achieve this new look, there are several updates to the UI shader to improve outline quality, precision, border shape/size, and other finer details. Recent updates have pushed our CSS implementation much further than it had been originally. Recent updates also bring the new `<kaiju-include>` tag, as seen in `stage_workspace.go.html`, to allow you to break up your large HTML UI files into manageable pieces.
 
