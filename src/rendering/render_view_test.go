@@ -120,6 +120,49 @@ func TestRenderViewsForDrawPlacesTargetsBeforeDefault(t *testing.T) {
 	}
 }
 
+func TestRenderViewDestroyMarksViewDestroyedAndRemovesIt(t *testing.T) {
+	manager := NewRenderViewManager()
+	view := mustCreateRenderView(t, &manager, RenderViewOptions{Name: "preview"})
+	if err := manager.Destroy("preview"); err != nil {
+		t.Fatalf("Destroy returned error: %v", err)
+	}
+	if !view.Destroyed() {
+		t.Fatalf("destroyed view was not marked destroyed")
+	}
+	if _, ok := manager.View("preview"); ok {
+		t.Fatalf("destroyed view remained in manager lookup")
+	}
+	for _, candidate := range manager.Views() {
+		if candidate == view {
+			t.Fatalf("destroyed view remained in sorted view list")
+		}
+	}
+}
+
+func TestRenderViewProcessPendingDestroysDrawGroupViewState(t *testing.T) {
+	manager := NewRenderViewManager()
+	view := mustCreateRenderView(t, &manager, RenderViewOptions{Name: "preview"})
+	rp := &RenderPass{}
+	mat := &Material{renderPass: rp, Instances: make(map[string]*Material), Textures: []*Texture{{Key: "t"}}}
+	mesh := NewMesh("mesh", testVerts(), []uint32{0, 1})
+	drawings := NewDrawings()
+	drawings.AddDrawing(Drawing{Material: mat, Mesh: mesh, ShaderData: newTestDrawInstance()})
+	drawings.PreparePending(0)
+
+	group := &drawings.renderPassGroups[0].draws[0].instanceGroups[0]
+	group.viewStateForView(view)
+	if _, ok := group.viewStates[view]; !ok {
+		t.Fatalf("test setup did not create view state")
+	}
+	if err := manager.Destroy("preview"); err != nil {
+		t.Fatalf("Destroy returned error: %v", err)
+	}
+	manager.ProcessPending(nil, &drawings)
+	if _, ok := group.viewStates[view]; ok {
+		t.Fatalf("pending view cleanup left draw group view state behind")
+	}
+}
+
 func mustCreateRenderView(t *testing.T, manager *RenderViewManager, options RenderViewOptions) *RenderView {
 	t.Helper()
 	view, err := manager.Create(options)

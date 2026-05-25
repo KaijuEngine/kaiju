@@ -20,7 +20,12 @@ const DefaultRenderViewName = "default"
 type RenderViewMode int
 
 const (
-	RenderViewModeDefault RenderViewMode = iota
+	RenderViewModeNormal RenderViewMode = iota
+	RenderViewModeWireframe
+	RenderViewModeUnlit
+	RenderViewModeProfile
+
+	RenderViewModeDefault = RenderViewModeNormal
 )
 
 type RenderViewOptions struct {
@@ -34,9 +39,10 @@ type RenderViewOptions struct {
 }
 
 type RenderView struct {
-	options RenderViewOptions
-	order   uint64
-	mutex   sync.RWMutex
+	options   RenderViewOptions
+	order     uint64
+	destroyed bool
+	mutex     sync.RWMutex
 }
 
 func newRenderView(options RenderViewOptions, order uint64) *RenderView {
@@ -101,15 +107,27 @@ func (v *RenderView) ViewMode() RenderViewMode {
 	return v.options.ViewMode
 }
 
+func (v *RenderView) SetViewMode(mode RenderViewMode) {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.options.ViewMode = mode
+}
+
+func (v *RenderView) Destroyed() bool {
+	v.mutex.RLock()
+	defer v.mutex.RUnlock()
+	return v.destroyed
+}
+
 func (v *RenderView) MatchesDrawing(drawing *Drawing) bool {
-	if drawing == nil {
+	if drawing == nil || v.Destroyed() {
 		return false
 	}
 	return drawing.MatchesLayer(v.LayerMask())
 }
 
 func (v *RenderView) MatchesGroup(group *DrawInstanceGroup) bool {
-	if group == nil {
+	if group == nil || v.Destroyed() {
 		return false
 	}
 	return group.MatchesLayer(v.LayerMask())
@@ -120,12 +138,20 @@ func (v *RenderView) setOptions(options RenderViewOptions) {
 	defer v.mutex.Unlock()
 	options.LayerMask = normalizeRenderLayerMask(options.LayerMask)
 	v.options = options
+	v.destroyed = false
+}
+
+func (v *RenderView) markDestroyed() {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.destroyed = true
 }
 
 type RenderViewManager struct {
-	views     map[string]*RenderView
-	nextOrder uint64
-	mutex     sync.RWMutex
+	views          map[string]*RenderView
+	pendingDestroy map[*RenderView]struct{}
+	nextOrder      uint64
+	mutex          sync.RWMutex
 }
 
 func NewRenderViewManager(defaultOptions ...RenderViewOptions) RenderViewManager {
@@ -141,7 +167,8 @@ func NewRenderViewManager(defaultOptions ...RenderViewOptions) RenderViewManager
 		}
 	}
 	manager := RenderViewManager{
-		views: make(map[string]*RenderView),
+		views:          make(map[string]*RenderView),
+		pendingDestroy: make(map[*RenderView]struct{}),
 	}
 	view := newRenderView(options, manager.nextOrder)
 	manager.nextOrder++
@@ -216,11 +243,53 @@ func (m *RenderViewManager) Destroy(name string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.ensureLocked()
-	if _, ok := m.views[name]; !ok {
+	view, ok := m.views[name]
+	if !ok {
 		return fmt.Errorf("render view %q not found", name)
 	}
+	view.markDestroyed()
 	delete(m.views, name)
+	m.pendingDestroy[view] = struct{}{}
 	return nil
+}
+
+func (m *RenderViewManager) ProcessPending(device *GPUDevice, drawings *Drawings) {
+	defer tracing.NewRegion("RenderViewManager.ProcessPending").End()
+	m.mutex.Lock()
+	m.ensureLocked()
+	pending := make([]*RenderView, 0, len(m.pendingDestroy))
+	for view := range m.pendingDestroy {
+		pending = append(pending, view)
+		delete(m.pendingDestroy, view)
+	}
+	m.mutex.Unlock()
+	for i := range pending {
+		destroyRenderViewResources(pending[i], device, drawings)
+	}
+}
+
+func (m *RenderViewManager) DestroyAll(device *GPUDevice, drawings *Drawings) {
+	defer tracing.NewRegion("RenderViewManager.DestroyAll").End()
+	m.mutex.Lock()
+	m.ensureLocked()
+	views := make([]*RenderView, 0, len(m.views)+len(m.pendingDestroy))
+	seen := make(map[*RenderView]struct{}, len(m.views)+len(m.pendingDestroy))
+	for _, view := range m.views {
+		view.markDestroyed()
+		views = append(views, view)
+		seen[view] = struct{}{}
+	}
+	for view := range m.pendingDestroy {
+		if _, ok := seen[view]; !ok {
+			views = append(views, view)
+		}
+	}
+	m.views = make(map[string]*RenderView)
+	m.pendingDestroy = make(map[*RenderView]struct{})
+	m.mutex.Unlock()
+	for i := range views {
+		destroyRenderViewResources(views[i], device, drawings)
+	}
 }
 
 func (m *RenderViewManager) Views() []*RenderView {
@@ -229,6 +298,9 @@ func (m *RenderViewManager) Views() []*RenderView {
 	defer m.mutex.RUnlock()
 	views := make([]*RenderView, 0, len(m.views))
 	for _, view := range m.views {
+		if view.Destroyed() {
+			continue
+		}
 		views = append(views, view)
 	}
 	sort.SliceStable(views, func(i, j int) bool {
@@ -249,11 +321,17 @@ func (m *RenderViewManager) ensureLocked() {
 	if m.views == nil {
 		m.views = make(map[string]*RenderView)
 	}
+	if m.pendingDestroy == nil {
+		m.pendingDestroy = make(map[*RenderView]struct{})
+	}
 }
 
 func validateRenderViewOptions(options RenderViewOptions) error {
 	if options.Name == "" {
 		return errors.New("render view name is required")
+	}
+	if !options.ViewMode.Valid() {
+		return fmt.Errorf("render view %q has invalid view mode %d", options.Name, options.ViewMode)
 	}
 	return nil
 }

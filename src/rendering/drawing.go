@@ -278,7 +278,7 @@ func renderViewsForDraw(views []*RenderView) []*RenderView {
 	var defaultView *RenderView
 	var firstSwapchainView *RenderView
 	for i := range views {
-		if views[i] == nil {
+		if views[i] == nil || views[i].Destroyed() {
 			continue
 		}
 		if views[i].Target() != nil {
@@ -314,6 +314,23 @@ func (d *Drawings) Destroy(device *GPUDevice) {
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)
 	d.renderPassGroups = klib.WipeSlice(d.renderPassGroups)
+}
+
+func (d *Drawings) DestroyViewState(device *GPUDevice, view *RenderView) {
+	defer tracing.NewRegion("Drawings.DestroyViewState").End()
+	if view == nil {
+		return
+	}
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			draw := &d.renderPassGroups[i].draws[j]
+			for k := range draw.instanceGroups {
+				draw.instanceGroups[k].DestroyViewState(device, view)
+			}
+		}
+	}
 }
 
 func (d *Drawings) Clear() {

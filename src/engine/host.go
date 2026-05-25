@@ -434,7 +434,9 @@ func (host *Host) Render() {
 	host.RenderViews.SetDefaultCamera(host.Cameras.Primary.Camera)
 	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
 	if host.Window != nil && host.Window.GpuInstance != nil && host.Window.GpuInstance.IsValid() {
-		host.RenderTargets.ProcessPending(host.Window.GpuInstance.PrimaryDevice())
+		gpuDevice := host.Window.GpuInstance.PrimaryDevice()
+		host.RenderTargets.ProcessPending(gpuDevice)
+		host.RenderViews.ProcessPending(gpuDevice, &host.Drawings)
 	}
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
@@ -538,6 +540,7 @@ func (host *Host) Teardown() {
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
+	host.RenderViews.DestroyAll(gpuDevice, &host.Drawings)
 	host.Drawings.Destroy(gpuDevice)
 	host.RenderTargets.DestroyAll(gpuDevice)
 	host.textureCache.Destroy()

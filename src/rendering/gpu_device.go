@@ -172,6 +172,17 @@ func (g *GPUDevice) destroyGlobalUniformBufferSet(state *globalUniformBufferSet)
 	}
 }
 
+func (g *GPUDevice) DestroyRenderViewResources(view *RenderView) {
+	defer tracing.NewRegion("GPUDevice.DestroyRenderViewResources").End()
+	if g == nil || view == nil || g.globalUniforms == nil {
+		return
+	}
+	if state, ok := g.globalUniforms[view]; ok {
+		g.destroyGlobalUniformBufferSet(state)
+		delete(g.globalUniforms, view)
+	}
+}
+
 func (g *GPUDevice) ensureGlobalUniformsForView(view *RenderView) (*globalUniformBufferSet, error) {
 	if g.globalUniforms == nil {
 		g.globalUniforms = make(map[*RenderView]*globalUniformBufferSet)

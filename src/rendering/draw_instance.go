@@ -473,6 +473,23 @@ func (d *DrawInstanceGroup) Clear() {
 	}
 }
 
+func (d *DrawInstanceGroup) DestroyViewState(device *GPUDevice, view *RenderView) {
+	if d.viewStates != nil {
+		if state, ok := d.viewStates[view]; ok {
+			if device != nil {
+				device.LogicalDevice.destroyGroupViewState(state)
+			}
+			delete(d.viewStates, view)
+		}
+	}
+	for i := range d.Instances {
+		base := d.Instances[i].Base()
+		if base.viewCullStates != nil {
+			delete(base.viewCullStates, view)
+		}
+	}
+}
+
 func (d *DrawInstanceGroup) Destroy(device *GPUDevice) {
 	if d.destroyed {
 		return

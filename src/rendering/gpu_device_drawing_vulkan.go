@@ -29,12 +29,14 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 	defer tracing.NewRegion("GPUDevice.drawImpl").End()
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
+	viewMaterials := make([]*Material, len(drawings))
 	{
 		var p runtime.Pinner
 		allWrites := []vk.WriteDescriptorSet{}
 		for i := range drawings {
 			d := &drawings[i]
-			writes := g.writeDrawingDescriptors(d.material, d.instanceGroups, lights, shadows, view, layerMask, &p)
+			viewMaterials[i] = g.materialForRenderView(view, d.material)
+			writes := g.writeDrawingDescriptors(viewMaterials[i], d.instanceGroups, lights, shadows, view, layerMask, &p)
 			allWrites = append(allWrites, writes...)
 			doDrawings[i] = len(writes) > 0
 			drawingAnything = drawingAnything || doDrawings[i]
@@ -72,7 +74,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 	for i := range drawings {
 		d := &drawings[i]
 		if doDrawings[i] {
-			shader := d.material.Shader
+			shader := viewMaterials[i].Shader
 			s := &shader.RenderId
 			g.renderEach(renderPass.cmdSecondary[g.Painter.currentFrame].buffer,
 				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData, view, layerMask)
