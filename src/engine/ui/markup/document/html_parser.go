@@ -541,26 +541,28 @@ func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, fun
 		return parsed
 	}
 	h := NewHTML(transformed)
-	body := parsed.setupBody(h, uiMan)
-	bodyPanel := body.UIPanel
-	bodyPanel.Base().Entity().SetName("htmlBody")
-	for i := range body.Children {
-		idx := len(parsed.Elements)
-		parsed.createUIElement(uiMan, body.Children[i], bodyPanel)
-		if idx < len(parsed.Elements) {
-			parsed.TopElements = append(parsed.TopElements, parsed.Elements[idx])
-		}
-	}
-	for i := range parsed.Elements {
-		setupEvents(parsed.Elements[i], parsed.funcMap)
-	}
-	for _, elm := range h.Children[len(h.Children)-1].Children {
-		if elm.Data == "head" {
-			for _, child := range elm.Children {
-				parsed.HeadElements = append(parsed.HeadElements, child)
+	ui.RunDirtyBatch(uiMan, func() {
+		body := parsed.setupBody(h, uiMan)
+		bodyPanel := body.UIPanel
+		bodyPanel.Base().Entity().SetName("htmlBody")
+		for i := range body.Children {
+			idx := len(parsed.Elements)
+			parsed.createUIElement(uiMan, body.Children[i], bodyPanel)
+			if idx < len(parsed.Elements) {
+				parsed.TopElements = append(parsed.TopElements, parsed.Elements[idx])
 			}
 		}
-	}
+		for i := range parsed.Elements {
+			setupEvents(parsed.Elements[i], parsed.funcMap)
+		}
+		for _, elm := range h.Children[len(h.Children)-1].Children {
+			if elm.Data == "head" {
+				for _, child := range elm.Children {
+					parsed.HeadElements = append(parsed.HeadElements, child)
+				}
+			}
+		}
+	})
 	return parsed
 }
 

@@ -492,6 +492,7 @@ func (l *Layout) prepare() {
 	}
 	if !l.runningStylizer && l.Stylizer != nil {
 		l.runningStylizer = true
+		recordDirtyStylizerCall()
 		l.Stylizer.ProcessStyle(l)
 		l.runningStylizer = false
 	}

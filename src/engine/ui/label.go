@@ -153,6 +153,7 @@ func (label *Label) labelPostLayoutUpdate() {
 	if l.wordWrap && l.overrideMaxWidth <= 0 {
 		maxWidth = label.nonOverrideMaxWidth()
 	}
+	maxWidth = label.updateContentWidth(maxWidth)
 	label.updateHeight(maxWidth)
 }
 
@@ -175,20 +176,7 @@ func (label *Label) renderText() {
 	ld := label.LabelData()
 	label.clearDrawings()
 	if ld.textLength > 0 {
-		maxWidth := label.MaxWidth()
-		if label.entity.Parent != nil && !matrix.Approx(label.entity.Transform.Scale().X(), 0) {
-			pl := &FirstPanelOnEntity(label.entity.Parent).layout
-			contentWidth := label.entity.Parent.Transform.WorldScale().X() -
-				pl.padding.Horizontal() - pl.border.Horizontal()
-			if contentWidth > 0 {
-				if ld.overrideMaxWidth <= 0 {
-					label.layout.ScaleWidth(contentWidth)
-				}
-				if ld.overrideMaxWidth <= 0 || maxWidth > contentWidth {
-					maxWidth = contentWidth
-				}
-			}
-		}
+		maxWidth := label.updateContentWidth(label.MaxWidth())
 		if !label.layout.stylizerControlsHeight() {
 			label.layout.ScaleHeight(label.measure(maxWidth).Height())
 		}
@@ -214,6 +202,26 @@ func (label *Label) renderText() {
 		}
 		host.Drawings.AddDrawings(ld.runeDrawings)
 	}
+}
+
+func (label *Label) updateContentWidth(maxWidth float32) float32 {
+	ld := label.LabelData()
+	if label.entity.Parent == nil || matrix.Approx(label.entity.Transform.Scale().X(), 0) {
+		return maxWidth
+	}
+	pl := &FirstPanelOnEntity(label.entity.Parent).layout
+	contentWidth := label.entity.Parent.Transform.WorldScale().X() -
+		pl.padding.Horizontal() - pl.border.Horizontal()
+	if contentWidth <= 0 {
+		return maxWidth
+	}
+	if ld.overrideMaxWidth <= 0 {
+		label.layout.ScaleWidth(contentWidth)
+	}
+	if ld.overrideMaxWidth <= 0 || maxWidth > contentWidth {
+		return contentWidth
+	}
+	return maxWidth
 }
 
 func (label *Label) labelRender() {

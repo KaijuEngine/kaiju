@@ -83,6 +83,8 @@ func (textarea *TextArea) Init(placeholderText string) {
 	textarea.elmData = data
 	p := textarea.Base().ToPanel()
 	man := p.man.Value()
+	man.beginDirtyBatch()
+	defer man.endDirtyBatch()
 	host := man.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, ElementTypeTextArea)

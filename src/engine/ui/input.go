@@ -106,6 +106,8 @@ func (input *Input) Init(placeholderText string) {
 	input.elmData = data
 	p := input.Base().ToPanel()
 	man := p.man.Value()
+	man.beginDirtyBatch()
+	defer man.endDirtyBatch()
 	host := man.Host
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, ElementTypeInput)

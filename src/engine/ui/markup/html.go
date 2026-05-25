@@ -154,6 +154,12 @@ func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any
 			}
 		}
 	}
-	doc.SetupStyle(s, host, css.Stylizer{Window: uiMan.Host.Window})
+	if root == nil {
+		ui.RunDirtyBatch(uiMan, func() {
+			doc.SetupStyle(s, host, css.Stylizer{Window: uiMan.Host.Window})
+		})
+	} else {
+		doc.SetupStyle(s, host, css.Stylizer{Window: uiMan.Host.Window})
+	}
 	return doc
 }

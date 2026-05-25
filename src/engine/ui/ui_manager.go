@@ -20,18 +20,20 @@ import (
 )
 
 type Manager struct {
-	Host            *engine.Host
-	Group           Group
-	pools           pooling.PoolGroup[UI]
-	hovered         [][]*UI
-	itrRoots        []*UI
-	itrChildren     []*UI
-	itrAll          []*UI
-	updateId        engine.UpdateId
-	skipUpdate      int
-	resizeEvtId     events.Id
-	windowResized   bool
-	windowMinimized bool
+	Host              *engine.Host
+	Group             Group
+	pools             pooling.PoolGroup[UI]
+	hovered           [][]*UI
+	itrRoots          []*UI
+	itrChildren       []*UI
+	itrAll            []*UI
+	updateId          engine.UpdateId
+	skipUpdate        int
+	dirtyBatchDepth   int
+	dirtyBatchTargets []*UI
+	resizeEvtId       events.Id
+	windowResized     bool
+	windowMinimized   bool
 }
 
 func (man *Manager) update(deltaTime float64) {
@@ -195,6 +197,81 @@ func (man *Manager) Add() *UI {
 	}
 	ui.entity.Init(man.Host.WorkGroup())
 	return ui
+}
+
+// RunDirtyBatch batches UI dirty propagation for construction paths that live
+// outside this package. It is intended for Kaiju's markup/control builders, not
+// as a general gameplay-facing API.
+func RunDirtyBatch(man *Manager, fn func()) {
+	if man == nil {
+		fn()
+		return
+	}
+	man.runDirtyBatch(fn)
+}
+
+func (man *Manager) runDirtyBatch(fn func()) {
+	man.beginDirtyBatch()
+	defer man.endDirtyBatch()
+	fn()
+}
+
+func (man *Manager) beginDirtyBatch() {
+	man.dirtyBatchDepth++
+}
+
+func (man *Manager) endDirtyBatch() {
+	if man.dirtyBatchDepth == 0 {
+		return
+	}
+	man.dirtyBatchDepth--
+	if man.dirtyBatchDepth == 0 {
+		man.flushDirtyBatch()
+	}
+}
+
+func (man *Manager) isDirtyBatching() bool {
+	return man != nil && man.dirtyBatchDepth > 0
+}
+
+func (man *Manager) recordDirtyBatchTarget(target *UI) {
+	if !man.isDirtyBatching() || target == nil {
+		return
+	}
+	man.dirtyBatchTargets = append(man.dirtyBatchTargets, target)
+}
+
+func (man *Manager) flushDirtyBatch() {
+	if len(man.dirtyBatchTargets) == 0 {
+		return
+	}
+	roots := make([]*UI, 0, len(man.dirtyBatchTargets))
+	for i := range man.dirtyBatchTargets {
+		root := man.dirtyBatchTargets[i].dirtyBatchRoot()
+		if root != nil && root.IsActive() && !root.entity.IsDestroyed() {
+			roots = appendDirtyBatchRoot(roots, root)
+		}
+	}
+	man.dirtyBatchTargets = man.dirtyBatchTargets[:0]
+	recordDirtyBatchFlush(len(roots))
+	flags := uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyLayoutChildren | uiDirtyScissor | uiDirtyRender
+	for i := range roots {
+		roots[i].addDirtyFlags(flags)
+		roots[i].bubbleDirty(flags)
+	}
+}
+
+func appendDirtyBatchRoot(roots []*UI, root *UI) []*UI {
+	for i := range roots {
+		if roots[i] == root || root.entity.HasParent(&roots[i].entity) {
+			return roots
+		}
+		if roots[i].entity.HasParent(&root.entity) {
+			roots[i] = root
+			return roots
+		}
+	}
+	return append(roots, root)
 }
 
 func (man *Manager) Remove(ui *UI) {

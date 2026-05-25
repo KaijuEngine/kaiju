@@ -114,6 +114,8 @@ func (s *Select) Init(text string, options []SelectOption) {
 	p := s.Base().ToPanel()
 	p.DontFitContent()
 	man := s.man.Value()
+	man.beginDirtyBatch()
+	defer man.endDirtyBatch()
 	host := man.Host
 	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)

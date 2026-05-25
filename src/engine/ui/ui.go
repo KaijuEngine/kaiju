@@ -325,6 +325,14 @@ func (ui *UI) hasLocalDirty() bool {
 	return ui != nil && (ui.dirtyFlags&^uiDirtySubtree) != 0
 }
 
+func (ui *UI) hasLayoutDirty() bool {
+	return ui != nil && (ui.dirtyFlags&(uiDirtyStyle|uiDirtyLayoutSelf|uiDirtyLayoutChildren)) != 0
+}
+
+func (ui *UI) hasRenderDirty() bool {
+	return ui != nil && (ui.dirtyFlags&(uiDirtyStyle|uiDirtyLayoutSelf|uiDirtyLayoutChildren|uiDirtyRender|uiDirtyScissor)) != 0
+}
+
 func (ui *UI) layoutCanAffectParent() bool {
 	if ui == nil || !ui.IsValid() {
 		return true
@@ -377,6 +385,10 @@ func (ui *UI) addDirtyFlags(flags uiDirtyFlags) {
 	ui.noteDirtyEffects(flags)
 }
 
+func (ui *UI) clearDirtyFlags(flags uiDirtyFlags) {
+	ui.dirtyFlags &^= flags
+}
+
 func (ui *UI) parentKnowsDirty(flags uiDirtyFlags) bool {
 	if ui.entity.Parent == nil {
 		return true
@@ -401,6 +413,7 @@ func (ui *UI) bubbleDirty(flags uiDirtyFlags) {
 		if pui == nil {
 			continue
 		}
+		recordDirtyBubbleStep()
 		pui.dirtyFlags |= uiDirtySubtree
 		if affectsParentLayout {
 			pui.addDirtyFlags(uiDirtyLayoutChildren | uiDirtyScissor | uiDirtyRender)
@@ -409,14 +422,34 @@ func (ui *UI) bubbleDirty(flags uiDirtyFlags) {
 	}
 }
 
+func (ui *UI) dirtyBatchRoot() *UI {
+	if ui == nil {
+		return nil
+	}
+	root := ui
+	for root.entity.Parent != nil {
+		pui := FirstOnEntity(root.entity.Parent)
+		if pui == nil {
+			break
+		}
+		root = pui
+	}
+	return root
+}
+
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 	defer tracing.NewRegion("UI.setDirtyInternal").End()
+	recordDirtySet()
 	flags := dirtyFlagsFromType(dirtyType)
 	newFlags := flags &^ ui.dirtyFlags
 	if newFlags == 0 && ui.parentKnowsDirty(flags) {
 		return
 	}
 	ui.addDirtyFlags(newFlags)
+	if man := ui.man.Value(); man != nil && man.isDirtyBatching() {
+		man.recordDirtyBatchTarget(ui)
+		return
+	}
 	if flags != 0 {
 		ui.bubbleDirty(flags)
 	}
@@ -458,7 +491,9 @@ func (ui *UI) uiTree() []*UI {
 	return tree
 }
 
-func (ui *UI) cleanTree(tree []*UI) {
+func (ui *UI) cleanTree(tree []*UI, forceFull bool) {
+	layoutDirtyFlags := uiDirtyStyle | uiDirtyLayoutSelf | uiDirtyLayoutChildren
+	renderFullTree := forceFull || ui.hasLayoutDirty() || (ui.dirtyFlags&uiDirtyScissor) != 0
 	stabilized := false
 	maxIterations := 100
 	for !stabilized && maxIterations > 0 {
@@ -467,10 +502,13 @@ func (ui *UI) cleanTree(tree []*UI) {
 			if !tree[i].IsActive() {
 				continue
 			}
-			tree[i].cleanDirty()
-			tree[i].Layout().update()
-			tree[i].postLayoutUpdate()
-			stabilized = stabilized && !tree[i].hasDirty()
+			if forceFull || tree[i].hasLayoutDirty() {
+				recordDirtyCleanNode()
+				tree[i].clearDirtyFlags(layoutDirtyFlags)
+				tree[i].Layout().update()
+				tree[i].postLayoutUpdate()
+				stabilized = stabilized && !tree[i].hasLayoutDirty()
+			}
 		}
 		maxIterations--
 	}
@@ -478,22 +516,31 @@ func (ui *UI) cleanTree(tree []*UI) {
 		if !tree[i].IsActive() {
 			continue
 		}
-		tree[i].GenerateScissor()
-		tree[i].render()
+		if renderFullTree || tree[i].hasRenderDirty() {
+			if renderFullTree || (tree[i].dirtyFlags&uiDirtyScissor) != 0 {
+				tree[i].GenerateScissor()
+			}
+			recordDirtyRenderCall()
+			tree[i].render()
+			if !tree[i].hasLayoutDirty() {
+				tree[i].clearDirtyFlags(uiDirtyScissor | uiDirtyRender)
+			}
+		}
 	}
 }
 
-func (ui *UI) cleanFull() {
+func (ui *UI) cleanFull(forceFull bool) {
 	if ui.flags.dontClean() {
 		return
 	}
-	ui.cleanTree(ui.uiTree())
+	ui.cleanTree(ui.uiTree(), forceFull)
 	ui.refreshDirtySubtreeUp()
 }
 
 func (ui *UI) CleanFull() {
 	defer tracing.NewRegion("UI.CleanFull").End()
-	ui.rootUI().cleanFull()
+	recordDirtyFullCleanFallback()
+	ui.rootUI().cleanFull(true)
 }
 
 func (ui *UI) Clean() {
@@ -552,8 +599,11 @@ func (ui *UI) cleanScopedIfNeeded() {
 			ui.refreshDirtySubtreeUp()
 			return
 		}
+		for range scopes {
+			recordDirtyCleanScope()
+		}
 		for i := range scopes {
-			scopes[i].cleanFull()
+			scopes[i].cleanFull(false)
 		}
 		ui.refreshDirtySubtreeUp()
 		maxIterations--
@@ -609,6 +659,7 @@ func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
 	}
 	ui.shaderData.Scissor = scissor
 	me := FirstOnEntity(&ui.entity)
+	me.addDirtyFlags(uiDirtyRender)
 	if me.elmType == ElementTypeLabel {
 		ld := me.ToLabel().LabelData()
 		for i := range ld.runeDrawings {

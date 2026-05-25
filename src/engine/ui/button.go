@@ -44,6 +44,9 @@ func (b *Button) Label() *Label {
 
 func (b *Button) Init(texture *rendering.Texture, text string) {
 	p := b.Base().ToPanel()
+	man := b.man.Value()
+	man.beginDirtyBatch()
+	defer man.endDirtyBatch()
 	b.elmData = &buttonData{
 		color: matrix.ColorWhite(),
 	}
@@ -54,7 +57,7 @@ func (b *Button) Init(texture *rendering.Texture, text string) {
 	p.layout.Scale(ps.Width(), ps.Height()+1)
 
 	// Create the label for the button
-	lbl := b.man.Value().Add().ToLabel()
+	lbl := man.Add().ToLabel()
 	lbl.Init(text)
 	lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{weak.Make(b.Base())}}
 	lbl.SetColor(matrix.ColorBlack())

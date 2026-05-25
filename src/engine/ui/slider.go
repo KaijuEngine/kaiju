@@ -41,6 +41,8 @@ func (s *Slider) Init() {
 	p := s.Base().ToPanel()
 	p.Init(nil, ElementTypeSlider)
 	man := p.man.Value()
+	man.beginDirtyBatch()
+	defer man.endDirtyBatch()
 	host := man.Host
 	tex, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)

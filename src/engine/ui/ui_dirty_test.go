@@ -2,6 +2,7 @@ package ui
 
 import (
 	"testing"
+	"weak"
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
@@ -30,6 +31,12 @@ func newDirtyTestPanel(renderCount *int) *UI {
 			*renderCount = *renderCount + 1
 		}
 	}
+	return u
+}
+
+func newDirtyTestPanelWithManager(man *Manager, renderCount *int) *UI {
+	u := newDirtyTestPanel(renderCount)
+	u.man = weak.Make(man)
 	return u
 }
 
@@ -179,10 +186,85 @@ func TestCleanFullKeepsExplicitFullTreeFallback(t *testing.T) {
 	parentDirtyTestChild(leaf, grandchild)
 
 	grandchild.SetDirty(DirtyTypeColorChange)
-	left.cleanFull()
+	left.cleanFull(true)
 
 	if leftCount != 1 || leafCount != 1 || grandchildCount != 1 {
 		t.Fatalf("expected full clean fallback to render entire requested tree; left=%d leaf=%d grandchild=%d",
 			leftCount, leafCount, grandchildCount)
+	}
+}
+
+func TestDirtyBatchDefersBubblingUntilFlush(t *testing.T) {
+	man := &Manager{}
+	root := newDirtyTestPanelWithManager(man, nil)
+	child := newDirtyTestPanelWithManager(man, nil)
+	leaf := newDirtyTestPanelWithManager(man, nil)
+	parentDirtyTestChild(root, child)
+	parentDirtyTestChild(child, leaf)
+
+	man.beginDirtyBatch()
+	leaf.SetDirty(DirtyTypeLayout)
+
+	if (child.dirtyFlags & uiDirtyLayoutChildren) != 0 {
+		t.Fatalf("expected batch to defer parent dirty propagation")
+	}
+	if root.hasDirty() {
+		t.Fatalf("expected batch to keep root clean until flush")
+	}
+
+	man.endDirtyBatch()
+
+	if !root.hasLocalDirty() {
+		t.Fatalf("expected batch flush to mark the construction root dirty")
+	}
+	if (child.dirtyFlags & uiDirtyLayoutChildren) != 0 {
+		t.Fatalf("expected batch flush to avoid per-child bubbling")
+	}
+}
+
+func TestDirtyBatchNestedFlushesOnlyAtOuterEnd(t *testing.T) {
+	man := &Manager{}
+	root := newDirtyTestPanelWithManager(man, nil)
+	leaf := newDirtyTestPanelWithManager(man, nil)
+	parentDirtyTestChild(root, leaf)
+
+	man.beginDirtyBatch()
+	man.beginDirtyBatch()
+	leaf.SetDirty(DirtyTypeLayout)
+	man.endDirtyBatch()
+
+	if root.hasDirty() {
+		t.Fatalf("expected nested batch to defer flush until the outer batch ends")
+	}
+
+	man.endDirtyBatch()
+
+	if !root.hasLocalDirty() {
+		t.Fatalf("expected outer batch end to flush dirty root")
+	}
+}
+
+func TestDirtyBatchDeduplicatesRoots(t *testing.T) {
+	man := &Manager{}
+	root := newDirtyTestPanelWithManager(man, nil)
+	left := newDirtyTestPanelWithManager(man, nil)
+	right := newDirtyTestPanelWithManager(man, nil)
+	leftLeaf := newDirtyTestPanelWithManager(man, nil)
+	rightLeaf := newDirtyTestPanelWithManager(man, nil)
+	parentDirtyTestChild(root, left)
+	parentDirtyTestChild(root, right)
+	parentDirtyTestChild(left, leftLeaf)
+	parentDirtyTestChild(right, rightLeaf)
+
+	man.beginDirtyBatch()
+	leftLeaf.SetDirty(DirtyTypeLayout)
+	rightLeaf.SetDirty(DirtyTypeLayout)
+	man.endDirtyBatch()
+
+	if !root.hasLocalDirty() {
+		t.Fatalf("expected shared construction root to be marked dirty")
+	}
+	if left.hasLocalDirty() || right.hasLocalDirty() {
+		t.Fatalf("expected batch to avoid marking sibling subroots as local clean scopes")
 	}
 }

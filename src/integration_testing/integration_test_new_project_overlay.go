@@ -1,10 +1,10 @@
+//go:build editor
+
 /******************************************************************************/
 /* integration_test_new_project_overlay.go                                    */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
-
-//go:build editor
 
 package integration_testing
 
@@ -89,7 +89,34 @@ func assertNewProjectOverlayScreenshot(img image.Image) error {
 	if brightTextPixels < 400 {
 		return fmt.Errorf("expected visible title/control text pixels, found %d", brightTextPixels)
 	}
+	titleRegion := image.Rect(
+		bounds.Min.X+bounds.Dx()/5,
+		bounds.Min.Y+bounds.Dy()/8,
+		bounds.Min.X+bounds.Dx()/2,
+		bounds.Min.Y+bounds.Dy()/5,
+	)
+	if countBrightPixelsInRect(img, titleRegion) < 150 {
+		return fmt.Errorf("expected visible title text pixels in %v", titleRegion)
+	}
 	return nil
+}
+
+func countBrightPixelsInRect(img image.Image, rect image.Rectangle) int {
+	bounds := img.Bounds()
+	rect = rect.Intersect(bounds)
+	count := 0
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			r16, g16, b16, _ := img.At(x, y).RGBA()
+			r := int(r16 >> 8)
+			g := int(g16 >> 8)
+			b := int(b16 >> 8)
+			if r > 210 && g > 210 && b > 210 {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 func longestVerticalRedRun(img image.Image) int {
