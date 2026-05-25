@@ -213,6 +213,16 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	c.callUpdateView()
 }
 
+// SetPositionAndLookAtWithUp sets the position, look at position, and up vector
+// with a single view update.
+func (c *StandardCamera) SetPositionAndLookAtWithUp(position, lookAt, up matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetPositionAndLookAtWithUp").End()
+	c.position = position
+	c.lookAt = lookAt
+	c.up = up
+	c.callUpdateView()
+}
+
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
 func (c *StandardCamera) RayCast(cursorPosition matrix.Vec2) graviton.Ray {

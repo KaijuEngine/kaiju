@@ -295,10 +295,8 @@ func (e *EditorCamera) Focus(bounds graviton.AABB) {
 	}
 	if e.camera.IsOrthographic() {
 		c := e.camera.(*cameras.StandardCamera)
-		p := c.Position()
-		p.SetX(bounds.Center.X())
-		p.SetY(bounds.Center.Y())
-		c.SetPositionAndLookAt(p, bounds.Center.Negative())
+		offset := c.Position().Subtract(c.LookAt())
+		c.SetPositionAndLookAtWithUp(bounds.Center.Add(offset), bounds.Center, c.Up())
 		r := c.Width() / c.Height()
 		if c.Width() > c.Height() {
 			c.Resize(z*r, z)
