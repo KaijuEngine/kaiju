@@ -35,6 +35,7 @@ type StageView struct {
 	transformTool   transform_tools.TransformTool
 	vertexSnap      VertexSnapTool
 	selectTool      select_tool.SelectTool
+	stagePicking    StagePicking
 	transformMan    TransformationManager
 	toolOwner       ViewportToolOwner
 	stageViewports  []stageRenderViewport
@@ -82,6 +83,7 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.transformMan.Initialize(v, ed.History(), ed.Settings())
 	v.vertexSnap.Initialize(host, v, &v.transformMan)
 	v.selectTool.Init(host, v)
+	v.stagePicking.Initialize(v)
 	v.createViewportGrid()
 	v.applyGridVisibility()
 	v.setupCamera(ed)
@@ -105,6 +107,7 @@ func (v *StageView) Open() {
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
+	v.stagePicking.Close()
 	v.restoreDefaultRenderView()
 	if v.gridShader != nil {
 		v.gridShader.Deactivate()
@@ -139,6 +142,7 @@ func (v *StageView) applyGridVisibility() {
 func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
 	v.syncStageViewport()
+	v.stagePicking.Update()
 	v.gridTransform.ResetDirty()
 	// If we are currently using any of the transformation tools, we shouldn't
 	// do any of the other updates like camera

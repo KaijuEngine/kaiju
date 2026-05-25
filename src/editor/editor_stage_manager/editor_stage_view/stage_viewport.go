@@ -564,5 +564,10 @@ func (v *StageView) TryBoxSelect(screenBox matrix.Vec4) {
 	if !bounds.Valid() {
 		bounds = v.currentViewportBounds()
 	}
-	v.manager.TryBoxSelect(bounds.LocalBottomAreaFromScreenArea(screenBox))
+	area := bounds.LocalBottomAreaFromScreenArea(screenBox)
+	mode := stageSelectionMode(&v.host.Window.Keyboard)
+	if v.stagePicking.RequestBox(area, mode) {
+		return
+	}
+	v.manager.TryBoxSelectWithMode(area, mode)
 }

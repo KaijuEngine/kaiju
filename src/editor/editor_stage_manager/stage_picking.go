@@ -61,6 +61,17 @@ func (m *StageManager) EntityByPickID(id uint32) (*StageEntity, bool) {
 	return e, true
 }
 
+func (m *StageManager) HasPickableEntities() bool {
+	defer tracing.NewRegion("StageManager.HasPickableEntities").End()
+	for i := range m.entities {
+		e := m.entities[i]
+		if e != nil && !e.IsDeleted() && !e.IsLocked() && e.StageData.Mesh != nil {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *StageManager) unregisterPickID(e *StageEntity) {
 	if e == nil || e.PickID == 0 || m.pickIDToEntity == nil {
 		return

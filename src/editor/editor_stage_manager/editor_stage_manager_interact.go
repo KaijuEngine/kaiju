@@ -16,6 +16,14 @@ import (
 	"kaijuengine.com/registry/shader_data_registry"
 )
 
+type SelectionMode int
+
+const (
+	SelectionModeReplace SelectionMode = iota
+	SelectionModeAppend
+	SelectionModeToggle
+)
+
 func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }
 
 func (m *StageManager) IsSelected(e *StageEntity) bool {
@@ -45,10 +53,12 @@ func (m *StageManager) ClearSelection() {
 	}
 	cpy := slices.Clone(m.selected)
 	m.selected = klib.WipeSlice(m.selected)
-	m.history.Add(&selectHistory{
-		manager: m,
-		from:    cpy,
-	})
+	if m.history != nil {
+		m.history.Add(&selectHistory{
+			manager: m,
+			from:    cpy,
+		})
+	}
 	for i := range cpy {
 		m.clearShaderDataFlag(cpy[i])
 		m.OnEntityDeselected.Execute(cpy[i])
@@ -71,7 +81,9 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 	}
 	m.selected = append(m.selected, e)
 	history.to = slices.Clone(m.selected)
-	m.history.Add(history)
+	if m.history != nil {
+		m.history.Add(history)
+	}
 	m.setShaderDataFlag(e)
 	m.OnEntitySelected.Execute(e)
 }
@@ -145,14 +157,16 @@ func (m *StageManager) TrySelect(ray graviton.Ray) (*StageEntity, bool) {
 }
 
 func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
+	m.TryBoxSelectWithMode(screenBox, SelectionModeReplace)
+}
+
+func (m *StageManager) TryBoxSelectWithMode(screenBox matrix.Vec4, mode SelectionMode) {
 	defer tracing.NewRegion("StageManager.TryBoxSelect").End()
-	m.history.BeginTransaction()
-	defer m.history.CommitTransaction()
-	m.ClearSelection()
 	cam := m.host.PrimaryCamera()
 	f := cam.Frustum()
 	v, p := cam.View(), cam.Projection()
 	viewport := cam.Viewport()
+	entities := make([]*StageEntity, 0)
 	for _, e := range m.entities {
 		if e.StageData.Bvh == nil || e.isDeleted || e.IsLocked() {
 			continue
@@ -166,7 +180,46 @@ func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 			continue
 		}
 		if screenBox.AreaContains(ss.X(), ss.Y()) {
-			m.SelectEntity(e)
+			entities = append(entities, e)
+		}
+	}
+	m.SelectEntities(entities, mode)
+}
+
+func (m *StageManager) SelectEntities(entities []*StageEntity, mode SelectionMode) {
+	defer tracing.NewRegion("StageManager.SelectEntities").End()
+	filtered := make([]*StageEntity, 0, len(entities))
+	for i := range entities {
+		e := entities[i]
+		if e == nil || e.IsDeleted() || e.IsLocked() || slices.Contains(filtered, e) {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	if len(filtered) == 0 && mode != SelectionModeReplace {
+		return
+	}
+	if m.history != nil {
+		m.history.BeginTransaction()
+		defer m.history.CommitTransaction()
+	}
+	switch mode {
+	case SelectionModeAppend:
+		for i := range filtered {
+			m.SelectEntity(filtered[i])
+		}
+	case SelectionModeToggle:
+		for i := range filtered {
+			if m.IsSelected(filtered[i]) {
+				m.DeselectEntity(filtered[i])
+			} else {
+				m.SelectEntity(filtered[i])
+			}
+		}
+	default:
+		m.ClearSelection()
+		for i := range filtered {
+			m.SelectEntity(filtered[i])
 		}
 	}
 }
