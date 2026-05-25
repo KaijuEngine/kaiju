@@ -1990,7 +1990,6 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		}
 	}
 	p.shaderData.FgColor = bgColor
-	p.Base().SetDirty(DirtyTypeColorChange)
 }
 
 func (p *Panel) AllowClickThrough() {

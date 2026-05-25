@@ -377,6 +377,23 @@ func (ui *UI) addDirtyFlags(flags uiDirtyFlags) {
 	ui.noteDirtyEffects(flags)
 }
 
+func (ui *UI) parentKnowsDirty(flags uiDirtyFlags) bool {
+	if ui.entity.Parent == nil {
+		return true
+	}
+	pui := FirstOnEntity(ui.entity.Parent)
+	if pui == nil {
+		return true
+	}
+	if (pui.dirtyFlags & uiDirtySubtree) == 0 {
+		return false
+	}
+	if flags.affectsParentLayout() && (pui.dirtyFlags&uiDirtyLayoutChildren) == 0 {
+		return false
+	}
+	return true
+}
+
 func (ui *UI) bubbleDirty(flags uiDirtyFlags) {
 	affectsParentLayout := flags.affectsParentLayout()
 	for parent := ui.entity.Parent; parent != nil; parent = parent.Parent {
@@ -395,8 +412,14 @@ func (ui *UI) bubbleDirty(flags uiDirtyFlags) {
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 	defer tracing.NewRegion("UI.setDirtyInternal").End()
 	flags := dirtyFlagsFromType(dirtyType)
-	ui.addDirtyFlags(flags)
-	ui.bubbleDirty(flags)
+	newFlags := flags &^ ui.dirtyFlags
+	if newFlags == 0 && ui.parentKnowsDirty(flags) {
+		return
+	}
+	ui.addDirtyFlags(newFlags)
+	if flags != 0 {
+		ui.bubbleDirty(flags)
+	}
 }
 
 func (ui *UI) SetDirty(dirtyType DirtyType) {
