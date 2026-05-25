@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sync"
 
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -183,6 +184,47 @@ func (t *RenderTarget) processPending(device *GPUDevice, op renderTargetPendingO
 	}
 }
 
+func (t *RenderTarget) ensureRealized(device *GPUDevice) error {
+	defer tracing.NewRegion("RenderTarget.ensureRealized").End()
+	if device == nil {
+		return errors.New("cannot realize render target without a GPU device")
+	}
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	if t.destroyed {
+		return fmt.Errorf("%w: %s", ErrRenderTargetDestroyed, t.options.Name)
+	}
+	if !t.resizeDirty {
+		ready := true
+		for _, tex := range t.outputs {
+			if tex == nil || !tex.RenderId.IsValid() {
+				ready = false
+				break
+			}
+		}
+		if ready {
+			return nil
+		}
+	}
+	t.releaseOutputsLocked(device)
+	color, err := newRenderTargetColorTexture(device, t.options, t.width, t.height)
+	if err != nil {
+		return err
+	}
+	t.outputs[RenderTargetOutputColor] = color
+	if _, ok := t.outputs[RenderTargetOutputDepth]; ok {
+		depth, err := newRenderTargetDepthTexture(device, t.options, t.width, t.height)
+		if err != nil {
+			device.LogicalDevice.FreeTexture(&color.RenderId)
+			t.outputs[RenderTargetOutputColor] = nil
+			return err
+		}
+		t.outputs[RenderTargetOutputDepth] = depth
+	}
+	t.resizeDirty = false
+	return nil
+}
+
 func (t *RenderTarget) releaseOutputsLocked(device *GPUDevice) {
 	for name, tex := range t.outputs {
 		if tex != nil {
@@ -195,6 +237,92 @@ func (t *RenderTarget) releaseOutputsLocked(device *GPUDevice) {
 			t.outputs[name] = nil
 		}
 	}
+}
+
+func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions, width, height int) (*Texture, error) {
+	format := options.ColorFormat
+	if format == GPUFormatUndefined {
+		format = GPUFormatR8g8b8a8Unorm
+		if len(device.LogicalDevice.SwapChain.Images) > 0 {
+			format = device.LogicalDevice.SwapChain.Images[0].Format
+		}
+	}
+	tex := &Texture{
+		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputColor),
+		Filter:    TextureFilterLinear,
+		MipLevels: 1,
+		Width:     width,
+		Height:    height,
+	}
+	err := device.CreateImage(&tex.RenderId, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+		ImageType:   GPUImageType2d,
+		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
+		MipLevels:   1,
+		ArrayLayers: 1,
+		Format:      format,
+		Tiling:      GPUImageTilingOptimal,
+		Usage: GPUImageUsageColorAttachmentBit |
+			GPUImageUsageTransferSrcBit |
+			GPUImageUsageTransferDstBit |
+			GPUImageUsageSampledBit,
+		Samples: GPUSampleCount1Bit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, GPUImageAspectColorBit, GPUImageViewType2d); err != nil {
+		device.LogicalDevice.FreeTexture(&tex.RenderId)
+		return nil, err
+	}
+	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, GPUFilterLinear)
+	if err != nil {
+		device.LogicalDevice.FreeTexture(&tex.RenderId)
+		return nil, err
+	}
+	device.TransitionImageLayout(&tex.RenderId, GPUImageLayoutShaderReadOnlyOptimal,
+		GPUImageAspectColorBit, GPUAccessShaderReadBit, nil)
+	return tex, nil
+}
+
+func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions, width, height int) (*Texture, error) {
+	format := device.PhysicalDevice.FindSupportedFormat(depthFormatCandidates(),
+		GPUImageTilingOptimal, GPUFormatFeatureDepthStencilAttachmentBit)
+	tex := &Texture{
+		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputDepth),
+		Filter:    TextureFilterLinear,
+		MipLevels: 1,
+		Width:     width,
+		Height:    height,
+	}
+	err := device.CreateImage(&tex.RenderId, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+		ImageType:   GPUImageType2d,
+		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
+		MipLevels:   1,
+		ArrayLayers: 1,
+		Format:      format,
+		Tiling:      GPUImageTilingOptimal,
+		Usage:       GPUImageUsageDepthStencilAttachmentBit | GPUImageUsageSampledBit,
+		Samples:     GPUSampleCount1Bit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, GPUImageAspectDepthBit, GPUImageViewType2d); err != nil {
+		device.LogicalDevice.FreeTexture(&tex.RenderId)
+		return nil, err
+	}
+	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, GPUFilterLinear)
+	if err != nil {
+		device.LogicalDevice.FreeTexture(&tex.RenderId)
+		return nil, err
+	}
+	device.TransitionImageLayout(&tex.RenderId, GPUImageLayoutDepthStencilReadOnlyOptimal,
+		GPUImageAspectDepthBit, GPUAccessShaderReadBit, nil)
+	return tex, nil
+}
+
+func renderTargetTextureKey(targetName, outputName string) string {
+	return "render-target:" + targetName + "." + outputName
 }
 
 type RenderTargetManager struct {
@@ -231,6 +359,29 @@ func (m *RenderTargetManager) Target(name string) (*RenderTarget, bool) {
 	defer m.mutex.RUnlock()
 	target, ok := m.targets[name]
 	return target, ok
+}
+
+func (m *RenderTargetManager) Targets() []*RenderTarget {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	targets := make([]*RenderTarget, 0, len(m.targets))
+	for _, target := range m.targets {
+		targets = append(targets, target)
+	}
+	return targets
+}
+
+func (m *RenderTargetManager) ResizeMatchingWindow(width, height int) {
+	defer tracing.NewRegion("RenderTargetManager.ResizeMatchingWindow").End()
+	if width <= 0 || height <= 0 {
+		return
+	}
+	targets := m.Targets()
+	for i := range targets {
+		if targets[i].Options().ResizeMode == RenderTargetResizeModeMatchWindow {
+			targets[i].Resize(width, height)
+		}
+	}
 }
 
 func (m *RenderTargetManager) Destroy(name string) error {

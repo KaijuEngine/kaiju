@@ -364,6 +364,48 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	return true
 }
 
+func (g *GPUDevice) flushQueuedCommandsImpl() bool {
+	defer tracing.NewRegion("Vulkan.flushQueuedCommandsImpl").End()
+	if len(g.Painter.writtenCommands) == 0 {
+		return true
+	}
+	all := make([]vk.CommandBuffer, 0, len(g.Painter.writtenCommands))
+	const prePostQueueRange = 2
+	vkDevice := vk.Device(g.LogicalDevice.handle)
+	for sort := range prePostQueueRange {
+		all = all[:0]
+		var fence vk.Fence
+		for i := range g.Painter.writtenCommands {
+			if g.Painter.writtenCommands[i].stage == sort {
+				all = append(all, g.Painter.writtenCommands[i].buffer)
+				fence = g.Painter.writtenCommands[i].fence
+			}
+		}
+		if len(all) == 0 {
+			continue
+		}
+		vk.ResetFences(vkDevice, 1, &fence)
+		submitInfo := vk.SubmitInfo{
+			SType:              vulkan_const.StructureTypeSubmitInfo,
+			PCommandBuffers:    &all[0],
+			CommandBufferCount: uint32(len(all)),
+		}
+		eCode := vk.QueueSubmit(vk.Queue(g.LogicalDevice.graphicsQueue), 1, &submitInfo, fence)
+		if eCode != vulkan_const.Success {
+			slog.Error("Failed to submit render target command buffer", slog.Int("code", int(eCode)))
+			return false
+		}
+		res := vk.WaitForFences(vkDevice, 1, &fence, vulkan_const.True, math.MaxUint64)
+		if res != vulkan_const.Success {
+			slog.Error("Failed to wait for render target command buffer", slog.Int("code", int(res)))
+			return false
+		}
+		vk.ResetFences(vkDevice, 1, &fence)
+	}
+	g.Painter.writtenCommands = g.Painter.writtenCommands[:0]
+	return true
+}
+
 func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []*RenderView) bool {
 	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
 	painter := &g.Painter

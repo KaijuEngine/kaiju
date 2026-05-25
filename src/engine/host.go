@@ -133,7 +133,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
 			Name:      rendering.DefaultRenderViewName,
 			Camera:    primaryCamera,
-			LayerMask: rendering.RenderLayerWorld,
+			LayerMask: rendering.RenderLayerAll,
 			Clear:     true,
 		}),
 		Localization: localization.Select(),
@@ -613,6 +613,7 @@ func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	host.Cameras.Primary.Camera.ViewportChanged(w, h)
 	host.Cameras.UI.Camera.ViewportChanged(w, h)
+	host.RenderTargets.ResizeMatchingWindow(int(w), int(h))
 }
 
 func (host *Host) processDestroyedEntities() {

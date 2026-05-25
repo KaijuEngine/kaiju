@@ -9,7 +9,8 @@ package rendering
 import (
 	"log/slog"
 	"runtime"
-	"slices"
+	"strconv"
+	"strings"
 	"unsafe"
 
 	"kaijuengine.com/engine/assets"
@@ -121,6 +122,9 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	defer tracing.NewRegion("GPUDevice.blitTargetsImpl").End()
 	g.prepCombinedTargets(passes)
 	img := g.combineTargets()
+	if img == nil {
+		return
+	}
 	cmd := &g.Painter.blitCmds[g.Painter.currentFrame]
 	cmd.Begin()
 	defer cmd.End()
@@ -156,6 +160,52 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 		GPUImageAspectColorBit, GPUAccessColorAttachmentReadBit|GPUAccessColorAttachmentWriteBit, cmd)
 	g.TransitionImageLayout(&swapChain.Images[idxSF], GPUImageLayoutPresentSrc,
 		GPUImageAspectColorBit, GPUAccessTransferWriteBit, cmd)
+	g.cleanupCombined(cmd)
+}
+
+func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *RenderTarget) {
+	defer tracing.NewRegion("GPUDevice.blitTargetsToRenderTargetImpl").End()
+	if err := target.ensureRealized(g); err != nil {
+		slog.Error("failed to realize render target", "target", target.Name(), "error", err)
+		return
+	}
+	targetTexture, err := target.Texture(RenderTargetOutputColor)
+	if err != nil {
+		slog.Error("failed to resolve render target color output", "target", target.Name(), "error", err)
+		return
+	}
+	g.prepCombinedTargets(passes)
+	img := g.combineTargets()
+	if img == nil {
+		return
+	}
+	cmd := &g.Painter.blitCmds[g.Painter.currentFrame]
+	cmd.Begin()
+	defer cmd.End()
+	g.Painter.forceQueueCommand(*cmd, false)
+	g.TransitionImageLayout(&targetTexture.RenderId,
+		GPUImageLayoutTransferDstOptimal, GPUImageAspectColorBit,
+		GPUAccessTransferWriteBit, cmd)
+	region := vk.ImageBlit{}
+	region.SrcOffsets[1].X = int32(img.Width)
+	region.SrcOffsets[1].Y = int32(img.Height)
+	region.SrcOffsets[1].Z = 1
+	region.DstOffsets[1].X = int32(targetTexture.RenderId.Width)
+	region.DstOffsets[1].Y = int32(targetTexture.RenderId.Height)
+	region.DstOffsets[1].Z = 1
+	region.DstSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
+	region.DstSubresource.LayerCount = 1
+	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
+	region.SrcSubresource.LayerCount = 1
+	g.TransitionImageLayout(img, GPUImageLayoutTransferSrcOptimal,
+		GPUImageAspectColorBit, GPUAccessTransferReadBit, cmd)
+	vk.CmdBlitImage(cmd.buffer, vk.Image(img.Image.handle), img.Layout.toVulkan(),
+		vk.Image(targetTexture.RenderId.Image.handle), vulkan_const.ImageLayoutTransferDstOptimal,
+		1, &region, vulkan_const.FilterLinear)
+	g.TransitionImageLayout(img, GPUImageLayoutColorAttachmentOptimal,
+		GPUImageAspectColorBit, GPUAccessColorAttachmentReadBit|GPUAccessColorAttachmentWriteBit, cmd)
+	g.TransitionImageLayout(&targetTexture.RenderId, GPUImageLayoutShaderReadOnlyOptimal,
+		GPUImageAspectColorBit, GPUAccessShaderReadBit, cmd)
 	g.cleanupCombined(cmd)
 }
 
@@ -297,60 +347,104 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 	}
 }
 
-func (g *GPUDevice) prepCombinedTargets(passes []*RenderPass) {
-	defer tracing.NewRegion("Vulkan.prepCombinedTargets").End()
-	combineMat, err := g.Painter.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
+type combinedTargetSpec struct {
+	sort     int
+	color    *Texture
+	position *Texture
+	normal   *Texture
+}
+
+func (g *GPUDevice) combinedTargetSpecs(passes []*RenderPass) []combinedTargetSpec {
+	defer tracing.NewRegion("Vulkan.combinedTargetSpecs").End()
+	blankTex, err := g.Painter.caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
 	if err != nil {
-		slog.Error("failed to load the combine material", "error", err)
+		slog.Error("failed to load fallback combine texture", "error", err)
+		return nil
 	}
-	g.Painter.caches.ShaderCache().CreatePending()
-	// Sort order of the passes matter, so we need a complete recreate if not ok
-	ok := false
-	sorts := make([]int, 0, len(passes))
-	mats := make([]*Material, 0, len(passes))
-	blankTex, _ := g.Painter.caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
+	specs := make([]combinedTargetSpec, 0, len(passes))
 	for i, p := range passes {
 		tex := p.SelectOutputAttachment(g)
 		if tex == nil || p.construction.SkipCombine {
 			continue
 		}
-		var ok bool
-		var pTex, nTex *Texture
-		if pTex, ok = p.SelectOutputAttachmentWithSuffix(".position"); !ok {
+		pTex, ok := p.SelectOutputAttachmentWithSuffix(".position")
+		if !ok {
 			pTex = blankTex
 		}
-		if nTex, ok = p.SelectOutputAttachmentWithSuffix(".normal"); !ok {
+		nTex, ok := p.SelectOutputAttachmentWithSuffix(".normal")
+		if !ok {
 			nTex = blankTex
 		}
-		mats = append(mats, combineMat.CreateInstance([]*Texture{tex, pTex, nTex}))
-		sorts = append(sorts, passes[i].construction.Sort)
-		matIdx := len(mats) - 1
-		if len(g.Painter.combinedDrawings.renderPassGroups) > 0 {
-			var d *ShaderDraw
-			d, _ = g.Painter.combinedDrawings.renderPassGroups[0].findShaderDraw(mats[matIdx])
-			for _, v := range d.material.Instances {
-				if slices.Equal(mats[matIdx].Textures, v.Textures) {
-					ok = true
-					break
-				}
-			}
-		}
+		specs = append(specs, combinedTargetSpec{
+			sort:     passes[i].construction.Sort,
+			color:    tex,
+			position: pTex,
+			normal:   nTex,
+		})
 	}
-	if ok {
+	return specs
+}
+
+func combinedTargetSignature(specs []combinedTargetSpec) string {
+	defer tracing.NewRegion("Vulkan.combinedTargetSignature").End()
+	var builder strings.Builder
+	for i := range specs {
+		builder.WriteString(strconv.Itoa(specs[i].sort))
+		builder.WriteByte(':')
+		if specs[i].color != nil {
+			builder.WriteString(specs[i].color.Key)
+		}
+		builder.WriteByte(',')
+		if specs[i].position != nil {
+			builder.WriteString(specs[i].position.Key)
+		}
+		builder.WriteByte(',')
+		if specs[i].normal != nil {
+			builder.WriteString(specs[i].normal.Key)
+		}
+		builder.WriteByte(';')
+	}
+	return builder.String()
+}
+
+func (g *GPUDevice) prepCombinedTargets(passes []*RenderPass) {
+	defer tracing.NewRegion("Vulkan.prepCombinedTargets").End()
+	combineMat, err := g.Painter.caches.MaterialCache().Material(assets.MaterialDefinitionCombine)
+	if err != nil {
+		slog.Error("failed to load the combine material", "error", err)
 		return
 	}
-	g.Painter.combinedDrawings.Clear()
+	g.Painter.caches.ShaderCache().CreatePending()
+	specs := g.combinedTargetSpecs(passes)
+	signature := combinedTargetSignature(specs)
+	if signature != "" && signature == g.Painter.combinedTargetSig &&
+		g.Painter.combinedDrawings.HasDrawings() {
+		return
+	}
+	if g.Painter.combinedDrawings.HasDrawings() {
+		g.Painter.combinedDrawings.Destroy(g)
+		g.Painter.combinedDrawings = NewDrawings()
+	}
+	g.Painter.combinedTargetSig = signature
+	if len(specs) == 0 {
+		return
+	}
 	mesh := NewMeshQuad(g.Painter.caches.MeshCache())
-	for i := range mats {
+	for i := range specs {
 		sd := &ShaderDataCombine{NewShaderDataBase(), matrix.Color{1, 1, 1, 1}}
 		m := matrix.Mat4Identity()
 		m.Scale(matrix.Vec3{1, 1, 1})
 		sd.SetModel(m)
+		mat := combineMat.CreateInstance([]*Texture{
+			specs[i].color,
+			specs[i].position,
+			specs[i].normal,
+		})
 		g.Painter.combinedDrawings.AddDrawing(Drawing{
-			Material:   mats[i],
+			Material:   mat,
 			Mesh:       mesh,
 			ShaderData: sd,
-			Sort:       sorts[i],
+			Sort:       specs[i].sort,
 			ViewCuller: &g.Painter.combinedDrawingCuller,
 		})
 	}
@@ -359,6 +453,11 @@ func (g *GPUDevice) prepCombinedTargets(passes []*RenderPass) {
 
 func (g *GPUDevice) combineTargets() *TextureId {
 	defer tracing.NewRegion("Vulkan.combineTargets").End()
+	if !g.Painter.combinedDrawings.HasDrawings() ||
+		len(g.Painter.combinedDrawings.renderPassGroups) == 0 ||
+		len(g.Painter.combinedDrawings.renderPassGroups[0].draws) == 0 {
+		return nil
+	}
 	cmd := &g.Painter.combineCmds[g.Painter.currentFrame]
 	cmd.Begin()
 	defer cmd.End()
@@ -379,6 +478,11 @@ func (g *GPUDevice) combineTargets() *TextureId {
 
 func (g *GPUDevice) cleanupCombined(cmd *CommandRecorder) {
 	defer tracing.NewRegion("Vulkan.cleanupCombined").End()
+	if !g.Painter.combinedDrawings.HasDrawings() ||
+		len(g.Painter.combinedDrawings.renderPassGroups) == 0 ||
+		len(g.Painter.combinedDrawings.renderPassGroups[0].draws) == 0 {
+		return
+	}
 	// There is only one render pass in combined, so we can just grab the first one
 	groups := g.Painter.combinedDrawings.renderPassGroups[0].draws[0].instanceGroups
 	for i := range groups {

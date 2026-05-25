@@ -238,6 +238,27 @@ func TestDrawInstanceGroupUpdateDataIsPerRenderView(t *testing.T) {
 	}
 }
 
+func TestDrawInstanceGroupUIUsesFallbackCuller(t *testing.T) {
+	mesh := NewMesh("mesh", testVerts(), []uint32{0, 1})
+	inst := newTestDrawInstance()
+	group := NewDrawInstanceGroup(mesh, inst.Size(), &testViewCuller{inView: true, viewChanged: true})
+	group.MaterialInstance = &Material{}
+	group.Layer = RenderLayerUI
+	group.AddInstance(inst)
+	view := newRenderView(RenderViewOptions{
+		Name:   "default",
+		Camera: &testViewCuller{inView: false, viewChanged: true},
+	}, 0)
+	var bytes [64]byte
+	group.viewStateForView(view).rawData.byteMapping[0] = unsafe.Pointer(&bytes[0])
+
+	group.UpdateDataForView(&GPUDevice{}, 0, LightsForRender{}, view)
+	if group.VisibleCountForView(view) != 1 {
+		t.Fatalf("UI layer should use its fallback culler; visible count = %d, want 1",
+			group.VisibleCountForView(view))
+	}
+}
+
 func TestDrawInstanceGroupAddInstance(t *testing.T) {
 	group := NewDrawInstanceGroup(NewMesh("mesh", testVerts(), []uint32{0, 1}), 16, nil)
 	group.MaterialInstance = &Material{shaderInfo: ShaderDataCompiled{LayoutGroups: []ShaderLayoutGroup{{

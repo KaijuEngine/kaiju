@@ -51,6 +51,30 @@ func (g *GPUDevice) BlitTargets(passes []*RenderPass) {
 	g.blitTargetsImpl(passes)
 }
 
+func (g *GPUDevice) BlitTargetsToRenderTarget(passes []*RenderPass, target *RenderTarget) {
+	defer tracing.NewRegion("GPUDevice.BlitTargetsToRenderTarget").End()
+	if target == nil || !g.LogicalDevice.SwapChain.IsValid() {
+		return
+	}
+	g.blitTargetsToRenderTargetImpl(passes, target)
+}
+
+func (g *GPUDevice) PrepareRenderTarget(target *RenderTarget) error {
+	defer tracing.NewRegion("GPUDevice.PrepareRenderTarget").End()
+	if target == nil {
+		return nil
+	}
+	return target.ensureRealized(g)
+}
+
+func (g *GPUDevice) FlushQueuedCommands() bool {
+	defer tracing.NewRegion("GPUDevice.FlushQueuedCommands").End()
+	if !g.LogicalDevice.SwapChain.IsValid() {
+		return false
+	}
+	return g.flushQueuedCommandsImpl()
+}
+
 func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, state *DrawInstanceViewState) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)

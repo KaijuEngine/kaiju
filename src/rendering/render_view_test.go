@@ -73,8 +73,8 @@ func TestRenderViewManagerCreatesImplicitDefaultView(t *testing.T) {
 	if view.Name() != DefaultRenderViewName {
 		t.Fatalf("default render view name = %q, want %q", view.Name(), DefaultRenderViewName)
 	}
-	if view.LayerMask() != RenderLayerWorld {
-		t.Fatalf("default layer mask = %v, want world", view.LayerMask())
+	if view.LayerMask() != RenderLayerAll {
+		t.Fatalf("default layer mask = %v, want all", view.LayerMask())
 	}
 	if !view.Clear() {
 		t.Fatalf("default render view should clear")
@@ -91,6 +91,32 @@ func TestRenderViewsForDrawKeepsDefaultViewActive(t *testing.T) {
 	selected := renderViewsForDraw([]*RenderView{other, defaultView})
 	if len(selected) != 1 || selected[0] != defaultView {
 		t.Fatalf("selected views = %v, want only default view", selected)
+	}
+}
+
+func TestRenderViewsForDrawPlacesTargetsBeforeDefault(t *testing.T) {
+	target := mustCreateRenderTarget(t, RenderTargetOptions{
+		Name:   "viewport",
+		Width:  320,
+		Height: 200,
+	})
+	manager := NewRenderViewManager(RenderViewOptions{
+		Name:      DefaultRenderViewName,
+		LayerMask: RenderLayerAll,
+	})
+	targetView := mustCreateRenderView(t, &manager, RenderViewOptions{
+		Name:      "viewport",
+		Target:    target,
+		LayerMask: RenderLayerWorld,
+		Sort:      10,
+	})
+	defaultView, _ := manager.Default()
+	selected := renderViewsForDraw(manager.Views())
+	if len(selected) != 2 {
+		t.Fatalf("selected view count = %d, want 2", len(selected))
+	}
+	if selected[0] != targetView || selected[1] != defaultView {
+		t.Fatalf("selected view order = %v, want target then default", selected)
 	}
 }
 

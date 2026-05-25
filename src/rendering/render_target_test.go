@@ -88,6 +88,37 @@ func TestRenderTargetTextureColorBeforeRealizationReturnsError(t *testing.T) {
 	}
 }
 
+func TestRenderTargetManagerResizesWindowMatchedTargets(t *testing.T) {
+	manager := NewRenderTargetManager()
+	target, err := manager.Create(RenderTargetOptions{
+		Name:       "viewport",
+		Width:      320,
+		Height:     200,
+		ResizeMode: RenderTargetResizeModeMatchWindow,
+	})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	fixed, err := manager.Create(RenderTargetOptions{
+		Name:       "fixed",
+		Width:      64,
+		Height:     64,
+		ResizeMode: RenderTargetResizeModeFixed,
+	})
+	if err != nil {
+		t.Fatalf("Create fixed returned error: %v", err)
+	}
+	manager.ResizeMatchingWindow(800, 450)
+	if target.Width() != 800 || target.Height() != 450 || !target.ResizeDirty() {
+		t.Fatalf("matched target size/dirty = %dx%d/%v, want 800x450/true",
+			target.Width(), target.Height(), target.ResizeDirty())
+	}
+	if fixed.Width() != 64 || fixed.Height() != 64 || fixed.ResizeDirty() {
+		t.Fatalf("fixed target size/dirty = %dx%d/%v, want 64x64/false",
+			fixed.Width(), fixed.Height(), fixed.ResizeDirty())
+	}
+}
+
 func TestRenderTargetDestroyRemovesAndMarksDestroyedOnPendingProcess(t *testing.T) {
 	manager := NewRenderTargetManager()
 	target, err := manager.Create(RenderTargetOptions{

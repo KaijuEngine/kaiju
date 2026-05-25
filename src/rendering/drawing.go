@@ -7,6 +7,7 @@
 package rendering
 
 import (
+	"log/slog"
 	"sort"
 	"sync"
 
@@ -226,19 +227,25 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*Re
 		}
 		passes = append(passes, rp)
 		if rp.IsShadowPass() {
-			shadows[shadowIdx] = rp.textures[0].RenderId
-			shadowIdx++
+			if shadowIdx < len(shadows) {
+				shadows[shadowIdx] = rp.textures[0].RenderId
+				shadowIdx++
+			}
 		}
 	}
 	sort.Slice(passes, func(i, j int) bool {
 		return passes[i].construction.Sort < passes[j].construction.Sort
 	})
-	drawnPasses := make([]*RenderPass, 0, len(passes))
-	drawnPassLookup := make(map[*RenderPass]struct{}, len(passes))
 	for _, view := range views {
-		if view.Target() != nil {
-			continue
+		target := view.Target()
+		if target != nil {
+			if err := device.PrepareRenderTarget(target); err != nil {
+				slog.Error("failed to prepare render target", "target", target.Name(), "error", err)
+				continue
+			}
 		}
+		drawnPasses := make([]*RenderPass, 0, len(passes))
+		drawnPassLookup := make(map[*RenderPass]struct{}, len(passes))
 		layerMask := view.LayerMask()
 		for i := range passes {
 			rp := passes[i]
@@ -252,33 +259,50 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*Re
 				drawnPassLookup[rp] = struct{}{}
 			}
 		}
-	}
-	if len(drawnPasses) > 0 {
-		device.BlitTargets(drawnPasses)
+		if len(drawnPasses) == 0 {
+			continue
+		}
+		if target != nil {
+			device.BlitTargetsToRenderTarget(drawnPasses, target)
+			if !device.FlushQueuedCommands() {
+				return
+			}
+		} else {
+			device.BlitTargets(drawnPasses)
+		}
 	}
 }
 
 func renderViewsForDraw(views []*RenderView) []*RenderView {
-	var first *RenderView
+	targetViews := make([]*RenderView, 0, len(views))
+	var defaultView *RenderView
+	var firstSwapchainView *RenderView
 	for i := range views {
 		if views[i] == nil {
 			continue
 		}
+		if views[i].Target() != nil {
+			targetViews = append(targetViews, views[i])
+			continue
+		}
 		if views[i].Name() == DefaultRenderViewName {
-			return []*RenderView{views[i]}
-		}
-		if first == nil {
-			first = views[i]
+			defaultView = views[i]
+		} else if firstSwapchainView == nil {
+			firstSwapchainView = views[i]
 		}
 	}
-	if first != nil {
-		return []*RenderView{first}
+	swapchainView := defaultView
+	if swapchainView == nil {
+		swapchainView = firstSwapchainView
 	}
-	return []*RenderView{newRenderView(RenderViewOptions{
-		Name:      DefaultRenderViewName,
-		LayerMask: RenderLayerAll,
-		Clear:     true,
-	}, 0)}
+	if swapchainView == nil {
+		swapchainView = newRenderView(RenderViewOptions{
+			Name:      DefaultRenderViewName,
+			LayerMask: RenderLayerAll,
+			Clear:     true,
+		}, 0)
+	}
+	return append(targetViews, swapchainView)
 }
 
 func (d *Drawings) Destroy(device *GPUDevice) {

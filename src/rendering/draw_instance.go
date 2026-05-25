@@ -422,6 +422,9 @@ func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, ligh
 	state.visibleCount = 0
 	instanceIndex := 0
 	viewCuller := renderViewCuller(view, d.viewCuller)
+	if d.EffectiveLayer() == RenderLayerUI {
+		viewCuller = d.viewCuller
+	}
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
 		// This gives me a tiny fraction of extra perf for some reason, don't judge me

@@ -21,8 +21,8 @@ func TestNewHostInitializesDefaultRenderView(t *testing.T) {
 	if view.Camera() != host.Cameras.Primary.Camera {
 		t.Fatalf("default render view camera = %#v, want primary camera", view.Camera())
 	}
-	if view.LayerMask() != rendering.RenderLayerWorld {
-		t.Fatalf("default render view layer mask = %v, want world", view.LayerMask())
+	if view.LayerMask() != rendering.RenderLayerAll {
+		t.Fatalf("default render view layer mask = %v, want all", view.LayerMask())
 	}
 	if view.Target() != nil {
 		t.Fatalf("default render view should target the swapchain path")

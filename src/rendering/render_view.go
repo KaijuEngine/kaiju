@@ -131,7 +131,7 @@ type RenderViewManager struct {
 func NewRenderViewManager(defaultOptions ...RenderViewOptions) RenderViewManager {
 	options := RenderViewOptions{
 		Name:      DefaultRenderViewName,
-		LayerMask: RenderLayerWorld,
+		LayerMask: RenderLayerAll,
 		Clear:     true,
 	}
 	if len(defaultOptions) > 0 {
