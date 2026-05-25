@@ -35,12 +35,21 @@ func TestDrawingExplicitLayerMatching(t *testing.T) {
 		{name: "UI skips editor", layer: RenderLayerUI, mask: RenderLayerEditor, want: false},
 		{name: "editor matches editor", layer: RenderLayerEditor, mask: RenderLayerEditor, want: true},
 		{name: "editor skips world", layer: RenderLayerEditor, mask: RenderLayerWorld, want: false},
+		{name: "editor picking matches picking", layer: RenderLayerEditorPicking, mask: RenderLayerEditorPicking, want: true},
+		{name: "editor picking skips editor", layer: RenderLayerEditorPicking, mask: RenderLayerEditor, want: false},
+		{name: "editor picking skips all", layer: RenderLayerEditorPicking, mask: RenderLayerAll, want: false},
 	}
 	for _, c := range cases {
 		drawing := Drawing{Layer: c.layer}
 		if got := drawing.MatchesLayer(c.mask); got != c.want {
 			t.Fatalf("%s: MatchesLayer() = %v, want %v", c.name, got, c.want)
 		}
+	}
+}
+
+func TestRenderLayerAllExcludesEditorPicking(t *testing.T) {
+	if RenderLayerAll&RenderLayerEditorPicking != 0 {
+		t.Fatalf("RenderLayerAll should exclude editor picking")
 	}
 }
 

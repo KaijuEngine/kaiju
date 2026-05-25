@@ -44,4 +44,5 @@ const (
 	MaterialDefinitionEdTransformWire = "ed_transform_wire.material"
 	MaterialDefinitionEdFrustumWire   = "ed_frustum_wire.material"
 	MaterialDefinitionEdGizmo         = "ed_gizmo.material"
+	MaterialDefinitionEditorPicking   = "editor_picking.material"
 )

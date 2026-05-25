@@ -20,6 +20,9 @@ func (h *objectSpawnHistory) Redo() {
 	if h.e.StageData.ShaderData != nil {
 		h.e.StageData.ShaderData.Activate()
 	}
+	if h.e.StageData.PickingShaderData != nil {
+		h.e.StageData.PickingShaderData.Activate()
+	}
 	if h.e.StageData.Bvh != nil {
 		h.m.AddBVH(h.e)
 	}
@@ -32,6 +35,9 @@ func (h *objectSpawnHistory) Undo() {
 	h.e.isDeleted = true
 	if h.e.StageData.ShaderData != nil {
 		h.e.StageData.ShaderData.Deactivate()
+	}
+	if h.e.StageData.PickingShaderData != nil {
+		h.e.StageData.PickingShaderData.Deactivate()
 	}
 	if h.e.StageData.Bvh != nil {
 		h.m.RemoveEntityBVH(h.e)

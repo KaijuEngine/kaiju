@@ -18,6 +18,7 @@ import (
 type StageEntity struct {
 	engine.Entity
 	StageData    StageEntityEditorData
+	PickID       uint32
 	dataBindings []*entity_data_binding.EntityDataEntry
 	isDeleted    bool
 	isLocked     bool
