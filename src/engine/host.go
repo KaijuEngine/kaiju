@@ -95,6 +95,7 @@ type Host struct {
 	fontCache         rendering.FontCache
 	materialCache     rendering.MaterialCache
 	Drawings          rendering.Drawings
+	RenderTargets     rendering.RenderTargetManager
 	Localization      localization.Localization
 	frame             FrameId
 	frameTime         float64
@@ -125,6 +126,7 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 		Closing:       false,
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
+		RenderTargets: rendering.NewRenderTargetManager(),
 		Localization:  localization.Select(),
 		entitiesById:  make(map[EntityId]*Entity),
 		CloseSignal:   make(chan struct{}, 1),
@@ -421,6 +423,9 @@ func (host *Host) Render() {
 	}
 	host.preRenderRunner = host.preRenderRunner[:0]
 	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
+	if host.Window != nil && host.Window.GpuInstance != nil && host.Window.GpuInstance.IsValid() {
+		host.RenderTargets.ProcessPending(host.Window.GpuInstance.PrimaryDevice())
+	}
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
@@ -523,6 +528,7 @@ func (host *Host) Teardown() {
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
 	host.Drawings.Destroy(gpuDevice)
+	host.RenderTargets.DestroyAll(gpuDevice)
 	host.textureCache.Destroy()
 	host.meshCache.Destroy()
 	host.shaderCache.Destroy()
