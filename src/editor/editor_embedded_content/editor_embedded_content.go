@@ -36,6 +36,8 @@ func toEmbedPath(key string) string {
 	switch filepath.Ext(key) {
 	case ".bin":
 		return filepath.ToSlash(filepath.Join(prefix, "fonts", key))
+	case ".fbx":
+		fallthrough
 	case ".gltf":
 		return filepath.ToSlash(filepath.Join(prefix, "meshes", key))
 	case ".png":

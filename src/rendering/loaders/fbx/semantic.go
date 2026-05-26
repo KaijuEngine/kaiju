@@ -579,8 +579,9 @@ func asInt64(value any) (int64, bool) {
 }
 
 func ToLoadResult(doc Document) (load_result.Result, error) {
-	if _, err := BuildSceneIndex(doc); err != nil {
+	index, err := BuildSceneIndex(doc)
+	if err != nil {
 		return load_result.Result{}, err
 	}
-	return load_result.Result{}, nil
+	return sceneIndexToLoadResult(index)
 }
