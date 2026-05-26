@@ -103,6 +103,18 @@ func (m *StageManager) HasPickableEntities() bool {
 	return false
 }
 
+func (m *StageManager) DirtyPickableTransforms() {
+	defer tracing.NewRegion("StageManager.DirtyPickableTransforms").End()
+	for i := range m.entities {
+		e := m.entities[i]
+		if e == nil || e.IsDeleted() || e.IsLocked() ||
+			e.PickID == 0 || e.StageData.PickingShaderData == nil {
+			continue
+		}
+		e.Transform.SetDirty()
+	}
+}
+
 func (m *StageManager) unregisterPickID(e *StageEntity) {
 	if e == nil || e.PickID == 0 || m.pickIDToEntity == nil {
 		return
@@ -157,4 +169,16 @@ func (m *StageManager) addPickingDrawing(e *StageEntity) {
 	if draw, ok := m.newPickingDrawing(e, material); ok {
 		m.host.Drawings.AddDrawing(draw)
 	}
+}
+
+func (m *StageManager) AddPickingDrawing(e *StageEntity) {
+	m.addPickingDrawing(e)
+}
+
+func (m *StageManager) ClearPickingDrawing(e *StageEntity) {
+	if e == nil || e.StageData.PickingShaderData == nil {
+		return
+	}
+	e.StageData.PickingShaderData.Destroy()
+	e.StageData.PickingShaderData = nil
 }

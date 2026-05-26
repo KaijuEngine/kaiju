@@ -120,6 +120,7 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 			ViewCuller: &w.Host.Cameras.Primary,
 		}
 		w.Host.Drawings.AddDrawing(draw)
+		man.AddPickingDrawing(e)
 	})
 	man.ClearSelection()
 	man.SelectEntity(e)
@@ -368,6 +369,7 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 			ViewCuller: &w.Host.Cameras.Primary,
 		}
 		w.Host.Drawings.AddDrawing(draw)
+		w.stageView.Manager().AddPickingDrawing(e)
 	})
 	w.stageView.Manager().ClearSelection()
 	w.stageView.Manager().SelectEntity(e)
@@ -422,6 +424,7 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 		ViewCuller: &w.Host.Cameras.Primary,
 	}
 	w.Host.Drawings.AddDrawing(draw)
+	man.AddPickingDrawing(e)
 	e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
 	w.stageView.Manager().ClearSelection()
 	w.stageView.Manager().SelectEntity(e)
@@ -455,6 +458,7 @@ func (w *StageWorkspace) setEntityMesh(e *editor_stage_manager.StageEntity, mesh
 	}
 	man := w.stageView.Manager()
 	man.RemoveEntityBVH(e)
+	man.ClearPickingDrawing(e)
 	e.StageData.Mesh = mesh
 	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(km.Verts)
 	e.StageData.Description.Mesh = meshId
@@ -472,6 +476,7 @@ func (w *StageWorkspace) setEntityMesh(e *editor_stage_manager.StageEntity, mesh
 		Transform:  &e.Transform,
 		ViewCuller: &w.Host.Cameras.Primary,
 	})
+	man.AddPickingDrawing(e)
 	w.setInitialSkinnedPose(e)
 	return true
 }
@@ -485,7 +490,9 @@ func (w *StageWorkspace) clearEntityMesh(e *editor_stage_manager.StageEntity) bo
 		e.StageData.ShaderData.Destroy()
 		e.StageData.ShaderData = nil
 	}
-	w.stageView.Manager().RemoveEntityBVH(e)
+	man := w.stageView.Manager()
+	man.RemoveEntityBVH(e)
+	man.ClearPickingDrawing(e)
 	e.StageData.Bvh = nil
 	e.StageData.Mesh = nil
 	e.StageData.SnapVertices = nil
@@ -609,6 +616,7 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 		Transform:  &e.Transform,
 		ViewCuller: &w.Host.Cameras.Primary,
 	})
+	w.stageView.Manager().AddPickingDrawing(e)
 	e.Transform.SetDirty()
 	w.setInitialSkinnedPose(e)
 	return true

@@ -120,6 +120,7 @@ func (p *StagePicking) request(req stagePickingRequest) bool {
 		slog.Warn("failed to create editor picking render view", "error", err)
 		return false
 	}
+	p.view.manager.DirtyPickableTransforms()
 	p.pending = &req
 	return true
 }

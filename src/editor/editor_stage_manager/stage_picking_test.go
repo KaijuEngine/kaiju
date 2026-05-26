@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 )
@@ -166,6 +167,45 @@ func TestStageManagerNewPickingDrawingUsesProvidedMeshAndTransform(t *testing.T)
 	sd := pickData.(*shader_data_registry.ShaderDataEditorPicking)
 	if sd.PickID == 0 || sd.PickID != entity.PickID {
 		t.Fatalf("picking shader data PickID = %d, entity PickID = %d", sd.PickID, entity.PickID)
+	}
+}
+
+func TestStageManagerClearPickingDrawingDestroysAndRemovesShaderData(t *testing.T) {
+	manager := &StageManager{}
+	entity := &StageEntity{}
+	pickData := shader_data_registry.Create(editorPickingShaderDataName)
+	entity.StageData.PickingShaderData = pickData
+
+	manager.ClearPickingDrawing(entity)
+
+	if entity.StageData.PickingShaderData != nil {
+		t.Fatalf("picking shader data should be cleared")
+	}
+	if !pickData.IsDestroyed() {
+		t.Fatalf("picking shader data should be destroyed")
+	}
+	manager.ClearPickingDrawing(entity)
+	manager.ClearPickingDrawing(nil)
+}
+
+func TestStageManagerDirtyPickableTransformsMarksMovedPickingEntities(t *testing.T) {
+	manager := &StageManager{}
+	entity := &StageEntity{}
+	entity.Init(nil)
+	entity.StageData.PickingShaderData = shader_data_registry.Create(editorPickingShaderDataName)
+	manager.entities = []*StageEntity{entity}
+	manager.AssignPickID(entity)
+	entity.Transform.ResetDirty()
+	entity.Transform.SetPosition(matrix.NewVec3(4, 0, 0))
+	entity.Transform.ResetDirty()
+	if entity.Transform.IsDirty() {
+		t.Fatalf("test setup should start with a clean moved transform")
+	}
+
+	manager.DirtyPickableTransforms()
+
+	if !entity.Transform.IsDirty() {
+		t.Fatalf("pickable transform should be marked dirty for the picking pass")
 	}
 }
 
