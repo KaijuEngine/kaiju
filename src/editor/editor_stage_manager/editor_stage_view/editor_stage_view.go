@@ -73,6 +73,10 @@ func (v *StageView) ClearViewportToolOwner(owner ViewportToolOwner) {
 	}
 }
 
+func (v *StageView) RefreshTransformGizmoVisibility() {
+	v.transformMan.RefreshToolVisibility()
+}
+
 func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
 	v.manager.Initialize(host, ed.History(), ed)
