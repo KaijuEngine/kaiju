@@ -241,6 +241,9 @@ func TestToLoadResultMonkeyFixtureGeometry(t *testing.T) {
 	if got := len(res.Meshes[0].Indexes); got != 2904 {
 		t.Fatalf("index count = %d, want 2904", got)
 	}
+	if len(res.Joints) != 0 || len(res.Animations) != 0 {
+		t.Fatalf("static monkey fixture produced %d joints and %d animations, want none", len(res.Joints), len(res.Animations))
+	}
 }
 
 func testMeshGeometryObject(node Node) *Object {
@@ -277,12 +280,14 @@ func testFBXObject(id int64, name string, class string, vec3Props map[string]mat
 
 func testSceneIndex(objects ...*Object) SceneIndex {
 	index := SceneIndex{
-		Objects:  map[int64]*Object{},
-		Geometry: map[int64]*Object{},
-		Model:    map[int64]*Object{},
-		Material: map[int64]*Object{},
-		Texture:  map[int64]*Object{},
-		Video:    map[int64]*Object{},
+		Objects:   map[int64]*Object{},
+		Geometry:  map[int64]*Object{},
+		Model:     map[int64]*Object{},
+		Material:  map[int64]*Object{},
+		Texture:   map[int64]*Object{},
+		Video:     map[int64]*Object{},
+		Deformer:  map[int64]*Object{},
+		Animation: map[int64]*Object{},
 		Connections: ConnectionIndex{
 			ChildrenByParent: map[int64][]Connection{},
 			ParentsByChild:   map[int64][]Connection{},
@@ -303,6 +308,12 @@ func testSceneIndex(objects ...*Object) SceneIndex {
 			index.Texture[obj.ID] = obj
 		case "Video":
 			index.Video[obj.ID] = obj
+		case "Deformer":
+			index.Deformer[obj.ID] = obj
+		default:
+			if isAnimationClass(obj.Class) || isAnimationClass(obj.NodeClass) {
+				index.Animation[obj.ID] = obj
+			}
 		}
 	}
 	return index

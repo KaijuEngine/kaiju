@@ -81,6 +81,8 @@ func sceneIndexToLoadResultWithPath(index SceneIndex, sourcePath string) (load_r
 		}
 	}
 	bindings := geometryBindings(index)
+	skinBindings := fbxSkinBindings(index, nodeIndexByObjectID, converter, unitScale, &res)
+	morphTargets := fbxMorphTargets(index, converter, unitScale)
 	materials := fbxMaterialResolver{
 		index:        index,
 		sourcePath:   sourcePath,
@@ -96,7 +98,11 @@ func sceneIndexToLoadResultWithPath(index SceneIndex, sourcePath string) (load_r
 	}
 	for i := range bindings {
 		binding := bindings[i]
-		verts, indices, err := meshGeometryFromObjectWithTransforms(binding.geometry, binding.modelObject, converter, unitScale)
+		options := fbxMeshOptions{
+			Skin:        skinBindings[binding.geometry.ID],
+			MorphTarget: morphTargets[binding.geometry.ID],
+		}
+		verts, indices, err := meshGeometryFromObjectWithOptions(binding.geometry, binding.modelObject, converter, unitScale, options)
 		if err != nil {
 			return res, err
 		}
@@ -108,6 +114,20 @@ func sceneIndexToLoadResultWithPath(index SceneIndex, sourcePath string) (load_r
 		}
 		key := fmt.Sprintf("%s/%d", meshName, binding.geometry.ID)
 		res.Add(name, key, verts, indices, materials.TexturesForBinding(binding), &res.Nodes[nodeIndex])
+	}
+	res.Animations = fbxAnimations(index, nodeIndexByObjectID, converter, unitScale)
+	for i := range res.Animations {
+		for j := range res.Animations[i].Frames {
+			for k := range res.Animations[i].Frames[j].Bones {
+				nodeIndex := res.Animations[i].Frames[j].Bones[k].NodeIndex
+				if nodeIndex >= 0 && nodeIndex < len(res.Nodes) {
+					res.Nodes[nodeIndex].IsAnimated = true
+					for parent := res.Nodes[nodeIndex].Parent; parent >= 0; parent = res.Nodes[parent].Parent {
+						res.Nodes[parent].IsAnimated = true
+					}
+				}
+			}
+		}
 	}
 	return res, nil
 }
@@ -176,6 +196,10 @@ func meshGeometryFromObject(geometry *Object) ([]rendering.Vertex, []uint32, err
 }
 
 func meshGeometryFromObjectWithTransforms(geometry, model *Object, converter fbxBasisConverter, unitScale matrix.Float) ([]rendering.Vertex, []uint32, error) {
+	return meshGeometryFromObjectWithOptions(geometry, model, converter, unitScale, fbxMeshOptions{})
+}
+
+func meshGeometryFromObjectWithOptions(geometry, model *Object, converter fbxBasisConverter, unitScale matrix.Float, options fbxMeshOptions) ([]rendering.Vertex, []uint32, error) {
 	positions, err := readControlPointPositions(geometry.Node)
 	if err != nil {
 		return nil, nil, err
@@ -225,6 +249,14 @@ func meshGeometryFromObjectWithTransforms(geometry, model *Object, converter fbx
 				JointIds:     matrix.Vec4i{},
 				JointWeights: matrix.Vec4Zero(),
 				MorphTarget:  position,
+			}
+			if options.MorphTarget != nil {
+				if target, ok := options.MorphTarget[corner.ControlPoint]; ok {
+					vert.MorphTarget = target
+				}
+			}
+			if options.Skin != nil {
+				applyFBXSkinning(&vert, options.Skin.Influences[corner.ControlPoint])
 			}
 			if normal, ok := normals.Value(corner.PolygonVertex, corner.ControlPoint); ok {
 				vert.Normal = converter.ConvertDirection(normal)
