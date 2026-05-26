@@ -141,6 +141,34 @@ func TestStageManagerPickingDrawingOnlyForMeshBackedEntities(t *testing.T) {
 	}
 }
 
+func TestStageManagerNewPickingDrawingUsesProvidedMeshAndTransform(t *testing.T) {
+	manager := &StageManager{}
+	entity := &StageEntity{}
+	mesh := &rendering.Mesh{}
+	material := &rendering.Material{}
+
+	draw, pickData, ok := manager.NewPickingDrawing(entity, material, mesh, &entity.Transform)
+	if !ok {
+		t.Fatalf("expected custom picking drawing")
+	}
+	if draw.Mesh != mesh {
+		t.Fatalf("picking drawing mesh = %p, want %p", draw.Mesh, mesh)
+	}
+	if draw.Transform != &entity.Transform {
+		t.Fatalf("picking drawing transform = %p, want entity transform", draw.Transform)
+	}
+	if draw.ShaderData != pickData {
+		t.Fatalf("returned pick data should match drawing shader data")
+	}
+	if entity.StageData.PickingShaderData != nil {
+		t.Fatalf("custom picking drawing should not occupy the entity mesh picking slot")
+	}
+	sd := pickData.(*shader_data_registry.ShaderDataEditorPicking)
+	if sd.PickID == 0 || sd.PickID != entity.PickID {
+		t.Fatalf("picking shader data PickID = %d, entity PickID = %d", sd.PickID, entity.PickID)
+	}
+}
+
 func TestStageManagerSelectEntitiesReplaceAppendToggle(t *testing.T) {
 	history := &memento.History{}
 	manager := &StageManager{history: history}

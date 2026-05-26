@@ -89,6 +89,17 @@ func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
 	return dupe
 }
 
+func LinkDrawInstanceLifecycle(owner, follower DrawInstance) {
+	if owner == nil || follower == nil {
+		return
+	}
+	if owner.IsDestroyed() {
+		follower.Destroy()
+		return
+	}
+	owner.addShadow(follower)
+}
+
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
 
 type ShaderDataBase struct {

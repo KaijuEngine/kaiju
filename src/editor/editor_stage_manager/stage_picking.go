@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
@@ -95,7 +96,7 @@ func (m *StageManager) HasPickableEntities() bool {
 	defer tracing.NewRegion("StageManager.HasPickableEntities").End()
 	for i := range m.entities {
 		e := m.entities[i]
-		if e != nil && !e.IsDeleted() && !e.IsLocked() && e.StageData.Mesh != nil {
+		if e != nil && !e.IsDeleted() && !e.IsLocked() && e.PickID != 0 {
 			return true
 		}
 	}
@@ -115,22 +116,32 @@ func (m *StageManager) newPickingDrawing(e *StageEntity, material *rendering.Mat
 	if e == nil || material == nil || e.StageData.Mesh == nil || e.StageData.PickingShaderData != nil {
 		return rendering.Drawing{}, false
 	}
+	draw, sd, ok := m.NewPickingDrawing(e, material, e.StageData.Mesh, &e.Transform)
+	if ok {
+		e.StageData.PickingShaderData = sd
+	}
+	return draw, ok
+}
+
+func (m *StageManager) NewPickingDrawing(e *StageEntity, material *rendering.Material, mesh *rendering.Mesh, transform *matrix.Transform) (rendering.Drawing, rendering.DrawInstance, bool) {
+	if e == nil || material == nil || mesh == nil || transform == nil {
+		return rendering.Drawing{}, nil, false
+	}
 	pickID := m.AssignPickID(e)
 	sd := shader_data_registry.Create(editorPickingShaderDataName)
 	sd.(*shader_data_registry.ShaderDataEditorPicking).PickID = pickID
-	e.StageData.PickingShaderData = sd
 	var culler rendering.ViewCuller
 	if m.host != nil {
 		culler = &m.host.Cameras.Primary
 	}
 	return rendering.Drawing{
 		Material:   material,
-		Mesh:       e.StageData.Mesh,
+		Mesh:       mesh,
 		ShaderData: sd,
-		Transform:  &e.Transform,
+		Transform:  transform,
 		ViewCuller: culler,
 		Layer:      rendering.RenderLayerEditorPicking,
-	}, true
+	}, sd, true
 }
 
 func (m *StageManager) addPickingDrawing(e *StageEntity) {

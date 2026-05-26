@@ -54,5 +54,14 @@ layout(location = 0) flat out uint fragPickID;
 
 void main() {
 	fragPickID = pickID;
+#ifdef BILLBOARD
+	vec4 centerWorld = model * vec4(0.0, 0.0, 0.0, 1.0);
+	vec3 camRight = vec3(view[0].x, view[1].x, view[2].x);
+	vec3 camUp    = vec3(view[0].y, view[1].y, view[2].y);
+	vec3 offset = camRight * Position.x + camUp * Position.y;
+	vec4 worldPos = centerWorld + vec4(offset, 0.0);
+	gl_Position = projection * view * worldPos;
+#else
 	gl_Position = projection * view * model * vec4(Position, 1.0);
+#endif
 }
