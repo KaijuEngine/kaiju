@@ -69,6 +69,46 @@ func TestStageManagerEntityByPickIDDeterministic(t *testing.T) {
 	}
 }
 
+func TestStageManagerEntitiesByPickIDsUsesStageOrder(t *testing.T) {
+	manager := &StageManager{}
+	a := &StageEntity{}
+	b := &StageEntity{}
+	c := &StageEntity{}
+	manager.entities = []*StageEntity{a, b, c}
+	aID := manager.AssignPickID(a)
+	bID := manager.AssignPickID(b)
+	cID := manager.AssignPickID(c)
+
+	got := manager.EntitiesByPickIDs([]uint32{cID, aID, bID, aID})
+	want := []*StageEntity{a, b, c}
+	if len(got) != len(want) {
+		t.Fatalf("picked entity count = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("picked entity %d = %p, want %p", i, got[i], want[i])
+		}
+	}
+}
+
+func TestStageManagerEntitiesByPickIDsSkipsLockedDeletedAndStaleIDs(t *testing.T) {
+	manager := &StageManager{}
+	a := &StageEntity{}
+	b := &StageEntity{}
+	c := &StageEntity{}
+	manager.entities = []*StageEntity{a, b, c}
+	aID := manager.AssignPickID(a)
+	bID := manager.AssignPickID(b)
+	cID := manager.AssignPickID(c)
+	b.Lock()
+	c.isDeleted = true
+
+	got := manager.EntitiesByPickIDs([]uint32{cID, bID, aID, 99})
+	if len(got) != 1 || got[0] != a {
+		t.Fatalf("picked entities = %v, want only a", got)
+	}
+}
+
 func TestStageManagerPickingDrawingOnlyForMeshBackedEntities(t *testing.T) {
 	manager := &StageManager{}
 	material := &rendering.Material{}

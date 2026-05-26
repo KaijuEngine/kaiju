@@ -86,12 +86,7 @@ func (p *StagePicking) Update() {
 		return
 	}
 	ids := decodePickIDs(data)
-	entities := make([]*editor_stage_manager.StageEntity, 0, len(ids))
-	for i := range ids {
-		if e, ok := p.view.manager.EntityByPickID(ids[i]); ok {
-			entities = append(entities, e)
-		}
-	}
+	entities := p.view.manager.EntitiesByPickIDs(ids)
 	p.view.manager.SelectEntities(entities, req.mode)
 }
 

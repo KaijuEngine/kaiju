@@ -61,6 +61,36 @@ func (m *StageManager) EntityByPickID(id uint32) (*StageEntity, bool) {
 	return e, true
 }
 
+func (m *StageManager) EntitiesByPickIDs(ids []uint32) []*StageEntity {
+	defer tracing.NewRegion("StageManager.EntitiesByPickIDs").End()
+	if len(ids) == 0 {
+		return nil
+	}
+	picked := make(map[uint32]struct{}, len(ids))
+	for i := range ids {
+		if ids[i] != 0 {
+			picked[ids[i]] = struct{}{}
+		}
+	}
+	if len(picked) == 0 {
+		return nil
+	}
+	entities := make([]*StageEntity, 0, len(picked))
+	for i := range m.entities {
+		e := m.entities[i]
+		if e == nil {
+			continue
+		}
+		if _, ok := picked[e.PickID]; !ok {
+			continue
+		}
+		if resolved, ok := m.EntityByPickID(e.PickID); ok && resolved == e {
+			entities = append(entities, e)
+		}
+	}
+	return entities
+}
+
 func (m *StageManager) HasPickableEntities() bool {
 	defer tracing.NewRegion("StageManager.HasPickableEntities").End()
 	for i := range m.entities {
