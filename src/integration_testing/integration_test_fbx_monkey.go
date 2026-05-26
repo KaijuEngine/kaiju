@@ -12,6 +12,7 @@ import (
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/framework"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering/loaders"
 )
 
@@ -22,6 +23,9 @@ func init() {
 }
 
 func IntegrationTestFBXMonkey(host *engine.Host) {
+	host.PrimaryCamera().SetFarPlane(1000)
+	host.PrimaryCamera().SetPosition(matrix.NewVec3(0, -320, 0))
+	host.PrimaryCamera().SetLookAtWithUp(matrix.Vec3Zero(), matrix.Vec3Backward())
 	res, err := loaders.FBX("monkey.fbx", host.AssetDatabase())
 	if err != nil {
 		slog.Error("Failed to load FBX monkey", "error", err)

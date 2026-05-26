@@ -119,6 +119,106 @@ func TestMeshGeometryMissingNormalsGeneratesFaceNormals(t *testing.T) {
 	}
 }
 
+func TestSceneIndexToLoadResultModelHierarchy(t *testing.T) {
+	parent := testFBXObject(10, "Parent", "Model", nil)
+	child := testFBXObject(20, "Child", "Model", nil)
+	index := testSceneIndex(parent, child)
+	index.Connections.ParentsByChild[child.ID] = []Connection{{
+		Type:   "OO",
+		Child:  child.ID,
+		Parent: parent.ID,
+	}}
+	res, err := sceneIndexToLoadResult(index)
+	if err != nil {
+		t.Fatalf("sceneIndexToLoadResult returned error: %v", err)
+	}
+	parentNode := res.NodeByName("Parent")
+	childNode := res.NodeByName("Child")
+	if parentNode == nil || childNode == nil {
+		t.Fatalf("nodes = %#v; want Parent and Child", res.Nodes)
+	}
+	if childNode.Parent != 0 {
+		t.Fatalf("Child parent = %d, want Parent node index 0", childNode.Parent)
+	}
+	if parentNode.Parent != -1 {
+		t.Fatalf("Parent parent = %d, want -1", parentNode.Parent)
+	}
+}
+
+func TestLoadResultNodeLocalTRSAndUnitScale(t *testing.T) {
+	model := testFBXObject(10, "Node", "Model", map[string]matrix.Vec3{
+		"Lcl Translation": {1, 2, 3},
+		"Lcl Rotation":    {0, 90, 0},
+		"Lcl Scaling":     {2, 3, 4},
+	})
+	index := testSceneIndex(model)
+	index.GlobalSettings.UnitScaleFactor = 10
+	res, err := sceneIndexToLoadResult(index)
+	if err != nil {
+		t.Fatalf("sceneIndexToLoadResult returned error: %v", err)
+	}
+	if len(res.Nodes) != 1 {
+		t.Fatalf("node count = %d, want 1", len(res.Nodes))
+	}
+	node := res.Nodes[0]
+	if !matrix.Vec3ApproxTo(node.Position, matrix.Vec3{10, 20, 30}, 0.0001) {
+		t.Fatalf("Position = %#v, want {10 20 30}", node.Position)
+	}
+	if node.Scale != (matrix.Vec3{2, 3, 4}) {
+		t.Fatalf("Scale = %#v, want {2 3 4}", node.Scale)
+	}
+	wantRotation := matrix.QuaternionFromEuler(matrix.Vec3{0, 90, 0})
+	if !quaternionApproxTo(node.Rotation, wantRotation, 0.0001) {
+		t.Fatalf("Rotation = %#v, want %#v", node.Rotation, wantRotation)
+	}
+}
+
+func TestGeometricTransformBakesMeshWithoutAffectingChildNode(t *testing.T) {
+	parent := testFBXObject(10, "Parent", "Model", map[string]matrix.Vec3{
+		"GeometricTranslation": {5, 0, 0},
+	})
+	child := testFBXObject(20, "Child", "Model", map[string]matrix.Vec3{
+		"Lcl Translation": {1, 0, 0},
+	})
+	geometry := testMeshGeometryObject(testMeshGeometryNode(
+		testNodeWithProperty("Vertices", []float64{
+			0, 0, 0,
+			1, 0, 0,
+			0, 1, 0,
+		}),
+		testNodeWithProperty("PolygonVertexIndex", []int32{0, 1, -3}),
+	))
+	geometry.ID = 30
+	index := testSceneIndex(parent, child, geometry)
+	index.Connections.ParentsByChild[child.ID] = []Connection{{
+		Type:   "OO",
+		Child:  child.ID,
+		Parent: parent.ID,
+	}}
+	index.Connections.ParentsByChild[geometry.ID] = []Connection{{
+		Type:   "OO",
+		Child:  geometry.ID,
+		Parent: parent.ID,
+	}}
+	res, err := sceneIndexToLoadResult(index)
+	if err != nil {
+		t.Fatalf("sceneIndexToLoadResult returned error: %v", err)
+	}
+	if len(res.Meshes) != 1 {
+		t.Fatalf("mesh count = %d, want 1", len(res.Meshes))
+	}
+	if got := res.Meshes[0].Verts[0].Position; got != (matrix.Vec3{5, 0, 0}) {
+		t.Fatalf("baked vertex position = %#v, want {5 0 0}", got)
+	}
+	childNode := res.NodeByName("Child")
+	if childNode == nil {
+		t.Fatal("Child node missing")
+	}
+	if childNode.Position != (matrix.Vec3{1, 0, 0}) {
+		t.Fatalf("Child position = %#v, want local transform unaffected by geometric bake", childNode.Position)
+	}
+}
+
 func TestToLoadResultMonkeyFixtureGeometry(t *testing.T) {
 	data, err := os.ReadFile("../../../editor/editor_embedded_content/editor_content/meshes/monkey.fbx")
 	if err != nil {
@@ -150,6 +250,64 @@ func testMeshGeometryObject(node Node) *Object {
 		Class: "Geometry",
 		Node:  &node,
 	}
+}
+
+func testFBXObject(id int64, name string, class string, vec3Props map[string]matrix.Vec3) *Object {
+	obj := &Object{
+		ID:         id,
+		Name:       name,
+		Class:      class,
+		Properties: PropertyTable{ByName: map[string]Property70{}},
+		Node:       &Node{Name: class},
+	}
+	for propName, value := range vec3Props {
+		prop := Property70{
+			Name: propName,
+			Values: []any{
+				float64(value.X()),
+				float64(value.Y()),
+				float64(value.Z()),
+			},
+		}
+		obj.Properties.List = append(obj.Properties.List, prop)
+		obj.Properties.ByName[propName] = prop
+	}
+	return obj
+}
+
+func testSceneIndex(objects ...*Object) SceneIndex {
+	index := SceneIndex{
+		Objects:  map[int64]*Object{},
+		Geometry: map[int64]*Object{},
+		Model:    map[int64]*Object{},
+		Connections: ConnectionIndex{
+			ChildrenByParent: map[int64][]Connection{},
+			ParentsByChild:   map[int64][]Connection{},
+			PropertiesByNode: map[int64][]Connection{},
+		},
+		GlobalSettings: DefaultGlobalSettings(),
+	}
+	for _, obj := range objects {
+		index.Objects[obj.ID] = obj
+		switch obj.Class {
+		case "Geometry":
+			index.Geometry[obj.ID] = obj
+		case "Model":
+			index.Model[obj.ID] = obj
+		}
+	}
+	return index
+}
+
+func quaternionApproxTo(a, b matrix.Quaternion, delta matrix.Float) bool {
+	return matrix.Abs(a.W()-b.W()) < delta &&
+		matrix.Abs(a.X()-b.X()) < delta &&
+		matrix.Abs(a.Y()-b.Y()) < delta &&
+		matrix.Abs(a.Z()-b.Z()) < delta ||
+		matrix.Abs(a.W()+b.W()) < delta &&
+			matrix.Abs(a.X()+b.X()) < delta &&
+			matrix.Abs(a.Y()+b.Y()) < delta &&
+			matrix.Abs(a.Z()+b.Z()) < delta
 }
 
 func testMeshGeometryNode(children ...Node) Node {

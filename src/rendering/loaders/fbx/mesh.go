@@ -53,19 +53,41 @@ func sceneIndexToLoadResult(index SceneIndex) (load_result.Result, error) {
 	res := load_result.Result{
 		TextureBytes: make(map[string][]byte),
 	}
+	converter := newFBXBasisConverter(index.GlobalSettings)
+	unitScale := matrix.Float(index.GlobalSettings.UnitScaleFactor)
+	if unitScale == 0 {
+		unitScale = 1
+	}
+	nodeIndexByObjectID := make(map[int64]int, len(index.Model))
+	for _, modelID := range sortedObjectIDs(index.Model) {
+		model := index.Model[modelID]
+		nodeIndexByObjectID[modelID] = len(res.Nodes)
+		res.Nodes = append(res.Nodes, loadResultNodeFromObject(model, converter, unitScale))
+	}
+	for _, modelID := range sortedObjectIDs(index.Model) {
+		childIndex := nodeIndexByObjectID[modelID]
+		for _, connection := range index.Connections.ParentsByChild[modelID] {
+			if connection.Type != "OO" {
+				continue
+			}
+			if parentIndex, ok := nodeIndexByObjectID[connection.Parent]; ok {
+				res.Nodes[childIndex].Parent = parentIndex
+				break
+			}
+		}
+	}
 	bindings := geometryBindings(index)
-	nodeIndexByObjectID := make(map[int64]int, len(bindings))
 	for i := range bindings {
 		object := bindings[i].nodeObject
 		if _, ok := nodeIndexByObjectID[object.ID]; ok {
 			continue
 		}
 		nodeIndexByObjectID[object.ID] = len(res.Nodes)
-		res.Nodes = append(res.Nodes, loadResultNodeFromObject(object))
+		res.Nodes = append(res.Nodes, loadResultNodeFromObject(object, converter, unitScale))
 	}
 	for i := range bindings {
 		binding := bindings[i]
-		verts, indices, err := meshGeometryFromObject(binding.geometry)
+		verts, indices, err := meshGeometryFromObjectWithTransforms(binding.geometry, binding.modelObject, converter, unitScale)
 		if err != nil {
 			return res, err
 		}
@@ -82,8 +104,9 @@ func sceneIndexToLoadResult(index SceneIndex) (load_result.Result, error) {
 }
 
 type fbxGeometryBinding struct {
-	geometry   *Object
-	nodeObject *Object
+	geometry    *Object
+	modelObject *Object
+	nodeObject  *Object
 }
 
 func geometryBindings(index SceneIndex) []fbxGeometryBinding {
@@ -94,16 +117,19 @@ func geometryBindings(index SceneIndex) []fbxGeometryBinding {
 		if childNode(geometry.Node, "Vertices") == nil || childNode(geometry.Node, "PolygonVertexIndex") == nil {
 			continue
 		}
+		var modelObject *Object
 		nodeObject := geometry
 		for _, connection := range index.Connections.ParentsByChild[geometryID] {
 			if model := index.Model[connection.Parent]; connection.Type == "OO" && model != nil {
+				modelObject = model
 				nodeObject = model
 				break
 			}
 		}
 		bindings = append(bindings, fbxGeometryBinding{
-			geometry:   geometry,
-			nodeObject: nodeObject,
+			geometry:    geometry,
+			modelObject: modelObject,
+			nodeObject:  nodeObject,
 		})
 	}
 	return bindings
@@ -118,22 +144,29 @@ func sortedObjectIDs(objects map[int64]*Object) []int64 {
 	return ids
 }
 
-func loadResultNodeFromObject(object *Object) load_result.Node {
+func loadResultNodeFromObject(object *Object, converter fbxBasisConverter, unitScale matrix.Float) load_result.Node {
 	node := load_result.Node{
 		Id:         int32(object.ID),
 		Name:       object.Name,
 		Parent:     -1,
-		Scale:      matrix.Vec3One(),
-		Rotation:   matrix.QuaternionIdentity(),
 		Attributes: make(map[string]any),
 	}
 	if node.Name == "" {
 		node.Name = fmt.Sprintf("%s_%d", object.Class, object.ID)
 	}
+	node.Position = fbxPropertyVec3(object.Properties, "Lcl Translation", matrix.Vec3Zero())
+	node.Position = converter.ConvertPosition(node.Position.Scale(unitScale))
+	rotation := fbxPropertyVec3(object.Properties, "Lcl Rotation", matrix.Vec3Zero())
+	node.Rotation = converter.ConvertRotation(rotation)
+	node.Scale = converter.ConvertScale(fbxPropertyVec3(object.Properties, "Lcl Scaling", matrix.Vec3One()))
 	return node
 }
 
 func meshGeometryFromObject(geometry *Object) ([]rendering.Vertex, []uint32, error) {
+	return meshGeometryFromObjectWithTransforms(geometry, nil, newFBXBasisConverter(DefaultGlobalSettings()), 1)
+}
+
+func meshGeometryFromObjectWithTransforms(geometry, model *Object, converter fbxBasisConverter, unitScale matrix.Float) ([]rendering.Vertex, []uint32, error) {
 	positions, err := readControlPointPositions(geometry.Node)
 	if err != nil {
 		return nil, nil, err
@@ -174,7 +207,7 @@ func meshGeometryFromObject(geometry *Object) ([]rendering.Vertex, []uint32, err
 			if corner.ControlPoint < 0 || corner.ControlPoint >= len(positions) {
 				return nil, nil, fmt.Errorf("fbx polygon references missing control point %d", corner.ControlPoint)
 			}
-			position := positions[corner.ControlPoint]
+			position := converter.ConvertPosition(positions[corner.ControlPoint].Scale(unitScale))
 			vert := rendering.Vertex{
 				Position:     position,
 				Tangent:      matrix.Vec4Zero(),
@@ -185,7 +218,7 @@ func meshGeometryFromObject(geometry *Object) ([]rendering.Vertex, []uint32, err
 				MorphTarget:  position,
 			}
 			if normal, ok := normals.Value(corner.PolygonVertex, corner.ControlPoint); ok {
-				vert.Normal = normal
+				vert.Normal = converter.ConvertDirection(normal)
 			}
 			if uv, ok := uvs.Value(corner.PolygonVertex, corner.ControlPoint); ok {
 				vert.UV0 = uv
@@ -204,6 +237,9 @@ func meshGeometryFromObject(geometry *Object) ([]rendering.Vertex, []uint32, err
 		for _, index := range triangleFanIndices(len(polygon.Corners)) {
 			indices = append(indices, polygonVertexStart+index)
 		}
+	}
+	if model != nil {
+		bakeGeometricTransform(verts, model, converter, unitScale)
 	}
 	return verts, indices, nil
 }
