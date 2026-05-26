@@ -14,15 +14,17 @@ import (
 )
 
 type TransformGizmo struct {
-	root        matrix.Transform
-	stage       StageInterface
-	lastCamPos  matrix.Vec3
-	lastCamSize matrix.Vec2
-	lastHit     matrix.Vec3
-	currentAxis int
-	cameraMode  editor_controls.EditorCameraMode
-	dragging    bool
-	visible     bool
+	root         matrix.Transform
+	stage        StageInterface
+	lastCamPos   matrix.Vec3
+	lastCamSize  matrix.Vec2
+	lastViewSize matrix.Vec2
+	lastRefSize  matrix.Vec2
+	lastHit      matrix.Vec3
+	currentAxis  int
+	cameraMode   editor_controls.EditorCameraMode
+	dragging     bool
+	visible      bool
 }
 
 func (t *TransformGizmo) cursorPosition(c *hid.Cursor) matrix.Vec2 {
@@ -38,19 +40,24 @@ func (t *TransformGizmo) cursorPosition(c *hid.Cursor) matrix.Vec2 {
 
 func (t *TransformGizmo) resize(cam cameras.Camera) {
 	isOrtho := cam.IsOrthographic()
+	viewSize, refSize := t.viewportSizes()
 	if isOrtho {
 		camSize := matrix.NewVec2(cam.Width(), cam.Height())
-		if camSize.Equals(t.lastCamSize) {
+		if camSize.Equals(t.lastCamSize) && viewSize.Equals(t.lastViewSize) &&
+			refSize.Equals(t.lastRefSize) {
 			return
 		}
 		t.lastCamSize = camSize
 	} else {
 		camPos := cam.Position()
-		if camPos.Equals(t.lastCamPos) {
+		if camPos.Equals(t.lastCamPos) && viewSize.Equals(t.lastViewSize) &&
+			refSize.Equals(t.lastRefSize) {
 			return
 		}
 		t.lastCamPos = camPos
 	}
+	t.lastViewSize = viewSize
+	t.lastRefSize = refSize
 	gizmoScale := matrix.Float(translationGizmoScale)
 	if !isOrtho {
 		viewMat := cam.View()
@@ -67,5 +74,21 @@ func (t *TransformGizmo) resize(cam cameras.Camera) {
 		maxDim := matrix.Float(matrix.Max(viewWidth, viewHeight))
 		gizmoScale = maxDim * translationGizmoScale / 3
 	}
+	gizmoScale *= t.viewportScaleFactor(viewSize, refSize)
 	t.root.SetScale(matrix.NewVec3(gizmoScale, gizmoScale, gizmoScale))
+}
+
+func (t *TransformGizmo) viewportSizes() (matrix.Vec2, matrix.Vec2) {
+	if t.stage == nil {
+		return matrix.NewVec2(1, 1), matrix.NewVec2(1, 1)
+	}
+	return t.stage.ViewportSize(), t.stage.ViewportReferenceSize()
+}
+
+func (t *TransformGizmo) viewportScaleFactor(viewSize, referenceSize matrix.Vec2) matrix.Float {
+	if viewSize.Y() <= matrix.FloatSmallestNonzero ||
+		referenceSize.Y() <= matrix.FloatSmallestNonzero {
+		return 1
+	}
+	return referenceSize.Y() / viewSize.Y()
 }

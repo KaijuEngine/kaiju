@@ -531,6 +531,53 @@ func (v *StageView) ViewportSize() matrix.Vec2 {
 	return bounds.Size()
 }
 
+func (v *StageView) ViewportReferenceSize() matrix.Vec2 {
+	bounds := v.viewportReferenceBounds()
+	if !bounds.Valid() {
+		return v.ViewportSize()
+	}
+	return bounds.Size()
+}
+
+func (v *StageView) viewportReferenceBounds() stageViewportBounds {
+	var left, top, right, bottom float32
+	found := false
+	for i := range v.stageViewports {
+		viewport := &v.stageViewports[i]
+		if viewport.ui != nil && !viewport.ui.IsActive() {
+			continue
+		}
+		bounds := viewport.bounds
+		if !bounds.Valid() {
+			bounds = v.currentViewportBoundsFor(viewport)
+		}
+		if !bounds.Valid() {
+			continue
+		}
+		if !found {
+			left = bounds.Left
+			top = bounds.Top
+			right = bounds.Left + bounds.Width
+			bottom = bounds.Top + bounds.Height
+			found = true
+			continue
+		}
+		left = min(left, bounds.Left)
+		top = min(top, bounds.Top)
+		right = max(right, bounds.Left+bounds.Width)
+		bottom = max(bottom, bounds.Top+bounds.Height)
+	}
+	if !found {
+		return v.currentViewportBounds()
+	}
+	return stageViewportBounds{
+		Left:   left,
+		Top:    top,
+		Width:  right - left,
+		Height: bottom - top,
+	}
+}
+
 func (v *StageView) ViewportMousePosition(mouse *hid.Mouse) matrix.Vec2 {
 	bounds := v.viewport
 	if !bounds.Valid() {
