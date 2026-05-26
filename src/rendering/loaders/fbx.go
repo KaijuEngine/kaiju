@@ -29,7 +29,7 @@ func FBX(path string, assetDB assets.Database) (load_result.Result, error) {
 		if err != nil {
 			return load_result.Result{}, err
 		}
-		return fbxdoc.ToLoadResult(doc)
+		return fbxdoc.ToLoadResultWithPath(doc, path)
 	} else {
 		return load_result.Result{}, errors.New("invalid file extension")
 	}

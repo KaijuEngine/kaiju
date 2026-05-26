@@ -50,6 +50,10 @@ type fbxLayerElementColor struct {
 }
 
 func sceneIndexToLoadResult(index SceneIndex) (load_result.Result, error) {
+	return sceneIndexToLoadResultWithPath(index, "")
+}
+
+func sceneIndexToLoadResultWithPath(index SceneIndex, sourcePath string) (load_result.Result, error) {
 	res := load_result.Result{
 		TextureBytes: make(map[string][]byte),
 	}
@@ -77,6 +81,11 @@ func sceneIndexToLoadResult(index SceneIndex) (load_result.Result, error) {
 		}
 	}
 	bindings := geometryBindings(index)
+	materials := fbxMaterialResolver{
+		index:        index,
+		sourcePath:   sourcePath,
+		textureBytes: res.TextureBytes,
+	}
 	for i := range bindings {
 		object := bindings[i].nodeObject
 		if _, ok := nodeIndexByObjectID[object.ID]; ok {
@@ -98,7 +107,7 @@ func sceneIndexToLoadResult(index SceneIndex) (load_result.Result, error) {
 			meshName = fmt.Sprintf("Geometry_%d", binding.geometry.ID)
 		}
 		key := fmt.Sprintf("%s/%d", meshName, binding.geometry.ID)
-		res.Add(name, key, verts, indices, map[string]string{}, &res.Nodes[nodeIndex])
+		res.Add(name, key, verts, indices, materials.TexturesForBinding(binding), &res.Nodes[nodeIndex])
 	}
 	return res, nil
 }

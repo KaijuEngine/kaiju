@@ -579,9 +579,13 @@ func asInt64(value any) (int64, bool) {
 }
 
 func ToLoadResult(doc Document) (load_result.Result, error) {
+	return ToLoadResultWithPath(doc, "")
+}
+
+func ToLoadResultWithPath(doc Document, path string) (load_result.Result, error) {
 	index, err := BuildSceneIndex(doc)
 	if err != nil {
 		return load_result.Result{}, err
 	}
-	return sceneIndexToLoadResult(index)
+	return sceneIndexToLoadResultWithPath(index, path)
 }

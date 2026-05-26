@@ -280,6 +280,9 @@ func testSceneIndex(objects ...*Object) SceneIndex {
 		Objects:  map[int64]*Object{},
 		Geometry: map[int64]*Object{},
 		Model:    map[int64]*Object{},
+		Material: map[int64]*Object{},
+		Texture:  map[int64]*Object{},
+		Video:    map[int64]*Object{},
 		Connections: ConnectionIndex{
 			ChildrenByParent: map[int64][]Connection{},
 			ParentsByChild:   map[int64][]Connection{},
@@ -294,6 +297,12 @@ func testSceneIndex(objects ...*Object) SceneIndex {
 			index.Geometry[obj.ID] = obj
 		case "Model":
 			index.Model[obj.ID] = obj
+		case "Material":
+			index.Material[obj.ID] = obj
+		case "Texture":
+			index.Texture[obj.ID] = obj
+		case "Video":
+			index.Video[obj.ID] = obj
 		}
 	}
 	return index

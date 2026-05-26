@@ -247,8 +247,11 @@ func TestBuildSceneIndexMonkeyFixture(t *testing.T) {
 	if len(index.Model) != 1 {
 		t.Fatalf("Model count = %d, want 1", len(index.Model))
 	}
-	if len(index.Connections.All) != 2 {
-		t.Fatalf("Connection count = %d, want 2", len(index.Connections.All))
+	geometryID := sortedObjectIDs(index.Geometry)[0]
+	modelID := sortedObjectIDs(index.Model)[0]
+	if !testHasConnection(index.Connections.ParentsByChild[geometryID], "OO", geometryID, modelID, "") {
+		t.Fatalf("geometry %d is not connected to model %d; connections = %#v",
+			geometryID, modelID, index.Connections.ParentsByChild[geometryID])
 	}
 }
 
