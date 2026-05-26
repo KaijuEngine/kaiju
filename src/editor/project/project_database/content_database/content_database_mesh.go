@@ -39,7 +39,7 @@ type MeshConfig struct{}
 
 func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
 func (Mesh) TypeName() string   { return "Mesh" }
-func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
+func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj", ".fbx"} }
 
 type meshImportPostProcData struct {
 	mesh         load_result.Mesh
@@ -103,6 +103,14 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			return p, err
 		}
 		if res, err = loaders.OBJ(filepath.Base(src), adb); err != nil {
+			return p, err
+		}
+	case ".fbx":
+		adb, err := assets.NewFileDatabase(filepath.Dir(src))
+		if err != nil {
+			return p, err
+		}
+		if res, err = loaders.FBX(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
 	}
