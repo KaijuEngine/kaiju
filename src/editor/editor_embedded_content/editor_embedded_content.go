@@ -41,13 +41,14 @@ func toEmbedPath(key string) string {
 	case ".gltf":
 		return filepath.ToSlash(filepath.Join(prefix, "meshes", key))
 	case ".png":
-		target := filepath.ToSlash(filepath.Join(prefix, "textures", key))
-		if f, err := project_file_system.EngineFS.Open(target); err != nil {
-			target = filepath.ToSlash(filepath.Join(prefix, "fonts", key))
-		} else {
-			f.Close()
+		for _, folder := range []string{"textures", "fonts", "meshes"} {
+			target := filepath.ToSlash(filepath.Join(prefix, folder, key))
+			if f, err := project_file_system.EngineFS.Open(target); err == nil {
+				f.Close()
+				return target
+			}
 		}
-		return target
+		return filepath.ToSlash(filepath.Join(prefix, "textures", key))
 	case ".css":
 		fallthrough
 	case ".html":
