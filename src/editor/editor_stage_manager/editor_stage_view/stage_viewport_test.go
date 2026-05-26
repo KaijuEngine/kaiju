@@ -11,6 +11,7 @@ import (
 
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
@@ -122,6 +123,33 @@ func TestStageViewportRoutingIgnoresInvalidStaleBounds(t *testing.T) {
 		viewports, 0, -1, matrix.NewVec2(50, 50), false, false, false)
 	if active != 1 || focused != -1 || hovered != 1 {
 		t.Fatalf("routing = active:%d focused:%d hovered:%d, want 1/-1/1",
+			active, focused, hovered)
+	}
+}
+
+func TestStageViewportRoutingIgnoresInactiveViewportWithStaleBounds(t *testing.T) {
+	t.Parallel()
+
+	hiddenPerspectiveUI := &ui.UI{}
+	activeTopUI := &ui.UI{}
+	activeTopUI.Show()
+	viewports := []stageRenderViewport{
+		{
+			Kind:   StageViewportPerspective,
+			ui:     hiddenPerspectiveUI,
+			bounds: stageViewportBounds{Left: 0, Top: 0, Width: 100, Height: 100},
+		},
+		{
+			Kind:   StageViewportTop,
+			ui:     activeTopUI,
+			bounds: stageViewportBounds{Left: 0, Top: 0, Width: 200, Height: 200},
+		},
+	}
+
+	active, focused, hovered := resolveStageViewportRouting(
+		viewports, 0, -1, matrix.NewVec2(25, 25), true, false, false)
+	if active != 1 || focused != 1 || hovered != 1 {
+		t.Fatalf("routing = active:%d focused:%d hovered:%d, want 1/1/1",
 			active, focused, hovered)
 	}
 }
