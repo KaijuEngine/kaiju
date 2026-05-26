@@ -9,6 +9,7 @@ package fbx
 import (
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"kaijuengine.com/matrix"
@@ -116,6 +117,47 @@ func TestMeshGeometryMissingNormalsGeneratesFaceNormals(t *testing.T) {
 		if verts[i].Normal.IsZero() {
 			t.Fatalf("verts[%d].Normal = zero, want generated face normal", i)
 		}
+	}
+}
+
+func TestMeshGeometryUnsupportedLayerModesFail(t *testing.T) {
+	cases := []struct {
+		name      string
+		layerNode Node
+		want      string
+	}{
+		{
+			name: "unsupported mapping",
+			layerNode: testLayerElementWithMode("LayerElementUV", "UV", "UVIndex",
+				"ByPolygon", "Direct", []float64{0, 0}, nil),
+			want: `unsupported mapping mode "ByPolygon"`,
+		},
+		{
+			name: "unsupported reference",
+			layerNode: testLayerElementWithMode("LayerElementUV", "UV", "UVIndex",
+				"ByPolygonVertex", "Index", []float64{0, 0}, nil),
+			want: `unsupported reference mode "Index"`,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			geometry := testMeshGeometryObject(testMeshGeometryNode(
+				testNodeWithProperty("Vertices", []float64{
+					0, 0, 0,
+					1, 0, 0,
+					0, 1, 0,
+				}),
+				testNodeWithProperty("PolygonVertexIndex", []int32{0, 1, -3}),
+				c.layerNode,
+			))
+			_, _, err := meshGeometryFromObject(geometry)
+			if err == nil {
+				t.Fatalf("meshGeometryFromObject returned nil error, want %q", c.want)
+			}
+			if !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("error = %q, want containing %q", err.Error(), c.want)
+			}
+		})
 	}
 }
 
@@ -345,11 +387,15 @@ func testNodeWithProperty(name string, value any) Node {
 }
 
 func testLayerElement(name, valueName, indexName string, values []float64, indices []int32) Node {
+	return testLayerElementWithMode(name, valueName, indexName, "ByPolygonVertex", "IndexToDirect", values, indices)
+}
+
+func testLayerElementWithMode(name, valueName, indexName, mapping, reference string, values []float64, indices []int32) Node {
 	return Node{
 		Name: name,
 		Children: []Node{
-			testNodeWithProperty("MappingInformationType", "ByPolygonVertex"),
-			testNodeWithProperty("ReferenceInformationType", "IndexToDirect"),
+			testNodeWithProperty("MappingInformationType", mapping),
+			testNodeWithProperty("ReferenceInformationType", reference),
 			testNodeWithProperty(valueName, values),
 			testNodeWithProperty(indexName, indices),
 		},

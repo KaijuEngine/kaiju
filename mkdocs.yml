@@ -30,6 +30,7 @@ nav:
     - Build from source: engine/build_from_source.md
     - Build tags: engine/build_tags.md
     - Render targets and views: engine/render_targets.md
+    - FBX importer: engine/fbx_importer.md
     - Physics constraints: engine/physics_constraints.md
     - Performance profiling: engine/performance_profiling.md
     - Building new fonts: engine/fonts/building_fonts.md

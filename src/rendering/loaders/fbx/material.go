@@ -191,5 +191,8 @@ func objectBytes(object *Object, name string) []byte {
 func cleanFBXPath(path string) string {
 	path = strings.TrimSpace(strings.Trim(path, "\x00"))
 	path = strings.ReplaceAll(path, "\\", string(filepath.Separator))
+	if path == "." {
+		return ""
+	}
 	return path
 }

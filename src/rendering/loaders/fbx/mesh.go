@@ -9,6 +9,7 @@ package fbx
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 
 	"kaijuengine.com/matrix"
@@ -375,9 +376,14 @@ func readLayerElementVec2(node *Node, elementName, valueName, indexName string) 
 		values[i] = matrix.NewVec2(matrix.Float(raw[i*2+0]), matrix.Float(raw[i*2+1]))
 	}
 	indices, _ := childInt32Array(layerNode, indexName)
+	mapping := layerString(layerNode, "MappingInformationType", "ByPolygonVertex")
+	reference := layerString(layerNode, "ReferenceInformationType", "Direct")
+	if err := validateLayerElementMode(elementName, mapping, reference); err != nil {
+		return fbxLayerElementVec2{}, err
+	}
 	return fbxLayerElementVec2{
-		Mapping:   layerString(layerNode, "MappingInformationType", "ByPolygonVertex"),
-		Reference: layerString(layerNode, "ReferenceInformationType", "Direct"),
+		Mapping:   mapping,
+		Reference: reference,
 		Values:    values,
 		Indices:   indices,
 		Valid:     true,
@@ -405,9 +411,14 @@ func readLayerElementVec3(node *Node, elementName, valueName, indexName string) 
 		)
 	}
 	indices, _ := childInt32Array(layerNode, indexName)
+	mapping := layerString(layerNode, "MappingInformationType", "ByPolygonVertex")
+	reference := layerString(layerNode, "ReferenceInformationType", "Direct")
+	if err := validateLayerElementMode(elementName, mapping, reference); err != nil {
+		return fbxLayerElementVec3{}, err
+	}
 	return fbxLayerElementVec3{
-		Mapping:   layerString(layerNode, "MappingInformationType", "ByPolygonVertex"),
-		Reference: layerString(layerNode, "ReferenceInformationType", "Direct"),
+		Mapping:   mapping,
+		Reference: reference,
 		Values:    values,
 		Indices:   indices,
 		Valid:     true,
@@ -436,13 +447,38 @@ func readLayerElementColor(node *Node, elementName, valueName, indexName string)
 		)
 	}
 	indices, _ := childInt32Array(layerNode, indexName)
+	mapping := layerString(layerNode, "MappingInformationType", "ByPolygonVertex")
+	reference := layerString(layerNode, "ReferenceInformationType", "Direct")
+	if err := validateLayerElementMode(elementName, mapping, reference); err != nil {
+		return fbxLayerElementColor{}, err
+	}
 	return fbxLayerElementColor{
-		Mapping:   layerString(layerNode, "MappingInformationType", "ByPolygonVertex"),
-		Reference: layerString(layerNode, "ReferenceInformationType", "Direct"),
+		Mapping:   mapping,
+		Reference: reference,
 		Values:    values,
 		Indices:   indices,
 		Valid:     true,
 	}, nil
+}
+
+func validateLayerElementMode(elementName, mapping, reference string) error {
+	switch mapping {
+	case "ByPolygonVertex", "ByVertice", "ByVertex", "ByControlPoint":
+	default:
+		slog.Warn("unsupported FBX layer mapping mode",
+			"element", elementName,
+			"mapping", mapping)
+		return fmt.Errorf("fbx %s uses unsupported mapping mode %q", elementName, mapping)
+	}
+	switch reference {
+	case "", "Direct", "IndexToDirect":
+	default:
+		slog.Warn("unsupported FBX layer reference mode",
+			"element", elementName,
+			"reference", reference)
+		return fmt.Errorf("fbx %s uses unsupported reference mode %q", elementName, reference)
+	}
+	return nil
 }
 
 func (l fbxLayerElementVec2) Value(polygonVertex, controlPoint int) (matrix.Vec2, bool) {

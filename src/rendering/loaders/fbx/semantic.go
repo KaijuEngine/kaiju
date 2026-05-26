@@ -9,6 +9,7 @@ package fbx
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"strings"
 
@@ -220,6 +221,12 @@ func (i *SceneIndex) indexObjects(objects *Node) error {
 		default:
 			if isAnimationClass(obj.Class) || isAnimationClass(obj.NodeClass) {
 				i.Animation[id] = obj
+			} else {
+				slog.Warn("unsupported FBX object class",
+					"class", obj.Class,
+					"nodeClass", obj.NodeClass,
+					"name", obj.Name,
+					"id", obj.ID)
 			}
 		}
 	}

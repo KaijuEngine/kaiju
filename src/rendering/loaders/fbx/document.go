@@ -13,11 +13,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 )
 
 const (
 	BinaryHeader = "Kaydara FBX Binary  \x00\x1a\x00"
+
+	maxDecodedArrayBytes = 512 * 1024 * 1024
 )
 
 var (
@@ -57,6 +60,7 @@ func (e ParseError) Error() string {
 
 func Parse(data []byte) (Document, error) {
 	if isASCII(data) {
+		slog.Warn("ASCII FBX is not supported", "format", "fbx")
 		return Document{}, ErrASCIINotSupported
 	}
 	if !bytes.HasPrefix(data, []byte(BinaryHeader)) {
@@ -114,6 +118,9 @@ func (r *binaryReader) readNode(limit int) (Node, bool, error) {
 		return Node{}, false, err
 	}
 	if endOffset == 0 {
+		if err := r.readNullRecordRemainder(limit); err != nil {
+			return Node{}, false, err
+		}
 		return Node{}, false, nil
 	}
 	if endOffset > uint64(limit) {
@@ -148,6 +155,9 @@ func (r *binaryReader) readNode(limit int) (Node, bool, error) {
 	}
 	if propCount > uint64(int(^uint(0)>>1)) {
 		return Node{}, false, r.errAt(propStart, "property count is too large")
+	}
+	if propCount > propLength {
+		return Node{}, false, r.errAt(propStart, "property count exceeds property list length")
 	}
 	props := make([]Property, 0, int(propCount))
 	for i := uint64(0); i < propCount; i++ {
@@ -282,6 +292,9 @@ func (r *binaryReader) readArray(propType byte, limit int) (any, error) {
 		return nil, r.errAt(offset, "array length is too large")
 	}
 	decodedLength := int(length) * stride
+	if decodedLength > maxDecodedArrayBytes {
+		return nil, r.errAt(offset, "array decoded length is too large")
+	}
 	if uint64(payloadLength) > uint64(int(^uint(0)>>1)) {
 		return nil, r.errAt(r.cursor, "array payload length is too large")
 	}
@@ -322,8 +335,12 @@ func inflateZlib(payload []byte, decodedLength int) ([]byte, error) {
 	if decodedLength > 0 {
 		out.Grow(decodedLength)
 	}
-	if _, err := io.Copy(&out, zr); err != nil {
+	limited := io.LimitReader(zr, int64(decodedLength)+1)
+	if _, err := io.Copy(&out, limited); err != nil {
 		return nil, err
+	}
+	if out.Len() > decodedLength {
+		return nil, fmt.Errorf("decoded payload exceeds declared length %d", decodedLength)
 	}
 	return out.Bytes(), nil
 }
@@ -398,6 +415,27 @@ func (r *binaryReader) sentinelLength() int {
 		return 25
 	}
 	return 13
+}
+
+func (r *binaryReader) readNullRecordRemainder(limit int) error {
+	remaining := r.sentinelLength() - r.offsetLength()
+	if err := r.need(remaining, limit, "unterminated null record sentinel"); err != nil {
+		return err
+	}
+	for i := r.cursor; i < r.cursor+remaining; i++ {
+		if r.data[i] != 0 {
+			return r.errAt(i, "bad null record sentinel")
+		}
+	}
+	r.cursor += remaining
+	return nil
+}
+
+func (r *binaryReader) offsetLength() int {
+	if r.is64 {
+		return 8
+	}
+	return 4
 }
 
 func (r *binaryReader) readOffset(limit int) (uint64, error) {

@@ -183,6 +183,81 @@ func TestParseBadCompressedPayload(t *testing.T) {
 	}
 }
 
+func TestParseMalformedBinaryCases(t *testing.T) {
+	nodeStart := len(BinaryHeader) + 4
+	cases := []struct {
+		name string
+		data []byte
+		want string
+	}{
+		{
+			name: "record length before header",
+			data: func() []byte {
+				data := testFBXFileWithNodes(7400, testNode{name: "Bad"})
+				binary.LittleEndian.PutUint32(data[nodeStart:nodeStart+4], uint32(nodeStart+1))
+				return data
+			}(),
+			want: "record end offset is before the record header",
+		},
+		{
+			name: "property length past record",
+			data: func() []byte {
+				data := testFBXFileWithNodes(7400, testNode{name: "Bad"})
+				binary.LittleEndian.PutUint32(data[nodeStart+8:nodeStart+12], 1)
+				return data
+			}(),
+			want: "property list length is out of bounds",
+		},
+		{
+			name: "property count exceeds property length",
+			data: func() []byte {
+				data := testFBXFileWithNodes(7400, testNode{name: "Bad"})
+				binary.LittleEndian.PutUint32(data[nodeStart+4:nodeStart+8], 1)
+				return data
+			}(),
+			want: "property count exceeds property list length",
+		},
+		{
+			name: "array count decodes too large",
+			data: func() []byte {
+				prop := []byte{'f'}
+				prop = binary.LittleEndian.AppendUint32(prop, uint32(maxDecodedArrayBytes/4+1))
+				prop = binary.LittleEndian.AppendUint32(prop, 0)
+				prop = binary.LittleEndian.AppendUint32(prop, 0)
+				return testFBXFileWithNodes(7400, testNode{name: "BadArray", properties: [][]byte{prop}})
+			}(),
+			want: "array decoded length is too large",
+		},
+		{
+			name: "compressed payload length past property",
+			data: func() []byte {
+				prop := []byte{'f'}
+				prop = binary.LittleEndian.AppendUint32(prop, 1)
+				prop = binary.LittleEndian.AppendUint32(prop, 1)
+				prop = binary.LittleEndian.AppendUint32(prop, 128)
+				return testFBXFileWithNodes(7400, testNode{name: "ShortCompressed", properties: [][]byte{prop}})
+			}(),
+			want: "array payload is out of bounds",
+		},
+		{
+			name: "unterminated top null record",
+			data: testFBXFile(7400, []byte{0, 0, 0, 0}),
+			want: "unterminated null record sentinel",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := Parse(c.data)
+			if err == nil {
+				t.Fatalf("Parse returned nil error, want %q", c.want)
+			}
+			if !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("error = %q, want containing %q", err.Error(), c.want)
+			}
+		})
+	}
+}
+
 func TestParseMonkeyFixtureBinaryTree(t *testing.T) {
 	data, err := os.ReadFile("../../../editor/editor_embedded_content/editor_content/meshes/monkey.fbx")
 	if err != nil {

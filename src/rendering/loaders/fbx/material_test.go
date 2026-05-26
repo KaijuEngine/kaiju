@@ -87,6 +87,27 @@ func TestFBXMaterialModelTakesPrecedenceOverGeometry(t *testing.T) {
 	}
 }
 
+func TestFBXMaterialCurrentDirectoryTexturePathIsIgnored(t *testing.T) {
+	geometry, model := testTexturedGeometryAndModel()
+	material := testFBXObject(30, "Material", "Material", nil)
+	texture := testFBXObject(40, "Diffuse", "Texture", nil)
+	texture.Node.Children = append(texture.Node.Children,
+		testNodeWithProperty("RelativeFilename", "."))
+
+	index := testSceneIndex(geometry, model, material, texture)
+	connect(index, "OO", geometry.ID, model.ID, "")
+	connect(index, "OO", material.ID, model.ID, "")
+	connect(index, "OP", texture.ID, material.ID, "DiffuseColor")
+
+	res, err := sceneIndexToLoadResultWithPath(index, "models/ship.fbx")
+	if err != nil {
+		t.Fatalf("sceneIndexToLoadResult returned error: %v", err)
+	}
+	if got := len(res.Meshes[0].Textures); got != 0 {
+		t.Fatalf("texture count = %d, want current-directory texture path ignored", got)
+	}
+}
+
 func testTexturedGeometryAndModel() (*Object, *Object) {
 	geometry := testMeshGeometryObject(testMeshGeometryNode(
 		testNodeWithProperty("Vertices", []float64{
