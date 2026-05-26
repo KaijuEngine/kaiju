@@ -8,6 +8,7 @@ package rendering
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -19,19 +20,21 @@ import (
 )
 
 type Material struct {
-	Id              string
-	shaderInfo      ShaderDataCompiled
-	renderPass      *RenderPass
-	pipelineInfo    ShaderPipelineDataCompiled
-	Shader          *Shader
-	Textures        []*Texture
-	Instances       map[string]*Material
-	Root            weak.Pointer[Material]
-	PrepassMaterial weak.Pointer[Material]
-	mutex           sync.Mutex
-	IsLit           bool
-	ReceivesShadows bool
-	CastsShadows    bool
+	Id                        string
+	shaderInfo                ShaderDataCompiled
+	renderPass                *RenderPass
+	pipelineInfo              ShaderPipelineDataCompiled
+	Shader                    *Shader
+	Textures                  []*Texture
+	Instances                 map[string]*Material
+	ViewModeOverrides         map[RenderViewMode]*Material
+	Root                      weak.Pointer[Material]
+	PrepassMaterial           weak.Pointer[Material]
+	viewModePipelineMaterials map[RenderViewMode]*Material
+	mutex                     sync.Mutex
+	IsLit                     bool
+	ReceivesShadows           bool
+	CastsShadows              bool
 }
 
 func (m *Material) RenderPass() *RenderPass { return m.renderPass }
@@ -54,14 +57,15 @@ type MaterialTextureData struct {
 }
 
 type MaterialData struct {
-	Shader          string `options:""`                  // Blank = fallback
-	RenderPass      string `options:""`                  // Blank = fallback
-	ShaderPipeline  string `options:"" label:"Pipeline"` // Blank = fallback
-	Textures        []MaterialTextureData
-	PrepassMaterial string
-	IsLit           bool
-	ReceivesShadows bool
-	CastsShadows    bool
+	Shader            string `options:""`                  // Blank = fallback
+	RenderPass        string `options:""`                  // Blank = fallback
+	ShaderPipeline    string `options:"" label:"Pipeline"` // Blank = fallback
+	Textures          []MaterialTextureData
+	PrepassMaterial   string
+	ViewModeOverrides map[string]string
+	IsLit             bool
+	ReceivesShadows   bool
+	CastsShadows      bool
 }
 
 func (m *Material) CreateInstance(textures []*Texture) *Material {
@@ -69,7 +73,7 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	instanceKey := strings.Builder{}
 	for i := range textures {
 		instanceKey.WriteString(textures[i].Key)
-		instanceKey.WriteRune(';')
+		_, _ = fmt.Fprintf(&instanceKey, "@%p;", textures[i])
 	}
 	key := instanceKey.String()
 	// TODO:  Use a read lock?
@@ -115,11 +119,12 @@ func (d *MaterialData) Compile(assets assets.Database, device *GPUDevice) (*Mate
 func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, copyShader bool) (*Material, error) {
 	defer tracing.NewRegion("MaterialData.CompileExt").End()
 	c := &Material{
-		Textures:        make([]*Texture, len(d.Textures)),
-		Instances:       make(map[string]*Material),
-		IsLit:           d.IsLit,
-		ReceivesShadows: d.ReceivesShadows,
-		CastsShadows:    d.CastsShadows,
+		Textures:          make([]*Texture, len(d.Textures)),
+		Instances:         make(map[string]*Material),
+		ViewModeOverrides: make(map[RenderViewMode]*Material),
+		IsLit:             d.IsLit,
+		ReceivesShadows:   d.ReceivesShadows,
+		CastsShadows:      d.CastsShadows,
 	}
 	sd := ShaderData{}
 	rp := RenderPassData{}
@@ -180,4 +185,6 @@ func (m *Material) Destroy(device *GPUDevice) {
 	m.Shader = nil
 	m.Textures = make([]*Texture, 0)
 	clear(m.Instances)
+	clear(m.ViewModeOverrides)
+	clear(m.viewModePipelineMaterials)
 }

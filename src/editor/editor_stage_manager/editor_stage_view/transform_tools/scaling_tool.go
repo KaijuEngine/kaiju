@@ -40,7 +40,8 @@ type ScalingToolBox struct {
 	hitBox          graviton.AABB
 }
 
-func (t *ScalingTool) Initialize(host *engine.Host) {
+func (t *ScalingTool) Initialize(host *engine.Host, stage StageInterface) {
+	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
 	for i := range t.boxes {
@@ -86,6 +87,7 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 		Mesh:       sm,
 		ShaderData: a.shaftShaderData,
 		Transform:  &a.shaftTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	boxDraw := rendering.Drawing{
@@ -93,6 +95,7 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 		Mesh:       bm,
 		ShaderData: a.boxShaderData,
 		Transform:  &a.boxTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(shaftDraw)
@@ -171,11 +174,7 @@ func (t *ScalingTool) updateHitBoxes() {
 }
 
 func (t *ScalingTool) mousePosition(c *hid.Cursor) matrix.Vec2 {
-	if t.cameraMode == editor_controls.EditorCameraMode2d {
-		return c.ScreenPosition()
-	} else {
-		return c.Position()
-	}
+	return t.cursorPosition(c)
 }
 
 func (t *ScalingTool) hitCheck(host *engine.Host, cam cameras.Camera) {

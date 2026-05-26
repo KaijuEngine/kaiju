@@ -136,5 +136,26 @@ func (m *MaterialCache) loadMaterial(key string) (*Material, error) {
 		}
 		material.PrepassMaterial = weak.Make(prep)
 	}
+	for modeName, materialKey := range materialData.ViewModeOverrides {
+		mode, ok := ParseRenderViewMode(modeName)
+		if !ok {
+			slog.Warn("ignoring invalid render view mode material override",
+				"material", key, "mode", modeName, "override", materialKey)
+			continue
+		}
+		var override *Material
+		if materialKey == key {
+			override = material
+		} else {
+			var err error
+			override, err = m.Material(materialKey)
+			if err != nil {
+				slog.Error("failed to load render view mode material override",
+					"material", key, "mode", modeName, "override", materialKey, "error", err)
+				return nil, err
+			}
+		}
+		material.SetRenderViewModeOverride(mode, override)
+	}
 	return material, nil
 }

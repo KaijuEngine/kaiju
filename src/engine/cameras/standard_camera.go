@@ -205,11 +205,21 @@ func (c *StandardCamera) SetLookAtWithUp(point, up matrix.Vec3) {
 // at separately.
 func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.SetPositionAndLookAt").End()
-	if matrix.Approx(position.Z(), lookAt.Z()) {
+	if matrix.Vec3Approx(position, lookAt) {
 		position[matrix.Vz] += 0.0001
 	}
 	c.position = position
 	c.lookAt = lookAt
+	c.callUpdateView()
+}
+
+// SetPositionAndLookAtWithUp sets the position, look at position, and up vector
+// with a single view update.
+func (c *StandardCamera) SetPositionAndLookAtWithUp(position, lookAt, up matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetPositionAndLookAtWithUp").End()
+	c.position = position
+	c.lookAt = lookAt
+	c.up = up
 	c.callUpdateView()
 }
 

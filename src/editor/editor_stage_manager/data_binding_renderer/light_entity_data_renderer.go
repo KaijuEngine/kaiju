@@ -165,6 +165,7 @@ func (c *LightEntityDataRenderer) createLines(host *engine.Host, transform *matr
 		Mesh:       grid,
 		ShaderData: gsd,
 		Transform:  transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	return sd

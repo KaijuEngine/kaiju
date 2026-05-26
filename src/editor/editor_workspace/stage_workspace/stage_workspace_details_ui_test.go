@@ -51,7 +51,7 @@ func TestRigidBodyTerrainWarningVisibility(t *testing.T) {
 }
 
 func TestStageDetailsTemplateIncludesTerrainTextureWarning(t *testing.T) {
-	data, err := os.ReadFile("../../editor_embedded_content/editor_content/editor/ui/workspace/stage_workspace.go.html")
+	data, err := os.ReadFile("../../editor_embedded_content/editor_content/editor/ui/workspace/stage_workspace_details.go.html")
 	if err != nil {
 		t.Fatal(err)
 	}

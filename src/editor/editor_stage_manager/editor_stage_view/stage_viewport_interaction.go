@@ -14,15 +14,13 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-const menuBarHeightArea = 30
-
 func (v *StageView) processViewportInteractions(proj *project.Project) {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &v.host.Window.Mouse
 	kb := &v.host.Window.Keyboard
-	// TODO:  This is to prevent deselecting and box selection if the mouse was
-	// over the menu bar area. Probably should do this check in a better way
-	if m.ScreenPosition().Y() <= menuBarHeightArea {
+	insideViewport := v.viewportContainsScreenPosition(m.ScreenPosition())
+	if !insideViewport && !v.selectTool.IsActive() && !v.transformTool.IsActive() &&
+		!v.transformMan.IsBusy() && !v.vertexSnap.IsBusy() {
 		return
 	}
 	if v.toolOwner != nil && v.toolOwner.UpdateViewportTool(v) {
@@ -38,9 +36,9 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	if v.transformMan.IsBusy() {
 		return
 	}
-	v.selectTool.Update()
-	if m.Pressed(hid.MouseButtonLeft) {
-		ray := v.camera.RayCast(m)
+	boxSelected := v.selectTool.Update()
+	if m.Released(hid.MouseButtonLeft) && !boxSelected {
+		ray := v.activeCamera().RayCast(m)
 		if kb.HasShift() {
 			v.manager.TryAppendSelect(ray)
 		} else if kb.HasCtrlOrMeta() {
@@ -51,7 +49,7 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	}
 	if kb.KeyDown(hid.KeyboardKeyF) {
 		if v.manager.HasSelection() {
-			v.camera.Focus(v.manager.SelectionBounds())
+			v.activeCamera().Focus(v.manager.SelectionBounds())
 		}
 	} else if kb.KeyDown(hid.KeyboardKey1) {
 		v.transformTool.Enable(transform_tools.ToolStateMove)
@@ -63,5 +61,5 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 }
 
 func (v *StageView) isCamera3D() bool {
-	return v.camera.Mode() == editor_controls.EditorCameraMode3d
+	return v.activeCamera().Mode() == editor_controls.EditorCameraMode3d
 }

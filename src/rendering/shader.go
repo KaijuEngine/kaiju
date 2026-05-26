@@ -91,6 +91,9 @@ func (sd *ShaderDataCompiled) Stride() uint32 {
 	stride := uint32(0)
 	if !sd.IsCompute() {
 		g := sd.SelectLayout("Vertex")
+		if g == nil {
+			return 0
+		}
 		for i := range g.Layouts {
 			l := &g.Layouts[i]
 			if l.Source == "in" && l.Location >= 8 {

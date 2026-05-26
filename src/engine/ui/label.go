@@ -202,6 +202,7 @@ func (label *Label) renderText() {
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
 			rd.Transform = &label.entity.Transform
+			rd.Layer = rendering.RenderLayerUI
 			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
 			if ld.bgColor.A() < 1.0 {
 				transparent := ld.runeDrawings[i]

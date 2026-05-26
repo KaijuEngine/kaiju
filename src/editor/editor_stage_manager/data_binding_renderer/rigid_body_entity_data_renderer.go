@@ -166,6 +166,7 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 		Mesh:       wireframe,
 		ShaderData: gsd,
 		Transform:  transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	return gsd, nil

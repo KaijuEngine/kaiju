@@ -24,7 +24,13 @@ type GPUDevice struct {
 	Painter                    GPUPainter
 	globalUniformBuffers       [maxFramesInFlight]GPUBuffer
 	globalUniformBuffersMemory [maxFramesInFlight]GPUDeviceMemory
+	globalUniforms             map[*RenderView]*globalUniformBufferSet
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
+}
+
+type globalUniformBufferSet struct {
+	buffers [maxFramesInFlight]GPUBuffer
+	memory  [maxFramesInFlight]GPUDeviceMemory
 }
 
 func (g *GPUDevice) QueueCompute(buffer *ComputeShaderBuffer) {
@@ -115,30 +121,94 @@ func (g *GPUDevice) Screenshot() ([]byte, error) {
 
 func (g *GPUDevice) createGlobalUniforms() error {
 	slog.Info("creating global uniform buffers")
+	g.globalUniforms = make(map[*RenderView]*globalUniformBufferSet)
+	state, err := g.createGlobalUniformBufferSet()
+	if err != nil {
+		return err
+	}
+	g.globalUniforms[nil] = state
+	g.globalUniformBuffers = state.buffers
+	g.globalUniformBuffersMemory = state.memory
+	return nil
+}
+
+func (g *GPUDevice) createGlobalUniformBufferSet() (*globalUniformBufferSet, error) {
 	bufferSize := unsafe.Sizeof(*(*GlobalShaderData)(nil))
+	state := &globalUniformBufferSet{}
 	for i := range g.LogicalDevice.SwapChain.Images {
 		b, m, err := g.CreateBuffer(bufferSize, GPUBufferUsageUniformBufferBit,
 			GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		g.globalUniformBuffers[i] = b
-		g.globalUniformBuffersMemory[i] = m
+		state.buffers[i] = b
+		state.memory[i] = m
 	}
-	return nil
+	return state, nil
 }
 
 func (g *GPUDevice) destroyGlobalUniforms() {
+	for _, state := range g.globalUniforms {
+		g.destroyGlobalUniformBufferSet(state)
+	}
+	g.globalUniforms = nil
+	g.globalUniformBuffers = [maxFramesInFlight]GPUBuffer{}
+	g.globalUniformBuffersMemory = [maxFramesInFlight]GPUDeviceMemory{}
+}
+
+func (g *GPUDevice) destroyGlobalUniformBufferSet(state *globalUniformBufferSet) {
+	if state == nil {
+		return
+	}
 	for i := range maxFramesInFlight {
-		if g.globalUniformBuffers[i].IsValid() {
-			g.DestroyBuffer(g.globalUniformBuffers[i])
-			g.globalUniformBuffers[i].Reset()
+		if state.buffers[i].IsValid() {
+			g.DestroyBuffer(state.buffers[i])
+			state.buffers[i].Reset()
 		}
-		if g.globalUniformBuffersMemory[i].IsValid() {
-			g.FreeMemory(g.globalUniformBuffersMemory[i])
-			g.globalUniformBuffersMemory[i].Reset()
+		if state.memory[i].IsValid() {
+			g.FreeMemory(state.memory[i])
+			state.memory[i].Reset()
 		}
 	}
+}
+
+func (g *GPUDevice) DestroyRenderViewResources(view *RenderView) {
+	defer tracing.NewRegion("GPUDevice.DestroyRenderViewResources").End()
+	if g == nil || view == nil || g.globalUniforms == nil {
+		return
+	}
+	if state, ok := g.globalUniforms[view]; ok {
+		g.destroyGlobalUniformBufferSet(state)
+		delete(g.globalUniforms, view)
+	}
+}
+
+func (g *GPUDevice) ensureGlobalUniformsForView(view *RenderView) (*globalUniformBufferSet, error) {
+	if g.globalUniforms == nil {
+		g.globalUniforms = make(map[*RenderView]*globalUniformBufferSet)
+	}
+	if state, ok := g.globalUniforms[view]; ok {
+		return state, nil
+	}
+	if view != nil && view.Name() == DefaultRenderViewName {
+		if state, ok := g.globalUniforms[nil]; ok {
+			return state, nil
+		}
+	}
+	state, err := g.createGlobalUniformBufferSet()
+	if err != nil {
+		return nil, err
+	}
+	g.globalUniforms[view] = state
+	return state, nil
+}
+
+func (g *GPUDevice) globalUniformBuffer(view *RenderView, frame int) (GPUBuffer, error) {
+	state, err := g.ensureGlobalUniformsForView(view)
+	if err != nil {
+		return GPUBuffer{}, err
+	}
+	return state.buffers[frame], nil
 }
 
 func (g *GPUDevice) beginSingleTimeCommands() *CommandRecorder {
@@ -159,7 +229,7 @@ func (g *GPUDevice) SwapFrame(window RenderingContainer, inst *GPUApplicationIns
 	return g.swapFrameImpl(window, inst, width, height)
 }
 
-func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) bool {
+func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []*RenderView) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	ld := &g.LogicalDevice
 	if !ld.SwapChain.IsValid() {
@@ -170,47 +240,70 @@ func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingCon
 			return false
 		}
 	}
-	return g.readyFrameImpl(inst, window, camera, uiCamera, lights, runtime)
+	return g.readyFrameImpl(inst, window, camera, uiCamera, lights, runtime, views)
 }
 
-func (g *GPUDevice) updateGlobalUniformBuffer(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
-	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
-	camOrtho := matrix.Float(0)
-	if camera.IsOrthographic() {
-		camOrtho = 1
-	}
-	ld := &g.LogicalDevice
-	ubo := GlobalShaderData{
-		View:             camera.View(),
-		UIView:           uiCamera.View(),
-		Projection:       camera.Projection(),
-		UIProjection:     uiCamera.Projection(),
-		CameraPosition:   camera.Position().AsVec4WithW(camOrtho),
-		UICameraPosition: uiCamera.Position(),
-		Time:             runtime,
-		ScreenSize: matrix.Vec2{
-			matrix.Float(ld.SwapChain.Extent.Width()),
-			matrix.Float(ld.SwapChain.Extent.Height()),
-		},
-		CascadeCount:          int32(camera.NumCSMCascades()),
-		CascadePlaneDistances: camera.CSMCascadeDistances(),
-	}
-	for i := range lights.Lights {
-		if lights.Lights[i].IsValid() {
-			lights.Lights[i].recalculate(camera)
-			ubo.VertLights[i] = lights.Lights[i].transformToGPULight()
-			ubo.LightInfos[i] = lights.Lights[i].transformToGPULightInfo()
+func (g *GPUDevice) updateGlobalUniformBuffers(views []*RenderView, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
+	selected := renderViewsForGlobalUniforms(views)
+	for i := range selected {
+		if err := g.updateGlobalUniformBufferForView(selected[i], camera, uiCamera, lights, runtime); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func renderViewsForGlobalUniforms(views []*RenderView) []*RenderView {
+	selected := make([]*RenderView, 0, len(views))
+	for i := range views {
+		if views[i] != nil {
+			selected = append(selected, views[i])
+		}
+	}
+	if len(selected) == 0 {
+		selected = append(selected, nil)
+	}
+	return selected
+}
+
+func (g *GPUDevice) updateGlobalUniformBufferForView(view *RenderView, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
+	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
+	ld := &g.LogicalDevice
+	screenSize := matrix.Vec2{
+		matrix.Float(ld.SwapChain.Extent.Width()),
+		matrix.Float(ld.SwapChain.Extent.Height()),
+	}
+	if view != nil {
+		if target := view.Target(); target != nil {
+			w, h := target.Size()
+			screenSize = matrix.Vec2{matrix.Float(w), matrix.Float(h)}
+		}
+	}
+	viewCamera := renderViewCameraForGlobals(view, camera)
+	ubo := globalShaderDataForCamera(viewCamera, uiCamera, lights, runtime, screenSize)
 	frame := g.Painter.currentFrame
+	state, err := g.ensureGlobalUniformsForView(view)
+	if err != nil {
+		return err
+	}
 	var data unsafe.Pointer
-	err := g.MapMemory(g.globalUniformBuffersMemory[frame],
+	err = g.MapMemory(state.memory[frame],
 		0, unsafe.Sizeof(ubo), 0, &data)
 	if err != nil {
 		slog.Error("Failed to map uniform buffer memory", "error", err)
 		return err
 	}
 	g.Memcopy(data, klib.StructToByteArray(ubo))
-	g.UnmapMemory(g.globalUniformBuffersMemory[frame])
+	g.UnmapMemory(state.memory[frame])
 	return nil
+}
+
+func renderViewCameraForGlobals(view *RenderView, fallback cameras.Camera) cameras.Camera {
+	if view == nil {
+		return fallback
+	}
+	if camera, ok := view.Camera().(cameras.Camera); ok && camera != nil {
+		return camera
+	}
+	return fallback
 }

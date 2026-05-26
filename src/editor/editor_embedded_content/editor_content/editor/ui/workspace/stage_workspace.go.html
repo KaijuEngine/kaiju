@@ -40,9 +40,90 @@
 				color: white;
 				background-color: #282828;
 				border: 2px solid #AAA;
+				z-index: 3;
 			}
 			#dimensionToggle:hover {
 				background-color: #AAA;
+			}
+			.stageViewport {
+				position: absolute;
+				z-index: 2;
+				background-color: white;
+				visibility: visible;
+			}
+			.stageViewportSingle {
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 100%;
+				height: calc(100% - var(--ed-menu-bar-height));
+			}
+			.stageViewportQuadPerspective {
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 50%;
+				height: calc(50% - var(--ed-menu-bar-height));
+			}
+			.stageViewportQuadTop {
+				left: 50%;
+				top: var(--ed-menu-bar-height);
+				width: 50%;
+				height: calc(50% - var(--ed-menu-bar-height));
+			}
+			.stageViewportQuadSide {
+				left: 0;
+				top: 50%;
+				width: 50%;
+				height: 50%;
+			}
+			.stageViewportQuadFront {
+				left: 50%;
+				top: 50%;
+				width: 50%;
+				height: 50%;
+			}
+			.stageViewportHidden {
+				visibility: hidden;
+				width: 0;
+				height: 0;
+			}
+			.stageViewportLabel {
+				position: absolute;
+				left: 0.5em;
+				color: white;
+				background-color: #282828;
+				border: 1px solid #555;
+				padding: 0.2em 0.45em;
+				font-size: 0.6em;
+				z-index: 3;
+				visibility: visible;
+			}
+			.stageViewportLabelSingle {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadPerspective {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadTop {
+				top: calc(var(--ed-menu-bar-height) + 0.5em);
+				left: calc(50% + 0.5em);
+			}
+			.stageViewportLabelQuadSide {
+				top: calc(50% + 0.5em);
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadFront {
+				top: calc(50% + 0.5em);
+				left: calc(50% + 0.5em);
+			}
+			.stageViewportLabelHidden {
+				visibility: hidden;
+			}
+			#hierarchyArea,
+			#detailsArea,
+			#contentArea {
+				z-index: 4;
 			}
 		</style>
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
@@ -50,6 +131,14 @@
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_content.css" />
 	</head>
 	<body>
+		<img id="stageViewport" class="stageViewport stageViewportSingle" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportTop" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportSide" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
+		<img id="stageViewportFront" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
+		<span id="stageViewportLabelPerspective" class="stageViewportLabel stageViewportLabelSingle">Perspective</span>
+		<span id="stageViewportLabelTop" class="stageViewportLabel stageViewportLabelHidden">Top</span>
+		<span id="stageViewportLabelSide" class="stageViewportLabel stageViewportLabelHidden">Side</span>
+		<span id="stageViewportLabelFront" class="stageViewportLabel stageViewportLabelHidden">Front</span>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->

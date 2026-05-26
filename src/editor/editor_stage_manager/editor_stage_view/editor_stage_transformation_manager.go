@@ -54,9 +54,9 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.view = weak.Make(stageView)
 	t.settings = settings
 	t.snapSettings = &settings.Snapping
-	t.translateTool.Initialize(stageView.host)
-	t.rotationTool.Initialize(stageView.host)
-	t.scalingTool.Initialize(stageView.host)
+	t.translateTool.Initialize(stageView.host, stageView)
+	t.rotationTool.Initialize(stageView.host, stageView)
+	t.scalingTool.Initialize(stageView.host, stageView)
 	t.manager = &stageView.manager
 	t.history = history
 	t.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {

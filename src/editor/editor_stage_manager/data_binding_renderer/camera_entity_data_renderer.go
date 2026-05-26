@@ -93,6 +93,7 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 		Mesh:       m,
 		ShaderData: arrowSd,
 		Transform:  &target.Transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	arrowSd.Deactivate()
@@ -129,6 +130,7 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 		Mesh:       frustum,
 		ShaderData: sd,
 		Transform:  &target.Transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	sd.Deactivate()

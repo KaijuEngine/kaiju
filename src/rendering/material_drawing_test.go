@@ -51,8 +51,11 @@ func TestMaterialCreateInstance(t *testing.T) {
 	if inst.Textures[0].Key != "a" {
 		t.Fatalf("texture slice should be cloned")
 	}
-	if got := root.CreateInstance([]*Texture{{Key: "a"}, {Key: "b"}}); got != inst {
-		t.Fatalf("same texture keys should reuse instance")
+	if got := root.CreateInstance(inst.Textures); got != inst {
+		t.Fatalf("same texture objects should reuse instance")
+	}
+	if got := root.CreateInstance([]*Texture{{Key: "a"}, {Key: "b"}}); got == inst {
+		t.Fatalf("recreated texture objects with the same keys should get a fresh instance")
 	}
 }
 

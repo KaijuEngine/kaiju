@@ -29,6 +29,7 @@ nav:
     - Design goals: engine/design_goals.md
     - Build from source: engine/build_from_source.md
     - Build tags: engine/build_tags.md
+    - Render targets and views: engine/render_targets.md
     - Physics constraints: engine/physics_constraints.md
     - Performance profiling: engine/performance_profiling.md
     - Building new fonts: engine/fonts/building_fonts.md

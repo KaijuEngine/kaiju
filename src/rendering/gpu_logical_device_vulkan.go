@@ -44,6 +44,12 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 		IndependentBlend:   vulkan_const.True,
 		//TextureCompressionASTC_LDR: vk.True,
 	}
+	if physicalDevice.Features.FillModeNonSolid {
+		deviceFeatures.FillModeNonSolid = vulkan_const.True
+	}
+	if physicalDevice.Features.WideLines {
+		deviceFeatures.WideLines = vulkan_const.True
+	}
 	drawFeatures := vk.PhysicalDeviceShaderDrawParameterFeatures{
 		SType:                vulkan_const.StructureTypePhysicalDeviceShaderDrawParameterFeatures,
 		ShaderDrawParameters: vulkan_const.True,

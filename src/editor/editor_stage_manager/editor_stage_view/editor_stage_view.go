@@ -26,17 +26,26 @@ import (
 )
 
 type StageView struct {
-	host          *engine.Host
-	camera        editor_controls.EditorCamera
-	gridTransform matrix.Transform
-	gridShader    *shader_data_registry.ShaderDataGrid
-	gridVisible   bool
-	manager       editor_stage_manager.StageManager
-	transformTool transform_tools.TransformTool
-	vertexSnap    VertexSnapTool
-	selectTool    select_tool.SelectTool
-	transformMan  TransformationManager
-	toolOwner     ViewportToolOwner
+	host            *engine.Host
+	camera          editor_controls.EditorCamera
+	gridTransform   matrix.Transform
+	gridShader      *shader_data_registry.ShaderDataGrid
+	gridVisible     bool
+	manager         editor_stage_manager.StageManager
+	transformTool   transform_tools.TransformTool
+	vertexSnap      VertexSnapTool
+	selectTool      select_tool.SelectTool
+	transformMan    TransformationManager
+	toolOwner       ViewportToolOwner
+	stageViewports  []stageRenderViewport
+	activeViewport  int
+	hoveredViewport int
+	focusedViewport int
+	viewport        stageViewportBounds
+	defaultView     struct {
+		options rendering.RenderViewOptions
+		active  bool
+	}
 }
 
 type ViewportToolOwner interface {
@@ -45,11 +54,11 @@ type ViewportToolOwner interface {
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
 
-func (v *StageView) Camera() *editor_controls.EditorCamera { return &v.camera }
+func (v *StageView) Camera() *editor_controls.EditorCamera { return v.activeCamera() }
 
 func (v *StageView) WorkspaceHost() *engine.Host { return v.host }
 
-func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
+func (v *StageView) LookAtPoint() matrix.Vec3 { return v.activeCamera().LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
 
@@ -72,10 +81,11 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
 	v.transformMan.Initialize(v, ed.History(), ed.Settings())
 	v.vertexSnap.Initialize(host, v, &v.transformMan)
-	v.selectTool.Init(host, &v.manager)
+	v.selectTool.Init(host, v)
 	v.createViewportGrid()
 	v.applyGridVisibility()
 	v.setupCamera(ed)
+	v.setupStageViewports(&ed.Settings().EditorCamera)
 	// Data binding visualizers
 	weakHost := weak.Make(host)
 	v.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -88,12 +98,17 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
+	v.useStageRenderTargetDefaultView()
+	v.syncStageViewport()
 	v.applyGridVisibility()
 }
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
-	v.gridShader.Deactivate()
+	v.restoreDefaultRenderView()
+	if v.gridShader != nil {
+		v.gridShader.Deactivate()
+	}
 }
 
 // IsGridVisible returns whether the editor viewport grid is currently shown.
@@ -123,6 +138,7 @@ func (v *StageView) applyGridVisibility() {
 // of keyboard actions.
 func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
+	v.syncStageViewport()
 	v.gridTransform.ResetDirty()
 	// If we are currently using any of the transformation tools, we shouldn't
 	// do any of the other updates like camera
@@ -134,7 +150,7 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 		v.vertexSnap.Update(v.host)
 		return true
 	}
-	if v.camera.Update(v.host, deltaTime) {
+	if v.activeCamera().Update(v.host, deltaTime) {
 		v.updateGridPosition()
 		v.transformTool.Cancel()
 		v.selectTool.Cancel()
@@ -154,18 +170,23 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 
 func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 	defer tracing.NewRegion("StageView.SetCameraMode").End()
-	v.camera.SetMode(mode, v.host)
+	v.activeCamera().SetMode(mode, v.host)
+	v.bindActiveViewportCamera()
 }
 
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
 	cam := v.host.PrimaryCamera()
 	camPos := cam.Position()
-	switch v.camera.Mode() {
-	case editor_controls.EditorCameraMode2d:
+	switch v.activeCamera().Mode() {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), -cam.FarPlane()*0.45))
-	case editor_controls.EditorCameraMode3d:
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		v.gridTransform.SetPosition(matrix.NewVec3(
+			cam.FarPlane()*0.45, matrix.Floor(camPos.Y()), matrix.Floor(camPos.Z())))
+	case editor_controls.EditorCameraMode3d, editor_controls.EditorCameraModeTop:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
 	}
@@ -199,6 +220,7 @@ func (v *StageView) createViewportGrid() {
 		Mesh:       grid,
 		ShaderData: v.gridShader,
 		Transform:  &v.gridTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &v.host.Cameras.Primary,
 	})
 	v.gridTransform.ResetDirty()
