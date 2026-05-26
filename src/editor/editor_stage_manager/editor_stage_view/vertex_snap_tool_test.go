@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/matrix"
 )
 
@@ -28,17 +29,29 @@ func TestClosestSnapVertexOnEntitySelectsNearestProjectedVertex(t *testing.T) {
 	}
 }
 
-func TestClosestSnapVertexOnEntityComparesAgainstCursorScreenY(t *testing.T) {
+func TestClosestSnapVertexOnEntityComparesAgainstProjectedCursorY(t *testing.T) {
 	entity := newVertexSnapToolTestEntity(matrix.Vec3Zero(),
-		matrix.NewVec3(0, 0.2, 0),
-		matrix.NewVec3(0, -0.2, 0))
-	got, ok := closestSnapVertexOnEntity(entity, matrix.NewVec2(50, 40),
-		matrix.Mat4Identity(), matrix.Mat4Identity(), matrix.NewVec4(0, 0, 100, 100), 12)
+		matrix.NewVec3(0, 2, 0),
+		matrix.NewVec3(0, -2, 0))
+	view, projection, viewport := vertexSnapToolTestCamera()
+	upperScreen, ok := matrix.Mat4ToScreenSpace(matrix.NewVec3(0, 2, 0), view, projection, viewport)
+	if !ok {
+		t.Fatal("expected upper vertex to project")
+	}
+	lowerScreen, ok := matrix.Mat4ToScreenSpace(matrix.NewVec3(0, -2, 0), view, projection, viewport)
+	if !ok {
+		t.Fatal("expected lower vertex to project")
+	}
+	if upperScreen.Y() >= lowerScreen.Y() {
+		t.Fatalf("expected upper vertex to project nearer the top of the viewport: upper=%v lower=%v", upperScreen, lowerScreen)
+	}
+	got, ok := closestSnapVertexOnEntity(entity, matrix.NewVec2(upperScreen.X(), upperScreen.Y()),
+		view, projection, viewport, 12)
 	if !ok {
 		t.Fatal("expected a source vertex candidate")
 	}
-	if got.Local != matrix.NewVec3(0, 0.2, 0) {
-		t.Fatalf("closest source vertex = %v; want %v", got.Local, matrix.NewVec3(0, 0.2, 0))
+	if got.Local != matrix.NewVec3(0, 2, 0) {
+		t.Fatalf("closest source vertex = %v; want %v", got.Local, matrix.NewVec3(0, 2, 0))
 	}
 }
 
@@ -98,4 +111,10 @@ func newVertexSnapToolTestEntity(position matrix.Vec3, vertices ...matrix.Vec3) 
 	e.Transform.SetPosition(position)
 	e.StageData.SnapVertices = vertices
 	return e
+}
+
+func vertexSnapToolTestCamera() (matrix.Mat4, matrix.Mat4, matrix.Vec4) {
+	cam := cameras.NewStandardCameraOrthographic(10, 10, 100, 100, matrix.NewVec3(0, 0, 10))
+	cam.SetLookAt(matrix.Vec3Zero())
+	return cam.View(), cam.Projection(), cam.Viewport()
 }
