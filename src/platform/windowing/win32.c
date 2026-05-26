@@ -89,10 +89,11 @@ static bool user_prefers_dark_mode(void);
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
-#define UWM_SET_CURSOR         (WM_USER + 0x0001)
-#define UWM_SET_TITLE_BAR_MODE (WM_USER + 0x0002)
+#define UWM_SET_CURSOR            (WM_USER + 0x0001)
+#define UWM_SET_TITLE_BAR_MODE    (WM_USER + 0x0002)
+#define UWM_SET_CURSOR_VISIBILITY (WM_USER + 0x0004)
 #if KAIJU_ENABLE_FILEDROP
-#define UWM_SET_FILE_DROP      (WM_USER + 0x0003)
+#define UWM_SET_FILE_DROP         (WM_USER + 0x0003)
 #endif
 #define CURSOR_ARROW           1
 #define CURSOR_IBEAM           2
@@ -609,8 +610,35 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				//	break;
 			}
 			if (c != NULL) {
-				SetCursor(c);
 				SetClassLongPtr(hwnd, GCLP_HCURSOR, (LONG_PTR)c);
+				if (sm != NULL && sm->cursorHidden) {
+					SetCursor(NULL);
+				} else {
+					SetCursor(c);
+				}
+			}
+			break;
+		}
+		case UWM_SET_CURSOR_VISIBILITY:
+		{
+			if (sm == NULL) {
+				break;
+			}
+			if (wParam) {
+				if (!sm->cursorHidden) {
+					sm->cursorHidden = true;
+					SetCursor(NULL);
+					// Hide cursor: bring counter to -1 (hidden)
+					while (ShowCursor(FALSE) >= 0) {}
+				}
+			} else if (sm->cursorHidden) {
+				sm->cursorHidden = false;
+				// Restore cursor visibility: bring counter back to 0 (visible)
+				while (ShowCursor(TRUE) < 0) {}
+				HCURSOR c = (HCURSOR)GetClassLongPtr(hwnd, GCLP_HCURSOR);
+				if (c != NULL) {
+					SetCursor(c);
+				}
 			}
 			break;
 		}
@@ -991,22 +1019,11 @@ void window_add_border(void* hwnd) {
 }
 
 void window_show_cursor(void* hwnd) {
-	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	if (sm != NULL && sm->cursorHidden) {
-		sm->cursorHidden = false;
-		// Restore cursor visibility: bring counter back to 0 (visible)
-		while (ShowCursor(TRUE) < 0) {}
-	}
+	PostMessageA(hwnd, UWM_SET_CURSOR_VISIBILITY, FALSE, 0);
 }
 
 void window_hide_cursor(void* hwnd) {
-	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	if (sm != NULL && !sm->cursorHidden) {
-		sm->cursorHidden = true;
-		SetCursor(NULL);
-		// Hide cursor: bring counter to -1 (hidden)
-		while (ShowCursor(FALSE) >= 0) {}
-	}
+	PostMessageA(hwnd, UWM_SET_CURSOR_VISIBILITY, TRUE, 0);
 }
 
 void window_lock_cursor(void* hwnd, int x, int y) {
@@ -1189,34 +1206,80 @@ void window_set_file_drop_enabled(void* hwnd, bool enabled) {
 #endif
 
 void window_set_icon(void* hwnd, int width, int height, const uint8_t* pixelData) {
+	if (hwnd == NULL || pixelData == NULL || width <= 0 || height <= 0) {
+		return;
+	}
+
 	// Create BITMAPINFO structure for the icon
 	BITMAPINFO bmi = { 0 };
 	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmi.bmiHeader.biWidth = width;
 	bmi.bmiHeader.biHeight = -height; // Negative for top-down DIB
 	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biBitCount = 32;    // 32-bit
 	bmi.bmiHeader.biCompression = BI_RGB;
+
 	// Create a device context and allocate memory for the pixel data
 	HDC hdc = GetDC(NULL);
-	HDC memDC = CreateCompatibleDC(hdc);
-	HBITMAP colorBmp = CreateCompatibleBitmap(hdc, width, height);
-	// Set the pixel data into the bitmap
-	SetDIBits(memDC, colorBmp, 0, height, pixelData, &bmi, DIB_RGB_COLORS);
-	// Create ICONINFO structure
+	void* dibPixels = NULL;
+	HBITMAP colorBmp = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &dibPixels, NULL, 0);
+	if (colorBmp == NULL || dibPixels == NULL) {
+		if (hdc != NULL) {
+			ReleaseDC(NULL, hdc);
+		}
+		return;
+	}
+
+	size_t pixelBytes = (size_t)width * (size_t)height * 4u;
+	memcpy(dibPixels, pixelData, pixelBytes);
+
+	HBITMAP maskBmp = NULL;
+	int maskStrideBytes = ((width + 31) / 32) * 4;
+	size_t maskBytes = (size_t)maskStrideBytes * (size_t)height;
+	uint8_t* maskBits = (uint8_t*)calloc(maskBytes, 1);
+	if (maskBits != NULL) {
+		// Win32 icons require a 1bpp AND-mask bitmap even if the color
+		// bitmap is 32-bit with alpha. All-zero bits means "do not mask out
+		// any pixels", so alpha in the color bitmap decides alpha.
+		maskBmp = CreateBitmap(width, height, 1, 1, maskBits);
+		free(maskBits);
+	} else {
+		// Allocation fallback: still pass a valid 1bpp mask handle so
+		// CreateIconIndirect gets valid icon inputs.
+		maskBmp = CreateBitmap(width, height, 1, 1, NULL);
+	}
+	if (maskBmp == NULL) {
+		DeleteObject(colorBmp);
+		ReleaseDC(NULL, hdc);
+		return;
+	}
+
 	ICONINFO ii = { 0 };
 	ii.fIcon = TRUE;
 	ii.hbmColor = colorBmp;
-	ii.hbmMask = CreateCompatibleBitmap(hdc, width, height);
-	// Create the icon
+	ii.hbmMask = maskBmp;
+
 	HICON icon = CreateIconIndirect(&ii);
-	// Set both large (taskbar) and small (title bar) icons
-	SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon);
-	SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icon);
-	// Clean up
-	DeleteObject(ii.hbmMask);
+	if (icon == NULL) {
+		DeleteObject(maskBmp);
+		DeleteObject(colorBmp);
+		ReleaseDC(NULL, hdc);
+		return;
+	}
+
+	HICON oldBig = (HICON)SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon);
+	if (oldBig != NULL && oldBig != icon) {
+		/* cleanup previous icon */
+		DestroyIcon(oldBig);
+	}
+	HICON oldSmall = (HICON)SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icon);
+	if (oldSmall != NULL && oldSmall != icon && oldSmall != oldBig) {
+		/* cleanup previous icon */
+		DestroyIcon(oldSmall);
+	}
+
+	DeleteObject(maskBmp);
 	DeleteObject(colorBmp);
-	DeleteDC(memDC);
 	ReleaseDC(NULL, hdc);
 }
 

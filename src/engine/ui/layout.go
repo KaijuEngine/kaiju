@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* layout.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
@@ -45,6 +15,7 @@ const (
 )
 
 type Positioning = int
+type FlexAlign = int
 
 const (
 	PositioningStatic = Positioning(iota)
@@ -52,6 +23,14 @@ const (
 	PositioningFixed
 	PositioningRelative
 	PositioningSticky
+)
+
+const (
+	FlexAlignAuto = FlexAlign(iota)
+	FlexAlignStart
+	FlexAlignEnd
+	FlexAlignCenter
+	FlexAlignStretch
 )
 
 type Layout struct {
@@ -64,12 +43,29 @@ type Layout struct {
 	border           matrix.Vec4
 	padding          matrix.Vec4
 	margin           matrix.Vec4
+	gridRowStart     int
+	gridRowEnd       int
+	gridColumnStart  int
+	gridColumnEnd    int
+	flexGrow         float32
+	flexShrink       float32
+	flexBasis        float32
+	flexBasisAuto    bool
+	flexBasisPercent bool
+	flexOrder        int
+	alignSelf        FlexAlign
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
 }
 
 func (l *Layout) ClearStyles() {
+	ps := l.PixelSize()
+	if l.padding.Horizontal() != 0 || l.padding.Vertical() != 0 ||
+		l.border.Horizontal() != 0 || l.border.Vertical() != 0 {
+		ps.SetX(ps.X() - l.padding.Horizontal() - l.border.Horizontal())
+		ps.SetY(ps.Y() - l.padding.Vertical() - l.border.Vertical())
+	}
 	l.offset = matrix.Vec2{}
 	l.rowLayoutOffset = matrix.Vec2{}
 	l.innerOffset = matrix.Vec4{}
@@ -78,6 +74,21 @@ func (l *Layout) ClearStyles() {
 	l.border = matrix.Vec4{}
 	l.padding = matrix.Vec4{}
 	l.margin = matrix.Vec4{}
+	l.gridRowStart = 0
+	l.gridRowEnd = 0
+	l.gridColumnStart = 0
+	l.gridColumnEnd = 0
+	l.flexGrow = 0
+	l.flexShrink = 1
+	l.flexBasis = 0
+	l.flexBasisAuto = true
+	l.flexBasisPercent = false
+	l.flexOrder = 0
+	l.alignSelf = FlexAlignAuto
+	l.positioning = PositioningStatic
+	if ps.X() > 0 && ps.Y() > 0 {
+		l.Scale(ps.X(), ps.Y())
+	}
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
@@ -232,6 +243,108 @@ func (l *Layout) Border() matrix.Vec4      { return l.border }
 func (l *Layout) Padding() matrix.Vec4     { return l.padding }
 func (l *Layout) Margin() matrix.Vec4      { return l.margin }
 func (l *Layout) Offset() matrix.Vec2      { return matrix.Vec2{l.offset.X(), l.offset.Y()} }
+func (l *Layout) GridRowStart() int        { return l.gridRowStart }
+func (l *Layout) GridRowEnd() int          { return l.gridRowEnd }
+func (l *Layout) GridColumnStart() int     { return l.gridColumnStart }
+func (l *Layout) GridColumnEnd() int       { return l.gridColumnEnd }
+func (l *Layout) FlexGrow() float32        { return l.flexGrow }
+func (l *Layout) FlexShrink() float32      { return l.flexShrink }
+func (l *Layout) FlexBasis() float32       { return l.flexBasis }
+func (l *Layout) FlexBasisAuto() bool      { return l.flexBasisAuto }
+func (l *Layout) FlexBasisPercent() bool   { return l.flexBasisPercent }
+func (l *Layout) FlexOrder() int           { return l.flexOrder }
+func (l *Layout) AlignSelf() FlexAlign     { return l.alignSelf }
+
+func (l *Layout) SetFlexGrow(grow float32) {
+	if grow < 0 {
+		grow = 0
+	}
+	if matrix.Approx(l.flexGrow, grow) {
+		return
+	}
+	l.flexGrow = grow
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexShrink(shrink float32) {
+	if shrink < 0 {
+		shrink = 0
+	}
+	if matrix.Approx(l.flexShrink, shrink) {
+		return
+	}
+	l.flexShrink = shrink
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexBasisAuto() {
+	if l.flexBasisAuto && matrix.Approx(l.flexBasis, 0) && !l.flexBasisPercent {
+		return
+	}
+	l.flexBasis = 0
+	l.flexBasisAuto = true
+	l.flexBasisPercent = false
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexBasis(basis float32, percent bool) {
+	if basis < 0 {
+		basis = 0
+	}
+	if !l.flexBasisAuto && matrix.Approx(l.flexBasis, basis) && l.flexBasisPercent == percent {
+		return
+	}
+	l.flexBasis = basis
+	l.flexBasisAuto = false
+	l.flexBasisPercent = percent
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetFlexOrder(order int) {
+	if l.flexOrder == order {
+		return
+	}
+	l.flexOrder = order
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetAlignSelf(align FlexAlign) {
+	if l.alignSelf == align {
+		return
+	}
+	l.alignSelf = align
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetGridRow(start, end int) {
+	if start < 0 {
+		start = 0
+	}
+	if end < 0 {
+		end = 0
+	}
+	if l.gridRowStart == start && l.gridRowEnd == end {
+		return
+	}
+	l.gridRowStart = start
+	l.gridRowEnd = end
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetGridColumn(start, end int) {
+	if start < 0 {
+		start = 0
+	}
+	if end < 0 {
+		end = 0
+	}
+	if l.gridColumnStart == start && l.gridColumnEnd == end {
+		return
+	}
+	l.gridColumnStart = start
+	l.gridColumnEnd = end
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
 
 func (l *Layout) SetBorder(left, top, right, bottom float32) {
 	b := matrix.Vec4{left, top, right, bottom}
@@ -311,11 +424,19 @@ func (l *Layout) update() {
 }
 
 func (l *Layout) totalOffsetBounds() matrix.Vec4 {
+	offset := l.CalcOffset()
+	if l.positioning == PositioningAbsolute && !l.ui.Entity().IsRoot() {
+		if parentUI := FirstOnEntity(l.ui.Entity().Parent); parentUI != nil {
+			border := parentUI.Layout().Border()
+			offset.SetX(offset.X() + border.Left())
+			offset.SetY(offset.Y() + border.Top())
+		}
+	}
 	return matrix.Vec4{
-		l.CalcOffset().X(),
-		l.CalcOffset().Y(),
-		l.CalcOffset().X(),
-		l.CalcOffset().Y(),
+		offset.X(),
+		offset.Y(),
+		offset.X(),
+		offset.Y(),
 	}
 }
 
@@ -352,6 +473,14 @@ func (l *Layout) prepare() {
 			l.ui.ToInput().onLayoutUpdating()
 			l.runningStylizer = false
 		}
+	case ElementTypeTextArea:
+		if l.runningStylizer {
+			l.ui.ToTextArea().onLayoutUpdating()
+		} else {
+			l.runningStylizer = true
+			l.ui.ToTextArea().onLayoutUpdating()
+			l.runningStylizer = false
+		}
 	case ElementTypeSlider:
 		if l.runningStylizer {
 			l.ui.ToSlider().onLayoutUpdating()
@@ -384,6 +513,9 @@ func (l *Layout) bounds() matrix.Vec2 {
 
 func (l *Layout) initialize(ui *UI) {
 	l.ui = ui
+	l.flexShrink = 1
+	l.flexBasisAuto = true
+	l.alignSelf = FlexAlignAuto
 	//l.prepare()
 	//l.update()
 }

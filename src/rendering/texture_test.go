@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* texture_test.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
@@ -182,6 +152,46 @@ func TestTextureSetPendingDataDimensions(t *testing.T) {
 	tex.SetPendingDataDimensions(TextureDimensionsCube)
 	if tex.pendingData.Dimensions != TextureDimensionsCube {
 		t.Fatalf("Dimensions = %v, want cube", tex.pendingData.Dimensions)
+	}
+}
+
+func TestTextureReadRegionBufferSizeClamps(t *testing.T) {
+	id := TextureId{Width: 10, Height: 5, Format: GPUFormatR32Uint}
+	rect, size, err := textureReadRegionBufferSize(&id, matrix.Vec4i{-2, 1, 5, 9})
+	if err != nil {
+		t.Fatalf("textureReadRegionBufferSize returned error: %v", err)
+	}
+	if rect != (matrix.Vec4i{0, 1, 3, 4}) {
+		t.Fatalf("clamped rect = %v, want {0 1 3 4}", rect)
+	}
+	if size != 3*4*4 {
+		t.Fatalf("buffer size = %d, want 48", size)
+	}
+}
+
+func TestTextureReadRegionBufferSizeValidates(t *testing.T) {
+	id := TextureId{Width: 10, Height: 5, Format: GPUFormatR32Uint}
+	cases := []matrix.Vec4i{
+		{0, 0, 0, 1},
+		{0, 0, 1, -1},
+		{10, 0, 1, 1},
+		{0, 5, 1, 1},
+	}
+	for _, tc := range cases {
+		if _, _, err := textureReadRegionBufferSize(&id, tc); err == nil {
+			t.Fatalf("textureReadRegionBufferSize(%v) should return an error", tc)
+		}
+	}
+}
+
+func TestTextureReadRegionFullReadByteSizeUnchanged(t *testing.T) {
+	id := TextureId{Width: 7, Height: 3, Format: GPUFormatR8Unorm}
+	_, size, err := textureReadFullBufferSize(&id)
+	if err != nil {
+		t.Fatalf("textureReadFullBufferSize returned error: %v", err)
+	}
+	if size != uintptr(id.Width*id.Height*BytesInPixel) {
+		t.Fatalf("full read size = %d, want %d", size, id.Width*id.Height*BytesInPixel)
 	}
 }
 

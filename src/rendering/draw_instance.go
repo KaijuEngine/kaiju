@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* draw_instance.go                                                           */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
@@ -40,15 +10,49 @@ import (
 	"reflect"
 	"unsafe"
 
-	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type ViewCuller interface {
-	IsInView(box collision.AABB) bool
+	IsInView(box graviton.AABB) bool
 	ViewChanged() bool
+}
+
+type renderViewFrustumCamera interface {
+	Frustum() graviton.Frustum
+	IsDirty() bool
+}
+
+type renderViewCameraCuller struct {
+	camera renderViewFrustumCamera
+}
+
+func (c renderViewCameraCuller) IsInView(box graviton.AABB) bool {
+	return box.IntersectsFrustum(c.camera.Frustum())
+}
+
+func (c renderViewCameraCuller) ViewChanged() bool {
+	return c.camera.IsDirty()
+}
+
+func renderViewCuller(view *RenderView, fallback ViewCuller) ViewCuller {
+	if view == nil {
+		return fallback
+	}
+	camera := view.Camera()
+	if camera == nil {
+		return fallback
+	}
+	if culler, ok := camera.(ViewCuller); ok {
+		return culler
+	}
+	if camera, ok := camera.(renderViewFrustumCamera); ok {
+		return renderViewCameraCuller{camera: camera}
+	}
+	return fallback
 }
 
 type DrawInstance interface {
@@ -61,7 +65,7 @@ type DrawInstance interface {
 	IsInView() bool
 	Size() int
 	SetModel(model matrix.Mat4)
-	UpdateModel(viewCuller ViewCuller, container collision.AABB)
+	UpdateModel(viewCuller ViewCuller, container graviton.AABB)
 	DataPointer() unsafe.Pointer
 	// Returns true if it should write the data, otherwise false
 	UpdateBoundData() bool
@@ -70,7 +74,7 @@ type DrawInstance interface {
 	setTransform(transform *matrix.Transform)
 	SelectLights(lights LightsForRender)
 	addShadow(shadow DrawInstance)
-	renderBounds() collision.AABB
+	renderBounds() graviton.AABB
 }
 
 func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
@@ -80,21 +84,35 @@ func ReflectDuplicateDrawInstance(target DrawInstance) DrawInstance {
 	}
 	newVal := reflect.New(val.Elem().Type()).Elem()
 	newVal.Set(val.Elem())
-	return newVal.Addr().Interface().(DrawInstance)
+	dupe := newVal.Addr().Interface().(DrawInstance)
+	dupe.Base().viewCullStates = nil
+	return dupe
+}
+
+func LinkDrawInstanceLifecycle(owner, follower DrawInstance) {
+	if owner == nil || follower == nil {
+		return
+	}
+	if owner.IsDestroyed() {
+		follower.Destroy()
+		return
+	}
+	owner.addShadow(follower)
 }
 
 const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
 
 type ShaderDataBase struct {
-	aabb        collision.AABB
-	destroyed   bool
-	deactivated bool
-	viewCulled  bool
-	_           [1]byte // Byte alignment
-	shadows     []DrawInstance
-	transform   *matrix.Transform
-	InitModel   matrix.Mat4
-	model       matrix.Mat4
+	aabb           graviton.AABB
+	destroyed      bool
+	deactivated    bool
+	viewCulled     bool
+	_              [1]byte // Byte alignment
+	viewCullStates map[*RenderView]bool
+	shadows        []DrawInstance
+	transform      *matrix.Transform
+	InitModel      matrix.Mat4
+	model          matrix.Mat4
 }
 
 type ShaderDataCombine struct {
@@ -124,8 +142,16 @@ func (s *ShaderDataBase) SkinningHeader() *SkinnedShaderDataHeader { return nil 
 func (s *ShaderDataBase) CancelDestroy()                           { s.destroyed = false }
 func (s *ShaderDataBase) IsDestroyed() bool                        { return s.destroyed }
 func (s *ShaderDataBase) IsInView() bool                           { return !s.deactivated && !s.viewCulled }
-func (s *ShaderDataBase) Model() matrix.Mat4                       { return s.model }
-func (s *ShaderDataBase) ModelPtr() *matrix.Mat4                   { return &s.model }
+func (s *ShaderDataBase) IsInViewForView(view *RenderView) bool {
+	if s.viewCullStates != nil {
+		if culled, ok := s.viewCullStates[view]; ok {
+			return !s.deactivated && !culled
+		}
+	}
+	return s.IsInView()
+}
+func (s *ShaderDataBase) Model() matrix.Mat4     { return s.model }
+func (s *ShaderDataBase) ModelPtr() *matrix.Mat4 { return &s.model }
 
 func (s *ShaderDataBase) Destroy() {
 	s.destroyed = true
@@ -177,7 +203,11 @@ func (s *ShaderDataBase) forceUpdateTransformModel() {
 	s.model = matrix.Mat4Multiply(s.InitModel, s.transform.WorldMatrix())
 }
 
-func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.AABB) {
+func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container graviton.AABB) {
+	s.UpdateModelForView(nil, viewCuller, container)
+}
+
+func (s *ShaderDataBase) UpdateModelForView(view *RenderView, viewCuller ViewCuller, container graviton.AABB) bool {
 	recalcCulling := false
 	if viewCuller != nil {
 		recalcCulling = viewCuller.ViewChanged()
@@ -186,17 +216,28 @@ func (s *ShaderDataBase) UpdateModel(viewCuller ViewCuller, container collision.
 		s.forceUpdateTransformModel()
 		a := s.model.TransformPoint(container.Min())
 		b := s.model.TransformPoint(container.Max())
-		s.aabb = collision.AABBFromMinMax(a, b)
+		s.aabb = graviton.AABBFromMinMax(a, b)
 		recalcCulling = true
 	} else if s.transform == nil {
 		s.aabb = container
 	}
-	if recalcCulling {
-		s.viewCulled = !viewCuller.IsInView(s.aabb)
+	if s.viewCullStates == nil {
+		s.viewCullStates = make(map[*RenderView]bool)
 	}
+	culled, known := s.viewCullStates[view]
+	if viewCuller == nil {
+		culled = false
+	} else if recalcCulling || !known {
+		culled = !viewCuller.IsInView(s.aabb)
+	}
+	s.viewCullStates[view] = culled
+	if view == nil {
+		s.viewCulled = culled
+	}
+	return !s.deactivated && !culled
 }
 
-func (s *ShaderDataBase) renderBounds() collision.AABB { return s.aabb }
+func (s *ShaderDataBase) renderBounds() graviton.AABB { return s.aabb }
 
 func (s *ShaderDataBase) DataPointer() unsafe.Pointer {
 	return unsafe.Pointer(&s.model[0])
@@ -220,14 +261,30 @@ func InstanceCopyDataNew(padding int) InstanceCopyData {
 	}
 }
 
+type DrawInstanceViewState struct {
+	InstanceDriverData
+	rawData           InstanceCopyData
+	boundInstanceData []InstanceCopyData
+	visibleCount      int
+}
+
+func NewDrawInstanceViewState(dataSize int) DrawInstanceViewState {
+	return DrawInstanceViewState{
+		rawData:           InstanceCopyDataNew(dataSize % 16),
+		boundInstanceData: make([]InstanceCopyData, 0),
+	}
+}
+
 type DrawInstanceGroup struct {
 	Mesh *Mesh
 	InstanceDriverData
 	MaterialInstance  *Material
+	Layer             RenderLayerMask
 	viewCuller        ViewCuller
 	Instances         []DrawInstance
 	rawData           InstanceCopyData
 	boundInstanceData []InstanceCopyData
+	viewStates        map[*RenderView]*DrawInstanceViewState
 	instanceSize      int
 	visibleCount      int
 	sort              int
@@ -240,6 +297,7 @@ func NewDrawInstanceGroup(mesh *Mesh, dataSize int, viewCuller ViewCuller) DrawI
 		Instances:         make([]DrawInstance, 0),
 		rawData:           InstanceCopyDataNew(dataSize % 16),
 		boundInstanceData: make([]InstanceCopyData, 0),
+		viewStates:        make(map[*RenderView]*DrawInstanceViewState),
 		instanceSize:      dataSize,
 		destroyed:         false,
 		viewCuller:        viewCuller,
@@ -262,6 +320,14 @@ func (d *DrawInstanceGroup) IsEmpty() bool {
 	return len(d.Instances) == 0
 }
 
+func (d *DrawInstanceGroup) EffectiveLayer() RenderLayerMask {
+	return normalizeRenderLayerMask(d.Layer)
+}
+
+func (d *DrawInstanceGroup) MatchesLayer(mask RenderLayerMask) bool {
+	return d.EffectiveLayer()&mask != 0
+}
+
 func (d *DrawInstanceGroup) IsReady() bool {
 	// TODO:  Check if textures are ready?
 	return d.Mesh.IsReady() && !d.IsEmpty()
@@ -269,6 +335,40 @@ func (d *DrawInstanceGroup) IsReady() bool {
 
 func (d *DrawInstanceGroup) TotalSize() int {
 	return len(d.Instances) * (d.instanceSize + d.rawData.padding)
+}
+
+func (d *DrawInstanceGroup) viewStateForView(view *RenderView) *DrawInstanceViewState {
+	if d.viewStates == nil {
+		d.viewStates = make(map[*RenderView]*DrawInstanceViewState)
+	}
+	if state, ok := d.viewStates[view]; ok {
+		return state
+	}
+	state := NewDrawInstanceViewState(d.instanceSize)
+	state.rawData.length = d.rawData.length
+	state.rawData.padding = d.rawData.padding
+	state.boundInstanceData = make([]InstanceCopyData, len(d.boundInstanceData))
+	for i := range d.boundInstanceData {
+		state.boundInstanceData[i].padding = d.boundInstanceData[i].padding
+		state.boundInstanceData[i].length = d.boundInstanceData[i].length
+	}
+	d.viewStates[view] = &state
+	return &state
+}
+
+func (d *DrawInstanceGroup) syncViewStateTemplates() {
+	for _, state := range d.viewStates {
+		state.rawData.padding = d.rawData.padding
+		state.rawData.length = d.rawData.length
+		if len(state.boundInstanceData) < len(d.boundInstanceData) {
+			grow := len(d.boundInstanceData) - len(state.boundInstanceData)
+			state.boundInstanceData = klib.SliceSetLen(state.boundInstanceData, grow)
+		}
+		for i := range d.boundInstanceData {
+			state.boundInstanceData[i].padding = d.boundInstanceData[i].padding
+			state.boundInstanceData[i].length = d.boundInstanceData[i].length
+		}
+	}
 }
 
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
@@ -290,22 +390,29 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 			}
 		}
 	}
+	d.syncViewStateTemplates()
 }
 
 func (d *DrawInstanceGroup) AnyVisible() bool  { return d.visibleCount > 0 }
 func (d *DrawInstanceGroup) VisibleCount() int { return d.visibleCount }
+func (d *DrawInstanceGroup) AnyVisibleForView(view *RenderView) bool {
+	return d.viewStateForView(view).visibleCount > 0
+}
+func (d *DrawInstanceGroup) VisibleCountForView(view *RenderView) int {
+	return d.viewStateForView(view).visibleCount
+}
 
 func (d *DrawInstanceGroup) VisibleSize() int {
 	return d.visibleCount * (d.instanceSize + d.rawData.padding)
 }
 
-func (d *DrawInstanceGroup) updateBoundData(index, bindingId int, instance DrawInstance, frame int) {
+func (d *DrawInstanceGroup) updateBoundData(state *DrawInstanceViewState, index, bindingId int, instance DrawInstance, frame int) {
 	if !instance.UpdateBoundData() {
 		return
 	}
 	if ptr := instance.BoundDataPointer(); ptr != nil {
-		nb := d.boundBuffers[bindingId]
-		data := d.boundInstanceData[bindingId]
+		nb := state.boundBuffers[bindingId]
+		data := state.boundInstanceData[bindingId]
 		offset := uintptr((nb.stride) * index)
 		base := data.byteMapping[frame]
 		to := unsafe.Pointer(uintptr(base) + offset)
@@ -314,12 +421,21 @@ func (d *DrawInstanceGroup) updateBoundData(index, bindingId int, instance DrawI
 }
 
 func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender) {
+	d.UpdateDataForView(device, frame, lights, nil)
+}
+
+func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, lights LightsForRender, view *RenderView) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
-	base := d.rawData.byteMapping[frame]
+	state := d.viewStateForView(view)
+	base := state.rawData.byteMapping[frame]
 	offset := uintptr(0)
 	count := len(d.Instances)
-	d.visibleCount = 0
+	state.visibleCount = 0
 	instanceIndex := 0
+	viewCuller := renderViewCuller(view, d.viewCuller)
+	if d.EffectiveLayer() == RenderLayerUI {
+		viewCuller = d.viewCuller
+	}
 	for i := 0; i < count; i++ {
 		instance := d.Instances[i]
 		// This gives me a tiny fraction of extra perf for some reason, don't judge me
@@ -330,28 +446,29 @@ func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights Ligh
 			count--
 			continue
 		}
-		instanceBase.UpdateModel(d.viewCuller, d.Mesh.Bounds())
-		if instanceBase.IsInView() {
+		if instanceBase.UpdateModelForView(view, viewCuller, d.Mesh.Bounds()) {
 			if d.MaterialInstance.IsLit {
 				instance.SelectLights(lights)
 			}
-			if d.generatedSets && len(d.boundInstanceData) > 0 {
-				for j := range d.boundInstanceData {
-					d.updateBoundData(instanceIndex, j, instance, frame)
+			if state.generatedSets && len(state.boundInstanceData) > 0 {
+				for j := range state.boundInstanceData {
+					d.updateBoundData(state, instanceIndex, j, instance, frame)
 				}
 			}
 			to := unsafe.Pointer(uintptr(base) + offset)
 			klib.Memcpy(to, instanceBase.DataPointer(), uint64(d.instanceSize))
-			offset += uintptr(d.instanceSize + d.rawData.padding)
-			d.visibleCount++
+			offset += uintptr(d.instanceSize + state.rawData.padding)
+			state.visibleCount++
 			instanceIndex++
 		}
 	}
 	if count < len(d.Instances) {
 		d.rawData.length = count * (d.instanceSize + d.rawData.padding)
 		d.Instances = d.Instances[:count]
+		d.syncViewStateTemplates()
 	}
-	d.bindInstanceDriverData()
+	d.visibleCount = state.visibleCount
+	d.bindInstanceDriverData(state)
 	if len(d.Instances) == 0 {
 		device.LogicalDevice.DestroyGroup(d)
 		d.destroyed = true
@@ -367,6 +484,23 @@ func (d *DrawInstanceGroup) Clear() {
 	}
 }
 
+func (d *DrawInstanceGroup) DestroyViewState(device *GPUDevice, view *RenderView) {
+	if d.viewStates != nil {
+		if state, ok := d.viewStates[view]; ok {
+			if device != nil {
+				device.LogicalDevice.destroyGroupViewState(state)
+			}
+			delete(d.viewStates, view)
+		}
+	}
+	for i := range d.Instances {
+		base := d.Instances[i].Base()
+		if base.viewCullStates != nil {
+			delete(base.viewCullStates, view)
+		}
+	}
+}
+
 func (d *DrawInstanceGroup) Destroy(device *GPUDevice) {
 	if d.destroyed {
 		return
@@ -376,4 +510,5 @@ func (d *DrawInstanceGroup) Destroy(device *GPUDevice) {
 	d.Mesh = nil
 	d.MaterialInstance = nil
 	device.LogicalDevice.DestroyGroup(d)
+	d.viewStates = nil
 }

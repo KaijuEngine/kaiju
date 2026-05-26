@@ -1,42 +1,13 @@
 /******************************************************************************/
 /* drawing.go                                                                 */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
+	"log/slog"
 	"sort"
 	"sync"
 
@@ -59,6 +30,8 @@ type Drawing struct {
 	Transform *matrix.Transform
 	// Sort determines the draw order within a render pass.
 	Sort int
+	// Layer controls which render views include this drawing. Zero maps to world.
+	Layer RenderLayerMask
 	// ViewCuller optionally culls the drawing based on the view frustum.
 	ViewCuller ViewCuller
 }
@@ -70,9 +43,28 @@ func (d *Drawing) IsValid() bool {
 	return d.Material != nil
 }
 
+func (d *Drawing) EffectiveLayer() RenderLayerMask {
+	return normalizeRenderLayerMask(d.Layer)
+}
+
+func (d *Drawing) MatchesLayer(mask RenderLayerMask) bool {
+	return d.EffectiveLayer()&mask != 0
+}
+
 type RenderPassGroup struct {
 	renderPass *RenderPass
 	draws      []ShaderDraw
+}
+
+func (d *RenderPassGroup) MatchesLayer(mask RenderLayerMask) bool {
+	for i := range d.draws {
+		for j := range d.draws[i].instanceGroups {
+			if d.draws[i].instanceGroups[j].MatchesLayer(mask) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type Drawings struct {
@@ -92,10 +84,12 @@ func NewDrawings() Drawings {
 func (d *Drawings) HasDrawings() bool { return len(d.renderPassGroups) > 0 }
 
 func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
+	defer tracing.NewRegion("Drawings.matchGroup").End()
 	idx := -1
 	for i := 0; i < len(sd.instanceGroups) && idx < 0; i++ {
 		g := &sd.instanceGroups[i]
 		if g.Mesh == dg.Mesh &&
+			g.EffectiveLayer() == dg.EffectiveLayer() &&
 			(g.MaterialInstance == dg.Material || g.MaterialInstance.Root.Value() == dg.Material) {
 			idx = i
 		}
@@ -104,6 +98,7 @@ func (d *Drawings) matchGroup(sd *ShaderDraw, dg *Drawing) int {
 }
 
 func (d *RenderPassGroup) findShaderDraw(material *Material) (*ShaderDraw, bool) {
+	defer tracing.NewRegion("Drawings.RenderPassGroup").End()
 	rootMat := material
 	if rootMat.Root.Value() != nil {
 		rootMat = rootMat.Root.Value()
@@ -121,6 +116,7 @@ func (d *RenderPassGroup) findShaderDraw(material *Material) (*ShaderDraw, bool)
 }
 
 func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup, bool) {
+	defer tracing.NewRegion("Drawings.findRenderPassGroup").End()
 	for i := range d.renderPassGroups {
 		if d.renderPassGroups[i].renderPass == renderPass {
 			return &d.renderPassGroups[i], true
@@ -130,6 +126,7 @@ func (d *Drawings) findRenderPassGroup(renderPass *RenderPass) (*RenderPassGroup
 }
 
 func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGroup) {
+	defer tracing.NewRegion("Drawings.addToRenderPassGroup").End()
 	draw, ok := rpGroup.findShaderDraw(drawing.Material)
 	if !ok {
 		newDraw := NewShaderDraw(drawing.Material)
@@ -142,6 +139,7 @@ func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGro
 		draw.instanceGroups[idx].AddInstance(drawing.ShaderData)
 	} else {
 		group := NewDrawInstanceGroup(drawing.Mesh, drawing.ShaderData.Size(), drawing.ViewCuller)
+		group.Layer = drawing.EffectiveLayer()
 		group.MaterialInstance = drawing.Material
 		group.AddInstance(drawing.ShaderData)
 		group.MaterialInstance.Textures = drawing.Material.Textures
@@ -180,6 +178,7 @@ func (d *Drawings) PreparePending(shadowCascades uint8) {
 func (d *Drawings) AddDrawing(drawing Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	drawing.Layer = drawing.EffectiveLayer()
 	if p := drawing.Material.PrepassMaterial.Value(); p != nil {
 		cpy := drawing
 		cpy.Material = p
@@ -194,26 +193,30 @@ func (d *Drawings) AddDrawing(drawing Drawing) {
 func (d *Drawings) AddDrawings(drawings []Drawing) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	normalized := make([]Drawing, len(drawings))
 	for i := range drawings {
-		if p := drawings[i].Material.PrepassMaterial.Value(); p != nil {
-			cpy := drawings[i]
+		normalized[i] = drawings[i]
+		normalized[i].Layer = normalized[i].EffectiveLayer()
+		if p := normalized[i].Material.PrepassMaterial.Value(); p != nil {
+			cpy := normalized[i]
 			cpy.Material = p
 			d.backDraws = append(d.backDraws, cpy)
 		}
 	}
-	d.backDraws = append(d.backDraws, drawings...)
-	for i := range drawings {
-		if drawings[i].Mesh == nil || drawings[i].Material == nil {
+	d.backDraws = append(d.backDraws, normalized...)
+	for i := range normalized {
+		if normalized[i].Mesh == nil || normalized[i].Material == nil {
 			panic("no")
 		}
 	}
 }
 
-func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
+func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*RenderView) {
 	defer tracing.NewRegion("Drawings.Render").End()
 	if len(d.renderPassGroups) == 0 {
 		return
 	}
+	views = renderViewsForDraw(views)
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	shadows := [MaxLocalLights]TextureId{}
 	shadowIdx := 0
@@ -224,23 +227,86 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender) {
 		}
 		passes = append(passes, rp)
 		if rp.IsShadowPass() {
-			shadows[shadowIdx] = rp.textures[0].RenderId
-			shadowIdx++
+			if shadowIdx < len(shadows) {
+				shadows[shadowIdx] = rp.textures[0].RenderId
+				shadowIdx++
+			}
 		}
 	}
 	sort.Slice(passes, func(i, j int) bool {
 		return passes[i].construction.Sort < passes[j].construction.Sort
 	})
-	for i := range d.renderPassGroups {
-		rp := d.renderPassGroups[i].renderPass
-		device.Draw(rp, d.renderPassGroups[i].draws, lights, shadows[:])
-	}
-	if len(passes) > 0 {
-		device.BlitTargets(passes)
+	for _, view := range views {
+		target := view.Target()
+		if target != nil {
+			if err := device.PrepareRenderTarget(target); err != nil {
+				slog.Error("failed to prepare render target", "target", target.Name(), "error", err)
+				continue
+			}
+		}
+		drawnPasses := make([]*RenderPass, 0, len(passes))
+		drawnPassLookup := make(map[*RenderPass]struct{}, len(passes))
+		layerMask := view.LayerMask()
+		for i := range passes {
+			rp := passes[i]
+			rpGroup, ok := d.findRenderPassGroup(rp)
+			if !ok || !rpGroup.MatchesLayer(layerMask) {
+				continue
+			}
+			device.DrawView(rp, rpGroup.draws, lights, shadows[:], view, layerMask)
+			if _, ok := drawnPassLookup[rp]; !ok {
+				drawnPasses = append(drawnPasses, rp)
+				drawnPassLookup[rp] = struct{}{}
+			}
+		}
+		if len(drawnPasses) == 0 {
+			continue
+		}
+		if target != nil {
+			device.BlitTargetsToRenderTarget(drawnPasses, target)
+			if !device.FlushQueuedCommands() {
+				return
+			}
+		} else {
+			device.BlitTargets(drawnPasses)
+		}
 	}
 }
 
+func renderViewsForDraw(views []*RenderView) []*RenderView {
+	targetViews := make([]*RenderView, 0, len(views))
+	var defaultView *RenderView
+	var firstSwapchainView *RenderView
+	for i := range views {
+		if views[i] == nil || views[i].Destroyed() {
+			continue
+		}
+		if views[i].Target() != nil {
+			targetViews = append(targetViews, views[i])
+			continue
+		}
+		if views[i].Name() == DefaultRenderViewName {
+			defaultView = views[i]
+		} else if firstSwapchainView == nil {
+			firstSwapchainView = views[i]
+		}
+	}
+	swapchainView := defaultView
+	if swapchainView == nil {
+		swapchainView = firstSwapchainView
+	}
+	if swapchainView == nil {
+		swapchainView = newRenderView(RenderViewOptions{
+			Name:      DefaultRenderViewName,
+			LayerMask: RenderLayerAll,
+			Clear:     true,
+		}, 0)
+	}
+	return append(targetViews, swapchainView)
+}
+
 func (d *Drawings) Destroy(device *GPUDevice) {
+	defer tracing.NewRegion("Drawings.Destroy").End()
 	for i := range d.renderPassGroups {
 		for j := range d.renderPassGroups[i].draws {
 			d.renderPassGroups[i].draws[j].Destroy(device)
@@ -250,7 +316,25 @@ func (d *Drawings) Destroy(device *GPUDevice) {
 	d.renderPassGroups = klib.WipeSlice(d.renderPassGroups)
 }
 
+func (d *Drawings) DestroyViewState(device *GPUDevice, view *RenderView) {
+	defer tracing.NewRegion("Drawings.DestroyViewState").End()
+	if view == nil {
+		return
+	}
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	for i := range d.renderPassGroups {
+		for j := range d.renderPassGroups[i].draws {
+			draw := &d.renderPassGroups[i].draws[j]
+			for k := range draw.instanceGroups {
+				draw.instanceGroups[k].DestroyViewState(device, view)
+			}
+		}
+	}
+}
+
 func (d *Drawings) Clear() {
+	defer tracing.NewRegion("Drawings.Clear").End()
 	for i := range d.renderPassGroups {
 		for j := range d.renderPassGroups[i].draws {
 			d.renderPassGroups[i].draws[j].Clear()

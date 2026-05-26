@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* mesh_test.go                                                               */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
@@ -49,6 +19,34 @@ func assertMeshCounts(t *testing.T, mesh *Mesh, verts, indexes int) {
 	}
 	if len(mesh.pendingIndexes) != indexes {
 		t.Fatalf("%s indexes = %d, want %d", mesh.Key(), len(mesh.pendingIndexes), indexes)
+	}
+}
+
+func assertMeshFacesFollowVertexNormals(t *testing.T, mesh *Mesh) {
+	t.Helper()
+	checked := 0
+	for i := 0; i < len(mesh.pendingIndexes); i += 3 {
+		tri := [3]Vertex{
+			mesh.pendingVerts[mesh.pendingIndexes[i]],
+			mesh.pendingVerts[mesh.pendingIndexes[i+1]],
+			mesh.pendingVerts[mesh.pendingIndexes[i+2]],
+		}
+		faceNormal := VertexFaceNormal(tri)
+		if faceNormal.IsZero() {
+			continue
+		}
+		vertexNormal := tri[0].Normal.Add(tri[1].Normal).Add(tri[2].Normal)
+		if vertexNormal.IsZero() {
+			continue
+		}
+		if faceNormal.Dot(vertexNormal.Normal()) <= 0 {
+			t.Fatalf("%s triangle %d winding opposes vertex normals: face=%v vertex=%v indexes=%v",
+				mesh.Key(), i/3, faceNormal, vertexNormal.Normal(), mesh.pendingIndexes[i:i+3])
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatalf("%s had no non-degenerate triangle to test", mesh.Key())
 	}
 }
 
@@ -151,6 +149,34 @@ func TestMeshPrimitiveGeneratorsReuseCache(t *testing.T) {
 	}
 }
 
+func TestBuiltInMeshDataForPrimitiveKeys(t *testing.T) {
+	cases := []PrimitiveMesh{
+		PrimitiveMeshSphere,
+		PrimitiveMeshTexturableCube,
+		PrimitiveMeshCapsule,
+		PrimitiveMeshPlane,
+		PrimitiveMeshCylinder,
+		PrimitiveMeshCone,
+		PrimitiveMeshArrow,
+	}
+	for _, c := range cases {
+		cache := NewMeshCache(nil, nil)
+		mesh := NewMeshPrimitive(&cache, c)
+		verts, indexes, ok := BuiltInMeshData(mesh.Key())
+		if !ok {
+			t.Fatalf("expected built-in data for %q", mesh.Key())
+		}
+		if len(verts) != len(mesh.pendingVerts) || len(indexes) != len(mesh.pendingIndexes) {
+			t.Fatalf("%q data counts = %d/%d, want %d/%d",
+				mesh.Key(), len(verts), len(indexes),
+				len(mesh.pendingVerts), len(mesh.pendingIndexes))
+		}
+	}
+	if _, _, ok := BuiltInMeshData("not_a_builtin"); ok {
+		t.Fatal("unexpected built-in mesh data for unknown key")
+	}
+}
+
 func TestMeshAnchoredQuadPivots(t *testing.T) {
 	cases := []struct {
 		pivot QuadPivot
@@ -214,6 +240,11 @@ func TestMeshSphereGeneration(t *testing.T) {
 	}
 }
 
+func TestMeshSphereWindingFollowsVertexNormals(t *testing.T) {
+	cache := NewMeshCache(nil, nil)
+	assertMeshFacesFollowVertexNormals(t, NewMeshSphere(&cache, 1, 8, 8))
+}
+
 func TestMeshWireSphereGeneration(t *testing.T) {
 	cache := NewMeshCache(nil, nil)
 	mesh := NewMeshWireSphere(&cache, 1, 2, 3)
@@ -264,8 +295,18 @@ func TestMeshArrowGeneration(t *testing.T) {
 }
 
 func TestMeshCapsuleGeneration(t *testing.T) {
-	assertPanics(t, func() {
-		cache := NewMeshCache(nil, nil)
-		NewMeshCapsule(&cache, 1, 2, 4, 2)
-	})
+	cache := NewMeshCache(nil, nil)
+	mesh := NewMeshCapsule(&cache, 1, 2, 4, 2)
+	assertMeshCounts(t, mesh, (2*2+2)*(4+1), (2*2+1)*4*6)
+	for i, index := range mesh.pendingIndexes {
+		if int(index) >= len(mesh.pendingVerts) {
+			t.Fatalf("capsule index %d = %d, want < %d", i, index, len(mesh.pendingVerts))
+		}
+	}
+	if got := mesh.pendingVerts[0].Position.Y(); got != 2 {
+		t.Fatalf("capsule top y = %v, want 2", got)
+	}
+	if got := mesh.pendingVerts[len(mesh.pendingVerts)-1].Position.Y(); got != -2 {
+		t.Fatalf("capsule bottom y = %v, want -2", got)
+	}
 }

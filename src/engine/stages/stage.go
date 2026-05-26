@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* stage.go                                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package stages
@@ -41,6 +11,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"reflect"
+	"sort"
 
 	"kaijuengine.com/build"
 	"kaijuengine.com/debug"
@@ -62,8 +33,9 @@ type Stage struct {
 }
 
 type LoadResult struct {
-	Roots    []*engine.Entity
-	Entities []*engine.Entity
+	Roots        []*engine.Entity
+	Entities     []*engine.Entity
+	EntitiesById map[engine.EntityId]*engine.Entity
 }
 
 type StageJson struct {
@@ -84,6 +56,7 @@ type EntityDescription struct {
 	Id             string
 	TemplateId     string
 	Name           string
+	Locked         bool
 	Mesh           string
 	Material       string
 	Textures       []string
@@ -100,6 +73,7 @@ type EntityDescriptionJson struct {
 	Id          string
 	TemplateId  string
 	Name        string
+	Locked      bool `json:"omitempty"`
 	Mesh        int
 	Material    int                     `json:"Mat"`
 	Textures    []int                   `json:"Tex,omitempty"`
@@ -180,6 +154,7 @@ func (s *Stage) ToMinimized() StageJson {
 		to.Id = from.Id
 		to.TemplateId = from.TemplateId
 		to.Name = from.Name
+		to.Locked = from.Locked
 		to.Position = from.Position
 		to.Rotation = from.Rotation
 		to.Scale = from.Scale
@@ -214,6 +189,7 @@ func (s *Stage) FromMinimized(ss StageJson) {
 		to.Id = from.Id
 		to.TemplateId = from.TemplateId
 		to.Name = from.Name
+		to.Locked = from.Locked
 		to.Position = from.Position
 		to.Rotation = from.Rotation
 		to.Scale = from.Scale
@@ -264,12 +240,32 @@ func EntityDescriptionArchiveDeserializer(rawData []byte) (EntityDescription, er
 }
 
 func (s *Stage) Load(host *engine.Host) LoadResult {
-	res := LoadResult{}
-	entityBindings := []func(){}
+	res := LoadResult{
+		EntitiesById: make(map[engine.EntityId]*engine.Entity),
+	}
+	type entityBindingInit struct {
+		phase engine.EntityDataPhase
+		init  func()
+	}
+	entityBindings := []entityBindingInit{}
+	addEntityBinding := func(data engine.EntityData, entity *engine.Entity) {
+		entityBindings = append(entityBindings, entityBindingInit{
+			phase: engine.EntityDataInitPhase(data),
+			init: func() {
+				data.Init(entity, host)
+			},
+		})
+	}
 	var proc func(se *EntityDescription, parent *engine.Entity)
 	proc = func(se *EntityDescription, parent *engine.Entity) {
 		e := engine.NewEntity(host.WorkGroup())
 		res.Entities = append(res.Entities, e)
+		if se.Id != "" {
+			id := engine.EntityId(se.Id)
+			if host.SetEntityId(e, id) {
+				res.EntitiesById[id] = e
+			}
+		}
 		if parent != nil {
 			e.SetParent(parent)
 		} else {
@@ -291,18 +287,19 @@ func (s *Stage) Load(host *engine.Host) LoadResult {
 						engine.ReflectValueFromJson(v, f)
 					}
 					reflect.ValueOf(&b).Elem().Set(nb)
-					entityBindings = append(entityBindings, func() {
-						b.Init(e, host)
-					})
+					addEntityBinding(b, e)
 				} else {
 					slog.Error("failed to locate the registered key", "key", se.DataBinding[i].RegistraionKey)
 				}
 			}
 		} else {
 			for i := range se.RawDataBinding {
-				entityBindings = append(entityBindings, func() {
-					se.RawDataBinding[i].(engine.EntityData).Init(e, host)
-				})
+				if data, ok := se.RawDataBinding[i].(engine.EntityData); ok {
+					addEntityBinding(data, e)
+				} else {
+					slog.Error("raw data binding does not implement engine.EntityData",
+						"type", reflect.TypeOf(se.RawDataBinding[i]))
+				}
 			}
 		}
 		if se.Mesh != "" {
@@ -317,8 +314,11 @@ func (s *Stage) Load(host *engine.Host) LoadResult {
 	for i := range s.Entities {
 		proc(&s.Entities[i], nil)
 	}
+	sort.SliceStable(entityBindings, func(i, j int) bool {
+		return entityBindings[i].phase < entityBindings[j].phase
+	})
 	for i := range entityBindings {
-		entityBindings[i]()
+		entityBindings[i].init()
 	}
 	return res
 }
@@ -330,13 +330,8 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 	textureIds := se.Textures
 	var km kaiju_mesh.KaijuMesh
 	var err error
-	// TODO:  Should these just be in the content database (no switch)?
-	switch meshId {
-	case "quad":
-		km.Verts, km.Indexes = rendering.MeshQuadData()
-	case "plane":
-		km.Verts, km.Indexes = rendering.MeshPlaneData()
-	default:
+	var builtIn bool
+	if km.Verts, km.Indexes, builtIn = rendering.BuiltInMeshData(meshId); !builtIn {
 		var kmData []byte
 		kmData, err = ad.Read(meshId)
 		if err != nil {

@@ -10,6 +10,38 @@ Kaiju Engine is a 2D/3D game engine written in Go (Golang) backed by Vulkan. It 
 - **Go Version**: 1.25.0+
 - **Build Tags**: `debug`, `editor`, optional `filedrop`, optional `filedialog`, platform-specific (`.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`)
 
+## Integration testing
+If you want to test visuals or non-unit testable behavior, you can use the integration testing framework. In the `src/integration_testing` folder is where integration tests should be placed. In the `init` function of your integration testing file, you should register your test launch function to the `tests` package map. Review `integration_testing_helpers.go` to see what functions are already available, and also put any generic testing functions into this file.
+
+You will need to build the executable from within the `src/` folder after creating your integration test by running `go build -tags="debug,editor,filedrop,rawsrc" -o ../ ./`. This will create a `kaijuengine.com.exe` in the project root folder. You can run your integration test by running the executable with the `integrationtest` argument like `kaijuengine.com.exe -integrationtest=screenshot`.
+
+Below is an example of an integration test that takes a screenshot of a red sphere and outputs a png file you can review for accuracy.
+```go
+package integration_testing
+
+import (
+	"os"
+
+	"kaijuengine.com/engine"
+)
+
+// This test will generate a screenshot file in the working directory named
+// "integration_test.png". This image can be analyzed by external tools to
+// ensure it presents a red circle.
+
+func init() {
+	tests["screenshot"] = IntegrationTestScreenshot
+}
+
+func IntegrationTestScreenshot(host *engine.Host) {
+	createRedSphere(host)
+	host.RunAfterFrames(3, func() {
+		takeScreenshot(host)
+		os.Exit(0)
+	})
+}
+```
+
 ## Project Structure
 
 ```
@@ -23,7 +55,7 @@ kaiju/
 │   │   ├── host.go          # Central runtime mediator (Host)
 │   │   ├── entity.go        # Game entities with Transform
 │   │   ├── updater.go       # Update system for game loop
-│   │   └── physics_system.go # Physics integration
+│   │   └── physics_system.go # Graviton physics integration
 │   │
 │   ├── matrix/              # Custom math library (CRITICAL - see below)
 │   │   ├── vec2.go, vec3.go, vec4.go  # Vector types
@@ -517,9 +549,49 @@ rendering.NewMeshCube(cache, size)
 rendering.NewMeshPlane(cache, width, depth)
 ```
 
+## Terrain Texture Painting (`src/engine/terrain`, `src/editor/editor_workspace/terrain_workspace`)
+
+Terrain texture painting uses a separate layer/weight-map path from height
+sculpting:
+
+- `TerrainConfig.Resolution` controls height vertices; `TerrainConfig.PaintResolution`
+  controls texture weights and defaults to the height resolution when unset.
+- `TerrainLayerSet` owns the ordered `TerrainLayer` list plus one
+  `TextureWeightMap`. Layer indexes and weight-map channels must stay aligned.
+- `TextureWeightMap.Weights` is cell-major:
+  `((x + z*Resolution) * Layers) + layer`. Each texel should normalize to `1`
+  across all layers after edits.
+- Prefer `TerrainLayerSet`/`Terrain` helpers (`AddLayer`, `MoveLayer`,
+  `PaintTextureLayer`, `FillLayer`, `ClearLayer`, `ApplyTextureWeightRegion`) over
+  direct slice edits so locks, undo, dirty regions, and splat uploads remain
+  correct.
+- Locked layers preserve their weights during painting. Hidden and Solo affect
+  preview/effective splat packing, not the stored weights.
+- Four terrain layers pack into one RGBA splat texture. Layer 0 maps to R, 1 to
+  G, 2 to B, 3 to A, and layer 4 starts the next splat texture.
+- Texture painting should dirty splat texture regions only; it must not dirty or
+  rebuild heightfield mesh vertices. Height sculpting remains responsible for
+  mesh vertex dirty regions.
+- Editor height brush modifiers are temporary: Shift forces smooth, Ctrl/Cmd
+  inverts raise/lower, and Shift wins when both are held.
+- Terrain UI markup still maps `onclick` to a single Go function name; do not add
+  JavaScript-style chained calls.
+
+Shader/material contract:
+
+- The stock terrain material binds sampler 0 as `Weight Map 0` and samplers 1-4
+  as `Layer Albedo 0` through `Layer Albedo 3`.
+- Keep `terrainWeightMapSlots`, `terrainAlbedoLayerSlots`, terrain material
+  texture labels, generated `terrain.shader` sampler count, and
+  `terrain.frag`'s terrain layer constants in sync.
+- See `docs/engine/terrain_texture_painting.md` for regression notes and the
+  editor smoke-test checklist.
+
 ## UI System (`src/engine/ui/`)
 
-The Kaiju Engine features an optional web-inspired UI system with HTML/CSS-like layout, full event handling, and a markup system for declarative UI creation. The UI renders on a separate orthographic camera (`host.Cameras.UI`) from the main 3D rendering. You can choose construct the UI without using any HTML/CSS markup, developers can create stylizers directly.
+The Kaiju Engine features an optional web-inspired UI system with HTML/CSS-like layout, full event handling, and a markup system for declarative UI creation. The UI renders on a separate orthographic camera (`host.Cameras.UI`) from the main 3D rendering. You can choose to construct the UI without using any HTML/CSS markup, developers can create stylizers directly.
+
+Kaiju Engine has NO JavaScript runtime. All .go.html files are Go templates parsed by engine/ui/markup/document (html_parser.go uses html/template + custom funcMap). onclick="someFunc" attributes map to a SINGLE Go function name in the funcs map passed to CommonWorkspace.InitializeWithUI (or equivalent). Multiple JS-style calls like "setActiveTool(this); clickToolRaise()" are invalid. CSS is custom-parsed (markup/css + Stylizer + ElementLayoutStylizer), classes managed via document.SetElementClasses(elm, "materialIcon", "active"), elm.HasClass(), elm.ClassList(), or SetClasses. UI elements (ui.Panel, ui.Button, ui.Label, etc.) are backed by engine.Entity + custom layout/dirty flags + Vulkan rendering. Active states for tools use CSS classes like .active with editor accent colors (#682A2D/#881E1E) + Go-side class management in click handlers (see settings_workspace for SetElementClasses pattern). This understanding must ALL UI work in engine and in editor.
 
 ### Architecture
 

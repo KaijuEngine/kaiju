@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* gpu_device_drawing.go                                                      */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
@@ -44,11 +14,16 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId) {
+func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
+	g.DrawView(renderPass, drawings, lights, shadows, nil, layerMask)
+}
+
+func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.Draw").End()
 	if !g.LogicalDevice.SwapChain.IsValid() || len(drawings) == 0 {
 		return
 	}
+	layerMask = normalizeRenderLayerMask(layerMask)
 	// TODO:  This is some goofy stuff, I'll need to refactor after
 	// getting this shadow stuff working
 	if renderPass.IsShadowPass() {
@@ -65,7 +40,7 @@ func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights L
 			drawings[i].pushConstantData = unsafe.Pointer(&lpc)
 		}
 	}
-	g.drawImpl(renderPass, drawings, lights, shadows)
+	g.drawImpl(renderPass, drawings, lights, shadows, view, layerMask)
 }
 
 func (g *GPUDevice) BlitTargets(passes []*RenderPass) {
@@ -76,55 +51,79 @@ func (g *GPUDevice) BlitTargets(passes []*RenderPass) {
 	g.blitTargetsImpl(passes)
 }
 
-func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) error {
+func (g *GPUDevice) BlitTargetsToRenderTarget(passes []*RenderPass, target *RenderTarget) {
+	defer tracing.NewRegion("GPUDevice.BlitTargetsToRenderTarget").End()
+	if target == nil || !g.LogicalDevice.SwapChain.IsValid() {
+		return
+	}
+	g.blitTargetsToRenderTargetImpl(passes, target)
+}
+
+func (g *GPUDevice) PrepareRenderTarget(target *RenderTarget) error {
+	defer tracing.NewRegion("GPUDevice.PrepareRenderTarget").End()
+	if target == nil {
+		return nil
+	}
+	return target.ensureRealized(g)
+}
+
+func (g *GPUDevice) FlushQueuedCommands() bool {
+	defer tracing.NewRegion("GPUDevice.FlushQueuedCommands").End()
+	if !g.LogicalDevice.SwapChain.IsValid() {
+		return false
+	}
+	return g.flushQueuedCommandsImpl()
+}
+
+func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, state *DrawInstanceViewState) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
-	lastCount := group.InstanceDriverData.lastInstanceCount
+	lastCount := state.InstanceDriverData.lastInstanceCount
 	if currentCount <= lastCount {
 		return nil
 	}
 	defer tracing.NewRegion("Vulkan.resizeUniformBuffer.DoResize").End()
 	for i := range maxFramesInFlight {
-		if group.instanceBuffer.memories[i].IsValid() {
-			g.UnmapMemory(group.instanceBuffer.memories[i])
+		if state.instanceBuffer.memories[i].IsValid() {
+			g.UnmapMemory(state.instanceBuffer.memories[i])
 		}
-		group.rawData.byteMapping[i] = nil
+		state.rawData.byteMapping[i] = nil
 	}
-	for k := range group.boundBuffers {
-		nid := group.boundInstanceData[k]
+	for k := range state.boundBuffers {
+		nid := state.boundInstanceData[k]
 		for i := range maxFramesInFlight {
-			if group.boundBuffers[k].memories[i].IsValid() {
-				g.UnmapMemory(group.boundBuffers[k].memories[i])
+			if state.boundBuffers[k].memories[i].IsValid() {
+				g.UnmapMemory(state.boundBuffers[k].memories[i])
 			}
 			nid.byteMapping[i] = nil
 		}
-		group.boundInstanceData[k] = nid
+		state.boundInstanceData[k] = nid
 	}
-	if group.instanceBuffer.buffers[0].IsValid() {
+	if state.instanceBuffer.buffers[0].IsValid() {
 		pd := bufferTrash{delay: maxFramesInFlight}
 		for i := 0; i < maxFramesInFlight; i++ {
-			pd.buffers[i] = group.instanceBuffer.buffers[i]
-			pd.memories[i] = group.instanceBuffer.memories[i]
-			group.instanceBuffer.buffers[i].Reset()
-			group.instanceBuffer.memories[i].Reset()
-			for j := range group.boundBuffers {
-				nb := group.boundBuffers[j]
+			pd.buffers[i] = state.instanceBuffer.buffers[i]
+			pd.memories[i] = state.instanceBuffer.memories[i]
+			state.instanceBuffer.buffers[i].Reset()
+			state.instanceBuffer.memories[i].Reset()
+			for j := range state.boundBuffers {
+				nb := state.boundBuffers[j]
 				pd.namedBuffers[i] = append(pd.namedBuffers[i], nb.buffers[i])
 				pd.namedMemories[i] = append(pd.namedMemories[i], nb.memories[i])
 				nb.buffers[i].Reset()
 				nb.memories[i].Reset()
-				group.boundBuffers[j] = nb
+				state.boundBuffers[j] = nb
 			}
 		}
 		g.LogicalDevice.bufferTrash.Add(pd)
 	}
 	if currentCount > 0 {
-		group.generateInstanceDriverData(g, material)
+		group.generateInstanceDriverData(g, material, state)
 		iSize := g.PhysicalDevice.PadBufferSize(uintptr(material.Shader.DriverData.Stride))
-		group.instanceBuffer.size = iSize
+		state.instanceBuffer.size = iSize
 		var err error
 		for i := 0; i < maxFramesInFlight; i++ {
-			group.instanceBuffer.buffers[i], group.instanceBuffer.memories[i], err = g.CreateBuffer(iSize*uintptr(currentCount),
+			state.instanceBuffer.buffers[i], state.instanceBuffer.memories[i], err = g.CreateBuffer(iSize*uintptr(currentCount),
 				GPUBufferUsageVertexBufferBit|GPUBufferUsageTransferDstBit,
 				GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
 			if err != nil {
@@ -136,9 +135,9 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) 
 			for j := range lg.Layouts {
 				if lg.Layouts[j].IsBuffer() {
 					b := &lg.Layouts[j]
-					buff := group.boundBuffers[b.Binding]
+					buff := state.boundBuffers[b.Binding]
 					count := min(currentCount, b.Capacity())
-					nid := group.boundInstanceData[b.Binding]
+					nid := state.boundInstanceData[b.Binding]
 					buff.size = g.PhysicalDevice.PadBufferSize(uintptr(nid.length * count))
 					buff.bindingId = b.Binding
 					for j := 0; j < maxFramesInFlight; j++ {
@@ -159,24 +158,27 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup) 
 							nid.byteMapping[j] = data
 						}
 					}
-					group.boundInstanceData[b.Binding] = nid
-					group.boundBuffers[b.Binding] = buff
+					state.boundInstanceData[b.Binding] = nid
+					state.boundBuffers[b.Binding] = buff
 				}
 			}
 		}
 		group.AlterPadding(int(iSize))
+		group.syncViewStateTemplates()
+		state.rawData.padding = group.rawData.padding
+		state.rawData.length = group.rawData.length
 	}
-	group.InstanceDriverData.lastInstanceCount = currentCount
+	state.InstanceDriverData.lastInstanceCount = currentCount
 	for i := range maxFramesInFlight {
 		var data unsafe.Pointer
-		if err := g.MapMemory(group.instanceBuffer.memories[i], 0, GPUWholeSize, 0, &data); err != nil {
+		if err := g.MapMemory(state.instanceBuffer.memories[i], 0, GPUWholeSize, 0, &data); err != nil {
 			slog.Error("Failed to map instance memory", "error", err)
 			return err
 		} else if data == nil {
 			slog.Error("MapMemory was a success, but data is nil")
 			return errors.New("MapMemory was a success, but data is nil")
 		} else {
-			group.rawData.byteMapping[i] = data
+			state.rawData.byteMapping[i] = data
 		}
 	}
 	return nil

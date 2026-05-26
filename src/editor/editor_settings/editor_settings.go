@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_settings.go                                                         */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_settings
@@ -54,17 +24,36 @@ const (
 )
 
 type Settings struct {
-	RecentProjects []string `visible:"false"`
-	RefreshRate    int32    `clamp:"60,0,320"`
-	CodeEditor     string   `default:"code"`
-	ImageEditor    string
-	MeshEditor     string
-	AudioEditor    string
-	UIScrollSpeed  float32 `default:"20" label:"UI Scroll Speed"`
-	ShowGrid       bool    `default:"true" label:"Show Viewport Grid"`
-	EditorCamera   EditorCameraSettings
-	Snapping       SnapSettings
-	BuildTools     BuildToolSettings
+	RecentProjects         []string `visible:"false"`
+	RefreshRate            int32    `clamp:"60,0,320"`
+	CodeEditor             string   `default:"code"`
+	ImageEditor            string
+	MeshEditor             string
+	AudioEditor            string
+	UIScrollSpeed          float32 `default:"20" label:"UI Scroll Speed"`
+	ShowGrid               bool    `default:"true" label:"Show Viewport Grid"`
+	UseWERTransformHotkeys bool    `label:"Use W/E/R Transform Hotkeys"`
+	EditorCamera           EditorCameraSettings
+	Snapping               SnapSettings
+	BuildTools             BuildToolSettings
+	// Workspaces is the persisted enable / visible / order state for every
+	// known workspace, keyed by Workspace.ID(). Slice order is the load /
+	// tab order. The editor's reconcile step on startup adds defaults for
+	// any registered workspace that is missing from this slice and drops
+	// entries whose workspace is no longer registered. Hidden from the
+	// reflection-rendered settings UI because the Workspaces panel renders
+	// it with a bespoke drag-to-reorder + toggle layout.
+	Workspaces []WorkspaceConfig `visible:"false"`
+}
+
+// WorkspaceConfig is a single workspace's persisted state.
+//
+// Enabled=false skips initialization entirely: the workspace is not added
+// to the active set, its tab is not rendered, and event subscriptions are
+// not wired up. Enabled=true means initialized and tabbed.
+type WorkspaceConfig struct {
+	ID      string `visible:"false"`
+	Enabled bool
 }
 
 type EditorCameraSettings struct {

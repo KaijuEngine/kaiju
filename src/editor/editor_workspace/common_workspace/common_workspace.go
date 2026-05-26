@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* common_workspace.go                                                        */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package common_workspace
@@ -97,6 +67,25 @@ func (w *CommonWorkspace) Blur() {
 
 func (w *CommonWorkspace) IsFocusedOnInput() bool {
 	return w.UiMan.Group.IsFocusedOnInput()
+}
+
+// CommonShutdown tears down the workspace's UI document AND its UI manager.
+// Called by a workspace's Shutdown() implementation when the editor disables
+// the workspace at runtime. Embedding workspaces should drop any event
+// subscriptions before calling this.
+//
+// The UiMan.Shutdown call is critical: without it, a subsequent re-init
+// (when the workspace is re-enabled) would call UiMan.Init a second time,
+// adding a second host.UIUpdater callback for the same Manager. Two
+// concurrent updates would then race on the same Manager's iteration
+// slices and panic with index-out-of-range.
+func (w *CommonWorkspace) CommonShutdown() {
+	defer tracing.NewRegion("CommonWorkspace.CommonShutdown").End()
+	if w.Doc != nil {
+		w.Doc.Destroy()
+		w.Doc = nil
+	}
+	w.UiMan.Shutdown()
 }
 
 func (w *CommonWorkspace) Update(float64) {}

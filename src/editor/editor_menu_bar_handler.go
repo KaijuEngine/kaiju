@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_menu_bar_handler.go                                                 */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor
@@ -47,49 +17,20 @@ import (
 	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
 	"kaijuengine.com/editor/editor_plugin"
+	"kaijuengine.com/editor/editor_workspace/settings_workspace"
+	"kaijuengine.com/editor/editor_workspace/stage_workspace"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
-// StageWorkspaceSelected will inform the editor that the developer has
-// changed to the stage workspace. This is an exposed function to meet the
-// interface needs of [menu_bar.MenuBarHandler].
-func (ed *Editor) StageWorkspaceSelected() {
-	ed.setWorkspaceState(WorkspaceStateStage)
-}
-
-// ContentWorkspaceSelected will inform the editor that the developer has
-// changed to the content workspace. This is an exposed function to meet the
-// interface needs of [menu_bar.MenuBarHandler].
-func (ed *Editor) ContentWorkspaceSelected() {
-	ed.setWorkspaceState(WorkspaceStateContent)
-}
-
-// ShadingWorkspaceSelected will inform the editor that the developer has
-// changed to the shading workspace. This is an exposed function to meet the
-// interface needs of [menu_bar.MenuBarHandler].
-func (ed *Editor) ShadingWorkspaceSelected() {
-	ed.setWorkspaceState(WorkspaceStateShading)
-}
-
-func (ed *Editor) VfxWorkspaceSelected() {
-	ed.setWorkspaceState(WorkspaceStateVfx)
-}
-
-// UIWorkspaceSelected will inform the editor that the developer has changed to
-// the ui workspace. This is an exposed function to meet the interface needs of
-// [menu_bar.MenuBarHandler].
-func (ed *Editor) UIWorkspaceSelected() {
-	ed.setWorkspaceState(WorkspaceStateUI)
-}
-
-// SettingsWorkspaceSelected will inform the editor that the developer has
-// changed to the settings workspace. This is an exposed function to meet the
-// interface needs of [menu_bar.MenuBarHandler].
-func (ed *Editor) SettingsWorkspaceSelected() {
-	ed.setWorkspaceState(WorkspaceStateSettings)
+// WorkspaceSelected switches the active workspace to the one with the given
+// id. Called by the menu bar when the user clicks a tab and by plugins via
+// editor_workspace.WorkspaceEditorInterface.SelectWorkspace.
+func (ed *Editor) WorkspaceSelected(id string) {
+	ed.setWorkspaceState(id)
 }
 
 func (ed *Editor) Build(buildMode project.GameBuildMode) {
@@ -103,7 +44,11 @@ func (ed *Editor) Build(buildMode project.GameBuildMode) {
 		// goroutine
 		go ed.project.CompileGame(buildMode)
 		// goroutine
-		go ed.project.Package(ed.host.AssetDatabase())
+		go func() {
+			if err := ed.project.Package(ed.host.AssetDatabase()); err != nil {
+				slog.Error("failed to package project", "error", err)
+			}
+		}()
 	})
 }
 
@@ -119,20 +64,22 @@ func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode) {
 		wg.Add(2)
 		// goroutine
 		go func() {
+			defer wg.Done()
 			ed.project.CompileGame(buildMode)
-			wg.Done()
 		}()
 		// goroutine
 		go func() {
+			defer wg.Done()
 			// Archiving isn't required for debug builds as they don't use
 			// the packaged content archive, but we still need to write any
 			// generated files like the starting stage id
 			if buildMode == project.GameBuildModeDebug {
 				ed.project.PackageDebug()
 			} else {
-				ed.project.Package(ed.host.AssetDatabase())
+				if err := ed.project.Package(ed.host.AssetDatabase()); err != nil {
+					slog.Error("failed to package project", "error", err)
+				}
 			}
-			wg.Done()
 		}()
 		// goroutine
 		go func() {
@@ -260,20 +207,44 @@ func (ed *Editor) SaveCurrentStageWithCallback(cb func(bool)) {
 }
 
 func (ed *Editor) CreateNewCamera() {
-	ed.workspaces.stage.CreateNewCamera()
+	if s, ok := workspaceAs[*stage_workspace.StageWorkspace](ed, stage_workspace.ID); ok {
+		s.CreateNewCamera()
+	}
 }
 
 func (ed *Editor) CreateNewEntity() {
+	s, ok := workspaceAs[*stage_workspace.StageWorkspace](ed, stage_workspace.ID)
+	if !ok {
+		return
+	}
 	ed.history.BeginTransaction()
 	defer ed.history.CommitTransaction()
-	e, _ := ed.workspaces.stage.CreateNewEntity()
+	e, _ := s.CreateNewEntity()
 	m := ed.stageView.Manager()
 	m.ClearSelection()
 	m.SelectEntity(e)
 }
 
 func (ed *Editor) CreateNewLight() {
-	ed.workspaces.stage.CreateNewLight()
+	if s, ok := workspaceAs[*stage_workspace.StageWorkspace](ed, stage_workspace.ID); ok {
+		s.CreateNewLight()
+	}
+}
+
+func (ed *Editor) CreatePrimitive(primitive rendering.PrimitiveMesh) {
+	ed.StageWorkspace().CreatePrimitive(primitive)
+}
+
+func (ed *Editor) ConnectSelectedAsDistanceChain() {
+	ed.StageWorkspace().ConnectSelectedAsDistanceChain()
+}
+
+func (ed *Editor) ConnectSelectedAsRope() {
+	ed.StageWorkspace().ConnectSelectedAsRope()
+}
+
+func (ed *Editor) ConnectSelectedAsHingeChain() {
+	ed.StageWorkspace().ConnectSelectedAsHingeChain()
 }
 
 func (ed *Editor) CreatePluginProject(path string) {
@@ -382,20 +353,29 @@ func (ed *Editor) saveNewStage(name string) {
 	if ps.EntryPointStage == "" {
 		ps.EntryPointStage = id
 		ps.Save(ed.project.FileSystem())
-		ed.workspaces.settings.RequestReload()
+		if s, ok := workspaceAs[*settings_workspace.SettingsWorkspace](ed, settings_workspace.ID); ok {
+			s.RequestReload()
+		}
 	}
 }
 
 func (ed *Editor) openCodeEditor(path string) {
 	defer tracing.NewRegion("Editor.openCodeEditor").End()
 	// TODO:  If this is a file path, the space split won't be enough
-	fullArgs := strings.Split(ed.settings.CodeEditor, " ")
+	fullArgs := strings.Fields(ed.settings.CodeEditor)
+	if len(fullArgs) == 0 {
+		slog.Error("failed to launch code editor", "error", "code editor command is empty")
+		return
+	}
 	command := fullArgs[0]
 	var args []string
 	if len(fullArgs) > 1 {
 		args = append(args, fullArgs[1:]...)
 	}
 	args = append(args, path)
-	// goroutine
-	go exec.Command(command, args...).Run()
+	go func() {
+		if err := exec.Command(command, args...).Run(); err != nil {
+			slog.Error("failed to launch code editor", "command", command, "path", path, "error", err)
+		}
+	}()
 }

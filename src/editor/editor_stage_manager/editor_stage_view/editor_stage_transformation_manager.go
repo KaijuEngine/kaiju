@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_stage_transformation_manager.go                                     */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_view
@@ -44,6 +14,7 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
@@ -70,18 +41,22 @@ type TransformationManager struct {
 	history        *memento.History
 	memento        *transformHistory
 	snapSettings   *editor_settings.SnapSettings
+	settings       *editor_settings.Settings
+	project        *project.Project
 	currentTool    ToolState
 	isBusy         bool
+	translateDupTx bool
 }
 
 func (t *TransformationManager) IsBusy() bool { return t.isBusy }
 
-func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, snapSettings *editor_settings.SnapSettings) {
+func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, settings *editor_settings.Settings) {
 	t.view = weak.Make(stageView)
-	t.snapSettings = snapSettings
-	t.translateTool.Initialize(stageView.host)
-	t.rotationTool.Initialize(stageView.host)
-	t.scalingTool.Initialize(stageView.host)
+	t.settings = settings
+	t.snapSettings = &settings.Snapping
+	t.translateTool.Initialize(stageView.host, stageView)
+	t.rotationTool.Initialize(stageView.host, stageView)
+	t.scalingTool.Initialize(stageView.host, stageView)
 	t.manager = &stageView.manager
 	t.history = history
 	t.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -113,18 +88,36 @@ func (t *TransformationManager) cameraModeChanged(mode editor_controls.EditorCam
 	t.scalingTool.SetDimensions(mode)
 }
 
-func (t *TransformationManager) Update(host *engine.Host) {
+func (t *TransformationManager) RefreshToolVisibility() {
+	pos := matrix.Vec3NaN()
+	hasSelection := t.manager != nil && t.manager.HasSelection()
+	if hasSelection {
+		pos = t.manager.LastSelected().Transform.Position()
+	}
+	t.refreshToolVisibilityAt(hasSelection, pos)
+}
+
+func (t *TransformationManager) refreshToolVisibilityAt(hasSelection bool, pos matrix.Vec3) {
+	if !hasSelection {
+		pos = matrix.Vec3NaN()
+	}
+	t.showToolState(t.currentTool, pos)
+}
+
+func (t *TransformationManager) Update(host *engine.Host, proj *project.Project) {
+	t.project = proj
 	kb := &host.Window.Keyboard
 	if !t.isBusy {
 		pos := matrix.Vec3NaN()
 		if t.manager.HasSelection() {
 			pos = t.manager.LastSelected().Transform.Position()
 		}
-		if kb.KeyDown(hid.KeyboardKeyG) {
+		translateKey, rotateKey, scaleKey := t.toolHotkeys()
+		if kb.KeyDown(translateKey) {
 			t.setToolState(ToolStateMove, pos)
-		} else if kb.KeyDown(hid.KeyboardKeyR) {
+		} else if kb.KeyDown(rotateKey) {
 			t.setToolState(ToolStateRotate, pos)
-		} else if kb.KeyDown(hid.KeyboardKeyS) {
+		} else if kb.KeyDown(scaleKey) {
 			t.setToolState(ToolStateScale, pos)
 		}
 	}
@@ -135,10 +128,28 @@ func (t *TransformationManager) Update(host *engine.Host) {
 		t.scalingTool.Update(host, snap, ss.ScaleIncrement)
 }
 
+func (t *TransformationManager) toolHotkeys() (translate, rotate, scale hid.KeyboardKey) {
+	if t.settings != nil && t.settings.UseWERTransformHotkeys {
+		return hid.KeyboardKeyW, hid.KeyboardKeyE, hid.KeyboardKeyR
+	}
+	return hid.KeyboardKeyG, hid.KeyboardKeyR, hid.KeyboardKeyS
+}
+
+func (t *TransformationManager) EnableTranslationTool() {
+	if !t.manager.HasSelection() {
+		return
+	}
+	t.showToolState(ToolStateMove, t.manager.LastSelected().Transform.Position())
+}
+
 func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 	if t.currentTool == state {
 		state = ToolStateNone
 	}
+	t.showToolState(state, pos)
+}
+
+func (t *TransformationManager) showToolState(state ToolState, pos matrix.Vec3) {
 	t.translateTool.Hide()
 	t.rotationTool.Hide()
 	t.scalingTool.Hide()
@@ -159,6 +170,7 @@ func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
 	defer tracing.NewRegion("TransformationManager.translateStart").End()
 	t.transformStart = pos
+	t.beginTranslateDuplicateTransaction()
 	t.setupMemento()
 }
 
@@ -177,6 +189,24 @@ func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
 	t.translateMove(pos)
 	t.history.Add(t.memento)
 	t.manager.RefitBVH(t.manager.Selection()[0])
+	if t.translateDupTx {
+		t.history.CommitTransaction()
+		t.translateDupTx = false
+	}
+}
+
+func (t *TransformationManager) beginTranslateDuplicateTransaction() {
+	t.translateDupTx = false
+	view := t.view.Value()
+	if view == nil || t.project == nil || !t.manager.HasSelection() {
+		return
+	}
+	if !view.host.Window.Keyboard.HasShift() {
+		return
+	}
+	t.history.BeginTransaction()
+	t.translateDupTx = true
+	t.manager.DuplicateSelectionInPlace(t.project)
 }
 
 func (t *TransformationManager) rotateStart(rot matrix.Vec4) {

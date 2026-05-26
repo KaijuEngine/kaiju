@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* reader.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package css
@@ -44,25 +14,97 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/pseudos"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
-	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/windowing"
 )
 
 type CSSMap map[*ui.UI][]rules.Rule
 
-func (m CSSMap) add(elm *ui.UI, rules []rules.Rule) {
+var cssShorthandLonghands = map[string]map[string]struct{}{
+	"margin": {
+		"margin-top":    {},
+		"margin-right":  {},
+		"margin-bottom": {},
+		"margin-left":   {},
+	},
+	"padding": {
+		"padding-top":    {},
+		"padding-right":  {},
+		"padding-bottom": {},
+		"padding-left":   {},
+	},
+	"border": {
+		"border-top":          {},
+		"border-right":        {},
+		"border-bottom":       {},
+		"border-left":         {},
+		"border-top-width":    {},
+		"border-right-width":  {},
+		"border-bottom-width": {},
+		"border-left-width":   {},
+		"border-top-style":    {},
+		"border-right-style":  {},
+		"border-bottom-style": {},
+		"border-left-style":   {},
+		"border-top-color":    {},
+		"border-right-color":  {},
+		"border-bottom-color": {},
+		"border-left-color":   {},
+		"border-width":        {},
+		"border-style":        {},
+		"border-color":        {},
+	},
+	"border-width": {
+		"border-top-width":    {},
+		"border-right-width":  {},
+		"border-bottom-width": {},
+		"border-left-width":   {},
+	},
+	"border-style": {
+		"border-top-style":    {},
+		"border-right-style":  {},
+		"border-bottom-style": {},
+		"border-left-style":   {},
+	},
+	"border-color": {
+		"border-top-color":    {},
+		"border-right-color":  {},
+		"border-bottom-color": {},
+		"border-left-color":   {},
+	},
+	"border-radius": {
+		"border-top-left-radius":     {},
+		"border-top-right-radius":    {},
+		"border-bottom-right-radius": {},
+		"border-bottom-left-radius":  {},
+	},
+}
+
+func cssPropertyOverrides(later, earlier string) bool {
+	if later == earlier {
+		return true
+	}
+	if longhands, ok := cssShorthandLonghands[later]; ok {
+		_, ok = longhands[earlier]
+		return ok
+	}
+	return false
+}
+
+func (m CSSMap) add(elm *ui.UI, inRules []rules.Rule) {
+	addRules := rules.CloneRules(inRules)
 	if c, ok := m[elm]; !ok {
-		m[elm] = slices.Clone(rules)
+		m[elm] = addRules
 	} else {
 		for i := len(c) - 1; i >= 0; i-- {
-			for j := range rules {
-				if c[i].Property == rules[j].Property && c[i].Invocation == rules[j].Invocation {
-					c = klib.RemoveUnordered(c, i)
+			for j := range addRules {
+				if c[i].Invocation == addRules[j].Invocation &&
+					cssPropertyOverrides(addRules[j].Property, c[i].Property) {
+					c = slices.Delete(c, i, i+1)
 					break
 				}
 			}
 		}
-		c = append(c, rules...)
+		c = append(c, addRules...)
 		m[elm] = c
 	}
 }
@@ -102,58 +144,129 @@ func applyDirect(part rules.SelectorPart, applyRules []rules.Rule, doc *document
 	}
 }
 
-func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
-	elms := make([]*document.Element, 0)
-	switch parts[0].SelectType {
-	case rules.ReadingId:
-		if elm, ok := doc.GetElementById(parts[0].Name); ok {
-			elms = append(elms, elm)
-		}
-	case rules.ReadingClass:
-		elms = append(elms, doc.GetElementsByClass(parts[0].Name)...)
-	case rules.ReadingTag:
-		elms = append(elms, doc.GetElementsByTagName(parts[0].Name)...)
+type selectorStep struct {
+	parts      []rules.SelectorPart
+	combinator rules.RuleState
+}
+
+func isCombinator(part rules.SelectorPart) bool {
+	switch part.SelectType {
+	case rules.ReadingDescendant, rules.ReadingChild, rules.ReadingSibling, rules.ReadingAdjacent:
+		return true
+	default:
+		return false
 	}
-	targets := make([]*document.Element, 0)
-	lastTargets := []*document.Element{}
-	for _, elm := range elms {
-		lastTargets = append(lastTargets, elm)
-	partsLoop:
-		for _, part := range parts[1:] {
-			switch part.SelectType {
-			case rules.ReadingCondition:
-				if len(parts) > 2 && elm.Attribute(parts[1].Name) == parts[2].Name {
-					targets = klib.AppendUnique(targets, elm)
-				} else {
-					break partsLoop
-				}
-			case rules.ReadingClass:
-				if elm.HasClass(part.Name) {
-					targets = klib.AppendUnique(targets, elm)
-				}
-			case rules.ReadingTag:
-				tagged := doc.GetElementsByTagName(part.Name)
-				lastTargets = lastTargets[:0]
-				for _, t := range tagged {
-					if t.Parent.Value() == elm {
-						targets = klib.AppendUnique(targets, t)
-						lastTargets = append(lastTargets, t)
-					}
-				}
-			case rules.ReadingPseudo, rules.ReadingPseudoFunction:
-				if p, ok := pseudos.PseudoMap[part.Name]; ok {
-					for i := range lastTargets {
-						if selects, err := p.Process(lastTargets[i], part); err == nil {
-							targets = klib.AppendUnique(targets, selects...)
-							applyRules = p.AlterRules(applyRules)
-						}
-					}
-				}
+}
+
+func selectorSteps(parts []rules.SelectorPart) []selectorStep {
+	steps := make([]selectorStep, 0, len(parts))
+	current := selectorStep{parts: make([]rules.SelectorPart, 0), combinator: rules.ReadingTag}
+	for i := range parts {
+		part := parts[i]
+		if isCombinator(part) {
+			if len(current.parts) > 0 {
+				steps = append(steps, current)
+				current = selectorStep{parts: make([]rules.SelectorPart, 0), combinator: part.SelectType}
+			} else if len(steps) > 0 {
+				current.combinator = part.SelectType
+			}
+			continue
+		}
+		current.parts = append(current.parts, part)
+	}
+	if len(current.parts) > 0 {
+		steps = append(steps, current)
+	}
+	return steps
+}
+
+func selectorMatches(elm *document.Element, parts []rules.SelectorPart, applyRules []rules.Rule) (bool, []rules.Rule) {
+	steps := selectorSteps(parts)
+	if len(steps) == 0 {
+		return false, nil
+	}
+	selectorRules := rules.CloneRules(applyRules)
+	if selectorStepMatches(elm, steps, len(steps)-1, &selectorRules) {
+		return true, selectorRules
+	}
+	return false, nil
+}
+
+func selectorStepMatches(elm *document.Element, steps []selectorStep, idx int, selectorRules *[]rules.Rule) bool {
+	if elm == nil || !selectorPartListMatches(elm, steps[idx].parts, selectorRules) {
+		return false
+	}
+	if idx == 0 {
+		return true
+	}
+	switch steps[idx].combinator {
+	case rules.ReadingChild:
+		return selectorStepMatches(elm.Parent.Value(), steps, idx-1, selectorRules)
+	case rules.ReadingDescendant:
+		for parent := elm.Parent.Value(); parent != nil; parent = parent.Parent.Value() {
+			if selectorStepMatches(parent, steps, idx-1, selectorRules) {
+				return true
 			}
 		}
 	}
-	for _, target := range targets {
-		cssMap.add(target.UI, applyRules)
+	return false
+}
+
+func selectorPartListMatches(elm *document.Element, parts []rules.SelectorPart, selectorRules *[]rules.Rule) bool {
+	for i := 0; i < len(parts); i++ {
+		part := parts[i]
+		switch part.SelectType {
+		case rules.ReadingId:
+			if elm.Attribute("id") != part.Name {
+				return false
+			}
+		case rules.ReadingClass:
+			if !elm.HasClass(part.Name) {
+				return false
+			}
+		case rules.ReadingTag:
+			if elm.IsText() || elm.Data != part.Name {
+				return false
+			}
+		case rules.ReadingCondition:
+			want := ""
+			hasAssignment := i+1 < len(parts) && parts[i+1].SelectType == rules.ReadingConditionAssignment
+			if hasAssignment {
+				want = parts[i+1].Name
+				i++
+			}
+			if !selectorAttributeMatches(elm, part.Name, want, hasAssignment) {
+				return false
+			}
+		case rules.ReadingConditionAssignment:
+			return false
+		case rules.ReadingPseudo, rules.ReadingPseudoFunction:
+			p, ok := pseudos.PseudoMap[part.Name]
+			if !ok {
+				return false
+			}
+			selects, err := p.Process(elm, part)
+			if err != nil || !slices.Contains(selects, elm) {
+				return false
+			}
+			*selectorRules = p.AlterRules(*selectorRules)
+		}
+	}
+	return true
+}
+
+func selectorAttributeMatches(elm *document.Element, key, value string, hasAssignment bool) bool {
+	if !hasAssignment {
+		return elm.HasAttribute(key)
+	}
+	return elm.Attribute(key) == value
+}
+
+func applyIndirect(parts []rules.SelectorPart, applyRules []rules.Rule, doc *document.Document, cssMap CSSMap) {
+	for _, elm := range doc.Elements {
+		if ok, selectorRules := selectorMatches(elm, parts, applyRules); ok {
+			cssMap.add(elm.UI, selectorRules)
+		}
 	}
 }
 
@@ -166,7 +279,8 @@ func cleanMapDuplicates(cssMap CSSMap) {
 				continue
 			}
 			for j := i + 1; j < len(v); j++ {
-				if v[i].Property == v[j].Property && v[i].Invocation == v[j].Invocation {
+				if v[i].Invocation == v[j].Invocation &&
+					cssPropertyOverrides(v[j].Property, v[i].Property) {
 					v = slices.Delete(v, i, i+1)
 					i--
 					break
@@ -189,6 +303,7 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 			for k := range e.UIEventIds[j] {
 				e.UI.RemoveEvent(j, e.UIEventIds[j][k])
 			}
+			e.UIEventIds[j] = e.UIEventIds[j][:0]
 		}
 	}
 	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
@@ -206,9 +321,13 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 			}
 		}
 		for _, sel := range group.Selectors {
-			if len(sel.Parts) == 1 {
+			if len(sel.Parts) == 1 && (sel.Parts[0].SelectType == rules.ReadingId ||
+				sel.Parts[0].SelectType == rules.ReadingClass ||
+				sel.Parts[0].SelectType == rules.ReadingTag) {
 				applyDirect(sel.Parts[0], group.Rules, doc, cssMap)
 			} else if len(sel.Parts) > 1 {
+				applyIndirect(sel.Parts, group.Rules, doc, cssMap)
+			} else if len(sel.Parts) == 1 {
 				applyIndirect(sel.Parts, group.Rules, doc, cssMap)
 			}
 		}

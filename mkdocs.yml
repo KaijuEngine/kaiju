@@ -4,6 +4,8 @@ site_author: 'Brent Farris'
 docs_dir: docs/
 repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
+hooks:
+  - tools/mkdocs/generate_blog_posts_json.py
 nav:
   - Home: index.md
   - Blog: blog/index.md
@@ -27,6 +29,8 @@ nav:
     - Design goals: engine/design_goals.md
     - Build from source: engine/build_from_source.md
     - Build tags: engine/build_tags.md
+    - Render targets and views: engine/render_targets.md
+    - Physics constraints: engine/physics_constraints.md
     - Performance profiling: engine/performance_profiling.md
     - Building new fonts: engine/fonts/building_fonts.md
     - UI:

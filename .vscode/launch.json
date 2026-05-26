@@ -93,6 +93,20 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
+		}, {
+			"name": "Integration Test",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
+			"args": [
+				"-integrationtest=screenshot"
+			],
+			"env": {
+				"CGO_ENABLED": "1",
+			}
 		}
 	]
 }

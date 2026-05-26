@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_plugin_data.go                                                      */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor
@@ -76,12 +46,18 @@ func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onCom
 	if err = copyEditorCodeForRecompile(to, project_file_system.EngineFS.EngineFileSystemInterface); err != nil {
 		return err
 	}
-	registry, err := os.OpenFile(filepath.Join(to, "editor_plugin_registry.go"), os.O_APPEND, os.ModePerm)
+	// O_APPEND alone opens the file read-only on macOS/Linux, so every
+	// WriteString below silently fails with "bad file descriptor" and no
+	// plugin imports ever land in the build's editor_plugin_registry.go.
+	// Add O_WRONLY so the appends actually write.
+	registry, err := os.OpenFile(filepath.Join(to, "editor_plugin_registry.go"), os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 	defer registry.Close()
-	registry.WriteString("\nimport (\n")
+	if _, err := registry.WriteString("\nimport (\n"); err != nil {
+		return err
+	}
 	for i := range plugins {
 		if !plugins[i].Config.Enabled {
 			continue
@@ -97,7 +73,9 @@ func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onCom
 				return getErr
 			}
 
-			registry.WriteString(fmt.Sprintf("\t_ \"%s\"\n", modulePath))
+			if _, err := registry.WriteString(fmt.Sprintf("\t_ \"%s\"\n", modulePath)); err != nil {
+				return err
+			}
 			continue
 		}
 		dstName := plugins[i].Config.PackageName
@@ -109,13 +87,17 @@ func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onCom
 		os.Remove(filepath.Join(dst, "go.mod"))
 		os.Remove(filepath.Join(dst, "go.sum"))
 
-		registry.WriteString(fmt.Sprintf("\t_ \"kaijuengine.com/editor/editor_plugin/developer_plugins/%s\"\n", dstName))
+		if _, err := registry.WriteString(fmt.Sprintf("\t_ \"kaijuengine.com/editor/editor_plugin/developer_plugins/%s\"\n", dstName)); err != nil {
+			return err
+		}
 		if err = editor_plugin.UpdatePluginConfigState(plugins[i]); err != nil {
 			slog.Warn("failed to update the enabled state of the plugin",
 				"name", plugins[i].Config.Name, "package", plugins[i].Config.PackageName, "error", err)
 		}
 	}
-	registry.WriteString(")\n")
+	if _, err := registry.WriteString(")\n"); err != nil {
+		return err
+	}
 
 	var cmd *exec.Cmd
 	if build.Debug {

@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* translation_tool.go                                                        */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package transform_tools
@@ -39,8 +9,9 @@ package transform_tools
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/cameras"
-	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
@@ -82,30 +53,34 @@ type TranslationTool struct {
 
 type TranslationToolArrow struct {
 	shaderData rendering.DrawInstance
+	pickData   rendering.DrawInstance
 	transform  matrix.Transform
-	hitBox     collision.AABB
+	hitBox     graviton.AABB
 }
 
 type TranslationToolPlane struct {
 	shaderData rendering.DrawInstance
+	pickData   rendering.DrawInstance
 	transform  matrix.Transform
-	hitBox     collision.AABB
+	hitBox     graviton.AABB
 }
 
-func (t *TranslationTool) Initialize(host *engine.Host) {
+func (t *TranslationTool) Initialize(host *engine.Host, stage StageInterface) {
+	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
 	t.currentType = TRANSLATION_TYPE_NONE
+	pickMat, _ := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	for i := range t.arrows {
-		t.arrows[i].Initialize(host, i)
+		t.arrows[i].Initialize(host, pickMat, i)
 		t.arrows[i].transform.SetParent(&t.root)
-		t.planes[i].Initialize(host, i)
+		t.planes[i].Initialize(host, pickMat, i)
 		t.planes[i].transform.SetParent(&t.root)
 	}
 	t.Hide()
 }
 
-func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
+func (a *TranslationToolArrow) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	a.transform.Initialize(host.WorkGroup())
 	m := rendering.NewMeshArrow(host.MeshCache(),
 		translationGizmoShaftHeight, translationGizmoShaftRadius,
@@ -128,14 +103,16 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 		Mesh:       m,
 		ShaderData: a.shaderData,
 		Transform:  &a.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+	a.pickData = addGizmoPickDrawing(host, pickMat, m, &a.transform, a.shaderData, translationArrowPickID(vec))
 }
 
-func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
+func (p *TranslationToolPlane) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	p.transform.Initialize(host.WorkGroup())
-	m := rendering.NewMeshUnitQuad(host.MeshCache())
+	m := newTranslationGizmoPlaneMesh(host.MeshCache())
 	mat, _ := host.MaterialCache().Material("gizmo_overlay.material")
 	p.shaderData = shader_data_registry.Create("unlit")
 	sd := p.shaderData.(*shader_data_registry.ShaderDataUnlit)
@@ -160,22 +137,54 @@ func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
 		Mesh:       m,
 		ShaderData: p.shaderData,
 		Transform:  &p.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+	p.pickData = addGizmoPickDrawing(host, pickMat, m, &p.transform, p.shaderData, translationPlanePickID(vec))
+}
+
+func newTranslationGizmoPlaneMesh(cache *rendering.MeshCache) *rendering.Mesh {
+	const key = "_editor_translation_gizmo_plane"
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	verts := make([]rendering.Vertex, 4)
+	verts[0].Position = matrix.Vec3{-1.0, -1.0, 0.0}
+	verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[0].UV0 = matrix.Vec2{0.0, 1.0}
+	verts[0].Color = matrix.ColorWhite()
+	verts[1].Position = matrix.Vec3{-1.0, 1.0, 0.0}
+	verts[1].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[1].UV0 = matrix.Vec2{0.0, 0.0}
+	verts[1].Color = matrix.ColorWhite()
+	verts[2].Position = matrix.Vec3{1.0, 1.0, 0.0}
+	verts[2].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[2].UV0 = matrix.Vec2{1.0, 0.0}
+	verts[2].Color = matrix.ColorWhite()
+	verts[3].Position = matrix.Vec3{1.0, -1.0, 0.0}
+	verts[3].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+	verts[3].UV0 = matrix.Vec2{1.0, 1.0}
+	verts[3].Color = matrix.ColorWhite()
+	indexes := []uint32{
+		0, 2, 1, 0, 3, 2,
+		0, 1, 2, 0, 2, 3,
+	}
+	return cache.Mesh(key, verts, indexes)
 }
 
 func (t *TranslationTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
-	axis := len(t.arrows)
-	is2D := t.cameraMode == editor_controls.EditorCameraMode2d
-	if is2D {
-		axis = 2
+	for i := range t.arrows {
+		if t.axisVisible(i) {
+			t.arrows[i].shaderData.Activate()
+		}
 	}
-	for i := range axis {
-		t.arrows[i].shaderData.Activate()
-		if is2D && i == 0 {
+	if axis, ok := t.planarTranslationPlaneAxis(); ok {
+		t.planes[axis].shaderData.Activate()
+	} else {
+		for i := range t.planes {
 			t.planes[i].shaderData.Activate()
 		}
 	}
@@ -204,6 +213,9 @@ func (t *TranslationTool) Update(host *engine.Host, snap bool, snapScale float32
 }
 
 func (t *TranslationTool) SetDimensions(mode editor_controls.EditorCameraMode) {
+	if t.cameraMode == mode {
+		return
+	}
 	t.cameraMode = mode
 	if t.visible {
 		t.Hide()
@@ -221,7 +233,7 @@ func (t *TranslationTool) updateHitBoxes() {
 	arrowLen := translationGizmoTotalHeight * scale * 0.5
 	r := matrix.Float(translationGizmoTotalRadius) * scale
 	for i := range t.arrows {
-		t.arrows[i].hitBox = collision.AABB{
+		t.arrows[i].hitBox = graviton.AABB{
 			Center: t.root.Position(),
 			Extent: matrix.NewVec3(r, r, r),
 		}
@@ -240,7 +252,7 @@ func (t *TranslationTool) updateHitBoxes() {
 	r = 0
 	for i := range t.planes {
 		len := matrix.Float(translationGizmoPlaneSideLen * scale)
-		t.planes[i].hitBox = collision.AABB{
+		t.planes[i].hitBox = graviton.AABB{
 			Center: t.planes[i].transform.WorldPosition(),
 			Extent: matrix.NewVec3(len, len, len),
 		}
@@ -259,29 +271,49 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
 	}
-	ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
 	dist := matrix.FloatMax
 	target := -1
 	targetType := TRANSLATION_TYPE_NONE
-	for i := range t.arrows {
-		if hit, ok := t.arrows[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				targetType = TRANSLATION_TYPE_ARROW
-				t.lastHit = hit
-				dist = d
+	textureHit := false
+	if pickID, ok := t.pickIDAtCursor(&host.Window.Cursor); ok {
+		textureHit = true
+		if axis, hitType, hit := translationPickTarget(pickID); hit && t.axisVisible(axis) {
+			if hitType != TRANSLATION_TYPE_PLANE {
+				target = axis
+				targetType = hitType
+			} else if planeAxis, ok := t.planarTranslationPlaneAxis(); !ok || planeAxis == axis {
+				target = axis
+				targetType = hitType
 			}
 		}
-	}
-	for i := range t.planes {
-		if hit, ok := t.planes[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				targetType = TRANSLATION_TYPE_PLANE
-				t.lastHit = hit
-				dist = d
+	} else if !t.isFixedPanelView() {
+		ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
+		for i := range t.arrows {
+			if !t.axisVisible(i) {
+				continue
+			}
+			if hit, ok := t.arrows[i].hitBox.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					targetType = TRANSLATION_TYPE_ARROW
+					t.lastHit = hit
+					dist = d
+				}
+			}
+		}
+		for i := range t.planes {
+			if axis, ok := t.planarTranslationPlaneAxis(); ok && i != axis {
+				continue
+			}
+			if hit, ok := t.planes[i].hitBox.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					targetType = TRANSLATION_TYPE_PLANE
+					t.lastHit = hit
+					dist = d
+				}
 			}
 		}
 	}
@@ -319,6 +351,15 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 			sd.Color = matrix.ColorYellow()
 		}
 	}
+	if textureHit && target != -1 && targetType != TRANSLATION_TYPE_NONE {
+		rp := t.root.Position()
+		nml := t.dragPlaneNormal(cam, rp)
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(&host.Window.Cursor), rp, nml); ok {
+			t.lastHit = hit
+		} else {
+			t.lastHit = rp
+		}
+	}
 }
 
 func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
@@ -352,20 +393,8 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, sna
 		t.OnDragStart.Execute(t.root.Position())
 	} else if t.dragging {
 		rp := t.root.Position()
-		nml := matrix.Vec3Backward()
-		if t.cameraMode != editor_controls.EditorCameraMode2d {
-			cp := cam.Position()
-			switch t.currentAxis {
-			case matrix.Vx:
-				cp.SetX(rp.X())
-			case matrix.Vy:
-				cp.SetY(rp.Y())
-			case matrix.Vz:
-				cp.SetZ(rp.Z())
-			}
-			nml = cp.Subtract(rp)
-		}
-		if hit, ok := cam.TryPlaneHit(t.cursorPosition(&host.Window.Cursor), rp, nml); ok {
+		nml := t.dragPlaneNormal(cam, rp)
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(&host.Window.Cursor), rp, nml); ok {
 			p := hit.Add(t.rootHitOffset)
 			if snap {
 				p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)
@@ -405,4 +434,31 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, sna
 			t.Show(t.root.Position())
 		}
 	}
+}
+
+func (t *TranslationTool) dragPlaneNormal(cam cameras.Camera, rootPos matrix.Vec3) matrix.Vec3 {
+	if t.currentType == TRANSLATION_TYPE_PLANE {
+		switch t.currentAxis {
+		case matrix.Vx:
+			return matrix.Vec3Forward()
+		case matrix.Vy:
+			return matrix.Vec3Right()
+		case matrix.Vz:
+			return matrix.Vec3Up()
+		}
+	}
+	nml := matrix.Vec3Backward()
+	if t.cameraMode != editor_controls.EditorCameraMode2d {
+		cp := cam.Position()
+		switch t.currentAxis {
+		case matrix.Vx:
+			cp.SetX(rootPos.X())
+		case matrix.Vy:
+			cp.SetY(rootPos.Y())
+		case matrix.Vz:
+			cp.SetZ(rootPos.Z())
+		}
+		nml = cp.Subtract(rootPos)
+	}
+	return nml
 }

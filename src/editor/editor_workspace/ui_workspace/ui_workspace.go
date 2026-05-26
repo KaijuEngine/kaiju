@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* ui_workspace.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui_workspace
@@ -46,9 +16,11 @@ import (
 	"time"
 
 	"kaijuengine.com/editor/editor_overlay/file_browser"
+	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_file_system"
-	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/css/helpers"
@@ -59,39 +31,55 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-const updateInterval = 1.0
+const (
+	ID             = "ui"
+	DisplayName    = "UI"
+	updateInterval = 1.0
+)
+
+func init() {
+	editor_workspace_registry.Register(&UIWorkspace{})
+}
 
 type UIWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed          UIWorkspaceEditorInterface
-	previewDoc  *document.Document
-	previewMan  ui.Manager
-	editBtn     *document.Element
-	previewArea *document.Element
-	previewHelp *document.Element
-	ratioX      *document.Element
-	ratioY      *document.Element
-	html        string
-	data        string
-	styles      []string
-	bindingData any
-	lastMod     time.Time
-	lastTime    float64
-	ratio       matrix.Vec2
+	ed            editor_workspace.WorkspaceEditorInterface
+	previewDoc    *document.Document
+	previewMan    ui.Manager
+	editBtn       *document.Element
+	previewArea   *document.Element
+	previewHelp   *document.Element
+	ratioX        *document.Element
+	ratioY        *document.Element
+	html          string
+	data          string
+	styles        []string
+	bindingData   any
+	lastMod       time.Time
+	lastTime      float64
+	ratio         matrix.Vec2
+	openHtmlSubID events.Id
 }
 
-func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterface) {
+func (w *UIWorkspace) ID() string          { return ID }
+func (w *UIWorkspace) DisplayName() string { return DisplayName }
+func (w *UIWorkspace) IsRequired() bool    { return false }
+
+func (w *UIWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	defer tracing.NewRegion("UIWorkspace.Initialize").End()
+	host := ed.Host()
 	w.ed = ed
 	w.ratio = matrix.NewVec2(16, 9)
-	w.CommonWorkspace.InitializeWithUI(host,
+	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/ui_workspace.go.html", w.ratio, map[string]func(*document.Element){
 			"clickFile":         w.clickFile,
 			"clickEdit":         w.clickEdit,
 			"clickLoadData":     w.clickLoadData,
 			"changeWidthRatio":  w.changeWidthRatio,
 			"changeHeightRatio": w.changeHeightRatio,
-		})
+		}); err != nil {
+		return err
+	}
 	w.editBtn, _ = w.Doc.GetElementById("editBtn")
 	w.previewArea, _ = w.Doc.GetElementById("previewArea")
 	w.previewHelp, _ = w.Doc.GetElementById("previewHelp")
@@ -99,6 +87,19 @@ func (w *UIWorkspace) Initialize(host *engine.Host, ed UIWorkspaceEditorInterfac
 	w.ratioY, _ = w.Doc.GetElementById("ratioY")
 	w.previewMan.Init(host)
 	w.previewArea.UIPanel.DontFitContent()
+	w.openHtmlSubID = ed.Events().OnRequestViewHtmlUi.Add(func(htmlID string) {
+		ed.SelectWorkspace(ID)
+		w.OpenHtml(htmlID)
+	})
+	return nil
+}
+
+func (w *UIWorkspace) Shutdown() {
+	defer tracing.NewRegion("UIWorkspace.Shutdown").End()
+	if w.ed != nil {
+		w.ed.Events().OnRequestViewHtmlUi.Remove(w.openHtmlSubID)
+	}
+	w.CommonShutdown()
 }
 
 func (w *UIWorkspace) Open() {

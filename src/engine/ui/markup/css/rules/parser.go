@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* parser.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rules
@@ -85,6 +55,33 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	sel := Selector{
 		Parts: make([]SelectorPart, 0),
 	}
+	appendCombinator := func(selectType RuleState, name string) {
+		if len(sel.Parts) == 0 {
+			return
+		}
+		idx := len(sel.Parts) - 1
+		switch sel.Parts[idx].SelectType {
+		case ReadingDescendant, ReadingChild, ReadingSibling, ReadingAdjacent:
+			sel.Parts[idx] = SelectorPart{
+				Name:       name,
+				SelectType: selectType,
+			}
+		default:
+			sel.Parts = append(sel.Parts, SelectorPart{
+				Name:       name,
+				SelectType: selectType,
+			})
+		}
+	}
+	pseudoFunctionDepth := 0
+	appendPseudoArg := func(data string) bool {
+		if pseudoFunctionDepth == 0 {
+			return false
+		}
+		idx := len(sel.Parts) - 1
+		sel.Parts[idx].Args = append(sel.Parts[idx].Args, data)
+		return true
+	}
 	for _, val := range cssParser.Values() {
 		switch val.TokenType {
 		case css.IdentToken:
@@ -92,9 +89,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 		case css.StringToken:
 			fallthrough
 		case css.NumberToken:
-			if s.state == ReadingPseudoFunction {
-				idx := len(sel.Parts) - 1
-				sel.Parts[idx].Args = append(sel.Parts[idx].Args, string(val.Data))
+			if appendPseudoArg(string(val.Data)) {
 			} else {
 				d := string(val.Data)
 				if s.state == ReadingConditionAssignment {
@@ -107,43 +102,78 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 			}
 		case css.HashToken:
 			id := strings.TrimPrefix(string(val.Data), "#")
-			sel.Parts = append(sel.Parts, SelectorPart{
-				Name:       id,
-				SelectType: ReadingId,
-			})
+			if appendPseudoArg("#" + id) {
+			} else {
+				sel.Parts = append(sel.Parts, SelectorPart{
+					Name:       id,
+					SelectType: ReadingId,
+				})
+			}
 		case css.ColonToken:
-			s.state = ReadingPseudo
-		case css.FunctionToken:
-			s.state = ReadingPseudoFunction
-			sel.Parts = append(sel.Parts, SelectorPart{
-				Name:       strings.TrimSuffix(string(val.Data), "("),
-				SelectType: ReadingPseudoFunction,
-			})
-		case css.RightParenthesisToken:
-			s.state = ReadingPseudo
-		case css.WhitespaceToken:
-			s.state = ReadingTag
-		case css.LeftBracketToken:
-			s.state = ReadingCondition
-		case css.RightBracketToken:
-			s.state = ReadingTag
-		case css.DelimToken:
-			switch string(val.Data) {
-			case "#":
-				s.state = ReadingId
-			case ".":
-				s.state = ReadingClass
-			case ">":
-				s.state = ReadingChild
-			case "~":
-				s.state = ReadingSibling
-			case "+":
-				s.state = ReadingAdjacent
-			case ":":
+			if appendPseudoArg(":") {
+			} else {
 				s.state = ReadingPseudo
-			case "=":
-				if s.state == ReadingCondition {
-					s.state = ReadingConditionAssignment
+			}
+		case css.FunctionToken:
+			name := strings.TrimSuffix(string(val.Data), "(")
+			if appendPseudoArg(name + "(") {
+				pseudoFunctionDepth++
+			} else {
+				s.state = ReadingPseudoFunction
+				pseudoFunctionDepth = 1
+				sel.Parts = append(sel.Parts, SelectorPart{
+					Name:       name,
+					SelectType: ReadingPseudoFunction,
+				})
+			}
+		case css.RightParenthesisToken:
+			if pseudoFunctionDepth > 1 {
+				appendPseudoArg(")")
+				pseudoFunctionDepth--
+			} else {
+				pseudoFunctionDepth = 0
+				s.state = ReadingPseudo
+			}
+		case css.CommaToken:
+			appendPseudoArg(",")
+		case css.WhitespaceToken:
+			if appendPseudoArg(" ") {
+			} else if pseudoFunctionDepth == 0 {
+				appendCombinator(ReadingDescendant, " ")
+				s.state = ReadingTag
+			}
+		case css.LeftBracketToken:
+			if appendPseudoArg("[") {
+			} else {
+				s.state = ReadingCondition
+			}
+		case css.RightBracketToken:
+			if appendPseudoArg("]") {
+			} else {
+				s.state = ReadingTag
+			}
+		case css.DelimToken:
+			delim := string(val.Data)
+			if appendPseudoArg(delim) {
+			} else {
+				switch delim {
+				case "#":
+					s.state = ReadingId
+				case ".":
+					s.state = ReadingClass
+				case ">":
+					appendCombinator(ReadingChild, ">")
+					s.state = ReadingTag
+				case "~":
+					s.state = ReadingSibling
+				case "+":
+					s.state = ReadingAdjacent
+				case ":":
+					s.state = ReadingPseudo
+				case "=":
+					if s.state == ReadingCondition {
+						s.state = ReadingConditionAssignment
+					}
 				}
 			}
 		}

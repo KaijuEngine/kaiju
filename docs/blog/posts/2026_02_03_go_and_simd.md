@@ -2,6 +2,7 @@
 title: SIMD Optimizations for Matrix Operations in Kaiju Engine
 description: How SIMD assembly on AMD64 and ARM64 dramatically speeds up matrix math in the engine.
 tags: go, simd, assembly, performance, matrix
+category: Performance
 image: images/simd_matrix.png
 date: 2026-02-03
 ---

@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* vfx_workspace.go                                                           */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package vfx_workspace
@@ -50,9 +20,12 @@ import (
 	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/editor_overlay/content_selector"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
@@ -61,9 +34,18 @@ import (
 	"kaijuengine.com/rendering/vfx"
 )
 
+const (
+	ID          = "vfx"
+	DisplayName = "VFX"
+)
+
+func init() {
+	editor_workspace_registry.Register(&VfxWorkspace{})
+}
+
 type VfxWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed                       VfxWorkspaceEditorInterface
+	ed                       editor_workspace.WorkspaceEditorInterface
 	stageView                *editor_stage_view.StageView
 	systemName               *document.Element
 	emitterData              *document.Element
@@ -75,13 +57,19 @@ type VfxWorkspace struct {
 	particleSystem           *vfx.ParticleSystem
 	entity                   engine.Entity
 	systemId                 string
+	openParticleSubID        events.Id
 }
 
-func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterface) {
+func (w *VfxWorkspace) ID() string          { return ID }
+func (w *VfxWorkspace) DisplayName() string { return DisplayName }
+func (w *VfxWorkspace) IsRequired() bool    { return false }
+
+func (w *VfxWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	defer tracing.NewRegion("VfxWorkspace.Initialize").End()
+	host := ed.Host()
 	w.ed = ed
 	w.stageView = ed.StageView()
-	w.CommonWorkspace.InitializeWithUI(host,
+	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/vfx_workspace.go.html", nil, map[string]func(*document.Element){
 			"clickNewParticleSystem": w.clickNewParticleSystem,
 			"clickAddEmitter":        w.clickAddEmitter,
@@ -91,13 +79,28 @@ func (w *VfxWorkspace) Initialize(host *engine.Host, ed VfxWorkspaceEditorInterf
 			"showColorPicker":        w.showColorPicker,
 			"changeEmitterData":      w.changeEmitterData,
 			"clickSelectContentId":   w.clickSelectContentId,
-		})
+		}); err != nil {
+		return err
+	}
 	w.systemName, _ = w.Doc.GetElementById("systemName")
 	w.emitterData, _ = w.Doc.GetElementById("emitterData")
 	w.emitterDataList, _ = w.Doc.GetElementById("emitterDataList")
 	w.emitterDataTemplate, _ = w.Doc.GetElementById("emitterDataTemplate")
 	w.emitterList, _ = w.Doc.GetElementById("emitterList")
 	w.emitterListEntryTemplate, _ = w.Doc.GetElementById("emitterListEntryTemplate")
+	w.openParticleSubID = ed.Events().OnRequestOpenParticleSystem.Add(func(particleID string) {
+		ed.SelectWorkspace(ID)
+		w.OpenParticleSystem(particleID)
+	})
+	return nil
+}
+
+func (w *VfxWorkspace) Shutdown() {
+	defer tracing.NewRegion("VfxWorkspace.Shutdown").End()
+	if w.ed != nil {
+		w.ed.Events().OnRequestOpenParticleSystem.Remove(w.openParticleSubID)
+	}
+	w.CommonShutdown()
 }
 
 func (w *VfxWorkspace) Open() {

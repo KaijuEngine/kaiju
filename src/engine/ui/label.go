@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* label.go                                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
@@ -60,6 +30,7 @@ type labelData struct {
 	textLength        int
 	fontSize          float32
 	lineHeight        float32
+	letterSpacing     float32
 	overrideMaxWidth  float32
 	fgColor           matrix.Color
 	bgColor           matrix.Color
@@ -174,29 +145,29 @@ func (label *Label) clearDrawings() {
 
 func (label *Label) labelPostLayoutUpdate() {
 	defer tracing.NewRegion("Label.labelPostLayoutUpdate").End()
+	if label.layout.stylizerControlsHeight() {
+		return
+	}
 	maxWidth := label.MaxWidth()
 	l := label.LabelData()
-	if l.wordWrap {
-		if label.entity.Parent != nil {
-			p := FirstOnEntity(label.entity.Parent)
-			o := p.layout.padding
-			maxWidth = max(maxWidth, label.layout.PixelSize().Width()-o.X()-o.Z())
-		} else {
-			maxWidth = label.MaxWidth()
-		}
+	if l.wordWrap && l.overrideMaxWidth <= 0 {
+		maxWidth = label.nonOverrideMaxWidth()
 	}
 	label.updateHeight(maxWidth)
 }
 
 func (label *Label) updateHeight(maxWidth float32) {
+	if label.layout.stylizerControlsHeight() {
+		return
+	}
 	m := label.measure(maxWidth)
 	label.layout.ScaleHeight(m.Y())
 }
 
 func (label *Label) measure(maxWidth float32) matrix.Vec2 {
 	ld := label.LabelData()
-	return label.man.Value().Host.FontCache().MeasureStringWithin(ld.fontFace,
-		ld.text, ld.fontSize, maxWidth, ld.lineHeight)
+	return label.man.Value().Host.FontCache().MeasureStringWithinWithLetterSpacing(ld.fontFace,
+		ld.text, ld.fontSize, maxWidth, ld.lineHeight, ld.letterSpacing)
 }
 
 func (label *Label) renderText() {
@@ -206,24 +177,32 @@ func (label *Label) renderText() {
 	if ld.textLength > 0 {
 		maxWidth := label.MaxWidth()
 		if label.entity.Parent != nil && !matrix.Approx(label.entity.Transform.Scale().X(), 0) {
-			label.layout.ScaleWidth(label.entity.Parent.Transform.WorldScale().X())
+			pl := &FirstPanelOnEntity(label.entity.Parent).layout
+			contentWidth := label.entity.Parent.Transform.WorldScale().X() -
+				pl.padding.Horizontal() - pl.border.Horizontal()
+			if contentWidth > 0 {
+				if ld.overrideMaxWidth <= 0 {
+					label.layout.ScaleWidth(contentWidth)
+				}
+				if ld.overrideMaxWidth <= 0 || maxWidth > contentWidth {
+					maxWidth = contentWidth
+				}
+			}
 		}
-		label.layout.ScaleHeight(label.Measure().Height())
-		pl := &FirstPanelOnEntity(label.entity.Parent).layout
-		xOffset := float32(0)
-		if ld.justify == rendering.FontJustifyCenter {
-			xOffset = -pl.padding.Left() - pl.border.Left()
+		if !label.layout.stylizerControlsHeight() {
+			label.layout.ScaleHeight(label.measure(maxWidth).Height())
 		}
 		host := label.man.Value().Host
-		ld.runeDrawings = host.FontCache().RenderMeshes(
-			host, ld.text, xOffset, 0, 0, ld.fontSize,
+		ld.runeDrawings = host.FontCache().RenderMeshesWithLetterSpacing(
+			host, ld.text, 0, 0, 0, ld.fontSize,
 			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
-			true, false, ld.fontFace, ld.lineHeight, &host.Cameras.UI)
+			true, false, ld.fontFace, ld.lineHeight, ld.letterSpacing, &host.Cameras.UI)
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
 		for i := range ld.runeDrawings {
 			rd := &ld.runeDrawings[i]
 			rd.Transform = &label.entity.Transform
+			rd.Layer = rendering.RenderLayerUI
 			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
 			if ld.bgColor.A() < 1.0 {
 				transparent := ld.runeDrawings[i]
@@ -290,6 +269,18 @@ func (label *Label) SetLineHeight(height float32) {
 }
 
 func (label *Label) LineHeight() float32 { return label.LabelData().lineHeight }
+
+func (label *Label) SetLetterSpacing(spacing float32) {
+	ld := label.LabelData()
+	if matrix.Approx(ld.letterSpacing, spacing) {
+		return
+	}
+	ld.letterSpacing = spacing
+	ld.renderRequired = true
+	label.Base().SetDirty(DirtyTypeGenerated)
+}
+
+func (label *Label) LetterSpacing() float32 { return label.LabelData().letterSpacing }
 
 func (label *Label) Text() string { return label.LabelData().text }
 
@@ -365,7 +356,6 @@ func (label *Label) UnEnforceBGColor() {
 }
 
 func (label *Label) SetBGColor(newColor matrix.Color) {
-	defer tracing.NewRegion("Label.SetBGColor").End()
 	ld := label.LabelData()
 	if ld.isForcedBGColor || ld.bgColor.Equals(newColor) {
 		return
@@ -388,6 +378,8 @@ func (label *Label) SetJustify(justify rendering.FontJustify) {
 	ld.justify = justify
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
+
+func (label *Label) Justify() rendering.FontJustify { return label.LabelData().justify }
 
 func (label *Label) SetBaseline(baseline rendering.FontBaseline) {
 	ld := label.LabelData()
@@ -424,8 +416,8 @@ func (label *Label) MaxWidth() float32 {
 func (label *Label) SetWidthAutoHeight(width float32) {
 	defer tracing.NewRegion("Label.SetWidthAutoHeight").End()
 	ld := label.LabelData()
-	textSize := label.Base().man.Value().Host.FontCache().MeasureStringWithin(
-		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight)
+	textSize := label.Base().man.Value().Host.FontCache().MeasureStringWithinWithLetterSpacing(
+		ld.fontFace, ld.text, ld.fontSize, width, ld.lineHeight, ld.letterSpacing)
 	label.layout.Scale(width, textSize.Y())
 }
 
@@ -444,7 +436,6 @@ func (label *Label) findColorRange(start, end int) *colorRange {
 }
 
 func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color) {
-	defer tracing.NewRegion("Label.ColorRange").End()
 	cRange := label.findColorRange(start, end)
 	cRange.hue = newColor
 	cRange.bgHue = bgColor
@@ -488,11 +479,15 @@ func (label *Label) SetFontWeight(weight string) {
 	ld := label.LabelData()
 	face := ld.fontFace
 	switch weight {
-	case "normal":
+	case "normal", "400":
 		face = face.RemoveBold()
-	case "bold":
+	case "100", "200", "300":
+		face = face.AsLight()
+	case "500", "600":
+		face = face.AsSemiBold()
+	case "bold", "700":
 		face = face.AsBold()
-	case "bolder":
+	case "bolder", "800", "900":
 		face = face.AsExtraBold()
 	case "lighter":
 		face = face.AsLight()
@@ -513,7 +508,6 @@ func (label *Label) SetFontStyle(style string) {
 }
 
 func (label *Label) CalculateMaxWidth() float32 {
-	defer tracing.NewRegion("Label.CalculateMaxWidth").End()
 	var maxWidth matrix.Float
 	parent := label.entity.Parent
 	//if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {
@@ -526,6 +520,9 @@ func (label *Label) CalculateMaxWidth() float32 {
 		w := parent.Transform.WorldScale().X()
 		if panel.FittingContentWidth() {
 			w = label.measure(matrix.FloatMax).X() + o.X() + o.Z() + 1
+		} else {
+			o = o.Add(panel.layout.Border())
+			w -= o.X() + o.Z()
 		}
 		maxWidth = w
 	}
@@ -534,7 +531,7 @@ func (label *Label) CalculateMaxWidth() float32 {
 
 func (label *Label) Measure() matrix.Vec2 {
 	if label.LabelData().wordWrap {
-		return label.measure(label.CalculateMaxWidth())
+		return label.measure(label.MaxWidth())
 	} else {
 		return label.measure(matrix.FloatMax)
 	}
@@ -548,6 +545,7 @@ func (label *Label) Clone(to *Label) {
 	toLD.diffScore = ld.diffScore
 	to.SetFontSize(ld.fontSize)
 	to.SetLineHeight(ld.lineHeight)
+	to.SetLetterSpacing(ld.letterSpacing)
 	to.SetMaxWidth(ld.overrideMaxWidth)
 	to.SetColor(ld.fgColor)
 	to.SetBGColor(ld.bgColor)

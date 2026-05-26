@@ -2,6 +2,7 @@
 title: Ditching the GOB encoder (and making my own)
 description: Why the Go gob encoder breaks with empty or identical structs and how a custom POD encoder solves the problem using fully‑qualified type names.
 tags: go, serialization, gob, pod, reflection, engine
+category: Engineering
 image: images/simd_matrix.png
 date: 2026-02-07
 ---

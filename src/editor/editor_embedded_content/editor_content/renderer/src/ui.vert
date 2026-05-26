@@ -11,6 +11,8 @@ layout(location = LOCATION_START+5) in vec4 borderRadius;
 layout(location = LOCATION_START+6) in vec4 borderSize;
 layout(location = LOCATION_START+7) in mat4 borderColor;
 layout(location = LOCATION_START+11) in vec2 borderLen;
+layout(location = LOCATION_START+12) in vec4 outlineColor;
+layout(location = LOCATION_START+13) in vec2 outlineSize;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 fragBGColor;
@@ -21,9 +23,13 @@ layout(location = 5) out mat4 fragBorderColor;
 layout(location = 9) out vec2 fragTexCoord;
 layout(location = 10) out vec2 fragBorderLen;
 layout(location = 11) out vec4 fragUvs;
+layout(location = 12) out vec4 fragOutlineColor;
+layout(location = 13) out vec2 fragOutlineSize;
 
 void main() {
 	vec4 vPos = model * vec4(Position, 1.0);
+	float outlineOutset = max(0.0, outlineSize.x + outlineSize.y);
+	vPos.xy += sign(Position.xy) * outlineOutset;
 	vPos.x = round(vPos.x);
 	vPos.y = round(vPos.y);
 	gl_Position = uiProjection * uiView * vPos;
@@ -42,6 +48,8 @@ void main() {
 	fragBorderLen = borderLen;
 	fragUvs = uvs;
 	fragUvs.y = v;
+	fragOutlineColor = outlineColor;
+	fragOutlineSize = outlineSize;
 
 	gl_ClipDistance[0] = vPos.x - scissor.x;
 	gl_ClipDistance[1] = vPos.y - scissor.y;

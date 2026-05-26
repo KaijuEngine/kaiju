@@ -1,42 +1,13 @@
 /******************************************************************************/
 /* ui.go                                                                      */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
 
 import (
+	"log/slog"
 	"weak"
 
 	"kaijuengine.com/engine"
@@ -51,7 +22,7 @@ import (
 
 type DirtyType = int
 type ElementType = uint8
-type uiBits uint8
+type uiBits uint16
 
 const (
 	DirtyTypeNone = iota
@@ -79,6 +50,7 @@ const (
 	ElementTypeProgressBar
 	ElementTypeSelect
 	ElementTypeSlider
+	ElementTypeTextArea
 )
 
 const (
@@ -90,6 +62,7 @@ const (
 	uiBitsDrag
 	uiBitsLastActive
 	uiBitsDontClean
+	uiBitsDisabled
 )
 
 type UIElementData interface {
@@ -123,6 +96,7 @@ func (b uiBits) isRightDown() bool  { return b&uiBitsIsRightDown != 0 }
 func (b uiBits) drag() bool         { return b&uiBitsDrag != 0 }
 func (b uiBits) lastActive() bool   { return b&uiBitsLastActive != 0 }
 func (b uiBits) dontClean() bool    { return b&uiBitsDontClean != 0 }
+func (b uiBits) disabled() bool     { return b&uiBitsDisabled != 0 }
 func (b *uiBits) setHovering()      { *b |= uiBitsHovering }
 func (b *uiBits) setCantMiss()      { *b |= uiBitsCantMiss }
 func (b *uiBits) setIsDown()        { *b |= uiBitsIsDown }
@@ -130,6 +104,7 @@ func (b *uiBits) setIsRightDown()   { *b |= uiBitsIsRightDown }
 func (b *uiBits) setDrag()          { *b |= uiBitsDrag }
 func (b *uiBits) setLastActive()    { *b |= uiBitsLastActive }
 func (b *uiBits) setDontClean()     { *b |= uiBitsDontClean }
+func (b *uiBits) setDisabled()      { *b |= uiBitsDisabled }
 func (b *uiBits) resetHovering()    { *b &= ^uiBitsHovering }
 func (b *uiBits) resetCantMiss()    { *b &= ^uiBitsCantMiss }
 func (b *uiBits) resetIsDown()      { *b &= ^uiBitsIsDown }
@@ -137,6 +112,7 @@ func (b *uiBits) resetIsRightDown() { *b &= ^uiBitsIsRightDown }
 func (b *uiBits) resetDrag()        { *b &= ^uiBitsDrag }
 func (b *uiBits) resetLastActive()  { *b &= ^uiBitsLastActive }
 func (b *uiBits) resetDontClean()   { *b &= ^uiBitsDontClean }
+func (b *uiBits) resetDisabled()    { *b &= ^uiBitsDisabled }
 
 func (ui *UI) IsActive() bool { return ui.entity.IsActive() }
 func (ui *UI) IsDown() bool   { return ui.flags.isDown() }
@@ -164,6 +140,8 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 			// Labels that make up the input box don't always re-render with
 			// minor events, this is a full window resize so it needs to happen.
 			ui.ToInput().forceLabelAndPlaceholderRerender()
+		} else if ui.Type() == ElementTypeTextArea {
+			ui.ToTextArea().forceLabelAndPlaceholderRerender()
 		}
 	})
 	ui.entity.OnDestroy.Add(func() {
@@ -208,10 +186,75 @@ func (ui *UI) SetDontClean(val bool) {
 	}
 }
 
+func (ui *UI) IsDisabled() bool {
+	return ui.flags.disabled()
+}
+
+func (ui *UI) SetDisabled(disabled bool) {
+	if ui.IsDisabled() == disabled {
+		return
+	}
+	if disabled {
+		ui.flags.setDisabled()
+		ui.flags.resetIsDown()
+		ui.flags.resetIsRightDown()
+		ui.flags.resetDrag()
+		ui.flags.resetCantMiss()
+		ui.flags.resetHovering()
+		if man := ui.man.Value(); man != nil && man.Host != nil && man.Host.Window != nil {
+			man.Host.Window.CursorStandard()
+		}
+		switch ui.Type() {
+		case ElementTypeInput:
+			ui.ToInput().removeFocusWithoutEvents()
+		case ElementTypeTextArea:
+			ui.ToTextArea().removeFocusWithoutEvents()
+		case ElementTypeSelect:
+			ui.ToSelect().collapse()
+		}
+	} else {
+		ui.flags.resetDisabled()
+	}
+	if ui.IsValid() {
+		ui.SetDirty(DirtyTypeGenerated)
+	}
+}
+
+func (ui *UI) disabledBlocksEvent(evtType EventType) bool {
+	if !ui.IsDisabled() {
+		return false
+	}
+	switch evtType {
+	case EventTypeRender, EventTypeDestroy:
+		return false
+	case EventTypeEnter, EventTypeMove, EventTypeExit, EventTypeClick,
+		EventTypeRightClick, EventTypeDoubleClick, EventTypeDown, EventTypeUp,
+		EventTypeRightDown, EventTypeRightUp, EventTypeMiss, EventTypeDragStart,
+		EventTypeDrop, EventTypeDropEnter, EventTypeDropExit, EventTypeDragEnd,
+		EventTypeScroll, EventTypeFocus, EventTypeBlur, EventTypeSubmit,
+		EventTypeChange, EventTypeKeyDown, EventTypeKeyUp:
+		return true
+	default:
+		return true
+	}
+}
+
 func (ui *UI) ExecuteEvent(evtType EventType) bool {
 	defer tracing.NewRegion("UI.ExecuteEvent").End()
 	ui.events[evtType].Execute()
 	return !ui.events[evtType].IsEmpty()
+}
+
+func (ui *UI) disabledEventBlocksSiblings(evtType EventType) bool {
+	switch evtType {
+	case EventTypeEnter, EventTypeMove, EventTypeClick, EventTypeRightClick,
+		EventTypeDoubleClick, EventTypeDown, EventTypeUp, EventTypeRightDown,
+		EventTypeRightUp, EventTypeDragStart, EventTypeDrop, EventTypeDropEnter,
+		EventTypeDragEnd, EventTypeScroll:
+		return true
+	default:
+		return false
+	}
 }
 
 func (ui *UI) AddEvent(evtType EventType, evt func()) events.Id {
@@ -320,7 +363,6 @@ func (ui *UI) Clean() {
 }
 
 func (ui *UI) GenerateScissor() {
-	defer tracing.NewRegion("UI.GenerateScissor").End()
 	target := &ui.entity.Transform
 	pos := target.WorldPosition()
 	size := target.WorldScale()
@@ -329,6 +371,13 @@ func (ui *UI) GenerateScissor() {
 		pos.Y() - size.Y()*0.5,
 		pos.X() + size.X()*0.5,
 		pos.Y() + size.Y()*0.5,
+	}
+	if !ui.IsType(ElementTypeLabel) {
+		outset := ui.ToPanel().OutlineOutset()
+		bounds.SetX(bounds.X() - outset)
+		bounds.SetY(bounds.Y() - outset)
+		bounds.SetZ(bounds.Z() + outset)
+		bounds.SetW(bounds.W() + outset)
 	}
 	if !ui.entity.IsRoot() {
 		p := FirstPanelOnEntity(ui.entity.Parent)
@@ -347,12 +396,10 @@ func (ui *UI) GenerateScissor() {
 }
 
 func (ui *UI) setScissor(scissor matrix.Vec4) {
-	defer tracing.NewRegion("UI.setScissor").End()
 	ui.setScissorInternal(scissor)
 }
 
 func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
-	defer tracing.NewRegion("UI.setScissorInternal").End()
 	if ui.shaderData.Scissor.Equals(scissor) {
 		return
 	}
@@ -374,6 +421,9 @@ func (ui *UI) setScissorInternal(scissor matrix.Vec4) {
 
 func (ui *UI) requestEvent(evtType EventType) bool {
 	defer tracing.NewRegion("UI.requestEvent").End()
+	if ui.disabledBlocksEvent(evtType) {
+		return ui.disabledEventBlocksSiblings(evtType)
+	}
 	if ui.events[evtType].IsEmpty() {
 		return false
 	}
@@ -394,6 +444,9 @@ func (ui *UI) eventUpdates() {
 	if cursor.Moved() {
 		pos := ui.cursorPos(cursor)
 		ui.containedCheck(cursor, &ui.entity)
+		if ui.IsDisabled() {
+			return
+		}
 		if ui.flags.isDown() && !ui.flags.drag() {
 			w := ui.Host().Window.Width()
 			h := ui.Host().Window.Height()
@@ -408,6 +461,9 @@ func (ui *UI) eventUpdates() {
 	}
 	if cursor.Pressed() {
 		ui.containedCheck(cursor, &ui.entity)
+		if ui.IsDisabled() {
+			return
+		}
 		if ui.flags.hovering() && !ui.flags.isDown() {
 			ui.flags.setIsDown()
 			ui.downPos = ui.cursorPos(cursor)
@@ -421,6 +477,9 @@ func (ui *UI) eventUpdates() {
 	}
 	if mouse.Pressed(hid.MouseButtonRight) {
 		ui.containedCheck(cursor, &ui.entity)
+		if ui.IsDisabled() {
+			return
+		}
 		if ui.flags.hovering() && !ui.flags.isRightDown() {
 			ui.flags.setIsRightDown()
 			ui.downPos = ui.cursorPos(cursor)
@@ -429,6 +488,12 @@ func (ui *UI) eventUpdates() {
 		}
 	}
 	if cursor.Released() {
+		if ui.IsDisabled() {
+			ui.flags.resetIsDown()
+			ui.flags.resetDrag()
+			ui.flags.resetCantMiss()
+			return
+		}
 		if ui.flags.hovering() {
 			ui.requestEvent(EventTypeUp)
 			if windowing.HasDragData() {
@@ -460,6 +525,10 @@ func (ui *UI) eventUpdates() {
 		}
 	}
 	if mouse.Released(hid.MouseButtonRight) {
+		if ui.IsDisabled() {
+			ui.flags.resetIsRightDown()
+			return
+		}
 		if ui.flags.hovering() {
 			ui.requestEvent(EventTypeUp)
 			if ui.flags.isRightDown() {
@@ -469,6 +538,9 @@ func (ui *UI) eventUpdates() {
 		ui.flags.resetIsRightDown()
 	}
 	if mouse.Scrolled() && ui.flags.hovering() {
+		if ui.IsDisabled() {
+			return
+		}
 		ui.requestEvent(EventTypeScroll)
 	}
 }
@@ -506,6 +578,9 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 	}
 	if !ui.flags.hovering() && contained {
 		ui.flags.setHovering()
+		if ui.IsDisabled() {
+			return
+		}
 		// This is to resolve the parent not getting it's exit call when the
 		// cursor enters a child element, effectively taking focus from the
 		// parent
@@ -519,6 +594,9 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 		}
 	} else if ui.flags.hovering() && !contained {
 		ui.flags.resetHovering()
+		if ui.IsDisabled() {
+			return
+		}
 		ui.requestEvent(EventTypeExit)
 		// This is to resolve the parent not getting enter call when the
 		// cursor exits a child element puttin focus back on the parent
@@ -529,6 +607,9 @@ func (ui *UI) containedCheck(cursor *hid.Cursor, entity *engine.Entity) {
 			ui.requestEvent(EventTypeDropExit)
 		}
 	} else if ui.flags.hovering() && contained {
+		if ui.IsDisabled() {
+			return
+		}
 		ui.requestEvent(EventTypeMove)
 	}
 }
@@ -552,6 +633,9 @@ func (ui *UI) cleanIfNeeded() {
 
 func (ui *UI) anyChildDirty() bool {
 	defer tracing.NewRegion("UI.anyChildDirty").End()
+	if !ui.IsActive() || ui.entity.IsDestroyed() {
+		return false
+	}
 	if ui.dirtyType != DirtyTypeNone {
 		return true
 	}
@@ -572,6 +656,8 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	switch ui.elmType {
 	case ElementTypeInput:
 		ui.ToInput().update(deltaTime)
+	case ElementTypeTextArea:
+		ui.ToTextArea().update(deltaTime)
 	case ElementTypeLabel:
 		ui.Update(deltaTime)
 	case ElementTypePanel:
@@ -648,11 +734,29 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 			s, _ := tData.spriteSheet.ToJson()
 			cpy.ToImage().InitSpriteSheet(tData.fps, ui.ToPanel().Background(), s)
 		} else {
-			cpy.ToImage().Init(tData.flipBook[0])
+			bg := ui.ToPanel().Background()
+			if bg != nil {
+				cpy.ToImage().Init(bg)
+			} else {
+				slog.Error("failed to clone image UI: no texture source was available")
+				cpy.ToImage().Init(nil)
+			}
 		}
 	case ElementTypeInput:
 		t := ui.ToInput()
-		cpy.ToInput().Init(t.InputData().placeholder.Text())
+		tData := t.InputData()
+		cpyInput := cpy.ToInput()
+		cpyInput.Init(tData.placeholder.Text())
+		cpyInput.SetType(tData.inputType)
+		cpyInput.SetRequired(tData.required)
+		cpyInput.SetTextWithoutEvent(t.Text())
+	case ElementTypeTextArea:
+		t := ui.ToTextArea()
+		tData := t.Data()
+		cpyTextArea := cpy.ToTextArea()
+		cpyTextArea.Init(tData.placeholder.Text())
+		cpyTextArea.SetRequired(tData.required)
+		cpyTextArea.SetTextWithoutEvent(t.Text())
 	case ElementTypeProgressBar:
 		t := ui.ToProgressBar()
 		cpy.ToProgressBar().Init(t.data().fgPanel.Background(), ui.ToPanel().Background())
@@ -662,6 +766,7 @@ func (ui *UI) Clone(parent *engine.Entity) *UI {
 	case ElementTypeSlider:
 		cpy.ToSlider().Init()
 	}
+	cpy.SetDisabled(ui.IsDisabled())
 	if parent != nil {
 		panel := FirstPanelOnEntity(parent)
 		if panel != nil {

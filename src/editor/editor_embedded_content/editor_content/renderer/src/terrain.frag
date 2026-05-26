@@ -1,98 +1,91 @@
 #version 460
+#define FRAGMENT_SHADER
+#define HAS_GBUFFER
 
-#include "inc_default.inl"
+#define TERRAIN_WEIGHT_MAP_COUNT 1
+#define TERRAIN_LAYER_COUNT 4
+#define SAMPLER_COUNT TERRAIN_WEIGHT_MAP_COUNT + TERRAIN_LAYER_COUNT
 
-layout(location = 0) in vec4 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec3 fragTangentViewPos;
-layout(location = 3) in vec3 fragTangentFragPos;
-layout(location = 4) in vec3 fragLightTPos;
-layout(location = 5) in vec4 fragPosLightSpace;
-layout(location = 6) in vec3 fragPos;
-layout(location = 7) in vec3 fragNormal;
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_FLAGS 1
+#define LAYOUT_FRAG_POS 2
+#define LAYOUT_FRAG_TEX_COORDS 3
+#define LAYOUT_FRAG_NORMAL 4
+#define LAYOUT_FRAG_VIEW_DIR 5
+#define LAYOUT_FRAG_TERRAIN_SLOPE_PARAMS 6
+#define LAYOUT_FRAG_TERRAIN_GRASS_TINT 7
+#define LAYOUT_FRAG_TERRAIN_ROCK_TINT 8
+#define LAYOUT_FRAG_TERRAIN_LIGHT_DIRECTION_AMBIENT 9
+#define LAYOUT_FRAG_TERRAIN_LIGHT_COLOR_DIFFUSE 10
+#define LAYOUT_FRAG_TERRAIN_MATERIAL_PARAMS 11
+#define LAYOUT_FRAG_BRUSH_CENTER_RADIUS 12
+#define LAYOUT_FRAG_BRUSH_PARAMS 13
+#define LAYOUT_FRAG_BRUSH_COLOR 14
 
-layout(location = 0) out vec4 outColor;
+#include "kaiju.glsl"
 
-// Height/Cavity/Roughness map
-// Terrain normal map
-// Rock color, normal
-// Ground color, normal
-layout(binding = 1) uniform sampler2D textures[6];
+vec3 applyBrushOverlay(vec3 terrainColor) {
+	if (fragBrushCenterRadius.w <= 0.0) {
+		return terrainColor;
+	}
+	float radius = max(fragBrushCenterRadius.z, 0.001);
+	float ringWidth = max(fragBrushParams.x, 0.001);
+	float fillAlpha = clamp(fragBrushParams.y, 0.0, 1.0);
+	float ringAlpha = clamp(fragBrushParams.z, 0.0, 1.0);
+	float dist = distance(fragPos.xz, fragBrushCenterRadius.xy);
+	float edgeFeather = max(fwidth(dist), 0.001);
+	float fill = (1.0 - smoothstep(radius - ringWidth, radius, dist)) * fillAlpha;
+	float ring = (1.0 - smoothstep(ringWidth, ringWidth + edgeFeather, abs(dist - radius))) * ringAlpha;
+	float alpha = clamp(max(fill, ring) * fragBrushColor.a, 0.0, 1.0);
+	return mix(terrainColor, fragBrushColor.rgb, alpha);
+}
 
-#define TEX_HEIGHT		0
-#define TEX_HEIGHT_NML	1
-#define TEX_ROCK		2
-#define TEX_ROCK_NML	3
-#define TEX_GROUND		4
-#define TEX_GROUND_NML	5
+vec3 terrainAlbedo(vec3 sampledColor, vec3 normal) {
+	float slope = 1.0 - clamp(normal.y, 0.0, 1.0);
+	float slopePower = max(fragMaterialParams.z, 0.001);
+	float blend = smoothstep(fragSlopeParams.x, fragSlopeParams.y, pow(slope, slopePower));
+	vec3 slopeTint = mix(fragGrassTint.rgb, fragRockTint.rgb, blend);
+	vec3 textured = mix(vec3(1.0), sampledColor, clamp(fragMaterialParams.x, 0.0, 1.0));
+	vec3 tinted = mix(vec3(1.0), slopeTint, clamp(fragMaterialParams.y, 0.0, 1.0));
+	return textured * tinted;
+}
 
-vec3 specularity = vec3(0.05);
-float tileScale = 200.0;
-
-const float baseSoftness = 0.2;
+vec4 terrainLayerColor() {
+	vec4 weights = max(texture(textures[0], fragTexCoords), vec4(0.0));
+	float totalWeight = weights.r + weights.g + weights.b + weights.a;
+	if (totalWeight <= 0.001) {
+		weights = vec4(1.0, 0.0, 0.0, 0.0);
+		totalWeight = 1.0;
+	}
+	weights /= totalWeight;
+	return
+		texture(textures[1], fragTexCoords) * weights.r +
+		texture(textures[2], fragTexCoords) * weights.g +
+		texture(textures[3], fragTexCoords) * weights.b +
+		texture(textures[4], fragTexCoords) * weights.a;
+}
 
 void main() {
-	vec3 hsr = texture(textures[TEX_HEIGHT], fragTexCoord).rgb;
-	vec3 baseNormal = texture(textures[TEX_HEIGHT_NML], fragTexCoord).rgb * 2.0 - 1.0;
-	vec2 tiledCoord = fragTexCoord * tileScale;
-	vec3 groundColor = texture(textures[TEX_GROUND], tiledCoord).rgb;
-	vec3 rockColor = texture(textures[TEX_ROCK], tiledCoord).rgb;
-	vec3 groundNormal = texture(textures[TEX_GROUND_NML], tiledCoord).rgb * 2.0 - 1.0;
-	vec3 rockNormal = texture(textures[TEX_ROCK_NML], tiledCoord).rgb * 2.0 - 1.0;
+	vec3 normal = normalize(fragNormal);
+	vec4 texColor = terrainLayerColor() * fragColor;
+	vec3 terrainColor = terrainAlbedo(texColor.rgb, normal);
+	terrainColor = applyBrushOverlay(terrainColor);
+	processGBuffer(normal);
 
-	float height = hsr.r;
-	//float slope = hsr.g;
-	float roughness = hsr.b;
-
-	float slope = 1.0 - baseNormal.z;
-	float rockFactor = smoothstep(0.2, 0.4, slope);
-
-	// Debug: Uncomment to visualize slope (black = steep, white = flat)
-	//outColor = vec4(vec3(slope), 1.0); return;
-
-	vec3 albedo = mix(groundColor, rockColor, rockFactor);
-	vec3 detailNormal = mix(groundNormal, rockNormal, rockFactor);
-
-	// Blend normals: Add XY, preserve Z dominance from baseNormal
-	vec3 tangentNormal = vec3(baseNormal.xy + detailNormal.xy, baseNormal.z * detailNormal.z);
-    tangentNormal = normalize(tangentNormal);
-
-    float shininess = 64.0 * (1.0 - roughness);
-    shininess = max(shininess, 0.1);
-
-    vec3 viewDir = normalize(fragTangentViewPos - fragTangentFragPos);
-    vec3 lightDir = normalize(fragLightTPos);
-
-    vec3 halfwayDir = normalize(lightDir + viewDir);
-
-    float diff = max(dot(tangentNormal, lightDir), 0.0);
-    float spec = pow(max(dot(tangentNormal, halfwayDir), 0.0), shininess);
-
-    LightInfo light = lightInfos[0];
-    vec3 ambient = light.ambient * albedo * 1.5; // Boost ambient to reduce dark areas
-    // vec3 diffuse = light.diffuse * diff * albedo;
-    vec3 diffuse = light.diffuse * albedo;
-    vec3 specular = light.specular * spec * specularity;
-    vec3 lighting = ambient + diffuse + specular;
-	// Disc shadow calculations
-	float maxShadow = 0.0;
-	for (int i = 0; i < MAX_POINT_SHADOWS; i++) {
-		PointShadow s = staticShadows[i];
-		vec2 toShadowXZ = fragPos.xz - s.point.xy;
-		float dist = length(toShadowXZ);
-		float effectiveSoftness = s.strength * baseSoftness;
-		float falloff = 1.0 - smoothstep(s.radius - effectiveSoftness, s.radius, dist);
-		float shadow = falloff * s.strength;
-		maxShadow = max(maxShadow, shadow);
+#ifdef TERRAIN_UNLIT_DEBUG
+	processFinalColor(vec4(terrainColor, texColor.a));
+#else
+	vec3 lightDir = fragLightDirectionAmbient.xyz;
+	if (length(lightDir) <= 0.001) {
+		lightDir = vec3(-0.5, -0.7, -0.5);
 	}
-	for (int i = 0; i < MAX_POINT_SHADOWS; i++) {
-		PointShadow s = dynamicShadows[i];
-		vec2 toShadowXZ = fragPos.xz - s.point.xy;
-		float dist = length(toShadowXZ);
-		float effectiveSoftness = s.strength * baseSoftness;
-		float falloff = 1.0 - smoothstep(s.radius - effectiveSoftness, s.radius, dist);
-		float shadow = falloff * s.strength;
-		maxShadow = max(maxShadow, shadow);
-	}
-	outColor = vec4(lighting * (1.0 - maxShadow), 1.0);
+	lightDir = normalize(lightDir);
+	vec3 lightColor = fragLightColorDiffuse.rgb;
+	float ambientStrength = clamp(fragLightDirectionAmbient.w, 0.0, 1.0);
+	float diffuseStrength = max(fragLightColorDiffuse.a, 0.0);
+	float diff = max(dot(normal, -lightDir), 0.0) * diffuseStrength;
+	vec3 ambient = ambientStrength * lightColor * terrainColor;
+	vec3 diffuse = diff * lightColor * terrainColor;
+	processFinalColor(vec4(ambient + diffuse, texColor.a));
+#endif
 }

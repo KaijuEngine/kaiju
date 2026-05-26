@@ -41,7 +41,7 @@
 				position: absolute;
 				top: var(--ed-menu-bar-height);
 				color: #AAA;
-				width: 200px;
+				width: 270px;
 				background-color: #121212;
 				border: 2px solid #AAA;
 				z-index: 90;
@@ -55,19 +55,13 @@
 	</head>
 	<body>
 		<div class="bar">
-			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" />
-			<span class="menuEntry" data-target="filePopup" onclick="clickFile">File</span>
-			<span class="menuEntry" data-target="editPopup" onclick="clickEdit">Edit</span>
-			<span class="menuEntry" data-target="createPopup" onclick="clickCreate">Create</span>
-			<span class="menuEntry" data-target="viewPopup" onclick="clickView">View</span>
-			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp">Help</span>
-			<span id="tabStage" group="tabs" class="workspaceTab edPanelBgHoverable tabSelected" onclick="clickStage">Stage</span>
-			<span id="tabContent" group="tabs" class="workspaceTab edPanelBgHoverable" onclick="clickContent">Content</span>
-			<span id="tabShading" group="tabs" class="workspaceTab edPanelBgHoverable" onclick="clickShading">Shading</span>
-			<span id="tabVfx" group="tabs" class="workspaceTab edPanelBgHoverable" onclick="clickVfx">VFX</span>
-			<span id="tabAnimation" group="tabs" class="workspaceTab edPanelBgHoverable" onclick="clickAnimation">Animation</span>
-			<span id="tabUI" group="tabs" class="workspaceTab edPanelBgHoverable" onclick="clickUI">UI</span>
-			<span id="tabSettings" group="tabs" class="workspaceTab edPanelBgHoverable" onclick="clickSettings">Settings</span>
+			<img class="logo" src="editor/textures/icons/menu_bar_logo.png" data-target="logoPopup" onclick="clickLogo" onmouseenter="hoverMenuTarget" />
+			<span class="menuEntry" data-target="filePopup" onclick="clickFile" onmouseenter="hoverMenuTarget">File</span>
+			<span class="menuEntry" data-target="editPopup" onclick="clickEdit" onmouseenter="hoverMenuTarget">Edit</span>
+			<span class="menuEntry" data-target="createPopup" onclick="clickCreate" onmouseenter="hoverMenuTarget">Create</span>
+			<span class="menuEntry" data-target="viewPopup" onclick="clickView" onmouseenter="hoverMenuTarget">View</span>
+			<span class="menuEntry" data-target="helpPopup" onclick="clickHelp" onmouseenter="hoverMenuTarget">Help</span>
+			{{range .WorkspaceTabs}}<span id="tab_{{.ID}}" data-workspace-id="{{.ID}}" group="tabs" class="workspaceTab edPanelBgHoverable{{if eq .ID $.ActiveTabID}} tabSelected{{end}}" onclick="clickWorkspace">{{.DisplayName}}</span>{{end}}
 		</div>
 		<div id="logoPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickAbout">About Kaiju Engine</div>
@@ -105,9 +99,22 @@
 			<div class="popupEntry" onclick="clickCreateEntityData">Entity Data</div>
 			<div class="popupEntry" onclick="clickCreateHtmlUi">HTML UI</div>
 			<div class="popupEntry" onclick="clickCreateCssStylesheet">Css Stylesheet</div>
+			<hr />
+			<div class="popupEntry" onclick="clickDistanceChain">Connect selected as distance chain</div>
+			<div class="popupEntry" onclick="clickRope">Connect selected as rope</div>
+			<div class="popupEntry" onclick="clickHingeChain">Connect selected as hinge chain</div>
+			<hr />
 			<div class="popupEntry" onclick="clickNewCamera">Camera</div>
 			<div class="popupEntry" onclick="clickNewEntity">Entity</div>
 			<div class="popupEntry" onclick="clickNewLight">Light</div>
+			<hr />
+			<div class="popupEntry" onclick="clickCreateSphere">Sphere</div>
+			<div class="popupEntry" onclick="clickCreateCube">Cube (texturable)</div>
+			<div class="popupEntry" onclick="clickCreateCapsule">Capsule</div>
+			<div class="popupEntry" onclick="clickCreatePlane">Plane</div>
+			<div class="popupEntry" onclick="clickCreateCylinder">Cylinder</div>
+			<div class="popupEntry" onclick="clickCreateCone">Cone</div>
+			<div class="popupEntry" onclick="clickCreateArrow">Arrow</div>
 		</div>
 		<div id="viewPopup" class="popup" onmiss="popupMiss">
 			<div class="popupEntry" onclick="clickToggleGrid">{{if .ShowGrid}}Hide Grid{{else}}Show Grid{{end}}</div>

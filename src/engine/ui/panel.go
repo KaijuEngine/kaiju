@@ -1,43 +1,14 @@
 /******************************************************************************/
 /* panel.go                                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
 
 import (
 	"log/slog"
+	"sort"
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
@@ -51,6 +22,11 @@ type BorderStyle = int32
 type ContentFit = int32
 type Overflow = int
 type panelBits uint8
+type LayoutMode = int
+type FlexDirection = int
+type FlexWrap = int
+type FlexJustify = int
+type FlexAlignContent = int
 
 const (
 	PanelScrollDirectionNone       = 0x00
@@ -90,6 +66,44 @@ const (
 )
 
 const (
+	LayoutModeFlow = LayoutMode(iota)
+	LayoutModeGrid
+	LayoutModeFlex
+)
+
+const (
+	FlexDirectionRow = FlexDirection(iota)
+	FlexDirectionRowReverse
+	FlexDirectionColumn
+	FlexDirectionColumnReverse
+)
+
+const (
+	FlexWrapNoWrap = FlexWrap(iota)
+	FlexWrapWrap
+	FlexWrapWrapReverse
+)
+
+const (
+	FlexJustifyStart = FlexJustify(iota)
+	FlexJustifyEnd
+	FlexJustifyCenter
+	FlexJustifySpaceBetween
+	FlexJustifySpaceAround
+	FlexJustifySpaceEvenly
+)
+
+const (
+	FlexAlignContentStart = FlexAlignContent(iota)
+	FlexAlignContentEnd
+	FlexAlignContentCenter
+	FlexAlignContentStretch
+	FlexAlignContentSpaceBetween
+	FlexAlignContentSpaceAround
+	FlexAlignContentSpaceEvenly
+)
+
+const (
 	panelBitsIsScrolling panelBits = 1 << iota
 	panelBitsIsDragging
 	panelBitsIsFrozen
@@ -120,9 +134,17 @@ type panelData struct {
 	gridGap                   matrix.Vec2
 	// Positive values are fixed pixel widths, negative values are fr units.
 	gridTemplateColumns []float32
+	gridAutoColumns     float32
+	gridAutoRows        float32
 	requestScrollX      requestScroll
 	requestScrollY      requestScroll
 	overflow            Overflow
+	layoutMode          LayoutMode
+	flexDirection       FlexDirection
+	flexWrap            FlexWrap
+	flexJustify         FlexJustify
+	flexAlignItems      FlexAlign
+	flexAlignContent    FlexAlignContent
 	enforcedColorStack  []matrix.Color
 	flags               panelBits
 	minSize             matrix.Vec2
@@ -179,6 +201,14 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	pd.gridColumns = 0
 	pd.gridGap = matrix.Vec2Zero()
 	pd.gridTemplateColumns = nil
+	pd.gridAutoColumns = 0
+	pd.gridAutoRows = 0
+	pd.layoutMode = LayoutModeFlow
+	pd.flexDirection = FlexDirectionRow
+	pd.flexWrap = FlexWrapNoWrap
+	pd.flexJustify = FlexJustifyStart
+	pd.flexAlignItems = FlexAlignStretch
+	pd.flexAlignContent = FlexAlignContentStretch
 	pd.enforcedColorStack = make([]matrix.Color, 0)
 	panel.postLayoutUpdate = panel.panelPostLayoutUpdate
 	panel.render = panel.panelRender
@@ -387,6 +417,14 @@ func (rb rowBuilder) Width() float32 {
 	return rb.x
 }
 
+type gridLayoutItem struct {
+	ui      *UI
+	row     int
+	col     int
+	rowSpan int
+	colSpan int
+}
+
 func (rb rowBuilder) Height() float32 {
 	return rb.height + rb.maxMarginTop + rb.maxMarginBottom
 }
@@ -436,7 +474,7 @@ func (p *Panel) updateShaderVisibility() {
 }
 
 func (p *Panel) boundsChildren(bounds *matrix.Vec2) {
-	defer tracing.NewRegion("Panel.boundsChildren").End()
+	// defer tracing.NewRegion("Panel.boundsChildren").End()
 	for _, kid := range p.entity.Children {
 		kui := FirstOnEntity(kid)
 		if kui.Layout().Positioning() == PositioningAbsolute {
@@ -488,6 +526,9 @@ func (p *Panel) panelPostLayoutUpdate() {
 	maxRowsX := matrix.Float(0)
 	if p.IsGrid() && pd.gridColumns > 0 {
 		maxSize = p.layoutGridChildren(pd, offsetStart, ps)
+		maxRowsX = maxSize.X()
+	} else if p.IsFlex() {
+		maxSize = p.layoutFlexChildren(pd, offsetStart, ps)
 		maxRowsX = maxSize.X()
 	} else {
 		rows := make([]rowBuilder, 0)
@@ -694,10 +735,10 @@ func (p *Panel) ResetScroll() {
 }
 
 func (p *Panel) ensureBGExists(tex *rendering.Texture) {
-	defer tracing.NewRegion("Panel.ensureBGExists").End()
 	pd := p.PanelData()
 	host := p.man.Value().Host
 	if !pd.drawing.IsValid() {
+		defer tracing.NewRegion("Panel.ensureBGExists").End()
 		if tex == nil {
 			tex, _ = host.TextureCache().Texture(
 				assets.TextureSquare, rendering.TextureFilterLinear)
@@ -720,6 +761,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 			Mesh:       rendering.NewMeshQuad(host.MeshCache()),
 			ShaderData: p.shaderData,
 			Transform:  &p.entity.Transform,
+			Layer:      rendering.RenderLayerUI,
 			ViewCuller: &host.Cameras.UI,
 		}
 		host.Drawings.AddDrawing(pd.drawing)
@@ -834,7 +876,44 @@ func (p *Panel) SetScrollDirection(direction PanelScrollDirection) {
 	}
 }
 
-func (p *Panel) IsGrid() bool { return p.GridColumns() > 0 }
+func (p *Panel) SetFlowLayout() {
+	pd := p.PanelData()
+	if pd.layoutMode == LayoutModeFlow {
+		return
+	}
+	pd.layoutMode = LayoutModeFlow
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) ClearLayoutStyles() {
+	pd := p.PanelData()
+	pd.layoutMode = LayoutModeFlow
+	pd.gridColumns = 0
+	pd.gridGap = matrix.Vec2Zero()
+	pd.gridTemplateColumns = nil
+	pd.gridAutoColumns = 0
+	pd.gridAutoRows = 0
+	pd.flexDirection = FlexDirectionRow
+	pd.flexWrap = FlexWrapNoWrap
+	pd.flexJustify = FlexJustifyStart
+	pd.flexAlignItems = FlexAlignStretch
+	pd.flexAlignContent = FlexAlignContentStretch
+	pd.minSize = matrix.NewVec2(-1, -1)
+	pd.maxSize = matrix.NewVec2(-1, -1)
+	pd.aspectRatio = 0
+	pd.usesBorderBox = false
+	pd.fitContent = ContentFitBoth
+	// TODO:  This is commented out for now to fix a click-glitch bug
+	// in the editor content browser.
+	// p.layout.ClearStyles()
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) IsGrid() bool {
+	return p.PanelData().layoutMode == LayoutModeGrid && p.GridColumns() > 0
+}
+
+func (p *Panel) IsFlex() bool { return p.PanelData().layoutMode == LayoutModeFlex }
 
 func (p *Panel) GridColumns() int { return p.PanelData().gridColumns }
 
@@ -881,9 +960,10 @@ func (p *Panel) SetGrid(columns int) {
 	if columns <= 0 {
 		columns = 3 // default for display: grid or auto
 	}
-	if p.IsGrid() && pd.gridColumns == columns {
+	if pd.layoutMode == LayoutModeGrid && pd.gridColumns == columns {
 		return
 	}
+	pd.layoutMode = LayoutModeGrid
 	pd.gridColumns = columns
 	if len(pd.gridTemplateColumns) != columns {
 		pd.gridTemplateColumns = nil
@@ -904,10 +984,35 @@ func (p *Panel) SetGridTemplateColumns(columns []float32) {
 		return
 	}
 	pd.gridTemplateColumns = append(pd.gridTemplateColumns[:0], columns...)
+	pd.layoutMode = LayoutModeGrid
 	pd.gridColumns = len(columns)
 	if pd.gridGap.X() == 0 && pd.gridGap.Y() == 0 {
 		pd.gridGap = matrix.NewVec2(8, 8)
 	}
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetGridAutoColumns(width float32) {
+	if width < 0 {
+		width = 0
+	}
+	pd := p.PanelData()
+	if matrix.Approx(pd.gridAutoColumns, width) {
+		return
+	}
+	pd.gridAutoColumns = width
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetGridAutoRows(height float32) {
+	if height < 0 {
+		height = 0
+	}
+	pd := p.PanelData()
+	if matrix.Approx(pd.gridAutoRows, height) {
+		return
+	}
+	pd.gridAutoRows = height
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
@@ -921,26 +1026,497 @@ func (p *Panel) SetGridGap(x, y float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
+func (p *Panel) SetFlex() {
+	pd := p.PanelData()
+	if pd.layoutMode == LayoutModeFlex {
+		return
+	}
+	pd.layoutMode = LayoutModeFlex
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexDirection(direction FlexDirection) {
+	pd := p.PanelData()
+	if pd.flexDirection == direction {
+		return
+	}
+	pd.flexDirection = direction
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexWrap(wrap FlexWrap) {
+	pd := p.PanelData()
+	if pd.flexWrap == wrap {
+		return
+	}
+	pd.flexWrap = wrap
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexJustify(justify FlexJustify) {
+	pd := p.PanelData()
+	if pd.flexJustify == justify {
+		return
+	}
+	pd.flexJustify = justify
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexAlignItems(align FlexAlign) {
+	if align == FlexAlignAuto {
+		align = FlexAlignStretch
+	}
+	pd := p.PanelData()
+	if pd.flexAlignItems == align {
+		return
+	}
+	pd.flexAlignItems = align
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+func (p *Panel) SetFlexAlignContent(align FlexAlignContent) {
+	pd := p.PanelData()
+	if pd.flexAlignContent == align {
+		return
+	}
+	pd.flexAlignContent = align
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
+type flexLayoutItem struct {
+	ui        *UI
+	order     int
+	baseMain  float32
+	finalMain float32
+	cross     float32
+	margin    matrix.Vec4
+}
+
+type flexLayoutLine struct {
+	items []*flexLayoutItem
+	main  float32
+	cross float32
+}
+
+func flexItemSize(kui *UI) matrix.Vec2 {
+	if kui.elmType == ElementTypeLabel {
+		size := kui.ToLabel().Measure()
+		size[matrix.Vx] += 0.1
+		return size
+	}
+	return kui.Layout().PixelSize()
+}
+
+func flexMainSize(size matrix.Vec2, row bool) float32 {
+	if row {
+		return size.X()
+	}
+	return size.Y()
+}
+
+func flexCrossSize(size matrix.Vec2, row bool) float32 {
+	if row {
+		return size.Y()
+	}
+	return size.X()
+}
+
+func flexMainMargin(margin matrix.Vec4, row bool) float32 {
+	if row {
+		return margin.Horizontal()
+	}
+	return margin.Vertical()
+}
+
+func flexCrossMargin(margin matrix.Vec4, row bool) float32 {
+	if row {
+		return margin.Vertical()
+	}
+	return margin.Horizontal()
+}
+
+func flexSetMainSize(kui *UI, row bool, size float32) {
+	if size < 1 {
+		size = 1
+	}
+	if row {
+		kui.Layout().ScaleWidth(size)
+	} else {
+		kui.Layout().ScaleHeight(size)
+	}
+}
+
+func flexSetCrossSize(kui *UI, row bool, size float32) {
+	if size < 1 {
+		size = 1
+	}
+	if row {
+		kui.Layout().ScaleHeight(size)
+	} else {
+		kui.Layout().ScaleWidth(size)
+	}
+}
+
+func clampFlexItemSize(kui *UI, row bool, size float32) float32 {
+	if kui.IsType(ElementTypeLabel) {
+		return size
+	}
+	p := kui.ToPanel()
+	pd := p.PanelData()
+	if row {
+		if pd.HasMinWidth() && size < pd.minSize.X() {
+			size = pd.minSize.X()
+		}
+		if pd.HasMaxWidth() && size > pd.maxSize.X() {
+			size = pd.maxSize.X()
+		}
+	} else {
+		if pd.HasMinHeight() && size < pd.minSize.Y() {
+			size = pd.minSize.Y()
+		}
+		if pd.HasMaxHeight() && size > pd.maxSize.Y() {
+			size = pd.maxSize.Y()
+		}
+	}
+	return size
+}
+
+func (p *Panel) collectFlexItems(pd *panelData, row bool, containerMain float32) []*flexLayoutItem {
+	items := make([]*flexLayoutItem, 0, len(p.entity.Children))
+	for _, kid := range p.entity.Children {
+		if !kid.IsActive() || kid.IsDestroyed() {
+			continue
+		}
+		kui := FirstOnEntity(kid)
+		if kui == nil {
+			slog.Error("No UI component on entity")
+			continue
+		}
+		kLayout := kui.Layout()
+		switch kLayout.Positioning() {
+		case PositioningAbsolute, PositioningFixed, PositioningSticky:
+			continue
+		}
+		size := flexItemSize(kui)
+		baseMain := flexMainSize(size, row)
+		if !kLayout.FlexBasisAuto() {
+			baseMain = kLayout.FlexBasis()
+			if kLayout.FlexBasisPercent() {
+				baseMain *= containerMain
+			}
+		}
+		baseMain = clampFlexItemSize(kui, row, baseMain)
+		items = append(items, &flexLayoutItem{
+			ui:        kui,
+			order:     kLayout.FlexOrder(),
+			baseMain:  baseMain,
+			finalMain: baseMain,
+			cross:     flexCrossSize(size, row),
+			margin:    kLayout.Margin(),
+		})
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].order < items[j].order
+	})
+	if pd.flexDirection == FlexDirectionRowReverse || pd.flexDirection == FlexDirectionColumnReverse {
+		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+			items[i], items[j] = items[j], items[i]
+		}
+	}
+	return items
+}
+
+func appendFlexLine(lines *[]flexLayoutLine, line flexLayoutLine) {
+	if len(line.items) > 0 {
+		*lines = append(*lines, line)
+	}
+}
+
+func buildFlexLines(items []*flexLayoutItem, row, wrap bool, containerMain, gapMain float32) []flexLayoutLine {
+	lines := make([]flexLayoutLine, 0, 1)
+	line := flexLayoutLine{}
+	for i := range items {
+		item := items[i]
+		outerMain := item.baseMain + flexMainMargin(item.margin, row)
+		if !wrap {
+			outerMain = item.baseMain
+		}
+		if len(line.items) > 0 {
+			outerMain += gapMain
+		}
+		if wrap && len(line.items) > 0 && line.main+outerMain > containerMain {
+			appendFlexLine(&lines, line)
+			line = flexLayoutLine{}
+			outerMain = item.baseMain + flexMainMargin(item.margin, row)
+		}
+		line.items = append(line.items, item)
+		line.main += outerMain
+		line.cross = matrix.Max(line.cross, item.cross)
+	}
+	appendFlexLine(&lines, line)
+	return lines
+}
+
+func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain float32) {
+	totalOuter := float32(0)
+	totalGrow := float32(0)
+	totalShrink := float32(0)
+	for i := range line.items {
+		item := line.items[i]
+		totalOuter += item.baseMain + flexMainMargin(item.margin, row)
+		totalGrow += item.ui.Layout().FlexGrow()
+		totalShrink += item.ui.Layout().FlexShrink() * item.baseMain
+	}
+	if len(line.items) > 1 {
+		totalOuter += float32(len(line.items)-1) * gapMain
+	}
+	free := containerMain - totalOuter
+	for i := range line.items {
+		item := line.items[i]
+		item.finalMain = item.baseMain
+		if free > 0 && totalGrow > 0 {
+			item.finalMain += free * (item.ui.Layout().FlexGrow() / totalGrow)
+		} else if free < 0 && totalShrink > 0 {
+			item.finalMain += free * ((item.ui.Layout().FlexShrink() * item.baseMain) / totalShrink)
+		}
+		item.finalMain = clampFlexItemSize(item.ui, row, item.finalMain)
+		flexSetMainSize(item.ui, row, item.finalMain)
+	}
+	line.main = 0
+	line.cross = 0
+	for i := range line.items {
+		item := line.items[i]
+		size := flexItemSize(item.ui)
+		item.finalMain = flexMainSize(size, row)
+		item.cross = flexCrossSize(size, row)
+		line.main += item.finalMain + flexMainMargin(item.margin, row)
+		line.cross = matrix.Max(line.cross, item.cross+flexCrossMargin(item.margin, row))
+	}
+	if len(line.items) > 1 {
+		line.main += float32(len(line.items)-1) * gapMain
+	}
+}
+
+func flexDistributedStart(free float32, count int, justify FlexJustify) (float32, float32) {
+	if free < 0 {
+		free = 0
+	}
+	switch justify {
+	case FlexJustifyEnd:
+		return free, 0
+	case FlexJustifyCenter:
+		return free * 0.5, 0
+	case FlexJustifySpaceBetween:
+		if count > 1 {
+			return 0, free / float32(count-1)
+		}
+	case FlexJustifySpaceAround:
+		if count > 0 {
+			gap := free / float32(count)
+			return gap * 0.5, gap
+		}
+	case FlexJustifySpaceEvenly:
+		if count > 0 {
+			gap := free / float32(count+1)
+			return gap, gap
+		}
+	}
+	return 0, 0
+}
+
+func flexAlignContentStart(free float32, count int, align FlexAlignContent) (float32, float32) {
+	if free < 0 {
+		free = 0
+	}
+	switch align {
+	case FlexAlignContentEnd:
+		return free, 0
+	case FlexAlignContentCenter:
+		return free * 0.5, 0
+	case FlexAlignContentSpaceBetween:
+		if count > 1 {
+			return 0, free / float32(count-1)
+		}
+	case FlexAlignContentSpaceAround:
+		if count > 0 {
+			gap := free / float32(count)
+			return gap * 0.5, gap
+		}
+	case FlexAlignContentSpaceEvenly:
+		if count > 0 {
+			gap := free / float32(count+1)
+			return gap, gap
+		}
+	}
+	return 0, 0
+}
+
+func flexItemCrossOffset(lineCross, itemCross float32, margin matrix.Vec4, row bool, align FlexAlign) float32 {
+	outerCross := itemCross + flexCrossMargin(margin, row)
+	switch align {
+	case FlexAlignEnd:
+		if row {
+			return lineCross - outerCross + margin.Top()
+		}
+		return lineCross - outerCross + margin.Left()
+	case FlexAlignCenter:
+		if row {
+			return (lineCross-outerCross)*0.5 + margin.Top()
+		}
+		return (lineCross-outerCross)*0.5 + margin.Left()
+	default:
+		if row {
+			return margin.Top()
+		}
+		return margin.Left()
+	}
+}
+
+func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps matrix.Vec2) matrix.Vec2 {
+	defer tracing.NewRegion("Panel.layoutFlexChildren").End()
+	row := pd.flexDirection == FlexDirectionRow || pd.flexDirection == FlexDirectionRowReverse
+	innerLeft := p.layout.padding.Left() + p.layout.border.Left()
+	innerTop := p.layout.padding.Top() + p.layout.border.Top()
+	startX := offsetStart.X() + innerLeft
+	startY := offsetStart.Y() + innerTop
+	innerWidth := ps.X() - p.layout.padding.Horizontal() - p.layout.border.Horizontal()
+	innerHeight := ps.Y() - p.layout.padding.Vertical() - p.layout.border.Vertical()
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+	if innerHeight < 1 {
+		innerHeight = 1
+	}
+	containerMain := innerWidth
+	containerCross := innerHeight
+	gapMain := pd.gridGap.X()
+	gapCross := pd.gridGap.Y()
+	if !row {
+		containerMain = innerHeight
+		containerCross = innerWidth
+		gapMain = pd.gridGap.Y()
+		gapCross = pd.gridGap.X()
+	}
+	if gapMain < 0 {
+		gapMain = 0
+	}
+	if gapCross < 0 {
+		gapCross = 0
+	}
+	items := p.collectFlexItems(pd, row, containerMain)
+	if len(items) == 0 {
+		return matrix.NewVec2(innerLeft+p.layout.padding.Right()+p.layout.border.Right(),
+			innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
+	}
+	wrap := pd.flexWrap != FlexWrapNoWrap
+	lines := buildFlexLines(items, row, wrap, containerMain, gapMain)
+	for i := range lines {
+		distributeFlexLine(&lines[i], row, containerMain, gapMain)
+	}
+	if pd.flexWrap == FlexWrapWrapReverse {
+		for i, j := 0, len(lines)-1; i < j; i, j = i+1, j-1 {
+			lines[i], lines[j] = lines[j], lines[i]
+		}
+	}
+	totalCross := float32(0)
+	for i := range lines {
+		totalCross += lines[i].cross
+	}
+	if len(lines) > 1 {
+		totalCross += float32(len(lines)-1) * gapCross
+	}
+	fittingCrossContent := (row && p.FittingContentHeight()) || (!row && p.FittingContentWidth())
+	if fittingCrossContent {
+		containerCross = totalCross
+	}
+	extraCross := containerCross - totalCross
+	if extraCross < 0 {
+		extraCross = 0
+	}
+	if pd.flexAlignContent == FlexAlignContentStretch && len(lines) > 0 {
+		add := extraCross / float32(len(lines))
+		for i := range lines {
+			lines[i].cross += add
+		}
+		extraCross = 0
+	}
+	lineStart, lineExtraGap := flexAlignContentStart(extraCross, len(lines), pd.flexAlignContent)
+	maxMainUsed := float32(0)
+	maxCrossUsed := float32(0)
+	crossPos := lineStart
+	for lineIdx := range lines {
+		line := &lines[lineIdx]
+		mainFree := containerMain - line.main
+		mainStart, extraMainGap := flexDistributedStart(mainFree, len(line.items), pd.flexJustify)
+		mainPos := mainStart
+		for itemIdx := range line.items {
+			item := line.items[itemIdx]
+			align := item.ui.Layout().AlignSelf()
+			if align == FlexAlignAuto {
+				align = pd.flexAlignItems
+			}
+			itemCross := item.cross
+			if align == FlexAlignStretch {
+				itemCross = line.cross - flexCrossMargin(item.margin, row)
+				flexSetCrossSize(item.ui, row, itemCross)
+				item.cross = flexCrossSize(flexItemSize(item.ui), row)
+			}
+			crossOffset := flexItemCrossOffset(line.cross, item.cross, item.margin, row, align)
+			if row {
+				x := startX + mainPos + item.margin.Left()
+				y := startY + crossPos + crossOffset
+				item.ui.Layout().SetRowLayoutOffset(matrix.NewVec2(x, y))
+				mainPos += item.finalMain + item.margin.Horizontal() + gapMain + extraMainGap
+			} else {
+				x := startX + crossPos + crossOffset
+				y := startY + mainPos + item.margin.Top()
+				item.ui.Layout().SetRowLayoutOffset(matrix.NewVec2(x, y))
+				mainPos += item.finalMain + item.margin.Vertical() + gapMain + extraMainGap
+			}
+		}
+		maxMainUsed = matrix.Max(maxMainUsed, line.main)
+		maxCrossUsed = matrix.Max(maxCrossUsed, crossPos+line.cross)
+		crossPos += line.cross + gapCross + lineExtraGap
+	}
+	if row {
+		return matrix.NewVec2(maxMainUsed+innerLeft+p.layout.padding.Right()+p.layout.border.Right(),
+			maxCrossUsed+innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
+	}
+	return matrix.NewVec2(maxCrossUsed+innerLeft+p.layout.padding.Right()+p.layout.border.Right(),
+		maxMainUsed+innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
+}
+
+func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int) []float32 {
 	pd := p.PanelData()
 	cols := pd.gridColumns
+	if len(columns) > 0 && columns[0] > cols {
+		cols = columns[0]
+	}
 	if cols <= 0 {
 		return []float32{}
 	}
 	out := make([]float32, cols)
-	if len(pd.gridTemplateColumns) != cols {
-		colW := (innerWidth - float32(cols-1)*gapX) / float32(cols)
+	explicitCols := pd.gridColumns
+	if explicitCols <= 0 {
+		explicitCols = cols
+	}
+	if len(pd.gridTemplateColumns) != explicitCols {
+		colW := (innerWidth - float32(explicitCols-1)*gapX) / float32(explicitCols)
 		if colW < 1 {
 			colW = 1
 		}
 		for i := 0; i < cols; i++ {
-			out[i] = colW
+			if i < explicitCols || pd.gridAutoColumns <= 0 {
+				out[i] = colW
+			} else {
+				out[i] = pd.gridAutoColumns
+			}
 		}
 		return out
 	}
 	totalFixed := float32(0)
 	totalFr := float32(0)
-	for i := 0; i < cols; i++ {
+	for i := 0; i < explicitCols; i++ {
 		v := pd.gridTemplateColumns[i]
 		if v >= 0 {
 			totalFixed += v
@@ -953,6 +1529,17 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
 		remaining = 0
 	}
 	for i := 0; i < cols; i++ {
+		if i >= explicitCols {
+			if pd.gridAutoColumns > 0 {
+				out[i] = pd.gridAutoColumns
+			} else {
+				out[i] = innerWidth / float32(explicitCols)
+			}
+			if out[i] < 1 {
+				out[i] = 1
+			}
+			continue
+		}
 		v := pd.gridTemplateColumns[i]
 		if v >= 0 {
 			out[i] = v
@@ -964,6 +1551,92 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32) []float32 {
 		}
 	}
 	return out
+}
+
+func gridTrackSpan(start, end int) int {
+	if start > 0 && end > start {
+		return end - start
+	}
+	return 1
+}
+
+func isGridAreaFree(occupied map[int]map[int]bool, columns, row, col, rowSpan, colSpan int) bool {
+	if col < 0 || col+colSpan > columns {
+		return false
+	}
+	for y := 0; y < rowSpan; y++ {
+		for x := 0; x < colSpan; x++ {
+			if occupied[row+y][col+x] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func occupyGridArea(occupied map[int]map[int]bool, row, col, rowSpan, colSpan int) {
+	for y := 0; y < rowSpan; y++ {
+		r := row + y
+		if _, ok := occupied[r]; !ok {
+			occupied[r] = map[int]bool{}
+		}
+		for x := 0; x < colSpan; x++ {
+			occupied[r][col+x] = true
+		}
+	}
+}
+
+func nextGridCell(occupied map[int]map[int]bool, columns, row, col, rowSpan, colSpan int) (int, int) {
+	for {
+		if col >= columns || col+colSpan > columns {
+			row++
+			col = 0
+		}
+		if _, ok := occupied[row]; !ok {
+			occupied[row] = map[int]bool{}
+		}
+		if isGridAreaFree(occupied, columns, row, col, rowSpan, colSpan) {
+			return row, col
+		}
+		col++
+	}
+}
+
+func nextGridCellInColumn(occupied map[int]map[int]bool, columns, row, col, rowSpan, colSpan int) (int, int) {
+	if col+colSpan > columns {
+		return nextGridCell(occupied, columns, row, 0, rowSpan, colSpan)
+	}
+	for {
+		if _, ok := occupied[row]; !ok {
+			occupied[row] = map[int]bool{}
+		}
+		if isGridAreaFree(occupied, columns, row, col, rowSpan, colSpan) {
+			return row, col
+		}
+		row++
+	}
+}
+
+func firstGridCellInRow(occupied map[int]map[int]bool, columns, row, rowSpan, colSpan int) (int, int) {
+	for col := 0; col < columns; col++ {
+		if isGridAreaFree(occupied, columns, row, col, rowSpan, colSpan) {
+			return row, col
+		}
+	}
+	return nextGridCell(occupied, columns, row+1, 0, rowSpan, colSpan)
+}
+
+func requestedGridCell(occupied map[int]map[int]bool, columns, cursorRow, cursorCol, rowStart, colStart, rowSpan, colSpan int) (int, int) {
+	if rowStart > 0 && colStart > 0 {
+		return nextGridCellInColumn(occupied, columns, rowStart-1, colStart-1, rowSpan, colSpan)
+	}
+	if rowStart > 0 {
+		return firstGridCellInRow(occupied, columns, rowStart-1, rowSpan, colSpan)
+	}
+	if colStart > 0 {
+		return nextGridCellInColumn(occupied, columns, cursorRow, colStart-1, rowSpan, colSpan)
+	}
+	return nextGridCell(occupied, columns, cursorRow, cursorCol, rowSpan, colSpan)
 }
 
 func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps matrix.Vec2) matrix.Vec2 {
@@ -984,11 +1657,31 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 	if gapY < 0 {
 		gapY = 0
 	}
-	colWidths := p.computeGridColumnWidths(innerWidth, gapX)
-	col := 0
-	y := startY
-	rowMaxHeight := float32(0)
-	contentSize := matrix.Vec2{innerWidth, innerTop}
+	effectiveColumns := pd.gridColumns
+	for _, kid := range p.entity.Children {
+		if !kid.IsActive() || kid.IsDestroyed() {
+			continue
+		}
+		kui := FirstOnEntity(kid)
+		if kui == nil {
+			continue
+		}
+		kLayout := kui.Layout()
+		switch kLayout.Positioning() {
+		case PositioningAbsolute, PositioningFixed, PositioningSticky:
+			continue
+		}
+		if start := kLayout.GridColumnStart(); start > 0 {
+			span := gridTrackSpan(start, kLayout.GridColumnEnd())
+			effectiveColumns = max(effectiveColumns, start+span-1)
+		}
+	}
+	colWidths := p.computeGridColumnWidths(innerWidth, gapX, effectiveColumns)
+	items := make([]gridLayoutItem, 0, len(p.entity.Children))
+	occupied := map[int]map[int]bool{}
+	cursorRow := 0
+	cursorCol := 0
+	rowCount := 0
 	for _, kid := range p.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
 			continue
@@ -1003,30 +1696,64 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		case PositioningAbsolute, PositioningFixed, PositioningSticky:
 			continue
 		}
+		rowSpan := gridTrackSpan(kLayout.GridRowStart(), kLayout.GridRowEnd())
+		colSpan := gridTrackSpan(kLayout.GridColumnStart(), kLayout.GridColumnEnd())
+		if colSpan > effectiveColumns {
+			colSpan = effectiveColumns
+		}
+		row, col := requestedGridCell(occupied, effectiveColumns, cursorRow, cursorCol,
+			kLayout.GridRowStart(), kLayout.GridColumnStart(), rowSpan, colSpan)
+		if kLayout.GridRowStart() == 0 && kLayout.GridColumnStart() == 0 {
+			cursorRow, cursorCol = row, col+colSpan
+		}
+		occupyGridArea(occupied, row, col, rowSpan, colSpan)
+		rowCount = max(rowCount, row+rowSpan)
+		items = append(items, gridLayoutItem{
+			ui:      kui,
+			row:     row,
+			col:     col,
+			rowSpan: rowSpan,
+			colSpan: colSpan,
+		})
+	}
+	if rowCount == 0 {
+		return matrix.Vec2{innerWidth, innerTop + p.layout.padding.Bottom() + p.layout.border.Bottom()}
+	}
+	rowHeights := make([]float32, rowCount)
+	if pd.gridAutoRows > 0 {
+		for i := range rowHeights {
+			rowHeights[i] = pd.gridAutoRows
+		}
+	}
+	for i := range items {
+		kLayout := items[i].ui.Layout()
+		kSize := kLayout.PixelSize()
+		margin := kLayout.Margin()
+		rowHeights[items[i].row] = matrix.Max(rowHeights[items[i].row], kSize.Y()+margin.Vertical())
+	}
+	rowOffsets := make([]float32, rowCount)
+	y := startY
+	for i := 0; i < rowCount; i++ {
+		rowOffsets[i] = y
+		y += rowHeights[i] + gapY
+	}
+	contentSize := matrix.Vec2{innerWidth, innerTop}
+	for i := range items {
+		kui := items[i].ui
+		kLayout := kui.Layout()
 		kSize := kLayout.PixelSize()
 		margin := kLayout.Margin()
 		cellX := startX
-		for i := 0; i < col && i < len(colWidths); i++ {
-			cellX += colWidths[i] + gapX
+		for col := 0; col < items[i].col && col < len(colWidths); col++ {
+			cellX += colWidths[col] + gapX
 		}
 		x := cellX + margin.X() // left aligned like CSS start
-		itemY := y + margin.Y()
+		itemY := rowOffsets[items[i].row] + margin.Y()
 		kLayout.SetRowLayoutOffset(matrix.NewVec2(x, itemY))
 		right := (x - startX) + kSize.X() + margin.Z()
 		contentSize.SetX(matrix.Max(contentSize.X(), right))
-		itemHeight := kSize.Y() + margin.Vertical()
-		rowMaxHeight = matrix.Max(rowMaxHeight, itemHeight)
-		col++
-		if col >= pd.gridColumns {
-			y += rowMaxHeight + gapY
-			contentSize.SetY(y - offsetStart.Y())
-			rowMaxHeight = 0
-			col = 0
-		}
-	}
-	if rowMaxHeight > 0 {
-		y += rowMaxHeight + gapY
-		contentSize.SetY(y - offsetStart.Y())
+		bottom := itemY - offsetStart.Y() + kSize.Y() + margin.W()
+		contentSize.SetY(matrix.Max(contentSize.Y(), bottom))
 	}
 	contentSize.SetY(contentSize.Y() + p.layout.padding.Bottom() + p.layout.border.Bottom())
 	return contentSize
@@ -1155,6 +1882,10 @@ func (p *Panel) BorderColor() [4]matrix.Color {
 	return p.shaderData.BorderColor
 }
 
+func (p *Panel) OutlineOutset() float32 {
+	return p.shaderData.OutlineSize.X() + p.shaderData.OutlineSize.Y()
+}
+
 func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
 	p.shaderData.BorderRadius = matrix.Vec4{
 		bottomLeft, bottomRight, topRight, topLeft}
@@ -1180,8 +1911,28 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 	p.shaderData.BorderColor = [4]matrix.Color{left, top, right, bottom}
 }
 
+func (p *Panel) OutlineColor() matrix.Color { return p.shaderData.OutlineColor }
+
+func (p *Panel) OutlineWidth() float32 { return p.shaderData.OutlineSize.X() }
+
+func (p *Panel) OutlineOffset() float32 { return p.shaderData.OutlineSize.Y() }
+
+func (p *Panel) SetOutline(width, offset float32, color matrix.Color) {
+	if width < 0 {
+		width = 0
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if width > 0 && color.A() > 0 {
+		p.ensureBGExists(nil)
+	}
+	p.shaderData.OutlineSize = matrix.NewVec2(width, offset)
+	p.shaderData.OutlineColor = color
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+
 func (p *Panel) SetUseBlending(useBlending bool) {
-	defer tracing.NewRegion("Panel.SetUseBlending").End()
 	p.recreateDrawing()
 	pd := p.PanelData()
 	host := p.man.Value().Host
@@ -1214,7 +1965,6 @@ func (p *Panel) HasEnforcedColor() bool {
 }
 
 func (p *Panel) setColorInternal(bgColor matrix.Color) {
-	defer tracing.NewRegion("Panel.setColorInternal").End()
 	p.ensureBGExists(nil)
 	if p.shaderData.FgColor.Equals(bgColor) {
 		return

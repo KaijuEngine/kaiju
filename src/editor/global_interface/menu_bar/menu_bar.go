@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* menu_bar.go                                                                */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package menu_bar
@@ -57,28 +27,82 @@ import (
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 type MenuBar struct {
+	host          *engine.Host
 	doc           *document.Document
 	uiMan         ui.Manager
 	selectedPopup *document.Element
 	handler       MenuBarHandler
+	tabs          []WorkspaceTab
+	activeTabID   string
+	menuOpen      bool
 }
 
 type menuBarTemplateData struct {
-	ShowGrid bool
+	ShowGrid      bool
+	WorkspaceTabs []WorkspaceTab
+	ActiveTabID   string
 }
 
 func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 	defer tracing.NewRegion("MenuBar.Initialize").End()
+	b.host = host
 	b.handler = handler
 	b.uiMan.Init(host)
-	var err error
-	tplData := menuBarTemplateData{ShowGrid: handler.Settings().ShowGrid}
-	b.doc, err = markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
+	return b.renderDocument()
+}
+
+// RebuildWorkspaceTabs replaces the menu bar's workspace tab strip with the
+// given ordered list and marks activeID as selected. Called by the editor
+// after workspace registration / settings changes. Re-renders the document
+// (popup state is rebuilt; this is rare enough that the cost is acceptable).
+func (b *MenuBar) RebuildWorkspaceTabs(tabs []WorkspaceTab, activeID string) {
+	defer tracing.NewRegion("MenuBar.RebuildWorkspaceTabs").End()
+	b.tabs = make([]WorkspaceTab, len(tabs))
+	copy(b.tabs, tabs)
+	b.activeTabID = activeID
+	if err := b.renderDocument(); err != nil {
+		slog.Error("failed to rebuild menu bar tabs", "error", err)
+	}
+}
+
+// SetActiveTab updates the selected tab styling without rebuilding the
+// document. Used on every workspace switch.
+func (b *MenuBar) SetActiveTab(id string) {
+	defer tracing.NewRegion("MenuBar.SetActiveTab").End()
+	b.activeTabID = id
+	if b.doc == nil {
+		return
+	}
+	tabs := b.doc.GetElementsByGroup("tabs")
+	for i := range tabs {
+		if tabs[i].Attribute("data-workspace-id") == id {
+			b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab", "edPanelBgHoverable", "tabSelected")
+		} else {
+			b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab", "edPanelBgHoverable")
+		}
+	}
+	b.doc.ApplyStyles()
+}
+
+func (b *MenuBar) renderDocument() error {
+	defer tracing.NewRegion("MenuBar.renderDocument").End()
+	if b.doc != nil {
+		b.doc.Destroy()
+		b.doc = nil
+	}
+	tplData := menuBarTemplateData{
+		ShowGrid:      b.handler.Settings().ShowGrid,
+		WorkspaceTabs: b.tabs,
+		ActiveTabID:   b.activeTabID,
+	}
+	doc, err := markup.DocumentFromHTMLAsset(&b.uiMan, "editor/ui/global/menu_bar.go.html",
 		tplData, map[string]func(*document.Element){
 			"clickLogo":                b.openMenuTarget,
 			"clickFile":                b.openMenuTarget,
@@ -86,15 +110,10 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickCreate":              b.openMenuTarget,
 			"clickView":                b.openMenuTarget,
 			"clickHelp":                b.openMenuTarget,
+			"hoverMenuTarget":          b.hoverMenuTarget,
 			"clickToggleGrid":          b.clickToggleGrid,
 			"clickScreenshot":          b.clickScreenshot,
-			"clickStage":               b.clickStage,
-			"clickContent":             b.clickContent,
-			"clickShading":             b.clickShading,
-			"clickVfx":                 b.clickVfx,
-			"clickAnimation":           b.clickAnimation,
-			"clickUI":                  b.clickUI,
-			"clickSettings":            b.clickSettings,
+			"clickWorkspace":           b.clickWorkspace,
 			"clickNewStage":            b.clickNewStage,
 			"clickOpenStage":           b.clickOpenStage,
 			"clickSaveStage":           b.clickSaveStage,
@@ -114,9 +133,19 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickCreateEntityData":    b.clickCreateEntityData,
 			"clickCreateHtmlUi":        b.clickCreateHtmlUi,
 			"clickCreateCssStylesheet": b.clickCreateCssStylesheet,
+			"clickDistanceChain":       b.clickDistanceChain,
+			"clickRope":                b.clickRope,
+			"clickHingeChain":          b.clickHingeChain,
 			"clickNewCamera":           b.clickNewCamera,
 			"clickNewEntity":           b.clickNewEntity,
 			"clickNewLight":            b.clickNewLight,
+			"clickCreateSphere":        b.clickCreateSphere,
+			"clickCreateCube":          b.clickCreateCube,
+			"clickCreateCapsule":       b.clickCreateCapsule,
+			"clickCreatePlane":         b.clickCreatePlane,
+			"clickCreateCylinder":      b.clickCreateCylinder,
+			"clickCreateCone":          b.clickCreateCone,
+			"clickCreateArrow":         b.clickCreateArrow,
 			"clickAbout":               b.clickAbout,
 			"clickLogs":                b.clickLogs,
 			"clickIssues":              b.clickIssues,
@@ -128,15 +157,20 @@ func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error {
 			"clickSponsors":            b.clickSponsors,
 			"popupMiss":                b.popupMiss,
 		})
+	if err != nil {
+		return err
+	}
+	b.doc = doc
+	b.menuOpen = false
+	b.selectedPopup = nil
 	b.doc.Clean()
 	for _, m := range b.doc.GetElementsByClass("menuEntry") {
 		target := m.Attribute("data-target")
 		pop, _ := b.doc.GetElementById(target)
 		b.setPopupUiPos(m, pop)
 	}
-	b.doc.Clean()
 	b.hidePopups()
-	return err
+	return nil
 }
 
 func (b *MenuBar) Focus() { b.uiMan.EnableUpdate() }
@@ -146,109 +180,72 @@ func (b *MenuBar) IsFocusedOnInput() bool {
 	return b.uiMan.Group.IsFocusedOnInput()
 }
 
-func (b *MenuBar) SetWorkspaceStage() {
-	t, _ := b.doc.GetElementById("tabStage")
-	b.selectTab(t)
-}
-
-func (b *MenuBar) SetWorkspaceContent() {
-	t, _ := b.doc.GetElementById("tabContent")
-	b.selectTab(t)
-}
-
-func (b *MenuBar) SetWorkspaceShading() {
-	t, _ := b.doc.GetElementById("tabShading")
-	b.selectTab(t)
-}
-
-func (b *MenuBar) SetWorkspaceVfx() {
-	t, _ := b.doc.GetElementById("tabVfx")
-	b.selectTab(t)
-}
-
-func (b *MenuBar) SetWorkspaceAnimation() {
-	t, _ := b.doc.GetElementById("tabAnimation")
-	b.selectTab(t)
-}
-
-func (b *MenuBar) SetWorkspaceUI() {
-	t, _ := b.doc.GetElementById("tabUI")
-	b.selectTab(t)
-}
-
-func (b *MenuBar) SetWorkspaceSettings() {
-	t, _ := b.doc.GetElementById("tabSettings")
-	b.selectTab(t)
-}
-
 func (b *MenuBar) setPopupUiPos(e *document.Element, pop *document.Element) {
 	defer tracing.NewRegion("MenuBar.setPopupUiPos").End()
 	t := &e.UI.Entity().Transform
 	x := t.WorldPosition().X() + float32(b.uiMan.Host.Window.Width())*0.5 -
 		e.UI.Layout().PixelSize().X()*0.5
-	pop.UI.Layout().SetInnerOffsetLeft(x)
+	b.doc.SetElementStylePropertyWithoutApply(pop, "left", fmt.Sprintf("%dpx", int(matrix.Round(x))))
 }
 
 func (b *MenuBar) openMenuTarget(e *document.Element) {
 	defer tracing.NewRegion("MenuBar.openMenuTarget").End()
-	target := e.Attribute("data-target")
-	pop, _ := b.doc.GetElementById(target)
-	b.selectedPopup = pop
+	pop := b.popupForMenuTarget(e)
+	if pop == nil {
+		return
+	}
 	if pop.UI.Entity().IsActive() {
 		b.hidePopups()
-	} else {
-		pops := b.doc.GetElementsByClass("popup")
-		for i := range pops {
-			if pop != pops[i] {
-				pops[i].UI.Hide()
-			}
-		}
-		pop.UI.Show()
-		b.setPopupUiPos(e, pop)
-		b.handler.BlurInterface()
-		b.uiMan.Host.RunOnMainThread(b.Focus)
+		return
 	}
+	b.menuOpen = true
+	b.showPopup(pop)
 }
 
-func (b *MenuBar) clickStage(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickStage").End()
-	b.selectTab(e)
-	b.handler.StageWorkspaceSelected()
+func (b *MenuBar) hoverMenuTarget(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.hoverMenuTarget").End()
+	if !b.menuOpen {
+		return
+	}
+	pop := b.popupForMenuTarget(e)
+	if pop == nil || pop == b.selectedPopup {
+		return
+	}
+	b.showPopup(pop)
 }
 
-func (b *MenuBar) clickContent(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickContent").End()
-	b.selectTab(e)
-	b.handler.ContentWorkspaceSelected()
+func (b *MenuBar) popupForMenuTarget(e *document.Element) *document.Element {
+	target := e.Attribute("data-target")
+	pop, _ := b.doc.GetElementById(target)
+	return pop
 }
 
-func (b *MenuBar) clickShading(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickShading").End()
-	b.selectTab(e)
-	b.handler.ShadingWorkspaceSelected()
+func (b *MenuBar) showPopup(pop *document.Element) {
+	defer tracing.NewRegion("MenuBar.showPopup").End()
+	b.selectedPopup = pop
+	pops := b.doc.GetElementsByClass("popup")
+	for i := range pops {
+		if pop == pops[i] {
+			continue
+		}
+		pops[i].UI.Hide()
+	}
+	pop.UI.Show()
+	b.handler.BlurInterface()
+	b.uiMan.Host.RunOnMainThread(b.Focus)
 }
 
-func (b *MenuBar) clickVfx(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickAnimation").End()
-	b.selectTab(e)
-	b.handler.VfxWorkspaceSelected()
-}
-
-func (b *MenuBar) clickAnimation(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickAnimation").End()
-	b.selectTab(e)
-}
-
-func (b *MenuBar) clickUI(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickUI").End()
-	b.selectTab(e)
-	b.handler.UIWorkspaceSelected()
-}
-
-func (b *MenuBar) clickSettings(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.clickSettings").End()
-	b.selectTab(e)
-	b.handler.SettingsWorkspaceSelected()
+// clickWorkspace is the single shared click handler for all workspace tabs.
+// It reads the workspace id from the data-workspace-id attribute and asks the
+// editor to switch. The editor's setWorkspaceState in turn calls SetActiveTab
+// to keep the visual state in sync.
+func (b *MenuBar) clickWorkspace(e *document.Element) {
+	defer tracing.NewRegion("MenuBar.clickWorkspace").End()
+	id := e.Attribute("data-workspace-id")
+	if id == "" {
+		return
+	}
+	b.handler.WorkspaceSelected(id)
 }
 
 func (b *MenuBar) clickNewStage(*document.Element) {
@@ -340,6 +337,24 @@ func (b *MenuBar) clickCreateCssStylesheet(*document.Element) {
 			b.handler.CreateCssStylesheetFile(name)
 		},
 	})
+}
+
+func (b *MenuBar) clickDistanceChain(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickDistanceChain").End()
+	b.hidePopups()
+	b.handler.ConnectSelectedAsDistanceChain()
+}
+
+func (b *MenuBar) clickRope(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickRope").End()
+	b.hidePopups()
+	b.handler.ConnectSelectedAsRope()
+}
+
+func (b *MenuBar) clickHingeChain(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickHingeChain").End()
+	b.hidePopups()
+	b.handler.ConnectSelectedAsHingeChain()
 }
 
 func (b *MenuBar) clickOpenCodeEditor(*document.Element) {
@@ -441,6 +456,46 @@ func (b *MenuBar) clickNewLight(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickNewLight").End()
 	b.hidePopups()
 	b.handler.CreateNewLight()
+}
+
+func (b *MenuBar) clickCreateSphere(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateSphere").End()
+	b.createPrimitive(rendering.PrimitiveMeshSphere)
+}
+
+func (b *MenuBar) clickCreateCube(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateCube").End()
+	b.createPrimitive(rendering.PrimitiveMeshTexturableCube)
+}
+
+func (b *MenuBar) clickCreateCapsule(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateCapsule").End()
+	b.createPrimitive(rendering.PrimitiveMeshCapsule)
+}
+
+func (b *MenuBar) clickCreatePlane(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreatePlane").End()
+	b.createPrimitive(rendering.PrimitiveMeshPlane)
+}
+
+func (b *MenuBar) clickCreateCylinder(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateCylinder").End()
+	b.createPrimitive(rendering.PrimitiveMeshCylinder)
+}
+
+func (b *MenuBar) clickCreateCone(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateCone").End()
+	b.createPrimitive(rendering.PrimitiveMeshCone)
+}
+
+func (b *MenuBar) clickCreateArrow(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickCreateArrow").End()
+	b.createPrimitive(rendering.PrimitiveMeshArrow)
+}
+
+func (b *MenuBar) createPrimitive(primitive rendering.PrimitiveMesh) {
+	b.hidePopups()
+	b.handler.CreatePrimitive(primitive)
 }
 
 func (b *MenuBar) clickAbout(*document.Element) {
@@ -582,17 +637,6 @@ func (b *MenuBar) popupMiss(e *document.Element) {
 	}
 }
 
-func (b *MenuBar) selectTab(e *document.Element) {
-	defer tracing.NewRegion("MenuBar.selectTab").End()
-	tabs := b.doc.GetElementsByGroup("tabs")
-	for i := range tabs {
-		b.doc.SetElementClassesWithoutApply(tabs[i], "workspaceTab", "edPanelBgHoverable")
-	}
-	b.doc.SetElementClassesWithoutApply(e, "workspaceTab", "edPanelBgHoverable", "tabSelected")
-	b.doc.ApplyStyles()
-	b.hidePopups()
-}
-
 func (b *MenuBar) hidePopups() {
 	defer tracing.NewRegion("MenuBar.hidePopups").End()
 	pops := b.doc.GetElementsByClass("popup")
@@ -600,6 +644,7 @@ func (b *MenuBar) hidePopups() {
 		pops[i].UI.Hide()
 	}
 	b.selectedPopup = nil
+	b.menuOpen = false
 	b.handler.FocusInterface()
 	b.uiMan.Host.RunOnMainThread(b.handler.FocusInterface)
 }

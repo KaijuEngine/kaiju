@@ -1,42 +1,13 @@
 /******************************************************************************/
 /* gpu_device_texture_vulkan.go                                               */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime"
@@ -279,17 +250,163 @@ func (g *GPUDevice) generateMipMapsImpl(texId *TextureId, imageFormat GPUFormat,
 	return nil
 }
 
+func textureReadBytesPerPixel(format GPUFormat) int {
+	switch format {
+	case GPUFormatR8Unorm, GPUFormatR8Snorm, GPUFormatR8Uscaled,
+		GPUFormatR8Sscaled, GPUFormatR8Uint, GPUFormatR8Sint,
+		GPUFormatR8Srgb:
+		return 1
+	case GPUFormatR16Unorm, GPUFormatR16Snorm, GPUFormatR16Uscaled,
+		GPUFormatR16Sscaled, GPUFormatR16Uint, GPUFormatR16Sint,
+		GPUFormatR16Sfloat, GPUFormatR8g8Unorm, GPUFormatR8g8Snorm,
+		GPUFormatR8g8Uscaled, GPUFormatR8g8Sscaled, GPUFormatR8g8Uint,
+		GPUFormatR8g8Sint, GPUFormatR8g8Srgb:
+		return 2
+	case GPUFormatR8g8b8Unorm, GPUFormatR8g8b8Snorm,
+		GPUFormatR8g8b8Uscaled, GPUFormatR8g8b8Sscaled,
+		GPUFormatR8g8b8Uint, GPUFormatR8g8b8Sint,
+		GPUFormatR8g8b8Srgb, GPUFormatB8g8r8Unorm,
+		GPUFormatB8g8r8Snorm, GPUFormatB8g8r8Uscaled,
+		GPUFormatB8g8r8Sscaled, GPUFormatB8g8r8Uint,
+		GPUFormatB8g8r8Sint, GPUFormatB8g8r8Srgb:
+		return 3
+	case GPUFormatR32Uint, GPUFormatR32Sint, GPUFormatR32Sfloat,
+		GPUFormatR16g16Unorm, GPUFormatR16g16Snorm,
+		GPUFormatR16g16Uscaled, GPUFormatR16g16Sscaled,
+		GPUFormatR16g16Uint, GPUFormatR16g16Sint,
+		GPUFormatR16g16Sfloat, GPUFormatR8g8b8a8Unorm,
+		GPUFormatR8g8b8a8Snorm, GPUFormatR8g8b8a8Uscaled,
+		GPUFormatR8g8b8a8Sscaled, GPUFormatR8g8b8a8Uint,
+		GPUFormatR8g8b8a8Sint, GPUFormatR8g8b8a8Srgb,
+		GPUFormatB8g8r8a8Unorm, GPUFormatB8g8r8a8Snorm,
+		GPUFormatB8g8r8a8Uscaled, GPUFormatB8g8r8a8Sscaled,
+		GPUFormatB8g8r8a8Uint, GPUFormatB8g8r8a8Sint,
+		GPUFormatB8g8r8a8Srgb, GPUFormatA8b8g8r8UnormPack32,
+		GPUFormatA8b8g8r8SnormPack32, GPUFormatA8b8g8r8UscaledPack32,
+		GPUFormatA8b8g8r8SscaledPack32, GPUFormatA8b8g8r8UintPack32,
+		GPUFormatA8b8g8r8SintPack32, GPUFormatA8b8g8r8SrgbPack32,
+		GPUFormatA2r10g10b10UnormPack32, GPUFormatA2r10g10b10SnormPack32,
+		GPUFormatA2r10g10b10UscaledPack32, GPUFormatA2r10g10b10SscaledPack32,
+		GPUFormatA2r10g10b10UintPack32, GPUFormatA2r10g10b10SintPack32,
+		GPUFormatA2b10g10r10UnormPack32, GPUFormatA2b10g10r10SnormPack32,
+		GPUFormatA2b10g10r10UscaledPack32, GPUFormatA2b10g10r10SscaledPack32,
+		GPUFormatA2b10g10r10UintPack32, GPUFormatA2b10g10r10SintPack32,
+		GPUFormatB10g11r11UfloatPack32, GPUFormatE5b9g9r9UfloatPack32:
+		return 4
+	case GPUFormatR16g16b16Unorm, GPUFormatR16g16b16Snorm,
+		GPUFormatR16g16b16Uscaled, GPUFormatR16g16b16Sscaled,
+		GPUFormatR16g16b16Uint, GPUFormatR16g16b16Sint,
+		GPUFormatR16g16b16Sfloat:
+		return 6
+	case GPUFormatR32g32Uint, GPUFormatR32g32Sint, GPUFormatR32g32Sfloat,
+		GPUFormatR16g16b16a16Unorm, GPUFormatR16g16b16a16Snorm,
+		GPUFormatR16g16b16a16Uscaled, GPUFormatR16g16b16a16Sscaled,
+		GPUFormatR16g16b16a16Uint, GPUFormatR16g16b16a16Sint,
+		GPUFormatR16g16b16a16Sfloat, GPUFormatR64Uint,
+		GPUFormatR64Sint, GPUFormatR64Sfloat:
+		return 8
+	case GPUFormatR32g32b32Uint, GPUFormatR32g32b32Sint,
+		GPUFormatR32g32b32Sfloat:
+		return 12
+	case GPUFormatR32g32b32a32Uint, GPUFormatR32g32b32a32Sint,
+		GPUFormatR32g32b32a32Sfloat, GPUFormatR64g64Uint,
+		GPUFormatR64g64Sint, GPUFormatR64g64Sfloat:
+		return 16
+	case GPUFormatR64g64b64Uint, GPUFormatR64g64b64Sint,
+		GPUFormatR64g64b64Sfloat:
+		return 24
+	case GPUFormatR64g64b64a64Uint, GPUFormatR64g64b64a64Sint,
+		GPUFormatR64g64b64a64Sfloat:
+		return 32
+	default:
+		return BytesInPixel
+	}
+}
+
+func clampTextureReadRegion(id *TextureId, rect matrix.Vec4i) (matrix.Vec4i, error) {
+	if id == nil {
+		return matrix.Vec4i{}, errors.New("texture id is nil")
+	}
+	if id.Width <= 0 || id.Height <= 0 {
+		return matrix.Vec4i{}, fmt.Errorf("texture has invalid dimensions %dx%d", id.Width, id.Height)
+	}
+	x := int(rect.X())
+	y := int(rect.Y())
+	w := int(rect.Width())
+	h := int(rect.Height())
+	if w <= 0 || h <= 0 {
+		return matrix.Vec4i{}, fmt.Errorf("read region must have positive size, got %dx%d", w, h)
+	}
+	x2 := x + w
+	y2 := y + h
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+	if x2 > id.Width {
+		x2 = id.Width
+	}
+	if y2 > id.Height {
+		y2 = id.Height
+	}
+	if x >= x2 || y >= y2 {
+		return matrix.Vec4i{}, fmt.Errorf("read region is outside texture bounds %dx%d", id.Width, id.Height)
+	}
+	return matrix.Vec4i{int32(x), int32(y), int32(x2 - x), int32(y2 - y)}, nil
+}
+
+func textureReadRegionBufferSize(id *TextureId, rect matrix.Vec4i) (matrix.Vec4i, uintptr, error) {
+	rect, err := clampTextureReadRegion(id, rect)
+	if err != nil {
+		return matrix.Vec4i{}, 0, err
+	}
+	size := uintptr(rect.Width()) * uintptr(rect.Height()) * uintptr(textureReadBytesPerPixel(id.Format))
+	return rect, size, nil
+}
+
+func textureReadFullBufferSize(id *TextureId) (matrix.Vec4i, uintptr, error) {
+	if id == nil {
+		return matrix.Vec4i{}, 0, errors.New("texture id is nil")
+	}
+	rect := matrix.Vec4i{0, 0, int32(id.Width), int32(id.Height)}
+	rect, err := clampTextureReadRegion(id, rect)
+	if err != nil {
+		return matrix.Vec4i{}, 0, err
+	}
+	size := uintptr(rect.Width()) * uintptr(rect.Height()) * uintptr(BytesInPixel)
+	return rect, size, nil
+}
+
 func (g *GPUDevice) textureReadImpl(id *TextureId) ([]byte, error) {
 	defer tracing.NewRegion("GPUDevice.textureReadImpl").End()
+	rect, _, err := textureReadFullBufferSize(id)
+	if err != nil {
+		return []byte{}, err
+	}
+	return g.textureReadRegionImplWithBytesPerPixel(id, rect, BytesInPixel)
+}
+
+func (g *GPUDevice) textureReadRegionImpl(id *TextureId, rect matrix.Vec4i) ([]byte, error) {
+	defer tracing.NewRegion("GPUDevice.textureReadRegionImpl").End()
+	return g.textureReadRegionImplWithBytesPerPixel(id, rect, textureReadBytesPerPixel(id.Format))
+}
+
+func (g *GPUDevice) textureReadRegionImplWithBytesPerPixel(id *TextureId, rect matrix.Vec4i, bytesPerPixel int) ([]byte, error) {
+	defer tracing.NewRegion("GPUDevice.textureReadRegionImplWithBytesPerPixel").End()
+	rect, err := clampTextureReadRegion(id, rect)
+	if err != nil {
+		return []byte{}, err
+	}
 	origLayout := id.Layout
 	origAccess := id.Access
 	const transferSrcLayout = GPUImageLayoutTransferSrcOptimal
 	if origLayout != transferSrcLayout {
 		g.TransitionImageLayout(id, transferSrcLayout, GPUImageAspectColorBit, id.Access, nil)
 	}
-	width, height := id.Width, id.Height
-	pixelSize := 4
-	bufferSize := uintptr(width * height * pixelSize)
+	width, height := int(rect.Width()), int(rect.Height())
+	bufferSize := uintptr(width * height * bytesPerPixel)
 	stagingBuf, stagingMem, err := g.CreateBuffer(bufferSize,
 		GPUBufferUsageTransferDstBit,
 		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
@@ -310,7 +427,7 @@ func (g *GPUDevice) textureReadImpl(id *TextureId) ([]byte, error) {
 			BaseArrayLayer: 0,
 			LayerCount:     1,
 		},
-		ImageOffset: vk.Offset3D{X: 0, Y: 0, Z: 0},
+		ImageOffset: vk.Offset3D{X: rect.X(), Y: rect.Y(), Z: 0},
 		ImageExtent: vk.Extent3D{
 			Width:  uint32(width),
 			Height: uint32(height),

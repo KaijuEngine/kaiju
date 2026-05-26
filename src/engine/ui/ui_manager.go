@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* ui_manager.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
@@ -113,7 +83,7 @@ func (man *Manager) update(deltaTime float64) {
 		work[i] = func(threadId int) {
 			e := man.itrAll[i]
 			e.updateFromManager(deltaTime)
-			if e.IsActive() && e.flags.hovering() && e.elmType == ElementTypePanel && e.ToPanel().Background() != nil {
+			if e.IsActive() && e.flags.hovering() && !e.IsType(ElementTypeLabel) && e.ToPanel().Background() != nil {
 				man.hovered[threadId] = append(man.hovered[threadId], e)
 			}
 			wg.Done()
@@ -185,6 +155,34 @@ func (man *Manager) Clear() {
 	man.pools.Each(func(ui *UI) { man.Host.DestroyEntity(ui.Entity()) })
 	// Clearing the pools shouldn't be needed as destroying the entities
 	// will remove the entry from the pool
+}
+
+// Shutdown synchronously detaches the Manager from its host: removes its
+// update from UIUpdater, detaches its Group from UILateUpdater, and removes
+// its window-resize handler. It also clears any UI elements still owned by
+// the Manager so the next Init starts clean.
+//
+// This is safe to call when Manager hasn't been Init'd yet (no-op). It is
+// also idempotent — calling it twice in a row tears down nothing the second
+// time. After Shutdown the Manager can be Init'd again on the same or a
+// different host.
+//
+// Without this, calling Init twice on the same Manager (which happens when
+// a workspace is disabled then re-enabled in the editor) leaves the
+// previous update callback registered, so two goroutines race on the same
+// Manager's iteration slices and panic with index-out-of-range.
+func (man *Manager) Shutdown() {
+	defer tracing.NewRegion("ui.Manager.Shutdown").End()
+	if man.Host == nil {
+		return
+	}
+	man.Clear()
+	man.Group.Detach(man.Host)
+	man.Host.UIUpdater.RemoveUpdate(&man.updateId)
+	if man.Host.Window != nil {
+		man.Host.Window.OnResize.Remove(man.resizeEvtId)
+	}
+	man.Host = nil
 }
 
 func (man *Manager) Add() *UI {

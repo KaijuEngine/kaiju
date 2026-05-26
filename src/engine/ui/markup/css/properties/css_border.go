@@ -1,43 +1,14 @@
 /******************************************************************************/
 /* css_border.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package properties
 
 import (
 	"errors"
+	"slices"
 	"strings"
 
 	"kaijuengine.com/engine"
@@ -47,6 +18,8 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/windowing"
 )
+
+const mergedBorderSidesSentinel = "__kaiju_merged_border_sides__"
 
 var borderSizes = map[string]float32{
 	"medium": 2,
@@ -90,45 +63,73 @@ func borderStyleFromStr(str string, lrtb int, elm *document.Element) (ui.BorderS
 	}
 }
 
-func (Border) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
-	// TODO:  The border args contain things like width, style, color
-	//switch len(values) {
-	//case 1:
-	//	for i := range 3 {
-	//		values = append(values, values[i])
-	//	}
-	//case 2:
-	//	values = append(values, values[0])
-	//	values = append(values, values[1])
-	//case 3:
-	//	values = append(values, values[1])
-	//}
-	//for i := 1; i < len(rules); i++ {
-	//	removeRule := false
-	//	switch rules[i].Property {
-	//	case "border-top":
-	//		values[0] = rules[i].Values[0]
-	//		removeRule = true
-	//	case "border-right":
-	//		values[1] = rules[i].Values[0]
-	//		removeRule = true
-	//	case "border-bottom":
-	//		values[2] = rules[i].Values[0]
-	//		removeRule = true
-	//	case "border-left":
-	//		values[3] = rules[i].Values[0]
-	//		removeRule = true
-	//	}
-	//	if removeRule {
-	//		rules = slices.Delete(rules, i, i+1)
-	//		i--
-	//	}
-	//}
-	return values, rules
+func (Border) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	sides := [4][]rules.PropertyValue{
+		cloneBorderValues(values),
+		cloneBorderValues(values),
+		cloneBorderValues(values),
+		cloneBorderValues(values),
+	}
+	merged := false
+	for i := 1; i < len(ruleList); i++ {
+		sideIdx := -1
+		switch ruleList[i].Property {
+		case "border-left":
+			sideIdx = 0
+		case "border-top":
+			sideIdx = 1
+		case "border-right":
+			sideIdx = 2
+		case "border-bottom":
+			sideIdx = 3
+		}
+		if sideIdx >= 0 {
+			sides[sideIdx] = mergeBorderValues(values, ruleList[i].Values)
+			ruleList = slices.Delete(ruleList, i, i+1)
+			merged = true
+			i--
+		}
+	}
+	if merged {
+		values = []rules.PropertyValue{{Str: mergedBorderSidesSentinel}}
+		for i := range sides {
+			values = append(values, rules.PropertyValue{Num: float32(len(sides[i]))})
+			values = append(values, sides[i]...)
+		}
+		ruleList[0].Values = values
+	}
+	return values, ruleList
 }
 
 // border-width border-style border-color|initial|inherit
 func (Border) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+	if len(values) > 0 && values[0].Str == mergedBorderSidesSentinel {
+		i := 1
+		sideRules := []struct {
+			name    string
+			process func(*ui.Panel, *document.Element, []rules.PropertyValue, *engine.Host) error
+		}{
+			{"border-left", BorderLeft{}.Process},
+			{"border-top", BorderTop{}.Process},
+			{"border-right", BorderRight{}.Process},
+			{"border-bottom", BorderBottom{}.Process},
+		}
+		for _, side := range sideRules {
+			if i >= len(values) {
+				return errors.New("merged border data is missing side values")
+			}
+			count := int(values[i].Num)
+			i++
+			if count <= 0 || i+count > len(values) {
+				return errors.New("merged border data has invalid side values")
+			}
+			if err := side.process(panel, elm, values[i:i+count], host); err != nil {
+				return err
+			}
+			i += count
+		}
+		return nil
+	}
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}
@@ -139,4 +140,24 @@ func (Border) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		BorderBottom{}.Process(panel, elm, values, host)
 	}
 	return nil
+}
+
+func cloneBorderValues(values []rules.PropertyValue) []rules.PropertyValue {
+	out := make([]rules.PropertyValue, len(values))
+	for i := range values {
+		out[i] = values[i].Clone()
+	}
+	return out
+}
+
+func mergeBorderValues(base, override []rules.PropertyValue) []rules.PropertyValue {
+	out := cloneBorderValues(base)
+	for i := range override {
+		if i < len(out) {
+			out[i] = override[i].Clone()
+		} else {
+			out = append(out, override[i].Clone())
+		}
+	}
+	return out
 }

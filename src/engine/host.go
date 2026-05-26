@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* host.go                                                                    */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package engine
@@ -54,6 +24,7 @@ import (
 	"kaijuengine.com/engine/systems/logging"
 	"kaijuengine.com/engine/systems/tweening"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/localization"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/audio"
 	"kaijuengine.com/platform/concurrent"
@@ -103,6 +74,7 @@ type Host struct {
 	name              string
 	game              any
 	destroyedEntities []*Entity
+	entitiesById      map[EntityId]*Entity
 	lighting          lighting.LightingInformation
 	timeRunner        []timeRun
 	frameRunner       []frameRun
@@ -123,6 +95,9 @@ type Host struct {
 	fontCache         rendering.FontCache
 	materialCache     rendering.MaterialCache
 	Drawings          rendering.Drawings
+	RenderTargets     rendering.RenderTargetManager
+	RenderViews       rendering.RenderViewManager
+	Localization      localization.Localization
 	frame             FrameId
 	frameTime         float64
 	Closing           bool
@@ -140,24 +115,35 @@ type Host struct {
 
 // NewHost creates a new host with the given name and log stream. The log stream
 // is the log handler that is used by the slog package functions. A Host that
-// is created through NewHost has no function until #Host.Initialize is called.
+// is created through NewHost has no function until [Host.Initialize] is called.
 //
 // This is primarily called from #host_container/New
 func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
+	primaryCamera := cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())
+	uiCamera := cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})
 	host := &Host{
 		name:          name,
 		frameTime:     0,
 		Closing:       false,
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
-		CloseSignal:   make(chan struct{}, 1),
-		LogStream:     logStream,
-		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
+		RenderTargets: rendering.NewRenderTargetManager(),
+		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
+			Name:      rendering.DefaultRenderViewName,
+			Camera:    primaryCamera,
+			LayerMask: rendering.RenderLayerAll,
+			Clear:     true,
+		}),
+		Localization: localization.Select(),
+		entitiesById: make(map[EntityId]*Entity),
+		CloseSignal:  make(chan struct{}, 1),
+		LogStream:    logStream,
+		lighting:     lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
-			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
-			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
+			Primary: cameras.NewContainer(primaryCamera),
+			UI:      cameras.NewContainer(uiCamera),
 		},
 	}
 	host.workGroup.Init()
@@ -200,7 +186,7 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 		return err
 	}
 	host.Window = win
-
+	host.entitiesById = make(map[EntityId]*Entity)
 	host.threads.Start()
 	host.updateThreads.Start()
 	host.uiThreads.Start()
@@ -319,6 +305,45 @@ func (host *Host) AssetDatabase() assets.Database {
 	return host.assetDatabase
 }
 
+// SetEntityId assigns the given identifier to an entity and registers it for
+// host-wide lookup. Duplicate non-empty identifiers are rejected and leave the
+// entity's current identifier unchanged.
+func (host *Host) SetEntityId(entity *Entity, id EntityId) bool {
+	if entity == nil {
+		slog.Error("can't assign id to nil entity", "id", id)
+		return false
+	}
+	if entity.isDestroyed {
+		slog.Error("can't assign id to destroyed entity", "id", id)
+		return false
+	}
+	if entity.id == id {
+		return true
+	}
+	if id != "" {
+		if existing, ok := host.entitiesById[id]; ok && existing != entity {
+			slog.Error("duplicate entity id rejected", "id", id)
+			return false
+		}
+	}
+	host.unregisterEntityId(entity)
+	entity.id = id
+	entity.idHost = weak.Pointer[Host]{}
+	if id != "" {
+		host.entitiesById[id] = entity
+		entity.idHost = weak.Make(host)
+	}
+	return true
+}
+
+// EntityById returns the entity currently registered with the given identifier.
+func (host *Host) EntityById(id EntityId) *Entity {
+	if id == "" || host.entitiesById == nil {
+		return nil
+	}
+	return host.entitiesById[id]
+}
+
 // Plugins returns all of the loaded plugins for the host
 func (host *Host) Plugins() []*plugins.LuaVM {
 	return host.plugins
@@ -384,7 +409,7 @@ func (host *Host) Update(deltaTime float64) {
 	host.Updater.Update(deltaTime)
 	if !build.Editor {
 		if host.physics.IsActive() {
-			host.physics.Update(&host.threads, deltaTime)
+			host.physics.Update(host.WorkGroup(), &host.threads, deltaTime)
 		}
 	}
 	host.LateUpdater.Update(deltaTime)
@@ -406,7 +431,13 @@ func (host *Host) Render() {
 		p()
 	}
 	host.preRenderRunner = host.preRenderRunner[:0]
+	host.RenderViews.SetDefaultCamera(host.Cameras.Primary.Camera)
 	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
+	if host.Window != nil && host.Window.GpuInstance != nil && host.Window.GpuInstance.IsValid() {
+		gpuDevice := host.Window.GpuInstance.PrimaryDevice()
+		host.RenderTargets.ProcessPending(gpuDevice)
+		host.RenderViews.ProcessPending(gpuDevice, &host.Drawings)
+	}
 	host.shaderCache.CreatePending()
 	host.textureCache.CreatePending()
 	host.meshCache.CreatePending()
@@ -421,10 +452,11 @@ func (host *Host) Render() {
 		}
 		host.lighting.Update(host.PrimaryCamera().Position())
 		gpuInstance := host.Window.GpuInstance
+		views := host.RenderViews.Views()
 		if gpuInstance.PrimaryDevice().ReadyFrame(gpuInstance, host.Window,
 			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
-			lights, float32(host.Runtime())) {
-			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights)
+			lights, float32(host.Runtime()), views) {
+			host.Drawings.Render(gpuInstance.PrimaryDevice(), lights, views)
 			skipSwap = false
 		}
 	}
@@ -508,12 +540,18 @@ func (host *Host) Teardown() {
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
+	host.RenderViews.DestroyAll(gpuDevice, &host.Drawings)
 	host.Drawings.Destroy(gpuDevice)
+	host.RenderTargets.DestroyAll(gpuDevice)
 	host.textureCache.Destroy()
 	host.meshCache.Destroy()
 	host.shaderCache.Destroy()
 	host.fontCache.Destroy()
 	host.materialCache.Destroy()
+	for i := range host.plugins {
+		host.plugins[i].Close()
+	}
+	host.plugins = nil
 	host.assetDatabase.Close()
 	host.Window.Destroy()
 	host.threads.Stop()
@@ -578,6 +616,7 @@ func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	host.Cameras.Primary.Camera.ViewportChanged(w, h)
 	host.Cameras.UI.Camera.ViewportChanged(w, h)
+	host.RenderTargets.ResizeMatchingWindow(int(w), int(h))
 }
 
 func (host *Host) processDestroyedEntities() {
@@ -585,4 +624,15 @@ func (host *Host) processDestroyedEntities() {
 		host.destroyedEntities[i].ForceCleanup()
 	}
 	host.destroyedEntities = klib.WipeSlice(host.destroyedEntities)
+}
+
+func (host *Host) unregisterEntityId(entity *Entity) {
+	if entity == nil || entity.id == "" || host.entitiesById == nil {
+		return
+	}
+	if host.entitiesById[entity.id] == entity {
+		delete(host.entitiesById, entity.id)
+	}
+	entity.id = ""
+	entity.idHost = weak.Pointer[Host]{}
 }

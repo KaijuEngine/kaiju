@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* stage_workspace_content_ui.go                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package stage_workspace
@@ -166,6 +136,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
+		cui.allowEntryVisualsClickThrough(cpys[i])
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
@@ -181,6 +152,14 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w.Doc.ApplyStyles()
 	cui.refreshFilterOnContentChange()
 	w.ed.ContentPreviewer().GeneratePreviews(ids)
+}
+
+func (cui *WorkspaceContentUI) allowEntryVisualsClickThrough(e *document.Element) {
+	for i := range e.Children {
+		if e.Children[i].UIPanel != nil {
+			e.Children[i].UIPanel.AllowClickThrough()
+		}
+	}
 }
 
 func (cui *WorkspaceContentUI) removeContent(ids []string) {
@@ -456,10 +435,20 @@ func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 		{
 			Label: "Open in content workspace",
 			Call: func() {
-				w.ed.ContentWorkspaceSelected()
+				w.ed.SelectWorkspace("content")
 				w.ed.Events().OnFocusContent.Execute(id)
 			},
 		},
+	}
+	if cc, err := w.ed.Cache().Read(id); err == nil {
+		if cc.Config.Type == (content_database.Terrain{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Open in terrain editor",
+				Call: func() {
+					w.ed.Events().OnRequestOpenTerrain.Execute(id)
+				},
+			})
+		}
 	}
 	w.ed.BlurInterface()
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)

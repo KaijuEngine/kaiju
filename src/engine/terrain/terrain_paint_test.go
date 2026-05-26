@@ -1,0 +1,635 @@
+/******************************************************************************/
+/* terrain_paint_test.go                                                      */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
+package terrain
+
+import (
+	"testing"
+
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
+)
+
+func TestTerrainLayerSetDefaultsToHeightResolution(t *testing.T) {
+	model, err := NewModel(TerrainConfig{Resolution: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if model.LayerSet == nil || model.LayerSet.WeightMap == nil {
+		t.Fatal("expected terrain to create a layer set")
+	}
+	if got := model.LayerSet.WeightMap.Resolution; got != model.HeightField.Resolution {
+		t.Fatalf("expected paint resolution to default to height resolution, got %d", got)
+	}
+	if got := model.LayerCount(); got != 0 {
+		t.Fatalf("expected no default paint layers, got %d", got)
+	}
+}
+
+func TestTerrainLayersAddAndStorePaintFields(t *testing.T) {
+	set, err := NewTerrainLayerSet(4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(TerrainLayer{
+		TextureContentID:   "grass",
+		NormalContentID:    "grass_normal",
+		RoughnessContentID: "grass_roughness",
+		Filter:             rendering.TextureFilterNearest,
+		Tiling:             matrix.NewVec2(8, 6),
+		Offset:             matrix.NewVec2(0.25, 0.5),
+		Rotation:           0.125,
+		Tint:               matrix.ColorGreen(),
+	})
+	rock := set.AddLayer(NewTerrainLayer("rock"))
+	if base != 0 || rock != 1 {
+		t.Fatalf("expected layer indexes 0 and 1, got %d and %d", base, rock)
+	}
+	if got := set.LayerCount(); got != 2 {
+		t.Fatalf("expected two layers, got %d", got)
+	}
+	if set.Layers[0].TextureContentID != "grass" || set.Layers[0].NormalContentID != "grass_normal" {
+		t.Fatalf("expected layer content ids to be preserved, got %+v", set.Layers[0])
+	}
+	if set.Layers[0].Filter != rendering.TextureFilterNearest {
+		t.Fatalf("expected nearest filter, got %d", set.Layers[0].Filter)
+	}
+	if set.Layers[0].Tiling != matrix.NewVec2(8, 6) || set.Layers[0].Offset != matrix.NewVec2(0.25, 0.5) {
+		t.Fatalf("expected tiling and offset to be preserved, got %+v", set.Layers[0])
+	}
+	if got := set.LayerWeightAt(base, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected first layer to initialize to full weight, got %f", got)
+	}
+	if got := set.LayerWeightAt(rock, 2, 2); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected added layer to initialize to zero weight, got %f", got)
+	}
+}
+
+func TestMissingTerrainLayerTexturesReportsLayerDiagnostics(t *testing.T) {
+	layers := []TerrainLayer{
+		{Name: "Grass", TextureContentID: "grass"},
+		{Name: "Rock", TextureContentID: "missing-rock"},
+		{TextureContentID: "missing-snow"},
+	}
+	missing := MissingTerrainLayerTextures(layers, func(id string) bool {
+		return id == "grass"
+	})
+	if len(missing) != 2 {
+		t.Fatalf("expected two missing texture diagnostics, got %d", len(missing))
+	}
+	if missing[0].Layer != 1 || missing[0].Name != "Rock" || missing[0].TextureContentID != "missing-rock" {
+		t.Fatalf("unexpected first missing texture diagnostic: %+v", missing[0])
+	}
+	if missing[1].Layer != 2 || missing[1].Name != "missing-snow" {
+		t.Fatalf("expected missing layer without name to use texture id, got %+v", missing[1])
+	}
+}
+
+func TestTextureWeightMapNormalizeWeightsAt(t *testing.T) {
+	set, err := NewTerrainLayerSet(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	layerA := set.AddLayer(NewTerrainLayer("a"))
+	layerB := set.AddLayer(NewTerrainLayer("b"))
+	set.SetLayerWeightAt(layerA, 1, 1, 0.25)
+	set.SetLayerWeightAt(layerB, 1, 1, 0.5)
+	if !set.NormalizeWeightsAt(1, 1) {
+		t.Fatal("expected coordinate normalization to succeed")
+	}
+	if got := set.LayerWeightAt(layerA, 1, 1); !matrix.ApproxTo(got, matrix.Float(1.0/3.0), 0.001) {
+		t.Fatalf("expected normalized layer A weight, got %f", got)
+	}
+	if got := set.LayerWeightAt(layerB, 1, 1); !matrix.ApproxTo(got, matrix.Float(2.0/3.0), 0.001) {
+		t.Fatalf("expected normalized layer B weight, got %f", got)
+	}
+}
+
+func TestTerrainPaintAndEraseLayerWeights(t *testing.T) {
+	set, err := NewTerrainLayerSet(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	paint := set.AddLayer(NewTerrainLayer("paint"))
+	dirty := set.PaintLayer(paint, PaintStroke{
+		Center:   matrix.NewVec2(2, 2),
+		Radius:   1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !dirty.Valid {
+		t.Fatal("expected texture painting to return a dirty region")
+	}
+	if got := set.LayerWeightAt(paint, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected painted layer weight 1 after normalization, got %f", got)
+	}
+	if got := set.LayerWeightAt(base, 2, 2); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected base layer weight 0 after normalization, got %f", got)
+	}
+	dirty = set.EraseLayer(paint, PaintStroke{
+		Center:   matrix.NewVec2(2, 2),
+		Radius:   1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !dirty.Valid {
+		t.Fatal("expected texture erasing to return a dirty region")
+	}
+	if got := set.LayerWeightAt(paint, 2, 2); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected erased layer weight 0, got %f", got)
+	}
+	if got := set.LayerWeightAt(base, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected base layer weight 1 after erase normalization, got %f", got)
+	}
+}
+
+func TestTerrainFillAndRemoveLayerWeights(t *testing.T) {
+	set, err := NewTerrainLayerSet(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	paint := set.AddLayer(NewTerrainLayer("paint"))
+	dirty := set.FillLayer(paint)
+	if !dirty.Valid {
+		t.Fatal("expected fill to return dirty region")
+	}
+	for z := 0; z < set.WeightMap.Resolution; z++ {
+		for x := 0; x < set.WeightMap.Resolution; x++ {
+			if got := set.LayerWeightAt(paint, x, z); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+				t.Fatalf("expected filled layer weight at %d,%d to be 1, got %f", x, z, got)
+			}
+			if got := set.LayerWeightAt(base, x, z); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+				t.Fatalf("expected base layer weight at %d,%d to be 0, got %f", x, z, got)
+			}
+		}
+	}
+	if !set.RemoveLayer(base) {
+		t.Fatal("expected remove layer to succeed")
+	}
+	if got := set.LayerCount(); got != 1 {
+		t.Fatalf("expected one remaining layer, got %d", got)
+	}
+	if got := set.LayerWeightAt(0, 1, 1); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected remaining layer to stay normalized, got %f", got)
+	}
+}
+
+func TestTerrainMoveLayerPreservesLayerWeights(t *testing.T) {
+	set, err := NewTerrainLayerSet(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	moss := set.AddLayer(NewTerrainLayer("moss"))
+	rock := set.AddLayer(NewTerrainLayer("rock"))
+	set.SetLayerWeightAt(base, 1, 1, 0.2)
+	set.SetLayerWeightAt(moss, 1, 1, 0.3)
+	set.SetLayerWeightAt(rock, 1, 1, 0.5)
+	if !set.MoveLayer(rock, base) {
+		t.Fatal("expected move layer to succeed")
+	}
+	if got := set.Layers[0].TextureContentID; got != "rock" {
+		t.Fatalf("expected rock to move to layer 0, got %q", got)
+	}
+	if got := set.LayerWeightAt(0, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected moved rock weight to stay 0.5, got %f", got)
+	}
+	if got := set.LayerWeightAt(1, 1, 1); !matrix.ApproxTo(got, 0.2, matrix.Roughly) {
+		t.Fatalf("expected shifted base weight to stay 0.2, got %f", got)
+	}
+	if got := set.LayerWeightAt(2, 1, 1); !matrix.ApproxTo(got, 0.3, matrix.Roughly) {
+		t.Fatalf("expected shifted moss weight to stay 0.3, got %f", got)
+	}
+}
+
+func TestTexturePaintStrokePaintEraseAndNormalize(t *testing.T) {
+	set, err := NewTerrainLayerSet(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	paint := set.AddLayer(NewTerrainLayer("paint"))
+	result := set.PaintTextureLayer(paint, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(2, 2),
+		Radius:   1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected texture stroke painting to dirty weights")
+	}
+	if got := set.LayerWeightAt(paint, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected painted layer weight 1, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, set.WeightMap)
+	result = set.PaintTextureLayer(paint, TexturePaintStroke{
+		Mode:     TextureBrushErase,
+		Center:   matrix.NewVec2(2, 2),
+		Radius:   1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected texture stroke erasing to dirty weights")
+	}
+	if got := set.LayerWeightAt(paint, 2, 2); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected erased layer weight 0, got %f", got)
+	}
+	if got := set.LayerWeightAt(base, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected base layer weight 1, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, set.WeightMap)
+}
+
+func TestTexturePaintStrokeSmoothWeights(t *testing.T) {
+	set, err := NewTerrainLayerSet(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	paint := set.AddLayer(NewTerrainLayer("paint"))
+	for z := 0; z < set.WeightMap.Resolution; z++ {
+		for x := 0; x < set.WeightMap.Resolution; x++ {
+			set.SetLayerWeightAt(base, x, z, 1)
+			set.SetLayerWeightAt(paint, x, z, 0)
+		}
+	}
+	set.SetLayerWeightAt(base, 1, 1, 0)
+	set.SetLayerWeightAt(paint, 1, 1, 1)
+	result := set.PaintTextureLayer(paint, TexturePaintStroke{
+		Mode:     TextureBrushSmoothWeights,
+		Center:   matrix.NewVec2(1, 1),
+		Radius:   0.5,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected smoothing to dirty weights")
+	}
+	if got := set.LayerWeightAt(paint, 1, 1); !matrix.ApproxTo(got, matrix.Float(1.0/9.0), 0.001) {
+		t.Fatalf("expected smoothed paint layer weight 1/9, got %f", got)
+	}
+	if got := set.LayerWeightAt(base, 1, 1); !matrix.ApproxTo(got, matrix.Float(8.0/9.0), 0.001) {
+		t.Fatalf("expected smoothed base layer weight 8/9, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, set.WeightMap)
+}
+
+func TestTexturePaintStrokeFillReplaceAndSample(t *testing.T) {
+	set, err := NewTerrainLayerSet(4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	moss := set.AddLayer(NewTerrainLayer("moss"))
+	rock := set.AddLayer(NewTerrainLayer("rock"))
+	result := set.PaintTextureLayer(moss, TexturePaintStroke{
+		Mode: TextureBrushFill,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected fill to dirty weights")
+	}
+	for z := 0; z < set.WeightMap.Resolution; z++ {
+		for x := 0; x < set.WeightMap.Resolution; x++ {
+			if got := set.LayerWeightAt(moss, x, z); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+				t.Fatalf("expected moss fill at %d,%d to be 1, got %f", x, z, got)
+			}
+		}
+	}
+	result = set.PaintTextureLayer(rock, TexturePaintStroke{
+		Mode:         TextureBrushReplace,
+		ReplaceLayer: moss,
+		Strength:     1,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected replace to dirty weights")
+	}
+	if got := set.LayerWeightAt(rock, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected rock to replace moss, got %f", got)
+	}
+	if got := set.LayerWeightAt(moss, 2, 2); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected moss to be replaced, got %f", got)
+	}
+	result = set.PaintTextureLayer(base, TexturePaintStroke{
+		Mode:   TextureBrushSample,
+		Center: matrix.NewVec2(2, 2),
+	})
+	if !result.Sampled || result.SampledLayer != rock || !matrix.ApproxTo(result.SampledWeight, 1, matrix.Roughly) {
+		t.Fatalf("expected sample to pick rock at full weight, got %+v", result)
+	}
+	assertTextureWeightsNormalized(t, set.WeightMap)
+}
+
+func TestTexturePaintStrokeCanPreserveOtherLayers(t *testing.T) {
+	set, err := NewTerrainLayerSet(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := set.AddLayer(NewTerrainLayer("base"))
+	moss := set.AddLayer(NewTerrainLayer("moss"))
+	rock := set.AddLayer(NewTerrainLayer("rock"))
+	set.SetLayerWeightAt(base, 1, 1, 0.5)
+	set.SetLayerWeightAt(moss, 1, 1, 0.25)
+	set.SetLayerWeightAt(rock, 1, 1, 0.25)
+	result := set.PaintTextureLayer(rock, TexturePaintStroke{
+		Mode:                TextureBrushPaint,
+		Center:              matrix.NewVec2(1, 1),
+		Radius:              0.5,
+		Strength:            1,
+		Falloff:             FalloffConstant,
+		TargetWeight:        0.5,
+		ReplaceLayer:        base,
+		PreserveOtherLayers: true,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected preserved-layer paint to dirty weights")
+	}
+	if got := set.LayerWeightAt(moss, 1, 1); !matrix.ApproxTo(got, 0.25, matrix.Roughly) {
+		t.Fatalf("expected unrelated moss layer to be preserved, got %f", got)
+	}
+	if got := set.LayerWeightAt(base, 1, 1); !matrix.ApproxTo(got, 0.25, matrix.Roughly) {
+		t.Fatalf("expected base layer to compensate target weight, got %f", got)
+	}
+	if got := set.LayerWeightAt(rock, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected rock target weight 0.5, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, set.WeightMap)
+}
+
+func TestTerrainTextureLayerClearAndLocks(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      3,
+		PaintResolution: 3,
+		WorldSize:       matrix.NewVec2(2, 2),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	locked := model.AddLayer(NewTerrainLayer("locked"))
+	model.LayerSet.SetLayerWeightAt(base, 1, 1, 0.2)
+	model.LayerSet.SetLayerWeightAt(paint, 1, 1, 0.3)
+	model.LayerSet.SetLayerWeightAt(locked, 1, 1, 0.5)
+	model.NormalizeWeightsAt(1, 1)
+	layer := model.LayerSet.Layers[locked]
+	layer.Locked = true
+	model.SetLayer(locked, layer)
+	result := model.PaintTextureLayer(paint, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(0, 0),
+		Radius:   0.1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected unlocked paint to dirty weights")
+	}
+	if got := model.LayerWeightAt(locked, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected locked layer to keep 0.5, got %f", got)
+	}
+	dirty := model.ClearLayer(paint)
+	if !dirty.Valid {
+		t.Fatal("expected clear layer to dirty weights")
+	}
+	if got := model.LayerWeightAt(paint, 1, 1); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected cleared layer to be 0, got %f", got)
+	}
+	if got := model.LayerWeightAt(locked, 1, 1); !matrix.ApproxTo(got, 0.5, matrix.Roughly) {
+		t.Fatalf("expected clear to preserve locked layer, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, model.LayerSet.WeightMap)
+}
+
+func TestTerrainAutoMaterialRulesUseSlopeHeightAndNoise(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      5,
+		PaintResolution: 5,
+		WorldSize:       matrix.NewVec2(4, 4),
+		MinHeight:       0,
+		MaxHeight:       10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	grass := model.AddLayer(NewTerrainLayer("grass"))
+	rock := model.AddLayer(NewTerrainLayer("rock"))
+	snow := model.AddLayer(NewTerrainLayer("snow"))
+	for z := 0; z < model.HeightField.Resolution; z++ {
+		for x := 0; x < model.HeightField.Resolution; x++ {
+			model.HeightField.SetHeight(x, z, matrix.Float(x+z))
+		}
+	}
+	rules := TerrainAutoMaterialRules(TerrainAutoMaterialPreset{
+		GrassLayer:    grass,
+		RockLayer:     rock,
+		SnowLayer:     snow,
+		FlatSlopeMax:  5,
+		CliffSlopeMin: 20,
+		SnowHeightMin: 6,
+		NoiseStrength: 0.25,
+		NoiseScale:    2,
+	})
+	if dirty := model.ApplyAutoMaterialRules(rules); !dirty.Valid {
+		t.Fatal("expected auto material generation to dirty weights")
+	}
+	if got := model.LayerWeightAt(snow, 4, 4); got <= 0 {
+		t.Fatalf("expected high terrain to receive snow, got %f", got)
+	}
+	if got := model.LayerWeightAt(rock, 1, 1); got <= 0 {
+		t.Fatalf("expected sloped terrain to receive rock, got %f", got)
+	}
+	assertTextureWeightsNormalized(t, model.LayerSet.WeightMap)
+}
+
+func TestTerrainTexturePaintHonorsSlopeConstraint(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      5,
+		PaintResolution: 5,
+		WorldSize:       matrix.NewVec2(4, 4),
+		MinHeight:       -10,
+		MaxHeight:       10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := model.AddLayer(NewTerrainLayer("base"))
+	steep := model.AddLayer(NewTerrainLayer("steep"))
+	blocked := model.AddLayer(NewTerrainLayer("blocked"))
+	for z := 0; z < model.HeightField.Resolution; z++ {
+		for x := 0; x < model.HeightField.Resolution; x++ {
+			model.HeightField.SetHeight(x, z, matrix.Float(x))
+		}
+	}
+	result := model.PaintTextureLayer(steep, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(0, 0),
+		Radius:   0.75,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+		Constraints: TexturePaintConstraints{
+			UseSlope: true,
+			SlopeMin: 40,
+			SlopeMax: 50,
+		},
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected slope-allowed paint to dirty weights")
+	}
+	if got := model.LayerWeightAt(steep, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected steep layer to paint on 45 degree slope, got %f", got)
+	}
+	result = model.PaintTextureLayer(blocked, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(0, 0),
+		Radius:   0.75,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+		Constraints: TexturePaintConstraints{
+			UseSlope: true,
+			SlopeMin: 0,
+			SlopeMax: 10,
+		},
+	})
+	if result.Dirty.Valid {
+		t.Fatal("expected flat-only slope constraint to block painting")
+	}
+	if got := model.LayerWeightAt(blocked, 2, 2); !matrix.ApproxTo(got, 0, matrix.Roughly) {
+		t.Fatalf("expected blocked layer to stay empty, got %f", got)
+	}
+	if got := model.LayerWeightAt(base, 2, 2) + model.LayerWeightAt(steep, 2, 2) + model.LayerWeightAt(blocked, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected slope-painted weights to stay normalized, got %f", got)
+	}
+}
+
+func TestTerrainTexturePaintLineUsesBrushSpacing(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      5,
+		PaintResolution: 5,
+		WorldSize:       matrix.NewVec2(4, 4),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	result := model.PaintTextureLine(paint, matrix.NewVec2(-2, 0), matrix.NewVec2(2, 0), TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Radius:   0.1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+		Spacing:  1,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected line painting to dirty weights")
+	}
+	for x := 0; x < model.LayerSet.WeightMap.Resolution; x++ {
+		if got := model.LayerWeightAt(paint, x, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+			t.Fatalf("expected line stamp at x=%d,z=2, got %f", x, got)
+		}
+	}
+}
+
+func TestTerrainApplyTextureWeightRegionRestoresPackedWeights(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      5,
+		PaintResolution: 5,
+		WorldSize:       matrix.NewVec2(4, 4),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	region := DirtyRegion{MinX: 2, MinZ: 2, MaxX: 3, MaxZ: 3, Valid: true}
+	before := model.CopyTextureWeightRegion(region)
+	result := model.PaintTextureLayer(paint, TexturePaintStroke{
+		Mode:     TextureBrushPaint,
+		Center:   matrix.NewVec2(0, 0),
+		Radius:   1,
+		Strength: 1,
+		Falloff:  FalloffConstant,
+	})
+	if !result.Dirty.Valid {
+		t.Fatal("expected texture paint to dirty weights")
+	}
+	afterPaint := model.CopyTextureWeightRegion(region)
+	if !model.ApplyTextureWeightRegion(region, before).Valid {
+		t.Fatal("expected undo weight region to apply")
+	}
+	for z := region.MinZ; z <= region.MaxZ; z++ {
+		for x := region.MinX; x <= region.MaxX; x++ {
+			if got := model.LayerWeightAt(base, x, z); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+				t.Fatalf("expected base weight restored at %d,%d, got %f", x, z, got)
+			}
+		}
+	}
+	if !model.ApplyTextureWeightRegion(region, afterPaint).Valid {
+		t.Fatal("expected redo weight region to apply")
+	}
+	if got := model.LayerWeightAt(paint, 2, 2); !matrix.ApproxTo(got, 1, matrix.Roughly) {
+		t.Fatalf("expected paint weight restored at 2,2, got %f", got)
+	}
+}
+
+func TestTerrainLayerSetStateRestoresLayerOperations(t *testing.T) {
+	model, err := NewModel(TerrainConfig{
+		Resolution:      4,
+		PaintResolution: 4,
+		WorldSize:       matrix.NewVec2(4, 4),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := model.AddLayer(NewTerrainLayer("base"))
+	paint := model.AddLayer(NewTerrainLayer("paint"))
+	model.LayerSet.SetLayerWeightAt(base, 1, 1, 0.25)
+	model.LayerSet.SetLayerWeightAt(paint, 1, 1, 0.75)
+	before := model.LayerSetState()
+	rock := model.AddLayer(NewTerrainLayer("rock"))
+	model.LayerSet.SetLayerWeightAt(rock, 1, 1, 0.5)
+	model.NormalizeWeightsAt(1, 1)
+	if !model.MoveLayer(rock, 0) {
+		t.Fatal("expected layer reorder to succeed")
+	}
+	after := model.LayerSetState()
+	if !model.ApplyLayerSetState(before) {
+		t.Fatal("expected before layer state to apply")
+	}
+	if got := model.LayerCount(); got != 2 {
+		t.Fatalf("expected two restored layers, got %d", got)
+	}
+	if got := model.LayerSet.Layers[0].TextureContentID; got != "base" {
+		t.Fatalf("expected base layer restored first, got %q", got)
+	}
+	if got := model.LayerWeightAt(paint, 1, 1); !matrix.ApproxTo(got, 0.75, matrix.Roughly) {
+		t.Fatalf("expected paint weight restored, got %f", got)
+	}
+	if !model.ApplyLayerSetState(after) {
+		t.Fatal("expected after layer state to apply")
+	}
+	if got := model.LayerSet.Layers[0].TextureContentID; got != "rock" {
+		t.Fatalf("expected rock layer restored first after redo, got %q", got)
+	}
+}
+
+func assertTextureWeightsNormalized(t *testing.T, weights *TextureWeightMap) {
+	t.Helper()
+	for z := 0; z < weights.Resolution; z++ {
+		for x := 0; x < weights.Resolution; x++ {
+			var sum matrix.Float
+			for layer := 0; layer < weights.Layers; layer++ {
+				sum += weights.WeightAt(layer, x, z)
+			}
+			if !matrix.ApproxTo(sum, 1, matrix.Roughly) {
+				t.Fatalf("expected weights at %d,%d to sum to 1, got %f", x, z, sum)
+			}
+		}
+	}
+}

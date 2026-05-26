@@ -46,8 +46,9 @@ git clone --recurse-submodules https://github.com/KaijuEngine/kaiju.git
 
 If you have Go, C build tools, platform libs, and Vulkan setup, you can start by running:
 ```sh
+mkdir bin/
 cd src
-go build -tags="debug,editor,filedrop,filedialog" -o ../ ./
+go build -tags="debug,editor,filedrop,filedialog" -o ../bin/ ./
 ```
 
 *Or just open the repository in VSCode (or other IDE) and begin debugging it.*

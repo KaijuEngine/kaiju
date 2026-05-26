@@ -1,43 +1,12 @@
 /******************************************************************************/
 /* select.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
 
 import (
-	"slices"
 	"weak"
 
 	"kaijuengine.com/engine/assets"
@@ -50,17 +19,23 @@ const (
 	triangleTexSize = 16
 	triangleUVX     = 160
 	triangleUVY     = 96
+
+	selectTriangleRightPadding = 6
+	selectTextPaddingLeft      = 8
+	selectTextPaddingRight     = triangleTexSize + (selectTriangleRightPadding * 2)
+	selectOptionTextPadding    = 8
 )
 
 type selectData struct {
 	panelData
-	label    *Label
-	list     *Panel
-	triangle *UI
-	options  []SelectOption
-	selected int
-	isOpen   bool
-	text     string
+	label     *Label
+	list      *Panel
+	triangle  *UI
+	options   []SelectOption
+	selected  int
+	isOpen    bool
+	text      string
+	textColor matrix.Color
 }
 
 type SelectOption struct {
@@ -73,11 +48,53 @@ func (s *selectData) innerPanelData() *panelData { return &s.panelData }
 
 type Select Panel
 
-type TriangleStylizer RightStylizer
+type SelectTextStylizer struct{ BasicStylizer }
+type SelectOptionStylizer struct{ BasicStylizer }
+type SelectOptionTextStylizer struct{ BasicStylizer }
+type TriangleStylizer struct{ BasicStylizer }
+
+func (s SelectTextStylizer) ProcessStyle(layout *Layout) []error {
+	parent := s.Parent.Value()
+	if parent == nil || !parent.IsValid() {
+		return []error{}
+	}
+	size := parent.layout.PixelSize()
+	layout.ScaleWidth(max(1, size.X()-selectTextPaddingLeft-selectTextPaddingRight))
+	layout.SetOffset(selectTextPaddingLeft, 0)
+	return []error{}
+}
+
+func (s SelectOptionStylizer) ProcessStyle(layout *Layout) []error {
+	parent := s.Parent.Value()
+	if parent == nil || !parent.IsValid() {
+		return []error{}
+	}
+	size := parent.layout.PixelSize()
+	layout.Scale(max(1, size.X()), max(1, size.Y()))
+	return []error{}
+}
+
+func (s SelectOptionTextStylizer) ProcessStyle(layout *Layout) []error {
+	parent := s.Parent.Value()
+	if parent == nil || !parent.IsValid() {
+		return []error{}
+	}
+	size := parent.layout.PixelSize()
+	layout.Scale(max(1, size.X()-(selectOptionTextPadding*2)), max(1, size.Y()))
+	layout.SetOffset(selectOptionTextPadding, 0)
+	return []error{}
+}
 
 func (t TriangleStylizer) ProcessStyle(layout *Layout) []error {
-	RightStylizer(t).ProcessStyle(layout)
-	layout.Scale(16, 16)
+	parent := t.Parent.Value()
+	if parent == nil || !parent.IsValid() {
+		return []error{}
+	}
+	parentSize := parent.layout.PixelSize()
+	layout.Scale(triangleTexSize, triangleTexSize)
+	layout.SetOffset(
+		max(0, parentSize.X()-triangleTexSize-selectTriangleRightPadding),
+		max(0, (parentSize.Y()-triangleTexSize)*0.5))
 	return []error{}
 }
 
@@ -92,6 +109,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 	s.elmType = ElementTypeSelect
 	data := &selectData{}
 	data.text = text
+	data.textColor = selectTextColor()
 	s.elmData = data
 	p := s.Base().ToPanel()
 	p.DontFitContent()
@@ -100,18 +118,25 @@ func (s *Select) Init(text string, options []SelectOption) {
 	bg, _ := host.TextureCache().Texture(
 		assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(bg, ElementTypeSelect)
+	p.SetColor(selectControlColor())
+	p.SetBorderSize(1, 1, 1, 1)
+	p.SetBorderStyle(BorderStyleSolid, BorderStyleSolid, BorderStyleSolid, BorderStyleSolid)
+	p.SetBorderColor(selectBorderColor(), selectBorderColor(), selectBorderColor(), selectBorderColor())
+	p.SetBorderRadius(3, 3, 3, 3)
 	data.selected = -1
 	{
 		// Create the label
 		label := man.Add()
 		lbl := label.ToLabel()
 		lbl.Init(data.text)
-		// lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
+		lbl.layout.Stylizer = SelectTextStylizer{BasicStylizer{weak.Make(p.Base())}}
+		lbl.layout.SetPositioning(PositioningAbsolute)
 		lbl.SetJustify(rendering.FontJustifyLeft)
 		lbl.SetBaseline(rendering.FontBaselineCenter)
-		lbl.SetFontSize(14)
-		lbl.SetColor(matrix.ColorBlack())
-		lbl.SetBGColor(p.shaderData.FgColor)
+		lbl.SetFontSize(13)
+		lbl.SetWrap(false)
+		lbl.SetColor(data.textColor)
+		lbl.SetBGColor(p.Color())
 		p.AddChild(label)
 		data.label = lbl
 	}
@@ -120,6 +145,11 @@ func (s *Select) Init(text string, options []SelectOption) {
 		listPanel := man.Add()
 		lp := listPanel.ToPanel()
 		lp.Init(bg, ElementTypePanel)
+		lp.SetColor(selectListColor())
+		lp.SetBorderSize(1, 1, 1, 1)
+		lp.SetBorderStyle(BorderStyleSolid, BorderStyleSolid, BorderStyleSolid, BorderStyleSolid)
+		lp.SetBorderColor(selectBorderColor(), selectBorderColor(), selectBorderColor(), selectBorderColor())
+		lp.SetBorderRadius(3, 3, 3, 3)
 		lp.SetOverflow(OverflowScroll)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
@@ -139,18 +169,24 @@ func (s *Select) Init(text string, options []SelectOption) {
 		imgTSize := img.textureSize
 		img.shaderData.setUVSize(triangleTexSize/imgTSize.X(), triangleTexSize/imgTSize.Y())
 		img.shaderData.setUVXY(triangleUVX/imgTSize.X(), triangleUVY, imgTSize.Y())
-		tri.layout.Stylizer = TriangleStylizer(RightStylizer{BasicStylizer{weak.Make(p.Base())}})
-		tri.ToPanel().SetColor(matrix.ColorBlack())
+		tri.layout.Stylizer = TriangleStylizer{BasicStylizer{weak.Make(p.Base())}}
+		tri.ToPanel().SetColor(data.textColor)
 		tri.layout.SetPositioning(PositioningAbsolute)
 		p.AddChild(tri)
 		tri.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
 		data.triangle = tri
 		//img.layout.SetOffset(5, 0)
 	}
-	data.options = slices.Clone(options)
+	for i := range options {
+		s.AddOption(options[i].Name, options[i].Value)
+	}
 	// TODO:  On list miss, close it, which means this local_select_click
 	// will probably need to skip on that miss?
 	s.Base().AddEvent(EventTypeClick, s.onClick)
+	s.Base().AddEvent(EventTypeEnter, s.onEnter)
+	s.Base().AddEvent(EventTypeExit, s.onExit)
+	s.Base().AddEvent(EventTypeDown, s.onDown)
+	s.Base().AddEvent(EventTypeUp, s.onUp)
 	s.entity.OnDeactivate.Add(s.collapse)
 	s.collapse()
 }
@@ -161,31 +197,36 @@ func (s *Select) AddOption(name, value string) {
 	man := s.man.Value()
 	panel := man.Add()
 	p := panel.ToPanel()
-	p.Init(nil, ElementTypePanel)
-	p.layout.Stylizer = StretchWidthStylizer{BasicStylizer{weak.Make(s.Base())}}
+	bg, _ := s.Base().Host().TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	p.Init(bg, ElementTypePanel)
+	p.SetColor(selectOptionColor())
+	p.layout.Stylizer = SelectOptionStylizer{BasicStylizer{weak.Make(s.Base())}}
 	p.DontFitContent()
 	p.entity.SetName(name)
 	// Create the label
 	label := man.Add()
 	lbl := label.ToLabel()
 	lbl.Init(name)
-	p.layout.ScaleHeight(lbl.Measure().Y())
-	// lbl.layout.Stylizer = StretchCenterStylizer{BasicStylizer{p.Base()}}
+	lbl.layout.Stylizer = SelectOptionTextStylizer{BasicStylizer{weak.Make(panel)}}
+	lbl.layout.SetPositioning(PositioningAbsolute)
 	lbl.SetJustify(rendering.FontJustifyLeft)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
-	lbl.SetFontSize(14)
-	lbl.SetColor(matrix.ColorBlack())
-	lbl.SetBGColor(data.list.shaderData.FgColor)
+	lbl.SetFontSize(13)
+	lbl.SetWrap(false)
+	lbl.SetColor(data.textColor)
+	lbl.SetBGColor(p.Color())
 	p.AddChild(label)
 	data.list.AddChild(panel)
 	panel.AddEvent(EventTypeClick, func() { s.optionClick(panel) })
 	panel.events[EventTypeEnter].Add(func() {
-		p.EnforceColor(matrix.ColorGray())
-		lbl.SetBGColor(p.shaderData.FgColor)
+		p.EnforceColor(selectOptionHoverColor())
+		lbl.SetColor(matrix.ColorWhite())
+		lbl.SetBGColor(p.Color())
 	})
 	panel.events[EventTypeExit].Add(func() {
 		p.UnEnforceColor()
-		lbl.SetBGColor(p.shaderData.FgColor)
+		lbl.SetColor(data.textColor)
+		lbl.SetBGColor(p.Color())
 	})
 	data.options = append(data.options, SelectOption{name, value, panel})
 }
@@ -267,14 +308,38 @@ func (s *Select) Value() string {
 
 func (s *Select) SetColor(newColor matrix.Color) {
 	s.Base().ToPanel().SetColor(newColor)
+	s.SelectData().label.SetBGColor(newColor)
 }
 
 func (s *Select) SetOptionsColor(newColor matrix.Color) {
 	s.SelectData().list.SetColor(newColor)
-	// TODO:  Go through and set all the labels background colors
+	data := s.SelectData()
+	for i := range data.options {
+		if target := data.options[i].target; target != nil {
+			target.ToPanel().SetColor(newColor)
+			s.setOptionLabelBG(target, newColor)
+		}
+	}
+}
+
+func (s *Select) SetTextColor(newColor matrix.Color) {
+	data := s.SelectData()
+	data.textColor = newColor
+	data.label.SetColor(newColor)
+	data.triangle.ToPanel().SetColor(newColor)
+	for i := range data.options {
+		if target := data.options[i].target; target != nil {
+			if label := s.optionLabel(target); label != nil {
+				label.SetColor(newColor)
+			}
+		}
+	}
 }
 
 func (s *Select) onClick() {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	if data.isOpen {
 		s.collapse()
@@ -283,7 +348,46 @@ func (s *Select) onClick() {
 	}
 }
 
+func (s *Select) onEnter() {
+	if s.IsDisabled() {
+		return
+	}
+	panel := s.Base().ToPanel()
+	panel.EnforceColor(selectControlHoverColor(panel.Color()))
+	s.SelectData().label.SetBGColor(panel.Color())
+}
+
+func (s *Select) onExit() {
+	if s.IsDisabled() {
+		return
+	}
+	panel := s.Base().ToPanel()
+	panel.UnEnforceColor()
+	s.SelectData().label.SetBGColor(panel.Color())
+}
+
+func (s *Select) onDown() {
+	if s.IsDisabled() {
+		return
+	}
+	panel := s.Base().ToPanel()
+	panel.EnforceColor(selectControlDownColor(panel.Color()))
+	s.SelectData().label.SetBGColor(panel.Color())
+}
+
+func (s *Select) onUp() {
+	if s.IsDisabled() {
+		return
+	}
+	panel := s.Base().ToPanel()
+	panel.UnEnforceColor()
+	s.SelectData().label.SetBGColor(panel.Color())
+}
+
 func (s *Select) onMiss() {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	if data.isOpen {
 		s.collapse()
@@ -291,6 +395,9 @@ func (s *Select) onMiss() {
 }
 
 func (s *Select) expand() {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	data.list.Base().Show()
 	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 0))
@@ -340,6 +447,9 @@ func (s *Select) collapse() {
 }
 
 func (s *Select) optionClick(option *UI) {
+	if s.IsDisabled() {
+		return
+	}
 	data := s.SelectData()
 	// Scroll bar is a child, can't use data.list.entity.IndexOfChild(&option.entity)
 	idx := 0
@@ -352,11 +462,61 @@ func (s *Select) optionClick(option *UI) {
 	s.PickOption(idx)
 }
 
+func (s *Select) optionLabel(option *UI) *Label {
+	for _, child := range option.entity.Children {
+		ui := FirstOnEntity(child)
+		if ui != nil && ui.IsType(ElementTypeLabel) {
+			return ui.ToLabel()
+		}
+	}
+	return nil
+}
+
+func (s *Select) setOptionLabelBG(option *UI, color matrix.Color) {
+	if label := s.optionLabel(option); label != nil {
+		label.SetBGColor(color)
+	}
+}
+
 func (s *Select) update(deltaTime float64) {
 	defer tracing.NewRegion("Select.update").End()
 	s.Base().ToPanel().update(deltaTime)
 	data := s.SelectData()
+	data.label.SetBGColor(s.Base().ToPanel().Color())
 	if data.isOpen {
 		s.updateExpandedTransform()
 	}
+}
+
+func (s *Select) IsDisabled() bool {
+	return s.Base().IsDisabled()
+}
+
+func (s *Select) SetDisabled(disabled bool) {
+	s.Base().SetDisabled(disabled)
+	if disabled {
+		s.collapse()
+		panel := s.Base().ToPanel()
+		panel.UnEnforceColor()
+		s.SelectData().label.SetBGColor(panel.Color())
+	}
+}
+
+func selectControlColor() matrix.Color     { return matrix.ColorRGBInt(40, 40, 40) }
+func selectListColor() matrix.Color        { return matrix.ColorRGBInt(18, 18, 18) }
+func selectOptionColor() matrix.Color      { return matrix.ColorRGBInt(31, 31, 31) }
+func selectOptionHoverColor() matrix.Color { return matrix.ColorRGBInt(87, 87, 87) }
+func selectBorderColor() matrix.Color      { return matrix.ColorRGBInt(200, 200, 200) }
+func selectTextColor() matrix.Color        { return matrix.ColorRGBInt(170, 170, 170) }
+
+func selectControlHoverColor(base matrix.Color) matrix.Color {
+	hover := base.ScaleWithoutAlpha(1.2)
+	hover.SetA(base.A())
+	return hover
+}
+
+func selectControlDownColor(base matrix.Color) matrix.Color {
+	down := base.ScaleWithoutAlpha(0.85)
+	down.SetA(base.A())
+	return down
 }

@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* rotation_tool.go                                                           */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package transform_tools
@@ -39,8 +9,9 @@ package transform_tools
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/cameras"
-	"kaijuengine.com/engine/collision"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
@@ -48,8 +19,9 @@ import (
 )
 
 const (
-	rotationGizmoRadius   = 2
-	rotationGizmoSegments = 64
+	rotationGizmoRadius        = 2
+	rotationGizmoSegments      = 64
+	rotationGizmoPickThickness = 0.5
 )
 
 type RotationTool struct {
@@ -65,21 +37,24 @@ type RotationTool struct {
 
 type TranslationToolCircle struct {
 	shaderData rendering.DrawInstance
+	pickData   rendering.DrawInstance
 	transform  matrix.Transform
-	hitCircle  collision.Circle
+	hitCircle  graviton.Circle
 }
 
-func (t *RotationTool) Initialize(host *engine.Host) {
+func (t *RotationTool) Initialize(host *engine.Host, stage StageInterface) {
+	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
+	pickMat, _ := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	for i := range t.circles {
-		t.circles[i].Initialize(host, i)
+		t.circles[i].Initialize(host, pickMat, i)
 		t.circles[i].transform.SetParent(&t.root)
 	}
 	t.Hide()
 }
 
-func (a *TranslationToolCircle) Initialize(host *engine.Host, vec int) {
+func (a *TranslationToolCircle) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	a.transform.Initialize(host.WorkGroup())
 	m := rendering.NewMeshCircleWire(host.MeshCache(), rotationGizmoRadius, rotationGizmoSegments)
 	mat, _ := host.MaterialCache().Material("gizmo_overlay_wire.material")
@@ -100,16 +75,19 @@ func (a *TranslationToolCircle) Initialize(host *engine.Host, vec int) {
 		Mesh:       m,
 		ShaderData: a.shaderData,
 		Transform:  &a.transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+	pickMesh := newRotationGizmoPickMesh(host.MeshCache(), rotationGizmoRadius, rotationGizmoPickThickness, rotationGizmoSegments)
+	a.pickData = addGizmoPickDrawing(host, pickMat, pickMesh, &a.transform, a.shaderData, rotationPickID(vec))
 }
 
 func (t *RotationTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
-	if t.cameraMode == editor_controls.EditorCameraMode2d {
-		t.circles[2].shaderData.Activate()
+	if axis, ok := t.planarRotationAxis(); ok {
+		t.circles[axis].shaderData.Activate()
 	} else {
 		for i := range t.circles {
 			t.circles[i].shaderData.Activate()
@@ -139,6 +117,9 @@ func (t *RotationTool) Update(host *engine.Host, snap bool, snapScale float32) b
 }
 
 func (t *RotationTool) SetDimensions(mode editor_controls.EditorCameraMode) {
+	if t.cameraMode == mode {
+		return
+	}
 	t.cameraMode = mode
 	if t.visible {
 		t.Hide()
@@ -155,16 +136,29 @@ func (t *RotationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
 	}
-	ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
 	dist := matrix.FloatMax
 	target := -1
-	for i := range t.circles {
-		if hit, ok := t.circles[i].hitCircle.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				t.lastHit = hit
-				dist = d
+	textureHit := false
+	if pickID, ok := t.pickIDAtCursor(&host.Window.Cursor); ok {
+		textureHit = true
+		if axis, hit := rotationPickAxis(pickID); hit {
+			if planarAxis, ok := t.planarRotationAxis(); !ok || planarAxis == axis {
+				target = axis
+			}
+		}
+	} else if !t.isFixedPanelView() {
+		ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
+		for i := range t.circles {
+			if axis, ok := t.planarRotationAxis(); ok && i != axis {
+				continue
+			}
+			if hit, ok := t.circles[i].hitCircle.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					t.lastHit = hit
+					dist = d
+				}
 			}
 		}
 	}
@@ -186,6 +180,13 @@ func (t *RotationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 			sd.Color = matrix.ColorYellow()
 		}
 	}
+	if textureHit && target != -1 {
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(&host.Window.Cursor), t.root.Position(), t.axisDirection(target)); ok {
+			t.lastHit = hit
+		} else {
+			t.lastHit = t.root.Position()
+		}
+	}
 }
 
 func (t *RotationTool) updateHitCircles() {
@@ -193,17 +194,17 @@ func (t *RotationTool) updateHitCircles() {
 	scale := t.root.Scale().LargestAxis()
 	r := matrix.Float((rotationGizmoRadius + clickPadding) * scale)
 	for i := range t.circles {
-		t.circles[i].hitCircle = collision.Circle{
+		t.circles[i].hitCircle = graviton.Circle{
 			Point:  t.root.Position(),
 			Radius: r,
 		}
 		switch i {
 		case matrix.Vx:
-			t.circles[i].hitCircle.Axis = collision.AxisX
+			t.circles[i].hitCircle.Axis = graviton.AxisX
 		case matrix.Vy:
-			t.circles[i].hitCircle.Axis = collision.AxisY
+			t.circles[i].hitCircle.Axis = graviton.AxisY
 		case matrix.Vz:
-			t.circles[i].hitCircle.Axis = collision.AxisZ
+			t.circles[i].hitCircle.Axis = graviton.AxisZ
 		}
 	}
 }
@@ -234,7 +235,7 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera, snap b
 		case matrix.Vz:
 			nml = matrix.NewVec3(0, 0, 1)
 		}
-		if hit, ok := cam.TryPlaneHit(t.cursorPosition(c), rp, nml); ok {
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(c), rp, nml); ok {
 			dir := hit.Subtract(t.root.Position()).Normal()
 			angle := t.lastDirection.SignedAngle(dir, nml)
 			t.lastDirection = dir
@@ -249,9 +250,7 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera, snap b
 			t.dragging = false
 			t.OnDragEnd.Execute(t.rotationVector())
 			t.rotationDelta = 0
-			for i := range t.circles {
-				t.circles[i].shaderData.Activate()
-			}
+			t.Show(t.root.Position())
 		}
 	}
 }

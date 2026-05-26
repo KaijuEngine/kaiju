@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* shading_workspace.go                                                       */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package shading_workspace
@@ -41,24 +11,36 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace/shading_workspace/shader_designer"
+	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
-	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 )
 
+const (
+	ID          = "shading"
+	DisplayName = "Shading"
+)
+
+func init() {
+	editor_workspace_registry.Register(&ShadingWorkspace{})
+}
+
 type ShadingWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed                     ShadingWorkspaceEditorInterface
+	ed                     editor_workspace.WorkspaceEditorInterface
 	stageView              *editor_stage_view.StageView
 	designer               shader_designer.ShaderDesigner
 	renderSpecList         *document.Element
 	renderSpecListTemplate *document.Element
 	toolTip                *document.Element
+	openSpecSubID          events.Id
 }
 
 type ShadingWorkspaceUIData struct {
@@ -71,11 +53,16 @@ type ShadingWorkspaceUIDataFile struct {
 	Name string
 }
 
-func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEditorInterface) {
+func (w *ShadingWorkspace) ID() string          { return ID }
+func (w *ShadingWorkspace) DisplayName() string { return DisplayName }
+func (w *ShadingWorkspace) IsRequired() bool    { return false }
+
+func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
+	host := ed.Host()
 	w.ed = ed
 	w.stageView = ed.StageView()
 	data := ShadingWorkspaceUIData{Files: w.readExisting()}
-	w.CommonWorkspace.InitializeWithUI(host,
+	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/shading_workspace.go.html", data, map[string]func(*document.Element){
 			"toggleFilterSpec":   w.toggleFilterSpec,
 			"selectSpec":         w.selectSpec,
@@ -84,7 +71,9 @@ func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEdit
 			"clickNewShader":     w.clickNewShader,
 			"clickNewMaterial":   w.clickNewMaterial,
 			"showTooltip":        w.showTooltip,
-		})
+		}); err != nil {
+		return err
+	}
 	w.designer.Initialize(host, &w.UiMan, w.ed)
 	w.renderSpecList, _ = w.Doc.GetElementById("renderSpecList")
 	w.renderSpecListTemplate, _ = w.Doc.GetElementById("renderSpecListTemplate")
@@ -92,6 +81,21 @@ func (w *ShadingWorkspace) Initialize(host *engine.Host, ed ShadingWorkspaceEdit
 	w.ed.Events().OnContentAdded.Add(w.contentAdded)
 	w.ed.Events().OnContentRemoved.Add(w.contentRemoved)
 	w.ed.Events().OnContentRenamed.Add(w.contentRenamed)
+	// Subscribe to cross-workspace request to open a spec; this also
+	// switches the shading workspace active.
+	w.openSpecSubID = ed.Events().OnRequestOpenShadingSpec.Add(func(specID string) {
+		ed.SelectWorkspace(ID)
+		w.OpenSpec(specID)
+	})
+	return nil
+}
+
+func (w *ShadingWorkspace) Shutdown() {
+	defer tracing.NewRegion("ShadingWorkspace.Shutdown").End()
+	if w.ed != nil {
+		w.ed.Events().OnRequestOpenShadingSpec.Remove(w.openSpecSubID)
+	}
+	w.CommonShutdown()
 }
 
 func (w *ShadingWorkspace) Open() {

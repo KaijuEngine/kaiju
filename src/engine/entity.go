@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* entity.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package engine
@@ -39,6 +9,7 @@ package engine
 import (
 	"log/slog"
 	"slices"
+	"weak"
 
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/klib"
@@ -59,10 +30,11 @@ type EntityId string
 // to access data that is specific to the entity.
 //
 // Child entities are unordered by default, you'll need to call
-// #Entity.SetChildrenOrdered to make them ordered. It is recommended to leave
+// [Entity.SetChildrenOrdered] to make them ordered. It is recommended to leave
 // children unordered unless you have a specific reason to order them.
 type Entity struct {
 	id                    EntityId
+	idHost                weak.Pointer[Host]
 	Transform             matrix.Transform
 	Parent                *Entity
 	Children              []*Entity
@@ -78,7 +50,7 @@ type Entity struct {
 	orderedChildren       bool
 }
 
-// NewEntity creates a new #Entity struct and returns it
+// NewEntity creates a new [Entity] struct and returns it
 func NewEntity(workGroup *concurrent.WorkGroup) *Entity {
 	e := &Entity{}
 	e.Init(workGroup)
@@ -136,7 +108,7 @@ func (e *Entity) SetChildrenUnordered() {
 }
 
 // Activate will set an active flag on the entity that can be queried with
-// #Entity.IsActive. It will also set the active flag on all children of the
+// [Entity.IsActive]. It will also set the active flag on all children of the
 // entity. If the entity is already active, this function will do nothing.
 func (e *Entity) Activate() {
 	if e.isActive {
@@ -151,7 +123,7 @@ func (e *Entity) Activate() {
 }
 
 // Deactivate will set an active flag on the entity that can be queried with
-// #Entity.IsActive. It will also set the active flag on all children of the
+// [Entity.IsActive]. It will also set the active flag on all children of the
 // entity. If the entity is already inactive, this function will do nothing.
 func (e *Entity) Deactivate() {
 	if !e.isActive {
@@ -166,7 +138,7 @@ func (e *Entity) Deactivate() {
 }
 
 // SetActive will set the active flag on the entity that can be queried with
-// #Entity.IsActive. It will also set the active flag on all children of the
+// [Entity.IsActive]. It will also set the active flag on all children of the
 // entity. If the entity is already active, this function will do nothing.
 func (e *Entity) SetActive(isActive bool) {
 	if e.isActive != isActive {
@@ -266,6 +238,10 @@ func (e *Entity) FindByName(name string) *Entity {
 // be called in very specific scenarios and not directly in game code. Unless
 // there is a good reason (like this entity no longer bein gin the host).
 func (e *Entity) ForceCleanup() {
+	host := e.idHost.Value()
+	if host != nil {
+		host.unregisterEntityId(e)
+	}
 	e.OnDestroy.Execute()
 	*e = Entity{}
 }
@@ -418,6 +394,7 @@ func (e *Entity) destroy(host *Host) {
 func (e *Entity) innerDestroy(host *Host) {
 	if !e.isDestroyed {
 		e.isDestroyed = true
+		host.unregisterEntityId(e)
 		for i := range e.Children {
 			host.destroyedEntities = append(host.destroyedEntities, e.Children[i])
 			e.Children[i].innerDestroy(host)

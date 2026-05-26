@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* content_workspace.go                                                       */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package content_workspace
@@ -54,10 +24,11 @@ import (
 	"kaijuengine.com/editor/editor_overlay/context_menu"
 	"kaijuengine.com/editor/editor_overlay/file_browser"
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
+	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
-	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
@@ -66,11 +37,24 @@ import (
 	"kaijuengine.com/rendering"
 )
 
+const (
+	// ID is the stable workspace identifier used for registration, settings,
+	// and SelectWorkspace calls.
+	ID = "content"
+
+	// DisplayName is the label shown on the content workspace's menu bar tab.
+	DisplayName = "Content"
+)
+
+func init() {
+	editor_workspace_registry.Register(&ContentWorkspace{})
+}
+
 type ContentWorkspace struct {
 	common_workspace.CommonWorkspace
 	pfs                *project_file_system.FileSystem
 	cache              *content_database.Cache
-	editor             ContentWorkspaceEditorInterface
+	editor             editor_workspace.WorkspaceEditorInterface
 	typeFilters        klib.Set[string]
 	typeFiltersDisable klib.Set[string]
 	tagFilters         klib.Set[string]
@@ -102,14 +86,19 @@ type ContentWorkspace struct {
 	}
 }
 
-func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspaceEditorInterface) {
+func (w *ContentWorkspace) ID() string          { return ID }
+func (w *ContentWorkspace) DisplayName() string { return DisplayName }
+func (w *ContentWorkspace) IsRequired() bool    { return true }
+
+func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	defer tracing.NewRegion("ContentWorkspace.Initialize").End()
-	w.pfs = editor.ProjectFileSystem()
-	w.cache = editor.Cache()
-	w.editor = editor
+	host := ed.Host()
+	w.pfs = ed.ProjectFileSystem()
+	w.cache = ed.Cache()
+	w.editor = ed
 	w.audio.workspace = weak.Make(w)
 	ids := w.pageData.SetupUIData(w.cache)
-	w.CommonWorkspace.InitializeWithUI(host,
+	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/content_workspace.go.html", w.pageData, map[string]func(*document.Element){
 			"inputFilter":         w.inputFilter,
 			"tagFilter":           w.tagFilter,
@@ -128,11 +117,14 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 			"entryMouseMove":      w.entryMouseMove,
 			"entryMouseLeave":     w.entryMouseLeave,
 			"rightClickContent":   w.rightClickContent,
+			"rightClickTag":       w.rightClickTag,
 			"clickClearSelection": w.clickClearSelection,
 			"clickPlayAudio":      w.clickPlayAudio,
 			"changeAudioPosition": w.changeAudioPosition,
 			"clickOpenInEditor":   w.clickOpenInEditor,
-		})
+		}); err != nil {
+		return err
+	}
 	w.tagFilters = klib.NewSet[string]()
 	w.tagFiltersDisable = klib.NewSet[string]()
 	w.typeFilters = klib.NewSet[string]()
@@ -165,6 +157,17 @@ func (w *ContentWorkspace) Initialize(host *engine.Host, editor ContentWorkspace
 	edEvts.OnTagNoLongerInUse.Add(w.handleTagNoLongerInUse)
 	edEvts.OnContentAdded.Execute(ids)
 	w.audio.audioPlayer.UI.Entity().OnDeactivate.Add(w.audio.stopAudio)
+	return nil
+}
+
+// Shutdown is called when the editor disables this workspace at runtime. It
+// drops the UI document. (Event subscriptions are not currently tracked for
+// removal — the editor process owns the EditorEvents lifetime so leaked
+// subscriptions are harmless until restart. Add explicit Remove calls if
+// disabling/re-enabling within a session becomes a hot path.)
+func (w *ContentWorkspace) Shutdown() {
+	defer tracing.NewRegion("ContentWorkspace.Shutdown").End()
+	w.CommonShutdown()
 }
 
 func (w *ContentWorkspace) Open() {
@@ -317,6 +320,7 @@ func (w *ContentWorkspace) addContent(ids []string) {
 	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(w.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
+		w.allowEntryVisualsClickThrough(cpys[i])
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].InnerLabel()
@@ -382,6 +386,15 @@ func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_datab
 				}
 			})
 		}()
+	}
+}
+
+func (w *ContentWorkspace) allowEntryVisualsClickThrough(e *document.Element) {
+	for i := range e.Children {
+		child := e.Children[i]
+		if child.HasClass("preview") || child.HasClass("entryLabel") || child.HasClass("typeThumb") {
+			child.UIPanel.AllowClickThrough()
+		}
 	}
 }
 
@@ -808,7 +821,15 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 		} else if cc.Config.Type == (content_database.Html{}).TypeName() {
 			options = append(options, context_menu.ContextMenuOption{
 				Label: "View in UI workspace",
-				Call:  func() { w.editor.ViewHtmlUi(id) },
+				Call:  func() { w.editor.Events().OnRequestViewHtmlUi.Execute(id) },
+			})
+		}
+		if cc.Config.Type == (content_database.Terrain{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Open in terrain editor",
+				Call: func() {
+					w.openInEditor(cc)
+				},
 			})
 		}
 		if isEditableText {
@@ -982,8 +1003,7 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 	case content_database.Texture{}.TypeName():
 		ed = w.editor.Settings().ImageEditor
 	case content_database.ParticleSystem{}.TypeName():
-		w.editor.VfxWorkspaceSelected()
-		w.editor.VfxWorkspace().OpenParticleSystem(cc.Id())
+		w.editor.Events().OnRequestOpenParticleSystem.Execute(cc.Id())
 		return
 	case content_database.Material{}.TypeName():
 		fallthrough
@@ -992,11 +1012,13 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 	case content_database.ShaderPipeline{}.TypeName():
 		fallthrough
 	case content_database.Shader{}.TypeName():
-		w.editor.ShadingWorkspaceSelected()
-		w.editor.ShadingWorkspace().OpenSpec(cc.Id())
+		w.editor.Events().OnRequestOpenShadingSpec.Execute(cc.Id())
+		return
+	case content_database.Terrain{}.TypeName():
+		w.editor.Events().OnRequestOpenTerrain.Execute(cc.Id())
 		return
 	case content_database.Stage{}.TypeName():
-		w.editor.OpenStageInStageWorkspace(cc.Id())
+		w.editor.Events().OnRequestOpenStage.Execute(cc.Id())
 	case content_database.TableOfContents{}.TypeName():
 		w.showTableOfContents(cc.Id())
 		return
@@ -1181,4 +1203,96 @@ func (w *ContentWorkspace) requestChangeGuid(id string) {
 			w.editor.FocusInterface()
 		},
 	})
+}
+
+func (w *ContentWorkspace) rightClickTag(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.rightClickTag").End()
+	tag := e.Attribute("data-tag")
+	if tag == "" {
+		return
+	}
+	w.editor.BlurInterface()
+	options := []context_menu.ContextMenuOption{
+		{
+			Label: fmt.Sprintf("Delete all content with tag '%s'", tag),
+			Call:  func() { w.deleteAllContentWithTag(tag) },
+		},
+	}
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.editor.FocusInterface)
+}
+
+func (w *ContentWorkspace) deleteAllContentWithTag(tag string) {
+	defer tracing.NewRegion("ContentWorkspace.deleteAllContentWithTag").End()
+	contents := w.cache.TagFilter([]string{tag})
+	if len(contents) == 0 {
+		return
+	}
+	onlyThisTag := []content_database.CachedContent{}
+	hasOtherTags := []content_database.CachedContent{}
+	for i := range contents {
+		cc := contents[i]
+		if len(cc.Config.Tags) == 1 {
+			onlyThisTag = append(onlyThisTag, cc)
+		} else {
+			hasOtherTags = append(hasOtherTags, cc)
+		}
+	}
+	total := len(onlyThisTag) + len(hasOtherTags)
+	desc := fmt.Sprintf("This will permanently delete %d content files that are tagged with '%s'.\n\nThis action cannot be undone.", total, tag)
+	w.UiMan.DisableUpdate()
+	confirm_prompt.Show(w.Host, confirm_prompt.Config{
+		Title:       fmt.Sprintf("Delete content with tag '%s'", tag),
+		Description: desc,
+		ConfirmText: "Delete",
+		CancelText:  "Cancel",
+		OnConfirm: func() {
+			if len(hasOtherTags) > 0 {
+				var listStr string
+				listStr = "The following content also have other tags:\n"
+				for _, cc := range hasOtherTags {
+					other := klib.SlicesRemoveElement(cc.Config.Tags.ToSlice(), tag)
+					listStr += fmt.Sprintf("  - %s (%s) [other tags: %s]\n", cc.Config.Name, cc.Config.Type, strings.Join(other, ", "))
+				}
+				listStr += "\nAre you sure you want to continue deleting them?"
+				confirm_prompt.Show(w.Host, confirm_prompt.Config{
+					Title:       "Content with additional tags",
+					Description: listStr,
+					ConfirmText: "Yes, delete all",
+					CancelText:  "Cancel",
+					OnConfirm: func() {
+						w.UiMan.EnableUpdate()
+						w.performMultiContentDelete(append(onlyThisTag, hasOtherTags...))
+					},
+					OnCancel: w.UiMan.EnableUpdate,
+				})
+				return
+			}
+			w.UiMan.EnableUpdate()
+			w.performMultiContentDelete(onlyThisTag)
+		},
+		OnCancel: w.UiMan.EnableUpdate,
+	})
+}
+
+func (w *ContentWorkspace) performMultiContentDelete(contents []content_database.CachedContent) {
+	defer tracing.NewRegion("ContentWorkspace.performMultiContentDelete").End()
+	ids := make([]string, 0, len(contents))
+	for _, cc := range contents {
+		ids = append(ids, cc.Id())
+	}
+	for _, id := range ids {
+		if err := content_database.Delete(id, w.pfs, w.cache); err != nil {
+			if !errors.Is(err, content_database.DeleteContentMissingIdError) {
+				slog.Error("failed to delete content by tag", "id", id, "error", err)
+			}
+			continue
+		}
+		w.editor.Events().OnContentRemoved.Execute([]string{id})
+		w.editor.ContentPreviewer().DeletePreviewImage(id)
+	}
+	w.removeContentView(ids)
+	if len(w.selectedContent) > 0 {
+		w.clearSelection()
+	}
+	w.tooltip.UI.Hide()
 }

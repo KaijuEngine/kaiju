@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* settings_workspace.go                                                      */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package settings_workspace
@@ -43,9 +13,10 @@ import (
 
 	"kaijuengine.com/editor/editor_plugin"
 	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project"
-	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
@@ -53,34 +24,77 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-const uiFile = "editor/ui/workspace/settings_workspace.go.html"
+const (
+	ID          = "settings"
+	DisplayName = "Settings"
+
+	uiFile = "editor/ui/workspace/settings_workspace.go.html"
+)
+
+func init() {
+	editor_workspace_registry.Register(&SettingsWorkspace{})
+}
+
+// editorRecompiler is a typed-service interface the settings workspace
+// asserts onto the editor to trigger a plugin-aware recompile. Defined here
+// (not on WorkspaceEditorInterface) because only this workspace needs it —
+// the editor satisfies it implicitly by having the matching method.
+type editorRecompiler interface {
+	RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onComplete func(err error)) error
+}
+
+// editorWorkspaceController is the typed-service interface for live
+// workspace lifecycle management (apply enable/visible/order changes from
+// settings UI). The editor satisfies it implicitly.
+type editorWorkspaceController interface {
+	ApplyWorkspaceConfigChanges()
+}
 
 type SettingsWorkspace struct {
 	common_workspace.CommonWorkspace
-	projectSettingsBox *document.Element
-	editorSettingsBox  *document.Element
-	pluginSettingsBox  *document.Element
-	editor             SettingsWorkspaceEditorInterface
-	editorSettings     *editor_settings.Settings
-	projectSettings    *project.Settings
-	plugins            []editor_plugin.PluginInfo
-	pluginInitStates   []bool
-	reloadRequested    bool
-	recompiling        bool
-	downloadingPlugin  bool
+	projectSettingsBox   *document.Element
+	editorSettingsBox    *document.Element
+	pluginSettingsBox    *document.Element
+	workspaceSettingsBox *document.Element
+	editor               editor_workspace.WorkspaceEditorInterface
+	editorSettings       *editor_settings.Settings
+	projectSettings      *project.Settings
+	plugins              []editor_plugin.PluginInfo
+	pluginInitStates     []bool
+	reloadRequested      bool
+	recompiling          bool
+	downloadingPlugin    bool
+}
+
+// workspaceRowData is the per-row data the Workspaces panel template loops over.
+// Built fresh on every UI render so the displayed state reflects what's
+// actually persisted in settings + what's actually registered.
+type workspaceRowData struct {
+	ID          string
+	DisplayName string
+	Enabled     bool
+	IsRequired  bool
 }
 
 type settingsWorkspaceData struct {
-	Editor  common_workspace.DataUISection
-	Project common_workspace.DataUISection
-	Plugins []editor_plugin.PluginInfo
+	Editor     common_workspace.DataUISection
+	Project    common_workspace.DataUISection
+	Plugins    []editor_plugin.PluginInfo
+	Workspaces []workspaceRowData
 }
 
-func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspaceEditorInterface) {
-	w.editor = editor
-	w.editorSettings = editor.Settings()
-	w.projectSettings = &editor.Project().Settings
-	w.CommonWorkspace.InitializeWithUI(host, uiFile, w.uiData(), w.funcMap())
+func (w *SettingsWorkspace) ID() string          { return ID }
+func (w *SettingsWorkspace) DisplayName() string { return DisplayName }
+func (w *SettingsWorkspace) IsRequired() bool    { return true }
+
+func (w *SettingsWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
+	host := ed.Host()
+	w.editor = ed
+	w.editorSettings = ed.Settings()
+	w.projectSettings = &ed.Project().Settings
+	if err := w.CommonWorkspace.InitializeWithUI(host, uiFile, w.uiData(), w.funcMap()); err != nil {
+		return err
+	}
 	w.reloadedUI()
 	w.editor.Events().OnContentRemoved.Add(func(ids []string) {
 		for i := range ids {
@@ -91,6 +105,12 @@ func (w *SettingsWorkspace) Initialize(host *engine.Host, editor SettingsWorkspa
 			}
 		}
 	})
+	return nil
+}
+
+func (w *SettingsWorkspace) Shutdown() {
+	defer tracing.NewRegion("SettingsWorkspace.Shutdown").End()
+	w.CommonShutdown()
 }
 
 func (w *SettingsWorkspace) Open() {
@@ -103,6 +123,7 @@ func (w *SettingsWorkspace) Open() {
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
+	w.workspaceSettingsBox.UI.Hide()
 	w.resetLeftEntrySelection()
 	for _, e := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
 		if e.InnerLabel().Text() == "Project Settings" {
@@ -138,15 +159,17 @@ func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 	w.projectSettingsBox.UI.Show()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
+	w.workspaceSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
-	defer tracing.NewRegion("SettingsWorkspace.showProjectSettings").End()
+	defer tracing.NewRegion("SettingsWorkspace.showEditorSettings").End()
 	w.resetLeftEntrySelection()
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Show()
 	w.pluginSettingsBox.UI.Hide()
+	w.workspaceSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
@@ -156,6 +179,92 @@ func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
 	w.projectSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Show()
+	w.workspaceSettingsBox.UI.Hide()
+}
+
+func (w *SettingsWorkspace) showWorkspaceSettings(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.showWorkspaceSettings").End()
+	w.resetLeftEntrySelection()
+	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
+	w.projectSettingsBox.UI.Hide()
+	w.editorSettingsBox.UI.Hide()
+	w.pluginSettingsBox.UI.Hide()
+	w.workspaceSettingsBox.UI.Show()
+}
+
+// toggleWorkspaceEnabled toggles a non-required workspace's enabled flag.
+// Required workspaces don't render a checkbox in the template, so this
+// handler never sees them — the registry-side IsRequired check is just
+// belt-and-suspenders against a malformed template.
+func (w *SettingsWorkspace) toggleWorkspaceEnabled(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.toggleWorkspaceEnabled").End()
+	idx, err := strconv.Atoi(e.Attribute("data-idx"))
+	if err != nil || idx < 0 || idx >= len(w.editorSettings.Workspaces) {
+		return
+	}
+	cfg := &w.editorSettings.Workspaces[idx]
+	if ws, ok := editor_workspace_registry.Get(cfg.ID); ok && ws.IsRequired() {
+		return // required: ignore and let reconcile force it back next pass
+	}
+	cfg.Enabled = !cfg.Enabled
+	w.applyWorkspaceChanges(false)
+}
+
+func (w *SettingsWorkspace) moveWorkspaceUp(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.moveWorkspaceUp").End()
+	idx, err := strconv.Atoi(e.Attribute("data-idx"))
+	if err != nil || idx <= 0 || idx >= len(w.editorSettings.Workspaces) {
+		return
+	}
+	ws := w.editorSettings.Workspaces
+	ws[idx-1], ws[idx] = ws[idx], ws[idx-1]
+	w.applyWorkspaceChanges(true)
+}
+
+func (w *SettingsWorkspace) moveWorkspaceDown(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.moveWorkspaceDown").End()
+	idx, err := strconv.Atoi(e.Attribute("data-idx"))
+	if err != nil || idx < 0 || idx >= len(w.editorSettings.Workspaces)-1 {
+		return
+	}
+	ws := w.editorSettings.Workspaces
+	ws[idx], ws[idx+1] = ws[idx+1], ws[idx]
+	w.applyWorkspaceChanges(true)
+}
+
+// applyWorkspaceChanges persists settings and asks the editor to reconcile
+// (which may shut down disabled workspaces, initialize newly-enabled ones,
+// and rebuild the menu bar tab strip).
+//
+// reloadUI=true triggers an immediate UI rebuild of the Workspaces panel so
+// reorder buttons feel responsive. Toggle handlers pass false because the
+// browser already updated the checkbox state visually.
+func (w *SettingsWorkspace) applyWorkspaceChanges(reloadUI bool) {
+	if err := w.editorSettings.Save(); err != nil {
+		slog.Error("failed to persist workspace settings", "error", err)
+	}
+	if c, ok := w.editor.(editorWorkspaceController); ok {
+		c.ApplyWorkspaceConfigChanges()
+	}
+	if reloadUI {
+		// Defer to next frame so we're not destroying the document from
+		// inside a click handler that's still iterating through the DOM.
+		w.Host.RunNextFrame(func() {
+			w.ReloadUI(uiFile, w.uiData(), w.funcMap())
+			w.reloadedUI()
+			w.CommonOpen()
+			w.workspaceSettingsBox.UI.Show()
+			w.projectSettingsBox.UI.Hide()
+			w.editorSettingsBox.UI.Hide()
+			w.pluginSettingsBox.UI.Hide()
+			for _, e := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
+				if e.InnerLabel().Text() == "Workspaces" {
+					w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
+					break
+				}
+			}
+		})
+	}
 }
 
 func (w *SettingsWorkspace) valueChanged(e *document.Element) {
@@ -195,9 +304,18 @@ func (w *SettingsWorkspace) togglePlugin(e *document.Element) {
 		}
 		// Note: Re-enabling Git plugins would require re-adding their URL,
 		// so we don't handle that case here
-	} else {
-		// Handle local plugins normally
-		plugin.Config.Enabled = !plugin.Config.Enabled
+		return
+	}
+
+	// Local plugin: flip in-memory state AND persist to plugin.json
+	// immediately. The RecompileWithPlugins flow only writes plugin.json
+	// for *enabled* plugins (it skips disabled ones in its main loop), so
+	// without this disk write a disable never sticks across editor sessions
+	// and the user would have to hand-edit the file.
+	plugin.Config.Enabled = !plugin.Config.Enabled
+	if err := editor_plugin.UpdatePluginConfigState(*plugin); err != nil {
+		slog.Error("failed to persist plugin enabled state",
+			"name", plugin.Config.Name, "package", plugin.Config.PackageName, "error", err)
 	}
 }
 
@@ -229,8 +347,13 @@ func (w *SettingsWorkspace) recompileEditor(*document.Element) {
 		slog.Warn("plugin settings have not changed, no reason to recompile")
 		return
 	}
+	r, ok := w.editor.(editorRecompiler)
+	if !ok {
+		slog.Error("editor does not support plugin recompilation")
+		return
+	}
 	w.recompiling = true
-	err := w.editor.RecompileWithPlugins(w.plugins, func(err error) {
+	err := r.RecompileWithPlugins(w.plugins, func(err error) {
 		w.recompiling = false
 	})
 	if err != nil {
@@ -262,6 +385,12 @@ func (w *SettingsWorkspace) addPluginFromGit(e *document.Element) {
 	gitURL := gitUrlElement.UI.ToInput().Text()
 	if gitURL == "" {
 		slog.Warn("Git URL is empty")
+		return
+	}
+
+	r, ok := w.editor.(editorRecompiler)
+	if !ok {
+		slog.Error("editor does not support plugin recompilation")
 		return
 	}
 
@@ -309,7 +438,7 @@ func (w *SettingsWorkspace) addPluginFromGit(e *document.Element) {
 	}
 
 	w.recompiling = true
-	if err := w.editor.RecompileWithPlugins(w.plugins, func(err error) {
+	if err := r.RecompileWithPlugins(w.plugins, func(err error) {
 		w.recompiling = false
 		if err != nil {
 			slog.Error("failed to compile the editor", "error", err)
@@ -349,21 +478,57 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 			w.editorSettings, "", listings),
 		Project: common_workspace.ReflectUIStructure(cache,
 			w.projectSettings, "", listings),
-		Plugins: w.plugins,
+		Plugins:    w.plugins,
+		Workspaces: w.buildWorkspaceRows(),
 	}
+}
+
+// buildWorkspaceRows joins the persisted settings.Workspaces order with the
+// live registry to produce display data for the Workspaces panel. Settings
+// is the source of truth for order; if settings is empty the registry's
+// registration order is used as a fallback (the editor reconcile step
+// should have populated settings during postProjectLoad, but render before
+// that should still produce a sensible list).
+func (w *SettingsWorkspace) buildWorkspaceRows() []workspaceRowData {
+	rows := make([]workspaceRowData, 0, len(w.editorSettings.Workspaces))
+	for _, cfg := range w.editorSettings.Workspaces {
+		ws, ok := editor_workspace_registry.Get(cfg.ID)
+		if !ok {
+			// Stale entry — show id only so the user knows it exists, but
+			// it's effectively unmanageable until the workspace is restored.
+			rows = append(rows, workspaceRowData{
+				ID:          cfg.ID,
+				DisplayName: cfg.ID + " (missing)",
+				Enabled:     cfg.Enabled,
+				IsRequired:  false,
+			})
+			continue
+		}
+		rows = append(rows, workspaceRowData{
+			ID:          cfg.ID,
+			DisplayName: ws.DisplayName(),
+			Enabled:     cfg.Enabled,
+			IsRequired:  ws.IsRequired(),
+		})
+	}
+	return rows
 }
 
 func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 	return map[string]func(*document.Element){
-		"showProjectSettings": w.showProjectSettings,
-		"showEditorSettings":  w.showEditorSettings,
-		"showPluginSettings":  w.showPluginSettings,
-		"valueChanged":        w.valueChanged,
-		"openPluginWebsite":   w.openPluginWebsite,
-		"togglePlugin":        w.togglePlugin,
-		"clickOpenPlugins":    w.clickOpenPlugins,
-		"recompileEditor":     w.recompileEditor,
-		"addPluginFromGit":    w.addPluginFromGit,
+		"showProjectSettings":    w.showProjectSettings,
+		"showEditorSettings":     w.showEditorSettings,
+		"showPluginSettings":     w.showPluginSettings,
+		"showWorkspaceSettings":  w.showWorkspaceSettings,
+		"valueChanged":           w.valueChanged,
+		"openPluginWebsite":      w.openPluginWebsite,
+		"togglePlugin":           w.togglePlugin,
+		"clickOpenPlugins":       w.clickOpenPlugins,
+		"recompileEditor":        w.recompileEditor,
+		"addPluginFromGit":       w.addPluginFromGit,
+		"toggleWorkspaceEnabled": w.toggleWorkspaceEnabled,
+		"moveWorkspaceUp":        w.moveWorkspaceUp,
+		"moveWorkspaceDown":      w.moveWorkspaceDown,
 	}
 }
 
@@ -373,4 +538,5 @@ func (w *SettingsWorkspace) reloadedUI() {
 	w.projectSettingsBox, _ = w.Doc.GetElementById("projectSettingsBox")
 	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
 	w.pluginSettingsBox, _ = w.Doc.GetElementById("pluginSettingsBox")
+	w.workspaceSettingsBox, _ = w.Doc.GetElementById("workspaceSettingsBox")
 }

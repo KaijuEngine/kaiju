@@ -1,0 +1,184 @@
+/******************************************************************************/
+/* stage_picking.go                                                           */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
+package editor_stage_manager
+
+import (
+	"log/slog"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
+)
+
+const editorPickingShaderDataName = "editor_pick"
+
+func (m *StageManager) AssignPickID(e *StageEntity) uint32 {
+	defer tracing.NewRegion("StageManager.AssignPickID").End()
+	if e == nil {
+		return 0
+	}
+	if m.pickIDToEntity == nil {
+		m.pickIDToEntity = make(map[uint32]*StageEntity)
+	}
+	if e.PickID != 0 {
+		if current := m.pickIDToEntity[e.PickID]; current == nil || current == e {
+			m.pickIDToEntity[e.PickID] = e
+			if e.PickID > m.nextPickID {
+				m.nextPickID = e.PickID
+			}
+			return e.PickID
+		}
+		e.PickID = 0
+	}
+	for {
+		m.nextPickID++
+		if m.nextPickID == 0 {
+			continue
+		}
+		if _, exists := m.pickIDToEntity[m.nextPickID]; exists {
+			continue
+		}
+		e.PickID = m.nextPickID
+		m.pickIDToEntity[e.PickID] = e
+		return e.PickID
+	}
+}
+
+func (m *StageManager) EntityByPickID(id uint32) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.EntityByPickID").End()
+	if id == 0 || m.pickIDToEntity == nil {
+		return nil, false
+	}
+	e := m.pickIDToEntity[id]
+	if e == nil || e.IsDeleted() || e.IsLocked() {
+		return nil, false
+	}
+	return e, true
+}
+
+func (m *StageManager) EntitiesByPickIDs(ids []uint32) []*StageEntity {
+	defer tracing.NewRegion("StageManager.EntitiesByPickIDs").End()
+	if len(ids) == 0 {
+		return nil
+	}
+	picked := make(map[uint32]struct{}, len(ids))
+	for i := range ids {
+		if ids[i] != 0 {
+			picked[ids[i]] = struct{}{}
+		}
+	}
+	if len(picked) == 0 {
+		return nil
+	}
+	entities := make([]*StageEntity, 0, len(picked))
+	for i := range m.entities {
+		e := m.entities[i]
+		if e == nil {
+			continue
+		}
+		if _, ok := picked[e.PickID]; !ok {
+			continue
+		}
+		if resolved, ok := m.EntityByPickID(e.PickID); ok && resolved == e {
+			entities = append(entities, e)
+		}
+	}
+	return entities
+}
+
+func (m *StageManager) HasPickableEntities() bool {
+	defer tracing.NewRegion("StageManager.HasPickableEntities").End()
+	for i := range m.entities {
+		e := m.entities[i]
+		if e != nil && !e.IsDeleted() && !e.IsLocked() && e.PickID != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *StageManager) DirtyPickableTransforms() {
+	defer tracing.NewRegion("StageManager.DirtyPickableTransforms").End()
+	for i := range m.entities {
+		e := m.entities[i]
+		if e == nil || e.IsDeleted() || e.IsLocked() ||
+			e.PickID == 0 || e.StageData.PickingShaderData == nil {
+			continue
+		}
+		e.Transform.SetDirty()
+	}
+}
+
+func (m *StageManager) unregisterPickID(e *StageEntity) {
+	if e == nil || e.PickID == 0 || m.pickIDToEntity == nil {
+		return
+	}
+	if m.pickIDToEntity[e.PickID] == e {
+		delete(m.pickIDToEntity, e.PickID)
+	}
+}
+
+func (m *StageManager) newPickingDrawing(e *StageEntity, material *rendering.Material) (rendering.Drawing, bool) {
+	if e == nil || material == nil || e.StageData.Mesh == nil || e.StageData.PickingShaderData != nil {
+		return rendering.Drawing{}, false
+	}
+	draw, sd, ok := m.NewPickingDrawing(e, material, e.StageData.Mesh, &e.Transform)
+	if ok {
+		e.StageData.PickingShaderData = sd
+	}
+	return draw, ok
+}
+
+func (m *StageManager) NewPickingDrawing(e *StageEntity, material *rendering.Material, mesh *rendering.Mesh, transform *matrix.Transform) (rendering.Drawing, rendering.DrawInstance, bool) {
+	if e == nil || material == nil || mesh == nil || transform == nil {
+		return rendering.Drawing{}, nil, false
+	}
+	pickID := m.AssignPickID(e)
+	sd := shader_data_registry.Create(editorPickingShaderDataName)
+	sd.(*shader_data_registry.ShaderDataEditorPicking).PickID = pickID
+	var culler rendering.ViewCuller
+	if m.host != nil {
+		culler = &m.host.Cameras.Primary
+	}
+	return rendering.Drawing{
+		Material:   material,
+		Mesh:       mesh,
+		ShaderData: sd,
+		Transform:  transform,
+		ViewCuller: culler,
+		Layer:      rendering.RenderLayerEditorPicking,
+	}, sd, true
+}
+
+func (m *StageManager) addPickingDrawing(e *StageEntity) {
+	defer tracing.NewRegion("StageManager.addPickingDrawing").End()
+	if m.host == nil {
+		return
+	}
+	material, err := m.host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
+	if err != nil {
+		slog.Warn("failed to create editor picking material", "error", err)
+		return
+	}
+	if draw, ok := m.newPickingDrawing(e, material); ok {
+		m.host.Drawings.AddDrawing(draw)
+	}
+}
+
+func (m *StageManager) AddPickingDrawing(e *StageEntity) {
+	m.addPickingDrawing(e)
+}
+
+func (m *StageManager) ClearPickingDrawing(e *StageEntity) {
+	if e == nil || e.StageData.PickingShaderData == nil {
+		return
+	}
+	e.StageData.PickingShaderData.Destroy()
+	e.StageData.PickingShaderData = nil
+}

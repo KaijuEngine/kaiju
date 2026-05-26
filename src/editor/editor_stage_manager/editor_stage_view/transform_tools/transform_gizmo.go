@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* transform_gizmo.go                                                         */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package transform_tools
@@ -44,17 +14,23 @@ import (
 )
 
 type TransformGizmo struct {
-	root        matrix.Transform
-	lastCamPos  matrix.Vec3
-	lastCamSize matrix.Vec2
-	lastHit     matrix.Vec3
-	currentAxis int
-	cameraMode  editor_controls.EditorCameraMode
-	dragging    bool
-	visible     bool
+	root         matrix.Transform
+	stage        StageInterface
+	lastCamPos   matrix.Vec3
+	lastCamSize  matrix.Vec2
+	lastViewSize matrix.Vec2
+	lastRefSize  matrix.Vec2
+	lastHit      matrix.Vec3
+	currentAxis  int
+	cameraMode   editor_controls.EditorCameraMode
+	dragging     bool
+	visible      bool
 }
 
 func (t *TransformGizmo) cursorPosition(c *hid.Cursor) matrix.Vec2 {
+	if t.stage != nil {
+		return t.stage.ViewportCursorPosition(t.cameraMode, c)
+	}
 	if t.cameraMode == editor_controls.EditorCameraMode2d {
 		return c.ScreenPosition()
 	} else {
@@ -62,21 +38,42 @@ func (t *TransformGizmo) cursorPosition(c *hid.Cursor) matrix.Vec2 {
 	}
 }
 
+func (t *TransformGizmo) pickIDAtCursor(c *hid.Cursor) (uint32, bool) {
+	if t.stage == nil {
+		return 0, false
+	}
+	return t.stage.PickIDAtViewportPoint(t.cursorPosition(c))
+}
+
+func (t *TransformGizmo) cameraCursorPosition(c *hid.Cursor) matrix.Vec2 {
+	pos := t.cursorPosition(c)
+	if t.isFixedPanelView() {
+		viewSize, _ := t.viewportSizes()
+		pos.SetY(viewSize.Y() - pos.Y())
+	}
+	return pos
+}
+
 func (t *TransformGizmo) resize(cam cameras.Camera) {
 	isOrtho := cam.IsOrthographic()
+	viewSize, refSize := t.viewportSizes()
 	if isOrtho {
 		camSize := matrix.NewVec2(cam.Width(), cam.Height())
-		if camSize.Equals(t.lastCamSize) {
+		if camSize.Equals(t.lastCamSize) && viewSize.Equals(t.lastViewSize) &&
+			refSize.Equals(t.lastRefSize) {
 			return
 		}
 		t.lastCamSize = camSize
 	} else {
 		camPos := cam.Position()
-		if camPos.Equals(t.lastCamPos) {
+		if camPos.Equals(t.lastCamPos) && viewSize.Equals(t.lastViewSize) &&
+			refSize.Equals(t.lastRefSize) {
 			return
 		}
 		t.lastCamPos = camPos
 	}
+	t.lastViewSize = viewSize
+	t.lastRefSize = refSize
 	gizmoScale := matrix.Float(translationGizmoScale)
 	if !isOrtho {
 		viewMat := cam.View()
@@ -93,5 +90,87 @@ func (t *TransformGizmo) resize(cam cameras.Camera) {
 		maxDim := matrix.Float(matrix.Max(viewWidth, viewHeight))
 		gizmoScale = maxDim * translationGizmoScale / 3
 	}
+	gizmoScale *= t.viewportScaleFactor(viewSize, refSize)
 	t.root.SetScale(matrix.NewVec3(gizmoScale, gizmoScale, gizmoScale))
+}
+
+func (t *TransformGizmo) viewportSizes() (matrix.Vec2, matrix.Vec2) {
+	if t.stage == nil {
+		return matrix.NewVec2(1, 1), matrix.NewVec2(1, 1)
+	}
+	return t.stage.ViewportSize(), t.stage.ViewportReferenceSize()
+}
+
+func (t *TransformGizmo) viewportScaleFactor(viewSize, referenceSize matrix.Vec2) matrix.Float {
+	if viewSize.Y() <= matrix.FloatSmallestNonzero ||
+		referenceSize.Y() <= matrix.FloatSmallestNonzero {
+		return 1
+	}
+	return referenceSize.Y() / viewSize.Y()
+}
+
+func (t *TransformGizmo) isFixedPanelView() bool {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraModeTop, editor_controls.EditorCameraModeFront,
+		editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return true
+	default:
+		return false
+	}
+}
+
+func (t *TransformGizmo) axisVisible(axis int) bool {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
+		return axis == matrix.Vx || axis == matrix.Vy
+	case editor_controls.EditorCameraModeTop:
+		return axis == matrix.Vx || axis == matrix.Vz
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return axis == matrix.Vy || axis == matrix.Vz
+	default:
+		return axis == matrix.Vx || axis == matrix.Vy || axis == matrix.Vz
+	}
+}
+
+func (t *TransformGizmo) planarTranslationPlaneAxis() (int, bool) {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
+		return matrix.Vx, true
+	case editor_controls.EditorCameraModeTop:
+		return matrix.Vz, true
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return matrix.Vy, true
+	default:
+		return -1, false
+	}
+}
+
+func (t *TransformGizmo) axisDirection(axis int) matrix.Vec3 {
+	switch axis {
+	case matrix.Vx:
+		return matrix.Vec3Right()
+	case matrix.Vy:
+		return matrix.Vec3Up()
+	case matrix.Vz:
+		return matrix.Vec3Backward()
+	default:
+		return matrix.Vec3Zero()
+	}
+}
+
+func (t *TransformGizmo) planarRotationAxis() (int, bool) {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
+		return matrix.Vz, true
+	case editor_controls.EditorCameraModeTop:
+		return matrix.Vy, true
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return matrix.Vx, true
+	default:
+		return -1, false
+	}
 }

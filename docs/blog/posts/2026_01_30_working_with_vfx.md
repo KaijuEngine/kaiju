@@ -2,6 +2,7 @@
 title: Working with VFX in Kaiju Engine
 description: An overview of the visual effects (VFX) subsystem, how particle systems and emitters are implemented, and how to use them in the Kaiju Engine editor.
 tags: vfx, particles, engine, graphics, go
+category: VFX
 image: images/vfx_overview.png
 date: 2026-01-30
 ---

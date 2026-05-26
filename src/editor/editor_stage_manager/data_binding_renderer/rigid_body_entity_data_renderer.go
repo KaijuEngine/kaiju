@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* rigid_body_entity_data_renderer.go                                         */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package data_binding_renderer
@@ -44,11 +14,15 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/engine/terrain"
+	"kaijuengine.com/engine_entity_data/content_id"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 type rigidBodyGizmo struct {
@@ -59,6 +33,11 @@ type rigidBodyGizmo struct {
 	Height     float32
 	IsStatic   bool
 	Shape      engine_entity_data_physics.Shape
+	AssetKey   content_id.Mesh
+	Mesh       graviton.AABB
+	HasMesh    bool
+	Terrain    graviton.AABB
+	HasTerrain bool
 }
 
 type RigidBodyEntityDataRenderer struct {
@@ -79,7 +58,7 @@ func (c *RigidBodyEntityDataRenderer) Attached(host *engine.Host, manager *edito
 		c.Detatched(host, manager, target, data)
 	}
 	g := rigidBodyGizmo{}
-	g.reloadData(data)
+	g.reloadData(data, target, host)
 	var err error
 	if g.ShaderData, err = rigidBodyLoadWireframe(host, g, &target.Transform); err == nil {
 		c.Wireframes[target] = g
@@ -93,31 +72,38 @@ func (c *RigidBodyEntityDataRenderer) Attached(host *engine.Host, manager *edito
 func (c *RigidBodyEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Detatched").End()
 	if d, ok := c.Wireframes[target]; ok {
-		d.ShaderData.Destroy()
+		if d.ShaderData != nil {
+			d.ShaderData.Destroy()
+		}
 		delete(c.Wireframes, target)
 	}
 }
 
 func (c *RigidBodyEntityDataRenderer) Show(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Show").End()
-	if d, ok := c.Wireframes[target]; ok {
+	if d, ok := c.Wireframes[target]; ok && d.ShaderData != nil {
 		d.ShaderData.Activate()
 	}
 }
 
 func (c *RigidBodyEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_manager.StageEntity, _ *entity_data_binding.EntityDataEntry) {
 	defer tracing.NewRegion("RigidBodyEntityDataRenderer.Hide").End()
-	if d, ok := c.Wireframes[target]; ok {
+	if d, ok := c.Wireframes[target]; ok && d.ShaderData != nil {
 		d.ShaderData.Deactivate()
 	}
 }
 
 func (c *RigidBodyEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if g, ok := c.Wireframes[target]; ok {
-		if g.reloadData(data) {
-			g.ShaderData.Destroy()
+		if g.reloadData(data, target, host) {
+			if g.ShaderData != nil {
+				g.ShaderData.Destroy()
+			}
 			var err error
 			if g.ShaderData, err = rigidBodyLoadWireframe(host, g, &target.Transform); err == nil {
+				c.Wireframes[target] = g
+			} else {
+				g.ShaderData = nil
 				c.Wireframes[target] = g
 			}
 		}
@@ -144,6 +130,10 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 		wireframe = rendering.NewMeshWireCylinder(host.MeshCache(), rad, height, 5, 1)
 	case engine_entity_data_physics.ShapeCone:
 		wireframe = rendering.NewMeshWireCone(host.MeshCache(), g.Radius, g.Height, 5, 1)
+	case engine_entity_data_physics.ShapeMesh:
+		wireframe = rendering.NewMeshWireCube(host.MeshCache(), "rigidbody_mesh_gizmo", matrix.ColorWhite())
+	case engine_entity_data_physics.ShapeTerrain:
+		wireframe = rendering.NewMeshWireCube(host.MeshCache(), "rigidbody_terrain_gizmo", matrix.ColorWhite())
 	}
 	if wireframe == nil {
 		slog.Error("missing shape for rigid body wireframe")
@@ -152,24 +142,88 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
 	gsd := sd.(*shader_data_registry.ShaderDataEdTransformWire)
 	gsd.Color = matrix.NewColor(0, 1, 0, 1)
+	if (g.Shape == engine_entity_data_physics.ShapeMesh && !g.HasMesh) ||
+		(g.Shape == engine_entity_data_physics.ShapeTerrain && !g.HasTerrain) {
+		gsd.Color = matrix.ColorYellow()
+	}
+	if g.Shape == engine_entity_data_physics.ShapeBox {
+		model := matrix.Mat4Identity()
+		model.Scale(g.Extent.Scale(2))
+		gsd.SetModel(model)
+	} else if g.Shape == engine_entity_data_physics.ShapeMesh {
+		model := matrix.Mat4Identity()
+		model.Translate(g.Mesh.Center)
+		model.Scale(g.Mesh.Size())
+		gsd.SetModel(model)
+	} else if g.Shape == engine_entity_data_physics.ShapeTerrain {
+		model := matrix.Mat4Identity()
+		model.Translate(g.Terrain.Center)
+		model.Scale(g.Terrain.Size())
+		gsd.SetModel(model)
+	}
 	host.Drawings.AddDrawing(rendering.Drawing{
 		Material:   material,
 		Mesh:       wireframe,
 		ShaderData: gsd,
 		Transform:  transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	return gsd, nil
 }
 
-func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) bool {
+func rigidBodyTerrainBounds(target *editor_stage_manager.StageEntity) (graviton.AABB, bool) {
+	if target != nil {
+		for _, data := range target.NamedData("Terrain") {
+			model, ok := data.(*terrain.Terrain)
+			if !ok {
+				continue
+			}
+			if collision := model.NewCollision(); collision != nil {
+				return collision.LocalBounds(), true
+			}
+		}
+	}
+	return graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false
+}
+
+func rigidBodyMeshBounds(host *engine.Host, assetKey content_id.Mesh) (graviton.AABB, bool) {
+	if host == nil || assetKey == "" {
+		return graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false
+	}
+	km, err := kaiju_mesh.ReadMesh(string(assetKey), host)
+	if err != nil || len(km.Verts) == 0 {
+		return graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false
+	}
+	points := make([]matrix.Vec3, len(km.Verts))
+	for i := range km.Verts {
+		points[i] = km.Verts[i].Position
+	}
+	return graviton.AABBFromPoints(points), true
+}
+
+func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry, target *editor_stage_manager.StageEntity, hosts ...*engine.Host) bool {
+	var host *engine.Host
+	if len(hosts) > 0 {
+		host = hosts[0]
+	}
+	assetKey := data.FieldValueByName("AssetKey").(content_id.Mesh)
 	e := data.FieldValueByName("Extent").(matrix.Vec3)
 	m := data.FieldValueByName("Mass").(float32)
 	r := data.FieldValueByName("Radius").(float32)
-	h := data.FieldValueByName("Height").(float32)
+	height := data.FieldValueByName("Height").(float32)
 	i := data.FieldValueByName("IsStatic").(bool)
 	s := engine_entity_data_physics.Shape(data.FieldValueByName("Shape").(int))
+	meshBounds, hasMesh := graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false
+	if s == engine_entity_data_physics.ShapeMesh {
+		meshBounds, hasMesh = rigidBodyMeshBounds(host, assetKey)
+	}
+	terrainBounds, hasTerrain := graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false
+	if s == engine_entity_data_physics.ShapeTerrain {
+		terrainBounds, hasTerrain = rigidBodyTerrainBounds(target)
+	}
 	changed := g.Shape != s ||
+		g.AssetKey != assetKey ||
 		(!g.Extent.Equals(e) &&
 			(s == engine_entity_data_physics.ShapeBox ||
 				s == engine_entity_data_physics.ShapeCylinder)) ||
@@ -177,14 +231,23 @@ func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry) b
 			(s == engine_entity_data_physics.ShapeSphere ||
 				s == engine_entity_data_physics.ShapeCapsule ||
 				s == engine_entity_data_physics.ShapeCone)) ||
-		(g.Height != h &&
+		(g.Height != height &&
 			(s == engine_entity_data_physics.ShapeCapsule ||
-				s == engine_entity_data_physics.ShapeCone))
+				s == engine_entity_data_physics.ShapeCone)) ||
+		(s == engine_entity_data_physics.ShapeMesh &&
+			(g.HasMesh != hasMesh || g.Mesh != meshBounds)) ||
+		(s == engine_entity_data_physics.ShapeTerrain &&
+			(g.HasTerrain != hasTerrain || g.Terrain != terrainBounds))
 	g.Extent = e
 	g.Mass = m
 	g.Radius = r
-	g.Height = h
+	g.Height = height
 	g.IsStatic = i
 	g.Shape = s
+	g.AssetKey = assetKey
+	g.Mesh = meshBounds
+	g.HasMesh = hasMesh
+	g.Terrain = terrainBounds
+	g.HasTerrain = hasTerrain
 	return changed
 }
