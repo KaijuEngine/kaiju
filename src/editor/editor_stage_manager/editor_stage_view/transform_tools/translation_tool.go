@@ -9,6 +9,7 @@ package transform_tools
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine/systems/events"
@@ -52,12 +53,14 @@ type TranslationTool struct {
 
 type TranslationToolArrow struct {
 	shaderData rendering.DrawInstance
+	pickData   rendering.DrawInstance
 	transform  matrix.Transform
 	hitBox     graviton.AABB
 }
 
 type TranslationToolPlane struct {
 	shaderData rendering.DrawInstance
+	pickData   rendering.DrawInstance
 	transform  matrix.Transform
 	hitBox     graviton.AABB
 }
@@ -67,16 +70,17 @@ func (t *TranslationTool) Initialize(host *engine.Host, stage StageInterface) {
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
 	t.currentType = TRANSLATION_TYPE_NONE
+	pickMat, _ := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	for i := range t.arrows {
-		t.arrows[i].Initialize(host, i)
+		t.arrows[i].Initialize(host, pickMat, i)
 		t.arrows[i].transform.SetParent(&t.root)
-		t.planes[i].Initialize(host, i)
+		t.planes[i].Initialize(host, pickMat, i)
 		t.planes[i].transform.SetParent(&t.root)
 	}
 	t.Hide()
 }
 
-func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
+func (a *TranslationToolArrow) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	a.transform.Initialize(host.WorkGroup())
 	m := rendering.NewMeshArrow(host.MeshCache(),
 		translationGizmoShaftHeight, translationGizmoShaftRadius,
@@ -103,9 +107,10 @@ func (a *TranslationToolArrow) Initialize(host *engine.Host, vec int) {
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+	a.pickData = addGizmoPickDrawing(host, pickMat, m, &a.transform, a.shaderData, translationArrowPickID(vec))
 }
 
-func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
+func (p *TranslationToolPlane) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	p.transform.Initialize(host.WorkGroup())
 	m := newTranslationGizmoPlaneMesh(host.MeshCache())
 	mat, _ := host.MaterialCache().Material("gizmo_overlay.material")
@@ -136,6 +141,7 @@ func (p *TranslationToolPlane) Initialize(host *engine.Host, vec int) {
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+	p.pickData = addGizmoPickDrawing(host, pickMat, m, &p.transform, p.shaderData, translationPlanePickID(vec))
 }
 
 func newTranslationGizmoPlaneMesh(cache *rendering.MeshCache) *rendering.Mesh {
@@ -170,11 +176,17 @@ func newTranslationGizmoPlaneMesh(cache *rendering.MeshCache) *rendering.Mesh {
 func (t *TranslationTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
-	for i := range t.visibleArrowCount() {
-		t.arrows[i].shaderData.Activate()
+	for i := range t.arrows {
+		if t.axisVisible(i) {
+			t.arrows[i].shaderData.Activate()
+		}
 	}
-	for i := range t.visiblePlaneCount() {
-		t.planes[i].shaderData.Activate()
+	if axis, ok := t.planarTranslationPlaneAxis(); ok {
+		t.planes[axis].shaderData.Activate()
+	} else {
+		for i := range t.planes {
+			t.planes[i].shaderData.Activate()
+		}
 	}
 	t.updateHitBoxes()
 }
@@ -201,6 +213,9 @@ func (t *TranslationTool) Update(host *engine.Host, snap bool, snapScale float32
 }
 
 func (t *TranslationTool) SetDimensions(mode editor_controls.EditorCameraMode) {
+	if t.cameraMode == mode {
+		return
+	}
 	t.cameraMode = mode
 	if t.visible {
 		t.Hide()
@@ -252,47 +267,53 @@ func (t *TranslationTool) updateHitBoxes() {
 	}
 }
 
-func (t *TranslationTool) visibleArrowCount() int {
-	if t.cameraMode == editor_controls.EditorCameraMode2d {
-		return 2
-	}
-	return len(t.arrows)
-}
-
-func (t *TranslationTool) visiblePlaneCount() int {
-	if t.cameraMode == editor_controls.EditorCameraMode2d {
-		return 1
-	}
-	return len(t.planes)
-}
-
 func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
 	}
-	ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
 	dist := matrix.FloatMax
 	target := -1
 	targetType := TRANSLATION_TYPE_NONE
-	for i := range t.visibleArrowCount() {
-		if hit, ok := t.arrows[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				targetType = TRANSLATION_TYPE_ARROW
-				t.lastHit = hit
-				dist = d
+	textureHit := false
+	if pickID, ok := t.pickIDAtCursor(&host.Window.Cursor); ok {
+		textureHit = true
+		if axis, hitType, hit := translationPickTarget(pickID); hit && t.axisVisible(axis) {
+			if hitType != TRANSLATION_TYPE_PLANE {
+				target = axis
+				targetType = hitType
+			} else if planeAxis, ok := t.planarTranslationPlaneAxis(); !ok || planeAxis == axis {
+				target = axis
+				targetType = hitType
 			}
 		}
-	}
-	for i := range t.visiblePlaneCount() {
-		if hit, ok := t.planes[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				targetType = TRANSLATION_TYPE_PLANE
-				t.lastHit = hit
-				dist = d
+	} else if !t.isFixedPanelView() {
+		ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
+		for i := range t.arrows {
+			if !t.axisVisible(i) {
+				continue
+			}
+			if hit, ok := t.arrows[i].hitBox.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					targetType = TRANSLATION_TYPE_ARROW
+					t.lastHit = hit
+					dist = d
+				}
+			}
+		}
+		for i := range t.planes {
+			if axis, ok := t.planarTranslationPlaneAxis(); ok && i != axis {
+				continue
+			}
+			if hit, ok := t.planes[i].hitBox.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					targetType = TRANSLATION_TYPE_PLANE
+					t.lastHit = hit
+					dist = d
+				}
 			}
 		}
 	}
@@ -330,6 +351,15 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 			sd.Color = matrix.ColorYellow()
 		}
 	}
+	if textureHit && target != -1 && targetType != TRANSLATION_TYPE_NONE {
+		rp := t.root.Position()
+		nml := t.dragPlaneNormal(cam, rp)
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(&host.Window.Cursor), rp, nml); ok {
+			t.lastHit = hit
+		} else {
+			t.lastHit = rp
+		}
+	}
 }
 
 func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
@@ -364,7 +394,7 @@ func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, sna
 	} else if t.dragging {
 		rp := t.root.Position()
 		nml := t.dragPlaneNormal(cam, rp)
-		if hit, ok := cam.TryPlaneHit(t.cursorPosition(&host.Window.Cursor), rp, nml); ok {
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(&host.Window.Cursor), rp, nml); ok {
 			p := hit.Add(t.rootHitOffset)
 			if snap {
 				p.SetX(matrix.Floor(p.X()/snapScale) * snapScale)

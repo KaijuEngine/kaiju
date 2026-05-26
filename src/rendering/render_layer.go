@@ -14,14 +14,16 @@ const (
 	RenderLayerIndexUI
 	RenderLayerIndexEditor
 	RenderLayerIndexEditorPicking
+	RenderLayerIndexEditorGizmoPicking
 )
 
 const (
-	RenderLayerWorld         RenderLayerMask = 1 << RenderLayerIndexWorld
-	RenderLayerUI            RenderLayerMask = 1 << RenderLayerIndexUI
-	RenderLayerEditor        RenderLayerMask = 1 << RenderLayerIndexEditor
-	RenderLayerEditorPicking RenderLayerMask = 1 << RenderLayerIndexEditorPicking
-	RenderLayerAll           RenderLayerMask = RenderLayerWorld | RenderLayerUI | RenderLayerEditor
+	RenderLayerWorld              RenderLayerMask = 1 << RenderLayerIndexWorld
+	RenderLayerUI                 RenderLayerMask = 1 << RenderLayerIndexUI
+	RenderLayerEditor             RenderLayerMask = 1 << RenderLayerIndexEditor
+	RenderLayerEditorPicking      RenderLayerMask = 1 << RenderLayerIndexEditorPicking
+	RenderLayerEditorGizmoPicking RenderLayerMask = 1 << RenderLayerIndexEditorGizmoPicking
+	RenderLayerAll                RenderLayerMask = RenderLayerWorld | RenderLayerUI | RenderLayerEditor
 )
 
 func (l RenderLayer) Mask() RenderLayerMask {

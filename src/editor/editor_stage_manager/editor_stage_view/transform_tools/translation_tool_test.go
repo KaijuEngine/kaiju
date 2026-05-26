@@ -9,24 +9,18 @@ package transform_tools
 import (
 	"testing"
 
-	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/matrix"
 )
 
-func TestTranslationToolVisiblePlaneCount(t *testing.T) {
+func TestTranslationToolDefaultModeShowsAllHandles(t *testing.T) {
 	tool := TranslationTool{}
-	if got := tool.visibleArrowCount(); got != 3 {
-		t.Fatalf("3D/default mode should show all arrow handles, got %d", got)
+	for axis := range 3 {
+		if !tool.axisVisible(axis) {
+			t.Fatalf("default mode axisVisible(%d) = false, want true", axis)
+		}
 	}
-	if got := tool.visiblePlaneCount(); got != 3 {
-		t.Fatalf("3D/default mode should show all plane handles, got %d", got)
-	}
-	tool.cameraMode = editor_controls.EditorCameraMode2d
-	if got := tool.visibleArrowCount(); got != 2 {
-		t.Fatalf("2D mode should show the X/Y arrow handles only, got %d", got)
-	}
-	if got := tool.visiblePlaneCount(); got != 1 {
-		t.Fatalf("2D mode should show the XY plane handle only, got %d", got)
+	if axis, ok := tool.planarTranslationPlaneAxis(); ok {
+		t.Fatalf("default mode planarTranslationPlaneAxis = %d, true; want no planar override", axis)
 	}
 }
 

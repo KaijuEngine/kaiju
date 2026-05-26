@@ -217,6 +217,7 @@ func (v *StageView) activeCamera() *editor_controls.EditorCamera {
 func (v *StageView) bindActiveViewportCamera() {
 	camera := v.activeCamera()
 	camera.UseAsPrimary(v.host)
+	v.transformMan.cameraModeChanged(camera.Mode())
 	if viewport := v.activeStageViewport(); viewport != nil {
 		v.viewport = viewport.bounds
 		if viewport.renderView != nil {
@@ -537,6 +538,10 @@ func (v *StageView) ViewportReferenceSize() matrix.Vec2 {
 		return v.ViewportSize()
 	}
 	return bounds.Size()
+}
+
+func (v *StageView) PickIDAtViewportPoint(point matrix.Vec2) (uint32, bool) {
+	return v.stagePicking.SamplePoint(point)
 }
 
 func (v *StageView) viewportReferenceBounds() stageViewportBounds {

@@ -38,6 +38,9 @@ func TestDrawingExplicitLayerMatching(t *testing.T) {
 		{name: "editor picking matches picking", layer: RenderLayerEditorPicking, mask: RenderLayerEditorPicking, want: true},
 		{name: "editor picking skips editor", layer: RenderLayerEditorPicking, mask: RenderLayerEditor, want: false},
 		{name: "editor picking skips all", layer: RenderLayerEditorPicking, mask: RenderLayerAll, want: false},
+		{name: "editor gizmo picking matches gizmo picking", layer: RenderLayerEditorGizmoPicking, mask: RenderLayerEditorGizmoPicking, want: true},
+		{name: "editor gizmo picking skips editor picking", layer: RenderLayerEditorGizmoPicking, mask: RenderLayerEditorPicking, want: false},
+		{name: "editor gizmo picking skips all", layer: RenderLayerEditorGizmoPicking, mask: RenderLayerAll, want: false},
 	}
 	for _, c := range cases {
 		drawing := Drawing{Layer: c.layer}
@@ -50,6 +53,9 @@ func TestDrawingExplicitLayerMatching(t *testing.T) {
 func TestRenderLayerAllExcludesEditorPicking(t *testing.T) {
 	if RenderLayerAll&RenderLayerEditorPicking != 0 {
 		t.Fatalf("RenderLayerAll should exclude editor picking")
+	}
+	if RenderLayerAll&RenderLayerEditorGizmoPicking != 0 {
+		t.Fatalf("RenderLayerAll should exclude editor gizmo picking")
 	}
 }
 

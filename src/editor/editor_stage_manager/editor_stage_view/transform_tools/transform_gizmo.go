@@ -38,6 +38,22 @@ func (t *TransformGizmo) cursorPosition(c *hid.Cursor) matrix.Vec2 {
 	}
 }
 
+func (t *TransformGizmo) pickIDAtCursor(c *hid.Cursor) (uint32, bool) {
+	if t.stage == nil {
+		return 0, false
+	}
+	return t.stage.PickIDAtViewportPoint(t.cursorPosition(c))
+}
+
+func (t *TransformGizmo) cameraCursorPosition(c *hid.Cursor) matrix.Vec2 {
+	pos := t.cursorPosition(c)
+	if t.isFixedPanelView() {
+		viewSize, _ := t.viewportSizes()
+		pos.SetY(viewSize.Y() - pos.Y())
+	}
+	return pos
+}
+
 func (t *TransformGizmo) resize(cam cameras.Camera) {
 	isOrtho := cam.IsOrthographic()
 	viewSize, refSize := t.viewportSizes()
@@ -91,4 +107,70 @@ func (t *TransformGizmo) viewportScaleFactor(viewSize, referenceSize matrix.Vec2
 		return 1
 	}
 	return referenceSize.Y() / viewSize.Y()
+}
+
+func (t *TransformGizmo) isFixedPanelView() bool {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraModeTop, editor_controls.EditorCameraModeFront,
+		editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return true
+	default:
+		return false
+	}
+}
+
+func (t *TransformGizmo) axisVisible(axis int) bool {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
+		return axis == matrix.Vx || axis == matrix.Vy
+	case editor_controls.EditorCameraModeTop:
+		return axis == matrix.Vx || axis == matrix.Vz
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return axis == matrix.Vy || axis == matrix.Vz
+	default:
+		return axis == matrix.Vx || axis == matrix.Vy || axis == matrix.Vz
+	}
+}
+
+func (t *TransformGizmo) planarTranslationPlaneAxis() (int, bool) {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
+		return matrix.Vx, true
+	case editor_controls.EditorCameraModeTop:
+		return matrix.Vz, true
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return matrix.Vy, true
+	default:
+		return -1, false
+	}
+}
+
+func (t *TransformGizmo) axisDirection(axis int) matrix.Vec3 {
+	switch axis {
+	case matrix.Vx:
+		return matrix.Vec3Right()
+	case matrix.Vy:
+		return matrix.Vec3Up()
+	case matrix.Vz:
+		return matrix.Vec3Backward()
+	default:
+		return matrix.Vec3Zero()
+	}
+}
+
+func (t *TransformGizmo) planarRotationAxis() (int, bool) {
+	switch t.cameraMode {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
+		return matrix.Vz, true
+	case editor_controls.EditorCameraModeTop:
+		return matrix.Vy, true
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		return matrix.Vx, true
+	default:
+		return -1, false
+	}
 }

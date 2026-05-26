@@ -22,6 +22,7 @@ import (
 )
 
 const stagePickingRenderName = "stage-picking"
+const stageGizmoPickingRenderName = "stage-gizmo-picking"
 
 type stagePickingRequestKind int
 
@@ -40,11 +41,14 @@ type stagePickingRequest struct {
 }
 
 type StagePicking struct {
-	view       *StageView
-	pending    *stagePickingRequest
-	target     *rendering.RenderTarget
-	renderView *rendering.RenderView
-	material   *rendering.Material
+	view                 *StageView
+	pending              *stagePickingRequest
+	target               *rendering.RenderTarget
+	renderView           *rendering.RenderView
+	gizmoTarget          *rendering.RenderTarget
+	gizmoRenderView      *rendering.RenderView
+	gizmoRenderViewReady bool
+	material             *rendering.Material
 }
 
 func (p *StagePicking) Initialize(view *StageView) {
@@ -54,6 +58,7 @@ func (p *StagePicking) Initialize(view *StageView) {
 func (p *StagePicking) Close() {
 	p.pending = nil
 	p.disableRenderView()
+	p.disableGizmoRenderView()
 }
 
 func (p *StagePicking) Update() {
@@ -126,47 +131,76 @@ func (p *StagePicking) request(req stagePickingRequest) bool {
 }
 
 func (p *StagePicking) ensureRenderView(size matrix.Vec2) error {
+	target, view, err := p.ensureNamedRenderView(stagePickingRenderName, size)
+	p.target = target
+	p.renderView = view
+	return err
+}
+
+func (p *StagePicking) ensureGizmoRenderView(size matrix.Vec2) error {
+	target, view, err := p.ensureNamedRenderView(stageGizmoPickingRenderName, size)
+	p.gizmoTarget = target
+	p.gizmoRenderView = view
+	return err
+}
+
+func (p *StagePicking) ensureNamedRenderView(name string, size matrix.Vec2) (*rendering.RenderTarget, *rendering.RenderView, error) {
 	host := p.view.host
 	if _, err := p.pickingTexture(); err != nil {
-		return err
+		return nil, nil, err
 	}
 	width, height := stageViewportTargetSize(size)
-	target, ok := host.RenderTargets.Target(stagePickingRenderName)
+	target, ok := host.RenderTargets.Target(name)
 	if !ok {
 		var err error
 		target, err = host.RenderTargets.Create(rendering.RenderTargetOptions{
-			Name:   stagePickingRenderName,
+			Name:   name,
 			Width:  width,
 			Height: height,
 			Depth:  false,
 		})
 		if err != nil {
-			return err
+			return nil, nil, err
+		}
+		if name == stageGizmoPickingRenderName {
+			p.gizmoRenderViewReady = false
 		}
 	} else {
-		target.Resize(width, height)
+		if target.Resize(width, height) && name == stageGizmoPickingRenderName {
+			p.gizmoRenderViewReady = false
+		}
 	}
-	p.target = target
 	camera := p.view.activeCamera().Camera()
-	view, ok := host.RenderViews.View(stagePickingRenderName)
+	layerMask := rendering.RenderLayerEditorPicking
+	if name == stageGizmoPickingRenderName {
+		layerMask = rendering.RenderLayerEditorGizmoPicking
+	}
+	view, ok := host.RenderViews.View(name)
 	if !ok {
 		var err error
 		view, err = host.RenderViews.Create(rendering.RenderViewOptions{
-			Name:      stagePickingRenderName,
+			Name:      name,
 			Target:    target,
 			Camera:    camera,
-			LayerMask: rendering.RenderLayerEditorPicking,
+			LayerMask: layerMask,
 			Clear:     true,
 			Sort:      -90,
 		})
 		if err != nil {
-			return err
+			return nil, nil, err
+		}
+		if name == stageGizmoPickingRenderName {
+			p.gizmoRenderViewReady = false
 		}
 	} else {
-		view.SetCamera(camera)
+		if view.Camera() != camera {
+			view.SetCamera(camera)
+			if name == stageGizmoPickingRenderName {
+				p.gizmoRenderViewReady = false
+			}
+		}
 	}
-	p.renderView = view
-	return nil
+	return target, view, nil
 }
 
 func (p *StagePicking) disableRenderView() {
@@ -185,6 +219,53 @@ func (p *StagePicking) disableRenderView() {
 		}
 		p.target = nil
 	}
+}
+
+func (p *StagePicking) disableGizmoRenderView() {
+	if p.view == nil || p.view.host == nil {
+		return
+	}
+	if p.gizmoRenderView != nil {
+		if err := p.view.host.RenderViews.Destroy(stageGizmoPickingRenderName); err != nil {
+			slog.Warn("failed to destroy editor gizmo picking render view", "error", err)
+		}
+		p.gizmoRenderView = nil
+	}
+	if p.gizmoTarget != nil {
+		if err := p.view.host.RenderTargets.Destroy(stageGizmoPickingRenderName); err != nil {
+			slog.Warn("failed to destroy editor gizmo picking render target", "error", err)
+		}
+		p.gizmoTarget = nil
+	}
+	p.gizmoRenderViewReady = false
+}
+
+func (p *StagePicking) SamplePoint(point matrix.Vec2) (uint32, bool) {
+	defer tracing.NewRegion("StagePicking.SamplePoint").End()
+	if p.view == nil || p.view.host == nil || p.gpuDevice() == nil {
+		return 0, false
+	}
+	viewportSize := p.view.ViewportSize()
+	if err := p.ensureGizmoRenderView(viewportSize); err != nil {
+		return 0, false
+	}
+	if !p.gizmoRenderViewReady {
+		p.gizmoRenderViewReady = true
+		return 0, false
+	}
+	tex, err := p.pickingTexture()
+	if err != nil {
+		return 0, false
+	}
+	region, ok := pickingPointReadRegion(point, viewportSize, tex.RenderId.Width, tex.RenderId.Height)
+	if !ok {
+		return 0, false
+	}
+	data, err := p.gpuDevice().TextureReadRegion(tex, region)
+	if err != nil {
+		return 0, false
+	}
+	return decodePickID(data), true
 }
 
 func (p *StagePicking) pickingTexture() (*rendering.Texture, error) {
@@ -303,13 +384,20 @@ func pickingBoxReadRegion(area matrix.Vec4, viewportSize matrix.Vec2, texWidth, 
 func decodePickIDs(data []byte) []uint32 {
 	ids := make([]uint32, 0)
 	for i := 0; i+4 <= len(data); i += 4 {
-		id := binary.LittleEndian.Uint32(data[i : i+4])
+		id := decodePickID(data[i : i+4])
 		if id == 0 || slicesContainsUint32(ids, id) {
 			continue
 		}
 		ids = append(ids, id)
 	}
 	return ids
+}
+
+func decodePickID(data []byte) uint32 {
+	if len(data) < 4 {
+		return 0
+	}
+	return binary.LittleEndian.Uint32(data[:4])
 }
 
 func slicesContainsUint32(values []uint32, target uint32) bool {
