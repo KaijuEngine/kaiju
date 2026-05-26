@@ -15,22 +15,291 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"golang.org/x/mod/modfile"
 	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_plugin"
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 var editorPluginRegistry = map[string]editor_plugin.EditorPlugin{}
 
+// availablePluginsFn is an indirection over editor_plugin.AvailablePlugins
+// so tests can inject a fake plugin set without touching the user's real
+// plugin folder. Production code never reassigns it.
+var availablePluginsFn = editor_plugin.AvailablePlugins
+
+// binaryMtimeFn is an indirection over os.Executable + os.Stat used by
+// StalePlugins so tests can supply a deterministic "binary mtime" without
+// touching the real test-binary on disk. Production code never reassigns
+// it. The default implementation resolves the running executable's path
+// (resolving symlinks on darwin/linux so the mtime reflects the actual
+// binary rather than a stable launcher symlink) and stats it for ModTime.
+var binaryMtimeFn = defaultBinaryMtime
+
+func defaultBinaryMtime() (time.Time, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return time.Time{}, err
+	}
+	// EvalSymlinks lets darwin app-bundle setups and Linux distros that
+	// ship a stable launcher symlink to a versioned binary observe the
+	// real binary's mtime rather than the symlink's (symlink mtimes are
+	// commonly the install timestamp, which never changes across rebuilds
+	// and would mask every recompile). On platforms where the executable
+	// path is already a regular file, EvalSymlinks is a no-op.
+	if resolved, rerr := filepath.EvalSymlinks(exe); rerr == nil && resolved != "" {
+		exe = resolved
+	}
+	info, err := os.Stat(exe)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return info.ModTime(), nil
+}
+
+// RegisterPlugin records a plugin implementation in the compiled-in plugin
+// registry. It is called from each plugin's package init() function.
+//
+// Convention: pluginKey MUST equal the plugin's Go module path (as declared
+// in the plugin's go.mod `module` line). The startup validator
+// (validateCompiledPlugins → MissingCompiledPlugins) depends on this
+// convention to match enabled entries in plugin.json against the
+// compiled-in registry. A best-effort heuristic emits a slog.Warn if the
+// supplied key does not contain a slash, since real Go module paths almost
+// always do (e.g. "go.digitalxero.dev/kaiju-code", "github.com/foo/bar").
+// Registration still proceeds — the warning is purely advisory so authors
+// can fix their plugin without bricking the editor.
+//
+// Example call shape (placed inside the plugin's package init()):
+//
+//	func init() {
+//	    editor.RegisterPlugin("go.digitalxero.dev/kaiju-code", &Plugin{})
+//	}
+//
+// Why the convention matters: when a fresh editor binary is built from
+// source, plugins that are Enabled=true in plugin.json but absent from the
+// compiled-in registry are surfaced via a startup modal that offers to
+// recompile the editor with them included. The validator joins the two
+// sets by module path, so a mismatched key would produce a false positive
+// on every launch.
 func RegisterPlugin(key string, plugin editor_plugin.EditorPlugin) {
+	if !strings.Contains(key, "/") {
+		slog.Warn("editor_plugin: RegisterPlugin key does not look like a module path", "key", key)
+	}
 	if _, ok := editorPluginRegistry[key]; ok {
 		slog.Error("a plugin with the given key is already registered", "key", key)
 		return
 	}
 	editorPluginRegistry[key] = plugin
+}
+
+// MissingCompiledPlugins returns the enabled plugins from
+// editor_plugin.AvailablePlugins() whose Go module path is NOT a key in
+// the compiled-in editorPluginRegistry — i.e., plugins the user marked
+// Enabled=true in plugin.json but that the current editor binary does
+// not contain. The set is used by the startup-validation modal
+// (validateCompiledPlugins) to offer a Recompile-or-Continue choice.
+//
+// Behaviour notes:
+//   - Disabled plugins (Config.Enabled == false) are ignored entirely.
+//   - Plugins whose module path is in ed.sessionDisabledPlugins are
+//     skipped so the modal does not repeat within one process after the
+//     user chose "Continue" (which session-disables the missing entry).
+//   - Git-source plugins (Path starts with "git://") cannot be inspected
+//     for a local go.mod; they are reported as missing if not in the
+//     registry, with a slog.Warn so users see the cause.
+//   - Per-plugin failures during go.mod parsing are slog.Warn-logged and
+//     the plugin is treated as missing (better to surface a stray modal
+//     than to silently mask a misconfiguration).
+//
+// The current implementation cannot return a non-nil error — the
+// signature reserves room for future failure modes (e.g. registry
+// inspection errors) without an API break.
+func (ed *Editor) MissingCompiledPlugins() ([]editor_plugin.PluginInfo, error) {
+	defer tracing.NewRegion("Editor.MissingCompiledPlugins").End()
+	all := availablePluginsFn()
+	missing := make([]editor_plugin.PluginInfo, 0, len(all))
+	for _, info := range all {
+		if !info.Config.Enabled {
+			continue
+		}
+		modulePath, err := modulePathFromInfo(info)
+		if err != nil {
+			slog.Warn("editor: failed to determine plugin module path; treating as missing",
+				"path", info.Path, "package", info.Config.PackageName, "error", err)
+			missing = append(missing, info)
+			continue
+		}
+		if ed.sessionDisabledPlugins != nil {
+			if _, suppressed := ed.sessionDisabledPlugins[modulePath]; suppressed {
+				continue
+			}
+		}
+		if _, registered := editorPluginRegistry[modulePath]; registered {
+			continue
+		}
+		missing = append(missing, info)
+	}
+	return missing, nil
+}
+
+// modulePathFromInfo is the canonical accessor for the Go module path of
+// a plugin discovered via editor_plugin.AvailablePlugins(). It centralises
+// the special-case handling for git-source plugins (Path prefixed with
+// "git://") and delegates to parsePluginModule for source-tree plugins.
+// Used by both MissingCompiledPlugins and validateCompiledPlugins (the
+// OnCancel path needs the module path to populate sessionDisabledPlugins).
+func modulePathFromInfo(info editor_plugin.PluginInfo) (string, error) {
+	if strings.HasPrefix(info.Path, "git://") {
+		moduleRef := strings.TrimPrefix(info.Path, "git://")
+		return strings.Split(moduleRef, "@")[0], nil
+	}
+	return parsePluginModule(info.Path, info.Config.PackageName)
+}
+
+// pluginSourceMaxMtime walks root (a plugin's source-tree folder) and
+// returns the latest mtime among files that influence the compiled binary:
+// any file with extension ".go", and the bare names "go.mod" / "go.sum".
+// Other files (HTML, CSS, images) are ignored — they are pulled into the
+// binary via go:embed directives whose timestamps already propagate to
+// the embedding .go file's mtime, so a real source change that affects the
+// build is always represented by a touched .go/.mod/.sum file.
+//
+// The walk skips directories named "vendor", "node_modules", ".git",
+// ".cache", and any dir whose name starts with "." (broad dot-dir
+// exclusion catches editor caches like .vscode, .idea, .DS_Store-flavoured
+// helpers, etc.). Skips happen via filepath.SkipDir so descent into those
+// trees is avoided entirely — important for performance on large plugins.
+//
+// Per-file errors (os.Stat racing a transient FS event, a dangling
+// symlink, a permission glitch) are slog.Warn-logged and the walk
+// continues. Returning a non-nil error from the WalkDirFunc would abort
+// the entire scan, which would bias the stale-detection toward false
+// negatives in surprising ways; defensive continuation produces the most
+// accurate result given best-effort guarantees.
+//
+// The returned (time.Time, error) is (max-mtime-seen, walk-level-error).
+// A walk-level error (e.g. root does not exist) returns the zero time.
+// When no qualifying files are found, the zero time is returned with a
+// nil error; callers should treat zero as "no source files observed" and
+// decide their own semantics (StalePlugins treats it as not-stale).
+func pluginSourceMaxMtime(root string) (time.Time, error) {
+	defer tracing.NewRegion("editor.pluginSourceMaxMtime").End()
+	var maxMtime time.Time
+	walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			// Per-entry walk error — log + continue. Returning the error
+			// here would abort the entire walk; we want best-effort.
+			slog.Warn("editor: pluginSourceMaxMtime walk error; continuing",
+				"path", path, "root", root, "error", err)
+			return nil
+		}
+		if d.IsDir() {
+			name := d.Name()
+			// Skip the root itself even if it starts with "." — only
+			// descend-prune children. The root check guards against a
+			// plugin folder that legitimately starts with "." being
+			// silently skipped.
+			if path == root {
+				return nil
+			}
+			if name == "vendor" || name == "node_modules" || name == ".git" || name == ".cache" || strings.HasPrefix(name, ".") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		name := d.Name()
+		ext := filepath.Ext(name)
+		if ext != ".go" && name != "go.mod" && name != "go.sum" {
+			return nil
+		}
+		info, statErr := os.Stat(path)
+		if statErr != nil {
+			slog.Warn("editor: pluginSourceMaxMtime failed to stat candidate; continuing",
+				"path", path, "root", root, "error", statErr)
+			return nil
+		}
+		mt := info.ModTime()
+		if mt.After(maxMtime) {
+			maxMtime = mt
+		}
+		return nil
+	})
+	return maxMtime, walkErr
+}
+
+// StalePlugins returns the enabled plugins from editor_plugin.AvailablePlugins()
+// whose source folder contains a .go / go.mod / go.sum file newer than the
+// running editor binary's mtime — i.e., plugins the user has edited since
+// the last `go build` of the editor. The set is used by the
+// startup-validation modal (validateCompiledPlugins) alongside
+// MissingCompiledPlugins to offer a Recompile-or-Continue choice.
+//
+// Behaviour notes:
+//   - Disabled plugins (Config.Enabled == false) are ignored.
+//   - Plugins NOT in editorPluginRegistry are skipped — they are the
+//     "missing" case owned by MissingCompiledPlugins; including them
+//     here would double-list them in the modal.
+//   - Git-source plugins (Path prefixed with "git://") are skipped:
+//     there is no local source tree to walk, and a git plugin can only
+//     become stale via a fresh `go get`, which is its own workflow.
+//   - On os.Executable() / stat failure: slog.Warn + return (nil, nil).
+//     Fail-quiet — better silence than false-positive modals.
+//   - On per-plugin module-path resolution or walk failure: slog.Warn +
+//     skip the plugin. Defensive: false negatives are preferable to
+//     surfacing a stale flag with no actionable source data.
+//
+// The current implementation cannot return a non-nil error — the
+// signature reserves room for future failure modes without an API break.
+func (ed *Editor) StalePlugins() ([]editor_plugin.PluginInfo, error) {
+	defer tracing.NewRegion("Editor.StalePlugins").End()
+	binaryMtime, err := binaryMtimeFn()
+	if err != nil {
+		slog.Warn("editor: StalePlugins cannot resolve binary mtime; skipping check",
+			"error", err)
+		return nil, nil
+	}
+	all := availablePluginsFn()
+	stale := make([]editor_plugin.PluginInfo, 0, len(all))
+	for _, info := range all {
+		if !info.Config.Enabled {
+			continue
+		}
+		if strings.HasPrefix(info.Path, "git://") {
+			// Git-source plugins have no local source tree to walk;
+			// staleness for them is governed by the user's go-get
+			// workflow, not by mtime comparison.
+			continue
+		}
+		modulePath, mpErr := modulePathFromInfo(info)
+		if mpErr != nil {
+			slog.Warn("editor: StalePlugins cannot determine module path; skipping plugin",
+				"path", info.Path, "package", info.Config.PackageName, "error", mpErr)
+			continue
+		}
+		if _, registered := editorPluginRegistry[modulePath]; !registered {
+			// Not compiled in — MissingCompiledPlugins owns this case.
+			continue
+		}
+		srcMtime, walkErr := pluginSourceMaxMtime(info.Path)
+		if walkErr != nil {
+			slog.Warn("editor: StalePlugins walk failed; skipping plugin",
+				"path", info.Path, "package", info.Config.PackageName, "error", walkErr)
+			continue
+		}
+		// time.After uses wall-clock comparison (monotonic clock readings
+		// are stripped by os.Stat / os.Executable since both reach the
+		// kernel's mtime field). Zero srcMtime means no qualifying source
+		// files were observed — treat as not-stale.
+		if !srcMtime.IsZero() && srcMtime.After(binaryMtime) {
+			stale = append(stale, info)
+		}
+	}
+	return stale, nil
 }
 
 func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onComplete func(err error)) error {
@@ -186,7 +455,15 @@ func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onCom
 		return err
 	}
 	go func() {
-		defer onComplete(err)
+		// Nil-safe callback dispatch: callers passing nil (e.g., the
+		// startup-validation modal's OnConfirm — see
+		// editor_plugin_validation.go) should not crash the restart
+		// goroutine. Engine-level fix landed alongside M1 phase 09.
+		defer func() {
+			if onComplete != nil {
+				onComplete(err)
+			}
+		}()
 		err = cmd.Wait()
 		if err != nil {
 			slog.Error("failed to compile the editor with the plugins", "error", err, "output", buildOutput.String())
