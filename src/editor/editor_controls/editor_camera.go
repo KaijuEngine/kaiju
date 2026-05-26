@@ -554,12 +554,24 @@ func (e *EditorCamera) updateFixedOrthographic(host *engine.Host, _ float64) (ch
 		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt())) {
 		e.dragging = true
 		e.mouseDown = mp
+		e.lastMousePos = mp
 		if mouse.Pressed(hid.MouseButtonMiddle) {
 			changed = true
 		}
 	} else if e.dragging && mouse.Held(hid.MouseButtonMiddle) {
-		e.panFixedOrthographic(oc, mp, host)
+		e.panFixedOrthographic(oc, e.lastMousePos, mp, host)
 		changed = true
+	} else if e.dragging && mouse.Held(hid.MouseButtonRight) && kb.HasAlt() {
+		dragDeltaY := e.lastMousePos.Y() - mp.Y()
+		dragDeltaX := mp.X() - e.lastMousePos.X()
+		dragDelta := dragDeltaY + dragDeltaX
+		r := oc.Width() / oc.Height()
+		newW := oc.Width() + r*-zoomScale2D*dragDelta
+		newH := oc.Height() + -zoomScale2D*dragDelta
+		if newW > matrix.FloatSmallestNonzero && newH > matrix.FloatSmallestNonzero {
+			oc.Resize(newW, newH)
+			changed = true
+		}
 	} else if mouse.Released(hid.MouseButtonMiddle) ||
 		mouse.Released(hid.MouseButtonRight) {
 		e.lastHit = matrix.Vec3Zero()
@@ -567,8 +579,8 @@ func (e *EditorCamera) updateFixedOrthographic(host *engine.Host, _ float64) (ch
 			changed = true
 		}
 		e.dragging = false
-	} else if mouseInside && kb.KeyHeld(hid.KeyboardKeySpace) {
-		e.panFixedOrthographic(oc, mp, host)
+	} else if mouseInside && kb.KeyHeld(hid.KeyboardKeySpace) && mouse.Moved() {
+		e.panFixedOrthographic(oc, e.lastMousePos, mp, host)
 		changed = true
 	}
 	if mouseInside && mouse.Scrolled() {
@@ -585,17 +597,13 @@ func (e *EditorCamera) updateFixedOrthographic(host *engine.Host, _ float64) (ch
 	return changed
 }
 
-func (e *EditorCamera) panFixedOrthographic(oc *cameras.StandardCamera, mp matrix.Vec2, host *engine.Host) {
+func (e *EditorCamera) panFixedOrthographic(oc *cameras.StandardCamera, from, to matrix.Vec2, host *engine.Host) {
 	defer tracing.NewRegion("EditorCamera.panFixedOrthographic").End()
-	if matrix.Vec3Approx(e.lastHit, matrix.Vec3Zero()) {
-		e.lastHit = mp.AsVec3()
-	}
 	vw, vh := e.viewportSize(host)
-	dx := (e.lastHit.X() - mp.X()) * oc.Width() / vw
-	dy := (e.lastHit.Y() - mp.Y()) * oc.Height() / vh
+	dx := (from.X() - to.X()) * oc.Width() / vw
+	dy := (from.Y() - to.Y()) * oc.Height() / vh
 	delta := oc.Right().Scale(dx).Add(oc.Up().Scale(dy))
 	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
-	e.lastHit = mp.AsVec3()
 }
 
 func (e *EditorCamera) zoomSpeed() float32 {

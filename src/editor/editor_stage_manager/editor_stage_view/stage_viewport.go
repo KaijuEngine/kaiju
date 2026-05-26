@@ -101,6 +101,10 @@ type stageRenderViewport struct {
 	bounds     stageViewportBounds
 }
 
+func (v stageRenderViewport) acceptsInput() bool {
+	return v.ui == nil || v.ui.IsActive()
+}
+
 type stageViewportBounds struct {
 	Left   float32
 	Top    float32
@@ -364,6 +368,9 @@ func (v *StageView) currentViewportBounds() stageViewportBounds {
 }
 
 func (v *StageView) currentViewportBoundsFor(viewport *stageRenderViewport) stageViewportBounds {
+	if viewport != nil && viewport.ui != nil && !viewport.ui.IsActive() {
+		return stageViewportBounds{}
+	}
 	if v.host == nil || v.host.Window == nil {
 		if viewport != nil && viewport.bounds.Valid() {
 			return viewport.bounds
@@ -474,13 +481,13 @@ func stageMouseReleased(mouse *hid.Mouse) bool {
 func resolveStageViewportRouting(viewports []stageRenderViewport, current, focused int, pos matrix.Vec2, pressed, held, released bool) (int, int, int) {
 	hovered := stageViewportIndexAt(viewports, pos)
 	active := current
-	if active < 0 || active >= len(viewports) {
+	if active < 0 || active >= len(viewports) || !viewports[active].acceptsInput() {
 		active = firstValidStageViewport(viewports)
 	}
-	if focused >= 0 && focused < len(viewports) && held {
+	if focused >= 0 && focused < len(viewports) && viewports[focused].acceptsInput() && held {
 		return focused, focused, hovered
 	}
-	if focused >= 0 && focused < len(viewports) && released {
+	if focused >= 0 && focused < len(viewports) && viewports[focused].acceptsInput() && released {
 		return focused, -1, hovered
 	}
 	if hovered >= 0 {
@@ -494,7 +501,7 @@ func resolveStageViewportRouting(viewports []stageRenderViewport, current, focus
 
 func stageViewportIndexAt(viewports []stageRenderViewport, pos matrix.Vec2) int {
 	for i := range viewports {
-		if viewports[i].bounds.ContainsScreenPosition(pos) {
+		if viewports[i].acceptsInput() && viewports[i].bounds.ContainsScreenPosition(pos) {
 			return i
 		}
 	}
@@ -503,7 +510,7 @@ func stageViewportIndexAt(viewports []stageRenderViewport, pos matrix.Vec2) int 
 
 func firstValidStageViewport(viewports []stageRenderViewport) int {
 	for i := range viewports {
-		if viewports[i].bounds.Valid() {
+		if viewports[i].acceptsInput() && viewports[i].bounds.Valid() {
 			return i
 		}
 	}
