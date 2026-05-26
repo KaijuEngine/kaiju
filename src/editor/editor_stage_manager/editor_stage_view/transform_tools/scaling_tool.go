@@ -9,6 +9,7 @@ package transform_tools
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine/systems/events"
@@ -35,6 +36,8 @@ type ScalingTool struct {
 type ScalingToolBox struct {
 	shaftShaderData rendering.DrawInstance
 	boxShaderData   rendering.DrawInstance
+	shaftPickData   rendering.DrawInstance
+	boxPickData     rendering.DrawInstance
 	shaftTransform  matrix.Transform
 	boxTransform    matrix.Transform
 	hitBox          graviton.AABB
@@ -44,15 +47,16 @@ func (t *ScalingTool) Initialize(host *engine.Host, stage StageInterface) {
 	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
+	pickMat, _ := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	for i := range t.boxes {
-		t.boxes[i].Initialize(host, i)
+		t.boxes[i].Initialize(host, pickMat, i)
 		t.boxes[i].shaftTransform.SetParent(&t.root)
 		t.boxes[i].boxTransform.SetParent(&t.root)
 	}
 	t.Hide()
 }
 
-func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
+func (a *ScalingToolBox) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	a.shaftTransform.Initialize(host.WorkGroup())
 	a.boxTransform.Initialize(host.WorkGroup())
 	sm := rendering.NewMeshCylinder(host.MeshCache(),
@@ -100,18 +104,19 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 	}
 	host.Drawings.AddDrawing(shaftDraw)
 	host.Drawings.AddDrawing(boxDraw)
+	pickID := scalePickID(vec)
+	a.shaftPickData = addGizmoPickDrawing(host, pickMat, sm, &a.shaftTransform, a.shaftShaderData, pickID)
+	a.boxPickData = addGizmoPickDrawing(host, pickMat, bm, &a.boxTransform, a.boxShaderData, pickID)
 }
 
 func (t *ScalingTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
-	axis := len(t.boxes)
-	if t.cameraMode == editor_controls.EditorCameraMode2d {
-		axis = 2
-	}
-	for i := range axis {
-		t.boxes[i].shaftShaderData.Activate()
-		t.boxes[i].boxShaderData.Activate()
+	for i := range t.boxes {
+		if t.axisVisible(i) {
+			t.boxes[i].shaftShaderData.Activate()
+			t.boxes[i].boxShaderData.Activate()
+		}
 	}
 	t.updateHitBoxes()
 }
@@ -138,6 +143,9 @@ func (t *ScalingTool) Update(host *engine.Host, snap bool, snapScale float32) bo
 }
 
 func (t *ScalingTool) SetDimensions(mode editor_controls.EditorCameraMode) {
+	if t.cameraMode == mode {
+		return
+	}
 	t.cameraMode = mode
 	if t.visible {
 		t.Hide()
@@ -174,22 +182,31 @@ func (t *ScalingTool) updateHitBoxes() {
 }
 
 func (t *ScalingTool) mousePosition(c *hid.Cursor) matrix.Vec2 {
-	return t.cursorPosition(c)
+	return t.cameraCursorPosition(c)
 }
 
 func (t *ScalingTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
 	}
-	ray := cam.RayCast(t.mousePosition(&host.Window.Cursor))
 	dist := matrix.FloatMax
 	target := -1
-	for i := range t.boxes {
-		if hit, ok := t.boxes[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				dist = d
+	if pickID, ok := t.pickIDAtCursor(&host.Window.Cursor); ok {
+		if axis, hit := scalePickAxis(pickID); hit && t.axisVisible(axis) {
+			target = axis
+		}
+	} else if !t.isFixedPanelView() {
+		ray := cam.RayCast(t.mousePosition(&host.Window.Cursor))
+		for i := range t.boxes {
+			if !t.axisVisible(i) {
+				continue
+			}
+			if hit, ok := t.boxes[i].hitBox.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					dist = d
+				}
 			}
 		}
 	}
@@ -255,10 +272,7 @@ func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera, snap bo
 			}
 			t.OnDragEnd.Execute(scale)
 			t.setVisuals(boxPos)
-			for i := range t.boxes {
-				t.boxes[i].shaftShaderData.Activate()
-				t.boxes[i].boxShaderData.Activate()
-			}
+			t.Show(t.root.Position())
 		} else {
 			t.OnDragScale.Execute(scale)
 		}

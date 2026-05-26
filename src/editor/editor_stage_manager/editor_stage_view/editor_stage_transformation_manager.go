@@ -88,6 +88,22 @@ func (t *TransformationManager) cameraModeChanged(mode editor_controls.EditorCam
 	t.scalingTool.SetDimensions(mode)
 }
 
+func (t *TransformationManager) RefreshToolVisibility() {
+	pos := matrix.Vec3NaN()
+	hasSelection := t.manager != nil && t.manager.HasSelection()
+	if hasSelection {
+		pos = t.manager.LastSelected().Transform.Position()
+	}
+	t.refreshToolVisibilityAt(hasSelection, pos)
+}
+
+func (t *TransformationManager) refreshToolVisibilityAt(hasSelection bool, pos matrix.Vec3) {
+	if !hasSelection {
+		pos = matrix.Vec3NaN()
+	}
+	t.showToolState(t.currentTool, pos)
+}
+
 func (t *TransformationManager) Update(host *engine.Host, proj *project.Project) {
 	t.project = proj
 	kb := &host.Window.Keyboard

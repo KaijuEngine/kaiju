@@ -347,6 +347,11 @@ func (t *Texture) ReadAllPixels(app *GPUApplication) ([]byte, error) {
 	return app.FirstInstance().PrimaryDevice().TextureRead(t)
 }
 
+func (t *Texture) ReadPixelRegion(app *GPUApplication, rect matrix.Vec4i) ([]byte, error) {
+	defer tracing.NewRegion("Texture.ReadPixelRegion").End()
+	return app.FirstInstance().PrimaryDevice().TextureReadRegion(t, rect)
+}
+
 func (t *Texture) WritePixels(device *GPUDevice, requests []GPUImageWriteRequest) {
 	defer tracing.NewRegion("Texture.WritePixels").End()
 	device.TextureWritePixels(t, requests)

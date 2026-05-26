@@ -21,4 +21,6 @@ type StageInterface interface {
 	ViewportCursorPosition(mode editor_controls.EditorCameraMode, cursor *hid.Cursor) matrix.Vec2
 	ViewportMousePosition(mouse *hid.Mouse) matrix.Vec2
 	ViewportSize() matrix.Vec2
+	ViewportReferenceSize() matrix.Vec2
+	PickIDAtViewportPoint(point matrix.Vec2) (uint32, bool)
 }

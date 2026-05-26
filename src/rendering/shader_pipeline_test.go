@@ -6,7 +6,11 @@
 
 package rendering
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"testing"
+)
 
 func TestShaderPipelineStringMappings(t *testing.T) {
 	if got := (&ShaderPipelineInputAssembly{Topology: "Lines"}).TopologyToGPU(); got != GPUPrimitiveTopology(StringVkPrimitiveTopology["Lines"]) {
@@ -180,5 +184,43 @@ func TestShaderPipelineCompile(t *testing.T) {
 		compiled.PushConstant.Size != 16 ||
 		len(compiled.ColorBlendAttachments) != 1 {
 		t.Fatalf("unexpected compiled pipeline: %+v", compiled)
+	}
+}
+
+func TestEditorPickShaderPipelineAsset(t *testing.T) {
+	data, err := os.ReadFile("../editor/editor_embedded_content/editor_content/renderer/pipelines/editor_pick.shaderpipeline")
+	if err != nil {
+		t.Fatalf("failed to read editor_pick.shaderpipeline: %v", err)
+	}
+	var pipeline ShaderPipelineData
+	if err := json.Unmarshal(data, &pipeline); err != nil {
+		t.Fatalf("failed to parse editor_pick.shaderpipeline: %v", err)
+	}
+	if pipeline.Name != "editor_pick" {
+		t.Fatalf("Name = %q, want editor_pick", pipeline.Name)
+	}
+	if len(pipeline.ColorBlendAttachments) != 1 {
+		t.Fatalf("color blend attachment count = %d, want 1", len(pipeline.ColorBlendAttachments))
+	}
+	if pipeline.ColorBlendAttachments[0].BlendEnable {
+		t.Fatalf("editor pick blending must be disabled")
+	}
+	if !pipeline.DepthStencil.DepthTestEnable || !pipeline.DepthStencil.DepthWriteEnable {
+		t.Fatalf("editor pick depth test/write must be enabled: %+v", pipeline.DepthStencil)
+	}
+	passData, err := os.ReadFile("../editor/editor_embedded_content/editor_content/renderer/passes/editor_pick.renderpass")
+	if err != nil {
+		t.Fatalf("failed to read editor_pick.renderpass: %v", err)
+	}
+	pass, err := NewRenderPassData(string(passData))
+	if err != nil {
+		t.Fatalf("failed to parse editor_pick.renderpass: %v", err)
+	}
+	if len(pass.SubpassDescriptions) != 1 {
+		t.Fatalf("render pass subpass count = %d, want 1", len(pass.SubpassDescriptions))
+	}
+	if len(pipeline.ColorBlendAttachments) != len(pass.SubpassDescriptions[0].ColorAttachmentReferences) {
+		t.Fatalf("pipeline blend attachment count = %d, render pass color attachment count = %d",
+			len(pipeline.ColorBlendAttachments), len(pass.SubpassDescriptions[0].ColorAttachmentReferences))
 	}
 }

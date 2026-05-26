@@ -30,6 +30,10 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 		slog.Error("failed to load the gizmo icon", "icon", iconName, "error", err)
 		return nil
 	}
+	pickMat, err := host.MaterialCache().Material(assets.MaterialDefinitionEditorGizmoPick)
+	if err != nil {
+		slog.Error("failed to find the editor gizmo picking material", "error", err)
+	}
 	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	mesh := rendering.NewMeshQuad(host.MeshCache())
 	sd := &shader_data_registry.ShaderDataUnlit{
@@ -48,6 +52,12 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 			ViewCuller: &host.Cameras.Primary,
 		}
 		host.Drawings.AddDrawing(draw)
+		if pickMat != nil && manager != nil {
+			if pickDraw, pickSd, ok := manager.NewPickingDrawing(target, pickMat, mesh, &target.Transform); ok {
+				host.Drawings.AddDrawing(pickDraw)
+				rendering.LinkDrawInstanceLifecycle(sd, pickSd)
+			}
+		}
 	})
 	box := graviton.AABB{}
 	box.Extent = target.Transform.WorldScale().Scale(0.5)

@@ -257,7 +257,6 @@ func closestSnapVertexOnEntity(e *editor_stage_manager.StageEntity, mouse matrix
 		if !ok {
 			continue
 		}
-		screen = vertexSnapToCursorScreenSpace(screen, viewport)
 		dx := screen.X() - mouse.X()
 		dy := screen.Y() - mouse.Y()
 		distSq := dx*dx + dy*dy
@@ -275,11 +274,6 @@ func closestSnapVertexOnEntity(e *editor_stage_manager.StageEntity, mouse matrix
 		found = true
 	}
 	return best, found
-}
-
-func vertexSnapToCursorScreenSpace(screen matrix.Vec3, viewport matrix.Vec4) matrix.Vec3 {
-	screen.SetY(viewport.Y() + viewport.W() - (screen.Y() - viewport.Y()))
-	return screen
 }
 
 func applyVertexSnapDelta(memento *transformHistory, delta matrix.Vec3) {

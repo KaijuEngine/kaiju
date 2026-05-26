@@ -9,6 +9,7 @@ package transform_tools
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine/systems/events"
@@ -18,8 +19,9 @@ import (
 )
 
 const (
-	rotationGizmoRadius   = 2
-	rotationGizmoSegments = 64
+	rotationGizmoRadius        = 2
+	rotationGizmoSegments      = 64
+	rotationGizmoPickThickness = 0.5
 )
 
 type RotationTool struct {
@@ -35,6 +37,7 @@ type RotationTool struct {
 
 type TranslationToolCircle struct {
 	shaderData rendering.DrawInstance
+	pickData   rendering.DrawInstance
 	transform  matrix.Transform
 	hitCircle  graviton.Circle
 }
@@ -43,14 +46,15 @@ func (t *RotationTool) Initialize(host *engine.Host, stage StageInterface) {
 	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
+	pickMat, _ := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	for i := range t.circles {
-		t.circles[i].Initialize(host, i)
+		t.circles[i].Initialize(host, pickMat, i)
 		t.circles[i].transform.SetParent(&t.root)
 	}
 	t.Hide()
 }
 
-func (a *TranslationToolCircle) Initialize(host *engine.Host, vec int) {
+func (a *TranslationToolCircle) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	a.transform.Initialize(host.WorkGroup())
 	m := rendering.NewMeshCircleWire(host.MeshCache(), rotationGizmoRadius, rotationGizmoSegments)
 	mat, _ := host.MaterialCache().Material("gizmo_overlay_wire.material")
@@ -75,13 +79,15 @@ func (a *TranslationToolCircle) Initialize(host *engine.Host, vec int) {
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(draw)
+	pickMesh := newRotationGizmoPickMesh(host.MeshCache(), rotationGizmoRadius, rotationGizmoPickThickness, rotationGizmoSegments)
+	a.pickData = addGizmoPickDrawing(host, pickMat, pickMesh, &a.transform, a.shaderData, rotationPickID(vec))
 }
 
 func (t *RotationTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
-	if t.cameraMode == editor_controls.EditorCameraMode2d {
-		t.circles[2].shaderData.Activate()
+	if axis, ok := t.planarRotationAxis(); ok {
+		t.circles[axis].shaderData.Activate()
 	} else {
 		for i := range t.circles {
 			t.circles[i].shaderData.Activate()
@@ -111,6 +117,9 @@ func (t *RotationTool) Update(host *engine.Host, snap bool, snapScale float32) b
 }
 
 func (t *RotationTool) SetDimensions(mode editor_controls.EditorCameraMode) {
+	if t.cameraMode == mode {
+		return
+	}
 	t.cameraMode = mode
 	if t.visible {
 		t.Hide()
@@ -127,16 +136,29 @@ func (t *RotationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
 	}
-	ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
 	dist := matrix.FloatMax
 	target := -1
-	for i := range t.circles {
-		if hit, ok := t.circles[i].hitCircle.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				t.lastHit = hit
-				dist = d
+	textureHit := false
+	if pickID, ok := t.pickIDAtCursor(&host.Window.Cursor); ok {
+		textureHit = true
+		if axis, hit := rotationPickAxis(pickID); hit {
+			if planarAxis, ok := t.planarRotationAxis(); !ok || planarAxis == axis {
+				target = axis
+			}
+		}
+	} else if !t.isFixedPanelView() {
+		ray := cam.RayCast(t.cursorPosition(&host.Window.Cursor))
+		for i := range t.circles {
+			if axis, ok := t.planarRotationAxis(); ok && i != axis {
+				continue
+			}
+			if hit, ok := t.circles[i].hitCircle.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					t.lastHit = hit
+					dist = d
+				}
 			}
 		}
 	}
@@ -156,6 +178,13 @@ func (t *RotationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 		if target != -1 {
 			sd := t.circles[t.currentAxis].shaderData.(*shader_data_registry.ShaderDataEdTransformWire)
 			sd.Color = matrix.ColorYellow()
+		}
+	}
+	if textureHit && target != -1 {
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(&host.Window.Cursor), t.root.Position(), t.axisDirection(target)); ok {
+			t.lastHit = hit
+		} else {
+			t.lastHit = t.root.Position()
 		}
 	}
 }
@@ -206,7 +235,7 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera, snap b
 		case matrix.Vz:
 			nml = matrix.NewVec3(0, 0, 1)
 		}
-		if hit, ok := cam.TryPlaneHit(t.cursorPosition(c), rp, nml); ok {
+		if hit, ok := cam.TryPlaneHit(t.cameraCursorPosition(c), rp, nml); ok {
 			dir := hit.Subtract(t.root.Position()).Normal()
 			angle := t.lastDirection.SignedAngle(dir, nml)
 			t.lastDirection = dir
@@ -221,9 +250,7 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera, snap b
 			t.dragging = false
 			t.OnDragEnd.Execute(t.rotationVector())
 			t.rotationDelta = 0
-			for i := range t.circles {
-				t.circles[i].shaderData.Activate()
-			}
+			t.Show(t.root.Position())
 		}
 	}
 }

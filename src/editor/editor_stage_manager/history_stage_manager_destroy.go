@@ -21,6 +21,9 @@ func (h *objectDeleteHistory) Redo() {
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Deactivate()
 		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Deactivate()
+		}
 		h.m.OnEntityDestroy.Execute(e)
 		e.isDeleted = true
 		if e.StageData.Bvh != nil {
@@ -35,6 +38,9 @@ func (h *objectDeleteHistory) Undo() {
 		e.Activate()
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Activate()
+		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Activate()
 		}
 		h.m.OnEntitySpawn.Execute(e)
 		e.isDeleted = false
@@ -55,6 +61,9 @@ func (h *objectDeleteHistory) Exit() {
 	for _, e := range h.entities {
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Destroy()
+		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Destroy()
 		}
 		h.m.host.DestroyEntity(&e.Entity)
 	}

@@ -228,6 +228,7 @@ func (w *StageWorkspace) processViewportLayoutHotkeys() bool {
 		w.layoutMode = stageViewportLayoutSingle
 	}
 	w.applyViewportLayout()
+	w.stageView.RefreshTransformGizmoVisibility()
 	return true
 }
 

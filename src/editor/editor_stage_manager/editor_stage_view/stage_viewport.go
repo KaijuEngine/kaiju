@@ -217,6 +217,7 @@ func (v *StageView) activeCamera() *editor_controls.EditorCamera {
 func (v *StageView) bindActiveViewportCamera() {
 	camera := v.activeCamera()
 	camera.UseAsPrimary(v.host)
+	v.transformMan.cameraModeChanged(camera.Mode())
 	if viewport := v.activeStageViewport(); viewport != nil {
 		v.viewport = viewport.bounds
 		if viewport.renderView != nil {
@@ -531,6 +532,57 @@ func (v *StageView) ViewportSize() matrix.Vec2 {
 	return bounds.Size()
 }
 
+func (v *StageView) ViewportReferenceSize() matrix.Vec2 {
+	bounds := v.viewportReferenceBounds()
+	if !bounds.Valid() {
+		return v.ViewportSize()
+	}
+	return bounds.Size()
+}
+
+func (v *StageView) PickIDAtViewportPoint(point matrix.Vec2) (uint32, bool) {
+	return v.stagePicking.SamplePoint(point)
+}
+
+func (v *StageView) viewportReferenceBounds() stageViewportBounds {
+	var left, top, right, bottom float32
+	found := false
+	for i := range v.stageViewports {
+		viewport := &v.stageViewports[i]
+		if viewport.ui != nil && !viewport.ui.IsActive() {
+			continue
+		}
+		bounds := viewport.bounds
+		if !bounds.Valid() {
+			bounds = v.currentViewportBoundsFor(viewport)
+		}
+		if !bounds.Valid() {
+			continue
+		}
+		if !found {
+			left = bounds.Left
+			top = bounds.Top
+			right = bounds.Left + bounds.Width
+			bottom = bounds.Top + bounds.Height
+			found = true
+			continue
+		}
+		left = min(left, bounds.Left)
+		top = min(top, bounds.Top)
+		right = max(right, bounds.Left+bounds.Width)
+		bottom = max(bottom, bounds.Top+bounds.Height)
+	}
+	if !found {
+		return v.currentViewportBounds()
+	}
+	return stageViewportBounds{
+		Left:   left,
+		Top:    top,
+		Width:  right - left,
+		Height: bottom - top,
+	}
+}
+
 func (v *StageView) ViewportMousePosition(mouse *hid.Mouse) matrix.Vec2 {
 	bounds := v.viewport
 	if !bounds.Valid() {
@@ -571,5 +623,10 @@ func (v *StageView) TryBoxSelect(screenBox matrix.Vec4) {
 	if !bounds.Valid() {
 		bounds = v.currentViewportBounds()
 	}
-	v.manager.TryBoxSelect(bounds.LocalBottomAreaFromScreenArea(screenBox))
+	area := bounds.LocalBottomAreaFromScreenArea(screenBox)
+	mode := stageSelectionMode(&v.host.Window.Keyboard)
+	if v.stagePicking.RequestBox(area, mode) {
+		return
+	}
+	v.manager.TryBoxSelectWithMode(area, mode)
 }

@@ -8,6 +8,7 @@ package editor_stage_view
 
 import (
 	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_stage_manager"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/platform/hid"
@@ -39,9 +40,14 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 	boxSelected := v.selectTool.Update()
 	if m.Released(hid.MouseButtonLeft) && !boxSelected {
 		ray := v.activeCamera().RayCast(m)
-		if kb.HasShift() {
+		mode := stageSelectionMode(kb)
+		point := v.ViewportMousePosition(m)
+		if v.stagePicking.RequestClick(point, mode, ray) {
+			return
+		}
+		if mode == editor_stage_manager.SelectionModeAppend {
 			v.manager.TryAppendSelect(ray)
-		} else if kb.HasCtrlOrMeta() {
+		} else if mode == editor_stage_manager.SelectionModeToggle {
 			v.manager.TryToggleSelect(ray)
 		} else {
 			v.manager.TrySelect(ray)

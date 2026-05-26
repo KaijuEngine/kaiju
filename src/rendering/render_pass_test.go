@@ -8,6 +8,7 @@ package rendering
 
 import (
 	"math"
+	"os"
 	"testing"
 )
 
@@ -181,5 +182,35 @@ func TestRenderPassDataCompile(t *testing.T) {
 		compiled.Subpass[0].Shader != "combine.shader" ||
 		compiled.Subpass[0].SampledImages[0] != 0 {
 		t.Fatalf("subpass data = %+v", compiled.Subpass)
+	}
+}
+
+func TestEditorPickRenderPassAsset(t *testing.T) {
+	data, err := os.ReadFile("../editor/editor_embedded_content/editor_content/renderer/passes/editor_pick.renderpass")
+	if err != nil {
+		t.Fatalf("failed to read editor_pick.renderpass: %v", err)
+	}
+	pass, err := NewRenderPassData(string(data))
+	if err != nil {
+		t.Fatalf("NewRenderPassData returned error: %v", err)
+	}
+	if pass.Name != "editor_pick" || !pass.SkipCombine {
+		t.Fatalf("unexpected pass metadata: %+v", pass)
+	}
+	if len(pass.AttachmentDescriptions) != 2 {
+		t.Fatalf("attachment count = %d, want 2", len(pass.AttachmentDescriptions))
+	}
+	if pass.AttachmentDescriptions[0].Format != "R32Uint" ||
+		pass.AttachmentDescriptions[0].Image.Clear.R != 0 {
+		t.Fatalf("unexpected id attachment: %+v", pass.AttachmentDescriptions[0])
+	}
+	if pass.AttachmentDescriptions[1].Format != "<DetectDepthFormat>" ||
+		pass.AttachmentDescriptions[1].Image.Clear.Depth != 1 {
+		t.Fatalf("unexpected depth attachment: %+v", pass.AttachmentDescriptions[1])
+	}
+	if len(pass.SubpassDescriptions) != 1 ||
+		len(pass.SubpassDescriptions[0].ColorAttachmentReferences) != 1 ||
+		len(pass.SubpassDescriptions[0].DepthStencilAttachment) != 1 {
+		t.Fatalf("unexpected subpass attachments: %+v", pass.SubpassDescriptions)
 	}
 }

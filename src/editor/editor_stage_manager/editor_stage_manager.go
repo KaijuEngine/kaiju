@@ -56,6 +56,8 @@ type StageManager struct {
 	history               *memento.History
 	entities              []*StageEntity
 	selected              []*StageEntity
+	nextPickID            uint32
+	pickIDToEntity        map[uint32]*StageEntity
 	worldBVH              *graviton.BVH
 }
 
@@ -68,6 +70,7 @@ type StageEntityEditorData struct {
 	Mesh                  *rendering.Mesh
 	SnapVertices          []matrix.Vec3
 	ShaderData            rendering.DrawInstance
+	PickingShaderData     rendering.DrawInstance
 	Description           stages.EntityDescription
 	PendingMaterialChange bool
 }
@@ -163,6 +166,7 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 	e.StageData.Description.Id = id
 	e.Transform.SetPosition(point)
 	m.entities = append(m.entities, e)
+	m.AssignPickID(e)
 	e.AddNamedData("stage", e.StageData)
 	wm := weak.Make(m)
 	we := weak.Make(e)
@@ -170,10 +174,16 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Activate()
 		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Activate()
+		}
 	})
 	e.OnDeactivate.Add(func() {
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Deactivate()
+		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Deactivate()
 		}
 	})
 	e.OnDestroy.Add(func() {
@@ -184,8 +194,12 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Destroy()
 		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Destroy()
+		}
 		se := we.Value()
 		sm.RemoveEntityBVH(se)
+		sm.unregisterPickID(se)
 		for i := range sm.entities {
 			if sm.entities[i] == se {
 				sm.entities = klib.RemoveUnordered(sm.entities, i)
@@ -335,6 +349,8 @@ func (m *StageManager) Clear() {
 	// function is used right before a map load, so having a dirty entity list
 	// at that point is not good.
 	m.entities = klib.WipeSlice(m.entities)
+	clear(m.pickIDToEntity)
+	m.nextPickID = 0
 	m.worldBVH = nil
 }
 
@@ -781,6 +797,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 			ViewCuller: &host.Cameras.Primary,
 		}
 		host.Drawings.AddDrawing(draw)
+		m.addPickingDrawing(e)
 	})
 	return nil
 }

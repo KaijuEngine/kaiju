@@ -74,6 +74,23 @@ func TestStageTargetResizeFollowsViewportPanelSize(t *testing.T) {
 	}
 }
 
+func TestStageViewportReferenceSizeUsesVisibleViewportUnion(t *testing.T) {
+	t.Parallel()
+
+	view := StageView{
+		stageViewports: []stageRenderViewport{
+			{Kind: StageViewportPerspective, bounds: stageViewportBounds{Left: 0, Top: 20, Width: 400, Height: 300}},
+			{Kind: StageViewportTop, bounds: stageViewportBounds{Left: 400, Top: 20, Width: 400, Height: 300}},
+			{Kind: StageViewportSide, bounds: stageViewportBounds{Left: 0, Top: 320, Width: 400, Height: 300}},
+			{Kind: StageViewportFront, bounds: stageViewportBounds{Left: 400, Top: 320, Width: 400, Height: 300}},
+		},
+	}
+
+	if got, want := view.ViewportReferenceSize(), matrix.NewVec2(800, 600); got != want {
+		t.Fatalf("reference size = %v, want %v", got, want)
+	}
+}
+
 func TestStageViewportRoutingUsesHoveredAndFocusedViewport(t *testing.T) {
 	t.Parallel()
 
