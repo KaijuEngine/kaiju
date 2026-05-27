@@ -24,7 +24,7 @@ func init() {
 
 func IntegrationTestFBXMonkey(host *engine.Host) {
 	host.PrimaryCamera().SetFarPlane(1000)
-	host.PrimaryCamera().SetPosition(matrix.NewVec3(0, 0, -320))
+	host.PrimaryCamera().SetPosition(matrix.Vec3Backward().Scale(320))
 	host.PrimaryCamera().SetLookAtWithUp(matrix.Vec3Zero(), matrix.Vec3Up())
 	res, err := loaders.FBX("monkey.fbx", host.AssetDatabase())
 	if err != nil {
