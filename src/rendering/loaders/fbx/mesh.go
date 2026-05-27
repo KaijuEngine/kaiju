@@ -108,6 +108,15 @@ func sceneIndexToLoadResultWithPath(index SceneIndex, sourcePath string) (load_r
 			return res, err
 		}
 		nodeIndex := nodeIndexByObjectID[binding.nodeObject.ID]
+		if options.Skin == nil && !fbxModelHasAnimation(index, binding.nodeObject.ID) {
+			if rotation, ok := fbxModelImportCorrectionRotation(binding.modelObject, converter); ok {
+				bakeRotationTransform(verts, rotation)
+				res.Nodes[nodeIndex].Rotation = matrix.QuaternionIdentity()
+				if fbxIsUnitCorrectionScale(res.Nodes[nodeIndex].Scale) {
+					res.Nodes[nodeIndex].Scale = matrix.Vec3One()
+				}
+			}
+		}
 		name := res.Nodes[nodeIndex].Name
 		meshName := binding.geometry.Name
 		if meshName == "" {
@@ -163,6 +172,22 @@ func geometryBindings(index SceneIndex) []fbxGeometryBinding {
 		})
 	}
 	return bindings
+}
+
+func fbxModelHasAnimation(index SceneIndex, modelID int64) bool {
+	for _, connection := range index.Connections.PropertiesByNode[modelID] {
+		if connection.Type != "OP" {
+			continue
+		}
+		if fbxObjectKind(index.Animation[connection.Child], "AnimationCurveNode", "AnimCurveNode") {
+			return true
+		}
+	}
+	return false
+}
+
+func fbxIsUnitCorrectionScale(scale matrix.Vec3) bool {
+	return matrix.Vec3ApproxTo(scale, matrix.NewVec3XYZ(100), 0.0001)
 }
 
 func sortedObjectIDs(objects map[int64]*Object) []int64 {

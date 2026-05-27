@@ -38,7 +38,7 @@ func IntegrationTestFBXMonkey(host *engine.Host) {
 	monkey := meshCache.Mesh("monkey", res.Meshes[0].Verts, res.Meshes[0].Indexes)
 	meshCache.AddMesh(monkey)
 	e := engine.NewEntity(host.WorkGroup())
-	sd := shader_data_registry.Create("cube")
+	sd := shader_data_registry.Create("basic")
 	sd.(*shader_data_registry.ShaderDataStandard).Color = matrix.ColorWhite()
 	first := ""
 	for _, v := range res.Meshes[0].Textures {

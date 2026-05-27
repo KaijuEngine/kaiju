@@ -286,6 +286,16 @@ func TestToLoadResultMonkeyFixtureGeometry(t *testing.T) {
 	if len(res.Joints) != 0 || len(res.Animations) != 0 {
 		t.Fatalf("static monkey fixture produced %d joints and %d animations, want none", len(res.Joints), len(res.Animations))
 	}
+	node := res.Meshes[0].Node
+	if node == nil {
+		t.Fatal("monkey mesh node is nil")
+	}
+	if !quaternionApproxTo(node.Rotation, matrix.QuaternionIdentity(), 0.0001) {
+		t.Fatalf("monkey node rotation = %#v, want identity after static import bake", node.Rotation)
+	}
+	if !matrix.Vec3ApproxTo(node.Scale, matrix.Vec3One(), 0.0001) {
+		t.Fatalf("monkey node scale = %#v, want one after static import bake", node.Scale)
+	}
 }
 
 func testMeshGeometryObject(node Node) *Object {
