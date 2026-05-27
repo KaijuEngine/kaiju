@@ -39,7 +39,7 @@ type MeshConfig struct{}
 
 func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
 func (Mesh) TypeName() string   { return "Mesh" }
-func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj"} }
+func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj", ".fbx"} }
 
 type meshImportPostProcData struct {
 	mesh         load_result.Mesh
@@ -105,6 +105,14 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if res, err = loaders.OBJ(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
+	case ".fbx":
+		adb, err := assets.NewFileDatabase(filepath.Dir(src))
+		if err != nil {
+			return p, err
+		}
+		if res, err = loaders.FBX(filepath.Base(src), adb); err != nil {
+			return p, err
+		}
 	}
 	if len(res.Meshes) == 0 {
 		return p, NoMeshesInFileError{Path: src}
@@ -127,7 +135,12 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			slog.Warn("import mesh failure on node", "index", i, "name", res.Meshes[i].Name)
 			continue
 		}
-		isAnimated := res.IsTreeAnimated(int(res.Meshes[i].Node.Id))
+		isAnimated := false
+		if nodeIndex := meshNodeIndex(res, res.Meshes[i].Node); nodeIndex >= 0 {
+			isAnimated = res.IsTreeAnimated(nodeIndex)
+		} else {
+			slog.Warn("import mesh failure on node index", "index", i, "name", res.Meshes[i].Name)
+		}
 		postProcData[v.Name] = meshImportPostProcData{
 			mesh:         res.Meshes[i],
 			kaijuMesh:    kms[i],
@@ -156,6 +169,19 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		}
 	}
 	return p, nil
+}
+
+func meshNodeIndex(res load_result.Result, node *load_result.Node) int {
+	id := int(node.Id)
+	if id >= 0 && id < len(res.Nodes) && &res.Nodes[id] == node {
+		return id
+	}
+	for i := range res.Nodes {
+		if &res.Nodes[i] == node {
+			return i
+		}
+	}
+	return -1
 }
 
 func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
@@ -189,18 +215,7 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		}
 	}
 	for texKey, data := range texKeyToData {
-		ext := ".png"
-		if len(data) > 0 {
-			if data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4e && data[3] == 0x47 {
-				ext = ".png"
-			} else if data[0] == 0xff && data[1] == 0xd8 {
-				ext = ".jpg"
-			} else if data[0] == 0x42 && data[1] == 0x4d {
-				ext = ".bmp"
-			} else if data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 {
-				ext = ".webp"
-			}
-		}
+		ext := meshEmbeddedTextureExtension(data)
 		tf, err := os.CreateTemp("", "*-kaiju-texture"+ext)
 		if err != nil {
 			continue
@@ -357,6 +372,22 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		return err
 	}
 	return nil
+}
+
+func meshEmbeddedTextureExtension(data []byte) string {
+	if len(data) >= 4 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4e && data[3] == 0x47 {
+		return ".png"
+	}
+	if len(data) >= 2 && data[0] == 0xff && data[1] == 0xd8 {
+		return ".jpg"
+	}
+	if len(data) >= 2 && data[0] == 0x42 && data[1] == 0x4d {
+		return ".bmp"
+	}
+	if len(data) >= 4 && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 {
+		return ".webp"
+	}
+	return ".png"
 }
 
 func (Mesh) PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache) error {

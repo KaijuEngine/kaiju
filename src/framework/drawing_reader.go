@@ -73,11 +73,17 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 		}
 		textures := []*rendering.Texture{}
 		for i := range m.Textures {
-			tex, _ := host.TextureCache().Texture(m.Textures[i], rendering.TextureFilterLinear)
+			tex, err := host.TextureCache().Texture(m.Textures[i], rendering.TextureFilterLinear)
+			if err != nil {
+				return drawings, fmt.Errorf("failed to load mesh texture %q: %w", m.Textures[i], err)
+			}
 			textures = append(textures, tex)
 		}
 		for i := len(textures); i < minimumTextures; i++ {
-			tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+			tex, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+			if err != nil {
+				return drawings, fmt.Errorf("failed to load fallback texture %q: %w", assets.TextureSquare, err)
+			}
 			textures = append(textures, tex)
 		}
 		mat, err := host.MaterialCache().Material(matKey)
