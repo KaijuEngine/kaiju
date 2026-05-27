@@ -197,7 +197,7 @@ func (e *EditorCamera) setMode(mode EditorCameraMode, host *engine.Host, bindPri
 		w, h := e.viewportSize(host)
 		cam := cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())
 		tc := cameras.ToTurntable(cam)
-		tc.SetYawPitchZoom(180, -25, 16)
+		tc.SetYawPitchZoom(0, -25, 16)
 		tc.SetLookAt(matrix.Vec3Zero())
 		tc.SetZoom(15)
 		e.camera = tc
