@@ -123,6 +123,10 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			Data: kd,
 		}
 		p.Variants = append(p.Variants, v)
+		if res.Meshes[i].Node == nil {
+			slog.Warn("import mesh failure on node", "index", i, "name", res.Meshes[i].Name)
+			continue
+		}
 		isAnimated := res.IsTreeAnimated(int(res.Meshes[i].Node.Id))
 		postProcData[v.Name] = meshImportPostProcData{
 			mesh:         res.Meshes[i],
