@@ -135,7 +135,12 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 			slog.Warn("import mesh failure on node", "index", i, "name", res.Meshes[i].Name)
 			continue
 		}
-		isAnimated := res.IsTreeAnimated(int(res.Meshes[i].Node.Id))
+		isAnimated := false
+		if nodeIndex := meshNodeIndex(res, res.Meshes[i].Node); nodeIndex >= 0 {
+			isAnimated = res.IsTreeAnimated(nodeIndex)
+		} else {
+			slog.Warn("import mesh failure on node index", "index", i, "name", res.Meshes[i].Name)
+		}
 		postProcData[v.Name] = meshImportPostProcData{
 			mesh:         res.Meshes[i],
 			kaijuMesh:    kms[i],
@@ -164,6 +169,19 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		}
 	}
 	return p, nil
+}
+
+func meshNodeIndex(res load_result.Result, node *load_result.Node) int {
+	id := int(node.Id)
+	if id >= 0 && id < len(res.Nodes) && &res.Nodes[id] == node {
+		return id
+	}
+	for i := range res.Nodes {
+		if &res.Nodes[i] == node {
+			return i
+		}
+	}
+	return -1
 }
 
 func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
