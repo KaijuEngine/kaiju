@@ -192,7 +192,6 @@ func TestStageManagerDirtyPickableTransformsMarksMovedPickingEntities(t *testing
 	manager := &StageManager{}
 	entity := &StageEntity{}
 	entity.Init(nil)
-	entity.StageData.PickingShaderData = shader_data_registry.Create(editorPickingShaderDataName)
 	manager.entities = []*StageEntity{entity}
 	manager.AssignPickID(entity)
 	entity.Transform.ResetDirty()

@@ -107,8 +107,7 @@ func (m *StageManager) DirtyPickableTransforms() {
 	defer tracing.NewRegion("StageManager.DirtyPickableTransforms").End()
 	for i := range m.entities {
 		e := m.entities[i]
-		if e == nil || e.IsDeleted() || e.IsLocked() ||
-			e.PickID == 0 || e.StageData.PickingShaderData == nil {
+		if e == nil || e.IsDeleted() || e.IsLocked() || e.PickID == 0 {
 			continue
 		}
 		e.Transform.SetDirty()
