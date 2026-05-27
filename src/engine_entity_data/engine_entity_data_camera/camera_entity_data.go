@@ -100,6 +100,6 @@ func (c *CameraModule) update(deltaTime float64) {
 		return
 	}
 	t := &c.entity.Transform
-	lookAt := t.Position().Add(t.Forward())
+	lookAt := t.Position().Subtract(t.Forward())
 	p.Camera.SetPositionAndLookAt(t.Position(), lookAt)
 }

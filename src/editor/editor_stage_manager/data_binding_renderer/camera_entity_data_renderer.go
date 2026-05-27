@@ -77,7 +77,7 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 	}
 
 	identity := matrix.Mat4Identity()
-	identity.Rotate(matrix.NewVec3(90, 0, 0))
+	identity.Rotate(matrix.NewVec3(-90, 0, 0))
 
 	//* key name generation log needs to be confirmed
 	m := rendering.NewMeshArrowWithTransform(host.MeshCache(),
