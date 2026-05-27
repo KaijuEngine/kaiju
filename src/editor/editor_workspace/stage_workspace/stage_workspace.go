@@ -7,6 +7,8 @@
 package stage_workspace
 
 import (
+	"slices"
+
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
@@ -49,17 +51,19 @@ func init() {
 
 type StageWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed          editor_workspace.WorkspaceEditorInterface
-	stageView   *editor_stage_view.StageView
-	pageData    WorkspaceUIData
-	contentUI   WorkspaceContentUI
-	hierarchyUI WorkspaceHierarchyUI
-	detailsUI   WorkspaceDetailsUI
-	viewports   map[editor_stage_view.StageViewportKind]*document.Element
-	labels      map[editor_stage_view.StageViewportKind]*document.Element
-	layoutMode  stageViewportLayoutMode
-	focusedView editor_stage_view.StageViewportKind
-	ftde        struct {
+	ed                   editor_workspace.WorkspaceEditorInterface
+	stageView            *editor_stage_view.StageView
+	pageData             WorkspaceUIData
+	contentUI            WorkspaceContentUI
+	hierarchyUI          WorkspaceHierarchyUI
+	detailsUI            WorkspaceDetailsUI
+	viewports            map[editor_stage_view.StageViewportKind]*document.Element
+	labels               map[editor_stage_view.StageViewportKind]*document.Element
+	cameraPreview        *document.Element
+	cameraPreviewClasses []string
+	layoutMode           stageViewportLayoutMode
+	focusedView          editor_stage_view.StageViewportKind
+	ftde                 struct {
 		arrow *document.Element
 		y     float32
 	}
@@ -118,6 +122,11 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 			w.labels[labelID.kind] = label
 		}
 	}
+	if preview, ok := w.Doc.GetElementById("cameraPreview"); ok {
+		w.cameraPreview = preview
+		w.stageView.SetCameraPreviewUI(preview.UI)
+		w.updateCameraPreviewPlacement()
+	}
 	w.layoutMode = stageViewportLayoutSingle
 	w.focusedView = editor_stage_view.StageViewportPerspective
 	w.applyViewportLayout()
@@ -160,6 +169,7 @@ func (w *StageWorkspace) Open() {
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
+	w.updateCameraPreviewPlacement()
 	w.Doc.MarkDirty()
 }
 
@@ -205,6 +215,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 		w.hierarchyUI.processHotkeys(w.Host)
 		w.detailsUI.processHotkeys(w.Host)
 	}
+	w.updateCameraPreviewPlacement()
 }
 
 func (w *StageWorkspace) processViewportLayoutHotkeys() bool {
@@ -252,6 +263,25 @@ func (w *StageWorkspace) applyViewportLayout() {
 		}
 	}
 	w.Doc.ApplyStyles()
+	w.updateCameraPreviewPlacement()
+}
+
+func (w *StageWorkspace) updateCameraPreviewPlacement() {
+	if w.cameraPreview == nil {
+		return
+	}
+	classes := []string{"cameraPreview"}
+	if w.detailsUI.detailsArea != nil && w.detailsUI.detailsArea.UI.Entity().IsActive() {
+		classes = append(classes, "cameraPreviewDetailsOpen")
+	}
+	if w.contentUI.contentArea != nil && w.contentUI.contentArea.UI.Entity().IsActive() {
+		classes = append(classes, "cameraPreviewContentOpen")
+	}
+	if slices.Equal(w.cameraPreviewClasses, classes) {
+		return
+	}
+	w.cameraPreviewClasses = slices.Clone(classes)
+	w.Doc.SetElementClasses(w.cameraPreview, classes...)
 }
 
 func (w *StageWorkspace) viewportVisible(kind editor_stage_view.StageViewportKind) bool {

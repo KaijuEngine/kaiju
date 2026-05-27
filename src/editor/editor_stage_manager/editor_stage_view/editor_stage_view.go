@@ -39,6 +39,7 @@ type StageView struct {
 	transformMan    TransformationManager
 	toolOwner       ViewportToolOwner
 	stageViewports  []stageRenderViewport
+	cameraPreview   stageCameraPreview
 	activeViewport  int
 	hoveredViewport int
 	focusedViewport int
@@ -111,6 +112,7 @@ func (v *StageView) Open() {
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
+	v.hideCameraPreview()
 	v.stagePicking.Close()
 	v.restoreDefaultRenderView()
 	if v.gridShader != nil {
@@ -146,6 +148,7 @@ func (v *StageView) applyGridVisibility() {
 func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
 	v.syncStageViewport()
+	v.syncCameraPreview()
 	v.stagePicking.Update()
 	v.gridTransform.ResetDirty()
 	// If we are currently using any of the transformation tools, we shouldn't

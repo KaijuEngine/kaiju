@@ -120,6 +120,22 @@
 			.stageViewportLabelHidden {
 				visibility: hidden;
 			}
+			.cameraPreview {
+				position: absolute;
+				width: 260px;
+				height: 146px;
+				right: 0.75em;
+				bottom: 2em;
+				background-color: white;
+				border: 2px solid #AAA;
+				z-index: 3;
+			}
+			.cameraPreviewDetailsOpen {
+				right: calc(18% + 0.75em);
+			}
+			.cameraPreviewContentOpen {
+				bottom: calc(30% + 2em);
+			}
 			#hierarchyArea,
 			#detailsArea,
 			#contentArea {
@@ -139,6 +155,7 @@
 		<span id="stageViewportLabelTop" class="stageViewportLabel stageViewportLabelHidden">Top</span>
 		<span id="stageViewportLabelSide" class="stageViewportLabel stageViewportLabelHidden">Side</span>
 		<span id="stageViewportLabelFront" class="stageViewportLabel stageViewportLabelHidden">Front</span>
+		<img id="cameraPreview" class="cameraPreview" src="editor/textures/icons/menu_bar_logo.png" />
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
