@@ -20,15 +20,10 @@ func newFBXBasisConverter(settings GlobalSettings) fbxBasisConverter {
 }
 
 func (c fbxBasisConverter) ConvertPosition(v matrix.Vec3) matrix.Vec3 {
-	if c.settings.UpAxis == 1 && c.settings.UpAxisSign == 1 &&
-		c.settings.FrontAxis == 2 && c.settings.FrontAxisSign == 1 &&
-		c.settings.CoordAxis == 0 && c.settings.CoordAxisSign == 1 {
-		return v
-	}
 	return matrix.NewVec3(
-		fbxAxisValue(v, c.settings.CoordAxis, c.settings.CoordAxisSign),
+		-fbxAxisValue(v, c.settings.CoordAxis, c.settings.CoordAxisSign),
 		fbxAxisValue(v, c.settings.UpAxis, c.settings.UpAxisSign),
-		fbxAxisValue(v, c.settings.FrontAxis, c.settings.FrontAxisSign),
+		-fbxAxisValue(v, c.settings.FrontAxis, c.settings.FrontAxisSign),
 	)
 }
 
@@ -41,11 +36,6 @@ func (c fbxBasisConverter) ConvertDirection(v matrix.Vec3) matrix.Vec3 {
 }
 
 func (c fbxBasisConverter) ConvertScale(v matrix.Vec3) matrix.Vec3 {
-	if c.settings.UpAxis == 1 && c.settings.UpAxisSign == 1 &&
-		c.settings.FrontAxis == 2 && c.settings.FrontAxisSign == 1 &&
-		c.settings.CoordAxis == 0 && c.settings.CoordAxisSign == 1 {
-		return v
-	}
 	return matrix.NewVec3(
 		fbxAxisScale(v, c.settings.CoordAxis),
 		fbxAxisScale(v, c.settings.UpAxis),
@@ -54,11 +44,6 @@ func (c fbxBasisConverter) ConvertScale(v matrix.Vec3) matrix.Vec3 {
 }
 
 func (c fbxBasisConverter) ConvertRotation(degrees matrix.Vec3) matrix.Quaternion {
-	if c.settings.UpAxis == 1 && c.settings.UpAxisSign == 1 &&
-		c.settings.FrontAxis == 2 && c.settings.FrontAxisSign == 1 &&
-		c.settings.CoordAxis == 0 && c.settings.CoordAxisSign == 1 {
-		return matrix.QuaternionFromEuler(degrees)
-	}
 	converted := c.ConvertPosition(degrees)
 	return matrix.QuaternionFromEuler(converted)
 }

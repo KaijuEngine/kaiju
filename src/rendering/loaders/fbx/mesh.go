@@ -263,7 +263,7 @@ func meshGeometryFromObjectWithOptions(geometry, model *Object, converter fbxBas
 				vert.Normal = converter.ConvertDirection(normal)
 			}
 			if uv, ok := uvs.Value(corner.PolygonVertex, corner.ControlPoint); ok {
-				vert.UV0 = uv
+				vert.UV0 = convertFBXUV(uv)
 			}
 			if color, ok := colors.Value(corner.PolygonVertex, corner.ControlPoint); ok {
 				vert.Color = color
@@ -284,6 +284,11 @@ func meshGeometryFromObjectWithOptions(geometry, model *Object, converter fbxBas
 		bakeGeometricTransform(verts, model, converter, unitScale)
 	}
 	return verts, indices, nil
+}
+
+func convertFBXUV(uv matrix.Vec2) matrix.Vec2 {
+	// FBX V coordinates are opposite the engine texture sampling convention.
+	return matrix.NewVec2(uv.X(), 1-uv.Y())
 }
 
 func readControlPointPositions(node *Node) ([]matrix.Vec3, error) {
@@ -344,14 +349,14 @@ func triangleFanIndices(cornerCount int) []uint32 {
 	}
 	indices := make([]uint32, 0, (cornerCount-2)*3)
 	for i := 2; i < cornerCount; i++ {
-		indices = append(indices, 0, uint32(i), uint32(i-1))
+		indices = append(indices, 0, uint32(i-1), uint32(i))
 	}
 	return indices
 }
 
 func faceNormalForPolygon(verts []rendering.Vertex) matrix.Vec3 {
 	for i := 2; i < len(verts); i++ {
-		normal := rendering.VertexFaceNormal([3]rendering.Vertex{verts[0], verts[i], verts[i-1]})
+		normal := rendering.VertexFaceNormal([3]rendering.Vertex{verts[0], verts[i-1], verts[i]})
 		if !normal.IsZero() {
 			return normal
 		}

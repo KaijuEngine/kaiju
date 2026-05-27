@@ -32,7 +32,8 @@ zlib-compressed, and nested records terminate with null sentinels.
 - `Direct` and `IndexToDirect` layer references.
 - Generated face normals when normal layer data is absent.
 - Model hierarchy and local translation, rotation, and scale.
-- Global axis settings and unit scale conversion.
+- Global axis settings and unit scale conversion into Kaiju's `-Z` forward
+  convention.
 - Model geometric transforms baked into attached mesh vertices.
 - Materials connected to geometry or model nodes.
 - External texture paths and embedded `Video` texture content.
@@ -54,8 +55,8 @@ zlib-compressed, and nested records terminate with null sentinels.
   texture usages are assigned fallback slots.
 - Animation import samples raw keyed curves. Advanced FBX interpolation modes
   and animation layer blending are not evaluated.
-- UVs are imported in the FBX coordinate convention currently used by Kaiju's
-  texture path; do not flip V without updating the regression checklist below.
+- FBX V texture coordinates are flipped during import to match Kaiju's texture
+  sampling convention.
 
 ## Parser Hardening
 
@@ -98,6 +99,8 @@ Visual checks:
 
 - Winding: Suzanne should render front faces from the test camera, without
   appearing inside-out.
+- Front axis: Suzanne's eyes should face the negative-Z test camera, with the
+  black eyelid rings visible around the whites.
 - UV vertical orientation: textured fixtures should keep expected V
   orientation. If V flipping changes, update importer code and tests together.
 - Axis settings: non-default `GlobalSettings` should convert positions,

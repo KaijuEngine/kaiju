@@ -45,9 +45,9 @@ func TestTriangleFanIndices(t *testing.T) {
 		cornerCount int
 		want        []uint32
 	}{
-		{name: "triangle", cornerCount: 3, want: []uint32{0, 2, 1}},
-		{name: "quad", cornerCount: 4, want: []uint32{0, 2, 1, 0, 3, 2}},
-		{name: "ngon", cornerCount: 5, want: []uint32{0, 2, 1, 0, 3, 2, 0, 4, 3}},
+		{name: "triangle", cornerCount: 3, want: []uint32{0, 1, 2}},
+		{name: "quad", cornerCount: 4, want: []uint32{0, 1, 2, 0, 2, 3}},
+		{name: "ngon", cornerCount: 5, want: []uint32{0, 1, 2, 0, 2, 3, 0, 3, 4}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -85,11 +85,11 @@ func TestMeshGeometryByPolygonVertexIndexToDirectNormalsAndUVs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("meshGeometryFromObject returned error: %v", err)
 	}
-	if !reflect.DeepEqual(indices, []uint32{0, 2, 1}) {
-		t.Fatalf("indices = %#v, want [0 2 1]", indices)
+	if !reflect.DeepEqual(indices, []uint32{0, 1, 2}) {
+		t.Fatalf("indices = %#v, want [0 1 2]", indices)
 	}
-	wantNormals := []matrix.Vec3{{0, 1, 0}, {0, 0, 1}, {0, 1, 0}}
-	wantUVs := []matrix.Vec2{{0.25, 0.5}, {0.75, 1}, {0.25, 0.5}}
+	wantNormals := []matrix.Vec3{{0, 1, 0}, {0, 0, -1}, {0, 1, 0}}
+	wantUVs := []matrix.Vec2{{0.25, 0.5}, {0.75, 0}, {0.25, 0.5}}
 	for i := range verts {
 		if verts[i].Normal != wantNormals[i] {
 			t.Fatalf("verts[%d].Normal = %#v, want %#v", i, verts[i].Normal, wantNormals[i])
@@ -203,8 +203,8 @@ func TestLoadResultNodeLocalTRSAndUnitScale(t *testing.T) {
 		t.Fatalf("node count = %d, want 1", len(res.Nodes))
 	}
 	node := res.Nodes[0]
-	if !matrix.Vec3ApproxTo(node.Position, matrix.Vec3{10, 20, 30}, 0.0001) {
-		t.Fatalf("Position = %#v, want {10 20 30}", node.Position)
+	if !matrix.Vec3ApproxTo(node.Position, matrix.Vec3{-10, 20, -30}, 0.0001) {
+		t.Fatalf("Position = %#v, want {-10 20 -30}", node.Position)
 	}
 	if node.Scale != (matrix.Vec3{2, 3, 4}) {
 		t.Fatalf("Scale = %#v, want {2 3 4}", node.Scale)
@@ -249,14 +249,14 @@ func TestGeometricTransformBakesMeshWithoutAffectingChildNode(t *testing.T) {
 	if len(res.Meshes) != 1 {
 		t.Fatalf("mesh count = %d, want 1", len(res.Meshes))
 	}
-	if got := res.Meshes[0].Verts[0].Position; got != (matrix.Vec3{5, 0, 0}) {
-		t.Fatalf("baked vertex position = %#v, want {5 0 0}", got)
+	if got := res.Meshes[0].Verts[0].Position; got != (matrix.Vec3{-5, 0, 0}) {
+		t.Fatalf("baked vertex position = %#v, want {-5 0 0}", got)
 	}
 	childNode := res.NodeByName("Child")
 	if childNode == nil {
 		t.Fatal("Child node missing")
 	}
-	if childNode.Position != (matrix.Vec3{1, 0, 0}) {
+	if childNode.Position != (matrix.Vec3{-1, 0, 0}) {
 		t.Fatalf("Child position = %#v, want local transform unaffected by geometric bake", childNode.Position)
 	}
 }

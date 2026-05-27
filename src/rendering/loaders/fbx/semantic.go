@@ -82,6 +82,8 @@ type GlobalSettings struct {
 }
 
 func DefaultGlobalSettings() GlobalSettings {
+	// FBX commonly stores +X/+Z as the coordinate/front axes. The converter
+	// maps that source basis into Kaiju's -Z-forward handedness.
 	return GlobalSettings{
 		UpAxis:                  1,
 		UpAxisSign:              1,
@@ -96,8 +98,8 @@ func DefaultGlobalSettings() GlobalSettings {
 
 func (s GlobalSettings) IsKaijuCompatible() bool {
 	return s.UpAxis == 1 && s.UpAxisSign == 1 &&
-		s.FrontAxis == 2 && s.FrontAxisSign == 1 &&
-		s.CoordAxis == 0 && s.CoordAxisSign == 1 &&
+		s.FrontAxis == 2 && s.FrontAxisSign == -1 &&
+		s.CoordAxis == 0 && s.CoordAxisSign == -1 &&
 		s.UnitScaleFactor == 1
 }
 

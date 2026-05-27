@@ -47,9 +47,13 @@ func TestFBXClusterInverseBindFromTransformData(t *testing.T) {
 		testNodeWithProperty("TransformLink", mat4Float64s(jointBind)),
 	)
 	got := fbxClusterInverseBind(cluster, newFBXBasisConverter(DefaultGlobalSettings()), 1)
-	expected := jointBind
+	convertedMeshBind := matrix.Mat4Identity()
+	convertedMeshBind.Translate(matrix.Vec3{-10, 0, 0})
+	convertedJointBind := matrix.Mat4Identity()
+	convertedJointBind.Translate(matrix.Vec3{-2, 0, 0})
+	expected := convertedJointBind
 	expected.Inverse()
-	expected = matrix.Mat4Multiply(expected, meshBind)
+	expected = matrix.Mat4Multiply(expected, convertedMeshBind)
 	if !matrix.Mat4ApproxTo(got, expected, 0.0001) {
 		t.Fatalf("inverse bind = %#v, want %#v", got, expected)
 	}
@@ -79,7 +83,7 @@ func TestFBXAnimationKTimeConversionAndKeyMerging(t *testing.T) {
 	if !matrix.Approx(anims[0].Frames[0].Time, 1) || !matrix.Approx(anims[0].Frames[1].Time, 0) {
 		t.Fatalf("relative frame times = %v, %v; want 1, 0", anims[0].Frames[0].Time, anims[0].Frames[1].Time)
 	}
-	for i, want := range []matrix.Vec3{{1, 2, 0}, {3, 4, 0}} {
+	for i, want := range []matrix.Vec3{{-1, 2, 0}, {-3, 4, 0}} {
 		if len(anims[0].Frames[i].Bones) != 1 {
 			t.Fatalf("frame %d bone count = %d, want merged translation bone", i, len(anims[0].Frames[i].Bones))
 		}
@@ -121,10 +125,10 @@ func TestFBXAnimationChannelMappingToTRS(t *testing.T) {
 		byPath[bone.PathType] = bone
 	}
 	translation := byPath[load_result.AnimPathTranslation].Data
-	if got := matrix.Vec3FromSlice(translation[:]); !matrix.Vec3ApproxTo(got, matrix.Vec3{5, 0, 0}, 0.0001) {
-		t.Fatalf("translation = %#v, want {5 0 0}", got)
+	if got := matrix.Vec3FromSlice(translation[:]); !matrix.Vec3ApproxTo(got, matrix.Vec3{-5, 0, 0}, 0.0001) {
+		t.Fatalf("translation = %#v, want {-5 0 0}", got)
 	}
-	wantRotation := matrix.QuaternionFromEuler(matrix.Vec3{90, 0, 0})
+	wantRotation := matrix.QuaternionFromEuler(matrix.Vec3{-90, 0, 0})
 	if !quaternionApproxTo(matrix.Quaternion(byPath[load_result.AnimPathRotation].Data), wantRotation, 0.0001) {
 		t.Fatalf("rotation = %#v, want %#v", byPath[load_result.AnimPathRotation].Data, wantRotation)
 	}
@@ -273,8 +277,8 @@ func TestToLoadResultGeneratedBinarySkinnedFBX(t *testing.T) {
 	bone := res.Animations[0].Frames[1].Bones[0]
 	data := bone.Data
 	if bone.NodeIndex != 1 || bone.PathType != load_result.AnimPathTranslation ||
-		!matrix.Vec3ApproxTo(matrix.Vec3FromSlice(data[:]), matrix.Vec3{1, 0, 0}, 0.0001) {
-		t.Fatalf("animation bone = %#v, want Bone translation to {1 0 0}", bone)
+		!matrix.Vec3ApproxTo(matrix.Vec3FromSlice(data[:]), matrix.Vec3{-1, 0, 0}, 0.0001) {
+		t.Fatalf("animation bone = %#v, want Bone translation to {-1 0 0}", bone)
 	}
 }
 
