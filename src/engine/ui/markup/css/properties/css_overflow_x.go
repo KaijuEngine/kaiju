@@ -40,6 +40,7 @@ func (p OverflowX) Process(panel *ui.Panel, elm *document.Element, values []rule
 		panel.SetScrollDirection(panel.ScrollDirection() | ui.PanelScrollDirectionHorizontal)
 		panel.SetOverflow(ui.OverflowScroll)
 		panel.Base().GenerateScissor()
+		panel.DontFitContentWidth()
 	case "inherit":
 		if elm.Parent.Value() != nil {
 			parentPanel := elm.Parent.Value().UIPanel

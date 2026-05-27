@@ -42,15 +42,20 @@ func (p Flex) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 			layout.SetFlexGrow(grow)
 			layout.SetFlexShrink(1)
 			layout.SetFlexBasis(0, false)
+			if grow > 0 {
+				panel.DontFitContent()
+			}
 			return nil
 		}
 		layout.SetFlexGrow(0)
 		layout.SetFlexShrink(1)
-		setFlexBasis(layout, values[0].Str, host)
+		setFlexBasis(panel, values[0].Str, host)
 		return nil
 	}
-	if grow, ok := parseFlexFloat(values[0].Str); ok {
-		layout.SetFlexGrow(grow)
+	var grow float32
+	if g, ok := parseFlexFloat(values[0].Str); ok {
+		grow = g
+		layout.SetFlexGrow(g)
 	} else {
 		return fmt.Errorf("invalid flex-grow value %q", values[0].Str)
 	}
@@ -62,9 +67,12 @@ func (p Flex) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		layout.SetFlexShrink(1)
 	}
 	if basisIdx < len(values) {
-		setFlexBasis(layout, values[basisIdx].Str, host)
+		setFlexBasis(panel, values[basisIdx].Str, host)
 	} else {
 		layout.SetFlexBasis(0, false)
+	}
+	if grow > 0 {
+		panel.DontFitContent()
 	}
 	return nil
 }

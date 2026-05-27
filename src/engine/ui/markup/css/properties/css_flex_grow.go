@@ -28,5 +28,8 @@ func (p FlexGrow) Process(panel *ui.Panel, elm *document.Element, values []rules
 		return fmt.Errorf("invalid flex-grow value %q", values[0].Str)
 	}
 	panel.Base().Layout().SetFlexGrow(grow)
+	if grow > 0 {
+		panel.DontFitContent()
+	}
 	return nil
 }
