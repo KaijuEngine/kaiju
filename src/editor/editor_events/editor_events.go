@@ -28,6 +28,10 @@ type EditorEvents struct {
 	// other parts of the system to update in order to reflect those changes.
 	OnContentChangesSaved events.EventWithArg[string]
 
+	// OnFileSaved fires with the absolute file path whenever a code editor
+	// (or other text-content editor) completes a save to disk.
+	OnFileSaved events.EventWithArg[string]
+
 	// OnContentPreviewGenerated is called whenever a content preview image has
 	// been generated. This is primarily used in the background of the editor
 	// for updating any content preview images.
