@@ -292,6 +292,12 @@ func (v *StageView) syncStageViewport() {
 	if v.host == nil {
 		return
 	}
+	if !v.hasActiveStageViewportDocument() {
+		v.restoreDefaultRenderView()
+		v.syncFullWindowViewport()
+		return
+	}
+	v.useStageRenderTargetDefaultView()
 	for i := range v.stageViewports {
 		viewport := &v.stageViewports[i]
 		bounds := v.currentViewportBoundsFor(viewport)
@@ -316,6 +322,61 @@ func (v *StageView) syncStageViewport() {
 	}
 	v.routeStageViewportInput()
 	v.bindActiveViewportCamera()
+}
+
+func (v *StageView) syncFullWindowViewport() {
+	bounds := v.fullWindowViewportBounds()
+	for i := range v.stageViewports {
+		v.stageViewports[i].bounds = stageViewportBounds{}
+	}
+	viewport := v.activeStageViewport()
+	if viewport == nil {
+		v.viewport = bounds
+		return
+	}
+	viewport.bounds = bounds
+	if bounds.Valid() {
+		viewport.camera.SetViewportBounds(bounds.Left, bounds.Top, bounds.Width, bounds.Height)
+		if cam := viewport.camera.Camera(); cam != nil {
+			cam.ViewportChanged(bounds.Width, bounds.Height)
+		}
+	}
+	v.viewport = bounds
+	v.routeStageViewportInput()
+	v.bindActiveViewportCamera()
+}
+
+func (v *StageView) fullWindowViewportBounds() stageViewportBounds {
+	if v.host != nil && v.host.Window != nil {
+		return stageViewportBounds{
+			Width:  float32(v.host.Window.Width()),
+			Height: float32(v.host.Window.Height()),
+		}
+	}
+	if viewport := v.activeStageViewport(); viewport != nil && viewport.bounds.Valid() {
+		return viewport.bounds
+	}
+	return stageViewportBounds{}
+}
+
+func (v *StageView) hasActiveStageViewportDocument() bool {
+	for i := range v.stageViewports {
+		if stageViewportUIRootActive(v.stageViewports[i].ui) {
+			return true
+		}
+	}
+	return false
+}
+
+func stageViewportUIRootActive(viewport *ui.UI) bool {
+	if viewport == nil {
+		return false
+	}
+	entity := viewport.Entity()
+	for entity.Parent != nil {
+		entity = entity.Parent
+	}
+	return entity.IsActive()
 }
 
 func (v *StageView) ensureStageRenderTarget(viewport *stageRenderViewport) {
