@@ -136,8 +136,8 @@
 }
 
 @media screen and (max-width: 76.234375em) {
-    [data-md-path=""] .md-sidebar--primary,
-    .md-main__inner:has(.kaiju-landing) .md-sidebar--primary {
+    [data-md-path=""]:has([data-md-toggle="drawer"]:checked) .md-sidebar--primary,
+    body:has(.kaiju-landing):has([data-md-toggle="drawer"]:checked) .md-sidebar--primary {
         display: block;
     }
 }
@@ -156,6 +156,12 @@
 .md-content__inner:has(.kaiju-landing) {
     margin: 0;
     padding: 0;
+}
+
+body:has(.kaiju-landing) .md-sidebar--primary:not([hidden]) ~ .md-content > .md-content__inner,
+body:has(.kaiju-landing) .md-sidebar--secondary:not([hidden]) ~ .md-content > .md-content__inner {
+    margin-right: 0;
+    margin-left: 0;
 }
 
 [data-md-path=""] .md-content__inner::before,
