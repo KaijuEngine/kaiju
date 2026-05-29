@@ -360,6 +360,9 @@ td {
 	display: table-cell;
 	vertical-align: inherit;
 }
+template {
+	display: none;
+}
 tfoot {
 	display: table-footer-group;
 	vertical-align: middle;

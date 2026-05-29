@@ -28,11 +28,6 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 	panel.DontFitContentHeight()
 	l := panel.Base().Layout()
 	c := currentSizingConstraints(panel)
-	if c.HasBoxSizing() && !c.UsesBorderBox() {
-		height += l.Padding().Vertical() + l.Border().Vertical()
-	}
-
-	height = applyHeightConstraints(panel, height)
 	if strings.HasSuffix(values[0].Str, "%") {
 		if l.Ui().Entity().IsRoot() {
 			finalH := applyHeightConstraints(panel, float32(host.Window.Height())*height)
@@ -57,9 +52,6 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 			val.Args = append(val.Args, "height")
 			res, _ := functions.Calc{}.Process(panel, elm, val)
 			height = helpers.NumFromLength(res, host.Window)
-			if c.HasBoxSizing() && !c.UsesBorderBox() {
-				height += l.Padding().Vertical() + l.Border().Vertical()
-			}
 			height = applyHeightConstraints(panel, height)
 			l.ScaleHeight(height)
 			if c.HasAspectRatio() && c.AspectRatio > 0 {
@@ -67,7 +59,8 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 			}
 		}
 	} else {
-		panel.Base().Layout().ScaleHeight(height)
+		height = applyHeightConstraints(panel, height)
+		l.ScaleHeight(height)
 		if c.HasAspectRatio() && c.AspectRatio > 0 {
 			l.ScaleWidth(applyWidthConstraints(panel, height*c.AspectRatio))
 		}
