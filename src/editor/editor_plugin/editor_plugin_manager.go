@@ -23,6 +23,31 @@ const (
 	pluginsFolder        = "plugins"
 )
 
+// Plugin registry-key convention (consumed by the editor's startup
+// validator):
+//
+// pluginKey MUST equal the plugin's Go module path — the string declared
+// on the `module` line of the plugin's go.mod. The
+// `editor.MissingCompiledPlugins` startup check pairs each enabled entry
+// in plugin.json with the compiled-in `editorPluginRegistry` by module
+// path. Any plugin that registers under a different key (e.g. a slug, a
+// URL with no path, a display name) is invisible to the validator and
+// will trigger a recompile-modal false-positive on every launch.
+//
+// `editor.RegisterPlugin` emits a soft `slog.Warn` when the supplied key
+// does not contain a "/" — module paths almost always do — but
+// registration still proceeds. The warning is advisory; it lets plugin
+// authors notice and fix the convention violation without bricking the
+// editor.
+//
+// Example call (taken from the scaffold body below):
+//
+//	const pluginKey = "github.com/example/my-plugin"
+//	editor.RegisterPlugin(pluginKey, &Plugin{})
+//
+// Where `"github.com/example/my-plugin"` exactly matches the plugin's
+// go.mod module declaration. See editor.RegisterPlugin's doc for the
+// reasoning and how the validator surfaces mismatches.
 const editorPluginGo = `package rename_me
 
 // If you would like to debug your plugin and are working from the editor source
@@ -33,10 +58,13 @@ import (
 	"kaijuengine.com/editor/editor_plugin"
 )
 
-// This key can be whatever you want, please make it unique so it doesn't
-// collide with other's plugins. Using a URL or something unique like that
-// is an option, but not required.
-const pluginKey = "https://github.com/KaijuEngine/kaiju"
+// pluginKey MUST equal the plugin's Go module path (the string on the
+// "module" line of this plugin's go.mod). The editor's startup validator
+// matches plugin.json entries against the compiled-in registry by module
+// path; a mismatched key here will produce a false-positive modal on
+// every launch. editor.RegisterPlugin emits a slog.Warn if the key does
+// not look like a module path (no "/") — that warning is advisory.
+const pluginKey = "github.com/example/my-plugin"
 
 type Plugin struct {}
 

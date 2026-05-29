@@ -79,6 +79,15 @@ type Editor struct {
 	contentPreviewer content_previews.ContentPreviewer
 	updateId         engine.UpdateId
 	blurred          bool
+	// sessionDisabledPlugins holds module paths of plugins the user chose
+	// to skip via the startup-validation modal's "Continue" button (only
+	// MISSING plugins are recorded here — stale plugins are not tracked,
+	// see editor_plugin_validation.go for the rationale). Process-local
+	// only; never persisted to plugin.json. Cleared at next process start.
+	// Read by MissingCompiledPlugins to suppress repeat modals within the
+	// same process. Touched only from the main UI goroutine — no lock
+	// needed.
+	sessionDisabledPlugins map[string]struct{}
 }
 
 type globalUI struct {

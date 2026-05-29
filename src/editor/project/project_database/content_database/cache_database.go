@@ -215,14 +215,40 @@ func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
 	c.mutex.Unlock()
 	root := pfs.FullPath(project_file_system.ContentConfigFolder)
 	err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
+		if err != nil {
 			return err
 		}
-		if filepath.Base(info.Name()) == ".gitignore" {
-			return err
+		if info.IsDir() {
+			return nil
+		}
+		base := filepath.Base(info.Name())
+		// Skip hidden / OS-droppings files (.DS_Store, ._*, .Trashes,
+		// .Spotlight-V100, .gitignore, ...). They are never content
+		// configs and the upgrade-rename in ReadConfig would otherwise
+		// permanently append ".json" to them and trap the project on
+		// every subsequent open (recovered from 2026-05-26 .DS_Store
+		// lockout).
+		if strings.HasPrefix(base, ".") {
+			return nil
+		}
+		// Only .json files are content configs. Stray scratch / backup
+		// files ("notes.txt", "scratch.bak") are silently ignored so a
+		// single dropped file can not abort the entire project open.
+		if filepath.Ext(base) != ".json" {
+			return nil
 		}
 		p := filepath.Join(project_file_system.ContentConfigFolder, strings.TrimPrefix(path, root))
-		return c.Index(p, pfs)
+		if err := c.Index(p, pfs); err != nil {
+			// Per-file decode errors warn + continue so a single
+			// corrupt config can not lock the user out of the
+			// project. The path surfaces in the log so the next
+			// "blocked at startup" mystery is a one-line diagnosis.
+			slog.Warn("cache build: skipping unreadable config",
+				"path", p,
+				"error", err)
+			return nil
+		}
+		return nil
 	})
 	c.isBuilding.Store(false)
 	c.OnBuildFinished.Execute()

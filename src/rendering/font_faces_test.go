@@ -108,3 +108,18 @@ func TestFontFaceBase(t *testing.T) {
 		t.Fatalf("custom Base = %s, want CustomFamily", got)
 	}
 }
+
+func TestFontMonoBase(t *testing.T) {
+	if got := FontMono.Base(); got != FontFace("JetBrainsMono") {
+		t.Fatalf("FontMono.Base = %s, want JetBrainsMono", got)
+	}
+	if FontMono.IsBold() {
+		t.Fatalf("FontMono.IsBold = true, want false")
+	}
+	if FontMono.IsItalic() {
+		t.Fatalf("FontMono.IsItalic = true, want false")
+	}
+	if got := string(FontMono); got != "JetBrainsMono-Regular" {
+		t.Fatalf("FontMono = %s, want JetBrainsMono-Regular", got)
+	}
+}
