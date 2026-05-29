@@ -7,6 +7,7 @@
 package rendering
 
 import (
+	"errors"
 	"runtime"
 	"weak"
 
@@ -30,6 +31,14 @@ func (g *GPUDevice) CreateIndexBuffer(indices []uint32) (GPUBuffer, GPUDeviceMem
 
 func (g *GPUDevice) MeshIsReady(mesh Mesh) bool {
 	return mesh.MeshId.vertexBuffer.IsValid()
+}
+
+func (g *GPUDevice) MeshRead(id MeshId) ([]Vertex, []uint32, error) {
+	defer tracing.NewRegion("GPUDevice.MeshRead").End()
+	if !id.IsValid() {
+		return nil, nil, errors.New("cannot read mesh data from invalid mesh id")
+	}
+	return g.meshReadImpl(id)
 }
 
 // UpdateMeshVertices re-uploads vertex data to an existing mesh's GPU
