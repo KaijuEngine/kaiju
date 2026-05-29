@@ -17,6 +17,7 @@ keywords: game engine, Go, Vulkan, 2D, 3D, physics, UI, shader, cross-platform
 				<div class="kl-actions">
 					<a class="kl-btn kl-btn-primary" href="getting_started/start_with_editor/">Start with editor</a>
 					<a class="kl-btn kl-btn-secondary" href="getting_started/start_without_editor/">Start without editor</a>
+					<a class="kl-btn kl-btn-secondary" href="engine/build_from_source/">Build from source</a>
 				</div>
 				<div class="kl-platform-row">
 					<span>Go</span>

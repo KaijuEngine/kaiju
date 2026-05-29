@@ -135,6 +135,13 @@
     display: none;
 }
 
+@media screen and (max-width: 76.234375em) {
+    [data-md-path=""] .md-sidebar--primary,
+    .md-main__inner:has(.kaiju-landing) .md-sidebar--primary {
+        display: block;
+    }
+}
+
 [data-md-path=""] .md-main__inner {
     max-width: none;
     margin-top: 0;
