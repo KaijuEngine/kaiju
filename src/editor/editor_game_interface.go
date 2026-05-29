@@ -34,7 +34,10 @@ func (EditorGame) ContentDatabase() (assets.Database, error) {
 
 func (EditorGame) Launch(host *engine.Host) {
 	defer tracing.NewRegion("EditorGame.Launch").End()
-	ed := &Editor{host: host}
+	ed := &Editor{
+		host:                   host,
+		sessionDisabledPlugins: map[string]struct{}{},
+	}
 	host.SetGame(ed)
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
@@ -66,8 +69,12 @@ func (EditorGame) Launch(host *engine.Host) {
 		if build.Debug && engine.LaunchParams.AutoTest {
 			// Auto-test mode: create a temporary test project automatically
 			ed.createProject("AutoTest", "autotestproject", "")
-		} else {
-			ed.newProjectOverlay()
+			return
 		}
+		// validateCompiledPlugins inspects plugin.json vs the compiled-in
+		// editorPluginRegistry. On match it invokes the onResolved callback
+		// (newProjectOverlay) synchronously; on mismatch it shows a modal
+		// that owns the resolution flow and calls onResolved itself.
+		ed.validateCompiledPlugins(ed.newProjectOverlay)
 	})
 }

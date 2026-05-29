@@ -105,7 +105,6 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
-	v.useStageRenderTargetDefaultView()
 	v.syncStageViewport()
 	v.applyGridVisibility()
 }

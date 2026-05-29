@@ -21,8 +21,9 @@ func parseFlexFloat(value string) (float32, bool) {
 	return float32(f), err == nil
 }
 
-func setFlexBasis(layout *ui.Layout, value string, host *engine.Host) {
+func setFlexBasis(panel *ui.Panel, value string, host *engine.Host) {
 	value = strings.TrimSpace(value)
+	layout := panel.Base().Layout()
 	switch value {
 	case "", "auto", "initial", "inherit", "unset":
 		layout.SetFlexBasisAuto()

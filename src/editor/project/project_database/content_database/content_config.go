@@ -8,6 +8,8 @@ package content_database
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -158,6 +160,19 @@ func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig,
 	// Try and upgrade the config file path, it might still be using
 	// the old configuration file path.
 	if fs.Exists(cfgPath) && !strings.HasSuffix(cfgPath, ".json") {
+		// The upgrade-rename is a destructive, irreversible operation
+		// (the file is permanently renamed; there is no in-engine
+		// undo path). Guard it: (a) refuse hidden / OS-droppings
+		// basenames, and (b) peek the first byte and only rename
+		// when the file actually starts with the JSON object opener
+		// '{'. Without these guards macOS Finder droppings get
+		// permanently renamed to .DS_Store.json the first time a
+		// project is opened, and every subsequent open then crashes
+		// trying to decode the binary Bud1 contents as JSON
+		// (recovered from 2026-05-26 .DS_Store lockout).
+		if !looksLikeUpgradableConfig(fs, cfgPath) {
+			return cfg, fmt.Errorf("skip non-config file: %s", cfgPath)
+		}
 		newName := cfgPath + ".json"
 		if err := fs.Rename(cfgPath, newName); err != nil {
 			return cfg, err
@@ -171,4 +186,28 @@ func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig,
 	defer f.Close()
 	err = json.NewDecoder(f).Decode(&cfg)
 	return cfg, err
+}
+
+// looksLikeUpgradableConfig returns true when the file at cfgPath is safe
+// to feed into the upgrade-rename path (cfgPath -> cfgPath + ".json"). It
+// rejects hidden / OS-droppings basenames outright and otherwise peeks the
+// first byte: only files starting with the JSON object opener '{' qualify.
+//
+// Best-effort: if the peek itself fails (file vanished between Exists()
+// and Open(), permission denied, empty file, ...) we treat the file as
+// not upgradable and let the caller surface the error.
+func looksLikeUpgradableConfig(fs *project_file_system.FileSystem, cfgPath string) bool {
+	if strings.HasPrefix(filepath.Base(cfgPath), ".") {
+		return false
+	}
+	f, err := fs.Open(cfgPath)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	var head [1]byte
+	if _, err := io.ReadFull(f, head[:]); err != nil {
+		return false
+	}
+	return head[0] == '{'
 }

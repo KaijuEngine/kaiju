@@ -198,7 +198,11 @@ func (l *Layout) Scale(width, height float32) bool {
 	}
 	size := matrix.Vec3{width, height, 1.0}
 	if l.ui.Entity().Parent != nil {
-		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
+		parentScale := l.ui.Entity().Parent.Transform.WorldScale()
+		if matrix.Approx(parentScale.X(), 0) || matrix.Approx(parentScale.Y(), 0) {
+			return false
+		}
+		size.DivideAssign(parentScale)
 	}
 	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.ui.layoutChanged(DirtyTypeResize)
@@ -210,9 +214,16 @@ func (l *Layout) ScaleWidth(width float32) bool {
 	if matrix.ApproxTo(ps[matrix.Vx], width, fractionOfPixel) {
 		return false
 	}
+	if matrix.Approx(width, 0) {
+		return false
+	}
 	size := matrix.Vec3{width, ps.Height(), 1.0}
 	if l.ui.Entity().Parent != nil {
-		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
+		parentScale := l.ui.Entity().Parent.Transform.WorldScale()
+		if matrix.Approx(parentScale.X(), 0) || matrix.Approx(parentScale.Y(), 0) {
+			return false
+		}
+		size.DivideAssign(parentScale)
 	}
 	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.prepare()
@@ -230,7 +241,11 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	}
 	size := matrix.Vec3{ps.Width(), height, 1.0}
 	if l.ui.Entity().Parent != nil {
-		size.DivideAssign(l.ui.Entity().Parent.Transform.WorldScale())
+		parentScale := l.ui.Entity().Parent.Transform.WorldScale()
+		if matrix.Approx(parentScale.X(), 0) || matrix.Approx(parentScale.Y(), 0) {
+			return false
+		}
+		size.DivideAssign(parentScale)
 	}
 	l.ui.Entity().Transform.ScaleWithoutChildren(size)
 	l.prepare()

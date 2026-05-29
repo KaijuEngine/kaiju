@@ -223,6 +223,7 @@ func TestStageViewOpenUsesUIOnlyDefaultViewAndCloseRestores(t *testing.T) {
 	t.Parallel()
 
 	host := &engine.Host{
+		RenderTargets: rendering.NewRenderTargetManager(),
 		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
 			Name:      rendering.DefaultRenderViewName,
 			LayerMask: rendering.RenderLayerAll,
@@ -231,7 +232,16 @@ func TestStageViewOpenUsesUIOnlyDefaultViewAndCloseRestores(t *testing.T) {
 			ViewMode:  rendering.RenderViewModeWireframe,
 		}),
 	}
-	view := StageView{host: host}
+	camera := newTestStageViewportCamera(host)
+	view := StageView{
+		host: host,
+		stageViewports: []stageRenderViewport{{
+			Kind:   StageViewportPerspective,
+			camera: camera,
+			ui:     newTestStageViewportUI(true, true),
+			bounds: stageViewportBounds{Width: 320, Height: 180},
+		}},
+	}
 
 	view.Open()
 
@@ -258,4 +268,83 @@ func TestStageViewOpenUsesUIOnlyDefaultViewAndCloseRestores(t *testing.T) {
 	if defaultView.Sort() != 7 || defaultView.ViewMode() != rendering.RenderViewModeWireframe {
 		t.Fatalf("restored default view did not preserve sort/mode")
 	}
+}
+
+func TestStageViewOpenWithoutActiveViewportUIKeepsDefaultViewVisible(t *testing.T) {
+	t.Parallel()
+
+	host := &engine.Host{
+		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
+			Name:      rendering.DefaultRenderViewName,
+			LayerMask: rendering.RenderLayerAll,
+			Clear:     true,
+		}),
+	}
+	view := StageView{host: host}
+
+	view.Open()
+
+	defaultView, ok := host.RenderViews.Default()
+	if !ok {
+		t.Fatal("default render view missing after stage open")
+	}
+	if defaultView.LayerMask() != rendering.RenderLayerAll {
+		t.Fatalf("default layer mask = %v, want all without viewport UI", defaultView.LayerMask())
+	}
+}
+
+func TestStageViewOpenWithClosedViewportDocumentKeepsDefaultViewVisible(t *testing.T) {
+	t.Parallel()
+
+	host := &engine.Host{
+		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
+			Name:      rendering.DefaultRenderViewName,
+			LayerMask: rendering.RenderLayerAll,
+			Clear:     true,
+		}),
+	}
+	camera := newTestStageViewportCamera(host)
+	view := StageView{
+		host: host,
+		stageViewports: []stageRenderViewport{{
+			Kind:   StageViewportPerspective,
+			camera: camera,
+			ui:     newTestStageViewportUI(false, false),
+			bounds: stageViewportBounds{Width: 320, Height: 180},
+		}},
+	}
+
+	view.Open()
+
+	defaultView, ok := host.RenderViews.Default()
+	if !ok {
+		t.Fatal("default render view missing after stage open")
+	}
+	if defaultView.LayerMask() != rendering.RenderLayerAll {
+		t.Fatalf("default layer mask = %v, want all with closed viewport document", defaultView.LayerMask())
+	}
+	if got, want := view.ViewportSize(), matrix.NewVec2(320, 180); got != want {
+		t.Fatalf("fallback viewport size = %v, want %v", got, want)
+	}
+}
+
+func newTestStageViewportCamera(host *engine.Host) *editor_controls.EditorCamera {
+	camera := &editor_controls.EditorCamera{}
+	camera.SetViewportBounds(0, 0, 320, 180)
+	camera.SetModeForRenderView(editor_controls.EditorCameraMode3d, host)
+	return camera
+}
+
+func newTestStageViewportUI(activeRoot, activeViewport bool) *ui.UI {
+	root := engine.NewEntity(nil)
+	viewport := &ui.UI{}
+	viewport.Entity().Init(nil)
+	viewport.Entity().SetParent(root)
+	if !activeViewport {
+		viewport.Entity().Deactivate()
+	}
+	if !activeRoot {
+		root.Deactivate()
+	}
+	return viewport
 }

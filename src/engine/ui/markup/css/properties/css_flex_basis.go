@@ -17,6 +17,6 @@ func (p FlexBasis) Process(panel *ui.Panel, elm *document.Element, values []rule
 	if len(values) == 0 {
 		return nil
 	}
-	setFlexBasis(panel.Base().Layout(), values[0].Str, host)
+	setFlexBasis(panel, values[0].Str, host)
 	return nil
 }

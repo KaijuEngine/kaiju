@@ -8,10 +8,12 @@ package rendering
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"unsafe"
 
 	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func (g *GPUDevice) createVertexBufferImpl(verts []Vertex) (GPUBuffer, GPUDeviceMemory, error) {
@@ -80,7 +82,7 @@ func (g *GPUDevice) createDynamicVertexBufferImpl(verts []Vertex) (GPUBuffer, GP
 	}
 	bufferSize := uintptr(len(vertBuff))
 	buffer, memory, err := g.CreateBuffer(
-		bufferSize, GPUBufferUsageVertexBufferBit,
+		bufferSize, GPUBufferUsageTransferSrcBit|GPUBufferUsageVertexBufferBit,
 		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
 	if err != nil {
 		slog.Error("Failed to create dynamic vertex buffer")
@@ -134,4 +136,47 @@ func (g *GPUDevice) createIndexBufferImpl(indices []uint32) (GPUBuffer, GPUDevic
 	g.FreeMemory(stagingBufferMemory)
 	g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
 	return indexBuffer, indexBufferMemory, nil
+}
+
+func (g *GPUDevice) meshReadImpl(id MeshId) ([]Vertex, []uint32, error) {
+	defer tracing.NewRegion("GPUDevice.meshReadImpl").End()
+	verts := make([]Vertex, int(id.vertexCount))
+	indexes := make([]uint32, int(id.indexCount))
+	if err := readBufferToSlice(g, id.vertexBuffer, verts); err != nil {
+		return nil, nil, fmt.Errorf("failed to read mesh vertices: %w", err)
+	}
+	if err := readBufferToSlice(g, id.indexBuffer, indexes); err != nil {
+		return nil, nil, fmt.Errorf("failed to read mesh indexes: %w", err)
+	}
+	return verts, indexes, nil
+}
+
+func readBufferToSlice[T any](g *GPUDevice, src GPUBuffer, dst []T) error {
+	defer tracing.NewRegion("GPUDevice.readBufferToSlice").End()
+	if len(dst) == 0 {
+		return nil
+	}
+	size := uintptr(len(dst)) * unsafe.Sizeof(dst[0])
+	stagingBuffer, stagingMemory, err := g.CreateBuffer(size,
+		GPUBufferUsageTransferDstBit,
+		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		g.DestroyBuffer(stagingBuffer)
+		g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+		g.FreeMemory(stagingMemory)
+		g.LogicalDevice.dbg.remove(stagingMemory.handle)
+	}()
+	g.CopyBuffer(src, stagingBuffer, size)
+	var data unsafe.Pointer
+	if err = g.MapMemory(stagingMemory, 0, size, 0, &data); err != nil {
+		return err
+	}
+	defer g.UnmapMemory(stagingMemory)
+	byteCount := int(size)
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(&dst[0])), byteCount),
+		unsafe.Slice((*byte)(data), byteCount))
+	return nil
 }

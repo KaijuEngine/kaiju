@@ -80,6 +80,8 @@ func (m MeshId) IsValid() bool {
 
 func (m MeshId) VertexCount() uint32 { return m.vertexCount }
 
+func (m MeshId) IndexCount() uint32 { return m.indexCount }
+
 func (d *ShaderDriverData) setup(sd *ShaderDataCompiled) {
 	d.Stride = sd.Stride()
 	d.AttributeDescriptions = sd.ToAttributeDescription(baseVertexAttributeCount)
