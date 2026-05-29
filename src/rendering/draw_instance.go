@@ -373,7 +373,7 @@ func (d *DrawInstanceGroup) syncViewStateTemplates() {
 
 func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 	d.Instances = append(d.Instances, instance)
-	d.rawData.length = d.instanceSize + d.rawData.padding
+	d.rawData.length = d.TotalSize()
 	for i := range d.MaterialInstance.shaderInfo.LayoutGroups {
 		g := &d.MaterialInstance.shaderInfo.LayoutGroups[i]
 		for j := range g.Layouts {
