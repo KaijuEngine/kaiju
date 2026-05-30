@@ -2,6 +2,11 @@
 <html>
 	<head>
 		<style>
+			:root {
+				--stage-side-panel-width: 18%;
+				--stage-menu-half-height: 12px;
+				--stage-status-half-height: 0.65em;
+			}
 			div { width: 100%; }
 			.topSearch { margin-top: 0.5em; margin-bottom: 0.5em; }
 			#ftdePrompt {
@@ -28,8 +33,8 @@
 				height: 2em;
 				margin-left: 0.25em;
 			}
-			.sideBarStandard { height: calc(70% - 3em); }
-			.sideBarTall { height: calc(100% - 3em); }
+			.sideBarStandard { height: calc(70% - var(--ed-menu-bar-height) - var(--ed-status-bar-height)); }
+			.sideBarTall { height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height)); }
 			#dimensionToggle {
 				position: absolute;
 				font-size: 0.6em;
@@ -55,31 +60,82 @@
 				left: 0;
 				top: var(--ed-menu-bar-height);
 				width: 100%;
-				height: calc(100% - var(--ed-menu-bar-height));
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
 			}
 			.stageViewportQuadPerspective {
 				left: 0;
 				top: var(--ed-menu-bar-height);
 				width: 50%;
-				height: calc(50% - var(--ed-menu-bar-height));
+				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
 			}
 			.stageViewportQuadTop {
 				left: 50%;
 				top: var(--ed-menu-bar-height);
 				width: 50%;
-				height: calc(50% - var(--ed-menu-bar-height));
+				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
 			}
 			.stageViewportQuadSide {
 				left: 0;
-				top: 50%;
+				top: calc(50% + var(--stage-menu-half-height) - var(--stage-status-half-height));
 				width: 50%;
-				height: 50%;
+				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
 			}
 			.stageViewportQuadFront {
 				left: 50%;
-				top: 50%;
+				top: calc(50% + var(--stage-menu-half-height) - var(--stage-status-half-height));
 				width: 50%;
-				height: 50%;
+				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
+			}
+			.stageViewportSingle.stageViewportContentOpen {
+				height: calc(70% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+			}
+			.stageViewportSingle.stageViewportHierarchyOpen {
+				left: var(--stage-side-panel-width);
+				width: 82%;
+			}
+			.stageViewportSingle.stageViewportDetailsOpen {
+				width: 82%;
+			}
+			.stageViewportSingle.stageViewportHierarchyOpen.stageViewportDetailsOpen {
+				width: 64%;
+			}
+			.stageViewportQuadPerspective.stageViewportContentOpen,
+			.stageViewportQuadTop.stageViewportContentOpen {
+				height: calc(35% - var(--stage-menu-half-height) - var(--stage-status-half-height));
+			}
+			.stageViewportQuadSide.stageViewportContentOpen,
+			.stageViewportQuadFront.stageViewportContentOpen {
+				top: calc(35% + var(--stage-menu-half-height) - var(--stage-status-half-height));
+				height: calc(35% - var(--stage-menu-half-height) - var(--stage-status-half-height));
+			}
+			.stageViewportQuadPerspective.stageViewportHierarchyOpen,
+			.stageViewportQuadSide.stageViewportHierarchyOpen {
+				left: var(--stage-side-panel-width);
+				width: 41%;
+			}
+			.stageViewportQuadTop.stageViewportHierarchyOpen,
+			.stageViewportQuadFront.stageViewportHierarchyOpen {
+				left: 59%;
+				width: 41%;
+			}
+			.stageViewportQuadPerspective.stageViewportDetailsOpen,
+			.stageViewportQuadSide.stageViewportDetailsOpen {
+				width: 41%;
+			}
+			.stageViewportQuadTop.stageViewportDetailsOpen,
+			.stageViewportQuadFront.stageViewportDetailsOpen {
+				left: 41%;
+				width: 41%;
+			}
+			.stageViewportQuadPerspective.stageViewportHierarchyOpen.stageViewportDetailsOpen,
+			.stageViewportQuadSide.stageViewportHierarchyOpen.stageViewportDetailsOpen {
+				left: var(--stage-side-panel-width);
+				width: 32%;
+			}
+			.stageViewportQuadTop.stageViewportHierarchyOpen.stageViewportDetailsOpen,
+			.stageViewportQuadFront.stageViewportHierarchyOpen.stageViewportDetailsOpen {
+				left: 50%;
+				width: 32%;
 			}
 			.stageViewportHidden {
 				visibility: hidden;
@@ -110,11 +166,42 @@
 				left: calc(50% + 0.5em);
 			}
 			.stageViewportLabelQuadSide {
-				top: calc(50% + 0.5em);
+				top: calc(50% + var(--stage-menu-half-height) - 0.15em);
 				left: 0.5em;
 			}
 			.stageViewportLabelQuadFront {
-				top: calc(50% + 0.5em);
+				top: calc(50% + var(--stage-menu-half-height) - 0.15em);
+				left: calc(50% + 0.5em);
+			}
+			.stageViewportLabelSingle.stageViewportHierarchyOpen {
+				left: calc(var(--stage-side-panel-width) + 0.5em);
+			}
+			.stageViewportLabelQuadSide.stageViewportContentOpen,
+			.stageViewportLabelQuadFront.stageViewportContentOpen {
+				top: calc(35% + var(--stage-menu-half-height) - 0.15em);
+			}
+			.stageViewportLabelQuadPerspective.stageViewportHierarchyOpen,
+			.stageViewportLabelQuadSide.stageViewportHierarchyOpen {
+				left: calc(var(--stage-side-panel-width) + 0.5em);
+			}
+			.stageViewportLabelQuadTop.stageViewportHierarchyOpen,
+			.stageViewportLabelQuadFront.stageViewportHierarchyOpen {
+				left: calc(59% + 0.5em);
+			}
+			.stageViewportLabelQuadPerspective.stageViewportDetailsOpen,
+			.stageViewportLabelQuadSide.stageViewportDetailsOpen {
+				left: 0.5em;
+			}
+			.stageViewportLabelQuadTop.stageViewportDetailsOpen,
+			.stageViewportLabelQuadFront.stageViewportDetailsOpen {
+				left: calc(41% + 0.5em);
+			}
+			.stageViewportLabelQuadPerspective.stageViewportHierarchyOpen.stageViewportDetailsOpen,
+			.stageViewportLabelQuadSide.stageViewportHierarchyOpen.stageViewportDetailsOpen {
+				left: calc(var(--stage-side-panel-width) + 0.5em);
+			}
+			.stageViewportLabelQuadTop.stageViewportHierarchyOpen.stageViewportDetailsOpen,
+			.stageViewportLabelQuadFront.stageViewportHierarchyOpen.stageViewportDetailsOpen {
 				left: calc(50% + 0.5em);
 			}
 			.stageViewportLabelHidden {

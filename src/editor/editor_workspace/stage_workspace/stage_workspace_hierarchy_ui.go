@@ -108,6 +108,7 @@ func (hui *WorkspaceHierarchyUI) processHotkeys(host *engine.Host) {
 		} else {
 			hui.hierarchyArea.UI.Show()
 		}
+		hui.workspace.Value().applyViewportLayout()
 	} else if kb.HasCtrlOrMeta() && kb.KeyDown(hid.KeyboardKeyT) {
 		w := hui.workspace.Value()
 		w.stageView.Manager().CreateTemplateFromSelected(w.ed.Events(), w.ed.Project())

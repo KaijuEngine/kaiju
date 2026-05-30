@@ -6,7 +6,7 @@
 }
 #contentArea {
 	position: absolute;
-	bottom: 1.3em;
+	bottom: var(--ed-status-bar-height);
 	width: 100%;
 	height: 30%;
 	border-top: 2px solid black;

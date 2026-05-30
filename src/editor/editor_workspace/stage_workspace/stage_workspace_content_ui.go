@@ -103,15 +103,17 @@ func (cui *WorkspaceContentUI) open() {
 func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
 	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
 	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
+		w := cui.workspace.Value()
 		if cui.contentArea.UI.Entity().IsActive() {
 			cui.contentArea.UI.Hide()
-			cui.workspace.Value().hierarchyUI.extendHeight()
-			cui.workspace.Value().detailsUI.extendHeight()
+			w.hierarchyUI.extendHeight()
+			w.detailsUI.extendHeight()
 		} else {
 			cui.contentArea.UI.Show()
-			cui.workspace.Value().hierarchyUI.standardHeight()
-			cui.workspace.Value().detailsUI.standardHeight()
+			w.hierarchyUI.standardHeight()
+			w.detailsUI.standardHeight()
 		}
+		w.applyViewportLayout()
 	}
 }
 

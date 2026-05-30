@@ -216,6 +216,7 @@ func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
 		} else {
 			dui.detailsArea.UI.Show()
 		}
+		dui.workspace.Value().applyViewportLayout()
 	}
 }
 

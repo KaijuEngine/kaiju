@@ -169,7 +169,7 @@ func (w *StageWorkspace) Open() {
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
-	w.updateCameraPreviewPlacement()
+	w.applyViewportLayout()
 	w.Doc.MarkDirty()
 }
 
@@ -291,21 +291,39 @@ func (w *StageWorkspace) viewportVisible(kind editor_stage_view.StageViewportKin
 func (w *StageWorkspace) viewportClasses(kind editor_stage_view.StageViewportKind) []string {
 	if w.layoutMode == stageViewportLayoutSingle {
 		if kind == w.focusedView {
-			return []string{"stageViewport", "stageViewportSingle"}
+			return append([]string{"stageViewport", "stageViewportSingle"}, w.viewportOccupiedAreaClasses()...)
 		}
 		return []string{"stageViewport", "stageViewportHidden"}
 	}
-	return []string{"stageViewport", viewportQuadClass(kind)}
+	return append([]string{"stageViewport", viewportQuadClass(kind)}, w.viewportOccupiedAreaClasses()...)
 }
 
 func (w *StageWorkspace) viewportLabelClasses(kind editor_stage_view.StageViewportKind) []string {
 	if w.layoutMode == stageViewportLayoutSingle {
 		if kind == w.focusedView {
-			return []string{"stageViewportLabel", "stageViewportLabelSingle"}
+			return append([]string{"stageViewportLabel", "stageViewportLabelSingle"}, w.viewportOccupiedAreaClasses()...)
 		}
 		return []string{"stageViewportLabel", "stageViewportLabelHidden"}
 	}
-	return []string{"stageViewportLabel", viewportQuadLabelClass(kind)}
+	return append([]string{"stageViewportLabel", viewportQuadLabelClass(kind)}, w.viewportOccupiedAreaClasses()...)
+}
+
+func (w *StageWorkspace) viewportOccupiedAreaClasses() []string {
+	classes := make([]string, 0, 3)
+	if elementIsActive(w.hierarchyUI.hierarchyArea) {
+		classes = append(classes, "stageViewportHierarchyOpen")
+	}
+	if elementIsActive(w.detailsUI.detailsArea) {
+		classes = append(classes, "stageViewportDetailsOpen")
+	}
+	if elementIsActive(w.contentUI.contentArea) {
+		classes = append(classes, "stageViewportContentOpen")
+	}
+	return classes
+}
+
+func elementIsActive(elm *document.Element) bool {
+	return elm != nil && elm.UI != nil && elm.UI.Entity().IsActive()
 }
 
 func viewportQuadClass(kind editor_stage_view.StageViewportKind) string {
