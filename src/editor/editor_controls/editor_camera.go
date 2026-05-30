@@ -26,6 +26,8 @@ const (
 	zoomScale2DScroll       = float32(1.0)
 	zoomScale3D             = zoomScale3DScroll * 0.1
 	zoomScale2D             = zoomScale2DScroll * 0.1
+	defaultFlySpeed         = float32(10)
+	defaultFlyBoost         = float32(4)
 	flySpeedScrollIncrement = 0.1
 	flySpeedModifierMin     = 0.1
 	flySpeedModifierMax     = 10
@@ -363,7 +365,11 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 		}
 		e.flySpeedModifier = klib.Clamp(v, flySpeedModifierMin, flySpeedModifierMax)
 	}
-	flySpeed := e.Settings.FlySpeed * e.flySpeedModifier
+	flySpeed := e.flySpeed()
+	if kb.HasShift() {
+		flySpeed *= e.flyBoostMultiplier()
+	}
+	flySpeed *= e.flySpeedModifier
 	if kb.KeyHeld(hid.KeyboardKeyW) {
 		delta = e.camera.Forward().Scale(matrix.Float(deltaTime) * flySpeed)
 		changed = true
@@ -389,6 +395,20 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 		e.camera.SetPositionAndLookAt(cp.Add(delta), cl.Add(delta))
 	}
 	return changed
+}
+
+func (e *EditorCamera) flySpeed() float32 {
+	if e.Settings == nil || e.Settings.FlySpeed <= 0 {
+		return defaultFlySpeed
+	}
+	return e.Settings.FlySpeed
+}
+
+func (e *EditorCamera) flyBoostMultiplier() float32 {
+	if e.Settings == nil || e.Settings.FlyBoostMultiplier <= 0 {
+		return defaultFlyBoost
+	}
+	return e.Settings.FlyBoostMultiplier
 }
 
 func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {

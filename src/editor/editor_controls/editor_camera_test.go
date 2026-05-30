@@ -9,6 +9,7 @@ package editor_controls
 import (
 	"testing"
 
+	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/matrix"
@@ -97,5 +98,31 @@ func TestEditorCameraPanMovesFixedOrthographicCamera(t *testing.T) {
 				t.Fatalf("up = %v, want %v", camera.Up(), beforeUp)
 			}
 		})
+	}
+}
+
+func TestEditorCameraFlyBoostMultiplierUsesSettingsAndFallback(t *testing.T) {
+	t.Parallel()
+
+	editorCamera := &EditorCamera{
+		Settings: &editor_settings.EditorCameraSettings{
+			FlySpeed:           12,
+			FlyBoostMultiplier: 3,
+		},
+	}
+	if got := editorCamera.flySpeed(); got != 12 {
+		t.Fatalf("fly speed = %v, want 12", got)
+	}
+	if got := editorCamera.flyBoostMultiplier(); got != 3 {
+		t.Fatalf("fly boost multiplier = %v, want 3", got)
+	}
+
+	editorCamera.Settings.FlySpeed = 0
+	editorCamera.Settings.FlyBoostMultiplier = 0
+	if got := editorCamera.flySpeed(); got != defaultFlySpeed {
+		t.Fatalf("default fly speed = %v, want %v", got, defaultFlySpeed)
+	}
+	if got := editorCamera.flyBoostMultiplier(); got != defaultFlyBoost {
+		t.Fatalf("default fly boost multiplier = %v, want %v", got, defaultFlyBoost)
 	}
 }
