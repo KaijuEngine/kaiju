@@ -402,7 +402,7 @@ var {
 	font-style: italic;
 }
 button, .button {
-	padding: 2px 5px 2px 5px;
+	padding: 0 5px 2px 5px;
 	font-size: 16px;
 	text-align: center;
 	vertical-align: middle;
@@ -420,6 +420,7 @@ button:hover, .button:hover {
 	background-position: 0 64px; */
 }
 button:active, .button:active {
+	padding: 2px 5px 0 5px;
 	background-color: rgb(59, 59, 59);
 	/* background-image: url("input_atlas.png");
 	background-position: 64px 0; */
