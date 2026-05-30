@@ -23,25 +23,30 @@ const (
 	selectTriangleRightPadding = 6
 	selectTextPaddingLeft      = 8
 	selectTextPaddingRight     = triangleTexSize + (selectTriangleRightPadding * 2)
-	selectOptionTextPadding    = 8
+	selectOptionCheckWidth     = 28
+	selectOptionTextPadding    = 36
+	selectOptionCheckIcon      = '\ue5ca'
 )
 
 type selectData struct {
 	panelData
-	label     *Label
-	list      *Panel
-	triangle  *UI
-	options   []SelectOption
-	selected  int
-	isOpen    bool
-	text      string
-	textColor matrix.Color
+	label       *Label
+	list        *Panel
+	triangle    *UI
+	options     []SelectOption
+	selected    int
+	isOpen      bool
+	text        string
+	optionColor matrix.Color
+	textColor   matrix.Color
 }
 
 type SelectOption struct {
 	Name   string
 	Value  string
 	target *UI
+	label  *Label
+	check  *Label
 }
 
 func (s *selectData) innerPanelData() *panelData { return &s.panelData }
@@ -50,6 +55,7 @@ type Select Panel
 
 type SelectTextStylizer struct{ BasicStylizer }
 type SelectOptionStylizer struct{ BasicStylizer }
+type SelectOptionCheckStylizer struct{ BasicStylizer }
 type SelectOptionTextStylizer struct{ BasicStylizer }
 type TriangleStylizer struct{ BasicStylizer }
 
@@ -71,6 +77,17 @@ func (s SelectOptionStylizer) ProcessStyle(layout *Layout) []error {
 	}
 	size := parent.layout.PixelSize()
 	layout.Scale(max(1, size.X()), max(1, size.Y()))
+	return []error{}
+}
+
+func (s SelectOptionCheckStylizer) ProcessStyle(layout *Layout) []error {
+	parent := s.Parent.Value()
+	if parent == nil || !parent.IsValid() {
+		return []error{}
+	}
+	size := parent.layout.PixelSize()
+	layout.Scale(selectOptionCheckWidth, max(1, size.Y()))
+	layout.SetOffset(4, 0)
 	return []error{}
 }
 
@@ -109,6 +126,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 	s.elmType = ElementTypeSelect
 	data := &selectData{}
 	data.text = text
+	data.optionColor = selectOptionColor()
 	data.textColor = selectTextColor()
 	s.elmData = data
 	p := s.Base().ToPanel()
@@ -122,7 +140,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 	p.SetBorderSize(1, 1, 1, 1)
 	p.SetBorderStyle(BorderStyleSolid, BorderStyleSolid, BorderStyleSolid, BorderStyleSolid)
 	p.SetBorderColor(selectBorderColor(), selectBorderColor(), selectBorderColor(), selectBorderColor())
-	p.SetBorderRadius(3, 3, 3, 3)
+	p.SetBorderRadius(4, 4, 4, 4)
 	data.selected = -1
 	{
 		// Create the label
@@ -133,7 +151,8 @@ func (s *Select) Init(text string, options []SelectOption) {
 		lbl.layout.SetPositioning(PositioningAbsolute)
 		lbl.SetJustify(rendering.FontJustifyLeft)
 		lbl.SetBaseline(rendering.FontBaselineCenter)
-		lbl.SetFontSize(13)
+		lbl.SetFontSize(14)
+		lbl.SetFontWeight("600")
 		lbl.SetWrap(false)
 		lbl.SetColor(data.textColor)
 		lbl.SetBGColor(p.Color())
@@ -149,7 +168,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 		lp.SetBorderSize(1, 1, 1, 1)
 		lp.SetBorderStyle(BorderStyleSolid, BorderStyleSolid, BorderStyleSolid, BorderStyleSolid)
 		lp.SetBorderColor(selectBorderColor(), selectBorderColor(), selectBorderColor(), selectBorderColor())
-		lp.SetBorderRadius(3, 3, 3, 3)
+		lp.SetBorderRadius(4, 4, 4, 4)
 		lp.SetOverflow(OverflowScroll)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
@@ -199,10 +218,29 @@ func (s *Select) AddOption(name, value string) {
 	p := panel.ToPanel()
 	bg, _ := s.Base().Host().TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(bg, ElementTypePanel)
-	p.SetColor(selectOptionColor())
+	p.SetColor(data.optionColor)
 	p.layout.Stylizer = SelectOptionStylizer{BasicStylizer{weak.Make(s.Base())}}
 	p.DontFitContent()
 	p.entity.SetName(name)
+	optionIndex := len(data.options)
+	{
+		// Create the selected option check icon
+		checkUI := man.Add()
+		check := checkUI.ToLabel()
+		check.Init(string(selectOptionCheckIcon))
+		check.layout.Stylizer = SelectOptionCheckStylizer{BasicStylizer{weak.Make(panel)}}
+		check.layout.SetPositioning(PositioningAbsolute)
+		check.SetJustify(rendering.FontJustifyCenter)
+		check.SetBaseline(rendering.FontBaselineCenter)
+		check.SetFontSize(18)
+		check.SetFontFace(rendering.FontFace("MaterialIcons-Regular"))
+		check.SetWrap(false)
+		check.SetColor(matrix.ColorWhite())
+		check.SetBGColor(p.Color())
+		p.AddChild(checkUI)
+		check.Base().Hide()
+		data.options = append(data.options, SelectOption{Name: name, Value: value, target: panel, check: check})
+	}
 	// Create the label
 	label := man.Add()
 	lbl := label.ToLabel()
@@ -211,24 +249,28 @@ func (s *Select) AddOption(name, value string) {
 	lbl.layout.SetPositioning(PositioningAbsolute)
 	lbl.SetJustify(rendering.FontJustifyLeft)
 	lbl.SetBaseline(rendering.FontBaselineCenter)
-	lbl.SetFontSize(13)
+	lbl.SetFontSize(14)
+	lbl.SetFontWeight("600")
 	lbl.SetWrap(false)
 	lbl.SetColor(data.textColor)
 	lbl.SetBGColor(p.Color())
 	p.AddChild(label)
 	data.list.AddChild(panel)
+	data.options[optionIndex].label = lbl
 	panel.AddEvent(EventTypeClick, func() { s.optionClick(panel) })
-	panel.events[EventTypeEnter].Add(func() {
-		p.EnforceColor(selectOptionHoverColor())
-		lbl.SetColor(matrix.ColorWhite())
-		lbl.SetBGColor(p.Color())
+	panel.AddEvent(EventTypeEnter, func() {
+		if data.selected == optionIndex {
+			p.EnforceColor(selectOptionSelectedHoverColor())
+		} else {
+			p.EnforceColor(selectOptionHoverColor(data.optionColor))
+		}
+		s.setOptionTextColors(optionIndex, matrix.ColorWhite(), p.Color())
 	})
-	panel.events[EventTypeExit].Add(func() {
+	panel.AddEvent(EventTypeExit, func() {
 		p.UnEnforceColor()
-		lbl.SetColor(data.textColor)
-		lbl.SetBGColor(p.Color())
+		s.applyOptionVisual(optionIndex)
 	})
-	data.options = append(data.options, SelectOption{name, value, panel})
+	s.applyOptionVisual(optionIndex)
 }
 
 func (s *Select) ClearOptions() {
@@ -275,10 +317,12 @@ func (s *Select) PickOptionWithoutEvent(index int) bool {
 		data.selected = index
 		if index >= 0 {
 			data.label.SetText(data.options[index].Name)
+			s.refreshOptionVisuals(true)
 			return true
 		} else {
 			data.label.SetText(data.text)
 		}
+		s.refreshOptionVisuals(true)
 	}
 	return false
 }
@@ -314,10 +358,10 @@ func (s *Select) SetColor(newColor matrix.Color) {
 func (s *Select) SetOptionsColor(newColor matrix.Color) {
 	s.SelectData().list.SetColor(newColor)
 	data := s.SelectData()
+	data.optionColor = newColor
 	for i := range data.options {
 		if target := data.options[i].target; target != nil {
-			target.ToPanel().SetColor(newColor)
-			s.setOptionLabelBG(target, newColor)
+			s.applyOptionVisual(i)
 		}
 	}
 }
@@ -327,12 +371,62 @@ func (s *Select) SetTextColor(newColor matrix.Color) {
 	data.textColor = newColor
 	data.label.SetColor(newColor)
 	data.triangle.ToPanel().SetColor(newColor)
+	s.refreshOptionVisuals(false)
+}
+
+func (s *Select) refreshOptionVisuals(clearEnforcedColors bool) {
+	data := s.SelectData()
 	for i := range data.options {
-		if target := data.options[i].target; target != nil {
-			if label := s.optionLabel(target); label != nil {
-				label.SetColor(newColor)
+		if clearEnforcedColors {
+			if target := data.options[i].target; target != nil {
+				p := target.ToPanel()
+				for p.HasEnforcedColor() {
+					p.UnEnforceColor()
+				}
 			}
 		}
+		s.applyOptionVisual(i)
+	}
+}
+
+func (s *Select) applyOptionVisual(index int) {
+	data := s.SelectData()
+	if index < 0 || index >= len(data.options) {
+		return
+	}
+	option := &data.options[index]
+	if option.target == nil {
+		return
+	}
+	bgColor := data.optionColor
+	textColor := data.textColor
+	checkVisible := false
+	if index == data.selected {
+		bgColor = selectOptionSelectedColor()
+		textColor = matrix.ColorWhite()
+		checkVisible = data.isOpen
+	}
+	p := option.target.ToPanel()
+	p.SetColor(bgColor)
+	s.setOptionTextColors(index, textColor, p.Color())
+	if option.check != nil {
+		option.check.Base().SetVisibility(checkVisible)
+	}
+}
+
+func (s *Select) setOptionTextColors(index int, textColor, bgColor matrix.Color) {
+	data := s.SelectData()
+	if index < 0 || index >= len(data.options) {
+		return
+	}
+	option := &data.options[index]
+	if option.label != nil {
+		option.label.SetColor(textColor)
+		option.label.SetBGColor(bgColor)
+	}
+	if option.check != nil {
+		option.check.SetColor(textColor)
+		option.check.SetBGColor(bgColor)
 	}
 }
 
@@ -402,6 +496,7 @@ func (s *Select) expand() {
 	data.list.Base().Show()
 	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 0))
 	data.isOpen = true
+	s.refreshOptionVisuals(false)
 	layout := &data.list.layout
 	pos := s.entity.Transform.WorldPosition()
 	layout.SetZ(pos.Z() + s.layout.Z() + 1)
@@ -441,9 +536,10 @@ func (s *Select) updateExpandedTransform() {
 
 func (s *Select) collapse() {
 	data := s.SelectData()
+	data.isOpen = false
+	s.refreshOptionVisuals(false)
 	data.list.Base().Hide()
 	data.triangle.entity.Transform.SetRotation(matrix.NewVec3(0, 0, 180))
-	data.isOpen = false
 }
 
 func (s *Select) optionClick(option *UI) {
@@ -460,22 +556,6 @@ func (s *Select) optionClick(option *UI) {
 		}
 	}
 	s.PickOption(idx)
-}
-
-func (s *Select) optionLabel(option *UI) *Label {
-	for _, child := range option.entity.Children {
-		ui := FirstOnEntity(child)
-		if ui != nil && ui.IsType(ElementTypeLabel) {
-			return ui.ToLabel()
-		}
-	}
-	return nil
-}
-
-func (s *Select) setOptionLabelBG(option *UI, color matrix.Color) {
-	if label := s.optionLabel(option); label != nil {
-		label.SetBGColor(color)
-	}
 }
 
 func (s *Select) update(deltaTime float64) {
@@ -502,12 +582,22 @@ func (s *Select) SetDisabled(disabled bool) {
 	}
 }
 
-func selectControlColor() matrix.Color     { return matrix.ColorRGBInt(40, 40, 40) }
-func selectListColor() matrix.Color        { return matrix.ColorRGBInt(18, 18, 18) }
-func selectOptionColor() matrix.Color      { return matrix.ColorRGBInt(31, 31, 31) }
-func selectOptionHoverColor() matrix.Color { return matrix.ColorRGBInt(87, 87, 87) }
-func selectBorderColor() matrix.Color      { return matrix.ColorRGBInt(200, 200, 200) }
-func selectTextColor() matrix.Color        { return matrix.ColorRGBInt(170, 170, 170) }
+func selectControlColor() matrix.Color        { return matrix.ColorRGBInt(75, 75, 75) }
+func selectListColor() matrix.Color           { return matrix.ColorRGBInt(28, 28, 28) }
+func selectOptionColor() matrix.Color         { return matrix.ColorRGBInt(28, 28, 28) }
+func selectOptionSelectedColor() matrix.Color { return matrix.ColorRGBInt(104, 42, 45) }
+func selectBorderColor() matrix.Color         { return matrix.ColorRGBInt(42, 42, 42) }
+func selectTextColor() matrix.Color           { return matrix.ColorRGBInt(235, 235, 235) }
+
+func selectOptionHoverColor(base matrix.Color) matrix.Color {
+	hover := base.ScaleWithoutAlpha(1.35)
+	hover.SetA(base.A())
+	return hover
+}
+
+func selectOptionSelectedHoverColor() matrix.Color {
+	return matrix.ColorRGBInt(104, 42, 45)
+}
 
 func selectControlHoverColor(base matrix.Color) matrix.Color {
 	hover := base.ScaleWithoutAlpha(1.2)
