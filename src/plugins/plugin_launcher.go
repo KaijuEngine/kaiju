@@ -62,6 +62,46 @@ func (vm *LuaVM) InvokeGlobalFunction(name string) {
 	}
 }
 
+func (vm *LuaVM) DoStringNamed(code, name string) error {
+	return vm.runtime.DoStringNamed(code, name)
+}
+
+func (vm *LuaVM) SetGlobalGoFunction(name string, fn func(*lua.State) int) {
+	vm.runtime.PushGoFunction(fn)
+	vm.runtime.SetGlobal(name)
+}
+
+func NewScriptVM(adb assets.Database, root string) (*LuaVM, error) {
+	defer tracing.NewRegion("plugins.NewScriptVM").End()
+	vm := &LuaVM{
+		PluginPath: root,
+		runtime:    lua.New(),
+	}
+	if err := vm.runtime.OpenLibraries(); err != nil {
+		return vm, err
+	}
+	if root != "" {
+		sandbox, err := os.OpenRoot(root)
+		if err != nil {
+			return vm, err
+		}
+		vm.sandbox = sandbox
+	}
+	if err := vm.setupPrerequisites(adb); err != nil {
+		return vm, err
+	}
+	if vm.sandbox != nil {
+		if err := vm.setupRequire(); err != nil {
+			return vm, err
+		}
+	}
+	vm.runtime.SandboxLibraries()
+	for _, t := range reflectedTypes() {
+		reflectStructToLua(t, vm)
+	}
+	return vm, nil
+}
+
 func reflectStructToLua(t reflect.Type, vm *LuaVM) {
 	defer tracing.NewRegion("plugins.reflectStructToLua").End()
 	name := t.Name()

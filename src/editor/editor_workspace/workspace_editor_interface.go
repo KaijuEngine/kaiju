@@ -7,6 +7,7 @@
 package editor_workspace
 
 import (
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
@@ -35,6 +36,7 @@ type WorkspaceEditorInterface interface {
 	ContentPreviewer() *content_previews.ContentPreviewer
 
 	// Editor services
+	Actions() *editor_action.Service
 	Settings() *editor_settings.Settings
 	Events() *editor_events.EditorEvents
 	History() *memento.History

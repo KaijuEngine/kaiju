@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_logging"
@@ -80,7 +81,12 @@ type Editor struct {
 	contentPreviewer content_previews.ContentPreviewer
 	updateId         engine.UpdateId
 	webAPIServer     *webapi.Server[*Editor]
+	actions          *editor_action.Service
 	blurred          bool
+	actionPaletteKey struct {
+		pending bool
+		moved   bool
+	}
 	// sessionDisabledPlugins holds module paths of plugins the user chose
 	// to skip via the startup-validation modal's "Continue" button (only
 	// MISSING plugins are recorded here — stale plugins are not tracked,
@@ -420,33 +426,10 @@ func (ed *Editor) update(deltaTime float64) {
 		return
 	}
 	kb := &ed.host.Window.Keyboard
-	if kb.HasCtrlOrMeta() && !ed.IsInputFocused() {
-		if kb.KeyDown(hid.KeyboardKeyZ) {
-			if !kb.HasShift() {
-				ed.history.Undo()
-				return
-			} else {
-				ed.history.Redo()
-				return
-			}
-		} else if kb.KeyDown(hid.KeyboardKeyY) {
-			ed.history.Redo()
-			return
-		} else if kb.KeyDown(hid.KeyboardKeyS) {
-			ed.SaveCurrentStage()
-			return
-		}
+	if ed.processActionPaletteShortcut(kb) {
+		return
 	}
-	if kb.KeyDown(hid.KeyboardKeyF5) {
-		if kb.HasCtrlOrMeta() {
-			if kb.HasShift() {
-				ed.BuildAndRun(project.GameBuildModeRelease)
-			} else {
-				ed.BuildAndRun(project.GameBuildModeDebug)
-			}
-		} else {
-			ed.BuildAndRunCurrentStage()
-		}
+	if ed.processActionKeyBindings(kb) {
 		return
 	}
 	if ed.currentWorkspace != nil {

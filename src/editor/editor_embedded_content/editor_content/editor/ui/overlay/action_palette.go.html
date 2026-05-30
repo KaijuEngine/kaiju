@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body {
+				z-index: 130;
+			}
+			.backdrop {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0, 0, 0, 0.35);
+			}
+			.palette {
+				position: absolute;
+				width: 56%;
+				height: 62%;
+				left: 50%;
+				top: 42%;
+				transform: translate(-50% -50%);
+				background-color: #151515;
+				border: 2px solid #575757;
+				border-radius: 5px;
+				padding: 10px;
+				color: #DDD;
+			}
+			input {
+				width: 100%;
+				height: 32px;
+				margin-bottom: 8px;
+			}
+			#list {
+				width: 100%;
+				height: calc(100% - 42px);
+				overflow-y: scroll;
+			}
+			.actionEntry {
+				width: 100%;
+				min-height: 44px;
+				background-color: #202020;
+				color: #BBB;
+				padding: 6px 8px;
+				margin-bottom: 4px;
+			}
+			.actionEntry:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.actionLabel {
+				width: 72%;
+				font-size: 16px;
+				color: white;
+			}
+			.actionCategory {
+				width: 28%;
+				text-align: right;
+				color: #888;
+			}
+			.actionDescription {
+				width: 100%;
+				color: #999;
+				font-size: 12px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="backdrop" onmiss="clickMiss">
+			<div class="palette">
+				<input id="search" type="text" placeholder="Search actions..." onchange="search" />
+				<div id="list">
+					{{range .Entries}}
+					<div class="actionEntry" data-idx="{{.Index}}" data-search="{{.Search}}" onclick="clickAction">
+						<span class="actionLabel">{{.Label}}</span>
+						<span class="actionCategory">{{.Category}}</span>
+						<div class="actionDescription">{{.Description}}</div>
+					</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

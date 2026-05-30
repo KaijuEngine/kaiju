@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/KaijuEngine/uuid"
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -39,7 +40,8 @@ type Settings struct {
 	EditorCamera           EditorCameraSettings
 	Snapping               SnapSettings
 	BuildTools             BuildToolSettings
-	WebAPI                 WebAPISettings `visible:"false" label:"Web API"`
+	WebAPI                 WebAPISettings                `visible:"false" label:"Web API"`
+	ActionBindings         []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
 	// Workspaces is the persisted enable / visible / order state for every
 	// known workspace, keyed by Workspace.ID(). Slice order is the load /
 	// tab order. The editor's reconcile step on startup adds defaults for
