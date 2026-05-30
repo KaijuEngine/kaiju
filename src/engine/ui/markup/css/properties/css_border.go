@@ -21,6 +21,13 @@ import (
 
 const mergedBorderSidesSentinel = "__kaiju_merged_border_sides__"
 
+const (
+	borderSideLeft = iota
+	borderSideTop
+	borderSideRight
+	borderSideBottom
+)
+
 var borderSizes = map[string]float32{
 	"medium": 2,
 	"thin":   1,
@@ -74,17 +81,43 @@ func (Border) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([
 	for i := 1; i < len(ruleList); i++ {
 		sideIdx := -1
 		switch ruleList[i].Property {
+		case "border":
+			return values, ruleList[1:]
 		case "border-left":
-			sideIdx = 0
+			sideIdx = borderSideLeft
 		case "border-top":
-			sideIdx = 1
+			sideIdx = borderSideTop
 		case "border-right":
-			sideIdx = 2
+			sideIdx = borderSideRight
 		case "border-bottom":
-			sideIdx = 3
+			sideIdx = borderSideBottom
+		case "border-width":
+			for side := range sides {
+				if width, ok := borderWidthValueForSide(ruleList[i].Values, side); ok {
+					sides[side] = setBorderSideWidth(sides[side], width)
+					merged = true
+				}
+			}
+			ruleList = slices.Delete(ruleList, i, i+1)
+			i--
+			continue
+		case "border-left-width":
+			sideIdx = borderSideLeft
+		case "border-top-width":
+			sideIdx = borderSideTop
+		case "border-right-width":
+			sideIdx = borderSideRight
+		case "border-bottom-width":
+			sideIdx = borderSideBottom
 		}
 		if sideIdx >= 0 {
-			sides[sideIdx] = mergeBorderValues(values, ruleList[i].Values)
+			if isBorderWidthRule(ruleList[i].Property) {
+				if width, ok := firstBorderValue(ruleList[i].Values); ok {
+					sides[sideIdx] = setBorderSideWidth(sides[sideIdx], width)
+				}
+			} else {
+				sides[sideIdx] = mergeBorderValues(sides[sideIdx], ruleList[i].Values)
+			}
 			ruleList = slices.Delete(ruleList, i, i+1)
 			merged = true
 			i--
@@ -160,4 +193,79 @@ func mergeBorderValues(base, override []rules.PropertyValue) []rules.PropertyVal
 		}
 	}
 	return out
+}
+
+func isBorderWidthRule(property string) bool {
+	switch property {
+	case "border-left-width", "border-top-width", "border-right-width", "border-bottom-width":
+		return true
+	default:
+		return false
+	}
+}
+
+func borderWidthValueForSide(values []rules.PropertyValue, side int) (rules.PropertyValue, bool) {
+	values = expandFourSideValues(values)
+	if len(values) != 4 {
+		return rules.PropertyValue{}, false
+	}
+	switch side {
+	case borderSideLeft:
+		return values[3], true
+	case borderSideTop:
+		return values[0], true
+	case borderSideRight:
+		return values[1], true
+	case borderSideBottom:
+		return values[2], true
+	default:
+		return rules.PropertyValue{}, false
+	}
+}
+
+func setBorderSideWidth(values []rules.PropertyValue, width rules.PropertyValue) []rules.PropertyValue {
+	out := cloneBorderValues(values)
+	if len(out) == 0 {
+		return []rules.PropertyValue{width.Clone()}
+	}
+	out[0] = width.Clone()
+	return out
+}
+
+func mergeFutureBorderSideWidths(values []rules.PropertyValue, ruleList []rules.Rule, side int, sideProperty string) ([]rules.PropertyValue, []rules.Rule) {
+	for i := 1; i < len(ruleList); i++ {
+		switch ruleList[i].Property {
+		case "border", sideProperty:
+			return values, ruleList[1:]
+		case "border-width":
+			if width, ok := borderWidthValueForSide(ruleList[i].Values, side); ok {
+				values = setBorderSideWidth(values, width)
+			}
+		case sideProperty + "-width":
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values = setBorderSideWidth(values, width)
+				ruleList = slices.Delete(ruleList, i, i+1)
+				i--
+			}
+		}
+	}
+	ruleList[0].Values = values
+	return values, ruleList
+}
+
+func preprocBorderSideWidth(values []rules.PropertyValue, ruleList []rules.Rule, sideProperty string) ([]rules.PropertyValue, []rules.Rule) {
+	for i := 1; i < len(ruleList); i++ {
+		switch ruleList[i].Property {
+		case "border", "border-width", sideProperty, sideProperty + "-width":
+			return values, ruleList[1:]
+		}
+	}
+	return values, ruleList
+}
+
+func firstBorderValue(values []rules.PropertyValue) (rules.PropertyValue, bool) {
+	if len(values) == 0 {
+		return rules.PropertyValue{}, false
+	}
+	return values[0], true
 }

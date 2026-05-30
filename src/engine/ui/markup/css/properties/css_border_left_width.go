@@ -17,7 +17,7 @@ import (
 
 // medium|thin|thick|length|initial|inherit
 func (p BorderLeftWidth) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
-	return preprocLeftTopRightBottom(values, ruleList, "border-width")
+	return preprocBorderSideWidth(values, ruleList, "border-left")
 }
 
 func (p BorderLeftWidth) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
