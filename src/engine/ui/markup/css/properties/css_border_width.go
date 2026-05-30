@@ -19,21 +19,50 @@ import (
 
 func (p BorderWidth) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
 	values = expandFourSideValues(values)
+	if len(values) != 4 {
+		return values, ruleList
+	}
 	for i := 1; i < len(ruleList); i++ {
 		removeRule := false
 		switch ruleList[i].Property {
+		case "border":
+			return values, ruleList[1:]
+		case "border-top":
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[0] = width.Clone()
+			}
+		case "border-right":
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[1] = width.Clone()
+			}
+		case "border-bottom":
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[2] = width.Clone()
+			}
+		case "border-left":
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[3] = width.Clone()
+			}
 		case "border-top-width":
-			values[0] = ruleList[i].Values[0]
-			removeRule = true
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[0] = width.Clone()
+				removeRule = true
+			}
 		case "border-right-width":
-			values[1] = ruleList[i].Values[0]
-			removeRule = true
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[1] = width.Clone()
+				removeRule = true
+			}
 		case "border-bottom-width":
-			values[2] = ruleList[i].Values[0]
-			removeRule = true
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[2] = width.Clone()
+				removeRule = true
+			}
 		case "border-left-width":
-			values[3] = ruleList[i].Values[0]
-			removeRule = true
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values[3] = width.Clone()
+				removeRule = true
+			}
 		}
 		if removeRule {
 			ruleList = slices.Delete(ruleList, i, i+1)

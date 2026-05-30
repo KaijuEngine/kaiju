@@ -16,7 +16,7 @@ import (
 )
 
 func (BorderLeft) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
-	return preprocLeftTopRightBottom(values, rules, "border")
+	return mergeFutureBorderSideWidths(values, rules, borderSideLeft, "border-left")
 }
 
 // border-width border-style border-color|initial|inherit

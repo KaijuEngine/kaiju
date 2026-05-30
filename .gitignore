@@ -20,6 +20,8 @@
 
 # Go workspace file
 go.work
+.gomodcache/
+.gotmp/
 
 bin/
 logs/
