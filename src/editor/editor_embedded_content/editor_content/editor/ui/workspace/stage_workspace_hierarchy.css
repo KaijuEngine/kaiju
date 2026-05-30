@@ -19,10 +19,10 @@
 	background-color: #313232;
 }
 .hierarchyEntrySelected {
-	background-color: #682A2D;
+	background-color: var(--ed-row-selected);
 }
 .hierarchyEntryDragHover:hover {
-	background-color: #682A2D;
+	background-color: var(--ed-row-selected);
 }
 .hierarchyEntry img {
 	position: absolute;

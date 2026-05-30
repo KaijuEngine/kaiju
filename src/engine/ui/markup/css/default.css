@@ -438,6 +438,7 @@ button.primary:hover, .button.primary:hover {
 :root {
 	--ed-menu-bar-height: 24px;
 	--ed-status-bar-height: 1.3em;
+	--ed-row-selected: #682A2D;
 }
 input[type="text"] {
 	color: white;
@@ -484,7 +485,7 @@ textarea:focus {
 	margin-right: 5px;
 }
 .filterBtn.selected {
-	background-color: #682A2D;
+	background-color: var(--ed-row-selected);
 	color: white;
 }
 .filterBtn.inverted {
