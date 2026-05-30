@@ -334,6 +334,7 @@ func (ed *Editor) reconcileWorkspaces() bool {
 		ed.workspaceOrder = newOrder
 		changed = true
 	}
+	ed.registerRegisteredWorkspaceActions()
 	return changed
 }
 

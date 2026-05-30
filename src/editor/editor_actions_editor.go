@@ -7,42 +7,22 @@
 package editor
 
 import (
-	"strings"
-
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/platform/hid"
 )
 
 const (
-	ActionEditorOpenWorkspace editor_action.ActionID = "editor.openWorkspace"
-	ActionEditorSaveStage     editor_action.ActionID = "editor.saveStage"
-	ActionEditorUndo          editor_action.ActionID = "editor.undo"
-	ActionEditorRedo          editor_action.ActionID = "editor.redo"
-	ActionEditorOpenPalette   editor_action.ActionID = "editor.openActionPalette"
+	ActionEditorSaveStage   editor_action.ActionID = "editor.saveStage"
+	ActionEditorUndo        editor_action.ActionID = "editor.undo"
+	ActionEditorRedo        editor_action.ActionID = "editor.redo"
+	ActionEditorOpenPalette editor_action.ActionID = "editor.openActionPalette"
 )
-
-type workspaceActionArgs struct {
-	Workspace string `json:"workspace"`
-}
 
 func init() {
 	registerEditorActionProvider(registerEditorActions)
 }
 
 func registerEditorActions(ed *Editor, mustRegister editorActionRegistrar) {
-	mustRegister(editor_action.Definition{
-		ID:          ActionEditorOpenWorkspace,
-		Label:       "Open Workspace",
-		Description: "Switches to another editor workspace.",
-		Category:    "Editor",
-		Tags:        []string{"workspace", "tab"},
-		Parameters: []editor_action.Parameter{
-			{Name: "workspace", Label: "Workspace", Type: "string", Required: true},
-		},
-		NewParams:  func() any { return &workspaceActionArgs{} },
-		UndoPolicy: editor_action.UndoPolicyNone,
-		Visible:    false,
-	}, ed.actionOpenWorkspace, nil)
 	mustRegister(editor_action.Definition{
 		ID:          ActionEditorSaveStage,
 		Label:       "Save Stage",
@@ -101,21 +81,6 @@ func registerEditorActions(ed *Editor, mustRegister editorActionRegistrar) {
 		UndoPolicy:  editor_action.UndoPolicyNone,
 		Visible:     true,
 	}, ed.actionOpenPalette, nil)
-}
-
-func (ed *Editor) actionOpenWorkspace(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
-	args, ok := editor_action.Param[workspaceActionArgs](req)
-	if !ok {
-		return editor_action.Failure("workspace is required")
-	}
-	args.Workspace = strings.TrimSpace(args.Workspace)
-	if args.Workspace == "" {
-		return editor_action.Failure("workspace is required")
-	}
-	if err := ed.SelectWorkspace(args.Workspace); err != nil {
-		return editor_action.Failure(err.Error())
-	}
-	return editor_action.Success("workspace opened")
 }
 
 func (ed *Editor) actionSaveStage(editor_action.Context, editor_action.Request) editor_action.Result {
