@@ -29,6 +29,7 @@ func (h *constraintDataAttachHistory) Redo() {
 	if man.IsSelected(h.Entity) {
 		data_binding_renderer.ShowSpecific(h.Data, weak.Make(h.workspace.Host), h.Entity)
 	}
+	h.workspace.hierarchyUI.refreshEntityBadgeForEntity(h.Entity)
 	h.workspace.detailsUI.reload()
 }
 
@@ -37,6 +38,7 @@ func (h *constraintDataAttachHistory) Undo() {
 	man := h.workspace.stageView.Manager()
 	h.Entity.DetachDataBinding(h.Data)
 	data_binding_renderer.Detatched(h.Data, weak.Make(h.workspace.Host), man, h.Entity)
+	h.workspace.hierarchyUI.refreshEntityBadgeForEntity(h.Entity)
 	h.workspace.detailsUI.reload()
 }
 

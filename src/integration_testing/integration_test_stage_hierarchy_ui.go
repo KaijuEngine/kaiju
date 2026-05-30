@@ -28,6 +28,7 @@ var stageHierarchyTestUIMan *ui.Manager
 type mockHierarchyEntity struct {
 	id       string
 	name     string
+	count    int
 	selected bool
 	locked   bool
 	hidden   bool
@@ -113,39 +114,24 @@ func populateStageHierarchyMock(doc *document.Document) error {
 	}
 	mockEntities := []mockHierarchyEntity{
 		{
-			id:       "player-rig",
-			name:     "Player Rig",
+			id:       "root",
+			name:     "Root",
+			count:    1,
 			selected: true,
 			children: []mockHierarchyEntity{
-				{id: "camera-boom", name: "Camera Boom"},
+				{id: "camera", name: "Camera", count: 1},
 				{
-					id:   "weapon-mount",
-					name: "Weapon Mount",
+					id:    "player",
+					name:  "Player",
+					count: 3,
 					children: []mockHierarchyEntity{
-						{id: "muzzle-flash", name: "Muzzle Flash Socket"},
-						{id: "reticle-anchor", name: "Reticle Anchor"},
+						{id: "sprite-renderer", name: "SpriteRenderer", count: 2},
+						{id: "rigidbody-2d", name: "Rigidbody2D", count: 2},
 					},
 				},
-				{id: "interaction-probe", name: "Interaction Probe", hidden: true},
+				{id: "tilemap", name: "Tilemap", count: 2},
 			},
 		},
-		{
-			id:   "environment",
-			name: "Environment",
-			children: []mockHierarchyEntity{
-				{
-					id:   "street-blockout",
-					name: "Street Blockout",
-					children: []mockHierarchyEntity{
-						{id: "storefronts", name: "Storefront Modules"},
-						{id: "alley-lights", name: "Alley Lights", locked: true},
-					},
-				},
-				{id: "navmesh-volume", name: "Navmesh Volume"},
-			},
-		},
-		{id: "director", name: "Mission Director", locked: true},
-		{id: "debug-spawners", name: "Debug Spawn Points"},
 	}
 	for i := range mockEntities {
 		addMockHierarchyRow(doc, template, entityList, mockEntities[i], 0)
@@ -162,17 +148,20 @@ func addMockHierarchyRow(doc *document.Document, template, parent *document.Elem
 		doc.ChangeElementParent(row, parent)
 	}
 	header := stageHierarchyEntryHeader(row)
-	headerClasses := []string{"entryHeader"}
+	doc.SetElementClasses(header, "entryHeader")
+	rowClasses := []string{"hierarchyEntry"}
 	if entity.selected {
-		headerClasses = append(headerClasses, "entryHeaderSelected")
+		rowClasses = append(rowClasses, "hierarchyEntrySelected")
 	}
-	doc.SetElementClasses(header, headerClasses...)
+	doc.SetElementClasses(row, rowClasses...)
 	row.SetAttribute("data-collapsed", "false")
-	stageHierarchyActionLabel(row, 0).SetText(stageHierarchyEyeIcon(entity.hidden))
-	stageHierarchyActionLabel(row, 1).SetText(stageHierarchyLockIcon(entity.locked))
-	stageHierarchyActionLabel(row, 2).SetText(stageHierarchyToggleIcon(len(entity.children) > 0, depth > 0))
+	stageHierarchyEyeLabel(row).SetText(stageHierarchyEyeIcon(entity.hidden))
+	stageHierarchyLockLabel(row).SetText(stageHierarchyLockIcon(entity.locked))
+	stageHierarchyToggleLabel(row).SetText(stageHierarchyToggleIcon(len(entity.children) > 0))
+	stageHierarchyBadgeLabel(row).SetText(fmt.Sprint(entity.count))
 	stageHierarchyNameLabel(row).SetText(entity.name)
 	stageHierarchyNameLabel(row).Base().Layout().SetOffsetX(0)
+	stageHierarchyNameSpan(row).UI.Layout().SetPadding(float32(depth*10), 0, 0, 0)
 	for i := range entity.children {
 		addMockHierarchyRow(doc, template, row, entity.children[i], depth+1)
 	}
@@ -189,8 +178,20 @@ func stageHierarchyEntryHeader(row *document.Element) *document.Element {
 	return row.Children[0]
 }
 
-func stageHierarchyActionLabel(row *document.Element, idx int) *ui.Label {
-	return stageHierarchyEntryHeader(row).Children[idx].InnerLabel()
+func stageHierarchyToggleLabel(row *document.Element) *ui.Label {
+	return stageHierarchyEntryHeader(row).Children[0].InnerLabel()
+}
+
+func stageHierarchyBadgeLabel(row *document.Element) *ui.Label {
+	return stageHierarchyEntryHeader(row).Children[3].Children[0].InnerLabel()
+}
+
+func stageHierarchyEyeLabel(row *document.Element) *ui.Label {
+	return stageHierarchyEntryHeader(row).Children[4].InnerLabel()
+}
+
+func stageHierarchyLockLabel(row *document.Element) *ui.Label {
+	return stageHierarchyEntryHeader(row).Children[5].InnerLabel()
 }
 
 func stageHierarchyNameSpan(row *document.Element) *document.Element {
@@ -198,7 +199,7 @@ func stageHierarchyNameSpan(row *document.Element) *document.Element {
 }
 
 func stageHierarchyNameElement(row *document.Element) *document.Element {
-	return stageHierarchyEntryHeader(row).Children[3]
+	return stageHierarchyEntryHeader(row).Children[2]
 }
 
 func stageHierarchyNameLabel(row *document.Element) *ui.Label {
@@ -219,12 +220,9 @@ func stageHierarchyLockIcon(locked bool) string {
 	return "\ue898"
 }
 
-func stageHierarchyToggleIcon(hasChildren, isChild bool) string {
+func stageHierarchyToggleIcon(hasChildren bool) string {
 	if hasChildren {
 		return "\ue5c5"
-	}
-	if isChild {
-		return "\ue5da"
 	}
 	return ""
 }
@@ -271,7 +269,7 @@ func assertStageHierarchyScreenshot(img image.Image) error {
 			r := int(r16 >> 8)
 			g := int(g16 >> 8)
 			b := int(b16 >> 8)
-			if r >= 28 && r <= 52 && g >= 28 && g <= 52 && b >= 28 && b <= 58 {
+			if r >= 20 && r <= 52 && g >= 20 && g <= 52 && b >= 24 && b <= 58 {
 				headerPixels++
 			}
 			if r > 95 && g < 80 && b < 80 {

@@ -1,16 +1,32 @@
 <div id="hierarchyArea" class="edPanelBg sideBarStandard" ondrop="hierarchyDrop">
-	<input type="text" class="topSearch" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
+	<div id="hierarchyChrome">
+		<div id="hierarchySceneTab">Scene</div>
+		<span id="hierarchyMenuIcon" class="hierarchyMaterialIcon">&#xE5D4;</span>
+	</div>
+	<div id="hierarchySectionHeader" class="hierarchySectionHeader">
+		<span class="hierarchyMaterialIcon hierarchySectionToggle">&#xE5C5;</span>
+		<span>Hierarchy</span>
+	</div>
+	<input id="hierarchySearch" type="text" class="topSearch hierarchySearchHidden" placeholder="Search..." onsubmit="hierarchySearch" onchange="hierarchySearch" />
 	<div id="entityList">
 		<div id="entityTemplate" class="hierarchyEntry" onclick="selectEntity" onrightclick="entityContextMenu" ondragstart="entityDragStart" ondrop="entityDrop" ondragenter="entityDragEnter" ondragleave="entityDragExit">
 			<div class="entryHeader">
-				<span class="entryActionIcon" onclick="entityToggleVisibility">&#xE8F4;</span>
-				<span class="entryActionIcon" onclick="entityToggleLock">&#xE898;</span>
 				<span class="hierarchyToggle" onclick="entityToggleChildren">&#xE5C5;</span>
+				<span class="entryTypeIcon hierarchyMaterialIcon">&#xE3C2;</span>
 				<div class="entryName">
 					<span>Name...</span>
 				</div>
+				<div class="entryBadge">
+					<span>1</span>
+				</div>
+				<span class="entryActionIcon entryEyeIcon" onclick="entityToggleVisibility">&#xE8F4;</span>
+				<span class="entryActionIcon entryLockIcon" onclick="entityToggleLock">&#xE898;</span>
 			</div>
 		</div>
+	</div>
+	<div id="hierarchyLayersTags" class="hierarchySectionHeader">
+		<span class="hierarchyMaterialIcon hierarchySectionToggle">&#xE5CC;</span>
+		<span>Layers &amp; Tags</span>
 	</div>
 </div>
 <img id="hierarchyDragPreview" src="editor/textures/icons/menu_bar_logo.png" />

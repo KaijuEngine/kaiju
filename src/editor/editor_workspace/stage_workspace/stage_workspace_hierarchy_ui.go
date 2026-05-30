@@ -514,8 +514,9 @@ func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEnti
 	cpy := w.Doc.DuplicateElement(hui.entityTemplate)
 	w.Doc.SetElementId(cpy, e.StageData.Description.Id)
 	cpy.SetAttribute("data-collapsed", "false")
-	eye := cpy.Children[0].Children[0].InnerLabel()
+	eye := entryEye(cpy).InnerLabel()
 	hui.refreshEntityLock(cpy, e.IsLocked())
+	hui.refreshEntityBadge(cpy, e)
 	entryNameLabel(cpy).SetText(e.Name())
 	hui.refreshHierarchyToggle(cpy)
 	activateEvtId := e.OnActivate.Add(func() {
@@ -660,6 +661,33 @@ func (hui *WorkspaceHierarchyUI) refreshEntityLock(row *document.Element, locked
 	}
 }
 
+func (hui *WorkspaceHierarchyUI) refreshEntityBadge(row *document.Element, e *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.refreshEntityBadge").End()
+	badge := entryBadgeLabel(row)
+	if badge == nil || e == nil {
+		return
+	}
+	count := len(e.DataBindings())
+	if e.StageData.ShaderData != nil {
+		count++
+	}
+	if count == 0 {
+		count = 1
+	}
+	badge.SetText(strconv.Itoa(count))
+}
+
+func (hui *WorkspaceHierarchyUI) refreshEntityBadgeForEntity(e *editor_stage_manager.StageEntity) {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.refreshEntityBadgeForEntity").End()
+	if e == nil {
+		return
+	}
+	id := e.StageData.Description.Id
+	if row, ok := hui.workspace.Value().Doc.GetElementById(id); ok {
+		hui.refreshEntityBadge(row, e)
+	}
+}
+
 func (hui *WorkspaceHierarchyUI) applyChildrenVisibility(row *document.Element) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.applyChildrenVisibility").End()
 	collapsed := row.Attribute("data-collapsed") == "true"
@@ -712,19 +740,27 @@ func (hui *WorkspaceHierarchyUI) standardHeight() {
 }
 
 func entryToggle(row *document.Element) *document.Element {
-	return entryHeader(row).Children[2]
+	return entryHeader(row).Children[0]
 }
 
 func entryLock(row *document.Element) *document.Element {
-	return entryHeader(row).Children[1]
+	return entryHeader(row).Children[5]
+}
+
+func entryEye(row *document.Element) *document.Element {
+	return entryHeader(row).Children[4]
+}
+
+func entryBadgeLabel(row *document.Element) *ui.Label {
+	return entryHeader(row).Children[3].Children[0].InnerLabel()
 }
 
 func entryNameSpan(row *document.Element) *ui.Panel {
-	return entryHeader(row).Children[3].Children[0].UI.ToPanel()
+	return entryHeader(row).Children[2].Children[0].UI.ToPanel()
 }
 
 func entryNameLabel(row *document.Element) *ui.Label {
-	return entryHeader(row).Children[3].Children[0].InnerLabel()
+	return entryHeader(row).Children[2].Children[0].InnerLabel()
 }
 
 func entryHeader(row *document.Element) *document.Element {

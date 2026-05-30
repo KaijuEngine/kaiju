@@ -36,6 +36,7 @@ func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g
 	m := w.stageView.Manager()
 	de := m.AttachEntityData(e, g)
 	data_binding_renderer.Attached(de, weak.Make(w.Host), m, e)
+	w.hierarchyUI.refreshEntityBadgeForEntity(e)
 	return de
 }
 

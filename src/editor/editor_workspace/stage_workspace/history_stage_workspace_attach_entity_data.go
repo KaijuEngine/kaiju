@@ -26,6 +26,7 @@ func (h *EntityDataAttachHistory) Redo() {
 	h.Entity.AttachDataBinding(h.Data)
 	w := h.DetailsWorkspace.workspace.Value()
 	data_binding_renderer.Attached(h.Data, weak.Make(w.Host), w.stageView.Manager(), h.Entity)
+	w.hierarchyUI.refreshEntityBadgeForEntity(h.Entity)
 	h.DetailsWorkspace.entitySelected(h.Entity)
 }
 
@@ -34,6 +35,7 @@ func (h *EntityDataAttachHistory) Undo() {
 	h.Entity.DetachDataBinding(h.Data)
 	w := h.DetailsWorkspace.workspace.Value()
 	data_binding_renderer.Detatched(h.Data, weak.Make(w.Host), w.stageView.Manager(), h.Entity)
+	w.hierarchyUI.refreshEntityBadgeForEntity(h.Entity)
 	h.DetailsWorkspace.entitySelected(h.Entity)
 }
 

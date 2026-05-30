@@ -1,28 +1,81 @@
 #hierarchyArea {
 	top: var(--ed-menu-bar-height);
 	width: 18%;
-	color: white;
-	border-right: 2px solid black;
+	color: #B9BEC8;
+	background-color: #171A20;
+	border-right: 1px solid #262B35;
+}
+#hierarchyChrome {
+	position: relative;
+	width: 100%;
+	height: 34px;
+	background-color: #171A20;
+	border-bottom: 1px solid #262B35;
+}
+#hierarchySceneTab {
+	position: absolute;
+	left: 0;
+	top: 1px;
+	width: 70px;
+	height: 33px;
+	padding: 8px 0 0 15px;
+	color: #E0E3EA;
+	background-color: #1E222A;
+	border: 1px solid #2A303B;
+	border-bottom-width: 0px;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	font-size: 12px;
+}
+#hierarchyMenuIcon {
+	position: absolute;
+	right: 16px;
+	top: 9px;
+	width: 16px;
+	height: 16px;
+	color: #68707C;
+	font-size: 16px;
+	text-align: center;
+}
+.hierarchyMaterialIcon {
+	font-family: 'MaterialIcons-Regular';
+}
+.hierarchySectionHeader {
+	position: relative;
+	width: 100%;
+	height: 25px;
+	color: #AAB0BA;
+	background-color: #171A20;
+	border-bottom: 1px solid #252A33;
+	font-size: 13px;
+}
+.hierarchySectionHeader span {
+	height: 25px;
+}
+.hierarchySectionToggle {
+	width: 18px;
+	padding-left: 3px;
+	color: #6E7682;
+	font-size: 18px;
+	text-align: center;
+}
+.hierarchySearchHidden {
+	display: none;
 }
 #entityList {
 	width: 100%;
-	height: calc(100% - 3em);
+	height: calc(100% - 89px);
 	overflow-y: scroll;
+	background-color: #171A20;
 }
 .hierarchyEntry {
 	width: 100%;
-	min-height: 18px;
-	color: white;
-	background-color: #1C1C1C;
+	min-height: 24px;
+	color: #B9BEC8;
+	background-color: #171A20;
 }
-.hierarchyEntry:hover {
-	background-color: #313232;
-}
-.hierarchyEntrySelected {
-	background-color: #536b7a;
-}
-.hierarchyEntryDragHover:hover {
-	background-color: #682A2D;
+.hierarchyEntry:hover > .entryHeader {
+	background-color: #212630;
 }
 .hierarchyEntry img {
 	position: absolute;
@@ -34,42 +87,98 @@
 .entryHeader {
 	position: relative;
 	width: 100%;
-	height: 18px;
+	height: 24px;
 	overflow: hidden;
+	background-color: #171A20;
 }
 .entryEye { background-color: rgb(200, 200, 200); }
 .entryEye:hover { background-color: rgb(255, 255, 255); }
 .entryEye:active { background-color: rgb(200, 200, 200); }
 .entryActionIcon {
-	width: 16px;
-	height: 16px;
-	top: 0;
-	font-family: 'MaterialIcons-Regular';
-	font-size: 1.2em;
-	text-align: center;
-}
-.entryActionIcon:hover { color: #AAA; }
-.hierarchyToggle {
 	position: absolute;
 	width: 16px;
-	height: 24px;
-	left: 40px;
-	top: 0;
+	height: 16px;
+	top: 4px;
+	color: #79818E;
 	font-family: 'MaterialIcons-Regular';
-	font-size: 1.2em;
+	font-size: 13px;
+	text-align: center;
+}
+.entryActionIcon:hover { color: #C5CAD3; }
+.entryEyeIcon {
+	right: 17px;
+}
+.entryLockIcon {
+	right: 0;
+	display: none;
+}
+.hierarchyToggle {
+	position: absolute;
+	width: 20px;
+	height: 20px;
+	left: 2px;
+	top: 2px;
+	color: #77808C;
+	font-family: 'MaterialIcons-Regular';
+	font-size: 17px;
 	text-align: center;
 }
 .hierarchyToggle:hover {
-	color: #AAA;
+	color: #C5CAD3;
+}
+.entryTypeIcon {
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	left: 29px;
+	top: 5px;
+	color: #5F6874;
+	font-size: 11px;
+	text-align: center;
 }
 .entryName {
 	position: absolute;
-	left: 58px;
-	top: 0;
-	width: calc(100% - 58px);
+	left: 50px;
+	top: 4px;
+	width: calc(100% - 103px);
 	height: 18px;
+	color: #B9BEC8;
+	font-size: 12px;
 	overflow: hidden;
 	word-wrap: unset;
+}
+.entryBadge {
+	position: absolute;
+	right: 38px;
+	top: 4px;
+	width: 16px;
+	height: 16px;
+	color: #D8DCE4;
+	background-color: #11141A;
+	border: 1px solid #2D3340;
+	border-radius: 8px;
+	font-size: 10px;
+	text-align: center;
+}
+.hierarchyEntryDragHover:hover > .entryHeader {
+	background-color: #682A2D;
+}
+.hierarchyEntrySelected > .entryHeader {
+	color: #ECEFF4;
+	background-color: #682A2D;
+}
+.hierarchyEntrySelected > .entryHeader .entryBadge {
+	background-color: #171A20;
+	border-color: #40232A;
+	color: #D8DCE4;
+}
+#hierarchyLayersTags {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	border-top: 1px solid #252A33;
+	border-bottom-width: 0px;
+	color: #858D99;
 }
 #hierarchyDragPreview {
 	position: absolute;
