@@ -291,9 +291,11 @@ func ImportPaths(paths []string, pfs *project_file_system.FileSystem, cache *con
 func (w *ContentWorkspace) toggleListView(e *document.Element) {
 	if w.isListMode {
 		w.disableListMode()
+		e.InnerLabel().SetText("List view")
 		w.Doc.SetElementClassesWithoutApply(e, "filterBtn")
 	} else {
 		w.enableListMode()
+		e.InnerLabel().SetText("Grid view")
 		w.Doc.SetElementClassesWithoutApply(e, "filterBtn", "filterBtnSelected")
 	}
 	w.Doc.ApplyStyles()
