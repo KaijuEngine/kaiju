@@ -463,14 +463,10 @@ textarea:focus {
 	border: 2px solid #363636;
 }
 .filterBtn {
-	padding: 2px 5px;
+	width: 100%;
 	background-color: #1C1C1C;
-	border: 2px solid #292C34;
-	border-radius: 12px;
 	color: #AAA;
 	font-size: 1em;
-	margin-right: 0.5em;
-	margin-bottom: 0.25em;
 }
 .filterBtn:hover {
 	color: white;
@@ -487,12 +483,11 @@ textarea:focus {
 	background-color: #1D731C;
 	margin-right: 5px;
 }
-.filterBtn .selected {
+.filterBtn.selected {
 	background-color: #682A2D;
-	border-color: #881E1E;
 	color: white;
 }
-.filterBtn .inverted {
+.filterBtn.inverted {
 	background-color: #0e0f12;
 	border: 2px solid #121317;
 	color: #999;
