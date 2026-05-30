@@ -188,6 +188,19 @@
 			.workspaceRequired { color: #cc6; margin-right: 1em; }
 			.workspaceToggle { margin-right: 0.5em; }
 			.workspaceMoveBtn { margin-left: 0.25em; }
+			.webAPISettings {
+				margin-top: 1em;
+				margin-bottom: 1em;
+			}
+			.webAPIKeyInput {
+				width: 54%;
+				height: 100%;
+				margin-right: 0.5em;
+			}
+			.webAPIKeyButton {
+				width: 14%;
+				height: 100%;
+			}
 		
 			
 			.gitDownloadRow {
@@ -226,6 +239,22 @@
 				<div id="editorSettingsBox" class="settingsBox">
 					<h1>Editor Settings</h1>
 					{{template "section" .Editor}}
+					<div class="webAPISettings">
+						<h2>Web API</h2>
+						<div class="inputItem">
+							<div class="inputLabel">Enabled:</div>
+							<input id="webAPIEnabled" data-path="WebAPI.Enabled" class="inputCheck" type="checkbox" {{if .WebAPI.Enabled}}checked="checked"{{end}} onchange="webAPIValueChanged" />
+						</div>
+						<div class="inputItem">
+							<div class="inputLabel">Port:</div>
+							<input id="webAPIPort" data-path="WebAPI.Port" class="input" type="number" value="{{.WebAPI.Port}}" onchange="webAPIValueChanged" />
+						</div>
+						<div class="inputItem">
+							<div class="inputLabel">API Key:</div>
+							<input id="webAPIKey" data-path="WebAPI.APIKey" class="input webAPIKeyInput" type="text" value="{{.WebAPI.APIKey}}" onchange="webAPIValueChanged" />
+							<button class="webAPIKeyButton" onclick="rotateWebAPIKey">Rotate</button>
+						</div>
+					</div>
 				</div>
 				<div id="workspaceSettingsBox" class="settingsBox">
 					<h1>Workspaces</h1>

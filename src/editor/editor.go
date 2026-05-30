@@ -25,6 +25,7 @@ import (
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_database/content_previews"
+	"kaijuengine.com/editor/webapi"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui"
@@ -78,6 +79,7 @@ type Editor struct {
 	}
 	contentPreviewer content_previews.ContentPreviewer
 	updateId         engine.UpdateId
+	webAPIServer     *webapi.Server[*Editor]
 	blurred          bool
 	// sessionDisabledPlugins holds module paths of plugins the user chose
 	// to skip via the startup-validation modal's "Continue" button (only
@@ -156,11 +158,13 @@ func (ed *Editor) UpdateSettings() {
 	if matrix.Approx(ed.settings.UIScrollSpeed, 0) {
 		ed.settings.UIScrollSpeed = 1
 	}
+	ed.settings.NormalizeWebAPI()
 	ui.UIScrollSpeed = ed.settings.UIScrollSpeed
 	if err := ed.settings.Save(); err != nil {
 		slog.Error("failed to save the editor settings", "error", err)
 		return
 	}
+	ed.updateWebAPI()
 }
 
 func (ed *Editor) postProjectLoad() {

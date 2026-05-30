@@ -79,6 +79,7 @@ type workspaceRowData struct {
 type settingsWorkspaceData struct {
 	Editor     common_workspace.DataUISection
 	Project    common_workspace.DataUISection
+	WebAPI     editor_settings.WebAPISettings
 	Plugins    []editor_plugin.PluginInfo
 	Workspaces []workspaceRowData
 }
@@ -274,6 +275,21 @@ func (w *SettingsWorkspace) valueChanged(e *document.Element) {
 	} else if w.projectSettingsBox.UI.Entity().IsActive() {
 		common_workspace.SetObjectValueFromUI(w.projectSettings, e)
 	}
+}
+
+func (w *SettingsWorkspace) webAPIValueChanged(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.webAPIValueChanged").End()
+	common_workspace.SetObjectValueFromUI(w.editorSettings, e)
+	w.editorSettings.NormalizeWebAPI()
+	w.syncWebAPIInputs()
+	w.editor.UpdateSettings()
+}
+
+func (w *SettingsWorkspace) rotateWebAPIKey(*document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.rotateWebAPIKey").End()
+	w.editorSettings.WebAPI.APIKey = editor_settings.GenerateWebAPIKey()
+	w.syncWebAPIInputs()
+	w.editor.UpdateSettings()
 }
 
 func (w *SettingsWorkspace) openPluginWebsite(e *document.Element) {
@@ -478,6 +494,7 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 			w.editorSettings, "", listings),
 		Project: common_workspace.ReflectUIStructure(cache,
 			w.projectSettings, "", listings),
+		WebAPI:     w.editorSettings.WebAPI,
 		Plugins:    w.plugins,
 		Workspaces: w.buildWorkspaceRows(),
 	}
@@ -529,6 +546,8 @@ func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 		"toggleWorkspaceEnabled": w.toggleWorkspaceEnabled,
 		"moveWorkspaceUp":        w.moveWorkspaceUp,
 		"moveWorkspaceDown":      w.moveWorkspaceDown,
+		"webAPIValueChanged":     w.webAPIValueChanged,
+		"rotateWebAPIKey":        w.rotateWebAPIKey,
 	}
 }
 
@@ -539,4 +558,20 @@ func (w *SettingsWorkspace) reloadedUI() {
 	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
 	w.pluginSettingsBox, _ = w.Doc.GetElementById("pluginSettingsBox")
 	w.workspaceSettingsBox, _ = w.Doc.GetElementById("workspaceSettingsBox")
+	w.syncWebAPIInputs()
+}
+
+func (w *SettingsWorkspace) syncWebAPIInputs() {
+	if w.Doc == nil {
+		return
+	}
+	if elm, ok := w.Doc.GetElementById("webAPIEnabled"); ok && elm.UI != nil {
+		elm.UI.ToCheckbox().SetCheckedWithoutEvent(w.editorSettings.WebAPI.Enabled)
+	}
+	if elm, ok := w.Doc.GetElementById("webAPIPort"); ok && elm.UI != nil {
+		elm.UI.ToInput().SetTextWithoutEvent(strconv.Itoa(int(w.editorSettings.WebAPI.Port)))
+	}
+	if elm, ok := w.Doc.GetElementById("webAPIKey"); ok && elm.UI != nil {
+		elm.UI.ToInput().SetTextWithoutEvent(w.editorSettings.WebAPI.APIKey)
+	}
 }
