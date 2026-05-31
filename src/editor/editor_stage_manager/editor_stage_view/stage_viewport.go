@@ -287,6 +287,11 @@ func (v *StageView) SetViewportUIForKind(kind StageViewportKind, viewport *ui.UI
 	v.syncStageViewport()
 }
 
+func (v *StageView) SyncStageViewport() {
+	defer tracing.NewRegion("StageView.SyncStageViewport").End()
+	v.syncStageViewport()
+}
+
 func (v *StageView) syncStageViewport() {
 	defer tracing.NewRegion("StageView.syncStageViewport").End()
 	if v.host == nil {

@@ -152,7 +152,11 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	if windowing.HasDragData() {
 		return
 	}
-	if w.IsBlurred || w.UiMan.Group.HasRequests() {
+	if w.IsBlurred {
+		return
+	}
+	w.stageView.SyncStageViewport()
+	if w.UiMan.Group.HasRequests() {
 		return
 	}
 	w.detailsUI.update()
