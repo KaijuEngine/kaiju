@@ -31,6 +31,7 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		NewParams:   func() any { return &gridVisibleActionArgs{} },
 		UndoPolicy:  editor_action.UndoPolicyNone,
 		Visible:     false,
+		Unbindable:  true,
 	}, ed.actionSetGridVisible, nil)
 }
 

@@ -62,6 +62,7 @@ func registerStageSelectionActions(ed *Editor, mustRegister editorActionRegistra
 		NewParams:         func() any { return &selectByIDActionArgs{} },
 		UndoPolicy:        editor_action.UndoPolicyTransaction,
 		Visible:           false,
+		Unbindable:        true,
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionSelectByID, ed.stageCanRun)
 	mustRegister(editor_action.Definition{

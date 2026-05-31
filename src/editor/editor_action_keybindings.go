@@ -71,14 +71,7 @@ func (ed *Editor) processActionKeyBindings(kb *hid.Keyboard) bool {
 }
 
 func (ed *Editor) actionBindings() []editor_action.ActionBinding {
-	defaults := ed.Actions().DefaultBindings()
-	if len(ed.settings.ActionBindings) == 0 {
-		return defaults
-	}
-	out := make([]editor_action.ActionBinding, 0, len(defaults)+len(ed.settings.ActionBindings))
-	out = append(out, defaults...)
-	out = append(out, ed.settings.ActionBindings...)
-	return out
+	return editor_action.EffectiveBindings(ed.Actions().DefaultBindings(), ed.settings.ActionBindings)
 }
 
 func actionBindingMatches(kb *hid.Keyboard, chord editor_action.KeyChord) bool {

@@ -20,6 +20,13 @@ const (
 	ActionStageSpawnCamera    editor_action.ActionID = "stage.spawnCamera"
 	ActionStageSpawnLight     editor_action.ActionID = "stage.spawnLight"
 	ActionStageSpawnPrimitive editor_action.ActionID = "stage.spawnPrimitive"
+	ActionStageSpawnCube      editor_action.ActionID = "stage.spawnCube"
+	ActionStageSpawnSphere    editor_action.ActionID = "stage.spawnSphere"
+	ActionStageSpawnPlane     editor_action.ActionID = "stage.spawnPlane"
+	ActionStageSpawnCapsule   editor_action.ActionID = "stage.spawnCapsule"
+	ActionStageSpawnCylinder  editor_action.ActionID = "stage.spawnCylinder"
+	ActionStageSpawnCone      editor_action.ActionID = "stage.spawnCone"
+	ActionStageSpawnArrow     editor_action.ActionID = "stage.spawnArrow"
 )
 
 type primitiveActionArgs struct {
@@ -74,17 +81,31 @@ func registerStageSpawnActions(ed *Editor, mustRegister editorActionRegistrar) {
 			Options: []string{"cube", "sphere", "plane", "capsule", "cylinder", "cone", "arrow"},
 		}},
 		UndoPolicy:        editor_action.UndoPolicyManaged,
+		Visible:           false,
+		Unbindable:        true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionSpawnPrimitive, ed.stageCanRun)
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnCube, "Spawn Cube", "cube")
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnSphere, "Spawn Sphere", "sphere")
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnPlane, "Spawn Plane", "plane")
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnCapsule, "Spawn Capsule", "capsule")
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnCylinder, "Spawn Cylinder", "cylinder")
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnCone, "Spawn Cone", "cone")
+	ed.registerPrimitiveAction(mustRegister, ActionStageSpawnArrow, "Spawn Arrow", "arrow")
+}
+
+func (ed *Editor) registerPrimitiveAction(mustRegister editorActionRegistrar, id editor_action.ActionID, label, primitive string) {
+	mustRegister(editor_action.Definition{
+		ID:                id,
+		Label:             label,
+		Description:       "Creates a primitive mesh entity.",
+		Category:          "Stage",
+		Tags:              []string{"create", "new", "primitive", "mesh", primitive},
+		DefaultParams:     editor_action.Params(primitiveActionArgs{Primitive: primitive}),
+		NewParams:         func() any { return &primitiveActionArgs{} },
+		UndoPolicy:        editor_action.UndoPolicyManaged,
 		Visible:           true,
 		RequiredWorkspace: stage_workspace.ID,
-		Variants: []editor_action.Variant{
-			{Label: "Spawn Cube", Tags: []string{"cube"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "cube"})},
-			{Label: "Spawn Sphere", Tags: []string{"sphere"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "sphere"})},
-			{Label: "Spawn Plane", Tags: []string{"plane"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "plane"})},
-			{Label: "Spawn Capsule", Tags: []string{"capsule"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "capsule"})},
-			{Label: "Spawn Cylinder", Tags: []string{"cylinder"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "cylinder"})},
-			{Label: "Spawn Cone", Tags: []string{"cone"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "cone"})},
-			{Label: "Spawn Arrow", Tags: []string{"arrow"}, Params: editor_action.Params(primitiveActionArgs{Primitive: "arrow"})},
-		},
 	}, ed.actionSpawnPrimitive, ed.stageCanRun)
 }
 

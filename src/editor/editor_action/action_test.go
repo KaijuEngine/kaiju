@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+
+	"kaijuengine.com/platform/hid"
 )
 
 type testPrimitiveParams struct {
@@ -148,5 +150,72 @@ func TestServiceRunParsesJSONParamsToConcreteStruct(t *testing.T) {
 	})
 	if !result.OK || result.Data["value"] != "from-json" {
 		t.Fatalf("result = %#v, want parsed JSON params", result)
+	}
+}
+
+func TestEffectiveBindingsPreservesDefaultsAndAllowsOverrides(t *testing.T) {
+	action := ActionID("editor.redo")
+	defaults := []ActionBinding{
+		{Action: action, Enabled: true, Chord: KeyChord{Keys: []int{int(hid.KeyboardKeyY)}, CtrlOrMeta: true}},
+		{Action: action, Enabled: true, Chord: KeyChord{Keys: []int{int(hid.KeyboardKeyZ)}, CtrlOrMeta: true, Shift: true}},
+	}
+	effective := EffectiveBindings(defaults, nil)
+	if len(effective) != 2 {
+		t.Fatalf("effective default bindings = %d, want 2", len(effective))
+	}
+	override := []ActionBinding{
+		{Action: action, Enabled: true, Chord: KeyChord{Keys: []int{int(hid.KeyboardKeyR)}, CtrlOrMeta: true}},
+	}
+	effective = EffectiveBindings(defaults, override)
+	if len(effective) != 1 {
+		t.Fatalf("effective overridden bindings = %d, want 1", len(effective))
+	}
+	if !ChordsEqual(effective[0].Chord, override[0].Chord) {
+		t.Fatalf("effective chord = %#v, want override %#v", effective[0].Chord, override[0].Chord)
+	}
+}
+
+func TestEffectiveBindingsSupportsTombstones(t *testing.T) {
+	action := ActionID("editor.saveStage")
+	defaults := []ActionBinding{
+		{Action: action, Enabled: true, Chord: KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true}},
+	}
+	user := []ActionBinding{{Action: action, Enabled: false}}
+	effective := EffectiveBindings(defaults, user)
+	if len(effective) != 0 {
+		t.Fatalf("effective bindings = %d, want tombstone to clear defaults", len(effective))
+	}
+}
+
+func TestBindingConflictsRespectScopes(t *testing.T) {
+	chord := KeyChord{Keys: []int{int(hid.KeyboardKeyD)}, CtrlOrMeta: true}
+	global := ActionBinding{Action: "editor.saveStage", Enabled: true, Chord: chord}
+	stage := ActionBinding{Action: "stage.duplicateSelection", Workspace: "stage", Enabled: true, Chord: chord}
+	content := ActionBinding{Action: "content.test", Workspace: "content", Enabled: true, Chord: chord}
+	if conflicts := BindingConflicts([]ActionBinding{global}, stage, nil); len(conflicts) != 1 {
+		t.Fatalf("workspace vs global conflicts = %d, want 1", len(conflicts))
+	}
+	if conflicts := BindingConflicts([]ActionBinding{stage}, content, nil); len(conflicts) != 0 {
+		t.Fatalf("different workspace conflicts = %d, want 0", len(conflicts))
+	}
+	if conflicts := BindingConflicts([]ActionBinding{stage, content}, global, nil); len(conflicts) != 2 {
+		t.Fatalf("global vs workspaces conflicts = %d, want 2", len(conflicts))
+	}
+}
+
+func TestRemoveBindingConflictsCreatesDefaultTombstone(t *testing.T) {
+	oldAction := ActionID("editor.saveStage")
+	chord := KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true}
+	defaults := []ActionBinding{{Action: oldAction, Enabled: true, Chord: chord}}
+	conflicts := []BindingConflict{{Binding: defaults[0], Label: "Save Stage"}}
+	user := RemoveBindingConflicts(defaults, nil, conflicts)
+	if len(user) != 1 {
+		t.Fatalf("user bindings = %d, want tombstone", len(user))
+	}
+	if user[0].Action != oldAction || user[0].Enabled {
+		t.Fatalf("tombstone = %#v, want disabled old action", user[0])
+	}
+	if effective := EffectiveBindings(defaults, user); len(effective) != 0 {
+		t.Fatalf("effective bindings = %d, want default removed", len(effective))
 	}
 }

@@ -39,6 +39,7 @@ func registerWorkspaceActions(ed *Editor, mustRegister editorActionRegistrar) {
 		NewParams:  func() any { return &workspaceActionArgs{} },
 		UndoPolicy: editor_action.UndoPolicyNone,
 		Visible:    false,
+		Unbindable: true,
 	}, ed.actionOpenWorkspace, nil)
 	ed.registerRegisteredWorkspaceActions()
 }

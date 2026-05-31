@@ -56,6 +56,7 @@ type SettingsWorkspace struct {
 	editorSettingsBox    *document.Element
 	pluginSettingsBox    *document.Element
 	workspaceSettingsBox *document.Element
+	keyboardSettingsBox  *document.Element
 	editor               editor_workspace.WorkspaceEditorInterface
 	editorSettings       *editor_settings.Settings
 	projectSettings      *project.Settings
@@ -64,6 +65,7 @@ type SettingsWorkspace struct {
 	reloadRequested      bool
 	recompiling          bool
 	downloadingPlugin    bool
+	shortcutCapture      *shortcutCaptureState
 }
 
 // workspaceRowData is the per-row data the Workspaces panel template loops over.
@@ -82,6 +84,7 @@ type settingsWorkspaceData struct {
 	WebAPI     editor_settings.WebAPISettings
 	Plugins    []editor_plugin.PluginInfo
 	Workspaces []workspaceRowData
+	Shortcuts  []shortcutSectionData
 }
 
 func (w *SettingsWorkspace) ID() string          { return ID }
@@ -111,6 +114,7 @@ func (w *SettingsWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterf
 
 func (w *SettingsWorkspace) Shutdown() {
 	defer tracing.NewRegion("SettingsWorkspace.Shutdown").End()
+	w.stopShortcutCapture()
 	w.CommonShutdown()
 }
 
@@ -125,6 +129,7 @@ func (w *SettingsWorkspace) Open() {
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
+	w.keyboardSettingsBox.UI.Hide()
 	w.resetLeftEntrySelection()
 	for _, e := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
 		if e.InnerLabel().Text() == "Project Settings" {
@@ -136,6 +141,7 @@ func (w *SettingsWorkspace) Open() {
 
 func (w *SettingsWorkspace) Close() {
 	defer tracing.NewRegion("SettingsWorkspace.Close").End()
+	w.stopShortcutCapture()
 	w.CommonClose()
 	w.projectSettings.Save(w.editor.ProjectFileSystem())
 	w.editor.UpdateSettings()
@@ -161,6 +167,7 @@ func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
+	w.keyboardSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
@@ -171,6 +178,7 @@ func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 	w.editorSettingsBox.UI.Show()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
+	w.keyboardSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
@@ -181,6 +189,7 @@ func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Show()
 	w.workspaceSettingsBox.UI.Hide()
+	w.keyboardSettingsBox.UI.Hide()
 }
 
 func (w *SettingsWorkspace) showWorkspaceSettings(e *document.Element) {
@@ -191,6 +200,18 @@ func (w *SettingsWorkspace) showWorkspaceSettings(e *document.Element) {
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Show()
+	w.keyboardSettingsBox.UI.Hide()
+}
+
+func (w *SettingsWorkspace) showKeyboardSettings(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.showKeyboardSettings").End()
+	w.resetLeftEntrySelection()
+	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
+	w.projectSettingsBox.UI.Hide()
+	w.editorSettingsBox.UI.Hide()
+	w.pluginSettingsBox.UI.Hide()
+	w.workspaceSettingsBox.UI.Hide()
+	w.keyboardSettingsBox.UI.Show()
 }
 
 // toggleWorkspaceEnabled toggles a non-required workspace's enabled flag.
@@ -258,6 +279,7 @@ func (w *SettingsWorkspace) applyWorkspaceChanges(reloadUI bool) {
 			w.projectSettingsBox.UI.Hide()
 			w.editorSettingsBox.UI.Hide()
 			w.pluginSettingsBox.UI.Hide()
+			w.keyboardSettingsBox.UI.Hide()
 			for _, e := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
 				if e.InnerLabel().Text() == "Workspaces" {
 					w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
@@ -497,6 +519,7 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 		WebAPI:     w.editorSettings.WebAPI,
 		Plugins:    w.plugins,
 		Workspaces: w.buildWorkspaceRows(),
+		Shortcuts:  w.buildShortcutSections(),
 	}
 }
 
@@ -537,6 +560,7 @@ func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 		"showEditorSettings":     w.showEditorSettings,
 		"showPluginSettings":     w.showPluginSettings,
 		"showWorkspaceSettings":  w.showWorkspaceSettings,
+		"showKeyboardSettings":   w.showKeyboardSettings,
 		"valueChanged":           w.valueChanged,
 		"openPluginWebsite":      w.openPluginWebsite,
 		"togglePlugin":           w.togglePlugin,
@@ -548,6 +572,11 @@ func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 		"moveWorkspaceDown":      w.moveWorkspaceDown,
 		"webAPIValueChanged":     w.webAPIValueChanged,
 		"rotateWebAPIKey":        w.rotateWebAPIKey,
+		"captureShortcut":        w.captureShortcut,
+		"clearShortcut":          w.clearShortcut,
+		"resetShortcuts":         w.resetShortcuts,
+		"exportShortcuts":        w.exportShortcuts,
+		"importShortcuts":        w.importShortcuts,
 	}
 }
 
@@ -558,6 +587,7 @@ func (w *SettingsWorkspace) reloadedUI() {
 	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
 	w.pluginSettingsBox, _ = w.Doc.GetElementById("pluginSettingsBox")
 	w.workspaceSettingsBox, _ = w.Doc.GetElementById("workspaceSettingsBox")
+	w.keyboardSettingsBox, _ = w.Doc.GetElementById("keyboardSettingsBox")
 	w.syncWebAPIInputs()
 }
 

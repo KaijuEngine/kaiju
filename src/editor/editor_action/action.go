@@ -89,6 +89,7 @@ type Definition struct {
 	DefaultBindings   []ActionBinding `json:"defaultBindings,omitempty"`
 	UndoPolicy        UndoPolicy      `json:"undoPolicy"`
 	Visible           bool            `json:"visible"`
+	Unbindable        bool            `json:"unbindable,omitempty"`
 	RequiredWorkspace string          `json:"requiredWorkspace,omitempty"`
 	Variants          []Variant       `json:"variants,omitempty"`
 }
@@ -347,6 +348,9 @@ func (s *Service) DefaultBindings() []ActionBinding {
 	defs := s.Definitions()
 	out := make([]ActionBinding, 0)
 	for _, def := range defs {
+		if def.Unbindable {
+			continue
+		}
 		for _, binding := range def.DefaultBindings {
 			if binding.Action == "" {
 				binding.Action = def.ID

@@ -44,6 +44,7 @@ func registerLuaActions(ed *Editor, mustRegister editorActionRegistrar) {
 		NewParams:  func() any { return &luaRunScriptArgs{} },
 		UndoPolicy: editor_action.UndoPolicyNone,
 		Visible:    false,
+		Unbindable: true,
 	}, ed.actionRunLuaScript, nil)
 }
 
