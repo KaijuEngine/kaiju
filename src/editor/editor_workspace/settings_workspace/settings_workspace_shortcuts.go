@@ -201,6 +201,7 @@ func (w *SettingsWorkspace) onShortcutCaptureKey(keyID int, keyState hid.KeyStat
 func (w *SettingsWorkspace) applyCapturedShortcut(state shortcutCaptureState, chord editor_action.KeyChord) {
 	if !editor_action.ValidChord(chord) {
 		w.reloadKeyboardSettings()
+		w.focusEditorAfterShortcutCaptureKey()
 		return
 	}
 	replacements := w.replacementBindings(state, chord)
@@ -215,6 +216,7 @@ func (w *SettingsWorkspace) applyCapturedShortcut(state shortcutCaptureState, ch
 	conflicts := editor_action.BindingConflicts(active, candidate, w.actionLabels())
 	if len(conflicts) == 0 {
 		w.applyShortcutReplacement(state.Action, state.Workspace, replacements, nil)
+		w.focusEditorAfterShortcutCaptureKey()
 		return
 	}
 	w.editor.BlurInterface()
@@ -523,16 +525,16 @@ func (w *SettingsWorkspace) restoreKeyboardSettingsScrollY(scrollY float32) {
 }
 
 func (w *SettingsWorkspace) stopShortcutCapture() {
-	w.stopShortcutCaptureInternal(true)
+	w.stopShortcutCaptureInternal(true, true)
 }
 
 func (w *SettingsWorkspace) acceptShortcutCapture() shortcutCaptureState {
 	state := *w.shortcutCapture
-	w.stopShortcutCaptureInternal(false)
+	w.stopShortcutCaptureInternal(false, false)
 	return state
 }
 
-func (w *SettingsWorkspace) stopShortcutCaptureInternal(restoreButton bool) {
+func (w *SettingsWorkspace) stopShortcutCaptureInternal(restoreButton, focusEditor bool) {
 	if w.shortcutCapture == nil {
 		return
 	}
@@ -542,12 +544,19 @@ func (w *SettingsWorkspace) stopShortcutCaptureInternal(restoreButton bool) {
 		w.restoreShortcutCaptureButton(state)
 	}
 	w.shortcutCapture = nil
-	w.editor.FocusInterface()
+	if focusEditor {
+		w.editor.FocusInterface()
+	}
 }
 
 func (w *SettingsWorkspace) cancelShortcutCapture() {
-	w.stopShortcutCapture()
+	w.stopShortcutCaptureInternal(true, false)
 	w.reloadKeyboardSettings()
+	w.focusEditorAfterShortcutCaptureKey()
+}
+
+func (w *SettingsWorkspace) focusEditorAfterShortcutCaptureKey() {
+	w.Host.RunAfterFrames(1, w.editor.FocusInterface)
 }
 
 func (w *SettingsWorkspace) updateShortcutCapturePreview(keyID int) {
