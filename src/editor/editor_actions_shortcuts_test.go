@@ -11,6 +11,7 @@ import (
 
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_workspace/stage_workspace"
+	"kaijuengine.com/editor/editor_workspace/terrain_workspace"
 	"kaijuengine.com/platform/hid"
 )
 
@@ -70,6 +71,33 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 	for _, check := range checks {
 		bindings := editor_action.BindingsForAction(
 			ed.Actions().DefaultBindings(), nil, check.action, stage_workspace.ID)
+		if len(bindings) != 1 {
+			t.Fatalf("%s bindings = %d, want 1", check.action, len(bindings))
+		}
+		chord := bindings[0].Chord
+		if !editor_action.ChordsEqual(chord, check.chord) {
+			t.Fatalf("%s chord = %s, want %s", check.action,
+				editor_action.FormatKeyChord(chord), editor_action.FormatKeyChord(check.chord))
+		}
+	}
+}
+
+func TestTerrainActionsDefaultBindings(t *testing.T) {
+	ed := &Editor{}
+	ed.history.Initialize(8)
+	ed.initializeActions()
+	checks := []struct {
+		action editor_action.ActionID
+		chord  editor_action.KeyChord
+	}{
+		{ActionTerrainDecreaseBrushRadius, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyOpenBracket)}}},
+		{ActionTerrainIncreaseBrushRadius, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyCloseBracket)}}},
+		{ActionTerrainDecreaseBrushStrength, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyOpenBracket)}, Shift: true}},
+		{ActionTerrainIncreaseBrushStrength, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyCloseBracket)}, Shift: true}},
+	}
+	for _, check := range checks {
+		bindings := editor_action.BindingsForAction(
+			ed.Actions().DefaultBindings(), nil, check.action, terrain_workspace.ID)
 		if len(bindings) != 1 {
 			t.Fatalf("%s bindings = %d, want 1", check.action, len(bindings))
 		}
