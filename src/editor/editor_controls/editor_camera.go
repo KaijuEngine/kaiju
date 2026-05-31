@@ -73,7 +73,8 @@ type EditorCamera struct {
 	flySpeedModifier float32
 }
 
-func (e *EditorCamera) Mode() EditorCameraMode { return e.mode }
+func (e *EditorCamera) Mode() EditorCameraMode  { return e.mode }
+func (e *EditorCamera) IsFlyCameraActive() bool { return e.flyCamStarted }
 func (e *EditorCamera) ModeString() string {
 	if e.mode < 0 || e.mode >= len(cameraModeStrings) {
 		return cameraModeStrings[EditorCameraModeNone]

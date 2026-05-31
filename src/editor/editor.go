@@ -434,7 +434,9 @@ func (ed *Editor) update(deltaTime float64) {
 		return
 	}
 	if ed.currentWorkspace != nil {
-		processWorkspaceHotkeys(ed, kb)
+		if !ed.stageView.IsFlyCameraInputActive() {
+			processWorkspaceHotkeys(ed, kb)
+		}
 		ed.currentWorkspace.Update(deltaTime)
 	}
 }

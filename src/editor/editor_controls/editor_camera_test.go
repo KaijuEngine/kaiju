@@ -126,3 +126,17 @@ func TestEditorCameraFlyBoostMultiplierUsesSettingsAndFallback(t *testing.T) {
 		t.Fatalf("default fly boost multiplier = %v, want %v", got, defaultFlyBoost)
 	}
 }
+
+func TestEditorCameraReportsActiveFlyCamera(t *testing.T) {
+	t.Parallel()
+
+	editorCamera := &EditorCamera{}
+	if editorCamera.IsFlyCameraActive() {
+		t.Fatalf("fly camera should start inactive")
+	}
+
+	editorCamera.flyCamStarted = true
+	if !editorCamera.IsFlyCameraActive() {
+		t.Fatalf("fly camera should report active after it starts")
+	}
+}

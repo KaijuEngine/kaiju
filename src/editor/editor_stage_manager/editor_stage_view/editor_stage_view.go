@@ -44,6 +44,7 @@ type StageView struct {
 	hoveredViewport int
 	focusedViewport int
 	viewport        stageViewportBounds
+	open            bool
 	defaultView     struct {
 		options rendering.RenderViewOptions
 		active  bool
@@ -63,6 +64,18 @@ func (v *StageView) WorkspaceHost() *engine.Host { return v.host }
 func (v *StageView) LookAtPoint() matrix.Vec3 { return v.activeCamera().LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
+
+func (v *StageView) IsFlyCameraInputActive() bool {
+	if !v.open || v.activeCamera().Mode() != editor_controls.EditorCameraMode3d {
+		return false
+	}
+	if v.activeCamera().IsFlyCameraActive() {
+		return true
+	}
+	m := &v.host.Window.Mouse
+	return v.viewportContainsScreenPosition(m.ScreenPosition()) &&
+		(m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight))
+}
 
 func (v *StageView) SetViewportToolOwner(owner ViewportToolOwner) {
 	v.toolOwner = owner
@@ -105,12 +118,14 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
+	v.open = true
 	v.syncStageViewport()
 	v.applyGridVisibility()
 }
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
+	v.open = false
 	v.hideCameraPreview()
 	v.stagePicking.Close()
 	v.restoreDefaultRenderView()
