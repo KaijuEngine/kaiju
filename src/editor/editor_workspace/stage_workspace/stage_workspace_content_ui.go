@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/editor/editor_overlay/context_menu"
 	"kaijuengine.com/editor/editor_workspace/content_workspace"
 	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
@@ -39,7 +40,8 @@ type WorkspaceContentUI struct {
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
 	dragging           *document.Element
-	tooltip            *document.Element
+	tooltipPanel       *ui.Panel
+	tooltipLabel       *ui.Label
 	dragContentId      string
 }
 
@@ -84,7 +86,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.filterArea, _ = cui.doc.GetElementById("filterArea")
 	cui.dragPreview, _ = cui.doc.GetElementById("dragPreview")
 	cui.entryTemplate, _ = cui.doc.GetElementById("entryTemplate")
-	cui.tooltip, _ = cui.doc.GetElementById("tooltip")
+	cui.createTooltip()
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
 	edEvts.OnContentRenamed.Add(cui.renameContent)
@@ -97,7 +99,7 @@ func (cui *WorkspaceContentUI) open() {
 	defer tracing.NewRegion("WorkspaceContentUI.open").End()
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
-	cui.tooltip.UI.Hide()
+	cui.hideTooltip()
 }
 
 func (cui *WorkspaceContentUI) addContent(ids []string) {
@@ -332,28 +334,37 @@ func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
 
 func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
-	ui := cui.tooltip.UI
+	if context_menu.IsOpen() {
+		cui.hideTooltip()
+		return
+	}
 	id := e.Attribute("id")
 	cc, err := cui.workspace.Value().ed.Cache().Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
-	ui.Show()
-	lbl := cui.tooltip.Children[0].UI.ToLabel()
 	if len(cc.Config.Tags) == 0 {
-		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+		cui.showTooltip(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
 	} else {
-		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+		cui.showTooltip(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
 			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags.ToSlice(), ",")))
 	}
 }
 
 func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
-	ui := cui.tooltip.UI
-	if !ui.Entity().IsActive() {
-		ui.Show()
+	if context_menu.IsOpen() {
+		cui.hideTooltip()
+		return
+	}
+	if cui.tooltipPanel == nil {
+		return
+	}
+	tooltipUI := cui.tooltipPanel.Base()
+	if !tooltipUI.Entity().IsActive() {
+		tooltipUI.Show()
+		tooltipUI.Clean()
 	}
 	host := cui.workspace.Value().Host
 	win := host.Window
@@ -363,7 +374,7 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 	const statusBarYBuffer = 20
 	x := p.X() + xOffset
 	y := p.Y() + yOffset
-	ps := ui.Layout().PixelSize()
+	ps := tooltipUI.Layout().PixelSize()
 	if x+ps.Width() > matrix.Float(win.Width()) {
 		x = p.X() - ps.Width() - xOffset
 	}
@@ -373,14 +384,56 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 	// Running on the main thread so it's up to date with the mouse position on
 	// the next frame. Maybe there's no need for this...
 	host.RunOnMainThread(func() {
-		ui.Layout().SetOffset(x, y)
+		tooltipUI.Layout().SetOffset(x, y)
 	})
 }
 
 func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
-	cui.tooltip.UI.Layout().SetOffset(-1000, -1000)
-	cui.tooltip.UI.Hide()
+	cui.hideTooltip()
+}
+
+func (cui *WorkspaceContentUI) createTooltip() {
+	defer tracing.NewRegion("WorkspaceContentUI.createTooltip").End()
+	w := cui.workspace.Value()
+	panel := w.UiMan.Add().ToPanel()
+	panel.Init(nil, ui.ElementTypePanel)
+	panel.SetColor(matrix.ColorRGBInt(0x28, 0x28, 0x28))
+	panel.SetBorderSize(2, 2, 2, 2)
+	panel.SetBorderStyle(ui.BorderStyleSolid, ui.BorderStyleSolid, ui.BorderStyleSolid, ui.BorderStyleSolid)
+	panel.SetBorderColor(matrix.ColorWhite(), matrix.ColorWhite(), matrix.ColorWhite(), matrix.ColorWhite())
+	panel.Base().Layout().SetPadding(5, 0, 5, 0)
+	panel.AllowClickThrough()
+	panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	panel.Base().Layout().SetZ(20)
+	panel.Base().Layout().SetOffset(-1000, -1000)
+
+	label := w.UiMan.Add().ToLabel()
+	label.Init("Tooltip...")
+	label.SetColor(matrix.ColorRGBInt(0xAA, 0xAA, 0xAA))
+	label.SetBGColor(panel.Color())
+	panel.AddChild(label.Base())
+
+	cui.tooltipPanel = panel
+	cui.tooltipLabel = label
+	cui.hideTooltip()
+}
+
+func (cui *WorkspaceContentUI) showTooltip(text string) {
+	if cui.tooltipPanel == nil || cui.tooltipLabel == nil {
+		return
+	}
+	cui.tooltipLabel.SetText(text)
+	tooltipUI := cui.tooltipPanel.Base()
+	tooltipUI.Show()
+	tooltipUI.Clean()
+}
+
+func (cui *WorkspaceContentUI) hideTooltip() {
+	if cui.tooltipPanel != nil {
+		cui.tooltipPanel.Base().Layout().SetOffset(-1000, -1000)
+		cui.tooltipPanel.Base().Hide()
+	}
 }
 
 func (cui *WorkspaceContentUI) dropContent() {

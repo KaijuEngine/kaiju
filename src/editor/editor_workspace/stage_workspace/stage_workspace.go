@@ -209,6 +209,7 @@ func (w *StageWorkspace) Open() {
 
 func (w *StageWorkspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
+	w.contentUI.hideTooltip()
 	w.stageView.Close()
 	w.hideManualRenderTargetUI()
 	w.deactivatePanelDocuments()

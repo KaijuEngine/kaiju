@@ -12,16 +12,6 @@
 	border-top: 2px solid black;
 	background-color: black;
 }
-#tooltip {
-	position: absolute;
-	padding: 0 5px;
-	background-color: #282828;
-	border: 2px solid white;
-	color: #AAA;
-	top: 0;
-	left: 0;
-	z-index: 20;
-}
 .left {
 	padding: 0 5px;
 	width: 15em;
