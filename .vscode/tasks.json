@@ -27,7 +27,52 @@
 				"$go"
 			],
 			"group": "build",
-			"detail": "go build ${workspaceFolder}/src",
+			"detail": "go build ${workspaceFolder}/src"
+		}, {
+			"label": "Generate Documentation",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"run",
+				"${workspaceFolder}/src/tools/gendocs.go",
+				"${workspaceFolder}/src"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"problemMatcher": [],
+			"detail": "Generate API documentation using go doc"
+		}, {
+			"label": "Install gomarkdoc",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"install",
+				"github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"problemMatcher": [],
+			"detail": "Install gomarkdoc dependency"
 		}
 	]
 }
