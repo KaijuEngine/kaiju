@@ -474,7 +474,12 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 			scale *= zoom / 1.0
 		}
 		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.Settings.ZoomSpeed)
-		tc.Dolly(zoomFloor * scale)
+		if hid.Keyboard.KeyHeld(host.Window.Keyboard, hid.KeyboardKeyLeftAlt) {
+			hitPoint, _ := tc.ForwardPlaneHit(mp, tc.LookAt())
+			tc.DollyTo(zoomFloor*scale, hitPoint)
+		} else {
+			tc.Dolly(zoomFloor * scale)
+		}
 		changed = true
 	}
 	e.lastMousePos = mp
