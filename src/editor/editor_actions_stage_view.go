@@ -18,6 +18,7 @@ const (
 	ActionStageToggleContentPanel   editor_action.ActionID = "stage.toggleContentPanel"
 	ActionStageToggleHierarchyPanel editor_action.ActionID = "stage.toggleHierarchyPanel"
 	ActionStageToggleDetailsPanel   editor_action.ActionID = "stage.toggleDetailsPanel"
+	ActionStageRenameActor          editor_action.ActionID = "stage.renameActor"
 )
 
 type gridVisibleActionArgs struct {
@@ -90,6 +91,21 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionToggleDetailsPanel, ed.stageCanRun)
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageRenameActor,
+		Label:       "Rename Actor",
+		Description: "Focuses the selected stage actor name field.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "rename", "name"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageRenameActor,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF2)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionRenameActor, ed.stageSelectionCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -129,6 +145,13 @@ func (ed *Editor) actionToggleDetailsPanel(editor_action.Context, editor_action.
 		return editor_action.Failure("stage details panel was not changed")
 	}
 	return editor_action.Success("stage details panel changed")
+}
+
+func (ed *Editor) actionRenameActor(editor_action.Context, editor_action.Request) editor_action.Result {
+	if !ed.StageWorkspace().FocusRename() {
+		return editor_action.Failure("stage actor rename was not focused")
+	}
+	return stageSelectionResult("stage actor rename focused", ed.stageView.Manager().Selection())
 }
 
 func (ed *Editor) actionSetGridVisible(ctx editor_action.Context, req editor_action.Request) editor_action.Result {

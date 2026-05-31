@@ -18,7 +18,6 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 )
@@ -180,19 +179,15 @@ func (w *StageWorkspace) Close() {
 }
 
 func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey {
-	return []common_workspace.HotKey{
-		{
-			Keys: []hid.KeyboardKey{hid.KeyboardKeyF2},
-			Call: w.focusRename,
-		},
-	}
+	return nil
 }
 
-func (w *StageWorkspace) focusRename() {
+func (w *StageWorkspace) FocusRename() bool {
 	if len(w.stageView.Manager().Selection()) == 0 {
-		return
+		return false
 	}
 	w.detailsUI.focusRename()
+	return true
 }
 
 func (w *StageWorkspace) Update(deltaTime float64) {
