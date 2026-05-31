@@ -28,6 +28,13 @@ func (p *stageWorkspaceCameraPreview) init(uiMan *ui.Manager, stageView *editor_
 	image.Base().Layout().Scale(260, 146)
 	image.Base().Layout().SetZ(3)
 	image.Base().ToPanel().AllowClickThrough()
+	image.Base().ToPanel().SetBorderSize(2, 2, 2, 2)
+	image.Base().ToPanel().SetBorderColor(
+		matrix.NewColor(0.67, 0.67, 0.67, 1),
+		matrix.NewColor(0.67, 0.67, 0.67, 1),
+		matrix.NewColor(0.67, 0.67, 0.67, 1),
+		matrix.NewColor(0.67, 0.67, 0.67, 1),
+	)
 	p.image = image
 	stageView.SetCameraPreviewUI(image.Base())
 	p.updatePlacement(w)
