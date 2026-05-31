@@ -6,10 +6,15 @@
 
 package editor
 
-import "kaijuengine.com/editor/editor_action"
+import (
+	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/editor/editor_workspace/stage_workspace"
+	"kaijuengine.com/platform/hid"
+)
 
 const (
-	ActionStageSetGridVisible editor_action.ActionID = "stage.setGridVisible"
+	ActionStageSetGridVisible       editor_action.ActionID = "stage.setGridVisible"
+	ActionStageToggleViewportLayout editor_action.ActionID = "stage.toggleViewportLayout"
 )
 
 type gridVisibleActionArgs struct {
@@ -22,6 +27,21 @@ func init() {
 
 func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageToggleViewportLayout,
+		Label:       "Split/Focus Viewport",
+		Description: "Toggles the stage between one focused viewport and the split viewport layout.",
+		Category:    "Stage",
+		Tags:        []string{"viewport", "split", "focus", "layout"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageToggleViewportLayout,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyP)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionToggleViewportLayout, ed.stageCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -33,6 +53,13 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		Visible:     false,
 		Unbindable:  true,
 	}, ed.actionSetGridVisible, nil)
+}
+
+func (ed *Editor) actionToggleViewportLayout(editor_action.Context, editor_action.Request) editor_action.Result {
+	if !ed.StageWorkspace().ToggleViewportSplitFocus() {
+		return editor_action.Failure("stage viewport layout was not changed")
+	}
+	return editor_action.Success("stage viewport layout changed")
 }
 
 func (ed *Editor) actionSetGridVisible(ctx editor_action.Context, req editor_action.Request) editor_action.Result {

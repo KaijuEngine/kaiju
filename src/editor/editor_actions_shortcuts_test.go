@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/editor/editor_workspace/stage_workspace"
+	"kaijuengine.com/platform/hid"
 )
 
 func TestBindableVariantActionsAreRegistered(t *testing.T) {
@@ -41,5 +43,20 @@ func TestBindableVariantActionsAreRegistered(t *testing.T) {
 		if (def.Visible && !def.Unbindable) != check.bindable {
 			t.Fatalf("action %s bindable = %v, want %v", check.id, def.Visible && !def.Unbindable, check.bindable)
 		}
+	}
+}
+
+func TestStageViewportLayoutActionDefaultsToP(t *testing.T) {
+	ed := &Editor{}
+	ed.history.Initialize(8)
+	ed.initializeActions()
+	bindings := editor_action.BindingsForAction(
+		ed.Actions().DefaultBindings(), nil, ActionStageToggleViewportLayout, stage_workspace.ID)
+	if len(bindings) != 1 {
+		t.Fatalf("viewport layout bindings = %d, want 1", len(bindings))
+	}
+	chord := bindings[0].Chord
+	if !editor_action.ChordsEqual(chord, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyP)}}) {
+		t.Fatalf("viewport layout chord = %s, want P", editor_action.FormatKeyChord(chord))
 	}
 }

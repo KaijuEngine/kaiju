@@ -208,9 +208,8 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 		return
 	}
 	w.detailsUI.update()
-	didViewportToggle := w.processViewportLayoutHotkeys()
 	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
-	if !didViewportToggle && !didKeyboardActions {
+	if !didKeyboardActions {
 		w.contentUI.processHotkeys(w.Host)
 		w.hierarchyUI.processHotkeys(w.Host)
 		w.detailsUI.processHotkeys(w.Host)
@@ -218,10 +217,9 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	w.updateCameraPreviewPlacement()
 }
 
-func (w *StageWorkspace) processViewportLayoutHotkeys() bool {
-	defer tracing.NewRegion("StageWorkspace.processViewportLayoutHotkeys").End()
-	kb := &w.Host.Window.Keyboard
-	if !kb.KeyDown(hid.KeyboardKeyP) || kb.HasModifier() {
+func (w *StageWorkspace) ToggleViewportSplitFocus() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleViewportSplitFocus").End()
+	if w.stageView == nil {
 		return false
 	}
 	if w.layoutMode == stageViewportLayoutSingle {
