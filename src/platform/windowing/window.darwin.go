@@ -260,9 +260,6 @@ func (w *Window) setIcon(img image.Image) {
 	C.cocoa_set_icon(w.instance, C.int(width), C.int(height), (*C.uint8_t)(&rgba.Pix[0]))
 }
 
-// TODO: placeholder
-func (w *Window) setFileDropEnabled(enabled bool) {}
-
 // App asset read (private)
 // On macOS, application assets are stored in the app bundle's Resources folder.
 // This function reads files from Contents/Resources/ in the .app bundle.

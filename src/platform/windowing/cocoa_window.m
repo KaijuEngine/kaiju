@@ -11,9 +11,19 @@
 #include "cocoa_window.h"
 #include "window_event.h"
 
+#pragma mark - File drop bridge (defined in window_darwin_filedrop.go)
+
+#if KAIJU_ENABLE_FILEDROP
+extern void goProcessFileDropDarwin(uint64_t goWindow, int32_t x, int32_t y, void* paths, uint32_t pathCount);
+static inline SharedMem* getSharedMem(NSWindow* window);
+#endif
+
 #pragma mark - Metal View
 
 @interface MetalView : NSView
+#if KAIJU_ENABLE_FILEDROP
+<NSDraggingDestination>
+#endif
 @end
 
 @implementation MetalView
@@ -32,6 +42,60 @@
 }
 - (CALayer*)makeBackingLayer { return [[CAMetalLayer alloc] init]; }
 - (BOOL)wantsUpdateLayer { return YES; }
+
+#if KAIJU_ENABLE_FILEDROP
+- (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
+	NSPasteboard* pb = [sender draggingPasteboard];
+	if ([[pb types] containsObject:NSPasteboardTypeFileURL]) {
+		return NSDragOperationCopy;
+	}
+	return NSDragOperationNone;
+}
+
+- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
+	return [self draggingEntered:sender];
+}
+
+- (BOOL)prepareForDragOperation:(id<NSDraggingInfo>)sender {
+	return YES;
+}
+
+- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
+	NSWindow* win = self.window;
+	if (!win) return NO;
+	SharedMem* sm = getSharedMem(win);
+	if (!sm) return NO;
+
+	NSArray<NSURL*>* urls = [[sender draggingPasteboard]
+		readObjectsForClasses:@[[NSURL class]] options:nil];
+	if (urls.count == 0) return NO;
+
+	uint32_t pathCount = (uint32_t)urls.count;
+	char** paths = (char**)calloc(pathCount, sizeof(char*));
+	if (!paths) return NO;
+
+	uint32_t actual = 0;
+	for (NSURL* u in urls) {
+		const char* utf8 = [[u path] UTF8String];
+		if (!utf8) continue;
+		paths[actual++] = strdup(utf8);
+	}
+
+	NSPoint loc = [self convertPoint:[sender draggingLocation] fromView:nil];
+	int32_t x = (int32_t)loc.x;
+	int32_t y = sm->windowHeight - (int32_t)loc.y;
+
+	if (actual > 0) {
+		goProcessFileDropDarwin((uint64_t)(uintptr_t)sm->goWindow, x, y, paths, actual);
+	}
+
+	for (uint32_t i = 0; i < actual; ++i) {
+		free(paths[i]);
+	}
+	free(paths);
+	return actual > 0;
+}
+#endif
 @end
 
 #pragma mark - App Delegate
@@ -782,6 +846,23 @@ bool cocoa_get_caps_lock_toggle_key_state(void) {
         return (flags & NSEventModifierFlagCapsLock) != 0;
     }
 }
+
+#if KAIJU_ENABLE_FILEDROP
+void cocoa_set_file_drop_enabled(void* nsView, bool enabled) {
+	if (!nsView) return;
+
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+			NSView* view = (__bridge NSView*)nsView;
+			if (enabled) {
+				[view registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
+			} else {
+				[view unregisterDraggedTypes];
+			}
+		}
+	});
+}
+#endif
 
 void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelData) {
 	if (!pixelData || width <= 0 || height <= 0) {

@@ -80,4 +80,9 @@ bool cocoa_get_caps_lock_toggle_key_state(void);
 
 void cocoa_run_app(void);
 
+// File drop (drag-and-drop from Finder)
+#if KAIJU_ENABLE_FILEDROP
+void cocoa_set_file_drop_enabled(void* nsView, bool enabled);
+#endif
+
 #endif // COCOA_WINDOW_H
