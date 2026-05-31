@@ -8,6 +8,7 @@ package editor
 
 import (
 	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace/stage_workspace"
 	"kaijuengine.com/platform/hid"
 )
@@ -20,6 +21,9 @@ const (
 	ActionStageToggleDetailsPanel   editor_action.ActionID = "stage.toggleDetailsPanel"
 	ActionStageRenameActor          editor_action.ActionID = "stage.renameActor"
 	ActionStageFocusSelection       editor_action.ActionID = "stage.focusSelection"
+	ActionStageTransformMove        editor_action.ActionID = "stage.transformMove"
+	ActionStageTransformRotate      editor_action.ActionID = "stage.transformRotate"
+	ActionStageTransformScale       editor_action.ActionID = "stage.transformScale"
 )
 
 type gridVisibleActionArgs struct {
@@ -122,6 +126,51 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionFocusSelection, ed.stageSelectionCanRun)
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageTransformMove,
+		Label:       "Move Tool",
+		Description: "Toggles the selected stage actor move transform tool.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "transform", "move", "translate"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageTransformMove,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyW)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionTransformMove, ed.stageTransformToolCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          ActionStageTransformRotate,
+		Label:       "Rotate Tool",
+		Description: "Toggles the selected stage actor rotate transform tool.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "transform", "rotate"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageTransformRotate,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyE)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionTransformRotate, ed.stageTransformToolCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          ActionStageTransformScale,
+		Label:       "Scale Tool",
+		Description: "Toggles the selected stage actor scale transform tool.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "transform", "scale"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageTransformScale,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyR)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionTransformScale, ed.stageTransformToolCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -175,6 +224,25 @@ func (ed *Editor) actionFocusSelection(editor_action.Context, editor_action.Requ
 		return editor_action.Failure("stage selection was not focused")
 	}
 	return stageSelectionResult("stage selection focused", ed.stageView.Manager().Selection())
+}
+
+func (ed *Editor) actionTransformMove(editor_action.Context, editor_action.Request) editor_action.Result {
+	return ed.actionTransformTool(editor_stage_view.ToolStateMove, "move")
+}
+
+func (ed *Editor) actionTransformRotate(editor_action.Context, editor_action.Request) editor_action.Result {
+	return ed.actionTransformTool(editor_stage_view.ToolStateRotate, "rotate")
+}
+
+func (ed *Editor) actionTransformScale(editor_action.Context, editor_action.Request) editor_action.Result {
+	return ed.actionTransformTool(editor_stage_view.ToolStateScale, "scale")
+}
+
+func (ed *Editor) actionTransformTool(state editor_stage_view.ToolState, label string) editor_action.Result {
+	if !ed.stageView.EnableTransformTool(state) {
+		return editor_action.Failure("stage transform tool was not changed")
+	}
+	return stageSelectionResult("stage "+label+" tool changed", ed.stageView.Manager().Selection())
 }
 
 func (ed *Editor) actionSetGridVisible(ctx editor_action.Context, req editor_action.Request) editor_action.Result {

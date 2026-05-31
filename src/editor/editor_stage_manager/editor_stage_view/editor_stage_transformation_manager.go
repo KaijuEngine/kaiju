@@ -17,7 +17,6 @@ import (
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -41,7 +40,6 @@ type TransformationManager struct {
 	history        *memento.History
 	memento        *transformHistory
 	snapSettings   *editor_settings.SnapSettings
-	settings       *editor_settings.Settings
 	project        *project.Project
 	currentTool    ToolState
 	isBusy         bool
@@ -52,7 +50,6 @@ func (t *TransformationManager) IsBusy() bool { return t.isBusy }
 
 func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, settings *editor_settings.Settings) {
 	t.view = weak.Make(stageView)
-	t.settings = settings
 	t.snapSettings = &settings.Snapping
 	t.translateTool.Initialize(stageView.host, stageView)
 	t.rotationTool.Initialize(stageView.host, stageView)
@@ -107,20 +104,6 @@ func (t *TransformationManager) refreshToolVisibilityAt(hasSelection bool, pos m
 func (t *TransformationManager) Update(host *engine.Host, proj *project.Project) {
 	t.project = proj
 	kb := &host.Window.Keyboard
-	if !t.isBusy {
-		pos := matrix.Vec3NaN()
-		if t.manager.HasSelection() {
-			pos = t.manager.LastSelected().Transform.Position()
-		}
-		translateKey, rotateKey, scaleKey := t.toolHotkeys()
-		if kb.KeyDown(translateKey) {
-			t.setToolState(ToolStateMove, pos)
-		} else if kb.KeyDown(rotateKey) {
-			t.setToolState(ToolStateRotate, pos)
-		} else if kb.KeyDown(scaleKey) {
-			t.setToolState(ToolStateScale, pos)
-		}
-	}
 	ss := t.snapSettings
 	snap := kb.HasCtrlOrMeta()
 	t.isBusy = t.translateTool.Update(host, snap, ss.TranslateIncrement) ||
@@ -128,18 +111,19 @@ func (t *TransformationManager) Update(host *engine.Host, proj *project.Project)
 		t.scalingTool.Update(host, snap, ss.ScaleIncrement)
 }
 
-func (t *TransformationManager) toolHotkeys() (translate, rotate, scale hid.KeyboardKey) {
-	if t.settings != nil && t.settings.UseWERTransformHotkeys {
-		return hid.KeyboardKeyW, hid.KeyboardKeyE, hid.KeyboardKeyR
-	}
-	return hid.KeyboardKeyG, hid.KeyboardKeyR, hid.KeyboardKeyS
-}
-
 func (t *TransformationManager) EnableTranslationTool() {
 	if !t.manager.HasSelection() {
 		return
 	}
 	t.showToolState(ToolStateMove, t.manager.LastSelected().Transform.Position())
+}
+
+func (t *TransformationManager) EnableToolState(state ToolState) bool {
+	if !t.manager.HasSelection() {
+		return false
+	}
+	t.setToolState(state, t.manager.LastSelected().Transform.Position())
+	return true
 }
 
 func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {

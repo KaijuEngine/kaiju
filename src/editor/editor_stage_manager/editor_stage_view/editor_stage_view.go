@@ -19,6 +19,7 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
@@ -182,6 +183,34 @@ func (v *StageView) FocusSelection() bool {
 		return false
 	}
 	v.activeCamera().Focus(v.manager.SelectionBounds())
+	return true
+}
+
+func (v *StageView) EnableTransformTool(state ToolState) bool {
+	defer tracing.NewRegion("StageView.EnableTransformTool").End()
+	return v.transformMan.EnableToolState(state)
+}
+
+func (v *StageView) CanUseTransformToolKeybinding() bool {
+	if v.host == nil || v.host.Window == nil {
+		return false
+	}
+	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
+	insideViewport := v.viewportContainsScreenPosition(m.ScreenPosition())
+	if !insideViewport && !v.selectTool.IsActive() && !v.transformTool.IsActive() &&
+		!v.transformMan.IsBusy() && !v.vertexSnap.IsBusy() {
+		return false
+	}
+	if insideViewport && !kb.HasAlt() && (m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight)) {
+		return false
+	}
+	if insideViewport && (m.Pressed(hid.MouseButtonMiddle) || m.Held(hid.MouseButtonMiddle)) {
+		return false
+	}
+	if insideViewport && kb.KeyHeld(hid.KeyboardKeySpace) {
+		return false
+	}
 	return true
 }
 

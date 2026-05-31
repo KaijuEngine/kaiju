@@ -29,6 +29,16 @@ func (ed *Editor) stageSelectionCanRun(ctx editor_action.Context, req editor_act
 	return editor_action.Success("")
 }
 
+func (ed *Editor) stageTransformToolCanRun(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
+	if can := ed.stageSelectionCanRun(ctx, req); !can.OK {
+		return can
+	}
+	if req.Source == editor_action.SourceKeybind && !ed.stageView.CanUseTransformToolKeybinding() {
+		return editor_action.Failure("stage viewport is not ready for transform tool hotkeys")
+	}
+	return editor_action.Success("")
+}
+
 func stageResult(message string, affected *editor_stage_manager.StageEntity, selected []*editor_stage_manager.StageEntity) editor_action.Result {
 	result := stageSelectionResult(message, selected)
 	if affected != nil {
