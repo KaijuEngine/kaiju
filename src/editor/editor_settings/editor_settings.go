@@ -28,19 +28,21 @@ const (
 )
 
 type Settings struct {
-	RecentProjects []string `visible:"false"`
-	RefreshRate    int32    `clamp:"60,0,320"`
-	CodeEditor     string   `default:"code"`
-	ImageEditor    string
-	MeshEditor     string
-	AudioEditor    string
-	UIScrollSpeed  float32 `default:"20" label:"UI Scroll Speed"`
-	ShowGrid       bool    `default:"true" label:"Show Viewport Grid"`
-	EditorCamera   EditorCameraSettings
-	Snapping       SnapSettings
-	BuildTools     BuildToolSettings
-	WebAPI         WebAPISettings                `visible:"false" label:"Web API"`
-	ActionBindings []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
+	RecentProjects        []string `visible:"false"`
+	RefreshRate           int32    `clamp:"60,0,320"`
+	UseBatteryRefreshRate bool     `default:"false" label:"Use Battery Refresh Rate"`
+	BatteryRefreshRate    int32    `default:"30" clamp:"30,0,320" label:"Battery Refresh Rate"`
+	CodeEditor            string   `default:"code"`
+	ImageEditor           string
+	MeshEditor            string
+	AudioEditor           string
+	UIScrollSpeed         float32 `default:"20" label:"UI Scroll Speed"`
+	ShowGrid              bool    `default:"true" label:"Show Viewport Grid"`
+	EditorCamera          EditorCameraSettings
+	Snapping              SnapSettings
+	BuildTools            BuildToolSettings
+	WebAPI                WebAPISettings                `visible:"false" label:"Web API"`
+	ActionBindings        []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
 	// Workspaces is the persisted enable / visible / order state for every
 	// known workspace, keyed by Workspace.ID(). Slice order is the load /
 	// tab order. The editor's reconcile step on startup adds defaults for
@@ -91,6 +93,7 @@ type WebAPISettings struct {
 // must still explicitly set them in code.
 func (s *Settings) setDefaults() {
 	s.RefreshRate = 60
+	s.BatteryRefreshRate = 60
 	s.CodeEditor = "code"
 	s.UIScrollSpeed = 20
 	s.ShowGrid = true
