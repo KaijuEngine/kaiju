@@ -29,6 +29,7 @@ import (
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
@@ -67,7 +68,8 @@ type ContentWorkspace struct {
 	addTagbtn          *document.Element
 	selectedContent    []*document.Element
 	rightBody          *document.Element
-	tooltip            *document.Element
+	tooltipPanel       *ui.Panel
+	tooltipLabel       *ui.Label
 	pageData           WorkspaceUIData
 	isListMode         bool
 	audio              ContentAudioView
@@ -144,8 +146,8 @@ func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.info.newTagInput, _ = w.Doc.GetElementById("newTagInput")
 	w.info.newTagHint, _ = w.Doc.GetElementById("newTagHint")
 	w.info.tagHintTemplate, _ = w.Doc.GetElementById("tagHintTemplate")
-	w.tooltip, _ = w.Doc.GetElementById("tooltip")
 	w.audio.audioPlayer, _ = w.Doc.GetElementById("audioPlayer")
+	w.createTooltip()
 
 	edEvts := w.editor.Events()
 	edEvts.OnContentAdded.Add(w.addContent)
@@ -178,7 +180,7 @@ func (w *ContentWorkspace) Open() {
 	w.info.entryTagTemplate.UI.Hide()
 	w.info.tagHintTemplate.UI.Hide()
 	w.info.newTagHint.UI.Hide()
-	w.tooltip.UI.Hide()
+	w.hideTooltip()
 	if w.selectedContent == nil {
 		w.rightBody.UI.Hide()
 	}
@@ -192,6 +194,7 @@ func (w *ContentWorkspace) Open() {
 
 func (w *ContentWorkspace) Close() {
 	defer tracing.NewRegion("ContentWorkspace.Close").End()
+	w.hideTooltip()
 	w.CommonClose()
 }
 
@@ -728,7 +731,7 @@ func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 		w.editor.Events().OnContentRemoved.Execute([]string{id})
 		w.editor.ContentPreviewer().DeletePreviewImage(id)
 		w.rightBody.UI.Hide()
-		w.tooltip.UI.Hide()
+		w.hideTooltip()
 	}
 	for i := range w.selectedContent {
 		w.Doc.RemoveElementWithoutApplyStyles(w.selectedContent[i])
@@ -740,22 +743,19 @@ func (w *ContentWorkspace) completeDeleteOfSelectedContent() {
 func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
 	if context_menu.IsOpen() {
-		w.tooltip.UI.Hide()
+		w.hideTooltip()
 		return
 	}
-	ui := w.tooltip.UI
 	id := e.Attribute("id")
 	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
-	ui.Show()
-	lbl := w.tooltip.InnerLabel()
 	if len(cc.Config.Tags) == 0 {
-		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+		w.showTooltip(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
 	} else {
-		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+		w.showTooltip(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
 			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags.ToSlice(), ",")))
 	}
 }
@@ -763,25 +763,70 @@ func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
 func (w *ContentWorkspace) entryMouseMove(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
 	if context_menu.IsOpen() {
-		w.tooltip.UI.Hide()
+		w.hideTooltip()
 		return
 	}
-	ui := w.tooltip.UI
-	if !ui.Entity().IsActive() {
-		ui.Show()
+	if w.tooltipPanel == nil {
+		return
+	}
+	tooltipUI := w.tooltipPanel.Base()
+	if !tooltipUI.Entity().IsActive() {
+		tooltipUI.Show()
+		tooltipUI.Clean()
 	}
 	// Running on the main thread so it's up to date with the mouse position on
 	// the next frame. Maybe there's no need for this...
 	w.Host.RunOnMainThread(func() {
 		p := w.Host.Window.Mouse.ScreenPosition()
 		// Offsetting the box so the mouse doesn't collide with it easily
-		ui.Layout().SetOffset(p.X()+10, p.Y()+20)
+		tooltipUI.Layout().SetOffset(p.X()+10, p.Y()+20)
 	})
 }
 
 func (w *ContentWorkspace) entryMouseLeave(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
-	w.tooltip.UI.Hide()
+	w.hideTooltip()
+}
+
+func (w *ContentWorkspace) createTooltip() {
+	defer tracing.NewRegion("ContentWorkspace.createTooltip").End()
+	panel := w.UiMan.Add().ToPanel()
+	panel.Init(nil, ui.ElementTypePanel)
+	panel.SetColor(matrix.ColorRGBInt(0x28, 0x28, 0x28))
+	panel.SetBorderSize(2, 2, 2, 2)
+	panel.SetBorderStyle(ui.BorderStyleSolid, ui.BorderStyleSolid, ui.BorderStyleSolid, ui.BorderStyleSolid)
+	panel.SetBorderColor(matrix.ColorWhite(), matrix.ColorWhite(), matrix.ColorWhite(), matrix.ColorWhite())
+	panel.Base().Layout().SetPadding(5, 5, 5, 5)
+	panel.AllowClickThrough()
+	panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	panel.Base().Layout().SetZ(20)
+	panel.Base().Layout().SetOffset(-1000, -1000)
+
+	label := w.UiMan.Add().ToLabel()
+	label.Init("Tooltip...")
+	label.SetColor(matrix.ColorRGBInt(0xAA, 0xAA, 0xAA))
+	label.SetBGColor(panel.Color())
+	panel.AddChild(label.Base())
+
+	w.tooltipPanel = panel
+	w.tooltipLabel = label
+	w.hideTooltip()
+}
+
+func (w *ContentWorkspace) showTooltip(text string) {
+	if w.tooltipPanel == nil || w.tooltipLabel == nil {
+		return
+	}
+	w.tooltipLabel.SetText(text)
+	tooltipUI := w.tooltipPanel.Base()
+	tooltipUI.Show()
+	tooltipUI.Clean()
+}
+
+func (w *ContentWorkspace) hideTooltip() {
+	if w.tooltipPanel != nil {
+		w.tooltipPanel.Base().Hide()
+	}
 }
 
 func (w *ContentWorkspace) rightClickContent(e *document.Element) {
@@ -1296,5 +1341,5 @@ func (w *ContentWorkspace) performMultiContentDelete(contents []content_database
 	if len(w.selectedContent) > 0 {
 		w.clearSelection()
 	}
-	w.tooltip.UI.Hide()
+	w.hideTooltip()
 }
