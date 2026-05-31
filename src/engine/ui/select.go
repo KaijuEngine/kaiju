@@ -26,6 +26,7 @@ const (
 	selectOptionCheckWidth     = 28
 	selectOptionTextPadding    = 36
 	selectOptionCheckIcon      = '\ue5ca'
+	selectPopupZ               = 120
 )
 
 type selectData struct {
@@ -172,7 +173,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 		lp.SetOverflow(OverflowScroll)
 		lp.SetScrollDirection(PanelScrollDirectionVertical)
 		lp.DontFitContent()
-		lp.layout.SetZ(s.layout.z + 10)
+		lp.layout.SetZ(selectPopupZ)
 		listPanel.layout.SetPositioning(PositioningAbsolute)
 		data.list = lp
 		listPanel.AddEvent(EventTypeMiss, s.onMiss)
@@ -498,9 +499,13 @@ func (s *Select) expand() {
 	data.isOpen = true
 	s.refreshOptionVisuals(false)
 	layout := &data.list.layout
-	pos := s.entity.Transform.WorldPosition()
-	layout.SetZ(pos.Z() + s.layout.Z() + 1)
+	layout.SetZ(s.expandedListZ())
 	s.updateExpandedTransform()
+}
+
+func (s *Select) expandedListZ() float32 {
+	pos := s.entity.Transform.WorldPosition()
+	return max(selectPopupZ, pos.Z()+s.layout.Z()+1)
 }
 
 func (s *Select) updateExpandedTransform() {
