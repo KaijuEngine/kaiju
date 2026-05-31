@@ -9,6 +9,7 @@ package editor
 import (
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaijuengine.com/editor/editor_workspace/stage_workspace"
 	"kaijuengine.com/platform/hid"
 )
@@ -24,6 +25,9 @@ const (
 	ActionStageTransformMove        editor_action.ActionID = "stage.transformMove"
 	ActionStageTransformRotate      editor_action.ActionID = "stage.transformRotate"
 	ActionStageTransformScale       editor_action.ActionID = "stage.transformScale"
+	ActionStageWireframeMove        editor_action.ActionID = "stage.wireframeMove"
+	ActionStageWireframeRotate      editor_action.ActionID = "stage.wireframeRotate"
+	ActionStageWireframeScale       editor_action.ActionID = "stage.wireframeScale"
 )
 
 type gridVisibleActionArgs struct {
@@ -171,6 +175,51 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionTransformScale, ed.stageTransformToolCanRun)
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageWireframeMove,
+		Label:       "Wireframe Move Tool",
+		Description: "Toggles the selected stage actor wireframe move tool.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "transform", "wireframe", "move", "translate"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageWireframeMove,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyW)}, Alt: true},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionWireframeMove, ed.stageTransformToolCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          ActionStageWireframeRotate,
+		Label:       "Wireframe Rotate Tool",
+		Description: "Toggles the selected stage actor wireframe rotate tool.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "transform", "wireframe", "rotate"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageWireframeRotate,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyE)}, Alt: true},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionWireframeRotate, ed.stageTransformToolCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          ActionStageWireframeScale,
+		Label:       "Wireframe Scale Tool",
+		Description: "Toggles the selected stage actor wireframe scale tool.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "transform", "wireframe", "scale"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageWireframeScale,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyR)}, Alt: true},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionWireframeScale, ed.stageTransformToolCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -241,6 +290,25 @@ func (ed *Editor) actionTransformScale(editor_action.Context, editor_action.Requ
 func (ed *Editor) actionTransformTool(state editor_stage_view.ToolState, label string) editor_action.Result {
 	if !ed.stageView.EnableTransformTool(state) {
 		return editor_action.Failure("stage transform tool was not changed")
+	}
+	return stageSelectionResult("stage "+label+" tool changed", ed.stageView.Manager().Selection())
+}
+
+func (ed *Editor) actionWireframeMove(editor_action.Context, editor_action.Request) editor_action.Result {
+	return ed.actionWireframeTool(transform_tools.ToolStateMove, "wireframe move")
+}
+
+func (ed *Editor) actionWireframeRotate(editor_action.Context, editor_action.Request) editor_action.Result {
+	return ed.actionWireframeTool(transform_tools.ToolStateRotate, "wireframe rotate")
+}
+
+func (ed *Editor) actionWireframeScale(editor_action.Context, editor_action.Request) editor_action.Result {
+	return ed.actionWireframeTool(transform_tools.ToolStateScale, "wireframe scale")
+}
+
+func (ed *Editor) actionWireframeTool(state transform_tools.ToolState, label string) editor_action.Result {
+	if !ed.stageView.EnableWireframeTransformTool(state) {
+		return editor_action.Failure("stage wireframe transform tool was not changed")
 	}
 	return stageSelectionResult("stage "+label+" tool changed", ed.stageView.Manager().Selection())
 }

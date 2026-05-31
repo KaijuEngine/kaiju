@@ -52,17 +52,20 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 	ed.initializeActions()
 	checks := []struct {
 		action editor_action.ActionID
-		key    hid.KeyboardKey
+		chord  editor_action.KeyChord
 	}{
-		{ActionStageToggleViewportLayout, hid.KeyboardKeyP},
-		{ActionStageToggleContentPanel, hid.KeyboardKeyC},
-		{ActionStageToggleHierarchyPanel, hid.KeyboardKeyH},
-		{ActionStageToggleDetailsPanel, hid.KeyboardKeyD},
-		{ActionStageRenameActor, hid.KeyboardKeyF2},
-		{ActionStageFocusSelection, hid.KeyboardKeyF},
-		{ActionStageTransformMove, hid.KeyboardKeyW},
-		{ActionStageTransformRotate, hid.KeyboardKeyE},
-		{ActionStageTransformScale, hid.KeyboardKeyR},
+		{ActionStageToggleViewportLayout, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyP)}}},
+		{ActionStageToggleContentPanel, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}},
+		{ActionStageToggleHierarchyPanel, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyH)}}},
+		{ActionStageToggleDetailsPanel, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyD)}}},
+		{ActionStageRenameActor, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF2)}}},
+		{ActionStageFocusSelection, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF)}}},
+		{ActionStageTransformMove, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyW)}}},
+		{ActionStageTransformRotate, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyE)}}},
+		{ActionStageTransformScale, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyR)}}},
+		{ActionStageWireframeMove, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyW)}, Alt: true}},
+		{ActionStageWireframeRotate, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyE)}, Alt: true}},
+		{ActionStageWireframeScale, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyR)}, Alt: true}},
 	}
 	for _, check := range checks {
 		bindings := editor_action.BindingsForAction(
@@ -71,10 +74,9 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 			t.Fatalf("%s bindings = %d, want 1", check.action, len(bindings))
 		}
 		chord := bindings[0].Chord
-		want := editor_action.KeyChord{Keys: []int{int(check.key)}}
-		if !editor_action.ChordsEqual(chord, want) {
+		if !editor_action.ChordsEqual(chord, check.chord) {
 			t.Fatalf("%s chord = %s, want %s", check.action,
-				editor_action.FormatKeyChord(chord), editor_action.FormatKeyChord(want))
+				editor_action.FormatKeyChord(chord), editor_action.FormatKeyChord(check.chord))
 		}
 	}
 }

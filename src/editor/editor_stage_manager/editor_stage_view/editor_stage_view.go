@@ -191,6 +191,15 @@ func (v *StageView) EnableTransformTool(state ToolState) bool {
 	return v.transformMan.EnableToolState(state)
 }
 
+func (v *StageView) EnableWireframeTransformTool(state transform_tools.ToolState) bool {
+	defer tracing.NewRegion("StageView.EnableWireframeTransformTool").End()
+	if !v.manager.HasSelection() {
+		return false
+	}
+	v.transformTool.Enable(state)
+	return true
+}
+
 func (v *StageView) CanUseTransformToolKeybinding() bool {
 	if v.host == nil || v.host.Window == nil {
 		return false
