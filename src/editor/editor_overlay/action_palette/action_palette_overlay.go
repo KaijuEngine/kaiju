@@ -84,6 +84,7 @@ func Show(host *engine.Host, service *editor_action.Service, onClose func()) (*A
 		box.Focus()
 		box.SelectAll()
 	}
+	p.updateVisibleEntries("")
 	p.keyKb = host.Window.Keyboard.AddKeyCallback(func(keyId int, keyState hid.KeyState) {
 		if keyState != hid.KeyStateDown && keyState != hid.KeyStatePressedAndReleased {
 			return
@@ -119,18 +120,37 @@ func (p *ActionPalette) Close() {
 
 func (p *ActionPalette) search(e *document.Element) {
 	defer tracing.NewRegion("ActionPalette.search").End()
+	query := strings.ToLower(strings.TrimSpace(e.UI.ToInput().Text()))
+	p.updateVisibleEntries(query)
+}
+
+func (p *ActionPalette) updateVisibleEntries(query string) {
+	defer tracing.NewRegion("ActionPalette.updateVisibleEntries").End()
 	if p.list == nil {
 		return
 	}
-	query := strings.ToLower(strings.TrimSpace(e.UI.ToInput().Text()))
+	query = strings.ToLower(strings.TrimSpace(query))
+	selected := false
 	for _, child := range p.list.Children {
 		search := strings.ToLower(child.Attribute("data-search"))
-		if query == "" || containsAllTokens(search, query) {
-			child.UI.Show()
-		} else {
-			child.UI.Hide()
+		visible := query == "" || containsAllTokens(search, query)
+		child.UI.SetVisibility(visible)
+		classes := []string{"actionEntry"}
+		if visible && !selected {
+			classes = append(classes, "selected")
+			selected = true
+		}
+		if p.doc != nil {
+			p.doc.SetElementClassesWithoutApply(child, classes...)
 		}
 	}
+	if p.doc != nil {
+		p.doc.ApplyStyles()
+	}
+	if list := p.list.UI.ToPanel(); list != nil {
+		list.SetScrollY(0)
+	}
+	p.list.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
 func (p *ActionPalette) clickMiss(*document.Element) {
@@ -145,15 +165,21 @@ func (p *ActionPalette) clickAction(e *document.Element) {
 
 func (p *ActionPalette) runFirstVisible() {
 	defer tracing.NewRegion("ActionPalette.runFirstVisible").End()
+	if child := p.firstVisibleEntry(); child != nil {
+		p.runElement(child)
+	}
+}
+
+func (p *ActionPalette) firstVisibleEntry() *document.Element {
 	if p.list == nil {
-		return
+		return nil
 	}
 	for _, child := range p.list.Children {
 		if child.UI.Entity().IsActive() {
-			p.runElement(child)
-			return
+			return child
 		}
 	}
+	return nil
 }
 
 func (p *ActionPalette) runElement(e *document.Element) {
