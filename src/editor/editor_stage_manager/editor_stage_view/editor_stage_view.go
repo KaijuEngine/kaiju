@@ -19,7 +19,6 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
@@ -167,13 +166,6 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 		return true
 	} else {
 		v.processViewportInteractions(proj)
-	}
-	kb := &v.host.Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyDelete) {
-		v.manager.DestroySelected()
-	} else if kb.HasCtrlOrMeta() && kb.KeyDown(hid.KeyboardKeyD) {
-		v.DuplicateSelected(proj)
-		return true
 	}
 	return false
 }
