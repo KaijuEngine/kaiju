@@ -17,11 +17,9 @@ import (
 	"kaijuengine.com/editor/editor_overlay/context_menu"
 	"kaijuengine.com/editor/editor_workspace/content_workspace"
 	"kaijuengine.com/editor/project/project_database/content_database"
-	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
@@ -98,23 +96,6 @@ func (cui *WorkspaceContentUI) open() {
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
 	cui.tooltip.UI.Hide()
-}
-
-func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
-	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
-	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
-		w := cui.workspace.Value()
-		if cui.contentArea.UI.Entity().IsActive() {
-			cui.contentArea.UI.Hide()
-			w.hierarchyUI.extendHeight()
-			w.detailsUI.extendHeight()
-		} else {
-			cui.contentArea.UI.Show()
-			w.hierarchyUI.standardHeight()
-			w.detailsUI.standardHeight()
-		}
-		w.applyViewportLayout()
-	}
 }
 
 func (cui *WorkspaceContentUI) addContent(ids []string) {

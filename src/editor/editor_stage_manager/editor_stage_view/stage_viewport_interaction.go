@@ -9,7 +9,6 @@ package editor_stage_view
 import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/editor_stage_manager"
-	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -52,17 +51,6 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 		} else {
 			v.manager.TrySelect(ray)
 		}
-	}
-	if kb.KeyDown(hid.KeyboardKeyF) {
-		if v.manager.HasSelection() {
-			v.activeCamera().Focus(v.manager.SelectionBounds())
-		}
-	} else if kb.KeyDown(hid.KeyboardKey1) {
-		v.transformTool.Enable(transform_tools.ToolStateMove)
-	} else if kb.KeyDown(hid.KeyboardKey2) {
-		v.transformTool.Enable(transform_tools.ToolStateRotate)
-	} else if kb.KeyDown(hid.KeyboardKey3) {
-		v.transformTool.Enable(transform_tools.ToolStateScale)
 	}
 }
 

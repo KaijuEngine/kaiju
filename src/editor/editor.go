@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_logging"
@@ -25,6 +26,7 @@ import (
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_database/content_previews"
+	"kaijuengine.com/editor/webapi"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui"
@@ -78,7 +80,13 @@ type Editor struct {
 	}
 	contentPreviewer content_previews.ContentPreviewer
 	updateId         engine.UpdateId
+	webAPIServer     *webapi.Server[*Editor]
+	actions          *editor_action.Service
 	blurred          bool
+	actionPaletteKey struct {
+		pending bool
+		moved   bool
+	}
 	// sessionDisabledPlugins holds module paths of plugins the user chose
 	// to skip via the startup-validation modal's "Continue" button (only
 	// MISSING plugins are recorded here — stale plugins are not tracked,
@@ -156,11 +164,13 @@ func (ed *Editor) UpdateSettings() {
 	if matrix.Approx(ed.settings.UIScrollSpeed, 0) {
 		ed.settings.UIScrollSpeed = 1
 	}
+	ed.settings.NormalizeWebAPI()
 	ui.UIScrollSpeed = ed.settings.UIScrollSpeed
 	if err := ed.settings.Save(); err != nil {
 		slog.Error("failed to save the editor settings", "error", err)
 		return
 	}
+	ed.updateWebAPI()
 }
 
 func (ed *Editor) postProjectLoad() {
@@ -324,6 +334,7 @@ func (ed *Editor) reconcileWorkspaces() bool {
 		ed.workspaceOrder = newOrder
 		changed = true
 	}
+	ed.registerRegisteredWorkspaceActions()
 	return changed
 }
 
@@ -416,37 +427,16 @@ func (ed *Editor) update(deltaTime float64) {
 		return
 	}
 	kb := &ed.host.Window.Keyboard
-	if kb.HasCtrlOrMeta() && !ed.IsInputFocused() {
-		if kb.KeyDown(hid.KeyboardKeyZ) {
-			if !kb.HasShift() {
-				ed.history.Undo()
-				return
-			} else {
-				ed.history.Redo()
-				return
-			}
-		} else if kb.KeyDown(hid.KeyboardKeyY) {
-			ed.history.Redo()
-			return
-		} else if kb.KeyDown(hid.KeyboardKeyS) {
-			ed.SaveCurrentStage()
-			return
-		}
+	if ed.processActionPaletteShortcut(kb) {
+		return
 	}
-	if kb.KeyDown(hid.KeyboardKeyF5) {
-		if kb.HasCtrlOrMeta() {
-			if kb.HasShift() {
-				ed.BuildAndRun(project.GameBuildModeRelease)
-			} else {
-				ed.BuildAndRun(project.GameBuildModeDebug)
-			}
-		} else {
-			ed.BuildAndRunCurrentStage()
-		}
+	if ed.processActionKeyBindings(kb) {
 		return
 	}
 	if ed.currentWorkspace != nil {
-		processWorkspaceHotkeys(ed, kb)
+		if !ed.stageView.IsFlyCameraInputActive() {
+			processWorkspaceHotkeys(ed, kb)
+		}
 		ed.currentWorkspace.Update(deltaTime)
 	}
 }

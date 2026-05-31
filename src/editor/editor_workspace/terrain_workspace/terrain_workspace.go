@@ -293,28 +293,7 @@ func (w *TerrainWorkspace) Close() {
 }
 
 func (w *TerrainWorkspace) Hotkeys() []common_workspace.HotKey {
-	return []common_workspace.HotKey{
-		{
-			Keys: []hid.KeyboardKey{hid.KeyboardKeyOpenBracket},
-			Call: func() {
-				if w.Host.Window.Keyboard.HasShift() {
-					w.adjustBrushStrength(-1)
-				} else {
-					w.adjustBrushRadius(-1)
-				}
-			},
-		},
-		{
-			Keys: []hid.KeyboardKey{hid.KeyboardKeyCloseBracket},
-			Call: func() {
-				if w.Host.Window.Keyboard.HasShift() {
-					w.adjustBrushStrength(1)
-				} else {
-					w.adjustBrushRadius(1)
-				}
-			},
-		},
-	}
+	return nil
 }
 
 func (w *TerrainWorkspace) Update(deltaTime float64) {
@@ -1011,6 +990,10 @@ func (w *TerrainWorkspace) adjustBrushRadius(direction int) {
 		terrainBrushMinRadius, terrainBrushMaxRadius, "Brush radius")
 }
 
+func (w *TerrainWorkspace) AdjustBrushRadius(direction int) {
+	w.adjustBrushRadius(direction)
+}
+
 func (w *TerrainWorkspace) adjustBrushStrength(direction int) {
 	if w.toolMode == TerrainToolTexturePaint {
 		w.adjustBrushInput(w.textureOpacityInput, 1, direction,
@@ -1019,6 +1002,10 @@ func (w *TerrainWorkspace) adjustBrushStrength(direction int) {
 	}
 	w.adjustBrushInput(w.strengthInput, 0.25, direction,
 		terrainBrushMinStrength, terrainBrushMaxStrength, "Brush strength")
+}
+
+func (w *TerrainWorkspace) AdjustBrushStrength(direction int) {
+	w.adjustBrushStrength(direction)
 }
 
 func (w *TerrainWorkspace) adjustBrushInput(e *document.Element, fallback matrix.Float,

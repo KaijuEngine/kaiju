@@ -44,6 +44,7 @@ type StageView struct {
 	hoveredViewport int
 	focusedViewport int
 	viewport        stageViewportBounds
+	open            bool
 	defaultView     struct {
 		options rendering.RenderViewOptions
 		active  bool
@@ -63,6 +64,18 @@ func (v *StageView) WorkspaceHost() *engine.Host { return v.host }
 func (v *StageView) LookAtPoint() matrix.Vec3 { return v.activeCamera().LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
+
+func (v *StageView) IsFlyCameraInputActive() bool {
+	if !v.open || v.activeCamera().Mode() != editor_controls.EditorCameraMode3d {
+		return false
+	}
+	if v.activeCamera().IsFlyCameraActive() {
+		return true
+	}
+	m := &v.host.Window.Mouse
+	return v.viewportContainsScreenPosition(m.ScreenPosition()) &&
+		(m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight))
+}
 
 func (v *StageView) SetViewportToolOwner(owner ViewportToolOwner) {
 	v.toolOwner = owner
@@ -105,12 +118,14 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
+	v.open = true
 	v.syncStageViewport()
 	v.applyGridVisibility()
 }
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
+	v.open = false
 	v.hideCameraPreview()
 	v.stagePicking.Close()
 	v.restoreDefaultRenderView()
@@ -168,13 +183,6 @@ func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	} else {
 		v.processViewportInteractions(proj)
 	}
-	kb := &v.host.Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyDelete) {
-		v.manager.DestroySelected()
-	} else if kb.HasCtrlOrMeta() && kb.KeyDown(hid.KeyboardKeyD) {
-		v.DuplicateSelected(proj)
-		return true
-	}
 	return false
 }
 
@@ -182,6 +190,52 @@ func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 	defer tracing.NewRegion("StageView.SetCameraMode").End()
 	v.activeCamera().SetMode(mode, v.host)
 	v.bindActiveViewportCamera()
+}
+
+func (v *StageView) FocusSelection() bool {
+	defer tracing.NewRegion("StageView.FocusSelection").End()
+	if !v.manager.HasSelection() {
+		return false
+	}
+	v.activeCamera().Focus(v.manager.SelectionBounds())
+	return true
+}
+
+func (v *StageView) EnableTransformTool(state ToolState) bool {
+	defer tracing.NewRegion("StageView.EnableTransformTool").End()
+	return v.transformMan.EnableToolState(state)
+}
+
+func (v *StageView) EnableWireframeTransformTool(state transform_tools.ToolState) bool {
+	defer tracing.NewRegion("StageView.EnableWireframeTransformTool").End()
+	if !v.manager.HasSelection() {
+		return false
+	}
+	v.transformTool.Enable(state)
+	return true
+}
+
+func (v *StageView) CanUseTransformToolKeybinding() bool {
+	if v.host == nil || v.host.Window == nil {
+		return false
+	}
+	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
+	insideViewport := v.viewportContainsScreenPosition(m.ScreenPosition())
+	if !insideViewport && !v.selectTool.IsActive() && !v.transformTool.IsActive() &&
+		!v.transformMan.IsBusy() && !v.vertexSnap.IsBusy() {
+		return false
+	}
+	if insideViewport && !kb.HasAlt() && (m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight)) {
+		return false
+	}
+	if insideViewport && (m.Pressed(hid.MouseButtonMiddle) || m.Held(hid.MouseButtonMiddle)) {
+		return false
+	}
+	if insideViewport && kb.KeyHeld(hid.KeyboardKeySpace) {
+		return false
+	}
+	return true
 }
 
 func (v *StageView) updateGridPosition() {

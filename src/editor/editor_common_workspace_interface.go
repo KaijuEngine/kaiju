@@ -9,6 +9,7 @@ package editor
 import (
 	"fmt"
 
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_overlay/reference_viewer"
 	"kaijuengine.com/editor/editor_settings"
@@ -27,6 +28,13 @@ import (
 
 func (ed *Editor) Events() *editor_events.EditorEvents {
 	return &ed.events
+}
+
+func (ed *Editor) Actions() *editor_action.Service {
+	if ed.actions == nil {
+		ed.initializeActions()
+	}
+	return ed.actions
 }
 
 func (ed *Editor) History() *memento.History {

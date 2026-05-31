@@ -42,6 +42,8 @@ func (EditorGame) Launch(host *engine.Host) {
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
 	}
+	ed.initializeActions()
+	ed.initializeWebAPI()
 	// goroutine
 	go func() {
 		data, err := host.AssetDatabase().Read("kaiju-icon.png")

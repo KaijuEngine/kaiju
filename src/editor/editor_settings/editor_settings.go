@@ -7,6 +7,8 @@
 package editor_settings
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -14,6 +16,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/KaijuEngine/uuid"
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -24,18 +28,19 @@ const (
 )
 
 type Settings struct {
-	RecentProjects         []string `visible:"false"`
-	RefreshRate            int32    `clamp:"60,0,320"`
-	CodeEditor             string   `default:"code"`
-	ImageEditor            string
-	MeshEditor             string
-	AudioEditor            string
-	UIScrollSpeed          float32 `default:"20" label:"UI Scroll Speed"`
-	ShowGrid               bool    `default:"true" label:"Show Viewport Grid"`
-	UseWERTransformHotkeys bool    `label:"Use W/E/R Transform Hotkeys"`
-	EditorCamera           EditorCameraSettings
-	Snapping               SnapSettings
-	BuildTools             BuildToolSettings
+	RecentProjects []string `visible:"false"`
+	RefreshRate    int32    `clamp:"60,0,320"`
+	CodeEditor     string   `default:"code"`
+	ImageEditor    string
+	MeshEditor     string
+	AudioEditor    string
+	UIScrollSpeed  float32 `default:"20" label:"UI Scroll Speed"`
+	ShowGrid       bool    `default:"true" label:"Show Viewport Grid"`
+	EditorCamera   EditorCameraSettings
+	Snapping       SnapSettings
+	BuildTools     BuildToolSettings
+	WebAPI         WebAPISettings                `visible:"false" label:"Web API"`
+	ActionBindings []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
 	// Workspaces is the persisted enable / visible / order state for every
 	// known workspace, keyed by Workspace.ID(). Slice order is the load /
 	// tab order. The editor's reconcile step on startup adds defaults for
@@ -75,6 +80,12 @@ type BuildToolSettings struct {
 	JavaHome   string
 }
 
+type WebAPISettings struct {
+	Enabled bool
+	Port    int32  `default:"1337"`
+	APIKey  string `label:"API Key"`
+}
+
 // setDefaults explicitly sets default values for all settings.
 // Struct tag defaults are informational for the Editor UI, we
 // must still explicitly set them in code.
@@ -88,6 +99,24 @@ func (s *Settings) setDefaults() {
 	s.EditorCamera.FlyBoostMultiplier = 4
 	s.EditorCamera.FlyXSensitivity = 0.2
 	s.EditorCamera.FlyYSensitivity = 0.2
+	s.NormalizeWebAPI()
+}
+
+func (s *Settings) NormalizeWebAPI() {
+	if s.WebAPI.Port <= 0 || s.WebAPI.Port > 65535 {
+		s.WebAPI.Port = 1337
+	}
+	if strings.TrimSpace(s.WebAPI.APIKey) == "" {
+		s.WebAPI.APIKey = GenerateWebAPIKey()
+	}
+}
+
+func GenerateWebAPIKey() string {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err == nil {
+		return base64.RawURLEncoding.EncodeToString(key)
+	}
+	return uuid.NewString() + uuid.NewString()
 }
 
 func (s *Settings) AddRecentProject(path string) {
@@ -106,6 +135,7 @@ func (s *Settings) AddRecentProject(path string) {
 
 func (s *Settings) Save() error {
 	defer tracing.NewRegion("Settings.Save").End()
+	s.NormalizeWebAPI()
 	appData, err := filesystem.GameDirectory()
 	if err != nil {
 		return AppDataMissingError{err}
@@ -144,6 +174,7 @@ func (s *Settings) Load() error {
 	if err := json.NewDecoder(f).Decode(s); err != nil {
 		return ReadError{err, true}
 	}
+	s.NormalizeWebAPI()
 	if s.BuildTools.AndroidNDK == "" {
 		s.tryFindAndroidNDKPath()
 	}

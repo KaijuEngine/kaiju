@@ -14,6 +14,7 @@ import (
 	"sync"
 	"text/template"
 
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
 	"kaijuengine.com/editor/editor_plugin"
@@ -30,7 +31,11 @@ import (
 // id. Called by the menu bar when the user clicks a tab and by plugins via
 // editor_workspace.WorkspaceEditorInterface.SelectWorkspace.
 func (ed *Editor) WorkspaceSelected(id string) {
-	ed.setWorkspaceState(id)
+	ed.Actions().Run(editor_action.Request{
+		ID:     ActionEditorOpenWorkspace,
+		Params: editor_action.Params(workspaceActionArgs{Workspace: id}),
+		Source: editor_action.SourceMenu,
+	})
 }
 
 func (ed *Editor) Build(buildMode project.GameBuildMode) {

@@ -18,7 +18,6 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 )
@@ -180,19 +179,15 @@ func (w *StageWorkspace) Close() {
 }
 
 func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey {
-	return []common_workspace.HotKey{
-		{
-			Keys: []hid.KeyboardKey{hid.KeyboardKeyF2},
-			Call: w.focusRename,
-		},
-	}
+	return nil
 }
 
-func (w *StageWorkspace) focusRename() {
+func (w *StageWorkspace) FocusRename() bool {
 	if len(w.stageView.Manager().Selection()) == 0 {
-		return
+		return false
 	}
 	w.detailsUI.focusRename()
+	return true
 }
 
 func (w *StageWorkspace) Update(deltaTime float64) {
@@ -208,20 +203,13 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 		return
 	}
 	w.detailsUI.update()
-	didViewportToggle := w.processViewportLayoutHotkeys()
-	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
-	if !didViewportToggle && !didKeyboardActions {
-		w.contentUI.processHotkeys(w.Host)
-		w.hierarchyUI.processHotkeys(w.Host)
-		w.detailsUI.processHotkeys(w.Host)
-	}
+	w.stageView.Update(deltaTime, w.ed.Project())
 	w.updateCameraPreviewPlacement()
 }
 
-func (w *StageWorkspace) processViewportLayoutHotkeys() bool {
-	defer tracing.NewRegion("StageWorkspace.processViewportLayoutHotkeys").End()
-	kb := &w.Host.Window.Keyboard
-	if !kb.KeyDown(hid.KeyboardKeyP) || kb.HasModifier() {
+func (w *StageWorkspace) ToggleViewportSplitFocus() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleViewportSplitFocus").End()
+	if w.stageView == nil {
 		return false
 	}
 	if w.layoutMode == stageViewportLayoutSingle {
@@ -240,6 +228,52 @@ func (w *StageWorkspace) processViewportLayoutHotkeys() bool {
 	}
 	w.applyViewportLayout()
 	w.stageView.RefreshTransformGizmoVisibility()
+	return true
+}
+
+func (w *StageWorkspace) ToggleContentPanel() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleContentPanel").End()
+	if w.contentUI.contentArea == nil || w.contentUI.contentArea.UI == nil {
+		return false
+	}
+	if w.contentUI.contentArea.UI.Entity().IsActive() {
+		w.contentUI.contentArea.UI.Hide()
+		w.hierarchyUI.extendHeight()
+		w.detailsUI.extendHeight()
+	} else {
+		w.contentUI.contentArea.UI.Show()
+		w.hierarchyUI.standardHeight()
+		w.detailsUI.standardHeight()
+	}
+	w.applyViewportLayout()
+	return true
+}
+
+func (w *StageWorkspace) ToggleHierarchyPanel() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleHierarchyPanel").End()
+	if w.hierarchyUI.hierarchyArea == nil || w.hierarchyUI.hierarchyArea.UI == nil {
+		return false
+	}
+	if w.hierarchyUI.hierarchyArea.UI.Entity().IsActive() {
+		w.hierarchyUI.hierarchyArea.UI.Hide()
+	} else {
+		w.hierarchyUI.hierarchyArea.UI.Show()
+	}
+	w.applyViewportLayout()
+	return true
+}
+
+func (w *StageWorkspace) ToggleDetailsPanel() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleDetailsPanel").End()
+	if w.detailsUI.detailsArea == nil || w.detailsUI.detailsArea.UI == nil {
+		return false
+	}
+	if w.detailsUI.detailsArea.UI.Entity().IsActive() {
+		w.detailsUI.detailsArea.UI.Hide()
+	} else {
+		w.detailsUI.detailsArea.UI.Show()
+	}
+	w.applyViewportLayout()
 	return true
 }
 

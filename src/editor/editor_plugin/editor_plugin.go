@@ -7,6 +7,7 @@
 package editor_plugin
 
 import (
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
@@ -34,6 +35,7 @@ type EditorInterface interface {
 	Host() *engine.Host
 	BlurInterface()
 	FocusInterface()
+	Actions() *editor_action.Service
 	Settings() *editor_settings.Settings
 	Events() *editor_events.EditorEvents
 	History() *memento.History
