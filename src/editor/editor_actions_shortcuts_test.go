@@ -46,17 +46,30 @@ func TestBindableVariantActionsAreRegistered(t *testing.T) {
 	}
 }
 
-func TestStageViewportLayoutActionDefaultsToP(t *testing.T) {
+func TestStageViewActionsDefaultBindings(t *testing.T) {
 	ed := &Editor{}
 	ed.history.Initialize(8)
 	ed.initializeActions()
-	bindings := editor_action.BindingsForAction(
-		ed.Actions().DefaultBindings(), nil, ActionStageToggleViewportLayout, stage_workspace.ID)
-	if len(bindings) != 1 {
-		t.Fatalf("viewport layout bindings = %d, want 1", len(bindings))
+	checks := []struct {
+		action editor_action.ActionID
+		key    hid.KeyboardKey
+	}{
+		{ActionStageToggleViewportLayout, hid.KeyboardKeyP},
+		{ActionStageToggleContentPanel, hid.KeyboardKeyC},
+		{ActionStageToggleHierarchyPanel, hid.KeyboardKeyH},
+		{ActionStageToggleDetailsPanel, hid.KeyboardKeyD},
 	}
-	chord := bindings[0].Chord
-	if !editor_action.ChordsEqual(chord, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyP)}}) {
-		t.Fatalf("viewport layout chord = %s, want P", editor_action.FormatKeyChord(chord))
+	for _, check := range checks {
+		bindings := editor_action.BindingsForAction(
+			ed.Actions().DefaultBindings(), nil, check.action, stage_workspace.ID)
+		if len(bindings) != 1 {
+			t.Fatalf("%s bindings = %d, want 1", check.action, len(bindings))
+		}
+		chord := bindings[0].Chord
+		want := editor_action.KeyChord{Keys: []int{int(check.key)}}
+		if !editor_action.ChordsEqual(chord, want) {
+			t.Fatalf("%s chord = %s, want %s", check.action,
+				editor_action.FormatKeyChord(chord), editor_action.FormatKeyChord(want))
+		}
 	}
 }

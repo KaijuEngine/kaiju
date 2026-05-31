@@ -210,9 +210,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	w.detailsUI.update()
 	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
 	if !didKeyboardActions {
-		w.contentUI.processHotkeys(w.Host)
 		w.hierarchyUI.processHotkeys(w.Host)
-		w.detailsUI.processHotkeys(w.Host)
 	}
 	w.updateCameraPreviewPlacement()
 }
@@ -238,6 +236,52 @@ func (w *StageWorkspace) ToggleViewportSplitFocus() bool {
 	}
 	w.applyViewportLayout()
 	w.stageView.RefreshTransformGizmoVisibility()
+	return true
+}
+
+func (w *StageWorkspace) ToggleContentPanel() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleContentPanel").End()
+	if w.contentUI.contentArea == nil || w.contentUI.contentArea.UI == nil {
+		return false
+	}
+	if w.contentUI.contentArea.UI.Entity().IsActive() {
+		w.contentUI.contentArea.UI.Hide()
+		w.hierarchyUI.extendHeight()
+		w.detailsUI.extendHeight()
+	} else {
+		w.contentUI.contentArea.UI.Show()
+		w.hierarchyUI.standardHeight()
+		w.detailsUI.standardHeight()
+	}
+	w.applyViewportLayout()
+	return true
+}
+
+func (w *StageWorkspace) ToggleHierarchyPanel() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleHierarchyPanel").End()
+	if w.hierarchyUI.hierarchyArea == nil || w.hierarchyUI.hierarchyArea.UI == nil {
+		return false
+	}
+	if w.hierarchyUI.hierarchyArea.UI.Entity().IsActive() {
+		w.hierarchyUI.hierarchyArea.UI.Hide()
+	} else {
+		w.hierarchyUI.hierarchyArea.UI.Show()
+	}
+	w.applyViewportLayout()
+	return true
+}
+
+func (w *StageWorkspace) ToggleDetailsPanel() bool {
+	defer tracing.NewRegion("StageWorkspace.ToggleDetailsPanel").End()
+	if w.detailsUI.detailsArea == nil || w.detailsUI.detailsArea.UI == nil {
+		return false
+	}
+	if w.detailsUI.detailsArea.UI.Entity().IsActive() {
+		w.detailsUI.detailsArea.UI.Hide()
+	} else {
+		w.detailsUI.detailsArea.UI.Show()
+	}
+	w.applyViewportLayout()
 	return true
 }
 

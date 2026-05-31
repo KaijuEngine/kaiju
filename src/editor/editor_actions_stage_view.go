@@ -15,6 +15,9 @@ import (
 const (
 	ActionStageSetGridVisible       editor_action.ActionID = "stage.setGridVisible"
 	ActionStageToggleViewportLayout editor_action.ActionID = "stage.toggleViewportLayout"
+	ActionStageToggleContentPanel   editor_action.ActionID = "stage.toggleContentPanel"
+	ActionStageToggleHierarchyPanel editor_action.ActionID = "stage.toggleHierarchyPanel"
+	ActionStageToggleDetailsPanel   editor_action.ActionID = "stage.toggleDetailsPanel"
 )
 
 type gridVisibleActionArgs struct {
@@ -42,6 +45,51 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionToggleViewportLayout, ed.stageCanRun)
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageToggleContentPanel,
+		Label:       "Toggle Content Panel",
+		Description: "Shows or hides the stage content panel.",
+		Category:    "Stage",
+		Tags:        []string{"content", "panel", "visibility"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageToggleContentPanel,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionToggleContentPanel, ed.stageCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          ActionStageToggleHierarchyPanel,
+		Label:       "Toggle Hierarchy Panel",
+		Description: "Shows or hides the stage hierarchy panel.",
+		Category:    "Stage",
+		Tags:        []string{"hierarchy", "panel", "visibility"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageToggleHierarchyPanel,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyH)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionToggleHierarchyPanel, ed.stageCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          ActionStageToggleDetailsPanel,
+		Label:       "Toggle Details Panel",
+		Description: "Shows or hides the stage details panel.",
+		Category:    "Stage",
+		Tags:        []string{"details", "panel", "visibility"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageToggleDetailsPanel,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyD)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionToggleDetailsPanel, ed.stageCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -60,6 +108,27 @@ func (ed *Editor) actionToggleViewportLayout(editor_action.Context, editor_actio
 		return editor_action.Failure("stage viewport layout was not changed")
 	}
 	return editor_action.Success("stage viewport layout changed")
+}
+
+func (ed *Editor) actionToggleContentPanel(editor_action.Context, editor_action.Request) editor_action.Result {
+	if !ed.StageWorkspace().ToggleContentPanel() {
+		return editor_action.Failure("stage content panel was not changed")
+	}
+	return editor_action.Success("stage content panel changed")
+}
+
+func (ed *Editor) actionToggleHierarchyPanel(editor_action.Context, editor_action.Request) editor_action.Result {
+	if !ed.StageWorkspace().ToggleHierarchyPanel() {
+		return editor_action.Failure("stage hierarchy panel was not changed")
+	}
+	return editor_action.Success("stage hierarchy panel changed")
+}
+
+func (ed *Editor) actionToggleDetailsPanel(editor_action.Context, editor_action.Request) editor_action.Result {
+	if !ed.StageWorkspace().ToggleDetailsPanel() {
+		return editor_action.Failure("stage details panel was not changed")
+	}
+	return editor_action.Success("stage details panel changed")
 }
 
 func (ed *Editor) actionSetGridVisible(ctx editor_action.Context, req editor_action.Request) editor_action.Result {

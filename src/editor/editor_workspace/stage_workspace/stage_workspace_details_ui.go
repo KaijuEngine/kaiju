@@ -36,7 +36,6 @@ import (
 	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
@@ -206,18 +205,6 @@ func (dui *WorkspaceDetailsUI) open() {
 	dui.shaderInstanceDataTemplate.UI.Hide()
 	dui.hideIfNothingSelected()
 	dui.reload()
-}
-
-func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
-	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
-	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyD) {
-		if dui.detailsArea.UI.Entity().IsActive() {
-			dui.detailsArea.UI.Hide()
-		} else {
-			dui.detailsArea.UI.Show()
-		}
-		dui.workspace.Value().applyViewportLayout()
-	}
 }
 
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
