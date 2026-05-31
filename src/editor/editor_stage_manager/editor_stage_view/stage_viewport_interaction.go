@@ -53,11 +53,7 @@ func (v *StageView) processViewportInteractions(proj *project.Project) {
 			v.manager.TrySelect(ray)
 		}
 	}
-	if kb.KeyDown(hid.KeyboardKeyF) {
-		if v.manager.HasSelection() {
-			v.activeCamera().Focus(v.manager.SelectionBounds())
-		}
-	} else if kb.KeyDown(hid.KeyboardKey1) {
+	if kb.KeyDown(hid.KeyboardKey1) {
 		v.transformTool.Enable(transform_tools.ToolStateMove)
 	} else if kb.KeyDown(hid.KeyboardKey2) {
 		v.transformTool.Enable(transform_tools.ToolStateRotate)

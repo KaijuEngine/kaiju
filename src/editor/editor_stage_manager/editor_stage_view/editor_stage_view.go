@@ -176,6 +176,15 @@ func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 	v.bindActiveViewportCamera()
 }
 
+func (v *StageView) FocusSelection() bool {
+	defer tracing.NewRegion("StageView.FocusSelection").End()
+	if !v.manager.HasSelection() {
+		return false
+	}
+	v.activeCamera().Focus(v.manager.SelectionBounds())
+	return true
+}
+
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
 	cam := v.host.PrimaryCamera()

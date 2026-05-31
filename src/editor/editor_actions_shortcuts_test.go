@@ -59,6 +59,7 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 		{ActionStageToggleHierarchyPanel, hid.KeyboardKeyH},
 		{ActionStageToggleDetailsPanel, hid.KeyboardKeyD},
 		{ActionStageRenameActor, hid.KeyboardKeyF2},
+		{ActionStageFocusSelection, hid.KeyboardKeyF},
 	}
 	for _, check := range checks {
 		bindings := editor_action.BindingsForAction(

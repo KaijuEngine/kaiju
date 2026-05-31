@@ -19,6 +19,7 @@ const (
 	ActionStageToggleHierarchyPanel editor_action.ActionID = "stage.toggleHierarchyPanel"
 	ActionStageToggleDetailsPanel   editor_action.ActionID = "stage.toggleDetailsPanel"
 	ActionStageRenameActor          editor_action.ActionID = "stage.renameActor"
+	ActionStageFocusSelection       editor_action.ActionID = "stage.focusSelection"
 )
 
 type gridVisibleActionArgs struct {
@@ -106,6 +107,21 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionRenameActor, ed.stageSelectionCanRun)
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageFocusSelection,
+		Label:       "Focus Selection",
+		Description: "Frames the selected stage actor in the viewport.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "focus", "frame", "viewport"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageFocusSelection,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionFocusSelection, ed.stageSelectionCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -152,6 +168,13 @@ func (ed *Editor) actionRenameActor(editor_action.Context, editor_action.Request
 		return editor_action.Failure("stage actor rename was not focused")
 	}
 	return stageSelectionResult("stage actor rename focused", ed.stageView.Manager().Selection())
+}
+
+func (ed *Editor) actionFocusSelection(editor_action.Context, editor_action.Request) editor_action.Result {
+	if !ed.stageView.FocusSelection() {
+		return editor_action.Failure("stage selection was not focused")
+	}
+	return stageSelectionResult("stage selection focused", ed.stageView.Manager().Selection())
 }
 
 func (ed *Editor) actionSetGridVisible(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
