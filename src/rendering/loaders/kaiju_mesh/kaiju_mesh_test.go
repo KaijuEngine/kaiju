@@ -134,6 +134,62 @@ func BenchmarkKaijuMeshDeserializeLegacyGob(b *testing.B) {
 	}
 }
 
+func TestKaijuMeshLoadAndGenerateBVH(t *testing.T) {
+	km := KaijuMesh{
+		Name: "test-bvh",
+		Verts: []rendering.Vertex{
+			{Position: matrix.Vec3{0, 0, 0}},
+			{Position: matrix.Vec3{1, 0, 0}},
+			{Position: matrix.Vec3{0, 1, 0}},
+		},
+		Indexes: []uint32{0, 1, 2},
+	}
+	data, err := km.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := Deserialize(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bvh := loaded.GenerateBVH(nil, nil, "test-data")
+	if bvh == nil {
+		t.Fatal("expected BVH to be generated")
+	}
+	ray := graviton.Ray{
+		Origin:    matrix.Vec3{0.25, 0.25, 1},
+		Direction: matrix.Vec3{0, 0, -1},
+	}
+	target, _, ok := bvh.RayIntersect(ray, 2)
+	if !ok {
+		t.Fatal("expected BVH ray intersection to succeed")
+	}
+	if target != "test-data" {
+		t.Fatalf("expected BVH data to be %q, got %v", "test-data", target)
+	}
+}
+
+func BenchmarkKaijuMeshLoadAndGenerateBVH(b *testing.B) {
+	km := benchmarkMesh()
+	data, err := km.Serialize()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for range b.N {
+		loaded, err := Deserialize(data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		bvh := loaded.GenerateBVH(nil, nil, nil)
+		if bvh == nil {
+			b.Fatal("expected BVH to be generated")
+		}
+	}
+}
+
 func benchmarkMesh() KaijuMesh {
 	const vertexCount = 50_000
 	const indexCount = 150_000
