@@ -77,6 +77,62 @@ func TestServiceSearchMatchesVariantsAndFiltersCanRun(t *testing.T) {
 	}
 }
 
+func TestServiceSearchMovesLastUsedActionsToTop(t *testing.T) {
+	service := NewService()
+	register := func(id ActionID, label string, handler Handler) {
+		t.Helper()
+		if err := service.Register(Definition{
+			ID:       id,
+			Label:    label,
+			Category: "Test",
+			Visible:  true,
+		}, handler, nil); err != nil {
+			t.Fatalf("register %s failed: %v", id, err)
+		}
+	}
+	successHandler := func(Context, Request) Result { return Success("") }
+	register("test.alpha", "Alpha", successHandler)
+	register("test.bravo", "Bravo", successHandler)
+	register("test.charlie", "Charlie", func(Context, Request) Result {
+		return Failure("failed")
+	})
+
+	entries := service.Search("")
+	if len(entries) != 3 {
+		t.Fatalf("search returned %d entries, want 3", len(entries))
+	}
+	if entries[0].ID != "test.alpha" {
+		t.Fatalf("initial first entry = %s, want test.alpha", entries[0].ID)
+	}
+
+	if result := service.Run(Request{ID: "test.bravo"}); !result.OK {
+		t.Fatalf("run bravo failed: %#v", result)
+	}
+	entries = service.Search("")
+	if entries[0].ID != "test.bravo" || entries[1].ID != "test.alpha" {
+		t.Fatalf("after bravo usage order = %s, %s; want test.bravo, test.alpha",
+			entries[0].ID, entries[1].ID)
+	}
+
+	if result := service.Run(Request{ID: "test.alpha"}); !result.OK {
+		t.Fatalf("run alpha failed: %#v", result)
+	}
+	entries = service.Search("")
+	if entries[0].ID != "test.alpha" || entries[1].ID != "test.bravo" {
+		t.Fatalf("after alpha usage order = %s, %s; want test.alpha, test.bravo",
+			entries[0].ID, entries[1].ID)
+	}
+
+	if result := service.Run(Request{ID: "test.charlie"}); result.OK {
+		t.Fatalf("run charlie succeeded unexpectedly: %#v", result)
+	}
+	entries = service.Search("")
+	if entries[0].ID != "test.alpha" || entries[1].ID != "test.bravo" {
+		t.Fatalf("failed action changed usage order = %s, %s; want test.alpha, test.bravo",
+			entries[0].ID, entries[1].ID)
+	}
+}
+
 func TestServiceRunWrapsTransactionalActions(t *testing.T) {
 	service := NewService()
 	var begin, commit int

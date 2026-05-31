@@ -278,6 +278,9 @@ type Service struct {
 	commitTransaction func()
 	cancelTransaction func()
 	runOnMainThread   func(func())
+	usageMu           sync.RWMutex
+	usageSequence     int64
+	usageOrder        map[ActionID]int64
 }
 
 func NewService() *Service {
@@ -330,6 +333,7 @@ func (s *Service) Search(query string) []Entry {
 			out = append(out, entry)
 		}
 	}
+	s.sortByUsage(out)
 	return out
 }
 
@@ -414,6 +418,7 @@ func (s *Service) Run(req Request) Result {
 			if s.commitTransaction != nil {
 				s.commitTransaction()
 			}
+			s.recordUsage(req.ID)
 		} else if s.cancelTransaction != nil {
 			s.cancelTransaction()
 		} else if s.commitTransaction != nil {
@@ -423,6 +428,9 @@ func (s *Service) Run(req Request) Result {
 		return result
 	}
 	result := action.handler(ctx, req)
+	if result.OK {
+		s.recordUsage(req.ID)
+	}
 	s.feedback(ctx, result)
 	return result
 }
@@ -528,6 +536,43 @@ func (s *Service) currentContext() Context {
 		return Context{}
 	}
 	return s.context()
+}
+
+func (s *Service) recordUsage(id ActionID) {
+	s.usageMu.Lock()
+	defer s.usageMu.Unlock()
+	if s.usageOrder == nil {
+		s.usageOrder = map[ActionID]int64{}
+	}
+	s.usageSequence++
+	s.usageOrder[id] = s.usageSequence
+}
+
+func (s *Service) sortByUsage(entries []Entry) {
+	s.usageMu.RLock()
+	if len(s.usageOrder) == 0 {
+		s.usageMu.RUnlock()
+		return
+	}
+	order := make(map[ActionID]int64, len(s.usageOrder))
+	for id, sequence := range s.usageOrder {
+		order[id] = sequence
+	}
+	s.usageMu.RUnlock()
+	sort.SliceStable(entries, func(i, j int) bool {
+		iOrder := order[entries[i].ID]
+		jOrder := order[entries[j].ID]
+		if iOrder == jOrder {
+			return false
+		}
+		if iOrder == 0 {
+			return false
+		}
+		if jOrder == 0 {
+			return true
+		}
+		return iOrder > jOrder
+	})
 }
 
 func (s *Service) feedback(ctx Context, result Result) {
