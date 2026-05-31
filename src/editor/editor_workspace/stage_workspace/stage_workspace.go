@@ -7,8 +7,6 @@
 package stage_workspace
 
 import (
-	"slices"
-
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
@@ -34,13 +32,6 @@ const (
 	maxContentDropDistance = 10
 )
 
-type stageViewportLayoutMode int
-
-const (
-	stageViewportLayoutSingle stageViewportLayoutMode = iota
-	stageViewportLayoutQuad
-)
-
 // init registers the stage workspace singleton with the global registry.
 // The editor reads the registry during postProjectLoad to decide which
 // workspaces are active.
@@ -50,19 +41,15 @@ func init() {
 
 type StageWorkspace struct {
 	common_workspace.CommonWorkspace
-	ed                   editor_workspace.WorkspaceEditorInterface
-	stageView            *editor_stage_view.StageView
-	pageData             WorkspaceUIData
-	contentUI            WorkspaceContentUI
-	hierarchyUI          WorkspaceHierarchyUI
-	detailsUI            WorkspaceDetailsUI
-	viewports            map[editor_stage_view.StageViewportKind]*document.Element
-	labels               map[editor_stage_view.StageViewportKind]*document.Element
-	cameraPreview        *document.Element
-	cameraPreviewClasses []string
-	layoutMode           stageViewportLayoutMode
-	focusedView          editor_stage_view.StageViewportKind
-	ftde                 struct {
+	ed            editor_workspace.WorkspaceEditorInterface
+	stageView     *editor_stage_view.StageView
+	pageData      WorkspaceUIData
+	contentUI     WorkspaceContentUI
+	hierarchyUI   WorkspaceHierarchyUI
+	detailsUI     WorkspaceDetailsUI
+	stageViewport stageWorkspaceStageViewport
+	cameraPreview stageWorkspaceCameraPreview
+	ftde          struct {
 		arrow *document.Element
 		y     float32
 	}
@@ -90,45 +77,10 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs); err != nil {
 		return err
 	}
-	viewportIDs := []struct {
-		kind editor_stage_view.StageViewportKind
-		id   string
-	}{
-		{editor_stage_view.StageViewportPerspective, "stageViewport"},
-		{editor_stage_view.StageViewportTop, "stageViewportTop"},
-		{editor_stage_view.StageViewportSide, "stageViewportSide"},
-		{editor_stage_view.StageViewportFront, "stageViewportFront"},
-	}
-	w.viewports = make(map[editor_stage_view.StageViewportKind]*document.Element, len(viewportIDs))
-	for _, viewportID := range viewportIDs {
-		if viewport, ok := w.Doc.GetElementById(viewportID.id); ok {
-			w.viewports[viewportID.kind] = viewport
-			w.stageView.SetViewportUIForKind(viewportID.kind, viewport.UI)
-		}
-	}
-	labelIDs := []struct {
-		kind editor_stage_view.StageViewportKind
-		id   string
-	}{
-		{editor_stage_view.StageViewportPerspective, "stageViewportLabelPerspective"},
-		{editor_stage_view.StageViewportTop, "stageViewportLabelTop"},
-		{editor_stage_view.StageViewportSide, "stageViewportLabelSide"},
-		{editor_stage_view.StageViewportFront, "stageViewportLabelFront"},
-	}
-	w.labels = make(map[editor_stage_view.StageViewportKind]*document.Element, len(labelIDs))
-	for _, labelID := range labelIDs {
-		if label, ok := w.Doc.GetElementById(labelID.id); ok {
-			w.labels[labelID.kind] = label
-		}
-	}
-	if preview, ok := w.Doc.GetElementById("cameraPreview"); ok {
-		w.cameraPreview = preview
-		w.stageView.SetCameraPreviewUI(preview.UI)
-		w.updateCameraPreviewPlacement()
-	}
-	w.layoutMode = stageViewportLayoutSingle
-	w.focusedView = editor_stage_view.StageViewportPerspective
+	w.stageViewport.init(&w.UiMan, w.stageView)
+	w.cameraPreview.init(&w.UiMan, w.stageView, w)
 	w.applyViewportLayout()
+	w.hideManualRenderTargetUI()
 	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
@@ -164,17 +116,18 @@ func (w *StageWorkspace) loadLastOpenStage() {
 func (w *StageWorkspace) Open() {
 	defer tracing.NewRegion("StageWorkspace.Open").End()
 	w.CommonOpen()
-	w.stageView.Open()
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
 	w.applyViewportLayout()
+	w.stageView.Open()
 	w.Doc.MarkDirty()
 }
 
 func (w *StageWorkspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
 	w.stageView.Close()
+	w.hideManualRenderTargetUI()
 	w.CommonClose()
 }
 
@@ -199,12 +152,16 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	if windowing.HasDragData() {
 		return
 	}
-	if w.IsBlurred || w.UiMan.Group.HasRequests() {
+	if w.IsBlurred {
+		return
+	}
+	w.stageView.SyncStageViewport()
+	if w.UiMan.Group.HasRequests() {
 		return
 	}
 	w.detailsUI.update()
 	w.stageView.Update(deltaTime, w.ed.Project())
-	w.updateCameraPreviewPlacement()
+	w.cameraPreview.updatePlacement(w)
 }
 
 func (w *StageWorkspace) ToggleViewportSplitFocus() bool {
@@ -212,20 +169,7 @@ func (w *StageWorkspace) ToggleViewportSplitFocus() bool {
 	if w.stageView == nil {
 		return false
 	}
-	if w.layoutMode == stageViewportLayoutSingle {
-		w.layoutMode = stageViewportLayoutQuad
-	} else {
-		focused, ok := w.stageView.HoveredViewportKind()
-		if !ok {
-			focused, ok = w.stageView.ActiveViewportKind()
-		}
-		if !ok {
-			focused = editor_stage_view.StageViewportPerspective
-		}
-		w.focusedView = focused
-		w.stageView.FocusViewportKind(focused)
-		w.layoutMode = stageViewportLayoutSingle
-	}
+	w.stageViewport.toggleSplitFocus(w.stageView)
 	w.applyViewportLayout()
 	w.stageView.RefreshTransformGizmoVisibility()
 	return true
@@ -279,111 +223,17 @@ func (w *StageWorkspace) ToggleDetailsPanel() bool {
 
 func (w *StageWorkspace) applyViewportLayout() {
 	defer tracing.NewRegion("StageWorkspace.applyViewportLayout").End()
-	for _, kind := range editor_stage_view.StageViewportKinds() {
-		if viewport := w.viewports[kind]; viewport != nil {
-			w.Doc.SetElementClassesWithoutApply(viewport, w.viewportClasses(kind)...)
-		}
-		if label := w.labels[kind]; label != nil {
-			w.Doc.SetElementClassesWithoutApply(label, w.viewportLabelClasses(kind)...)
-		}
-	}
-	for _, kind := range editor_stage_view.StageViewportKinds() {
-		visible := w.viewportVisible(kind)
-		if viewport := w.viewports[kind]; viewport != nil {
-			viewport.UI.SetVisibility(visible)
-		}
-		if label := w.labels[kind]; label != nil {
-			label.UI.SetVisibility(visible)
-		}
-	}
-	w.Doc.ApplyStyles()
-	w.updateCameraPreviewPlacement()
+	w.stageViewport.applyLayout(w)
+	w.cameraPreview.updatePlacement(w)
 }
 
-func (w *StageWorkspace) updateCameraPreviewPlacement() {
-	if w.cameraPreview == nil {
-		return
-	}
-	classes := []string{"cameraPreview"}
-	if w.detailsUI.detailsArea != nil && w.detailsUI.detailsArea.UI.Entity().IsActive() {
-		classes = append(classes, "cameraPreviewDetailsOpen")
-	}
-	if w.contentUI.contentArea != nil && w.contentUI.contentArea.UI.Entity().IsActive() {
-		classes = append(classes, "cameraPreviewContentOpen")
-	}
-	if slices.Equal(w.cameraPreviewClasses, classes) {
-		return
-	}
-	w.cameraPreviewClasses = slices.Clone(classes)
-	w.Doc.SetElementClasses(w.cameraPreview, classes...)
-}
-
-func (w *StageWorkspace) viewportVisible(kind editor_stage_view.StageViewportKind) bool {
-	return w.layoutMode == stageViewportLayoutQuad || kind == w.focusedView
-}
-
-func (w *StageWorkspace) viewportClasses(kind editor_stage_view.StageViewportKind) []string {
-	if w.layoutMode == stageViewportLayoutSingle {
-		if kind == w.focusedView {
-			return append([]string{"stageViewport", "stageViewportSingle"}, w.viewportOccupiedAreaClasses()...)
-		}
-		return []string{"stageViewport", "stageViewportHidden"}
-	}
-	return append([]string{"stageViewport", viewportQuadClass(kind)}, w.viewportOccupiedAreaClasses()...)
-}
-
-func (w *StageWorkspace) viewportLabelClasses(kind editor_stage_view.StageViewportKind) []string {
-	if w.layoutMode == stageViewportLayoutSingle {
-		if kind == w.focusedView {
-			return append([]string{"stageViewportLabel", "stageViewportLabelSingle"}, w.viewportOccupiedAreaClasses()...)
-		}
-		return []string{"stageViewportLabel", "stageViewportLabelHidden"}
-	}
-	return append([]string{"stageViewportLabel", viewportQuadLabelClass(kind)}, w.viewportOccupiedAreaClasses()...)
-}
-
-func (w *StageWorkspace) viewportOccupiedAreaClasses() []string {
-	classes := make([]string, 0, 3)
-	if elementIsActive(w.hierarchyUI.hierarchyArea) {
-		classes = append(classes, "stageViewportHierarchyOpen")
-	}
-	if elementIsActive(w.detailsUI.detailsArea) {
-		classes = append(classes, "stageViewportDetailsOpen")
-	}
-	if elementIsActive(w.contentUI.contentArea) {
-		classes = append(classes, "stageViewportContentOpen")
-	}
-	return classes
+func (w *StageWorkspace) hideManualRenderTargetUI() {
+	w.stageViewport.hide()
+	w.cameraPreview.hide()
 }
 
 func elementIsActive(elm *document.Element) bool {
 	return elm != nil && elm.UI != nil && elm.UI.Entity().IsActive()
-}
-
-func viewportQuadClass(kind editor_stage_view.StageViewportKind) string {
-	switch kind {
-	case editor_stage_view.StageViewportTop:
-		return "stageViewportQuadTop"
-	case editor_stage_view.StageViewportSide:
-		return "stageViewportQuadSide"
-	case editor_stage_view.StageViewportFront:
-		return "stageViewportQuadFront"
-	default:
-		return "stageViewportQuadPerspective"
-	}
-}
-
-func viewportQuadLabelClass(kind editor_stage_view.StageViewportKind) string {
-	switch kind {
-	case editor_stage_view.StageViewportTop:
-		return "stageViewportLabelQuadTop"
-	case editor_stage_view.StageViewportSide:
-		return "stageViewportLabelQuadSide"
-	case editor_stage_view.StageViewportFront:
-		return "stageViewportLabelQuadFront"
-	default:
-		return "stageViewportLabelQuadPerspective"
-	}
 }
 
 func (w *StageWorkspace) toggleDimension(e *document.Element) {

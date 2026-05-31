@@ -2,11 +2,6 @@
 <html>
 	<head>
 		<style>
-			:root {
-				--stage-side-panel-width: 18%;
-				--stage-menu-half-height: 12px;
-				--stage-status-half-height: 0.65em;
-			}
 			div { width: 100%; }
 			.topSearch { margin-top: 0.5em; margin-bottom: 0.5em; }
 			#ftdePrompt {
@@ -50,179 +45,6 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
-			.stageViewport {
-				position: absolute;
-				z-index: 2;
-				background-color: white;
-				visibility: visible;
-			}
-			.stageViewportSingle {
-				left: 0;
-				top: var(--ed-menu-bar-height);
-				width: 100%;
-				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
-			}
-			.stageViewportQuadPerspective {
-				left: 0;
-				top: var(--ed-menu-bar-height);
-				width: 50%;
-				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
-			}
-			.stageViewportQuadTop {
-				left: 50%;
-				top: var(--ed-menu-bar-height);
-				width: 50%;
-				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
-			}
-			.stageViewportQuadSide {
-				left: 0;
-				top: calc(50% + var(--stage-menu-half-height) - var(--stage-status-half-height));
-				width: 50%;
-				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
-			}
-			.stageViewportQuadFront {
-				left: 50%;
-				top: calc(50% + var(--stage-menu-half-height) - var(--stage-status-half-height));
-				width: 50%;
-				height: calc(50% - var(--stage-menu-half-height) - var(--stage-status-half-height));
-			}
-			.stageViewportSingle.stageViewportContentOpen {
-				height: calc(70% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
-			}
-			.stageViewportSingle.stageViewportHierarchyOpen {
-				left: var(--stage-side-panel-width);
-				width: 82%;
-			}
-			.stageViewportSingle.stageViewportDetailsOpen {
-				width: 82%;
-			}
-			.stageViewportSingle.stageViewportHierarchyOpen.stageViewportDetailsOpen {
-				width: 64%;
-			}
-			.stageViewportQuadPerspective.stageViewportContentOpen,
-			.stageViewportQuadTop.stageViewportContentOpen {
-				height: calc(35% - var(--stage-menu-half-height) - var(--stage-status-half-height));
-			}
-			.stageViewportQuadSide.stageViewportContentOpen,
-			.stageViewportQuadFront.stageViewportContentOpen {
-				top: calc(35% + var(--stage-menu-half-height) - var(--stage-status-half-height));
-				height: calc(35% - var(--stage-menu-half-height) - var(--stage-status-half-height));
-			}
-			.stageViewportQuadPerspective.stageViewportHierarchyOpen,
-			.stageViewportQuadSide.stageViewportHierarchyOpen {
-				left: var(--stage-side-panel-width);
-				width: 41%;
-			}
-			.stageViewportQuadTop.stageViewportHierarchyOpen,
-			.stageViewportQuadFront.stageViewportHierarchyOpen {
-				left: 59%;
-				width: 41%;
-			}
-			.stageViewportQuadPerspective.stageViewportDetailsOpen,
-			.stageViewportQuadSide.stageViewportDetailsOpen {
-				width: 41%;
-			}
-			.stageViewportQuadTop.stageViewportDetailsOpen,
-			.stageViewportQuadFront.stageViewportDetailsOpen {
-				left: 41%;
-				width: 41%;
-			}
-			.stageViewportQuadPerspective.stageViewportHierarchyOpen.stageViewportDetailsOpen,
-			.stageViewportQuadSide.stageViewportHierarchyOpen.stageViewportDetailsOpen {
-				left: var(--stage-side-panel-width);
-				width: 32%;
-			}
-			.stageViewportQuadTop.stageViewportHierarchyOpen.stageViewportDetailsOpen,
-			.stageViewportQuadFront.stageViewportHierarchyOpen.stageViewportDetailsOpen {
-				left: 50%;
-				width: 32%;
-			}
-			.stageViewportHidden {
-				visibility: hidden;
-				width: 0;
-				height: 0;
-			}
-			.stageViewportLabel {
-				position: absolute;
-				left: 0.5em;
-				color: white;
-				background-color: #282828;
-				border: 1px solid #555;
-				padding: 0.2em 0.45em;
-				font-size: 0.6em;
-				z-index: 3;
-				visibility: visible;
-			}
-			.stageViewportLabelSingle {
-				top: calc(var(--ed-menu-bar-height) + 0.5em);
-				left: 0.5em;
-			}
-			.stageViewportLabelQuadPerspective {
-				top: calc(var(--ed-menu-bar-height) + 0.5em);
-				left: 0.5em;
-			}
-			.stageViewportLabelQuadTop {
-				top: calc(var(--ed-menu-bar-height) + 0.5em);
-				left: calc(50% + 0.5em);
-			}
-			.stageViewportLabelQuadSide {
-				top: calc(50% + var(--stage-menu-half-height) - 0.15em);
-				left: 0.5em;
-			}
-			.stageViewportLabelQuadFront {
-				top: calc(50% + var(--stage-menu-half-height) - 0.15em);
-				left: calc(50% + 0.5em);
-			}
-			.stageViewportLabelSingle.stageViewportHierarchyOpen {
-				left: calc(var(--stage-side-panel-width) + 0.5em);
-			}
-			.stageViewportLabelQuadSide.stageViewportContentOpen,
-			.stageViewportLabelQuadFront.stageViewportContentOpen {
-				top: calc(35% + var(--stage-menu-half-height) - 0.15em);
-			}
-			.stageViewportLabelQuadPerspective.stageViewportHierarchyOpen,
-			.stageViewportLabelQuadSide.stageViewportHierarchyOpen {
-				left: calc(var(--stage-side-panel-width) + 0.5em);
-			}
-			.stageViewportLabelQuadTop.stageViewportHierarchyOpen,
-			.stageViewportLabelQuadFront.stageViewportHierarchyOpen {
-				left: calc(59% + 0.5em);
-			}
-			.stageViewportLabelQuadPerspective.stageViewportDetailsOpen,
-			.stageViewportLabelQuadSide.stageViewportDetailsOpen {
-				left: 0.5em;
-			}
-			.stageViewportLabelQuadTop.stageViewportDetailsOpen,
-			.stageViewportLabelQuadFront.stageViewportDetailsOpen {
-				left: calc(41% + 0.5em);
-			}
-			.stageViewportLabelQuadPerspective.stageViewportHierarchyOpen.stageViewportDetailsOpen,
-			.stageViewportLabelQuadSide.stageViewportHierarchyOpen.stageViewportDetailsOpen {
-				left: calc(var(--stage-side-panel-width) + 0.5em);
-			}
-			.stageViewportLabelQuadTop.stageViewportHierarchyOpen.stageViewportDetailsOpen,
-			.stageViewportLabelQuadFront.stageViewportHierarchyOpen.stageViewportDetailsOpen {
-				left: calc(50% + 0.5em);
-			}
-			.stageViewportLabelHidden {
-				visibility: hidden;
-			}
-			.cameraPreview {
-				position: absolute;
-				width: 260px;
-				height: 146px;
-				right: 0.75em;
-				bottom: 2em;
-				background-color: white;
-				border: 2px solid #AAA;
-				z-index: 3;
-			}
-			.cameraPreviewDetailsOpen {
-				right: calc(18% + 0.75em);
-			}
-			.cameraPreviewContentOpen {
-				bottom: calc(30% + 2em);
-			}
 			#hierarchyArea,
 			#detailsArea,
 			#contentArea {
@@ -234,15 +56,6 @@
 		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_content.css" />
 	</head>
 	<body>
-		<img id="stageViewport" class="stageViewport stageViewportSingle" src="editor/textures/icons/menu_bar_logo.png" />
-		<img id="stageViewportTop" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
-		<img id="stageViewportSide" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
-		<img id="stageViewportFront" class="stageViewport stageViewportHidden" src="editor/textures/icons/menu_bar_logo.png" />
-		<span id="stageViewportLabelPerspective" class="stageViewportLabel stageViewportLabelSingle">Perspective</span>
-		<span id="stageViewportLabelTop" class="stageViewportLabel stageViewportLabelHidden">Top</span>
-		<span id="stageViewportLabelSide" class="stageViewportLabel stageViewportLabelHidden">Side</span>
-		<span id="stageViewportLabelFront" class="stageViewportLabel stageViewportLabelHidden">Front</span>
-		<img id="cameraPreview" class="cameraPreview" src="editor/textures/icons/menu_bar_logo.png" />
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 		<!-- Hierarchy UI -->
