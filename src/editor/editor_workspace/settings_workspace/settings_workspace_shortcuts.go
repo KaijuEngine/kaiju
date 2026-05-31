@@ -59,6 +59,8 @@ type shortcutCaptureState struct {
 	BindingIdx  int
 	CallbackID  hid.KeyCallbackId
 	Description string
+	Button      *document.Element
+	Original    string
 }
 
 func (w *SettingsWorkspace) buildShortcutSections() []shortcutSectionData {
@@ -143,15 +145,20 @@ func (w *SettingsWorkspace) captureShortcut(e *document.Element) {
 	workspace := e.Attribute("data-workspace")
 	idx, _ := strconv.Atoi(e.Attribute("data-index"))
 	w.stopShortcutCapture()
+	original := ""
 	if label := e.InnerLabel(); label != nil {
-		label.SetText("Press key...")
+		original = label.Text()
+		label.SetText("Press a key")
 	}
+	w.setShortcutCaptureButtonActive(e, true)
 	w.editor.BlurInterface()
 	state := shortcutCaptureState{
 		Action:      action,
 		Workspace:   workspace,
 		BindingIdx:  idx,
 		Description: actionLabel(w.editor.Actions().Definitions(), action),
+		Button:      e,
+		Original:    original,
 	}
 	state.CallbackID = w.Host.Window.Keyboard.AddKeyCallback(func(keyID int, keyState hid.KeyState) {
 		w.onShortcutCaptureKey(keyID, keyState)
@@ -160,7 +167,16 @@ func (w *SettingsWorkspace) captureShortcut(e *document.Element) {
 }
 
 func (w *SettingsWorkspace) onShortcutCaptureKey(keyID int, keyState hid.KeyState) {
-	if w.shortcutCapture == nil || (keyState != hid.KeyStateDown && keyState != hid.KeyStatePressedAndReleased) {
+	if w.shortcutCapture == nil {
+		return
+	}
+	if keyState == hid.KeyStateUp {
+		if editor_action.IsModifierKey(keyID) {
+			w.updateShortcutCapturePreview(0)
+		}
+		return
+	}
+	if keyState != hid.KeyStateDown && keyState != hid.KeyStatePressedAndReleased {
 		return
 	}
 	if hid.KeyboardKey(keyID) == hid.KeyboardKeyEscape {
@@ -168,6 +184,7 @@ func (w *SettingsWorkspace) onShortcutCaptureKey(keyID int, keyState hid.KeyStat
 		return
 	}
 	if editor_action.IsModifierKey(keyID) {
+		w.updateShortcutCapturePreview(0)
 		return
 	}
 	kb := &w.Host.Window.Keyboard
@@ -177,8 +194,8 @@ func (w *SettingsWorkspace) onShortcutCaptureKey(keyID int, keyState hid.KeyStat
 		Shift:      kb.HasShift(),
 		Alt:        kb.HasAlt(),
 	}
-	state := *w.shortcutCapture
-	w.stopShortcutCapture()
+	w.updateShortcutCapturePreview(keyID)
+	state := w.acceptShortcutCapture()
 	w.applyCapturedShortcut(state, chord)
 }
 
@@ -462,6 +479,7 @@ func (w *SettingsWorkspace) persistShortcutSettings() {
 }
 
 func (w *SettingsWorkspace) reloadKeyboardSettings() {
+	scrollY := w.keyboardSettingsScrollY()
 	w.Host.RunNextFrame(func() {
 		w.ReloadUI(uiFile, w.uiData(), w.funcMap())
 		w.reloadedUI()
@@ -477,14 +495,53 @@ func (w *SettingsWorkspace) reloadKeyboardSettings() {
 				break
 			}
 		}
+		w.Host.RunAfterNextUIClean(func() {
+			w.restoreKeyboardSettingsScrollY(scrollY)
+		})
 	})
 }
 
+func (w *SettingsWorkspace) keyboardSettingsScrollY() float32 {
+	if w.keyboardSettingsBox == nil {
+		return 0
+	}
+	parent := w.keyboardSettingsBox.Parent.Value()
+	if parent == nil || parent.UIPanel == nil {
+		return 0
+	}
+	return parent.UIPanel.ScrollY()
+}
+
+func (w *SettingsWorkspace) restoreKeyboardSettingsScrollY(scrollY float32) {
+	if w.keyboardSettingsBox == nil {
+		return
+	}
+	parent := w.keyboardSettingsBox.Parent.Value()
+	if parent == nil || parent.UIPanel == nil {
+		return
+	}
+	parent.UIPanel.SetScrollY(scrollY)
+}
+
 func (w *SettingsWorkspace) stopShortcutCapture() {
+	w.stopShortcutCaptureInternal(true)
+}
+
+func (w *SettingsWorkspace) acceptShortcutCapture() shortcutCaptureState {
+	state := *w.shortcutCapture
+	w.stopShortcutCaptureInternal(false)
+	return state
+}
+
+func (w *SettingsWorkspace) stopShortcutCaptureInternal(restoreButton bool) {
 	if w.shortcutCapture == nil {
 		return
 	}
-	w.Host.Window.Keyboard.RemoveKeyCallback(w.shortcutCapture.CallbackID)
+	state := w.shortcutCapture
+	w.Host.Window.Keyboard.RemoveKeyCallback(state.CallbackID)
+	if restoreButton {
+		w.restoreShortcutCaptureButton(state)
+	}
 	w.shortcutCapture = nil
 	w.editor.FocusInterface()
 }
@@ -492,6 +549,79 @@ func (w *SettingsWorkspace) stopShortcutCapture() {
 func (w *SettingsWorkspace) cancelShortcutCapture() {
 	w.stopShortcutCapture()
 	w.reloadKeyboardSettings()
+}
+
+func (w *SettingsWorkspace) updateShortcutCapturePreview(keyID int) {
+	if w.shortcutCapture == nil || w.shortcutCapture.Button == nil {
+		return
+	}
+	if label := w.shortcutCapture.Button.InnerLabel(); label != nil {
+		label.SetText(shortcutCapturePreview(&w.Host.Window.Keyboard, keyID))
+	}
+}
+
+func shortcutCapturePreview(kb *hid.Keyboard, keyID int) string {
+	parts := make([]string, 0, 4)
+	if kb.HasCtrl() || kb.HasMeta() {
+		parts = append(parts, "Ctrl/Cmd")
+	}
+	if kb.HasShift() {
+		parts = append(parts, "Shift")
+	}
+	if kb.HasAlt() {
+		parts = append(parts, "Alt")
+	}
+	hasPrimaryKey := keyID > int(hid.KeyBoardKeyInvalid) && !editor_action.IsModifierKey(keyID)
+	if hasPrimaryKey {
+		parts = append(parts, editor_action.KeyName(keyID))
+	}
+	if len(parts) == 0 {
+		return "Press a key"
+	}
+	preview := strings.Join(parts, "+")
+	if !hasPrimaryKey {
+		preview += "+"
+	}
+	return preview
+}
+
+func (w *SettingsWorkspace) restoreShortcutCaptureButton(state *shortcutCaptureState) {
+	if state == nil || state.Button == nil {
+		return
+	}
+	if label := state.Button.InnerLabel(); label != nil {
+		label.SetText(state.Original)
+	}
+	w.setShortcutCaptureButtonActive(state.Button, false)
+}
+
+func (w *SettingsWorkspace) setShortcutCaptureButtonActive(button *document.Element, active bool) {
+	if w.Doc == nil || button == nil {
+		return
+	}
+	w.Doc.SetElementClasses(button, shortcutCaptureClasses(button, active)...)
+}
+
+func shortcutCaptureClasses(button *document.Element, active bool) []string {
+	classes := make([]string, 0, len(button.ClassList())+1)
+	hasActive := false
+	for _, class := range button.ClassList() {
+		class = strings.TrimSpace(class)
+		if class == "" {
+			continue
+		}
+		if class == "shortcutCaptureActive" {
+			hasActive = true
+			if !active {
+				continue
+			}
+		}
+		classes = append(classes, class)
+	}
+	if active && !hasActive {
+		classes = append(classes, "shortcutCaptureActive")
+	}
+	return classes
 }
 
 func (w *SettingsWorkspace) shortcutConflictMessage(chord editor_action.KeyChord, conflicts []editor_action.BindingConflict) string {

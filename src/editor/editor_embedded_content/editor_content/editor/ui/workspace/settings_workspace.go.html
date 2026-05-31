@@ -189,58 +189,105 @@
 			.workspaceToggle { margin-right: 0.5em; }
 			.workspaceMoveBtn { margin-left: 0.25em; }
 			.shortcutToolbar {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
 				width: 100%;
-				margin-bottom: 1em;
+				height: 24px;
+				margin-bottom: 0.75em;
 			}
 			.shortcutToolbar button {
-				width: 7em;
-				height: 24px;
+				width: 6.5em;
+				height: 22px;
 				margin-right: 0.5em;
 			}
 			.shortcutSection {
 				width: 100%;
-				margin-bottom: 1.5em;
+				margin-bottom: 1em;
+			}
+			.shortcutSection h2 {
+				font-size: 18px;
+				margin-top: 0.75em;
+				margin-bottom: 0.25em;
+			}
+			.shortcutList {
+				width: 100%;
 			}
 			.shortcutRow {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
 				width: 100%;
-				padding: 8px;
-				margin: 4px 0;
-				border-radius: 4px;
+				height: 28px;
+				padding: 2px 6px;
+				margin: 1px 0;
+				border-radius: 3px;
+			}
+			.shortcutAction {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				width: calc(100% - 28em);
+				height: 100%;
+				overflow: hidden;
 			}
 			.shortcutTitle {
-				width: 100%;
-				font-weight: bold;
+				width: 42%;
+				font-size: 13px;
+				font-weight: normal;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
 			}
 			.shortcutId {
+				width: 56%;
 				color: #888;
-				font-size: 11px;
-				margin-left: 0.5em;
-			}
-			.shortcutDescription {
-				width: 100%;
-				color: #AAA;
-				font-size: 12px;
-				margin-top: 2px;
+				font-size: 10px;
+				margin-left: 0.75em;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
 			}
 			.shortcutBindings {
-				width: 100%;
-				margin-top: 6px;
+				display: flex;
+				flex-direction: row;
+				justify-content: flex-end;
+				align-items: center;
+				width: 28em;
+				height: 100%;
 			}
-			.shortcutChord {
-				width: auto;
-				min-width: 8em;
-				padding: 3px 6px;
-				margin-right: 0.5em;
-				background-color: #313232;
-			}
-			.shortcutEmpty {
-				color: #888;
-				margin-right: 0.5em;
-			}
-			.shortcutButton {
-				width: 5em;
+			.shortcutKeyButton {
+				width: 10em;
 				height: 22px;
-				margin-right: 0.5em;
+				margin-left: 0.35em;
+				padding: 0 5px 2px 5px;
+				font-size: 12px;
+				border-radius: 4px;
+			}
+			.shortcutKeyButton:active {
+				padding: 0 5px 2px 5px;
+			}
+			.shortcutUnset {
+				color: #888;
+			}
+			.shortcutIconButton {
+				width: 24px;
+				height: 22px;
+				margin-left: 0.35em;
+				padding: 0 5px 2px 5px;
+				font-size: 12px;
+				border-radius: 4px;
+			}
+			.shortcutIconButton:active {
+				padding: 0 5px 2px 5px;
+			}
+			.shortcutCaptureActive,
+			.shortcutCaptureActive:hover,
+			.shortcutCaptureActive:active {
+				background-color: #2B5F8E;
+				border: 2px solid #7BB9F2;
+				color: #FFF;
+				padding: 0 5px 2px 5px;
 			}
 			.webAPISettings {
 				margin-top: 1em;
@@ -339,27 +386,25 @@
 					{{range $s := .Shortcuts}}
 					<div class="shortcutSection">
 						<h2>{{$s.Name}}</h2>
+						<div class="shortcutList">
 						{{range $r := $s.Rows}}
 						<div class="shortcutRow edPanelBgDark">
-							<div class="shortcutTitle">
-								{{$r.Label}}
-								<span class="shortcutId">{{$r.Action}}</span>
+							<div class="shortcutAction">
+								<div class="shortcutTitle">{{$r.Label}}</div>
+								<div class="shortcutId">{{$r.Action}}</div>
 							</div>
-							{{if $r.Description}}
-							<div class="shortcutDescription">{{$r.Description}}</div>
-							{{end}}
 							<div class="shortcutBindings">
 								{{range $b := $r.Bindings}}
-									<span class="shortcutChord">{{$b.Chord}}</span>
-									<button class="shortcutButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="{{$b.Index}}" onclick="captureShortcut">Set</button>
+									<button class="shortcutKeyButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="{{$b.Index}}" onclick="captureShortcut">{{$b.Chord}}</button>
 								{{else}}
-									<span class="shortcutEmpty">No shortcut</span>
+									<button class="shortcutKeyButton shortcutUnset" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">No shortcut</button>
 								{{end}}
-								<button class="shortcutButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">Add</button>
-								<button class="shortcutButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" onclick="clearShortcut">Clear</button>
+								<button class="shortcutIconButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">+</button>
+								<button class="shortcutIconButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" onclick="clearShortcut">X</button>
 							</div>
 						</div>
 						{{end}}
+						</div>
 					</div>
 					{{end}}
 				</div>
