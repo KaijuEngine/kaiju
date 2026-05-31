@@ -29,9 +29,6 @@ type Transform struct {
 	workGroup                 *concurrent.WorkGroup
 	position, rotation, scale Vec3
 	relativePosition          Vec3
-	framePosition             Vec3
-	frameRotation             Vec3
-	frameScale                Vec3
 	isDirty                   bool
 	frameDirty                bool
 	orderedChildren           bool
@@ -66,12 +63,7 @@ func (t *Transform) Parent() *Transform  { return t.parent }
 func (t *Transform) Position() Vec3      { return t.relativePosition }
 
 func (t *Transform) IsDirty() bool {
-	if !t.frameDirty {
-		return false
-	}
-	return !t.framePosition.Equals(t.position) ||
-		!t.frameRotation.Equals(t.rotation) ||
-		!t.frameScale.Equals(t.scale)
+	return t.frameDirty
 }
 
 func (t *Transform) Right() Vec3 {
@@ -143,11 +135,6 @@ func (t *Transform) ResetDirty() {
 
 func (t *Transform) SetLocalPosition(position Vec3) {
 	if !t.position.Equals(position) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.position = position
 		if t.parent != nil {
 			wm := t.parent.WorldMatrix()
@@ -169,11 +156,6 @@ func (t *Transform) SetPosition(position Vec3) {
 	desiredWorld := t.parent.WorldPosition().Add(position)
 	localPos := t.parent.InverseWorldMatrix().TransformPoint(desiredWorld)
 	if !t.position.Equals(localPos) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.position = localPos
 		t.relativePosition = position
 		t.SetDirty()
@@ -182,11 +164,6 @@ func (t *Transform) SetPosition(position Vec3) {
 
 func (t *Transform) SetRotation(rotation Vec3) {
 	if !t.rotation.Equals(rotation) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.rotation = rotation
 		t.SetDirty()
 	}
@@ -194,11 +171,6 @@ func (t *Transform) SetRotation(rotation Vec3) {
 
 func (t *Transform) SetScale(scale Vec3) {
 	if !t.scale.Equals(scale) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.scale = scale
 		t.SetDirty()
 	}

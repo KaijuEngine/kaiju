@@ -273,11 +273,23 @@ func (ui *UI) Event(evtType EventType) *events.Event {
 
 func (ui *UI) cleanDirty() { ui.dirtyType = DirtyTypeNone }
 
+func labelDirtyRequiresRender(dirtyType DirtyType) bool {
+	switch dirtyType {
+	case DirtyTypeResize, DirtyTypeGenerated,
+		DirtyTypeParentResize, DirtyTypeParentGenerated,
+		DirtyTypeParentReGenerated:
+		return true
+	default:
+		return false
+	}
+}
+
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 	defer tracing.NewRegion("UI.setDirtyInternal").End()
 	if ui.IsType(ElementTypeLabel) {
-		// TODO:  This isn't needed in some cases
-		ui.ToLabel().LabelData().renderRequired = true
+		if labelDirtyRequiresRender(dirtyType) {
+			ui.ToLabel().LabelData().renderRequired = true
+		}
 	} else {
 		ui.ToPanel().PanelData().flags.setWasDirtied()
 	}
