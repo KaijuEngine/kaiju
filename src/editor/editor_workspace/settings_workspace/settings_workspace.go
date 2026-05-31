@@ -66,6 +66,7 @@ type SettingsWorkspace struct {
 	recompiling          bool
 	downloadingPlugin    bool
 	shortcutCapture      *shortcutCaptureState
+	isSettingKeybinding  bool
 }
 
 // workspaceRowData is the per-row data the Workspaces panel template loops over.
@@ -116,6 +117,10 @@ func (w *SettingsWorkspace) Shutdown() {
 	defer tracing.NewRegion("SettingsWorkspace.Shutdown").End()
 	w.stopShortcutCapture()
 	w.CommonShutdown()
+}
+
+func (w *SettingsWorkspace) IsFocusedOnInput() bool {
+	return w.isSettingKeybinding
 }
 
 func (w *SettingsWorkspace) Open() {

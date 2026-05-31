@@ -534,7 +534,13 @@ func (w *SettingsWorkspace) acceptShortcutCapture() shortcutCaptureState {
 	return state
 }
 
+func (w *SettingsWorkspace) delaySetIsSettingKeybinding(value bool) {
+	// Delay this 1 frame so the hotkey doesn't activate this frame
+	w.Host.RunAfterFrames(1, func() { w.isSettingKeybinding = value })
+}
+
 func (w *SettingsWorkspace) stopShortcutCaptureInternal(restoreButton, focusEditor bool) {
+	w.delaySetIsSettingKeybinding(false)
 	if w.shortcutCapture == nil {
 		return
 	}
@@ -608,6 +614,7 @@ func (w *SettingsWorkspace) setShortcutCaptureButtonActive(button *document.Elem
 		return
 	}
 	w.Doc.SetElementClasses(button, shortcutCaptureClasses(button, active)...)
+	w.delaySetIsSettingKeybinding(active)
 }
 
 func shortcutCaptureClasses(button *document.Element, active bool) []string {
