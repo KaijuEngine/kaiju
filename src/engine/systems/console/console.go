@@ -164,7 +164,21 @@ func (c *Console) ExecCommand(key, arg string) (string, error) {
 
 func (c *Console) Write(message string) {
 	lbl := c.outputLabel()
-	lbl.SetText(lbl.Text() + "\n" + message)
+	lbl.SetText(message)
+}
+
+func (c *Console) WriteColor(message string, color matrix.Color) {
+	lbl := c.outputLabel()
+	lbl.SetText(message)
+	lbl.EnforceFGColor(color)
+}
+
+func (c *Console) WriteError(message string) {
+	c.WriteColor(message, matrix.ColorRed())
+}
+
+func (c *Console) WriteSuccess(message string) {
+	c.WriteColor(message, matrix.ColorGreen())
 }
 
 func (c *Console) help(*engine.Host, string) string {
@@ -181,13 +195,32 @@ func (c *Console) help(*engine.Host, string) string {
 }
 
 func (c *Console) clear(*engine.Host, string) string {
-	c.outputLabel().SetText("")
+	cc, _ := c.doc.GetElementById("consoleContent")
+	for _, c := range cc.Children {
+		c.UI.Entity().Deactivate()
+	}
+	cc.UIPanel.SetScrollY(0)
 	return ""
 }
 
 func (c *Console) outputLabel() *ui.Label {
 	cc, _ := c.doc.GetElementById("consoleContent")
-	return ui.FirstOnEntity(cc.Children[0].UI.Entity()).ToLabel()
+	if l := len(cc.Children); l > 1000 {
+		var last *ui.Label
+		for i := 1; i < l; i++ {
+			lbl := ui.FirstOnEntity(cc.Children[i-1].UI.Entity()).ToLabel()
+			last = ui.FirstOnEntity(cc.Children[i].UI.Entity()).ToLabel()
+			lbl.UnEnforceFGColor()
+			lbl.EnforceFGColor(last.GetColor())
+			lbl.SetText(last.Text())
+		}
+		last.UnEnforceFGColor()
+		return last
+	}
+	new := cc.Children[len(cc.Children)-1].Clone(cc)
+	cc.UIPanel.AddChild(new.UI)
+	lbl := new.UI.ToLabel()
+	return lbl
 }
 
 func (c *Console) submit(input *ui.Input) {
@@ -214,9 +247,9 @@ func (c *Console) submit(input *ui.Input) {
 	lblParent, _ := c.doc.GetElementById("consoleContent")
 	lbl := c.outputLabel()
 	if res != "" {
-		lbl.SetText(lbl.Text() + "\n" + cmdStr + "\n" + res)
+		lbl.SetText(cmdStr + "\n" + res)
 	} else {
-		lbl.SetText(lbl.Text() + "\n" + cmdStr)
+		lbl.SetText(cmdStr)
 	}
 	lblParent.UIPanel.SetScrollY(matrix.FloatMax)
 }

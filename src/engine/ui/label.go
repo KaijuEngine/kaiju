@@ -312,6 +312,10 @@ func (label *Label) setLabelScissors() {
 	}
 }
 
+func (label *Label) GetColor() matrix.Color {
+	return label.LabelData().fgColor
+}
+
 func (label *Label) SetColor(newColor matrix.Color) {
 	ld := label.LabelData()
 	if ld.isForcedFGColor || ld.fgColor.Equals(newColor) {
