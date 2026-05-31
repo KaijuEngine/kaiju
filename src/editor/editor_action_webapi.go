@@ -22,14 +22,14 @@ type actionSearchRequest struct {
 }
 
 type actionAPIRequest struct {
-	ID            editor_action.ActionID `json:"id"`
+	Id            editor_action.ActionID `json:"id"`
 	Params        json.RawMessage        `json:"params,omitempty"`
 	Args          json.RawMessage        `json:"args,omitempty"`
-	CorrelationID string                 `json:"correlationId,omitempty"`
+	CorrelationId string                 `json:"correlationId,omitempty"`
 }
 
 func init() {
-	webapi.MustRegister[*Editor](actionWebAPI{})
+	webapi.MustRegister(actionWebAPI{})
 }
 
 func (actionWebAPI) Routes() []webapi.Route {
@@ -95,7 +95,7 @@ func decodeActionRequest(w http.ResponseWriter, r *http.Request) (editor_action.
 	if !decodeActionAPIJSON(w, r, &apiReq) {
 		return editor_action.Request{}, false
 	}
-	if apiReq.ID == "" {
+	if apiReq.Id == "" {
 		writeEditorActionJSON(w, http.StatusBadRequest, editor_action.Failure("id is required"))
 		return editor_action.Request{}, false
 	}
@@ -104,9 +104,9 @@ func decodeActionRequest(w http.ResponseWriter, r *http.Request) (editor_action.
 		params = apiReq.Args
 	}
 	req := editor_action.Request{
-		ID:            apiReq.ID,
+		ID:            apiReq.Id,
 		Params:        params,
-		CorrelationID: apiReq.CorrelationID,
+		CorrelationID: apiReq.CorrelationId,
 	}
 	return req, true
 }
