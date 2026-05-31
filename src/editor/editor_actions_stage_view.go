@@ -28,6 +28,7 @@ const (
 	ActionStageWireframeMove        editor_action.ActionID = "stage.wireframeMove"
 	ActionStageWireframeRotate      editor_action.ActionID = "stage.wireframeRotate"
 	ActionStageWireframeScale       editor_action.ActionID = "stage.wireframeScale"
+	ActionStageCreateTemplate       editor_action.ActionID = "stage.createTemplate"
 )
 
 type gridVisibleActionArgs struct {
@@ -220,6 +221,24 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionWireframeScale, ed.stageTransformToolCanRun)
 	mustRegister(editor_action.Definition{
+		ID:          ActionStageCreateTemplate,
+		Label:       "Create Template",
+		Description: "Creates or updates an entity template from the selected stage actor.",
+		Category:    "Stage",
+		Tags:        []string{"actor", "entity", "selection", "template", "create"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  ActionStageCreateTemplate,
+			Enabled: true,
+			Chord: editor_action.KeyChord{
+				Keys:       []int{int(hid.KeyboardKeyT)},
+				CtrlOrMeta: true,
+			},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionCreateTemplate, ed.stageSingleSelectionCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          ActionStageSetGridVisible,
 		Label:       "Set Grid Visible",
 		Description: "Shows or hides the stage viewport grid.",
@@ -311,6 +330,13 @@ func (ed *Editor) actionWireframeTool(state transform_tools.ToolState, label str
 		return editor_action.Failure("stage wireframe transform tool was not changed")
 	}
 	return stageSelectionResult("stage "+label+" tool changed", ed.stageView.Manager().Selection())
+}
+
+func (ed *Editor) actionCreateTemplate(editor_action.Context, editor_action.Request) editor_action.Result {
+	if err := ed.stageView.Manager().CreateTemplateFromSelected(ed.Events(), ed.Project()); err != nil {
+		return editor_action.Failure(err.Error())
+	}
+	return stageSelectionResult("stage template created", ed.stageView.Manager().Selection())
 }
 
 func (ed *Editor) actionSetGridVisible(ctx editor_action.Context, req editor_action.Request) editor_action.Result {

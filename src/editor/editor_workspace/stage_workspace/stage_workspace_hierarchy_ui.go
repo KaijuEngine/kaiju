@@ -15,13 +15,11 @@ import (
 	"kaijuengine.com/editor/editor_overlay/context_menu"
 	"kaijuengine.com/editor/editor_stage_manager"
 	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
-	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
@@ -97,15 +95,6 @@ func (hui *WorkspaceHierarchyUI) hierarchySearch(e *document.Element) {
 		}
 	}
 	hui.entityList.UI.SetDirty(ui.DirtyTypeLayout)
-}
-
-func (hui *WorkspaceHierarchyUI) processHotkeys(host *engine.Host) {
-	defer tracing.NewRegion("WorkspaceHierarchyUI.processHotkeys").End()
-	kb := &host.Window.Keyboard
-	if kb.HasCtrlOrMeta() && kb.KeyDown(hid.KeyboardKeyT) {
-		w := hui.workspace.Value()
-		w.stageView.Manager().CreateTemplateFromSelected(w.ed.Events(), w.ed.Project())
-	}
 }
 
 func (hui *WorkspaceHierarchyUI) selectEntity(e *document.Element) {

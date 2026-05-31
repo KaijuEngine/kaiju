@@ -203,10 +203,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 		return
 	}
 	w.detailsUI.update()
-	didKeyboardActions := w.stageView.Update(deltaTime, w.ed.Project())
-	if !didKeyboardActions {
-		w.hierarchyUI.processHotkeys(w.Host)
-	}
+	w.stageView.Update(deltaTime, w.ed.Project())
 	w.updateCameraPreviewPlacement()
 }
 

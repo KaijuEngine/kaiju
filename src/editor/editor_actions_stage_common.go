@@ -29,6 +29,16 @@ func (ed *Editor) stageSelectionCanRun(ctx editor_action.Context, req editor_act
 	return editor_action.Success("")
 }
 
+func (ed *Editor) stageSingleSelectionCanRun(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
+	if can := ed.stageCanRun(ctx, req); !can.OK {
+		return can
+	}
+	if len(ed.stageView.Manager().Selection()) != 1 {
+		return editor_action.Failure("exactly one entity must be selected")
+	}
+	return editor_action.Success("")
+}
+
 func (ed *Editor) stageTransformToolCanRun(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
 	if can := ed.stageSelectionCanRun(ctx, req); !can.OK {
 		return can

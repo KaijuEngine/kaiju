@@ -67,6 +67,7 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 		{ActionStageWireframeMove, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyW)}, Alt: true}},
 		{ActionStageWireframeRotate, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyE)}, Alt: true}},
 		{ActionStageWireframeScale, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyR)}, Alt: true}},
+		{ActionStageCreateTemplate, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyT)}, CtrlOrMeta: true}},
 	}
 	for _, check := range checks {
 		bindings := editor_action.BindingsForAction(
