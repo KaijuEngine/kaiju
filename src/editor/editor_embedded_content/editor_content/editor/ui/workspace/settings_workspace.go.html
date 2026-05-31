@@ -196,10 +196,20 @@
 				height: 24px;
 				margin-bottom: 0.75em;
 			}
+			.shortcutSearch {
+				width: calc(100% - 22em);
+				height: 22px;
+				margin-right: 0.5em;
+				padding: 0 6px;
+			}
 			.shortcutToolbar button {
 				width: 6.5em;
 				height: 22px;
 				margin-right: 0.5em;
+			}
+			.shortcutNoResults {
+				color: #AAA;
+				margin-top: 1em;
 			}
 			.shortcutSection {
 				width: 100%;
@@ -379,6 +389,7 @@
 				<div id="keyboardSettingsBox" class="settingsBox">
 					<h1>Keyboard Shortcuts</h1>
 					<div class="shortcutToolbar">
+						<input id="shortcutSearch" class="input shortcutSearch" type="text" placeholder="Filter shortcuts" onchange="filterShortcuts" />
 						<button onclick="resetShortcuts">Reset</button>
 						<button onclick="exportShortcuts">Export</button>
 						<button onclick="importShortcuts">Import</button>
@@ -388,25 +399,26 @@
 						<h2>{{$s.Name}}</h2>
 						<div class="shortcutList">
 						{{range $r := $s.Rows}}
-						<div class="shortcutRow edPanelBgDark">
+						<div class="shortcutRow edPanelBgDark" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-search="{{$s.Name}} {{$r.Workspace}} {{$r.Label}} {{$r.Action}} {{$r.Description}}">
 							<div class="shortcutAction">
 								<div class="shortcutTitle">{{$r.Label}}</div>
 								<div class="shortcutId">{{$r.Action}}</div>
 							</div>
 							<div class="shortcutBindings">
 								{{range $b := $r.Bindings}}
-									<button class="shortcutKeyButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="{{$b.Index}}" onclick="captureShortcut">{{$b.Chord}}</button>
+									<button class="shortcutKeyButton shortcutBindingButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="{{$b.Index}}" onclick="captureShortcut">{{$b.Chord}}</button>
 								{{else}}
-									<button class="shortcutKeyButton shortcutUnset" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">No shortcut</button>
+									<button class="shortcutKeyButton shortcutBindingButton shortcutUnset" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">No shortcut</button>
 								{{end}}
-								<button class="shortcutIconButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">+</button>
-								<button class="shortcutIconButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" onclick="clearShortcut">X</button>
+								<button class="shortcutIconButton shortcutAddButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">+</button>
+								<button class="shortcutIconButton shortcutClearButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" onclick="clearShortcut">X</button>
 							</div>
 						</div>
 						{{end}}
 						</div>
 					</div>
 					{{end}}
+					<div id="shortcutNoResults" class="shortcutNoResults">No shortcuts match the filter.</div>
 				</div>
 				<div id="pluginSettingsBox" class="settingsBox">
 					<h1>Plugin Settings</h1>

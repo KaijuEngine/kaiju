@@ -120,7 +120,7 @@ func (w *SettingsWorkspace) Shutdown() {
 }
 
 func (w *SettingsWorkspace) IsFocusedOnInput() bool {
-	return w.isSettingKeybinding
+	return w.isSettingKeybinding || w.CommonWorkspace.IsFocusedOnInput()
 }
 
 func (w *SettingsWorkspace) Open() {
@@ -217,6 +217,7 @@ func (w *SettingsWorkspace) showKeyboardSettings(e *document.Element) {
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
 	w.keyboardSettingsBox.UI.Show()
+	w.applyShortcutFilter()
 }
 
 // toggleWorkspaceEnabled toggles a non-required workspace's enabled flag.
@@ -579,6 +580,7 @@ func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 		"rotateWebAPIKey":        w.rotateWebAPIKey,
 		"captureShortcut":        w.captureShortcut,
 		"clearShortcut":          w.clearShortcut,
+		"filterShortcuts":        w.filterShortcuts,
 		"resetShortcuts":         w.resetShortcuts,
 		"exportShortcuts":        w.exportShortcuts,
 		"importShortcuts":        w.importShortcuts,

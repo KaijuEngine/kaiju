@@ -200,7 +200,7 @@ func (w *SettingsWorkspace) onShortcutCaptureKey(keyID int, keyState hid.KeyStat
 
 func (w *SettingsWorkspace) applyCapturedShortcut(state shortcutCaptureState, chord editor_action.KeyChord) {
 	if !editor_action.ValidChord(chord) {
-		w.reloadKeyboardSettings()
+		w.restoreShortcutCaptureButton(&state)
 		w.focusEditorAfterShortcutCaptureKey()
 		return
 	}
@@ -231,7 +231,7 @@ func (w *SettingsWorkspace) applyCapturedShortcut(state shortcutCaptureState, ch
 		},
 		OnCancel: func() {
 			w.editor.FocusInterface()
-			w.reloadKeyboardSettings()
+			w.restoreShortcutCaptureButton(&state)
 		},
 	})
 }
@@ -288,7 +288,7 @@ func (w *SettingsWorkspace) applyShortcutReplacement(action editor_action.Action
 	}
 	w.editorSettings.ActionBindings = settings
 	w.persistShortcutSettings()
-	w.reloadKeyboardSettings()
+	w.refreshKeyboardSettingsRows()
 }
 
 func (w *SettingsWorkspace) resetShortcuts(*document.Element) {
@@ -303,7 +303,7 @@ func (w *SettingsWorkspace) resetShortcuts(*document.Element) {
 			w.editor.FocusInterface()
 			w.editorSettings.ActionBindings = nil
 			w.persistShortcutSettings()
-			w.reloadKeyboardSettings()
+			w.refreshKeyboardSettingsRows()
 		},
 		OnCancel: w.editor.FocusInterface,
 	})
@@ -427,7 +427,7 @@ func (w *SettingsWorkspace) readShortcutProfile(path string) error {
 	}
 	w.editorSettings.ActionBindings = bindings
 	w.persistShortcutSettings()
-	w.reloadKeyboardSettings()
+	w.refreshKeyboardSettingsRows()
 	return nil
 }
 
@@ -479,51 +479,6 @@ func (w *SettingsWorkspace) persistShortcutSettings() {
 	}
 }
 
-func (w *SettingsWorkspace) reloadKeyboardSettings() {
-	scrollY := w.keyboardSettingsScrollY()
-	w.Host.RunNextFrame(func() {
-		w.ReloadUI(uiFile, w.uiData(), w.funcMap())
-		w.reloadedUI()
-		w.CommonOpen()
-		w.projectSettingsBox.UI.Hide()
-		w.editorSettingsBox.UI.Hide()
-		w.pluginSettingsBox.UI.Hide()
-		w.workspaceSettingsBox.UI.Hide()
-		w.keyboardSettingsBox.UI.Show()
-		for _, e := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
-			if e.InnerLabel().Text() == "Keyboard Shortcuts" {
-				w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
-				break
-			}
-		}
-		w.Host.RunAfterNextUIClean(func() {
-			w.restoreKeyboardSettingsScrollY(scrollY)
-		})
-	})
-}
-
-func (w *SettingsWorkspace) keyboardSettingsScrollY() float32 {
-	if w.keyboardSettingsBox == nil {
-		return 0
-	}
-	parent := w.keyboardSettingsBox.Parent.Value()
-	if parent == nil || parent.UIPanel == nil {
-		return 0
-	}
-	return parent.UIPanel.ScrollY()
-}
-
-func (w *SettingsWorkspace) restoreKeyboardSettingsScrollY(scrollY float32) {
-	if w.keyboardSettingsBox == nil {
-		return
-	}
-	parent := w.keyboardSettingsBox.Parent.Value()
-	if parent == nil || parent.UIPanel == nil {
-		return
-	}
-	parent.UIPanel.SetScrollY(scrollY)
-}
-
 func (w *SettingsWorkspace) stopShortcutCapture() {
 	w.stopShortcutCaptureInternal(true, true)
 }
@@ -555,9 +510,206 @@ func (w *SettingsWorkspace) stopShortcutCaptureInternal(restoreButton, focusEdit
 	}
 }
 
+func (w *SettingsWorkspace) filterShortcuts(*document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.filterShortcuts").End()
+	w.applyShortcutFilter()
+}
+
+func (w *SettingsWorkspace) refreshKeyboardSettingsRows() {
+	if w.Host == nil {
+		return
+	}
+	w.Host.RunNextFrame(func() {
+		if w.Doc == nil {
+			return
+		}
+		w.syncShortcutRows()
+		w.applyShortcutFilter()
+	})
+}
+
+func (w *SettingsWorkspace) syncShortcutRows() {
+	if w.Doc == nil {
+		return
+	}
+	defaults := w.editor.Actions().DefaultBindings()
+	for _, row := range w.Doc.GetElementsByClass("shortcutRow") {
+		action := editor_action.ActionID(row.Attribute("data-action"))
+		if action == "" {
+			continue
+		}
+		workspace := row.Attribute("data-workspace")
+		bindings := editor_action.BindingsForAction(defaults, w.editorSettings.ActionBindings, action, workspace)
+		w.syncShortcutRow(row, bindings)
+	}
+	w.Doc.ApplyStyles()
+}
+
+func (w *SettingsWorkspace) syncShortcutRow(row *document.Element, bindings []editor_action.ActionBinding) {
+	bindingBox := shortcutChildByClass(row, "shortcutBindings")
+	if bindingBox == nil {
+		return
+	}
+	action := row.Attribute("data-action")
+	workspace := row.Attribute("data-workspace")
+	buttons := shortcutBindingButtons(bindingBox)
+	desiredButtons := len(bindings)
+	if desiredButtons == 0 {
+		desiredButtons = 1
+	}
+	addButton := shortcutChildByClass(bindingBox, "shortcutAddButton")
+	for len(buttons) < desiredButtons {
+		template := addButton
+		if len(buttons) > 0 {
+			template = buttons[len(buttons)-1]
+		}
+		if template == nil {
+			return
+		}
+		button := w.Doc.DuplicateElement(template)
+		if addButton != nil {
+			w.Doc.InsertElementBefore(button, addButton)
+		}
+		buttons = append(buttons, button)
+	}
+	for len(buttons) > desiredButtons {
+		last := buttons[len(buttons)-1]
+		w.Doc.RemoveElement(last)
+		buttons = buttons[:len(buttons)-1]
+	}
+	for i, button := range buttons {
+		button.SetAttribute("data-action", action)
+		button.SetAttribute("data-workspace", workspace)
+		if len(bindings) == 0 {
+			button.SetAttribute("data-index", "-1")
+			setShortcutButtonLabel(button, "No shortcut")
+			w.Doc.SetElementClassesWithoutApply(button,
+				"shortcutKeyButton", "shortcutBindingButton", "shortcutUnset")
+			continue
+		}
+		button.SetAttribute("data-index", strconv.Itoa(i))
+		setShortcutButtonLabel(button, editor_action.FormatKeyChord(bindings[i].Chord))
+		w.Doc.SetElementClassesWithoutApply(button, "shortcutKeyButton", "shortcutBindingButton")
+	}
+	for _, button := range []*document.Element{
+		addButton,
+		shortcutChildByClass(bindingBox, "shortcutClearButton"),
+	} {
+		if button == nil {
+			continue
+		}
+		button.SetAttribute("data-action", action)
+		button.SetAttribute("data-workspace", workspace)
+	}
+}
+
+func (w *SettingsWorkspace) applyShortcutFilter() {
+	if w.Doc == nil {
+		return
+	}
+	query := w.shortcutFilterQuery()
+	anyVisible := false
+	for _, section := range w.Doc.GetElementsByClass("shortcutSection") {
+		sectionVisible := false
+		for _, row := range shortcutElementsByClass(section, "shortcutRow") {
+			visible := shortcutRowMatchesFilter(row, query)
+			row.UI.SetVisibility(visible)
+			sectionVisible = sectionVisible || visible
+		}
+		section.UI.SetVisibility(sectionVisible)
+		anyVisible = anyVisible || sectionVisible
+	}
+	if empty, ok := w.Doc.GetElementById("shortcutNoResults"); ok && empty.UI != nil {
+		empty.UI.SetVisibility(!anyVisible)
+	}
+}
+
+func (w *SettingsWorkspace) shortcutFilterQuery() string {
+	if w.Doc == nil {
+		return ""
+	}
+	search, ok := w.Doc.GetElementById("shortcutSearch")
+	if !ok || search.UI == nil {
+		return ""
+	}
+	return search.UI.ToInput().Text()
+}
+
+func shortcutBindingButtons(parent *document.Element) []*document.Element {
+	if parent == nil {
+		return nil
+	}
+	buttons := make([]*document.Element, 0)
+	for _, child := range parent.Children {
+		if child.HasClass("shortcutBindingButton") {
+			buttons = append(buttons, child)
+		}
+	}
+	return buttons
+}
+
+func shortcutChildByClass(parent *document.Element, class string) *document.Element {
+	if parent == nil {
+		return nil
+	}
+	for _, child := range parent.Children {
+		if child.HasClass(class) {
+			return child
+		}
+	}
+	return nil
+}
+
+func shortcutElementsByClass(parent *document.Element, class string) []*document.Element {
+	if parent == nil {
+		return nil
+	}
+	elements := make([]*document.Element, 0)
+	if parent.HasClass(class) {
+		elements = append(elements, parent)
+	}
+	for _, child := range parent.Children {
+		elements = append(elements, shortcutElementsByClass(child, class)...)
+	}
+	return elements
+}
+
+func setShortcutButtonLabel(button *document.Element, text string) {
+	if label := button.InnerLabel(); label != nil {
+		label.SetText(text)
+	}
+}
+
+func shortcutRowMatchesFilter(row *document.Element, query string) bool {
+	return shortcutTextMatchesFilter(shortcutRowSearchText(row), query)
+}
+
+func shortcutTextMatchesFilter(haystack, query string) bool {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" {
+		return true
+	}
+	haystack = strings.ToLower(haystack)
+	for _, token := range strings.Fields(query) {
+		if !strings.Contains(haystack, token) {
+			return false
+		}
+	}
+	return true
+}
+
+func shortcutRowSearchText(row *document.Element) string {
+	parts := []string{row.Attribute("data-search")}
+	for _, button := range shortcutBindingButtons(shortcutChildByClass(row, "shortcutBindings")) {
+		if label := button.InnerLabel(); label != nil {
+			parts = append(parts, label.Text())
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
 func (w *SettingsWorkspace) cancelShortcutCapture() {
 	w.stopShortcutCaptureInternal(true, false)
-	w.reloadKeyboardSettings()
 	w.focusEditorAfterShortcutCaptureKey()
 }
 
