@@ -151,7 +151,6 @@ func (w *SettingsWorkspace) captureShortcut(e *document.Element) {
 		label.SetText("Press a key")
 	}
 	w.setShortcutCaptureButtonActive(e, true)
-	w.editor.BlurInterface()
 	state := shortcutCaptureState{
 		Action:      action,
 		Workspace:   workspace,
