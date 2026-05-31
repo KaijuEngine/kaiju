@@ -1,0 +1,26 @@
+div { width: 100%; }
+
+.topSearch {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+input {
+	width: calc(100% - 1em);
+	height: 2em;
+	margin-left: 0.25em;
+}
+
+.sideBarStandard {
+	height: calc(70% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+}
+
+.sideBarTall {
+	height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+}
+
+#hierarchyArea,
+#detailsArea,
+#contentArea {
+	z-index: 4;
+}

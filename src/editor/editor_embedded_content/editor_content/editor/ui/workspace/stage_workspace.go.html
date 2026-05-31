@@ -2,8 +2,6 @@
 <html>
 	<head>
 		<style>
-			div { width: 100%; }
-			.topSearch { margin-top: 0.5em; margin-bottom: 0.5em; }
 			#ftdePrompt {
 				position: absolute;
 				width: 400px;
@@ -23,13 +21,6 @@
 				font-size: 2em;
 				text-align: left;
 			}
-			input {
-				width: calc(100% - 1em);
-				height: 2em;
-				margin-left: 0.25em;
-			}
-			.sideBarStandard { height: calc(70% - var(--ed-menu-bar-height) - var(--ed-status-bar-height)); }
-			.sideBarTall { height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height)); }
 			#dimensionToggle {
 				position: absolute;
 				font-size: 0.6em;
@@ -45,25 +36,11 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
-			#hierarchyArea,
-			#detailsArea,
-			#contentArea {
-				z-index: 4;
-			}
 		</style>
-		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_hierarchy.css" />
-		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_details.css" />
-		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_content.css" />
 	</head>
 	<body>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
-		<!-- Hierarchy UI -->
-		<kaiju-include src="editor/ui/workspace/stage_workspace_hierarchy.go.html"></kaiju-include>
-		<!-- Details UI -->
-		<kaiju-include src="editor/ui/workspace/stage_workspace_details.go.html"></kaiju-include>
-		<!-- Content UI -->
-		<kaiju-include src="editor/ui/workspace/stage_workspace_content.go.html"></kaiju-include>
 		<!-- First time developer experience UI -->
 		<div id="ftdePrompt">
 			<div id="ftdeArrow">^</div>

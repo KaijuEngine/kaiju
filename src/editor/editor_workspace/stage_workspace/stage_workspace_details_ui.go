@@ -76,6 +76,7 @@ var fieldMap = map[copyPasteKind]reflect.Kind{
 
 type WorkspaceDetailsUI struct {
 	workspace                  weak.Pointer[StageWorkspace]
+	doc                        *document.Document
 	detailsArea                *document.Element
 	detailsName                *document.Element
 	detailsPosX                *document.Element
@@ -160,33 +161,34 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setup").End()
 	dui.workspace = weak.Make(w)
+	dui.doc = w.detailsDoc
 	dui.TargetedElementValueReload = make(map[reflect.Value]func())
-	dui.detailsArea, _ = w.Doc.GetElementById("detailsArea")
-	dui.detailsName, _ = w.Doc.GetElementById("detailsName")
-	dui.detailsPosX, _ = w.Doc.GetElementById("detailsPosX")
-	dui.detailsPosY, _ = w.Doc.GetElementById("detailsPosY")
-	dui.detailsPosZ, _ = w.Doc.GetElementById("detailsPosZ")
-	dui.detailsRotX, _ = w.Doc.GetElementById("detailsRotX")
-	dui.detailsRotY, _ = w.Doc.GetElementById("detailsRotY")
-	dui.detailsRotZ, _ = w.Doc.GetElementById("detailsRotZ")
-	dui.detailsScaleX, _ = w.Doc.GetElementById("detailsScaleX")
-	dui.detailsScaleY, _ = w.Doc.GetElementById("detailsScaleY")
-	dui.detailsScaleZ, _ = w.Doc.GetElementById("detailsScaleZ")
-	dui.detailsMultiSelect, _ = w.Doc.GetElementById("detailsMultiSelect")
-	dui.detailsMeshBlock, _ = w.Doc.GetElementById("detailsMeshBlock")
-	dui.detailsMesh, _ = w.Doc.GetElementById("detailsMesh")
-	dui.detailsMaterialBlock, _ = w.Doc.GetElementById("detailsMaterialBlock")
-	dui.detailsMaterial, _ = w.Doc.GetElementById("detailsMaterial")
-	dui.shaderInstanceData, _ = w.Doc.GetElementById("shaderInstanceData")
-	dui.detailsEntityDataTable, _ = w.Doc.GetElementById("detailsEntityDataTable")
-	dui.shaderInstanceDataList, _ = w.Doc.GetElementById("shaderInstanceDataList")
-	dui.boundEntityDataList, _ = w.Doc.GetElementById("boundEntityDataList")
-	dui.entityDataSelectorOverlay, _ = w.Doc.GetElementById("entityDataSelectorOverlay")
-	dui.entityDataSearch, _ = w.Doc.GetElementById("entityDataSearch")
-	dui.entityDataList, _ = w.Doc.GetElementById("entityDataList")
-	dui.entityDataListTemplate, _ = w.Doc.GetElementById("entityDataListTemplate")
-	dui.boundEntityDataTemplate, _ = w.Doc.GetElementById("boundEntityDataTemplate")
-	dui.shaderInstanceDataTemplate, _ = w.Doc.GetElementById("shaderInstanceDataTemplate")
+	dui.detailsArea, _ = dui.doc.GetElementById("detailsArea")
+	dui.detailsName, _ = dui.doc.GetElementById("detailsName")
+	dui.detailsPosX, _ = dui.doc.GetElementById("detailsPosX")
+	dui.detailsPosY, _ = dui.doc.GetElementById("detailsPosY")
+	dui.detailsPosZ, _ = dui.doc.GetElementById("detailsPosZ")
+	dui.detailsRotX, _ = dui.doc.GetElementById("detailsRotX")
+	dui.detailsRotY, _ = dui.doc.GetElementById("detailsRotY")
+	dui.detailsRotZ, _ = dui.doc.GetElementById("detailsRotZ")
+	dui.detailsScaleX, _ = dui.doc.GetElementById("detailsScaleX")
+	dui.detailsScaleY, _ = dui.doc.GetElementById("detailsScaleY")
+	dui.detailsScaleZ, _ = dui.doc.GetElementById("detailsScaleZ")
+	dui.detailsMultiSelect, _ = dui.doc.GetElementById("detailsMultiSelect")
+	dui.detailsMeshBlock, _ = dui.doc.GetElementById("detailsMeshBlock")
+	dui.detailsMesh, _ = dui.doc.GetElementById("detailsMesh")
+	dui.detailsMaterialBlock, _ = dui.doc.GetElementById("detailsMaterialBlock")
+	dui.detailsMaterial, _ = dui.doc.GetElementById("detailsMaterial")
+	dui.shaderInstanceData, _ = dui.doc.GetElementById("shaderInstanceData")
+	dui.detailsEntityDataTable, _ = dui.doc.GetElementById("detailsEntityDataTable")
+	dui.shaderInstanceDataList, _ = dui.doc.GetElementById("shaderInstanceDataList")
+	dui.boundEntityDataList, _ = dui.doc.GetElementById("boundEntityDataList")
+	dui.entityDataSelectorOverlay, _ = dui.doc.GetElementById("entityDataSelectorOverlay")
+	dui.entityDataSearch, _ = dui.doc.GetElementById("entityDataSearch")
+	dui.entityDataList, _ = dui.doc.GetElementById("entityDataList")
+	dui.entityDataListTemplate, _ = dui.doc.GetElementById("entityDataListTemplate")
+	dui.boundEntityDataTemplate, _ = dui.doc.GetElementById("boundEntityDataTemplate")
+	dui.shaderInstanceDataTemplate, _ = dui.doc.GetElementById("shaderInstanceDataTemplate")
 	man := w.stageView.Manager()
 	man.OnEntitySelected.Add(dui.entitySelected)
 	man.OnEntityDeselected.Add(dui.entityDeselected)
@@ -420,9 +422,8 @@ func (dui *WorkspaceDetailsUI) addEntityDataBykey(key string) (*entity_data_bind
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.createDataBindingEntry").End()
-	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
-	cpy := w.Doc.DuplicateElementWithoutApplyStyles(tpl)
+	cpy := dui.doc.DuplicateElementWithoutApplyStyles(tpl)
 	var nameSpan *document.Element
 	var fieldDiv *document.Element
 	for _, c := range cpy.Children {
@@ -448,7 +449,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
 	} else if len(g.Fields) > 1 {
-		fields = append(fields, w.Doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
+		fields = append(fields, dui.doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
 	}
 	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
@@ -552,13 +553,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				} else {
 					u.SetTextWithoutEvent(g.FieldString(i))
 				}
-				w.Doc.RemoveElementWithoutApplyStyles(checkInput)
+				dui.doc.RemoveElementWithoutApplyStyles(checkInput)
 			}
 		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
 			valReload = func() {
 				checkInput.Children[0].UI.ToCheckbox().SetCheckedWithoutEvent(g.FieldBool(i))
-				w.Doc.RemoveElementWithoutApplyStyles(textInput)
+				dui.doc.RemoveElementWithoutApplyStyles(textInput)
 			}
 		} else if g.Fields[i].IsVec2() {
 			vec2Input.UI.Show()
@@ -604,9 +605,9 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 	}
 	dui.refreshShapeSpecificFieldVisibility(g, cpy)
 	if len(g.Fields) == 0 {
-		w.Doc.ApplyStyles()
+		dui.doc.ApplyStyles()
 	}
-	w.Doc.SetupInputTabIndexs()
+	dui.doc.SetupInputTabIndexs()
 }
 
 func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element, entities ...*editor_stage_manager.StageEntity) {
@@ -952,8 +953,7 @@ func (dui *WorkspaceDetailsUI) clearEntityId(e *document.Element) {
 
 func (dui *WorkspaceDetailsUI) entityIdDrop(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.entityIdDrop").End()
-	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataEntityId")
+	dui.doc.SetElementClasses(e, "dataEntityId")
 	id, ok := dui.firstDraggedEntityId()
 	if !ok {
 		return
@@ -967,7 +967,7 @@ func (dui *WorkspaceDetailsUI) entityIdDragEnter(e *document.Element) {
 	if _, ok := dui.firstDraggedEntityId(); !ok {
 		return
 	}
-	dui.workspace.Value().Doc.SetElementClasses(e, "dataEntityId", "dragHover")
+	dui.doc.SetElementClasses(e, "dataEntityId", "dragHover")
 }
 
 func (dui *WorkspaceDetailsUI) entityIdDragExit(e *document.Element) {
@@ -975,11 +975,11 @@ func (dui *WorkspaceDetailsUI) entityIdDragExit(e *document.Element) {
 	w := dui.workspace.Value()
 	if id := engine.EntityId(e.Attribute("data-entityid")); id != "" {
 		if entity, ok := w.stageView.Manager().EntityById(string(id)); !ok || entity.IsDeleted() {
-			w.Doc.SetElementClasses(e, "dataEntityId", "dataEntityIdInvalid")
+			dui.doc.SetElementClasses(e, "dataEntityId", "dataEntityIdInvalid")
 			return
 		}
 	}
-	w.Doc.SetElementClasses(e, "dataEntityId")
+	dui.doc.SetElementClasses(e, "dataEntityId")
 }
 
 func (dui *WorkspaceDetailsUI) firstDraggedEntityId() (engine.EntityId, bool) {
@@ -998,14 +998,13 @@ func (dui *WorkspaceDetailsUI) firstDraggedEntityId() (engine.EntityId, bool) {
 }
 
 func (dui *WorkspaceDetailsUI) setEntityIdInputValue(e *document.Element, id engine.EntityId) {
-	w := dui.workspace.Value()
 	e.SetAttribute("data-entityid", string(id))
 	label, valid := dui.entityIdLabel(id)
 	e.InnerLabel().SetText(label)
 	if valid {
-		w.Doc.SetElementClasses(e, "dataEntityId")
+		dui.doc.SetElementClasses(e, "dataEntityId")
 	} else {
-		w.Doc.SetElementClasses(e, "dataEntityId", "dataEntityIdInvalid")
+		dui.doc.SetElementClasses(e, "dataEntityId", "dataEntityIdInvalid")
 	}
 }
 
@@ -1072,7 +1071,7 @@ func entityIdInputElement(e *document.Element) *document.Element {
 func (dui *WorkspaceDetailsUI) contentIdDrop(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDrop").End()
 	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 	dd, ok := windowing.DragData().(StageDragContent)
 	if !ok {
 		return
@@ -1102,19 +1101,18 @@ func (dui *WorkspaceDetailsUI) contentIdDragEnter(e *document.Element) {
 	if cc.Config.Type != e.Attribute("data-type") {
 		return
 	}
-	w.Doc.SetElementClasses(e, "dataContentId", "dragHover")
+	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
 }
 
 func (dui *WorkspaceDetailsUI) contentIdDragExit(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDragExit").End()
-	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 }
 
 func (dui *WorkspaceDetailsUI) meshIdDrop(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.meshIdDrop").End()
 	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 	dd, ok := windowing.DragData().(StageDragContent)
 	if !ok {
 		return
@@ -1143,19 +1141,18 @@ func (dui *WorkspaceDetailsUI) meshIdDragEnter(e *document.Element) {
 	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
 		return
 	}
-	w.Doc.SetElementClasses(e, "dataContentId", "dragHover")
+	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
 }
 
 func (dui *WorkspaceDetailsUI) meshIdDragExit(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.meshIdDragExit").End()
-	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 }
 
 func (dui *WorkspaceDetailsUI) materialIdDrop(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.materialIdDrop").End()
 	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 	dd, ok := windowing.DragData().(StageDragContent)
 	if !ok {
 		return
@@ -1184,13 +1181,12 @@ func (dui *WorkspaceDetailsUI) materialIdDragEnter(e *document.Element) {
 	if cc.Config.Type != (content_database.Material{}).TypeName() {
 		return
 	}
-	w.Doc.SetElementClasses(e, "dataContentId", "dragHover")
+	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
 }
 
 func (dui *WorkspaceDetailsUI) materialIdDragExit(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.materialIdDragExit").End()
-	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 }
 
 func (dui *WorkspaceDetailsUI) changeMesh(meshId string) {
@@ -1401,14 +1397,13 @@ func (dui *WorkspaceDetailsUI) reload() {
 	dui.previousRotation = matrix.Vec3Inf(1)
 	dui.previousScale = matrix.Vec3Inf(1)
 	dui.update()
-	w := dui.workspace.Value()
 	// > 0, don't delete template
 	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- {
-		w.Doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
+		dui.doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
 	}
 	// > 0, don't delete template
 	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- {
-		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
+		dui.doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
 	}
 	clear(dui.TargetedElementValueReload)
 	if e.StageData.ShaderData != nil {
@@ -1541,11 +1536,11 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 		}
 	}
 	for i := len(removed) - 1; i >= 0; i-- {
-		w.Doc.RemoveElementWithoutApplyStyles(removed[i])
+		dui.doc.RemoveElementWithoutApplyStyles(removed[i])
 	}
 	if len(missing) > 0 {
 		w.Host.RunOnMainThread(func() {
-			cpys := w.Doc.DuplicateElementRepeat(dui.entityDataListTemplate, len(missing))
+			cpys := dui.doc.DuplicateElementRepeat(dui.entityDataListTemplate, len(missing))
 			for i := range missing {
 				a := &all[missing[i]]
 				cpys[i].InnerLabel().SetText(a.RegisterKey)
@@ -1640,12 +1635,12 @@ func (dui *WorkspaceDetailsUI) selectAnimationNames(g *entity_data_binding.Entit
 
 func (dui *WorkspaceDetailsUI) extendHeight() {
 	defer tracing.NewRegion("WorkspaceDetailsUI.extendHeight").End()
-	dui.workspace.Value().Doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarTall")
+	dui.doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarTall")
 }
 
 func (dui *WorkspaceDetailsUI) standardHeight() {
 	defer tracing.NewRegion("WorkspaceDetailsUI.standardHeight").End()
-	dui.workspace.Value().Doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarStandard")
+	dui.doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarStandard")
 }
 
 func toInt(str string) int64 {

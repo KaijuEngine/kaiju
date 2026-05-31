@@ -27,6 +27,7 @@ import (
 
 type WorkspaceContentUI struct {
 	workspace          weak.Pointer[StageWorkspace]
+	doc                *document.Document
 	typeFilters        klib.Set[string]
 	typeFiltersDisable klib.Set[string]
 	tagFilters         klib.Set[string]
@@ -77,12 +78,13 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.typeFiltersDisable = klib.NewSet[string]()
 	cui.tagFilters = klib.NewSet[string]()
 	cui.tagFiltersDisable = klib.NewSet[string]()
-	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
-	cui.contentPreviewArea, _ = w.Doc.GetElementById("contentPreviewArea")
-	cui.filterArea, _ = w.Doc.GetElementById("filterArea")
-	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
-	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
-	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
+	cui.doc = w.contentDoc
+	cui.contentArea, _ = cui.doc.GetElementById("contentArea")
+	cui.contentPreviewArea, _ = cui.doc.GetElementById("contentPreviewArea")
+	cui.filterArea, _ = cui.doc.GetElementById("filterArea")
+	cui.dragPreview, _ = cui.doc.GetElementById("dragPreview")
+	cui.entryTemplate, _ = cui.doc.GetElementById("entryTemplate")
+	cui.tooltip, _ = cui.doc.GetElementById("tooltip")
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
 	edEvts.OnContentRenamed.Add(cui.renameContent)
@@ -107,7 +109,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w.removeFtde()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
+		if _, ok := cui.doc.GetElementById(ids[i]); !ok {
 			cc, err := w.ed.Cache().Read(ids[i])
 			if err != nil {
 				slog.Error("failed to read the cached content", "id", ids[i], "error", err)
@@ -116,11 +118,11 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 			ccAll = append(ccAll, cc)
 		}
 	}
-	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
+	cpys := cui.doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
 		cui.allowEntryVisualsClickThrough(cpys[i])
-		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
+		cui.doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
@@ -132,7 +134,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
 	}
-	w.Doc.ApplyStyles()
+	cui.doc.ApplyStyles()
 	cui.refreshFilterOnContentChange()
 	w.ed.ContentPreviewer().GeneratePreviews(ids)
 }
@@ -153,8 +155,8 @@ func (cui *WorkspaceContentUI) removeContent(ids []string) {
 		return
 	}
 	for _, id := range ids {
-		if el, ok := w.Doc.GetElementById(id); ok {
-			w.Doc.RemoveElement(el)
+		if el, ok := cui.doc.GetElementById(id); ok {
+			cui.doc.RemoveElement(el)
 		} else {
 			slog.Error("failed to find element to remove", "id", id)
 		}
@@ -172,7 +174,7 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 		slog.Warn("failed to find the matching stage content", "id", id, "error", err)
 		return
 	}
-	if e, ok := w.Doc.GetElementById(id); ok {
+	if e, ok := cui.doc.GetElementById(id); ok {
 		e.Children[1].Children[0].UI.ToLabel().SetText(cc.Config.Name)
 	} else {
 		slog.Error("failed to find element to remove", "id", id)
@@ -182,7 +184,7 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 func (cui *WorkspaceContentUI) contentPreviewGenerated(id string) {
 	defer tracing.NewRegion("WorkspaceContentUI.contentPreviewGenerated").End()
 	w := cui.workspace.Value()
-	elm, ok := w.Doc.GetElementById(id)
+	elm, ok := cui.doc.GetElementById(id)
 	if !ok {
 		return
 	}
@@ -228,7 +230,7 @@ func (cui *WorkspaceContentUI) inputFilter(e *document.Element) {
 func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.tagFilter").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
-	tagElms := cui.workspace.Value().Doc.GetElementsByGroup("tag")[1:]
+	tagElms := cui.doc.GetElementsByGroup("tag")[1:]
 	for i := range tagElms {
 		tag := tagElms[i].Attribute("data-tag")
 		show := strings.Contains(strings.ToLower(tag), q)
@@ -243,7 +245,7 @@ func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
 func (cui *WorkspaceContentUI) runFilter() {
 	defer tracing.NewRegion("WorkspaceContentUI.runFilter").End()
 	w := cui.workspace.Value()
-	entries := w.Doc.GetElementsByGroup("entry")
+	entries := cui.doc.GetElementsByGroup("entry")
 	for i := range entries {
 		e := entries[i]
 		id := e.Attribute("id")
@@ -258,7 +260,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 		}
 	}
 	w.contentUI.contentPreviewArea.UIPanel.ResetScroll()
-	w.Host.RunOnMainThread(w.Doc.Clean)
+	w.Host.RunOnMainThread(cui.doc.Clean)
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
@@ -270,7 +272,6 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	} else {
 		isSelected = slices.Contains(e.ClassList(), "selected")
 	}
-	w := cui.workspace.Value()
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
@@ -295,10 +296,10 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 		if inverted {
 			className = "inverted"
 		}
-		w.Doc.SetElementClasses(e, "filterBtn", className)
+		cui.doc.SetElementClasses(e, "filterBtn", className)
 		targetList.Add(name)
 	} else {
-		w.Doc.SetElementClasses(e, "filterBtn")
+		cui.doc.SetElementClasses(e, "filterBtn")
 		targetList.Remove(name)
 	}
 	// Remove it from inverse list in both cases intentionally
@@ -448,8 +449,8 @@ func (cui *WorkspaceContentUI) handleNewFilterTag(newTag string) {
 	w := cui.workspace.Value()
 	w.pageData.Tags[newTag]++
 
-	tagBtnElms := w.Doc.GetElementsByClass("filterBtn")[0]
-	newFilterBtn := w.Doc.DuplicateElement(tagBtnElms)
+	tagBtnElms := cui.doc.GetElementsByClass("filterBtn")[0]
+	newFilterBtn := cui.doc.DuplicateElement(tagBtnElms)
 
 	newFilterBtn.SetAttribute("data-tag", newTag)
 	newFilterBtn.SetAttribute("group", "tag")
@@ -462,10 +463,10 @@ func (cui *WorkspaceContentUI) handleTagNoLongerInUse(removedTag string) {
 	w := cui.workspace.Value()
 	delete(w.pageData.Tags, removedTag)
 
-	tagElms := w.Doc.GetElementsByClass("filterBtn")
+	tagElms := cui.doc.GetElementsByClass("filterBtn")
 	for _, elm := range tagElms {
 		if elm.Attribute("data-tag") == removedTag {
-			w.Doc.RemoveElement(elm)
+			cui.doc.RemoveElement(elm)
 			break
 		}
 	}

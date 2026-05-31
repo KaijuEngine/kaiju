@@ -27,6 +27,7 @@ import (
 
 type WorkspaceHierarchyUI struct {
 	workspace            weak.Pointer[StageWorkspace]
+	doc                  *document.Document
 	hierarchyArea        *document.Element
 	entityTemplate       *document.Element
 	entityList           *document.Element
@@ -62,10 +63,11 @@ func (hui *WorkspaceHierarchyUI) setupFuncs() map[string]func(*document.Element)
 
 func (hui *WorkspaceHierarchyUI) setup(w *StageWorkspace) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.setup").End()
-	hui.hierarchyArea, _ = w.Doc.GetElementById("hierarchyArea")
-	hui.entityList, _ = w.Doc.GetElementById("entityList")
-	hui.entityTemplate, _ = w.Doc.GetElementById("entityTemplate")
-	hui.hierarchyDragPreview, _ = w.Doc.GetElementById("hierarchyDragPreview")
+	hui.doc = w.hierarchyDoc
+	hui.hierarchyArea, _ = hui.doc.GetElementById("hierarchyArea")
+	hui.entityList, _ = hui.doc.GetElementById("entityList")
+	hui.entityTemplate, _ = hui.doc.GetElementById("entityTemplate")
+	hui.hierarchyDragPreview, _ = hui.doc.GetElementById("hierarchyDragPreview")
 	hui.workspace = weak.Make(w)
 	man := w.stageView.Manager()
 	man.OnEntitySpawn.Add(hui.entityCreated)
@@ -450,7 +452,7 @@ func (hui *WorkspaceHierarchyUI) entityDragEnter(e *document.Element) {
 	if slices.Contains(dd.ids, id) {
 		return
 	}
-	hui.workspace.Value().Doc.SetElementClasses(
+	hui.doc.SetElementClasses(
 		e, hui.buildEntityClasses(e, "hierarchyEntryDragHover")...)
 }
 
@@ -486,15 +488,13 @@ func (hui *WorkspaceHierarchyUI) hierarchyDrop(*document.Element) {
 
 func (hui *WorkspaceHierarchyUI) clearElementDragEnterColor(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.clearElementDragEnterColor").End()
-	w := hui.workspace.Value()
-	w.Doc.SetElementClasses(e, hui.buildEntityClasses(e)...)
+	hui.doc.SetElementClasses(e, hui.buildEntityClasses(e)...)
 }
 
 func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entityCreated").End()
-	w := hui.workspace.Value()
-	cpy := w.Doc.DuplicateElement(hui.entityTemplate)
-	w.Doc.SetElementId(cpy, e.StageData.Description.Id)
+	cpy := hui.doc.DuplicateElement(hui.entityTemplate)
+	hui.doc.SetElementId(cpy, e.StageData.Description.Id)
 	cpy.SetAttribute("data-collapsed", "false")
 	eye := cpy.Children[0].Children[0].InnerLabel()
 	hui.refreshEntityLock(cpy, e.IsLocked())
@@ -514,19 +514,18 @@ func (hui *WorkspaceHierarchyUI) entityCreated(e *editor_stage_manager.StageEnti
 
 func (hui *WorkspaceHierarchyUI) entityLockChanged(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entityLockChanged").End()
-	if elm, ok := hui.workspace.Value().Doc.GetElementById(e.StageData.Description.Id); ok {
+	if elm, ok := hui.doc.GetElementById(e.StageData.Description.Id); ok {
 		hui.refreshEntityLock(elm, e.IsLocked())
-		hui.workspace.Value().Doc.SetElementClasses(
+		hui.doc.SetElementClasses(
 			elm, hui.buildEntityClasses(elm)...)
 	}
 }
 
 func (hui *WorkspaceHierarchyUI) entityDestroyed(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entityDestroyed").End()
-	w := hui.workspace.Value()
-	if elm, ok := w.Doc.GetElementById(e.StageData.Description.Id); ok {
+	if elm, ok := hui.doc.GetElementById(e.StageData.Description.Id); ok {
 		parent := elm.Parent.Value()
-		hui.workspace.Value().Doc.RemoveElement(elm)
+		hui.doc.RemoveElement(elm)
 		if parent != nil && parent != hui.entityList {
 			hui.refreshHierarchyToggle(parent)
 			hui.applyChildrenVisibility(parent)
@@ -537,10 +536,10 @@ func (hui *WorkspaceHierarchyUI) entityDestroyed(e *editor_stage_manager.StageEn
 func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entitySelected").End()
 	w := hui.workspace.Value()
-	entries := w.Doc.GetElementsByClass("hierarchyEntry")
+	entries := hui.doc.GetElementsByClass("hierarchyEntry")
 	for _, elm := range entries {
 		if elm.Attribute("id") == e.StageData.Description.Id {
-			hui.workspace.Value().Doc.SetElementClasses(
+			hui.doc.SetElementClasses(
 				elm, hui.buildEntityClasses(elm)...)
 			w.Host.RunAfterNextUIClean(func() {
 				if elm.UI.IsActive() {
@@ -554,10 +553,10 @@ func (hui *WorkspaceHierarchyUI) entitySelected(e *editor_stage_manager.StageEnt
 
 func (hui *WorkspaceHierarchyUI) entityDeselected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entityDeselected").End()
-	entries := hui.workspace.Value().Doc.GetElementsByClass("hierarchyEntry")
+	entries := hui.doc.GetElementsByClass("hierarchyEntry")
 	for _, elm := range entries {
 		if elm.Attribute("id") == e.StageData.Description.Id {
-			hui.workspace.Value().Doc.SetElementClasses(
+			hui.doc.SetElementClasses(
 				elm, hui.buildEntityClasses(elm)...)
 			break
 		}
@@ -566,8 +565,7 @@ func (hui *WorkspaceHierarchyUI) entityDeselected(e *editor_stage_manager.StageE
 
 func (hui *WorkspaceHierarchyUI) entityChangedParent(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.entityChangedParent").End()
-	w := hui.workspace.Value()
-	child, ok := w.Doc.GetElementById(e.StageData.Description.Id)
+	child, ok := hui.doc.GetElementById(e.StageData.Description.Id)
 	if !ok {
 		return
 	}
@@ -575,13 +573,13 @@ func (hui *WorkspaceHierarchyUI) entityChangedParent(e *editor_stage_manager.Sta
 	p := editor_stage_manager.EntityToStageEntity(e.Parent)
 	var parent *document.Element
 	if p != nil {
-		if parent, ok = w.Doc.GetElementById(p.StageData.Description.Id); !ok {
+		if parent, ok = hui.doc.GetElementById(p.StageData.Description.Id); !ok {
 			return
 		}
 	} else {
 		parent = hui.entityList
 	}
-	w.Doc.ChangeElementParent(child, parent)
+	hui.doc.ChangeElementParent(child, parent)
 	hui.setIndent(child)
 	if oldParent != nil && oldParent != hui.entityList {
 		hui.refreshHierarchyToggle(oldParent)
@@ -678,19 +676,19 @@ func (hui *WorkspaceHierarchyUI) buildEntityClasses(e *document.Element, additio
 
 func (hui *WorkspaceHierarchyUI) updateEntityName(id, name string) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.updateEntityName").End()
-	if e, ok := hui.workspace.Value().Doc.GetElementById(id); ok {
+	if e, ok := hui.doc.GetElementById(id); ok {
 		entryNameLabel(e).SetText(name)
 	}
 }
 
 func (hui *WorkspaceHierarchyUI) extendHeight() {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.extendHeight").End()
-	hui.workspace.Value().Doc.SetElementClasses(hui.hierarchyArea, "edPanelBg", "sideBarTall")
+	hui.doc.SetElementClasses(hui.hierarchyArea, "edPanelBg", "sideBarTall")
 }
 
 func (hui *WorkspaceHierarchyUI) standardHeight() {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.standardHeight").End()
-	hui.workspace.Value().Doc.SetElementClasses(hui.hierarchyArea, "edPanelBg", "sideBarStandard")
+	hui.doc.SetElementClasses(hui.hierarchyArea, "edPanelBg", "sideBarStandard")
 }
 
 func entryToggle(row *document.Element) *document.Element {

@@ -13,8 +13,8 @@ import (
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
-	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
@@ -44,6 +44,9 @@ type StageWorkspace struct {
 	ed            editor_workspace.WorkspaceEditorInterface
 	stageView     *editor_stage_view.StageView
 	pageData      WorkspaceUIData
+	hierarchyDoc  *document.Document
+	detailsDoc    *document.Document
+	contentDoc    *document.Document
 	contentUI     WorkspaceContentUI
 	hierarchyUI   WorkspaceHierarchyUI
 	detailsUI     WorkspaceDetailsUI
@@ -70,11 +73,13 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	funcs := map[string]func(*document.Element){
 		"toggleDimension": w.toggleDimension,
 	}
-	funcs = klib.MapJoin(funcs, w.contentUI.setupFuncs())
-	funcs = klib.MapJoin(funcs, w.hierarchyUI.setupFuncs())
-	funcs = klib.MapJoin(funcs, w.detailsUI.setupFuncs())
 	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs); err != nil {
+		return err
+	}
+	if err := w.loadPanelDocuments(); err != nil {
+		w.destroyPanelDocuments()
+		w.CommonShutdown()
 		return err
 	}
 	w.stageViewport.init(&w.UiMan, w.stageView)
@@ -96,11 +101,87 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	return nil
 }
 
+func (w *StageWorkspace) loadPanelDocuments() error {
+	defer tracing.NewRegion("StageWorkspace.loadPanelDocuments").End()
+	var err error
+	w.hierarchyDoc, err = markup.DocumentFromHTMLAsset(&w.UiMan,
+		"editor/ui/workspace/stage_workspace_hierarchy.go.html", nil, w.hierarchyUI.setupFuncs())
+	if err != nil {
+		return err
+	}
+	w.hierarchyDoc.Deactivate()
+	w.detailsDoc, err = markup.DocumentFromHTMLAsset(&w.UiMan,
+		"editor/ui/workspace/stage_workspace_details.go.html", nil, w.detailsUI.setupFuncs())
+	if err != nil {
+		return err
+	}
+	w.detailsDoc.Deactivate()
+	w.contentDoc, err = markup.DocumentFromHTMLAsset(&w.UiMan,
+		"editor/ui/workspace/stage_workspace_content.go.html", w.pageData, w.contentUI.setupFuncs())
+	if err != nil {
+		return err
+	}
+	w.contentDoc.Deactivate()
+	return nil
+}
+
+func (w *StageWorkspace) activatePanelDocuments() {
+	defer tracing.NewRegion("StageWorkspace.activatePanelDocuments").End()
+	for _, doc := range w.panelDocuments() {
+		doc.Activate()
+	}
+}
+
+func (w *StageWorkspace) deactivatePanelDocuments() {
+	defer tracing.NewRegion("StageWorkspace.deactivatePanelDocuments").End()
+	for _, doc := range w.panelDocuments() {
+		doc.Deactivate()
+	}
+}
+
+func (w *StageWorkspace) markPanelDocumentsDirty() {
+	defer tracing.NewRegion("StageWorkspace.markPanelDocumentsDirty").End()
+	for _, doc := range w.panelDocuments() {
+		doc.MarkDirty()
+	}
+}
+
+func (w *StageWorkspace) destroyPanelDocuments() {
+	defer tracing.NewRegion("StageWorkspace.destroyPanelDocuments").End()
+	if w.hierarchyDoc != nil {
+		w.hierarchyDoc.Destroy()
+		w.hierarchyDoc = nil
+	}
+	if w.detailsDoc != nil {
+		w.detailsDoc.Destroy()
+		w.detailsDoc = nil
+	}
+	if w.contentDoc != nil {
+		w.contentDoc.Destroy()
+		w.contentDoc = nil
+	}
+}
+
+func (w *StageWorkspace) panelDocuments() []*document.Document {
+	docs := make([]*document.Document, 0, 3)
+	if w.hierarchyDoc != nil {
+		docs = append(docs, w.hierarchyDoc)
+	}
+	if w.detailsDoc != nil {
+		docs = append(docs, w.detailsDoc)
+	}
+	if w.contentDoc != nil {
+		docs = append(docs, w.contentDoc)
+	}
+	return docs
+}
+
 func (w *StageWorkspace) Shutdown() {
 	defer tracing.NewRegion("StageWorkspace.Shutdown").End()
 	if w.ed != nil {
 		w.ed.Events().OnRequestOpenStage.Remove(w.openStageSubID)
 	}
+	w.destroyPanelDocuments()
 	w.CommonShutdown()
 }
 
@@ -116,18 +197,21 @@ func (w *StageWorkspace) loadLastOpenStage() {
 func (w *StageWorkspace) Open() {
 	defer tracing.NewRegion("StageWorkspace.Open").End()
 	w.CommonOpen()
+	w.activatePanelDocuments()
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
 	w.applyViewportLayout()
 	w.stageView.Open()
 	w.Doc.MarkDirty()
+	w.markPanelDocumentsDirty()
 }
 
 func (w *StageWorkspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
 	w.stageView.Close()
 	w.hideManualRenderTargetUI()
+	w.deactivatePanelDocuments()
 	w.CommonClose()
 }
 
