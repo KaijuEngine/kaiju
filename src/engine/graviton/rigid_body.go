@@ -132,7 +132,7 @@ func (r *RigidBody) SetShape(shape Shape) {
 	r.ensureDefaultCollisionFilter()
 }
 
-func (r *RigidBody) SetStaticMesh(mesh *MeshCollision) {
+func (r *RigidBody) SetShapeMesh(mesh *MeshCollision) {
 	r.Collision.Mesh = mesh
 	r.Collision.Terrain = nil
 	bounds := NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero())
@@ -141,7 +141,6 @@ func (r *RigidBody) SetStaticMesh(mesh *MeshCollision) {
 	}
 	r.Collision.Shape = NewMeshShape(bounds)
 	r.Collision.LocalAABB = bounds
-	r.SetStatic()
 	r.ensureDefaultCollisionFilter()
 }
 
