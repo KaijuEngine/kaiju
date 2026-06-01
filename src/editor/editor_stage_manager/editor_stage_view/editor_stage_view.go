@@ -129,6 +129,7 @@ func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
 	v.open = false
 	v.hideCameraPreview()
+	v.disableStageRenderViews()
 	v.stagePicking.Close()
 	v.restoreDefaultRenderView()
 	if v.gridShader != nil {

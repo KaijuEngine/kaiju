@@ -219,6 +219,86 @@ func TestStageViewportsOwnDistinctCamerasAndTargets(t *testing.T) {
 	}
 }
 
+func TestStageViewportSyncDestroysHiddenViewportRenderViews(t *testing.T) {
+	t.Parallel()
+
+	host := &engine.Host{
+		RenderTargets: rendering.NewRenderTargetManager(),
+		RenderViews:   rendering.NewRenderViewManager(),
+	}
+	view := StageView{
+		host:           host,
+		activeViewport: 0,
+		stageViewports: []stageRenderViewport{
+			{
+				Kind:   StageViewportPerspective,
+				camera: newTestStageViewportCamera(host),
+				ui:     newTestStageViewportUI(true, true),
+				bounds: stageViewportBounds{Width: 320, Height: 180},
+			},
+			{
+				Kind:   StageViewportTop,
+				camera: newTestStageViewportCamera(host),
+				ui:     newTestStageViewportUI(true, false),
+				bounds: stageViewportBounds{Width: 320, Height: 180},
+			},
+		},
+	}
+	for i := range view.stageViewports {
+		view.ensureStageRenderTarget(&view.stageViewports[i])
+	}
+	if _, ok := host.RenderViews.View(StageViewportTop.renderName()); !ok {
+		t.Fatal("test setup did not create the hidden viewport render view")
+	}
+
+	view.syncStageViewport()
+
+	if _, ok := host.RenderViews.View(StageViewportPerspective.renderName()); !ok {
+		t.Fatal("visible viewport render view was destroyed")
+	}
+	if _, ok := host.RenderViews.View(StageViewportTop.renderName()); ok {
+		t.Fatal("hidden viewport render view was left active")
+	}
+	if view.stageViewports[1].renderView != nil {
+		t.Fatal("hidden viewport kept a render view reference")
+	}
+	if view.stageViewports[1].target == nil {
+		t.Fatal("hidden viewport target should remain available for reuse")
+	}
+}
+
+func TestStageViewCloseDestroysStageRenderViews(t *testing.T) {
+	t.Parallel()
+
+	host := &engine.Host{
+		RenderTargets: rendering.NewRenderTargetManager(),
+		RenderViews:   rendering.NewRenderViewManager(),
+	}
+	view := StageView{
+		host:           host,
+		activeViewport: 0,
+		stageViewports: []stageRenderViewport{{
+			Kind:   StageViewportPerspective,
+			camera: newTestStageViewportCamera(host),
+			ui:     newTestStageViewportUI(true, true),
+			bounds: stageViewportBounds{Width: 320, Height: 180},
+		}},
+	}
+	view.ensureStageRenderTarget(&view.stageViewports[0])
+	if _, ok := host.RenderViews.View(StageViewportPerspective.renderName()); !ok {
+		t.Fatal("test setup did not create the stage render view")
+	}
+
+	view.Close()
+
+	if _, ok := host.RenderViews.View(StageViewportPerspective.renderName()); ok {
+		t.Fatal("stage render view remained active after close")
+	}
+	if view.stageViewports[0].renderView != nil {
+		t.Fatal("closed stage viewport kept a render view reference")
+	}
+}
+
 func TestStageViewOpenUsesUIOnlyDefaultViewAndCloseRestores(t *testing.T) {
 	t.Parallel()
 

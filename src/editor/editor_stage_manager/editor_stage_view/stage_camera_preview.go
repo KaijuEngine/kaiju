@@ -50,6 +50,10 @@ func (v *StageView) SetCameraPreviewUI(preview *ui.UI) {
 
 func (v *StageView) syncCameraPreview() {
 	defer tracing.NewRegion("StageView.syncCameraPreview").End()
+	if !v.open {
+		v.hideCameraPreview()
+		return
+	}
 	entity, data, ok := v.selectedCameraPreviewBinding()
 	if !ok {
 		v.hideCameraPreview()

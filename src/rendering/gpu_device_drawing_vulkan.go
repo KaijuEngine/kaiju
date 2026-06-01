@@ -259,10 +259,21 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			0, vulkan_const.DescriptorTypeUniformBuffer))
 		texCount := len(group.MaterialInstance.Textures)
 		if texCount > 0 {
+			validTextures := true
 			for j := range texCount {
-				t := group.MaterialInstance.Textures[j]
+				t := descriptorTextureOrFallback(group.MaterialInstance.Textures[j],
+					g.Painter.fallbackShadowMap)
+				if t == nil {
+					slog.Error("skipping draw group with no valid descriptor texture",
+						"material", group.MaterialInstance.Id, "textureIndex", j)
+					validTextures = false
+					break
+				}
 				state.imageInfos[j] = imageInfo(vk.ImageView(t.RenderId.View.handle),
 					vk.Sampler(t.RenderId.Sampler.handle))
+			}
+			if !validTextures {
+				continue
 			}
 			vkImageInfos := make([]vk.DescriptorImageInfo, len(state.imageInfos))
 			for j := range state.imageInfos {
@@ -297,6 +308,23 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		}
 	}
 	return allWrites
+}
+
+func descriptorTextureOrFallback(texture, fallback *Texture) *Texture {
+	if textureDescriptorReady(texture) {
+		return texture
+	}
+	if textureDescriptorReady(fallback) {
+		return fallback
+	}
+	return nil
+}
+
+func textureDescriptorReady(texture *Texture) bool {
+	return texture != nil &&
+		texture.RenderId.IsValid() &&
+		texture.RenderId.View.IsValid() &&
+		texture.RenderId.Sampler.IsValid()
 }
 
 func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayout, pushConstantData unsafe.Pointer) {

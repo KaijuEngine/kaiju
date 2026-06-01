@@ -256,6 +256,7 @@ func (w *StageWorkspace) ToggleViewportSplitFocus() bool {
 	}
 	w.stageViewport.toggleSplitFocus(w.stageView)
 	w.applyViewportLayout()
+	w.stageView.SyncStageViewport()
 	w.stageView.RefreshTransformGizmoVisibility()
 	return true
 }
