@@ -216,6 +216,7 @@ func (w *Window) Poll() {
 	}
 	w.isCrashed = w.isCrashed || w.fatalFromNativeAPI
 	w.Cursor.Poll()
+	filesystem.ProcessDialogCallbacks()
 }
 
 func (w *Window) EndUpdate() {
@@ -358,6 +359,9 @@ func (w *Window) Destroy() {
 	} else {
 		destroyWindow(w.handle)
 	}
+	if len(activeWindows) == 0 {
+		filesystem.ShutdownNativeDialogs()
+	}
 	close(w.windowSync)
 }
 
@@ -450,6 +454,20 @@ func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []
 	debug.Assert(ok != nil, "SaveFileDialog requires a non-nil ok callback")
 	w.disableRawMouse()
 	return filesystem.OpenSaveFileDialogWindow(startPath, fileName, extensions, func(path string) {
+		w.enableRawMouse()
+		ok(path)
+	}, func() {
+		w.enableRawMouse()
+		if cancel != nil {
+			cancel()
+		}
+	}, w.handle)
+}
+
+func (w *Window) OpenFolderDialog(startPath string, ok func(path string), cancel func()) error {
+	debug.Assert(ok != nil, "OpenFolderDialog requires a non-nil ok callback")
+	w.disableRawMouse()
+	return filesystem.OpenFolderDialogWindow(startPath, func(path string) {
 		w.enableRawMouse()
 		ok(path)
 	}, func() {

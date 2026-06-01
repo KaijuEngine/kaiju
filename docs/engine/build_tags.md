@@ -11,3 +11,5 @@ but others will do debugging/runtime changes.
 | ------------------ | ----------- |
 | `editor`           | Used to build the editor, otherwise the runtime will be built |
 | `debug`            | Used to enable various debug systems for the editor/runtime |
+| `filedrop`         | Enables file-drop handling integrations used by editor workflows |
+| `filedialog`       | Enables native file dialog integrations (optional package) |

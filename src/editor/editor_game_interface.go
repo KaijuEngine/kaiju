@@ -11,11 +11,14 @@ import (
 	"image/png"
 	"log/slog"
 	"reflect"
+	"runtime"
+	"time"
 
 	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -79,4 +82,118 @@ func (EditorGame) Launch(host *engine.Host) {
 		// that owns the resolution flow and calls onResolved itself.
 		ed.validateCompiledPlugins(ed.newProjectOverlay)
 	})
+	if runtime.GOOS == "windows" {
+		host.RunAfterTime(1*time.Second, func() {
+			runNativeDialogDemo(host)
+		})
+	}
+}
+
+func runNativeDialogDemo(host *engine.Host) {
+	defer tracing.NewRegion("runNativeDialogDemo").End()
+	slog.Info("native dialog demo: opening file dialog")
+	err := host.Window.OpenFileDialog("", []filesystem.DialogExtension{
+		{Name: "Go Files", Extension: ".go"},
+		{Name: "All Files", Extension: ".*"},
+	}, func(path string) {
+		slog.Info("native dialog demo: open file selected", "path", path)
+		runNativeSaveDialogDemo(host)
+	}, func() {
+		slog.Info("native dialog demo: open file canceled")
+		runNativeSaveDialogDemo(host)
+	})
+	if err != nil {
+		slog.Error("native dialog demo: failed to show open file dialog", "error", err)
+		runNativeSaveDialogDemo(host)
+	}
+}
+
+func runNativeSaveDialogDemo(host *engine.Host) {
+	defer tracing.NewRegion("runNativeSaveDialogDemo").End()
+	slog.Info("native dialog demo: opening save file dialog")
+	err := host.Window.SaveFileDialog("", "demo_output.txt", []filesystem.DialogExtension{
+		{Name: "Text Files", Extension: ".txt"},
+		{Name: "All Files", Extension: ".*"},
+	}, func(path string) {
+		slog.Info("native dialog demo: save file selected", "path", path)
+		runNativeFolderDialogDemo(host)
+	}, func() {
+		slog.Info("native dialog demo: save file canceled")
+		runNativeFolderDialogDemo(host)
+	})
+	if err != nil {
+		slog.Error("native dialog demo: failed to show save file dialog", "error", err)
+		runNativeFolderDialogDemo(host)
+	}
+}
+
+func runNativeFolderDialogDemo(host *engine.Host) {
+	defer tracing.NewRegion("runNativeFolderDialogDemo").End()
+	slog.Info("native dialog demo: opening folder dialog")
+	err := host.Window.OpenFolderDialog("", func(path string) {
+		slog.Info("native dialog demo: folder selected", "path", path)
+		runNativeAdvancedDialogDemo(host)
+	}, func() {
+		slog.Info("native dialog demo: folder dialog canceled")
+		runNativeAdvancedDialogDemo(host)
+	})
+	if err != nil {
+		slog.Error("native dialog demo: failed to show folder dialog", "error", err)
+		runNativeAdvancedDialogDemo(host)
+	}
+}
+
+func runNativeAdvancedDialogDemo(host *engine.Host) {
+	defer tracing.NewRegion("runNativeAdvancedDialogDemo").End()
+
+	root, err := filesystem.GameDirectory()
+	if err != nil {
+		slog.Error("native dialog demo: failed to resolve game directory for advanced dialog", "error", err)
+		root = ""
+	}
+
+	request := filesystem.NativeDialogRequest{
+		Mode:             filesystem.NativeDialogModeOpenFiles,
+		Title:            "Advanced Native Dialog Demo (multi-select + options)",
+		CurrentDirectory: root,
+		Root:             root,
+		ShowHidden:       true,
+		Filters: []filesystem.DialogFilter{
+			{Name: "Go and Text Files", Patterns: []string{"*.go", "*.txt"}},
+			{Name: "Images", Patterns: []string{"*.png", "*.jpg", "*.jpeg"}},
+			{Name: "All Files", Patterns: []string{"*.*"}},
+		},
+		Options: []filesystem.DialogCustomOption{
+			{Name: "Recursive import", Default: 1},
+			{Name: "Import mode", Values: []string{"Copy", "Reference", "Link"}, Default: 0},
+		},
+		WindowHandle: host.Window.PlatformWindow(),
+	}
+
+	slog.Info("native dialog demo: opening advanced dialog", "root", root)
+	host.Window.DisableRawMouseInput()
+	err = filesystem.OpenNativeDialogWindow(request, func(result filesystem.NativeDialogResult) {
+		host.Window.EnableRawMouseInput()
+		switch result.Status {
+		case filesystem.NativeDialogStatusAccepted:
+			slog.Info("native dialog demo: multi-select accepted",
+				"count", len(result.Paths),
+				"paths", result.Paths,
+				"selectedFilterIndex", result.SelectedFilterIndex,
+				"selectedOptions", result.SelectedOptions)
+			for i := range result.Paths {
+				slog.Info("native dialog demo: selected file", "index", i, "path", result.Paths[i])
+			}
+		case filesystem.NativeDialogStatusCancel:
+			slog.Info("native dialog demo: advanced dialog canceled")
+		case filesystem.NativeDialogStatusFailed:
+			slog.Error("native dialog demo: advanced dialog failed",
+				"error", result.Err,
+				"hresult", result.HResult)
+		}
+	})
+	if err != nil {
+		host.Window.EnableRawMouseInput()
+		slog.Error("native dialog demo: failed to open advanced dialog", "error", err)
+	}
 }

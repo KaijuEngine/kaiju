@@ -32,7 +32,7 @@ The file `src/main.test.go` contains the build constraint:
 //go:build !editor
 ```
 
-This means it is compiled **only** when the `editor` tag is **absent**. The default VS Code tasks in this repository build with `-tags=editor,filedrop`. To build a binary that runs the pure-code path, invoke `go build` **without** those flags:
+This means it is compiled **only** when the `editor` tag is **absent**. The default VS Code tasks in this repository build with `-tags=editor,filedrop,filedialog`. To build a binary that runs the pure-code path, invoke `go build` **without** those flags:
 
 ```powershell
 # Build from the src directory and output the executable one level up

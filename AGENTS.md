@@ -8,7 +8,7 @@ Kaiju Engine is a 2D/3D game engine written in Go (Golang) backed by Vulkan. It 
 
 - **Module**: `kaijuengine.com`
 - **Go Version**: 1.25.0+
-- **Build Tags**: `debug`, `editor`, platform-specific (`.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`)
+- **Build Tags**: `debug`, `editor`, optional `filedrop`, optional `filedialog`, platform-specific (`.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`)
 
 ## Integration testing
 If you want to test visuals or non-unit testable behavior, you can use the integration testing framework. In the `src/integration_testing` folder is where integration tests should be placed. In the `init` function of your integration testing file, you should register your test launch function to the `tests` package map. Review `integration_testing_helpers.go` to see what functions are already available, and also put any generic testing functions into this file.
@@ -994,13 +994,15 @@ uiCamera := host.Cameras.UI
 
 ```bash
 cd src
-go build -tags="debug,editor,filedrop" -o ../ ./
+go build -tags="debug,editor,filedrop,filedialog" -o ../ ./
 ```
 
 ### Build Tags
 
 - `debug`: Include debug information
 - `editor`: Build with editor support
+- `filedrop`: Enable file drop integrations
+- `filedialog`: Enable native file dialog integrations
 - Platform-specific: `.windows.go`, `.darwin.go`, `.linux.go`, `.android.go`
 
 ### Content
