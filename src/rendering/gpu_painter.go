@@ -16,7 +16,7 @@ type GPUPainter struct {
 	imageIndex            [maxFramesInFlight]uint32
 	descriptorPools       []GPUDescriptorPool
 	currentFrame          int
-	combinedDrawings      Drawings
+	combinedTargets       combinedTargetDrawCache
 	combinedDrawingCuller combinedDrawingCuller
 	preRuns               []func()
 	writtenCommands       []CommandRecorder
@@ -26,7 +26,6 @@ type GPUPainter struct {
 	targetCombineCmdCount [maxFramesInFlight]int
 	targetBlitCmds        [maxFramesInFlight][]CommandRecorder
 	targetBlitCmdCount    [maxFramesInFlight]int
-	combinedTargetSig     string
 	fallbackShadowMap     *Texture
 	fallbackCubeShadowMap *Texture
 	computeTasks          []ComputeTask

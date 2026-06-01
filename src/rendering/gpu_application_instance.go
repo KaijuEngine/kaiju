@@ -127,7 +127,7 @@ func (g *GPUApplicationInstance) Destroy() {
 			continue
 		}
 		device.LogicalDevice.WaitForRender(device)
-		device.Painter.combinedDrawings.Destroy(device)
+		device.Painter.combinedTargets.Destroy(device)
 		device.LogicalDevice.bufferTrash.Purge()
 		for k := range device.LogicalDevice.renderPassCache {
 			device.LogicalDevice.renderPassCache[k].Destroy(device)
