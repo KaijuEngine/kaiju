@@ -116,18 +116,22 @@ func createPickingCube(host *engine.Host, manager *editor_stage_manager.StageMan
 }
 
 func readVisiblePickingIDs(host *engine.Host, material *rendering.Material) ([]uint32, uint32, error) {
-	device := host.Window.GpuInstance.PrimaryDevice()
 	tex := material.RenderPass().Texture(0)
 	if tex == nil || !tex.RenderId.IsValid() {
 		return nil, 0, fmt.Errorf("picking texture is not ready")
 	}
 	w := tex.RenderId.Width
 	h := tex.RenderId.Height
-	allData, err := device.TextureReadRegion(tex, matrix.Vec4i{0, 0, int32(w), int32(h)})
-	if err != nil {
-		return nil, 0, err
-	}
-	centerData, err := device.TextureReadRegion(tex, matrix.Vec4i{int32(w / 2), int32(h / 2), 1, 1})
+	var allData []byte
+	var centerData []byte
+	var err error
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		allData, err = device.TextureReadRegion(tex, matrix.Vec4i{0, 0, int32(w), int32(h)})
+		if err != nil {
+			return
+		}
+		centerData, err = device.TextureReadRegion(tex, matrix.Vec4i{int32(w / 2), int32(h / 2), 1, 1})
+	})
 	if err != nil {
 		return nil, 0, err
 	}

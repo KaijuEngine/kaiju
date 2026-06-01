@@ -11,8 +11,10 @@ import (
 
 	"kaijuengine.com/editor/codegen/entity_data_binding"
 	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
 func TestSelectedCameraPreviewBindingUsesLastSelectedCamera(t *testing.T) {
@@ -46,6 +48,47 @@ func TestSelectedCameraPreviewBindingIgnoresNonCameraSelection(t *testing.T) {
 
 	if _, _, ok := view.selectedCameraPreviewBinding(); ok {
 		t.Fatal("did not expect camera preview binding")
+	}
+}
+
+func TestCameraPreviewDoesNotKeepRenderViewWhenStageViewClosed(t *testing.T) {
+	t.Parallel()
+
+	host := &engine.Host{
+		RenderTargets: rendering.NewRenderTargetManager(),
+		RenderViews:   rendering.NewRenderViewManager(),
+	}
+	target, err := host.RenderTargets.Create(rendering.RenderTargetOptions{
+		Name:   stageCameraPreviewRenderName,
+		Width:  64,
+		Height: 36,
+		Depth:  true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	renderView, err := host.RenderViews.Create(rendering.RenderViewOptions{
+		Name:   stageCameraPreviewRenderName,
+		Target: target,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view := StageView{
+		host: host,
+		cameraPreview: stageCameraPreview{
+			target:     target,
+			renderView: renderView,
+		},
+	}
+
+	view.syncCameraPreview()
+
+	if _, ok := host.RenderViews.View(stageCameraPreviewRenderName); ok {
+		t.Fatal("camera preview render view remained active while stage view was closed")
+	}
+	if view.cameraPreview.renderView != nil {
+		t.Fatal("camera preview kept a render view reference while hidden")
 	}
 }
 

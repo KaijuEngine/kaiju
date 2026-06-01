@@ -57,8 +57,8 @@ func (p *StagePicking) Initialize(view *StageView) {
 
 func (p *StagePicking) Close() {
 	p.pending = nil
-	p.disableRenderView()
-	p.disableGizmoRenderView()
+	p.destroyRenderView()
+	p.destroyGizmoRenderView()
 }
 
 func (p *StagePicking) Update() {
@@ -79,12 +79,14 @@ func (p *StagePicking) Update() {
 		p.fallback(req)
 		return
 	}
-	device := p.gpuDevice()
-	if device == nil {
+	if p.gpuDevice() == nil {
 		p.fallback(req)
 		return
 	}
-	data, err := device.TextureReadRegion(tex, region)
+	var data []byte
+	p.view.host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		data, err = device.TextureReadRegion(tex, region)
+	})
 	if err != nil {
 		slog.Warn("failed to read editor picking texture", "error", err)
 		p.fallback(req)
@@ -200,10 +202,17 @@ func (p *StagePicking) ensureNamedRenderView(name string, size matrix.Vec2) (*re
 			}
 		}
 	}
+	view.SetEnabled(true)
 	return target, view, nil
 }
 
 func (p *StagePicking) disableRenderView() {
+	if p.renderView != nil {
+		p.renderView.SetEnabled(false)
+	}
+}
+
+func (p *StagePicking) destroyRenderView() {
 	if p.view == nil || p.view.host == nil {
 		return
 	}
@@ -222,6 +231,13 @@ func (p *StagePicking) disableRenderView() {
 }
 
 func (p *StagePicking) disableGizmoRenderView() {
+	if p.gizmoRenderView != nil {
+		p.gizmoRenderView.SetEnabled(false)
+	}
+	p.gizmoRenderViewReady = false
+}
+
+func (p *StagePicking) destroyGizmoRenderView() {
 	if p.view == nil || p.view.host == nil {
 		return
 	}
@@ -261,7 +277,10 @@ func (p *StagePicking) SamplePoint(point matrix.Vec2) (uint32, bool) {
 	if !ok {
 		return 0, false
 	}
-	data, err := p.gpuDevice().TextureReadRegion(tex, region)
+	var data []byte
+	p.view.host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		data, err = device.TextureReadRegion(tex, region)
+	})
 	if err != nil {
 		return 0, false
 	}

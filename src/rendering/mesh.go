@@ -120,7 +120,7 @@ func (m Mesh) IsReady() bool         { return m.MeshId.IsValid() }
 func (m Mesh) Bounds() graviton.AABB { return m.bounds }
 
 func (m *Mesh) SetPendingVertices(verts []Vertex) {
-	m.pendingVerts = verts
+	m.pendingVerts = slices.Clone(verts)
 	if len(verts) == 0 {
 		return
 	}

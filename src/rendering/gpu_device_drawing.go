@@ -15,10 +15,10 @@ import (
 )
 
 func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
-	g.DrawView(renderPass, drawings, lights, shadows, nil, layerMask)
+	g.DrawView(renderPass, drawings, lights, shadows, RenderViewFrame{}, layerMask)
 }
 
-func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask) {
+func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.Draw").End()
 	if !g.LogicalDevice.SwapChain.IsValid() || len(drawings) == 0 {
 		return
@@ -51,12 +51,12 @@ func (g *GPUDevice) BlitTargets(passes []*RenderPass) {
 	g.blitTargetsImpl(passes)
 }
 
-func (g *GPUDevice) BlitTargetsToRenderTarget(passes []*RenderPass, target *RenderTarget) {
+func (g *GPUDevice) BlitTargetsToRenderTarget(passes []*RenderPass, target *RenderTarget, view RenderViewFrame) {
 	defer tracing.NewRegion("GPUDevice.BlitTargetsToRenderTarget").End()
 	if target == nil || !g.LogicalDevice.SwapChain.IsValid() {
 		return
 	}
-	g.blitTargetsToRenderTargetImpl(passes, target)
+	g.blitTargetsToRenderTargetImpl(passes, target, view)
 }
 
 func (g *GPUDevice) PrepareRenderTarget(target *RenderTarget) error {
@@ -69,6 +69,14 @@ func (g *GPUDevice) PrepareRenderTarget(target *RenderTarget) error {
 
 func (g *GPUDevice) FlushQueuedCommands() bool {
 	defer tracing.NewRegion("GPUDevice.FlushQueuedCommands").End()
+	return g.FlushForReadback()
+}
+
+func (g *GPUDevice) FlushForReadback() bool {
+	defer tracing.NewRegion("GPUDevice.FlushForReadback").End()
+	if len(g.Painter.writtenCommands) == 0 {
+		return true
+	}
 	if !g.LogicalDevice.SwapChain.IsValid() {
 		return false
 	}
@@ -78,8 +86,8 @@ func (g *GPUDevice) FlushQueuedCommands() bool {
 func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, state *DrawInstanceViewState) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
-	lastCount := state.InstanceDriverData.lastInstanceCount
-	if currentCount <= lastCount {
+	capacity, shouldResize := state.InstanceDriverData.instanceCapacity.Next(currentCount)
+	if !shouldResize {
 		return nil
 	}
 	defer tracing.NewRegion("Vulkan.resizeUniformBuffer.DoResize").End()
@@ -123,7 +131,7 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 		state.instanceBuffer.size = iSize
 		var err error
 		for i := 0; i < maxFramesInFlight; i++ {
-			state.instanceBuffer.buffers[i], state.instanceBuffer.memories[i], err = g.CreateBuffer(iSize*uintptr(currentCount),
+			state.instanceBuffer.buffers[i], state.instanceBuffer.memories[i], err = g.CreateBuffer(iSize*uintptr(capacity),
 				GPUBufferUsageVertexBufferBit|GPUBufferUsageTransferDstBit,
 				GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
 			if err != nil {
@@ -136,7 +144,7 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 				if lg.Layouts[j].IsBuffer() {
 					b := &lg.Layouts[j]
 					buff := state.boundBuffers[b.Binding]
-					count := min(currentCount, b.Capacity())
+					count := min(capacity, b.Capacity())
 					nid := state.boundInstanceData[b.Binding]
 					buff.size = g.PhysicalDevice.PadBufferSize(uintptr(nid.length * count))
 					buff.bindingId = b.Binding
@@ -168,7 +176,6 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 		state.rawData.padding = group.rawData.padding
 		state.rawData.length = group.rawData.length
 	}
-	state.InstanceDriverData.lastInstanceCount = currentCount
 	for i := range maxFramesInFlight {
 		var data unsafe.Pointer
 		if err := g.MapMemory(state.instanceBuffer.memories[i], 0, GPUWholeSize, 0, &data); err != nil {
@@ -181,5 +188,7 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 			state.rawData.byteMapping[i] = data
 		}
 	}
+	state.InstanceDriverData.instanceCapacity.Commit(capacity)
+	state.InstanceDriverData.descriptorCache.Invalidate()
 	return nil
 }

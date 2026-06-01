@@ -8,6 +8,7 @@ package engine
 
 import (
 	"flag"
+	"runtime"
 
 	"kaijuengine.com/build"
 )
@@ -25,6 +26,7 @@ type LaunchParameters struct {
 	Trace           bool
 	RecordPGO       bool
 	AutoTest        bool
+	RenderThread    bool
 }
 
 func LoadLaunchParams() {
@@ -40,5 +42,6 @@ func LoadLaunchParams() {
 		flag.BoolVar(&LaunchParams.AutoTest, "autotest", false, "If supplied, runs automated integration tests and exits")
 	}
 	flag.BoolVar(&LaunchParams.RecordPGO, "record_pgo", false, "If supplied, a default.pgo will be captured for this run")
+	flag.BoolVar(&LaunchParams.RenderThread, "renderthread", runtime.GOOS == "windows", "Run GPU rendering on a dedicated render thread when supported")
 	flag.Parse()
 }

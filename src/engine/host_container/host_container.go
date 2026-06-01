@@ -38,10 +38,22 @@ func (c *Container) Run(width, height, x, y int, platformState any) error {
 		c.Host.Close()
 		return err
 	}
-	if err := c.Host.InitializeRenderer(); err != nil {
-		slog.Error("Failed to initialize the renderer", "error", err)
-		c.Host.Close()
-		return err
+	useRenderThread := engine.LaunchParams.RenderThread && runtime.GOOS == "windows"
+	if useRenderThread {
+		if err := c.Host.StartRenderThread(); err != nil {
+			slog.Error("Failed to initialize the render thread", "error", err)
+			c.Host.Close()
+			return err
+		}
+	} else {
+		if engine.LaunchParams.RenderThread {
+			slog.Warn("render thread is not supported on this platform, using same-thread rendering")
+		}
+		if err := c.Host.InitializeRenderer(); err != nil {
+			slog.Error("Failed to initialize the renderer", "error", err)
+			c.Host.Close()
+			return err
+		}
 	}
 	if err := c.Host.InitializeAudio(); err != nil {
 		slog.Error("Failed to initialize audio", "error", err)
@@ -51,7 +63,21 @@ func (c *Container) Run(width, height, x, y int, platformState any) error {
 	clock.Start()
 	// Do one clean update and render before opening the prep lock
 	c.Host.Update(0)
-	c.Host.Render()
+	if useRenderThread {
+		if err := c.Host.RenderThreadProcessPending(); err != nil {
+			slog.Error("Failed to prepare first render-thread frame", "error", err)
+			c.Host.Close()
+			return err
+		}
+		frame := c.Host.CaptureRenderFrame()
+		if err := c.Host.SubmitRenderFrameAndWait(frame); err != nil {
+			slog.Error("Failed to render first frame", "error", err)
+			c.Host.Close()
+			return err
+		}
+	} else {
+		c.Host.Render()
+	}
 	c.PrepLock <- struct{}{}
 	traceRegionName := strings.Builder{}
 	for !c.Host.Closing {
@@ -64,7 +90,20 @@ func (c *Container) Run(width, height, x, y int, platformState any) error {
 		clock.Start()
 		c.Host.Update(deltaTime)
 		if !c.Host.Closing {
-			c.Host.Render()
+			if useRenderThread {
+				if err := c.Host.RenderThreadProcessPending(); err != nil {
+					slog.Error("Failed to prepare render-thread frame", "error", err)
+					c.Host.Close()
+				} else {
+					frame := c.Host.CaptureRenderFrame()
+					if err := c.Host.SubmitRenderFrame(frame); err != nil {
+						slog.Error("Failed to submit render-thread frame", "error", err)
+						c.Host.Close()
+					}
+				}
+			} else {
+				c.Host.Render()
+			}
 		}
 		r.End()
 	}

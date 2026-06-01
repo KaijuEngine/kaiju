@@ -98,7 +98,10 @@ func readMaterial(id string, ed EditorInterface) (*rendering.Material, error) {
 	materialData.RenderPass = "ed_thumb_preview_mesh.renderpass"
 	materialData.ShaderPipeline = "ed_thumb_preview_mesh.shaderpipeline"
 	host := ed.Host()
-	mat, err := materialData.CompileExt(host.AssetDatabase(), host.Window.GpuInstance.PrimaryDevice(), true)
+	var mat *rendering.Material
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		mat, err = materialData.CompileExt(host.AssetDatabase(), device, true)
+	})
 	if err != nil {
 		return nil, err
 	}

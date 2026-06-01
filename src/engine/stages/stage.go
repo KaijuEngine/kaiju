@@ -383,9 +383,11 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 	}
 	mat = mat.CreateInstance(texs)
 	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
-	for i := range texs {
-		texs[i].DelayedCreate(host.Window.GpuInstance.PrimaryDevice())
-	}
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		for i := range texs {
+			texs[i].DelayedCreate(device)
+		}
+	})
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       mesh,

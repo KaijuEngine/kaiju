@@ -116,6 +116,9 @@ func (g *GPUDevice) Screenshot() ([]byte, error) {
 	if int(idxSF) >= len(s.Images) {
 		return nil, fmt.Errorf("last frame references swap chain image %d, but only %d images exist", idxSF, len(s.Images))
 	}
+	if !g.FlushForReadback() {
+		return nil, fmt.Errorf("failed to flush pending GPU commands before screenshot readback")
+	}
 	return g.textureReadImpl(&s.Images[idxSF])
 }
 
@@ -229,7 +232,7 @@ func (g *GPUDevice) SwapFrame(window RenderingContainer, inst *GPUApplicationIns
 	return g.swapFrameImpl(window, inst, width, height)
 }
 
-func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []*RenderView) bool {
+func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []RenderViewFrame) bool {
 	defer tracing.NewRegion("Vulkan.ReadyFrame").End()
 	ld := &g.LogicalDevice
 	if !ld.SwapChain.IsValid() {
@@ -243,7 +246,7 @@ func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingCon
 	return g.readyFrameImpl(inst, window, camera, uiCamera, lights, runtime, views)
 }
 
-func (g *GPUDevice) updateGlobalUniformBuffers(views []*RenderView, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
+func (g *GPUDevice) updateGlobalUniformBuffers(views []RenderViewFrame, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
 	selected := renderViewsForGlobalUniforms(views)
 	for i := range selected {
 		if err := g.updateGlobalUniformBufferForView(selected[i], camera, uiCamera, lights, runtime); err != nil {
@@ -253,27 +256,32 @@ func (g *GPUDevice) updateGlobalUniformBuffers(views []*RenderView, camera camer
 	return nil
 }
 
-func renderViewsForGlobalUniforms(views []*RenderView) []*RenderView {
-	selected := make([]*RenderView, 0, len(views))
+func renderViewsForGlobalUniforms(views []RenderViewFrame) []RenderViewFrame {
+	selected := make([]RenderViewFrame, 0, len(views))
+	hasLiveViews := false
 	for i := range views {
-		if views[i] != nil {
+		if views[i].IsDestroyed() {
+			continue
+		}
+		hasLiveViews = true
+		if views[i].IsEnabled() {
 			selected = append(selected, views[i])
 		}
 	}
-	if len(selected) == 0 {
-		selected = append(selected, nil)
+	if len(selected) == 0 && !hasLiveViews {
+		selected = append(selected, RenderViewFrame{})
 	}
 	return selected
 }
 
-func (g *GPUDevice) updateGlobalUniformBufferForView(view *RenderView, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
+func (g *GPUDevice) updateGlobalUniformBufferForView(view RenderViewFrame, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32) error {
 	defer tracing.NewRegion("Vulkan.updateGlobalUniformBuffer").End()
 	ld := &g.LogicalDevice
 	screenSize := matrix.Vec2{
 		matrix.Float(ld.SwapChain.Extent.Width()),
 		matrix.Float(ld.SwapChain.Extent.Height()),
 	}
-	if view != nil {
+	if !view.IsDestroyed() {
 		if target := view.Target(); target != nil {
 			w, h := target.Size()
 			screenSize = matrix.Vec2{matrix.Float(w), matrix.Float(h)}
@@ -282,7 +290,7 @@ func (g *GPUDevice) updateGlobalUniformBufferForView(view *RenderView, camera ca
 	viewCamera := renderViewCameraForGlobals(view, camera)
 	ubo := globalShaderDataForCamera(viewCamera, uiCamera, lights, runtime, screenSize)
 	frame := g.Painter.currentFrame
-	state, err := g.ensureGlobalUniformsForView(view)
+	state, err := g.ensureGlobalUniformsForView(view.Key())
 	if err != nil {
 		return err
 	}
@@ -298,8 +306,8 @@ func (g *GPUDevice) updateGlobalUniformBufferForView(view *RenderView, camera ca
 	return nil
 }
 
-func renderViewCameraForGlobals(view *RenderView, fallback cameras.Camera) cameras.Camera {
-	if view == nil {
+func renderViewCameraForGlobals(view RenderViewFrame, fallback cameras.Camera) cameras.Camera {
+	if view.IsDestroyed() {
 		return fallback
 	}
 	if camera, ok := view.Camera().(cameras.Camera); ok && camera != nil {

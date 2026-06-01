@@ -55,6 +55,20 @@ func renderViewCuller(view *RenderView, fallback ViewCuller) ViewCuller {
 	return fallback
 }
 
+func renderViewFrameCuller(view RenderViewFrame, fallback ViewCuller) ViewCuller {
+	camera := view.Camera()
+	if camera == nil {
+		return fallback
+	}
+	if culler, ok := camera.(ViewCuller); ok {
+		return culler
+	}
+	if camera, ok := camera.(renderViewFrustumCamera); ok {
+		return renderViewCameraCuller{camera: camera}
+	}
+	return fallback
+}
+
 type DrawInstance interface {
 	Base() *ShaderDataBase
 	SkinningHeader() *SkinnedShaderDataHeader
@@ -266,6 +280,14 @@ type DrawInstanceViewState struct {
 	rawData           InstanceCopyData
 	boundInstanceData []InstanceCopyData
 	visibleCount      int
+	frameData         DrawInstanceFrameData
+}
+
+type DrawInstanceFrameData struct {
+	raw          []byte
+	bound        [][]byte
+	visibleCount int
+	ready        bool
 }
 
 func NewDrawInstanceViewState(dataSize int) DrawInstanceViewState {
@@ -361,8 +383,7 @@ func (d *DrawInstanceGroup) syncViewStateTemplates() {
 		state.rawData.padding = d.rawData.padding
 		state.rawData.length = d.rawData.length
 		if len(state.boundInstanceData) < len(d.boundInstanceData) {
-			grow := len(d.boundInstanceData) - len(state.boundInstanceData)
-			state.boundInstanceData = klib.SliceSetLen(state.boundInstanceData, grow)
+			state.boundInstanceData = klib.SliceSetLen(state.boundInstanceData, len(d.boundInstanceData))
 		}
 		for i := range d.boundInstanceData {
 			state.boundInstanceData[i].padding = d.boundInstanceData[i].padding
@@ -380,8 +401,7 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 			if g.Layouts[j].IsBuffer() {
 				b := &g.Layouts[j]
 				if len(d.boundInstanceData) <= b.Binding {
-					grow := (b.Binding + 1) - len(d.boundInstanceData)
-					d.boundInstanceData = klib.SliceSetLen(d.boundInstanceData, grow)
+					d.boundInstanceData = klib.SliceSetLen(d.boundInstanceData, b.Binding+1)
 				}
 				s := &d.boundInstanceData[b.Binding]
 				if s.length < b.Capacity() {
@@ -427,6 +447,10 @@ func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights Ligh
 func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, lights LightsForRender, view *RenderView) {
 	defer tracing.NewRegion("DrawInstanceGroup.UpdateData").End()
 	state := d.viewStateForView(view)
+	if state.frameData.ready {
+		d.applyCapturedDataForView(device, frame, state)
+		return
+	}
 	base := state.rawData.byteMapping[frame]
 	offset := uintptr(0)
 	count := len(d.Instances)
@@ -473,6 +497,155 @@ func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, ligh
 		device.LogicalDevice.DestroyGroup(d)
 		d.destroyed = true
 	}
+}
+
+func (d *DrawInstanceGroup) CaptureDataForView(lights LightsForRender, view RenderViewFrame) {
+	defer tracing.NewRegion("DrawInstanceGroup.CaptureData").End()
+	state := d.viewStateForView(view.Key())
+	d.syncCapturePadding(state)
+	stride := d.instanceSize + state.rawData.padding
+	count := len(d.Instances)
+	if cap(state.frameData.raw) < count*stride {
+		state.frameData.raw = make([]byte, 0, count*stride)
+	}
+	state.frameData.raw = state.frameData.raw[:0]
+	if len(state.frameData.bound) < len(state.boundInstanceData) {
+		state.frameData.bound = make([][]byte, len(state.boundInstanceData))
+	}
+	for i := range state.boundInstanceData {
+		need := count * d.captureBoundStride(state, i)
+		if cap(state.frameData.bound[i]) < need {
+			state.frameData.bound[i] = make([]byte, 0, need)
+		}
+		state.frameData.bound[i] = state.frameData.bound[i][:0]
+	}
+	state.visibleCount = 0
+	viewCuller := renderViewFrameCuller(view, d.viewCuller)
+	if d.EffectiveLayer() == RenderLayerUI {
+		viewCuller = d.viewCuller
+	}
+	for i := 0; i < count; i++ {
+		instance := d.Instances[i]
+		instanceBase := instance.Base()
+		if instanceBase.IsDestroyed() {
+			d.Instances[i] = d.Instances[count-1]
+			i--
+			count--
+			continue
+		}
+		if !instanceBase.UpdateModelForView(view.Key(), viewCuller, d.Mesh.Bounds()) {
+			continue
+		}
+		if d.MaterialInstance.IsLit {
+			instance.SelectLights(lights)
+		}
+		if len(state.boundInstanceData) > 0 {
+			for binding := range state.boundInstanceData {
+				d.captureBoundData(state, binding, instance)
+			}
+		}
+		start := len(state.frameData.raw)
+		state.frameData.raw = append(state.frameData.raw, make([]byte, stride)...)
+		copyFromPointer(state.frameData.raw[start:start+d.instanceSize],
+			instanceBase.DataPointer(), d.instanceSize)
+		state.visibleCount++
+	}
+	if count < len(d.Instances) {
+		d.rawData.length = count * (d.instanceSize + d.rawData.padding)
+		d.Instances = d.Instances[:count]
+		d.syncViewStateTemplates()
+	}
+	d.visibleCount = state.visibleCount
+	state.frameData.visibleCount = state.visibleCount
+	state.frameData.ready = true
+}
+
+func (d *DrawInstanceGroup) syncCapturePadding(state *DrawInstanceViewState) {
+	state.rawData.padding = d.rawData.padding
+	state.rawData.length = d.rawData.length
+	if len(state.boundInstanceData) < len(d.boundInstanceData) {
+		state.boundInstanceData = klib.SliceSetLen(state.boundInstanceData, len(d.boundInstanceData))
+	}
+	for i := range d.boundInstanceData {
+		state.boundInstanceData[i].padding = d.boundInstanceData[i].padding
+		state.boundInstanceData[i].length = d.boundInstanceData[i].length
+	}
+}
+
+func (d *DrawInstanceGroup) captureBoundData(state *DrawInstanceViewState, binding int, instance DrawInstance) {
+	if !instance.UpdateBoundData() || binding >= len(state.boundInstanceData) {
+		return
+	}
+	ptr := instance.BoundDataPointer()
+	if ptr == nil {
+		return
+	}
+	size := d.captureBoundStride(state, binding)
+	if size <= 0 {
+		return
+	}
+	start := len(state.frameData.bound[binding])
+	state.frameData.bound[binding] = append(state.frameData.bound[binding], make([]byte, size)...)
+	copyFromPointer(state.frameData.bound[binding][start:start+size], ptr, size)
+}
+
+func (d *DrawInstanceGroup) captureBoundStride(state *DrawInstanceViewState, binding int) int {
+	if binding < len(state.boundBuffers) && state.boundBuffers[binding].stride > 0 {
+		return state.boundBuffers[binding].stride
+	}
+	if d.MaterialInstance != nil {
+		for i := range d.MaterialInstance.shaderInfo.LayoutGroups {
+			group := &d.MaterialInstance.shaderInfo.LayoutGroups[i]
+			for j := range group.Layouts {
+				layout := &group.Layouts[j]
+				if layout.IsBuffer() && layout.Binding == binding {
+					return layout.Stride()
+				}
+			}
+		}
+	}
+	if binding < len(state.boundInstanceData) {
+		return state.boundInstanceData[binding].length
+	}
+	return 0
+}
+
+func (d *DrawInstanceGroup) applyCapturedDataForView(device *GPUDevice, frame int, state *DrawInstanceViewState) {
+	if state.generatedSets {
+		if base := state.rawData.byteMapping[frame]; base != nil && len(state.frameData.raw) > 0 {
+			copyToPointer(base, state.frameData.raw)
+		}
+		for binding := range state.frameData.bound {
+			if binding >= len(state.boundInstanceData) {
+				continue
+			}
+			base := state.boundInstanceData[binding].byteMapping[frame]
+			if base != nil && len(state.frameData.bound[binding]) > 0 {
+				copyToPointer(base, state.frameData.bound[binding])
+			}
+		}
+	}
+	state.visibleCount = state.frameData.visibleCount
+	d.visibleCount = state.visibleCount
+	d.bindInstanceDriverData(state)
+	if len(d.Instances) == 0 {
+		device.LogicalDevice.DestroyGroup(d)
+		d.destroyed = true
+	}
+}
+
+func copyFromPointer(dst []byte, src unsafe.Pointer, size int) {
+	if src == nil || size <= 0 {
+		return
+	}
+	copy(dst, unsafe.Slice((*byte)(src), size))
+}
+
+func copyToPointer(dst unsafe.Pointer, src []byte) {
+	if dst == nil || len(src) == 0 {
+		return
+	}
+	copy(unsafe.Slice((*byte)(dst), len(src)), src)
 }
 
 func (d *DrawInstanceGroup) Clear() {

@@ -19,6 +19,7 @@ type TextureCache struct {
 	assetDatabase   assets.Database
 	textures        [TextureFilterMax]map[string]*Texture
 	pendingTextures []*Texture
+	pendingFree     []TextureId
 	mutex           sync.Mutex
 }
 
@@ -28,6 +29,7 @@ func NewTextureCache(device *GPUDevice, assetDatabase assets.Database) TextureCa
 		device:          device,
 		assetDatabase:   assetDatabase,
 		pendingTextures: make([]*Texture, 0),
+		pendingFree:     make([]TextureId, 0),
 		mutex:           sync.Mutex{},
 	}
 	for i := range tc.textures {
@@ -62,7 +64,9 @@ func (t *TextureCache) ReloadTexture(textureKey string, filter TextureFilter) er
 	if !ok {
 		return nil
 	}
-	t.device.LogicalDevice.FreeTexture(&texture.RenderId)
+	if texture.RenderId.IsValid() {
+		t.pendingFree = append(t.pendingFree, texture.RenderId)
+	}
 	if err := texture.Reload(t.assetDatabase); err != nil {
 		return err
 	}
@@ -128,6 +132,10 @@ func (t *TextureCache) CreatePending() {
 	defer tracing.NewRegion("TextureCache.CreatePending").End()
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	for i := range t.pendingFree {
+		t.device.LogicalDevice.FreeTexture(&t.pendingFree[i])
+	}
+	t.pendingFree = klib.WipeSlice(t.pendingFree)
 	for _, texture := range t.pendingTextures {
 		texture.DelayedCreate(t.device)
 	}
@@ -138,6 +146,7 @@ func (t *TextureCache) CreatePending() {
 // This should be called when the application is shutting down or when the texture cache needs to be reset to ensure proper cleanup of resources.
 func (t *TextureCache) Destroy() {
 	defer tracing.NewRegion("TextureCache.Destroy").End()
+	t.pendingFree = klib.WipeSlice(t.pendingFree)
 	t.pendingTextures = klib.WipeSlice(t.pendingTextures)
 	for i := range t.textures {
 		for _, tex := range t.textures[i] {

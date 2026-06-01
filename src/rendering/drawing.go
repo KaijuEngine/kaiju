@@ -154,8 +154,8 @@ func (d *Drawings) addToRenderPassGroup(drawing *Drawing, rpGroup *RenderPassGro
 
 func (d *Drawings) PreparePending(shadowCascades uint8) {
 	defer tracing.NewRegion("Drawings.PreparePending").End()
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 	for i := 0; i < len(d.backDraws); i++ {
 		drawing := &d.backDraws[i]
 		rpGroup, ok := d.findRenderPassGroup(drawing.Material.renderPass)
@@ -173,6 +173,26 @@ func (d *Drawings) PreparePending(shadowCascades uint8) {
 		}
 	}
 	d.backDraws = klib.WipeSlice(d.backDraws)
+}
+
+func (d *Drawings) CaptureFrameData(lights LightsForRender, views []RenderViewFrame) {
+	defer tracing.NewRegion("Drawings.CaptureFrameData").End()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	views = renderViewsForDraw(views)
+	for i := range views {
+		layerMask := views[i].LayerMask()
+		for j := range d.renderPassGroups {
+			for k := range d.renderPassGroups[j].draws {
+				draw := &d.renderPassGroups[j].draws[k]
+				for g := range draw.instanceGroups {
+					if draw.instanceGroups[g].MatchesLayer(layerMask) {
+						draw.instanceGroups[g].CaptureDataForView(lights, views[i])
+					}
+				}
+			}
+		}
+	}
 }
 
 func (d *Drawings) AddDrawing(drawing Drawing) {
@@ -211,8 +231,10 @@ func (d *Drawings) AddDrawings(drawings []Drawing) {
 	}
 }
 
-func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*RenderView) {
+func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []RenderViewFrame) {
 	defer tracing.NewRegion("Drawings.Render").End()
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 	if len(d.renderPassGroups) == 0 {
 		return
 	}
@@ -263,22 +285,24 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []*Re
 			continue
 		}
 		if target != nil {
-			device.BlitTargetsToRenderTarget(drawnPasses, target)
-			if !device.FlushQueuedCommands() {
-				return
-			}
+			device.BlitTargetsToRenderTarget(drawnPasses, target, view)
 		} else {
 			device.BlitTargets(drawnPasses)
 		}
 	}
 }
 
-func renderViewsForDraw(views []*RenderView) []*RenderView {
-	targetViews := make([]*RenderView, 0, len(views))
-	var defaultView *RenderView
-	var firstSwapchainView *RenderView
+func renderViewsForDraw(views []RenderViewFrame) []RenderViewFrame {
+	targetViews := make([]RenderViewFrame, 0, len(views))
+	var defaultView RenderViewFrame
+	var firstSwapchainView RenderViewFrame
+	hasLiveViews := false
 	for i := range views {
-		if views[i] == nil || views[i].Destroyed() {
+		if views[i].IsDestroyed() {
+			continue
+		}
+		hasLiveViews = true
+		if !views[i].IsEnabled() {
 			continue
 		}
 		if views[i].Target() != nil {
@@ -287,20 +311,24 @@ func renderViewsForDraw(views []*RenderView) []*RenderView {
 		}
 		if views[i].Name() == DefaultRenderViewName {
 			defaultView = views[i]
-		} else if firstSwapchainView == nil {
+		} else if firstSwapchainView.View == nil {
 			firstSwapchainView = views[i]
 		}
 	}
 	swapchainView := defaultView
-	if swapchainView == nil {
+	if swapchainView.View == nil {
 		swapchainView = firstSwapchainView
 	}
-	if swapchainView == nil {
-		swapchainView = newRenderView(RenderViewOptions{
+	if swapchainView.View == nil {
+		if hasLiveViews {
+			return targetViews
+		}
+		view := newRenderView(RenderViewOptions{
 			Name:      DefaultRenderViewName,
 			LayerMask: RenderLayerAll,
 			Clear:     true,
 		}, 0)
+		swapchainView = newRenderViewFrame(view)
 	}
 	return append(targetViews, swapchainView)
 }

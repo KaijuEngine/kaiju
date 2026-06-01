@@ -42,7 +42,9 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 		UVs:            matrix.NewVec4(0, 0, 1, 1),
 	}
 	host.RunOnMainThread(func() {
-		tex.DelayedCreate(host.Window.GpuInstance.PrimaryDevice())
+		host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			tex.DelayedCreate(device)
+		})
 		draw := rendering.Drawing{
 			Material:   mat,
 			Mesh:       mesh,

@@ -283,7 +283,6 @@ func (v *StageView) SetViewportUIForKind(kind StageViewportKind, viewport *ui.UI
 	if viewport != nil && viewport.IsType(ui.ElementTypeImage) {
 		viewport.ToImage().Base().ToPanel().AllowClickThrough()
 	}
-	v.ensureStageRenderTarget(&v.stageViewports[idx])
 	v.syncStageViewport()
 }
 
@@ -298,6 +297,7 @@ func (v *StageView) syncStageViewport() {
 		return
 	}
 	if !v.hasActiveStageViewportDocument() {
+		v.disableStageRenderViews()
 		v.restoreDefaultRenderView()
 		v.syncFullWindowViewport()
 		return
@@ -308,6 +308,7 @@ func (v *StageView) syncStageViewport() {
 		bounds := v.currentViewportBoundsFor(viewport)
 		if !bounds.Valid() {
 			viewport.bounds = stageViewportBounds{}
+			v.disableStageRenderView(viewport)
 			continue
 		}
 		viewport.bounds = bounds
@@ -327,6 +328,32 @@ func (v *StageView) syncStageViewport() {
 	}
 	v.routeStageViewportInput()
 	v.bindActiveViewportCamera()
+}
+
+func (v *StageView) disableStageRenderViews() {
+	defer tracing.NewRegion("StageView.disableStageRenderViews").End()
+	for i := range v.stageViewports {
+		v.disableStageRenderView(&v.stageViewports[i])
+	}
+}
+
+func (v *StageView) disableStageRenderView(viewport *stageRenderViewport) {
+	defer tracing.NewRegion("StageView.disableStageRenderView").End()
+	if v.host == nil || viewport == nil {
+		return
+	}
+	name := viewport.Kind.renderName()
+	if viewport.renderView == nil {
+		if view, ok := v.host.RenderViews.View(name); ok {
+			viewport.renderView = view
+		} else {
+			return
+		}
+	}
+	if err := v.host.RenderViews.Destroy(name); err != nil {
+		slog.Error("failed to destroy hidden stage render view", "view", name, "error", err)
+	}
+	viewport.renderView = nil
 }
 
 func (v *StageView) syncFullWindowViewport() {
@@ -487,7 +514,11 @@ func (v *StageView) bindStageTargetTexture(viewport *stageRenderViewport) {
 		return
 	}
 	tex, err := viewport.target.Texture(rendering.RenderTargetOutputColor)
-	if err != nil || tex == nil || tex == viewport.texture {
+	if err != nil || tex == nil {
+		v.setViewportPlaceholderTexture(viewport)
+		return
+	}
+	if tex == viewport.texture {
 		return
 	}
 	viewport.ui.ToImage().SetTexture(tex)
@@ -498,13 +529,17 @@ func (v *StageView) setViewportPlaceholderTexture(viewport *stageRenderViewport)
 	if viewport == nil {
 		return
 	}
-	viewport.texture = nil
 	if viewport.ui == nil || !viewport.ui.IsType(ui.ElementTypeImage) || v.host == nil {
+		viewport.texture = nil
 		return
 	}
 	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	if err == nil && tex != nil {
+		if tex == viewport.texture {
+			return
+		}
 		viewport.ui.ToImage().SetTexture(tex)
+		viewport.texture = tex
 	}
 }
 

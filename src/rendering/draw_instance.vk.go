@@ -32,13 +32,14 @@ type ComputeShaderBuffer struct {
 }
 
 type InstanceDriverData struct {
-	descriptorPool    GPUDescriptorPool
-	descriptorSets    [maxFramesInFlight]GPUDescriptorSet
-	instanceBuffer    ShaderBuffer
-	imageInfos        []GPUDescriptorImageInfo
-	boundBuffers      []ShaderBuffer
-	lastInstanceCount int
-	generatedSets     bool
+	descriptorPool   GPUDescriptorPool
+	descriptorSets   [maxFramesInFlight]GPUDescriptorSet
+	instanceBuffer   ShaderBuffer
+	imageInfos       []GPUDescriptorImageInfo
+	boundBuffers     []ShaderBuffer
+	instanceCapacity InstanceBufferCapacity
+	descriptorCache  DescriptorWriteCache
+	generatedSets    bool
 }
 
 func (b *ComputeShaderBuffer) Initialize(device *GPUDevice, size uintptr, usage GPUBufferUsageFlags, properties GPUMemoryPropertyFlags) error {
@@ -87,8 +88,7 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(device *GPUDevice, materi
 			for j := range g.Layouts {
 				if g.Layouts[j].IsBuffer() {
 					if len(state.boundBuffers) <= g.Layouts[j].Binding {
-						grow := (g.Layouts[j].Binding + 1) - len(state.boundBuffers)
-						state.boundBuffers = klib.SliceSetLen(state.boundBuffers, grow)
+						state.boundBuffers = klib.SliceSetLen(state.boundBuffers, g.Layouts[j].Binding+1)
 					}
 					state.boundBuffers[g.Layouts[j].Binding] = ShaderBuffer{
 						bindingId: g.Layouts[j].Binding,

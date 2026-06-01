@@ -73,7 +73,9 @@ func (v *StageView) IsFlyCameraInputActive() bool {
 		return true
 	}
 	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
 	return v.viewportContainsScreenPosition(m.ScreenPosition()) &&
+		!kb.HasAlt() &&
 		(m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight))
 }
 
@@ -127,6 +129,7 @@ func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
 	v.open = false
 	v.hideCameraPreview()
+	v.disableStageRenderViews()
 	v.stagePicking.Close()
 	v.restoreDefaultRenderView()
 	if v.gridShader != nil {

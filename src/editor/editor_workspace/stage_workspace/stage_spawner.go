@@ -111,7 +111,9 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 	man.AddBVH(e)
 	man.RefitBVH(e)
 	w.Host.RunOnMainThread(func() {
-		tex.DelayedCreate(w.Host.Window.GpuInstance.PrimaryDevice())
+		w.Host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			tex.DelayedCreate(device)
+		})
 		draw := rendering.Drawing{
 			Material:   mat,
 			Mesh:       e.StageData.Mesh,
@@ -349,7 +351,9 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 		}
 	}
 	w.Host.RunOnMainThread(func() {
-		tex.DelayedCreate(w.Host.Window.GpuInstance.PrimaryDevice())
+		w.Host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			tex.DelayedCreate(device)
+		})
 		if !w.stageView.IsView3D() && tex.Width > 0 && tex.Height > 0 {
 			var w, h matrix.Float = 1, 1
 			tw := matrix.Float(tex.Width)

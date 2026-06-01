@@ -127,7 +127,7 @@ func (g *GPUApplicationInstance) Destroy() {
 			continue
 		}
 		device.LogicalDevice.WaitForRender(device)
-		device.Painter.combinedDrawings.Destroy(device)
+		device.Painter.combinedTargets.Destroy(device)
 		device.LogicalDevice.bufferTrash.Purge()
 		for k := range device.LogicalDevice.renderPassCache {
 			device.LogicalDevice.renderPassCache[k].Destroy(device)
@@ -146,6 +146,7 @@ func (g *GPUApplicationInstance) Destroy() {
 		for i := range device.Painter.blitCmds {
 			device.Painter.blitCmds[i].Destroy(device)
 		}
+		device.Painter.destroyTargetBlitCommands(device)
 		device.singleTimeCommandPool.All(func(elm *CommandRecorder) {
 			if elm.buffer != vk.NullCommandBuffer {
 				elm.Destroy(device)

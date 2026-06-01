@@ -44,8 +44,10 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 		return
 	}
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
-	l := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
-		host.AssetDatabase(), host.MaterialCache(), lightType)
+	var l rendering.Light
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		l = rendering.NewLight(device, host.AssetDatabase(), host.MaterialCache(), lightType)
+	})
 	l.SetPosition(target.Transform.WorldPosition())
 	l.SetDirection(target.Transform.Up().Negative())
 	l.SetAmbient(data.FieldValueByName("Ambient").(matrix.Vec3))
@@ -115,8 +117,9 @@ func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage
 	l := c.Lights[target]
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	if l.light.Type() != lightType {
-		l.light.Light = rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
-			host.AssetDatabase(), host.MaterialCache(), lightType)
+		host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			l.light.Light = rendering.NewLight(device, host.AssetDatabase(), host.MaterialCache(), lightType)
+		})
 	}
 	l.light.Light.SetPosition(l.light.Transform.WorldPosition())
 	l.light.Light.SetDirection(l.light.Transform.Up().Negative())

@@ -7,70 +7,95 @@
 package editor_stage_view
 
 import (
-	"reflect"
 	"testing"
 
-	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
-func TestPickingPointReadRegionScalesViewportLocalBottomToTextureTop(t *testing.T) {
-	region, ok := pickingPointReadRegion(
-		matrix.NewVec2(25, 10),
-		matrix.NewVec2(200, 100),
-		400,
-		200,
-	)
-	if !ok {
-		t.Fatalf("expected point region to be valid")
+func TestStagePickingDisableKeepsPersistentRenderResources(t *testing.T) {
+	view := stageViewWithRenderManagers()
+	target, err := view.host.RenderTargets.Create(rendering.RenderTargetOptions{
+		Name:   stagePickingRenderName,
+		Width:  16,
+		Height: 16,
+	})
+	if err != nil {
+		t.Fatalf("Create target returned error: %v", err)
 	}
-	want := matrix.Vec4i{50, 179, 1, 1}
-	if region != want {
-		t.Fatalf("region = %v, want %v", region, want)
+	renderView, err := view.host.RenderViews.Create(rendering.RenderViewOptions{
+		Name:   stagePickingRenderName,
+		Target: target,
+		Clear:  true,
+	})
+	if err != nil {
+		t.Fatalf("Create render view returned error: %v", err)
+	}
+	picking := StagePicking{
+		view:       view,
+		target:     target,
+		renderView: renderView,
+	}
+
+	picking.disableRenderView()
+
+	if picking.target != target || picking.renderView != renderView {
+		t.Fatalf("disableRenderView should keep persistent target/view")
+	}
+	if renderView.Enabled() {
+		t.Fatalf("disableRenderView should disable the render view")
+	}
+	if _, ok := view.host.RenderTargets.Target(stagePickingRenderName); !ok {
+		t.Fatalf("disableRenderView removed the render target")
+	}
+	if _, ok := view.host.RenderViews.View(stagePickingRenderName); !ok {
+		t.Fatalf("disableRenderView removed the render view")
 	}
 }
 
-func TestPickingBoxReadRegionNormalizesInvertedDragAndClamps(t *testing.T) {
-	region, ok := pickingBoxReadRegion(
-		matrix.NewVec4(180, 90, -20, -10),
-		matrix.NewVec2(100, 50),
-		200,
-		100,
-	)
-	if !ok {
-		t.Fatalf("expected clamped region to be valid")
+func TestStagePickingCloseDestroysPersistentRenderResources(t *testing.T) {
+	view := stageViewWithRenderManagers()
+	target, err := view.host.RenderTargets.Create(rendering.RenderTargetOptions{
+		Name:   stagePickingRenderName,
+		Width:  16,
+		Height: 16,
+	})
+	if err != nil {
+		t.Fatalf("Create target returned error: %v", err)
 	}
-	want := matrix.Vec4i{0, 0, 200, 100}
-	if region != want {
-		t.Fatalf("region = %v, want %v", region, want)
+	renderView, err := view.host.RenderViews.Create(rendering.RenderViewOptions{
+		Name:   stagePickingRenderName,
+		Target: target,
+		Clear:  true,
+	})
+	if err != nil {
+		t.Fatalf("Create render view returned error: %v", err)
+	}
+	picking := StagePicking{
+		view:       view,
+		target:     target,
+		renderView: renderView,
+	}
+
+	picking.Close()
+
+	if picking.target != nil || picking.renderView != nil {
+		t.Fatalf("Close should clear persistent target/view references")
+	}
+	if _, ok := view.host.RenderTargets.Target(stagePickingRenderName); ok {
+		t.Fatalf("Close left the render target in the manager")
+	}
+	if _, ok := view.host.RenderViews.View(stagePickingRenderName); ok {
+		t.Fatalf("Close left the render view in the manager")
 	}
 }
 
-func TestPickingBoxReadRegionConvertsPartialInvertedDrag(t *testing.T) {
-	region, ok := pickingBoxReadRegion(
-		matrix.NewVec4(80, 45, 20, 5),
-		matrix.NewVec2(100, 50),
-		200,
-		100,
-	)
-	if !ok {
-		t.Fatalf("expected box region to be valid")
-	}
-	want := matrix.Vec4i{40, 10, 120, 80}
-	if region != want {
-		t.Fatalf("region = %v, want %v", region, want)
-	}
-}
-
-func TestDecodePickIDsIgnoresZeroAndDeduplicates(t *testing.T) {
-	data := []byte{
-		0, 0, 0, 0,
-		7, 0, 0, 0,
-		9, 0, 0, 0,
-		7, 0, 0, 0,
-	}
-	got := decodePickIDs(data)
-	want := []uint32{7, 9}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("ids = %v, want %v", got, want)
-	}
+func stageViewWithRenderManagers() *StageView {
+	view := stageViewWithTestWindow()
+	view.host.RenderTargets = rendering.NewRenderTargetManager()
+	view.host.RenderViews = rendering.NewRenderViewManager(rendering.RenderViewOptions{
+		Name:      rendering.DefaultRenderViewName,
+		LayerMask: rendering.RenderLayerAll,
+		Clear:     true,
+	})
+	return view
 }

@@ -88,8 +88,8 @@ func TestRenderViewsForDrawKeepsDefaultViewActive(t *testing.T) {
 	})
 	other := mustCreateRenderView(t, &manager, RenderViewOptions{Name: "offscreen"})
 	defaultView, _ := manager.Default()
-	selected := renderViewsForDraw([]*RenderView{other, defaultView})
-	if len(selected) != 1 || selected[0] != defaultView {
+	selected := renderViewsForDraw([]RenderViewFrame{newRenderViewFrame(other), newRenderViewFrame(defaultView)})
+	if len(selected) != 1 || selected[0].View != defaultView {
 		t.Fatalf("selected views = %v, want only default view", selected)
 	}
 }
@@ -111,12 +111,82 @@ func TestRenderViewsForDrawPlacesTargetsBeforeDefault(t *testing.T) {
 		Sort:      10,
 	})
 	defaultView, _ := manager.Default()
-	selected := renderViewsForDraw(manager.Views())
+	selected := renderViewsForDraw(manager.FrameViews())
 	if len(selected) != 2 {
 		t.Fatalf("selected view count = %d, want 2", len(selected))
 	}
-	if selected[0] != targetView || selected[1] != defaultView {
+	if selected[0].View != targetView || selected[1].View != defaultView {
 		t.Fatalf("selected view order = %v, want target then default", selected)
+	}
+}
+
+func TestDisabledRenderViewsAreSkippedForDraw(t *testing.T) {
+	target := mustCreateRenderTarget(t, RenderTargetOptions{
+		Name:   "viewport",
+		Width:  320,
+		Height: 200,
+	})
+	manager := NewRenderViewManager(RenderViewOptions{
+		Name:      DefaultRenderViewName,
+		LayerMask: RenderLayerAll,
+	})
+	targetView := mustCreateRenderView(t, &manager, RenderViewOptions{
+		Name:      "viewport",
+		Target:    target,
+		LayerMask: RenderLayerWorld,
+		Sort:      -10,
+	})
+	targetView.SetEnabled(false)
+	defaultView, _ := manager.Default()
+
+	selected := renderViewsForDraw(manager.FrameViews())
+	if len(selected) != 1 || selected[0].View != defaultView {
+		t.Fatalf("selected views = %v, want only enabled default view", selected)
+	}
+}
+
+func TestDisabledDefaultRenderViewDoesNotCreateImplicitFallback(t *testing.T) {
+	manager := NewRenderViewManager(RenderViewOptions{
+		Name:      DefaultRenderViewName,
+		LayerMask: RenderLayerAll,
+	})
+	defaultView, _ := manager.Default()
+	defaultView.SetEnabled(false)
+
+	selected := renderViewsForDraw(manager.FrameViews())
+	if len(selected) != 0 {
+		t.Fatalf("selected views = %v, want no draw views for disabled default", selected)
+	}
+}
+
+func TestRenderViewFrameSnapshotsOptions(t *testing.T) {
+	view := newRenderView(RenderViewOptions{
+		Name:      "snapshot",
+		LayerMask: RenderLayerWorld,
+		Sort:      5,
+	}, 0)
+	frame := newRenderViewFrame(view)
+
+	view.setOptions(RenderViewOptions{
+		Name:      "snapshot",
+		LayerMask: RenderLayerUI,
+		Sort:      9,
+	})
+
+	if frame.LayerMask() != RenderLayerWorld || frame.Sort() != 5 {
+		t.Fatalf("frame changed with live view mutation: layer=%v sort=%d", frame.LayerMask(), frame.Sort())
+	}
+}
+
+func TestRenderViewFrameSnapshotsEnabledState(t *testing.T) {
+	view := newRenderView(RenderViewOptions{Name: "snapshot"}, 0)
+	frame := newRenderViewFrame(view)
+	view.SetEnabled(false)
+	if !frame.IsEnabled() {
+		t.Fatalf("frame enabled state changed with live view mutation")
+	}
+	if view.Enabled() {
+		t.Fatalf("live view should be disabled")
 	}
 }
 
