@@ -116,6 +116,9 @@ func (g *GPUDevice) Screenshot() ([]byte, error) {
 	if int(idxSF) >= len(s.Images) {
 		return nil, fmt.Errorf("last frame references swap chain image %d, but only %d images exist", idxSF, len(s.Images))
 	}
+	if !g.FlushForReadback() {
+		return nil, fmt.Errorf("failed to flush pending GPU commands before screenshot readback")
+	}
 	return g.textureReadImpl(&s.Images[idxSF])
 }
 
@@ -255,12 +258,17 @@ func (g *GPUDevice) updateGlobalUniformBuffers(views []RenderViewFrame, camera c
 
 func renderViewsForGlobalUniforms(views []RenderViewFrame) []RenderViewFrame {
 	selected := make([]RenderViewFrame, 0, len(views))
+	hasLiveViews := false
 	for i := range views {
-		if !views[i].IsDestroyed() {
+		if views[i].IsDestroyed() {
+			continue
+		}
+		hasLiveViews = true
+		if views[i].IsEnabled() {
 			selected = append(selected, views[i])
 		}
 	}
-	if len(selected) == 0 {
+	if len(selected) == 0 && !hasLiveViews {
 		selected = append(selected, RenderViewFrame{})
 	}
 	return selected

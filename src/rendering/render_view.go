@@ -41,6 +41,7 @@ type RenderViewOptions struct {
 type RenderView struct {
 	options   RenderViewOptions
 	order     uint64
+	enabled   bool
 	destroyed bool
 	mutex     sync.RWMutex
 }
@@ -49,6 +50,7 @@ type RenderViewFrame struct {
 	View      *RenderView
 	Options   RenderViewOptions
 	Order     uint64
+	Enabled   bool
 	Destroyed bool
 }
 
@@ -57,6 +59,7 @@ func newRenderView(options RenderViewOptions, order uint64) *RenderView {
 	return &RenderView{
 		options: options,
 		order:   order,
+		enabled: true,
 	}
 }
 
@@ -70,6 +73,7 @@ func newRenderViewFrame(view *RenderView) RenderViewFrame {
 		View:      view,
 		Options:   view.options,
 		Order:     view.order,
+		Enabled:   view.enabled,
 		Destroyed: view.destroyed,
 	}
 }
@@ -90,6 +94,7 @@ func (v RenderViewFrame) Clear() bool              { return v.Options.Clear }
 func (v RenderViewFrame) Sort() int                { return v.Options.Sort }
 func (v RenderViewFrame) ViewMode() RenderViewMode { return v.Options.ViewMode }
 func (v RenderViewFrame) IsDestroyed() bool        { return v.Destroyed || v.View == nil }
+func (v RenderViewFrame) IsEnabled() bool          { return v.Enabled && !v.IsDestroyed() }
 func (v RenderViewFrame) Key() *RenderView         { return v.View }
 
 func (v *RenderView) Name() string {
@@ -146,6 +151,18 @@ func (v *RenderView) ViewMode() RenderViewMode {
 	return v.options.ViewMode
 }
 
+func (v *RenderView) Enabled() bool {
+	v.mutex.RLock()
+	defer v.mutex.RUnlock()
+	return v.enabled && !v.destroyed
+}
+
+func (v *RenderView) SetEnabled(enabled bool) {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.enabled = enabled
+}
+
 func (v *RenderView) SetViewMode(mode RenderViewMode) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
@@ -159,14 +176,14 @@ func (v *RenderView) Destroyed() bool {
 }
 
 func (v *RenderView) MatchesDrawing(drawing *Drawing) bool {
-	if drawing == nil || v.Destroyed() {
+	if drawing == nil || !v.Enabled() {
 		return false
 	}
 	return drawing.MatchesLayer(v.LayerMask())
 }
 
 func (v *RenderView) MatchesGroup(group *DrawInstanceGroup) bool {
-	if group == nil || v.Destroyed() {
+	if group == nil || !v.Enabled() {
 		return false
 	}
 	return group.MatchesLayer(v.LayerMask())
@@ -177,6 +194,7 @@ func (v *RenderView) setOptions(options RenderViewOptions) {
 	defer v.mutex.Unlock()
 	options.LayerMask = normalizeRenderLayerMask(options.LayerMask)
 	v.options = options
+	v.enabled = true
 	v.destroyed = false
 }
 

@@ -11,6 +11,8 @@ import (
 	"unsafe"
 )
 
+var descriptorTextureHandles [3]byte
+
 func TestDescriptorTextureOrFallbackUsesReadyTexture(t *testing.T) {
 	t.Parallel()
 
@@ -48,9 +50,9 @@ func TestDescriptorTextureOrFallbackRejectsInvalidFallback(t *testing.T) {
 func testDescriptorTexture() *Texture {
 	return &Texture{
 		RenderId: TextureId{
-			Image:   GPUImage{GPUHandle{handle: unsafe.Pointer(uintptr(1))}},
-			View:    GPUImageView{GPUHandle{handle: unsafe.Pointer(uintptr(2))}},
-			Sampler: GPUSampler{GPUHandle{handle: unsafe.Pointer(uintptr(3))}},
+			Image:   GPUImage{GPUHandle{handle: unsafe.Pointer(&descriptorTextureHandles[0])}},
+			View:    GPUImageView{GPUHandle{handle: unsafe.Pointer(&descriptorTextureHandles[1])}},
+			Sampler: GPUSampler{GPUHandle{handle: unsafe.Pointer(&descriptorTextureHandles[2])}},
 		},
 	}
 }

@@ -281,8 +281,6 @@ func (g *GPUDevice) createDescriptorSet(layout GPUDescriptorSetLayout, poolIdx i
 
 func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicationInstance, width, height int32) bool {
 	defer tracing.NewRegion("Vulkan.SwapFrame").End()
-	qSubmit := tracing.NewRegion("Vulkan.QueueSubmit")
-	all := make([]vk.CommandBuffer, 0, len(g.Painter.writtenCommands))
 	waitSemaphores := [...]vk.Semaphore{
 		vk.Semaphore(g.LogicalDevice.SwapChain.imageSemaphores[g.Painter.currentFrame].handle),
 	}
@@ -290,45 +288,10 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	signalSemaphores := [...]vk.Semaphore{
 		vk.Semaphore(g.LogicalDevice.SwapChain.renderFinishedSemaphores[g.Painter.imageIndex[g.Painter.currentFrame]].handle),
 	}
-	// TODO:  Make this better when adding more stages, this is just for shadows
-	// at the moment
-	const prePostQueueRange = 2
-	waited := false
-	for sort := range prePostQueueRange {
-		all = all[:0]
-		for i := range g.Painter.writtenCommands {
-			if g.Painter.writtenCommands[i].stage == sort {
-				all = append(all, g.Painter.writtenCommands[i].buffer)
-			}
-		}
-		if len(all) == 0 {
-			continue
-		}
-		submitInfo := vk.SubmitInfo{
-			SType:              vulkan_const.StructureTypeSubmitInfo,
-			PCommandBuffers:    &all[0],
-			CommandBufferCount: uint32(len(all)),
-			PWaitDstStageMask:  &waitStages[0],
-		}
-		fence := vk.NullFence
-		if !waited {
-			submitInfo.WaitSemaphoreCount = uint32(len(waitSemaphores))
-			submitInfo.PWaitSemaphores = &waitSemaphores[0]
-			waited = true
-		}
-		if sort == prePostQueueRange-1 {
-			submitInfo.SignalSemaphoreCount = uint32(len(signalSemaphores))
-			submitInfo.PSignalSemaphores = &signalSemaphores[0]
-			fence = vk.Fence(g.LogicalDevice.SwapChain.renderFences[g.Painter.currentFrame].handle)
-		}
-		eCode := vk.QueueSubmit(vk.Queue(g.LogicalDevice.graphicsQueue), 1, &submitInfo, fence)
-		if eCode != vulkan_const.Success {
-			slog.Error("Failed to submit draw command buffer", slog.Int("code", int(eCode)))
-			return false
-		}
+	fence := vk.Fence(g.LogicalDevice.SwapChain.renderFences[g.Painter.currentFrame].handle)
+	if !g.queuedCommandSubmitter().SubmitForPresent(waitSemaphores[:], waitStages[:], signalSemaphores[:], fence) {
+		return false
 	}
-	g.Painter.writtenCommands = g.Painter.writtenCommands[:0]
-	qSubmit.End()
 	qPresent := tracing.NewRegion("Vulkan.QueuePresent")
 	//dependency := vk.SubpassDependency{
 	//	SrcSubpass:    vulkan_const.SubpassExternal,
@@ -366,44 +329,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 
 func (g *GPUDevice) flushQueuedCommandsImpl() bool {
 	defer tracing.NewRegion("Vulkan.flushQueuedCommandsImpl").End()
-	if len(g.Painter.writtenCommands) == 0 {
-		return true
-	}
-	all := make([]vk.CommandBuffer, 0, len(g.Painter.writtenCommands))
-	const prePostQueueRange = 2
-	vkDevice := vk.Device(g.LogicalDevice.handle)
-	for sort := range prePostQueueRange {
-		all = all[:0]
-		var fence vk.Fence
-		for i := range g.Painter.writtenCommands {
-			if g.Painter.writtenCommands[i].stage == sort {
-				all = append(all, g.Painter.writtenCommands[i].buffer)
-				fence = g.Painter.writtenCommands[i].fence
-			}
-		}
-		if len(all) == 0 {
-			continue
-		}
-		vk.ResetFences(vkDevice, 1, &fence)
-		submitInfo := vk.SubmitInfo{
-			SType:              vulkan_const.StructureTypeSubmitInfo,
-			PCommandBuffers:    &all[0],
-			CommandBufferCount: uint32(len(all)),
-		}
-		eCode := vk.QueueSubmit(vk.Queue(g.LogicalDevice.graphicsQueue), 1, &submitInfo, fence)
-		if eCode != vulkan_const.Success {
-			slog.Error("Failed to submit render target command buffer", slog.Int("code", int(eCode)))
-			return false
-		}
-		res := vk.WaitForFences(vkDevice, 1, &fence, vulkan_const.True, math.MaxUint64)
-		if res != vulkan_const.Success {
-			slog.Error("Failed to wait for render target command buffer", slog.Int("code", int(res)))
-			return false
-		}
-		vk.ResetFences(vkDevice, 1, &fence)
-	}
-	g.Painter.writtenCommands = g.Painter.writtenCommands[:0]
-	return true
+	return g.queuedCommandSubmitter().SubmitAndWaitForReadback()
 }
 
 func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []RenderViewFrame) bool {
@@ -412,8 +338,10 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	ld := &g.LogicalDevice
 	fences := [...]GPUFence{ld.SwapChain.renderFences[painter.currentFrame]}
 	ld.WaitForFences(fences[:])
-	vkFences := [...]vk.Fence{vk.Fence(fences[0].handle)}
-	vk.ResetFences(vk.Device(ld.handle), 1, &vkFences[0])
+	painter.resetTargetBlitCommands(painter.currentFrame)
+	for _, renderPass := range ld.renderPassCache {
+		renderPass.resetViewCommandSets(painter.currentFrame)
+	}
 	frame := painter.currentFrame
 	res := vk.AcquireNextImage(vk.Device(ld.handle),
 		vk.Swapchain(ld.SwapChain.handle),

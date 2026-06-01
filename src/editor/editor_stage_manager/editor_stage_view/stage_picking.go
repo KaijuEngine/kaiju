@@ -57,8 +57,8 @@ func (p *StagePicking) Initialize(view *StageView) {
 
 func (p *StagePicking) Close() {
 	p.pending = nil
-	p.disableRenderView()
-	p.disableGizmoRenderView()
+	p.destroyRenderView()
+	p.destroyGizmoRenderView()
 }
 
 func (p *StagePicking) Update() {
@@ -202,10 +202,17 @@ func (p *StagePicking) ensureNamedRenderView(name string, size matrix.Vec2) (*re
 			}
 		}
 	}
+	view.SetEnabled(true)
 	return target, view, nil
 }
 
 func (p *StagePicking) disableRenderView() {
+	if p.renderView != nil {
+		p.renderView.SetEnabled(false)
+	}
+}
+
+func (p *StagePicking) destroyRenderView() {
 	if p.view == nil || p.view.host == nil {
 		return
 	}
@@ -224,6 +231,13 @@ func (p *StagePicking) disableRenderView() {
 }
 
 func (p *StagePicking) disableGizmoRenderView() {
+	if p.gizmoRenderView != nil {
+		p.gizmoRenderView.SetEnabled(false)
+	}
+	p.gizmoRenderViewReady = false
+}
+
+func (p *StagePicking) destroyGizmoRenderView() {
 	if p.view == nil || p.view.host == nil {
 		return
 	}

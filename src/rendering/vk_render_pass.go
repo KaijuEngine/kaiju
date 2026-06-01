@@ -29,6 +29,9 @@ type RenderPass struct {
 	subpasses    []RenderPassSubpass
 	cmd          [maxFramesInFlight]CommandRecorder
 	cmdSecondary [maxFramesInFlight]CommandRecorderSecondary
+	viewCmds     [maxFramesInFlight][]RenderPassCommandSet
+	viewCmdCount [maxFramesInFlight]int
+	activeCmds   *RenderPassCommandSet
 	currentIdx   int
 	subpassIdx   int
 	frame        int
@@ -44,6 +47,12 @@ type RenderPassSubpass struct {
 	cmd            [maxFramesInFlight]CommandRecorderSecondary
 }
 
+type RenderPassCommandSet struct {
+	cmd          CommandRecorder
+	cmdSecondary CommandRecorderSecondary
+	subpassCmds  []CommandRecorderSecondary
+}
+
 func (r *RenderPass) Width() int  { return r.construction.Width }
 func (r *RenderPass) Height() int { return r.construction.Height }
 
@@ -56,13 +65,13 @@ func (r *RenderPass) IsShadowPass() bool {
 
 func (r *RenderPass) ExecuteSecondaryCommands() {
 	buffs := [1]vk.CommandBuffer{}
-	rec := &r.cmdSecondary[r.frame]
+	rec := r.activeSecondaryCommand()
 	if r.currentIdx > 0 {
-		rec = &r.subpasses[r.currentIdx-1].cmd[r.frame]
+		rec = r.activeSubpassCommand(r.currentIdx - 1)
 	}
 	rec.End()
 	buffs[0] = rec.buffer
-	vk.CmdExecuteCommands(r.cmd[r.frame].buffer, uint32(len(buffs)), &buffs[0])
+	vk.CmdExecuteCommands(r.activePrimaryCommand().buffer, uint32(len(buffs)), &buffs[0])
 }
 
 func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture {
@@ -178,8 +187,9 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 }
 
 func (r *RenderPass) endSubpasses() {
-	vk.CmdEndRenderPass(r.cmd[r.frame].buffer)
-	r.cmd[r.frame].End()
+	cmd := r.activePrimaryCommand()
+	vk.CmdEndRenderPass(cmd.buffer)
+	cmd.End()
 }
 
 func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clearColors []vk.ClearValue) {
@@ -210,20 +220,111 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 		if len(clearColors) > 0 {
 			renderPassInfo.PClearValues = &clearColors[0]
 		}
-		r.cmd[r.frame].Begin()
-		vk.CmdBeginRenderPass(r.cmd[r.frame].buffer, &renderPassInfo, vulkan_const.SubpassContentsSecondaryCommandBuffers)
-		r.cmdSecondary[r.frame].Begin(viewport, scissor)
+		cmd := r.activePrimaryCommand()
+		cmd.Begin()
+		vk.CmdBeginRenderPass(cmd.buffer, &renderPassInfo, vulkan_const.SubpassContentsSecondaryCommandBuffers)
+		r.activeSecondaryCommand().Begin(viewport, scissor)
 	} else {
-		sp := &r.subpasses[r.subpassIdx-1]
-		sp.cmd[r.frame].Reset()
-		vk.CmdNextSubpass(r.cmd[r.frame].buffer, vulkan_const.SubpassContentsSecondaryCommandBuffers)
-		sp.cmd[r.frame].Begin(viewport, scissor)
+		spCmd := r.activeSubpassCommand(r.subpassIdx - 1)
+		spCmd.Reset()
+		vk.CmdNextSubpass(r.activePrimaryCommand().buffer, vulkan_const.SubpassContentsSecondaryCommandBuffers)
+		spCmd.Begin(viewport, scissor)
 	}
 	r.currentIdx = r.subpassIdx
 	r.subpassIdx++
 	if r.subpassIdx > len(r.subpasses) {
 		r.subpassIdx = 0
 	}
+}
+
+func (r *RenderPass) useViewCommandSet(device *GPUDevice, frame int) error {
+	idx := r.viewCmdCount[frame]
+	if idx >= len(r.viewCmds[frame]) {
+		set, err := r.createViewCommandSet(device)
+		if err != nil {
+			return err
+		}
+		r.viewCmds[frame] = append(r.viewCmds[frame], set)
+	} else {
+		r.viewCmds[frame][idx].reset()
+	}
+	r.viewCmdCount[frame]++
+	r.activeCmds = &r.viewCmds[frame][idx]
+	return nil
+}
+
+func (r *RenderPass) useDefaultCommandSet() {
+	r.activeCmds = nil
+}
+
+func (r *RenderPass) resetViewCommandSets(frame int) {
+	if frame >= 0 && frame < len(r.viewCmdCount) {
+		r.viewCmdCount[frame] = 0
+	}
+}
+
+func (r *RenderPass) createViewCommandSet(device *GPUDevice) (RenderPassCommandSet, error) {
+	var set RenderPassCommandSet
+	var err error
+	if set.cmd, err = NewCommandRecorder(device); err != nil {
+		return set, err
+	}
+	if set.cmdSecondary, err = NewCommandRecorderSecondary(device, r, 0); err != nil {
+		set.cmd.Destroy(device)
+		return RenderPassCommandSet{}, err
+	}
+	set.subpassCmds = make([]CommandRecorderSecondary, len(r.subpasses))
+	for i := range r.subpasses {
+		if set.subpassCmds[i], err = NewCommandRecorderSecondary(device, r, i+1); err != nil {
+			set.destroy(device)
+			return RenderPassCommandSet{}, err
+		}
+	}
+	return set, nil
+}
+
+func (r *RenderPass) activePrimaryCommand() *CommandRecorder {
+	if r.activeCmds != nil {
+		return &r.activeCmds.cmd
+	}
+	return &r.cmd[r.frame]
+}
+
+func (r *RenderPass) activeSecondaryCommand() *CommandRecorderSecondary {
+	if r.activeCmds != nil {
+		return &r.activeCmds.cmdSecondary
+	}
+	return &r.cmdSecondary[r.frame]
+}
+
+func (r *RenderPass) activeSubpassCommand(index int) *CommandRecorderSecondary {
+	if r.activeCmds != nil {
+		return &r.activeCmds.subpassCmds[index]
+	}
+	return &r.subpasses[index].cmd[r.frame]
+}
+
+func (s *RenderPassCommandSet) reset() {
+	s.cmd.Reset()
+	s.cmdSecondary.Reset()
+	for i := range s.subpassCmds {
+		s.subpassCmds[i].Reset()
+	}
+}
+
+func (s *RenderPassCommandSet) destroy(device *GPUDevice) {
+	if s.cmd.buffer != vk.NullCommandBuffer {
+		s.cmd.Destroy(device)
+	}
+	if s.cmdSecondary.buffer != vk.NullCommandBuffer {
+		s.cmdSecondary.Destroy(device)
+	}
+	for i := range s.subpassCmds {
+		if s.subpassCmds[i].buffer != vk.NullCommandBuffer {
+			s.subpassCmds[i].Destroy(device)
+		}
+	}
+	s.subpassCmds = nil
 }
 
 func isDepthFormat(format vulkan_const.Format) bool {
@@ -471,6 +572,14 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 			p.subpasses[i].cmd[j].Destroy(device)
 		}
 	}
+	for frame := range p.viewCmds {
+		for i := range p.viewCmds[frame] {
+			p.viewCmds[frame][i].destroy(device)
+		}
+		p.viewCmds[frame] = nil
+		p.viewCmdCount[frame] = 0
+	}
+	p.activeCmds = nil
 	p.subpasses = klib.WipeSlice(p.subpasses)
 	for i := range p.cmd {
 		p.cmd[i].Destroy(device)

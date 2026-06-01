@@ -27,6 +27,15 @@ type boundBufferInfo struct {
 
 func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.drawImpl").End()
+	if view.Target() != nil {
+		if err := renderPass.useViewCommandSet(g, g.Painter.currentFrame); err != nil {
+			slog.Error("failed to create render target draw command set", "renderPass", renderPass.construction.Name, "error", err)
+			return
+		}
+		defer renderPass.useDefaultCommandSet()
+	} else {
+		renderPass.useDefaultCommandSet()
+	}
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
 	viewMaterials := make([]*Material, len(drawings))
@@ -36,9 +45,9 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		for i := range drawings {
 			d := &drawings[i]
 			viewMaterials[i] = g.materialForRenderView(view, d.material)
-			writes := g.writeDrawingDescriptors(viewMaterials[i], d.instanceGroups, lights, shadows, view, layerMask, &p)
+			writes, shouldDraw := g.writeDrawingDescriptors(viewMaterials[i], d.instanceGroups, lights, shadows, view, layerMask, &p)
 			allWrites = append(allWrites, writes...)
-			doDrawings[i] = len(writes) > 0
+			doDrawings[i] = shouldDraw
 			drawingAnything = drawingAnything || doDrawings[i]
 		}
 		if len(allWrites) > 0 {
@@ -76,7 +85,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		if doDrawings[i] {
 			shader := viewMaterials[i].Shader
 			s := &shader.RenderId
-			g.renderEach(renderPass.cmdSecondary[g.Painter.currentFrame].buffer,
+			g.renderEach(renderPass.activeSecondaryCommand().buffer,
 				s.graphicsPipeline, s.pipelineLayout, d.instanceGroups, shader, d.pushConstantData, view, layerMask)
 		}
 	}
@@ -84,7 +93,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 	for i := range renderPass.subpasses {
 		s := &renderPass.subpasses[i]
 		renderPass.beginNextSubpass(g.Painter.currentFrame, ext, clears)
-		cmd := &s.cmd[g.Painter.currentFrame]
+		cmd := renderPass.activeSubpassCommand(i)
 		vk.CmdBindPipeline(cmd.buffer, vulkan_const.PipelineBindPointGraphics,
 			vk.Pipeline(s.shader.RenderId.graphicsPipeline.handle))
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
@@ -117,13 +126,13 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 	// TODO:  Make this more generic so that there can be a sequence of stages
 	// that require other stages to be done. For now I'm just adding the pre and
 	// post stages to make sure shadows go first
-	g.Painter.forceQueueCommand(renderPass.cmd[g.Painter.currentFrame], renderPass.IsShadowPass())
+	g.Painter.forceQueueCommand(*renderPass.activePrimaryCommand(), renderPass.IsShadowPass())
 }
 
 func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	defer tracing.NewRegion("GPUDevice.blitTargetsImpl").End()
 	g.prepCombinedTargets(passes)
-	img := g.combineTargets()
+	img := g.combineTargets(RenderViewFrame{})
 	if img == nil {
 		return
 	}
@@ -165,7 +174,7 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	g.cleanupCombined(cmd)
 }
 
-func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *RenderTarget) {
+func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *RenderTarget, view RenderViewFrame) {
 	defer tracing.NewRegion("GPUDevice.blitTargetsToRenderTargetImpl").End()
 	if err := target.ensureRealized(g); err != nil {
 		slog.Error("failed to realize render target", "target", target.Name(), "error", err)
@@ -177,12 +186,15 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 		return
 	}
 	g.prepCombinedTargets(passes)
-	img := g.combineTargets()
+	img := g.combineTargets(view)
 	if img == nil {
 		return
 	}
-	cmd := &g.Painter.blitCmds[g.Painter.currentFrame]
-	cmd.Begin()
+	cmd, err := g.Painter.nextTargetBlitCommand(g)
+	if err != nil {
+		slog.Error("failed to create render target blit command", "target", target.Name(), "error", err)
+		return
+	}
 	defer cmd.End()
 	g.Painter.forceQueueCommand(*cmd, false)
 	g.TransitionImageLayout(&targetTexture.RenderId,
@@ -211,10 +223,11 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 	g.cleanupCombined(cmd)
 }
 
-func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask, p *runtime.Pinner) ([]vk.WriteDescriptorSet, bool) {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
+	shouldDraw := false
 	addWrite := func(write vk.WriteDescriptorSet) {
 		p.Pin(write.PImageInfo)
 		p.Pin(write.PBufferInfo)
@@ -230,7 +243,10 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			continue
 		}
 		state := group.viewStateForView(view.Key())
-		g.resizeBuffers(material, group, state)
+		if err := g.resizeBuffers(material, group, state); err != nil {
+			slog.Error("failed to resize draw instance buffers", "error", err)
+			continue
+		}
 		group.UpdateDataForView(g, g.Painter.currentFrame, lights, view.Key())
 		if !group.AnyVisibleForView(view.Key()) {
 			continue
@@ -245,7 +261,7 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			bufferInfo(vk.Buffer(globalBuffer.handle),
 				vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))),
 		}
-		boundBufferInfos := boundBufferInfos[:0]
+		boundBufferInfos = boundBufferInfos[:0]
 		for k := range state.boundBuffers {
 			if state.boundBuffers[k].size > 0 {
 				boundBufferInfos = append(boundBufferInfos, boundBufferInfo{
@@ -255,11 +271,17 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 				})
 			}
 		}
-		addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.handle), globalInfo[:],
-			0, vulkan_const.DescriptorTypeUniformBuffer))
 		texCount := len(group.MaterialInstance.Textures)
+		if len(state.imageInfos) != texCount {
+			state.imageInfos = make([]GPUDescriptorImageInfo, texCount)
+			state.descriptorCache.Invalidate()
+		}
+		var shadowMaps [MaxLocalLights]*TextureId
+		var shadowCubeMaps [MaxLocalLights]*TextureId
+		var shadowImageInfos [MaxLocalLights]vk.DescriptorImageInfo
+		var shadowCubeImageInfos [MaxLocalLights]vk.DescriptorImageInfo
+		validTextures := true
 		if texCount > 0 {
-			validTextures := true
 			for j := range texCount {
 				t := descriptorTextureOrFallback(group.MaterialInstance.Textures[j],
 					g.Painter.fallbackShadowMap)
@@ -275,16 +297,7 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			if !validTextures {
 				continue
 			}
-			vkImageInfos := make([]vk.DescriptorImageInfo, len(state.imageInfos))
-			for j := range state.imageInfos {
-				vkImageInfos[j].Sampler = vk.Sampler(state.imageInfos[j].Sampler.handle)
-				vkImageInfos[j].ImageView = vk.ImageView(state.imageInfos[j].ImageView.handle)
-				vkImageInfos[j].ImageLayout = vulkan_const.ImageLayout(state.imageInfos[j].ImageLayout)
-			}
-			addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), vkImageInfos, 1, false))
 			if group.MaterialInstance.ReceivesShadows {
-				imageInfos := [MaxLocalLights]vk.DescriptorImageInfo{}
-				imageInfosCube := [MaxLocalLights]vk.DescriptorImageInfo{}
 				for j := range MaxLocalLights {
 					sm := &g.Painter.fallbackShadowMap.RenderId
 					smCube := &g.Painter.fallbackCubeShadowMap.RenderId
@@ -293,11 +306,32 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 							sm = &shadows[j]
 						}
 					}
-					imageInfos[j] = imageInfoVk(vk.ImageView(sm.View.handle), vk.Sampler(sm.Sampler.handle))
-					imageInfosCube[j] = imageInfoVk(vk.ImageView(smCube.View.handle), vk.Sampler(smCube.Sampler.handle))
+					shadowMaps[j] = sm
+					shadowCubeMaps[j] = smCube
+					shadowImageInfos[j] = imageInfoVk(vk.ImageView(sm.View.handle), vk.Sampler(sm.Sampler.handle))
+					shadowCubeImageInfos[j] = imageInfoVk(vk.ImageView(smCube.View.handle), vk.Sampler(smCube.Sampler.handle))
 				}
-				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), imageInfos[:], 2, false))
-				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), imageInfosCube[:], 3, false))
+			}
+		}
+		signature := descriptorSignatureForDrawGroup(material, group, state, g.Painter.currentFrame,
+			set, globalBuffer, boundBufferInfos, shadowMaps[:], shadowCubeMaps[:])
+		shouldDraw = true
+		if !state.descriptorCache.ShouldWrite(g.Painter.currentFrame, signature) {
+			continue
+		}
+		addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.handle), globalInfo[:],
+			0, vulkan_const.DescriptorTypeUniformBuffer))
+		if texCount > 0 {
+			vkImageInfos := make([]vk.DescriptorImageInfo, len(state.imageInfos))
+			for j := range state.imageInfos {
+				vkImageInfos[j].Sampler = vk.Sampler(state.imageInfos[j].Sampler.handle)
+				vkImageInfos[j].ImageView = vk.ImageView(state.imageInfos[j].ImageView.handle)
+				vkImageInfos[j].ImageLayout = vulkan_const.ImageLayout(state.imageInfos[j].ImageLayout)
+			}
+			addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), vkImageInfos, 1, false))
+			if group.MaterialInstance.ReceivesShadows {
+				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), shadowImageInfos[:], 2, false))
+				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), shadowCubeImageInfos[:], 3, false))
 			}
 			for k := range boundBufferInfos {
 				addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.handle),
@@ -307,7 +341,69 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			}
 		}
 	}
-	return allWrites
+	return allWrites, shouldDraw
+}
+
+func descriptorSignatureForDrawGroup(material *Material, group *DrawInstanceGroup, state *DrawInstanceViewState, frame int,
+	set GPUDescriptorSet, globalBuffer GPUBuffer, boundBufferInfos []boundBufferInfo, shadowMaps []*TextureId, shadowCubeMaps []*TextureId) DescriptorWriteSignature {
+	signature := NewDescriptorWriteSignature()
+	signature.AddHandle(set.GPUHandle)
+	signature.AddHandle(globalBuffer.GPUHandle)
+	signature.AddPointer(unsafe.Pointer(material))
+	if material != nil {
+		signature.AddString(material.Id)
+		signature.AddPointer(unsafe.Pointer(material.Shader))
+		if material.Shader != nil {
+			signature.AddHandle(material.Shader.RenderId.descriptorSetLayout.GPUHandle)
+			signature.AddHandle(material.Shader.RenderId.pipelineLayout.GPUHandle)
+			signature.AddHandle(material.Shader.RenderId.graphicsPipeline.GPUHandle)
+		}
+	}
+	if group != nil && group.MaterialInstance != nil {
+		signature.AddPointer(unsafe.Pointer(group.MaterialInstance))
+		signature.AddString(group.MaterialInstance.Id)
+		signature.AddInt(len(group.MaterialInstance.Textures))
+		if group.MaterialInstance.ReceivesShadows {
+			signature.AddInt(1)
+		} else {
+			signature.AddInt(0)
+		}
+	}
+	signature.AddHandle(state.instanceBuffer.buffers[frame].GPUHandle)
+	signature.AddUintptr(state.instanceBuffer.size)
+	signature.AddInt(state.instanceCapacity.Capacity())
+	for i := range boundBufferInfos {
+		buffer := boundBufferInfos[i].boundBuffer
+		signature.AddInt(buffer.bindingId)
+		signature.AddUintptr(buffer.size)
+		signature.AddHandle(buffer.buffers[frame].GPUHandle)
+	}
+	for i := range state.imageInfos {
+		signature.AddHandle(state.imageInfos[i].Sampler.GPUHandle)
+		signature.AddHandle(state.imageInfos[i].ImageView.GPUHandle)
+		signature.AddInt(int(state.imageInfos[i].ImageLayout))
+	}
+	for i := range shadowMaps {
+		addTextureIdToDescriptorSignature(&signature, shadowMaps[i])
+	}
+	for i := range shadowCubeMaps {
+		addTextureIdToDescriptorSignature(&signature, shadowCubeMaps[i])
+	}
+	return signature
+}
+
+func addTextureIdToDescriptorSignature(signature *DescriptorWriteSignature, id *TextureId) {
+	if id == nil {
+		signature.AddUint64(0)
+		return
+	}
+	signature.AddHandle(id.View.GPUHandle)
+	signature.AddHandle(id.Sampler.GPUHandle)
+	signature.AddInt(int(id.Layout))
+	signature.AddInt(int(id.Format))
+	signature.AddInt(id.Width)
+	signature.AddInt(id.Height)
+	signature.AddInt(id.LayerCount)
 }
 
 func descriptorTextureOrFallback(texture, fallback *Texture) *Texture {
@@ -481,7 +577,7 @@ func (g *GPUDevice) prepCombinedTargets(passes []*RenderPass) {
 	g.Painter.combinedDrawings.PreparePending(0)
 }
 
-func (g *GPUDevice) combineTargets() *TextureId {
+func (g *GPUDevice) combineTargets(view RenderViewFrame) *TextureId {
 	defer tracing.NewRegion("Vulkan.combineTargets").End()
 	if !g.Painter.combinedDrawings.HasDrawings() ||
 		len(g.Painter.combinedDrawings.renderPassGroups) == 0 ||
@@ -489,7 +585,16 @@ func (g *GPUDevice) combineTargets() *TextureId {
 		return nil
 	}
 	cmd := &g.Painter.combineCmds[g.Painter.currentFrame]
-	cmd.Begin()
+	if view.Target() != nil {
+		var err error
+		cmd, err = g.Painter.nextTargetCombineCommand(g)
+		if err != nil {
+			slog.Error("failed to create render target combine command", "error", err)
+			return nil
+		}
+	} else {
+		cmd.Begin()
+	}
 	defer cmd.End()
 	g.Painter.forceQueueCommand(*cmd, false)
 	// There is only one render pass in combined, so we can just grab the first one
@@ -502,7 +607,7 @@ func (g *GPUDevice) combineTargets() *TextureId {
 		}
 	}
 	combinePass := g.Painter.combinedDrawings.renderPassGroups[0].renderPass
-	g.Draw(combinePass, draws, LightsForRender{}, []TextureId{}, RenderLayerAll)
+	g.DrawView(combinePass, draws, LightsForRender{}, []TextureId{}, view, RenderLayerAll)
 	return &combinePass.textures[0].RenderId
 }
 

@@ -401,8 +401,7 @@ func (d *DrawInstanceGroup) AddInstance(instance DrawInstance) {
 			if g.Layouts[j].IsBuffer() {
 				b := &g.Layouts[j]
 				if len(d.boundInstanceData) <= b.Binding {
-					grow := (b.Binding + 1) - len(d.boundInstanceData)
-					d.boundInstanceData = klib.SliceSetLen(d.boundInstanceData, grow)
+					d.boundInstanceData = klib.SliceSetLen(d.boundInstanceData, b.Binding+1)
 				}
 				s := &d.boundInstanceData[b.Binding]
 				if s.length < b.Capacity() {

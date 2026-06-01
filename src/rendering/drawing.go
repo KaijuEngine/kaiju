@@ -285,10 +285,7 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []Ren
 			continue
 		}
 		if target != nil {
-			device.BlitTargetsToRenderTarget(drawnPasses, target)
-			if !device.FlushQueuedCommands() {
-				return
-			}
+			device.BlitTargetsToRenderTarget(drawnPasses, target, view)
 		} else {
 			device.BlitTargets(drawnPasses)
 		}
@@ -299,8 +296,13 @@ func renderViewsForDraw(views []RenderViewFrame) []RenderViewFrame {
 	targetViews := make([]RenderViewFrame, 0, len(views))
 	var defaultView RenderViewFrame
 	var firstSwapchainView RenderViewFrame
+	hasLiveViews := false
 	for i := range views {
 		if views[i].IsDestroyed() {
+			continue
+		}
+		hasLiveViews = true
+		if !views[i].IsEnabled() {
 			continue
 		}
 		if views[i].Target() != nil {
@@ -318,6 +320,9 @@ func renderViewsForDraw(views []RenderViewFrame) []RenderViewFrame {
 		swapchainView = firstSwapchainView
 	}
 	if swapchainView.View == nil {
+		if hasLiveViews {
+			return targetViews
+		}
 		view := newRenderView(RenderViewOptions{
 			Name:      DefaultRenderViewName,
 			LayerMask: RenderLayerAll,
