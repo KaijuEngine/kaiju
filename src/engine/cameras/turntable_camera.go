@@ -90,6 +90,24 @@ func (c *TurntableCamera) Dolly(delta float32) {
 	c.SetZoom(zoom)
 }
 
+// Dolly moves the camera closer/further from a target point by the given delta
+func (c *TurntableCamera) DollyTo(delta float32, targetPoint matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.Dolly").End()
+	newZoom := c.zoom
+	oldZoom := c.zoom
+	diff := c.position.Subtract(c.lookAt)
+	length := diff.Length()
+	newZoom += delta * length
+	if c.position.Z() <= 0.0 {
+		newZoom += 0.001
+	}
+	zoomRatio := newZoom / oldZoom
+
+	newLookAt := targetPoint.Add(c.lookAt.Subtract(targetPoint).Scale(zoomRatio))
+	c.SetLookAt(newLookAt)
+	c.SetZoom(newZoom)
+}
+
 // Orbit orbits the camera around the look at point by the given delta.
 func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	defer tracing.NewRegion("TurntableCamera.Orbit").End()
