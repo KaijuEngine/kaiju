@@ -1,0 +1,168 @@
+package editor_stage_view // import "kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+
+
+TYPES
+
+type EditorStageViewWorkspaceInterface interface {
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	Cache() *content_database.Cache
+	FocusInterface()
+	BlurInterface()
+	Settings() *editor_settings.Settings
+	StageView() *StageView
+}
+
+type StagePicking struct {
+	// Has unexported fields.
+}
+
+func (p *StagePicking) Close()
+
+func (p *StagePicking) Initialize(view *StageView)
+
+func (p *StagePicking) RequestBox(area matrix.Vec4, mode editor_stage_manager.SelectionMode) bool
+
+func (p *StagePicking) RequestClick(point matrix.Vec2, mode editor_stage_manager.SelectionMode, ray graviton.Ray) bool
+
+func (p *StagePicking) SamplePoint(point matrix.Vec2) (uint32, bool)
+
+func (p *StagePicking) Update()
+
+type StageView struct {
+	// Has unexported fields.
+}
+
+func (v *StageView) ActiveViewportKind() (StageViewportKind, bool)
+
+func (v *StageView) Camera() *editor_controls.EditorCamera
+
+func (v *StageView) CanUseTransformToolKeybinding() bool
+
+func (v *StageView) ClearViewportToolOwner(owner ViewportToolOwner)
+
+func (v *StageView) Close()
+
+func (v *StageView) DuplicateSelected(proj *project.Project)
+
+func (v *StageView) EnableTransformTool(state ToolState) bool
+
+func (v *StageView) EnableWireframeTransformTool(state transform_tools.ToolState) bool
+
+func (v *StageView) FocusSelection() bool
+
+func (v *StageView) FocusViewportKind(kind StageViewportKind)
+
+func (v *StageView) HoveredViewportKind() (StageViewportKind, bool)
+
+func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface)
+
+func (v *StageView) IsFlyCameraInputActive() bool
+
+func (v *StageView) IsGridVisible() bool
+    IsGridVisible returns whether the editor viewport grid is currently shown.
+
+func (v *StageView) IsView3D() bool
+
+func (v *StageView) LookAtPoint() matrix.Vec3
+
+func (v *StageView) Manager() *editor_stage_manager.StageManager
+
+func (v *StageView) Open()
+
+func (v *StageView) PickIDAtViewportPoint(point matrix.Vec2) (uint32, bool)
+
+func (v *StageView) RefreshTransformGizmoVisibility()
+
+func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode)
+
+func (v *StageView) SetCameraPreviewUI(preview *ui.UI)
+
+func (v *StageView) SetGridVisible(visible bool)
+    SetGridVisible toggles the editor viewport grid. The change is applied
+    immediately to the live drawing; persistence is the caller's responsibility.
+
+func (v *StageView) SetViewportToolOwner(owner ViewportToolOwner)
+
+func (v *StageView) SetViewportUI(viewport *ui.UI)
+
+func (v *StageView) SetViewportUIForKind(kind StageViewportKind, viewport *ui.UI)
+
+func (v *StageView) SyncStageViewport()
+
+func (v *StageView) TryBoxSelect(screenBox matrix.Vec4)
+
+func (v *StageView) Update(deltaTime float64, proj *project.Project) bool
+    Update will update the stage view and return `true` if the view is taking
+    control of the keyboard interactions. It'll return false otherwise. If this
+    returns true, then the caller shouldn't process any hotkeys or other types
+    of keyboard actions.
+
+func (v *StageView) ViewportCursorPosition(mode editor_controls.EditorCameraMode, cursor *hid.Cursor) matrix.Vec2
+
+func (v *StageView) ViewportCursorScreenPosition(cursor *hid.Cursor) matrix.Vec2
+
+func (v *StageView) ViewportMousePosition(mouse *hid.Mouse) matrix.Vec2
+
+func (v *StageView) ViewportReferenceSize() matrix.Vec2
+
+func (v *StageView) ViewportSize() matrix.Vec2
+
+func (v *StageView) WorkspaceHost() *engine.Host
+
+type StageViewportKind int
+
+const (
+	StageViewportPerspective StageViewportKind = iota
+	StageViewportTop
+	StageViewportSide
+	StageViewportFront
+
+	StageViewportLeft  = StageViewportSide
+	StageViewportRight = StageViewportFront
+)
+func StageViewportKinds() []StageViewportKind
+
+func (k StageViewportKind) Label() string
+
+type ToolState = uint8
+
+const (
+	ToolStateNone ToolState = iota
+	ToolStateMove
+	ToolStateRotate
+	ToolStateScale
+)
+type TransformationManager struct {
+	// Has unexported fields.
+}
+
+func (t *TransformationManager) EnableToolState(state ToolState) bool
+
+func (t *TransformationManager) EnableTranslationTool()
+
+func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, settings *editor_settings.Settings)
+
+func (t *TransformationManager) IsBusy() bool
+
+func (t *TransformationManager) RefreshToolVisibility()
+
+func (t *TransformationManager) Update(host *engine.Host, proj *project.Project)
+
+type VertexSnapTool struct {
+	// Has unexported fields.
+}
+
+func (t *VertexSnapTool) Hide()
+
+func (t *VertexSnapTool) Initialize(host *engine.Host, view *StageView, transformManager *TransformationManager)
+
+func (t *VertexSnapTool) IsBusy() bool
+
+func (t *VertexSnapTool) Update(host *engine.Host) bool
+
+type ViewportToolOwner interface {
+	UpdateViewportTool(view *StageView) bool
+}
+

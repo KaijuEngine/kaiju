@@ -1,0 +1,48 @@
+package shading_workspace // import "kaijuengine.com/editor/editor_workspace/shading_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "shading"
+	DisplayName = "Shading"
+)
+
+TYPES
+
+type ShadingWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *ShadingWorkspace) Close()
+
+func (w *ShadingWorkspace) DisplayName() string
+
+func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *ShadingWorkspace) ID() string
+
+func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *ShadingWorkspace) IsRequired() bool
+
+func (w *ShadingWorkspace) Open()
+
+func (w *ShadingWorkspace) OpenSpec(id string)
+
+func (w *ShadingWorkspace) Shutdown()
+
+func (w *ShadingWorkspace) Update(deltaTime float64)
+
+type ShadingWorkspaceUIData struct {
+	Files []ShadingWorkspaceUIDataFile
+}
+
+type ShadingWorkspaceUIDataFile struct {
+	Id   string
+	Type string
+	Name string
+}
+
