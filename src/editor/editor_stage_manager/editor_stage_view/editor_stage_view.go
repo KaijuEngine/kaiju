@@ -73,7 +73,9 @@ func (v *StageView) IsFlyCameraInputActive() bool {
 		return true
 	}
 	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
 	return v.viewportContainsScreenPosition(m.ScreenPosition()) &&
+		!kb.HasAlt() &&
 		(m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight))
 }
 

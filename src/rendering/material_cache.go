@@ -22,6 +22,7 @@ type MaterialCache struct {
 	device         *GPUDevice
 	assetDatabase  assets.Database
 	materials      map[string]*Material
+	deviceCall     func(func(*GPUDevice))
 	mutex          sync.Mutex
 	loadingPrepass bool
 }
@@ -32,6 +33,10 @@ func NewMaterialCache(device *GPUDevice, assetDatabase assets.Database) Material
 		assetDatabase: assetDatabase,
 		materials:     make(map[string]*Material),
 	}
+}
+
+func (m *MaterialCache) SetDeviceCall(call func(func(*GPUDevice))) {
+	m.deviceCall = call
 }
 
 func (m *MaterialCache) AddMaterial(material *Material) *Material {
@@ -123,7 +128,7 @@ func (m *MaterialCache) loadMaterial(key string) (*Material, error) {
 		slog.Error("failed to read the material", "material", key, "error", err)
 		return nil, err
 	}
-	material, err := materialData.Compile(m.assetDatabase, m.device)
+	material, err := m.compileMaterial(&materialData)
 	if err != nil {
 		slog.Error("failed to compile the material", "material", key, "error", err)
 		return nil, err
@@ -158,4 +163,16 @@ func (m *MaterialCache) loadMaterial(key string) (*Material, error) {
 		material.SetRenderViewModeOverride(mode, override)
 	}
 	return material, nil
+}
+
+func (m *MaterialCache) compileMaterial(materialData *MaterialData) (*Material, error) {
+	if m.deviceCall == nil {
+		return materialData.Compile(m.assetDatabase, m.device)
+	}
+	var material *Material
+	var err error
+	m.deviceCall(func(device *GPUDevice) {
+		material, err = materialData.Compile(m.assetDatabase, device)
+	})
+	return material, err
 }

@@ -79,12 +79,14 @@ func (p *StagePicking) Update() {
 		p.fallback(req)
 		return
 	}
-	device := p.gpuDevice()
-	if device == nil {
+	if p.gpuDevice() == nil {
 		p.fallback(req)
 		return
 	}
-	data, err := device.TextureReadRegion(tex, region)
+	var data []byte
+	p.view.host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		data, err = device.TextureReadRegion(tex, region)
+	})
 	if err != nil {
 		slog.Warn("failed to read editor picking texture", "error", err)
 		p.fallback(req)
@@ -261,7 +263,10 @@ func (p *StagePicking) SamplePoint(point matrix.Vec2) (uint32, bool) {
 	if !ok {
 		return 0, false
 	}
-	data, err := p.gpuDevice().TextureReadRegion(tex, region)
+	var data []byte
+	p.view.host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		data, err = device.TextureReadRegion(tex, region)
+	})
 	if err != nil {
 		return 0, false
 	}

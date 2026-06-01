@@ -25,7 +25,7 @@ type boundBufferInfo struct {
 	boundBuffer *ShaderBuffer
 }
 
-func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask) {
+func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.drawImpl").End()
 	drawingAnything := false
 	doDrawings := make([]bool, len(drawings))
@@ -211,7 +211,7 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 	g.cleanupCombined(cmd)
 }
 
-func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask, p *runtime.Pinner) []vk.WriteDescriptorSet {
+func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawInstanceGroup, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask, p *runtime.Pinner) []vk.WriteDescriptorSet {
 	defer tracing.NewRegion("Vulkan.writeDrawingDescriptors").End()
 	allWrites := make([]vk.WriteDescriptorSet, 0, len(groups)*8)
 	boundBufferInfos := make([]boundBufferInfo, 0)
@@ -229,14 +229,14 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		if !group.IsReady() {
 			continue
 		}
-		state := group.viewStateForView(view)
+		state := group.viewStateForView(view.Key())
 		g.resizeBuffers(material, group, state)
-		group.UpdateDataForView(g, g.Painter.currentFrame, lights, view)
-		if !group.AnyVisibleForView(view) {
+		group.UpdateDataForView(g, g.Painter.currentFrame, lights, view.Key())
+		if !group.AnyVisibleForView(view.Key()) {
 			continue
 		}
 		set := state.InstanceDriverData.descriptorSets[g.Painter.currentFrame]
-		globalBuffer, err := g.globalUniformBuffer(view, g.Painter.currentFrame)
+		globalBuffer, err := g.globalUniformBuffer(view.Key(), g.Painter.currentFrame)
 		if err != nil {
 			slog.Error("failed to resolve global uniform buffer", "error", err)
 			continue
@@ -308,7 +308,7 @@ func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayou
 		s.pipelineInfo.PushConstant.Size, pushConstantData)
 }
 
-func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, view *RenderView, layerMask RenderLayerMask) {
+func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
 	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, vk.Pipeline(pipeline.handle))
 	writePushConstants(s, cmd, vk.PipelineLayout(layout.handle), pushConstantData)
@@ -324,7 +324,7 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 		if !group.MatchesLayer(layerMask) {
 			continue
 		}
-		state := group.viewStateForView(view)
+		state := group.viewStateForView(view.Key())
 		if !group.IsReady() || state.visibleCount == 0 {
 			continue
 		}

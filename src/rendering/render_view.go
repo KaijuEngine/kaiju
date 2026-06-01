@@ -45,6 +45,13 @@ type RenderView struct {
 	mutex     sync.RWMutex
 }
 
+type RenderViewFrame struct {
+	View      *RenderView
+	Options   RenderViewOptions
+	Order     uint64
+	Destroyed bool
+}
+
 func newRenderView(options RenderViewOptions, order uint64) *RenderView {
 	options.LayerMask = normalizeRenderLayerMask(options.LayerMask)
 	return &RenderView{
@@ -52,6 +59,38 @@ func newRenderView(options RenderViewOptions, order uint64) *RenderView {
 		order:   order,
 	}
 }
+
+func newRenderViewFrame(view *RenderView) RenderViewFrame {
+	if view == nil {
+		return RenderViewFrame{}
+	}
+	view.mutex.RLock()
+	defer view.mutex.RUnlock()
+	return RenderViewFrame{
+		View:      view,
+		Options:   view.options,
+		Order:     view.order,
+		Destroyed: view.destroyed,
+	}
+}
+
+func (v RenderViewFrame) Name() string {
+	if v.Options.Name == "" {
+		return DefaultRenderViewName
+	}
+	return v.Options.Name
+}
+
+func (v RenderViewFrame) Target() *RenderTarget { return v.Options.Target }
+func (v RenderViewFrame) Camera() any           { return v.Options.Camera }
+func (v RenderViewFrame) LayerMask() RenderLayerMask {
+	return normalizeRenderLayerMask(v.Options.LayerMask)
+}
+func (v RenderViewFrame) Clear() bool              { return v.Options.Clear }
+func (v RenderViewFrame) Sort() int                { return v.Options.Sort }
+func (v RenderViewFrame) ViewMode() RenderViewMode { return v.Options.ViewMode }
+func (v RenderViewFrame) IsDestroyed() bool        { return v.Destroyed || v.View == nil }
+func (v RenderViewFrame) Key() *RenderView         { return v.View }
 
 func (v *RenderView) Name() string {
 	v.mutex.RLock()
@@ -315,6 +354,16 @@ func (m *RenderViewManager) Views() []*RenderView {
 		return views[i].order < views[j].order
 	})
 	return views
+}
+
+func (m *RenderViewManager) FrameViews() []RenderViewFrame {
+	defer tracing.NewRegion("RenderViewManager.FrameViews").End()
+	views := m.Views()
+	frames := make([]RenderViewFrame, 0, len(views))
+	for i := range views {
+		frames = append(frames, newRenderViewFrame(views[i]))
+	}
+	return frames
 }
 
 func (m *RenderViewManager) ensureLocked() {

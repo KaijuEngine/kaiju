@@ -15,10 +15,10 @@ import (
 )
 
 func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
-	g.DrawView(renderPass, drawings, lights, shadows, nil, layerMask)
+	g.DrawView(renderPass, drawings, lights, shadows, RenderViewFrame{}, layerMask)
 }
 
-func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view *RenderView, layerMask RenderLayerMask) {
+func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.Draw").End()
 	if !g.LogicalDevice.SwapChain.IsValid() || len(drawings) == 0 {
 		return

@@ -65,6 +65,10 @@ func ResolveRenderViewModeSelection(view *RenderView, material *Material, featur
 	if view != nil {
 		mode = view.ViewMode()
 	}
+	return ResolveRenderViewModeSelectionForMode(mode, material, features)
+}
+
+func ResolveRenderViewModeSelectionForMode(mode RenderViewMode, material *Material, features GPUPhysicalDeviceFeatures) RenderViewModeSelection {
 	selection := RenderViewModeSelection{
 		Mode:     mode,
 		Material: material,

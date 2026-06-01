@@ -10,11 +10,11 @@ import "log/slog"
 
 const renderViewWireframeShaderKey = "render-view-wireframe"
 
-func (g *GPUDevice) materialForRenderView(view *RenderView, material *Material) *Material {
+func (g *GPUDevice) materialForRenderView(view RenderViewFrame, material *Material) *Material {
 	if material == nil {
 		return nil
 	}
-	selection := ResolveRenderViewModeSelection(view, material, g.PhysicalDevice.Features)
+	selection := ResolveRenderViewModeSelectionForMode(view.ViewMode(), material, g.PhysicalDevice.Features)
 	selected := selection.Material
 	if selected == nil {
 		selected = material

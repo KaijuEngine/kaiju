@@ -140,12 +140,21 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 		return nil, errors.New("failed to present the window " + windowName)
 	}
 	adb.PostWindowCreate(w)
-	var err error
-	if w.GpuInstance, err = w.GpuHost.CreateInstance(w, adb); err != nil {
-		return w, err
-	}
 	w.x, w.y = w.position()
 	return w, nil
+}
+
+func (w *Window) InitializeGPU(adb assets.Database) error {
+	defer tracing.NewRegion("Window.InitializeGPU").End()
+	if w.GpuInstance != nil && w.GpuInstance.IsValid() {
+		return nil
+	}
+	inst, err := w.GpuHost.CreateInstance(w, adb)
+	if err != nil {
+		return err
+	}
+	w.GpuInstance = inst
+	return nil
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
@@ -227,8 +236,22 @@ func (w *Window) EndUpdate() {
 
 func (w *Window) SwapBuffers() {
 	defer tracing.NewRegion("Window.SwapBuffers").End()
-	inst := w.GpuHost.FirstInstance()
+	inst := w.GpuInstance
+	if inst == nil || !inst.IsValid() {
+		return
+	}
 	if inst.PrimaryDevice().SwapFrame(w, inst, int32(w.Width()), int32(w.Height())) {
+		swapBuffers(w.handle)
+	}
+}
+
+func (w *Window) SwapBuffersWithContainer(container rendering.RenderingContainer, width, height int32) {
+	defer tracing.NewRegion("Window.SwapBuffersWithContainer").End()
+	inst := w.GpuInstance
+	if inst == nil || !inst.IsValid() {
+		return
+	}
+	if inst.PrimaryDevice().SwapFrame(container, inst, width, height) {
 		swapBuffers(w.handle)
 	}
 }
@@ -328,7 +351,7 @@ func (w *Window) Destroy() {
 	w.isDestroyed = true
 	w.isClosed = true
 	w.removeFromActiveWindows()
-	w.GpuHost.Destroy()
+	w.DestroyGPU()
 	// TODO:  Pass both to not have this if statement
 	if runtime.GOOS == "darwin" {
 		destroyWindow(w.instance)
@@ -336,6 +359,16 @@ func (w *Window) Destroy() {
 		destroyWindow(w.handle)
 	}
 	close(w.windowSync)
+}
+
+func (w *Window) DestroyGPU() {
+	defer tracing.NewRegion("Window.DestroyGPU").End()
+	if w.GpuInstance == nil {
+		return
+	}
+	w.GpuHost.Destroy()
+	w.GpuInstance = nil
+	w.GpuHost = rendering.GPUApplication{}
 }
 
 func (w *Window) Focus() {

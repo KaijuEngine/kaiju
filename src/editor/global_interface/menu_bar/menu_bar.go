@@ -601,8 +601,16 @@ func (b *MenuBar) clickScreenshot(e *document.Element) {
 	b.hidePopups()
 	host := e.UI.Host()
 	host.RunNextFrame(func() {
-		device := host.Window.GpuHost.FirstInstance().PrimaryDevice()
-		pixels, err := device.Screenshot()
+		var pixels []byte
+		var width, height int
+		var err error
+		host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			pixels, err = device.Screenshot()
+			if err == nil {
+				size := device.LogicalDevice.SwapChain.Extent
+				width, height = int(size.X()), int(size.Y())
+			}
+		})
 		if err != nil {
 			slog.Error("Failed to capture the screenshot", "error", err)
 			return
@@ -611,8 +619,7 @@ func (b *MenuBar) clickScreenshot(e *document.Element) {
 			slog.Error("No pixels were returned for the frame")
 			return
 		}
-		size := device.LogicalDevice.SwapChain.Extent
-		img := image.NewRGBA(image.Rect(0, 0, int(size.X()), int(size.Y())))
+		img := image.NewRGBA(image.Rect(0, 0, width, height))
 		copy(img.Pix, pixels)
 		var buf bytes.Buffer
 		if err = png.Encode(&buf, img); err != nil {

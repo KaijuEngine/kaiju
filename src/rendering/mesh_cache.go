@@ -35,6 +35,8 @@ func NewMeshCache(device *GPUDevice, assetDatabase assets.Database) MeshCache {
 // Try to add the mesh to the cache, if it already exists,
 // return the existing mesh
 func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if found, ok := m.meshes[mesh.key]; !ok {
 		m.pendingMeshes = append(m.pendingMeshes, mesh)
 		m.meshes[mesh.key] = mesh
@@ -45,6 +47,8 @@ func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
 }
 
 func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if mesh, ok := m.meshes[key]; ok {
 		return mesh, true
 	} else {

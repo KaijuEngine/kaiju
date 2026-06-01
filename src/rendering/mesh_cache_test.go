@@ -13,12 +13,14 @@ import (
 	"kaijuengine.com/matrix"
 )
 
+var testReadyMeshHandle byte
+
 func testVerts() []Vertex {
 	return []Vertex{{Position: matrix.Vec3{0, 0, 0}}, {Position: matrix.Vec3{1, 1, 1}}}
 }
 
 func testReadyMeshID() MeshId {
-	ptr := unsafe.Pointer(uintptr(1))
+	ptr := unsafe.Pointer(&testReadyMeshHandle)
 	return MeshId{
 		vertexBuffer: GPUBuffer{GPUHandle{handle: ptr}},
 		indexBuffer:  GPUBuffer{GPUHandle{handle: ptr}},
@@ -79,8 +81,12 @@ func TestMeshCacheUpdateMeshVerticesQueuesReadyMesh(t *testing.T) {
 	if len(cache.pendingMeshes) != 2 {
 		t.Fatalf("ready mesh update should be queued, pending = %d", len(cache.pendingMeshes))
 	}
-	if &mesh.pendingVerts[0] != &updated[0] {
+	if mesh.pendingVerts[0].Position != updated[0].Position {
 		t.Fatalf("pending vertices were not replaced with update data")
+	}
+	updated[0].Position = matrix.Vec3{9, 9, 9}
+	if mesh.pendingVerts[0].Position == updated[0].Position {
+		t.Fatalf("pending vertices should be isolated from caller mutations")
 	}
 }
 

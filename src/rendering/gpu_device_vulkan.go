@@ -406,7 +406,7 @@ func (g *GPUDevice) flushQueuedCommandsImpl() bool {
 	return true
 }
 
-func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []*RenderView) bool {
+func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window RenderingContainer, camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, views []RenderViewFrame) bool {
 	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
 	painter := &g.Painter
 	ld := &g.LogicalDevice

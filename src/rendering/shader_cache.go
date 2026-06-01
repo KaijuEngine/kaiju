@@ -19,6 +19,7 @@ type ShaderCache struct {
 	assetDatabase  assets.Database
 	shaders        map[string]*Shader
 	pendingShaders []*Shader
+	pendingDestroy []ShaderId
 	mutex          sync.Mutex
 }
 
@@ -28,6 +29,7 @@ func NewShaderCache(device *GPUDevice, assetDatabase assets.Database) ShaderCach
 		assetDatabase:  assetDatabase,
 		shaders:        make(map[string]*Shader),
 		pendingShaders: make([]*Shader, 0),
+		pendingDestroy: make([]ShaderId, 0),
 		mutex:          sync.Mutex{},
 	}
 }
@@ -62,17 +64,22 @@ func (s *ShaderCache) AddShader(shader *Shader) {
 }
 
 func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	shader, ok := s.shaders[shaderData.Name]
 	if !ok {
 		return
 	}
-	var destroyHandle func(target *Shader)
-	destroyHandle = func(target *Shader) {
+	var queueDestroy func(target *Shader)
+	queueDestroy = func(target *Shader) {
 		for _, v := range target.subShaders {
-			destroyHandle(v)
+			queueDestroy(v)
 		}
-		s.device.DestroyShaderHandle(target.RenderId)
+		if target.RenderId.IsValid() {
+			s.pendingDestroy = append(s.pendingDestroy, target.RenderId)
+		}
 	}
+	queueDestroy(shader)
 	shader.Reload(shaderData)
 	s.pendingShaders = append(s.pendingShaders, shader)
 }
@@ -81,6 +88,10 @@ func (s *ShaderCache) CreatePending() {
 	defer tracing.NewRegion("ShaderCache.CreatePending").End()
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	for i := range s.pendingDestroy {
+		s.device.DestroyShaderHandle(s.pendingDestroy[i])
+	}
+	s.pendingDestroy = klib.WipeSlice(s.pendingDestroy)
 	for _, shader := range s.pendingShaders {
 		shader.DelayedCreate(s.device, s.assetDatabase)
 	}
@@ -89,6 +100,7 @@ func (s *ShaderCache) CreatePending() {
 
 func (s *ShaderCache) Destroy() {
 	defer tracing.NewRegion("ShaderCache.Destroy").End()
+	s.pendingDestroy = klib.WipeSlice(s.pendingDestroy)
 	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
 	for _, shader := range s.shaders {
 		s.destroyShaderTree(shader)

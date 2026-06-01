@@ -82,7 +82,6 @@ func (t *Terrain) ApplyTextureDirty(region DirtyRegion) {
 	if len(t.SplatTextures) != splatTextureCount(t.LayerSet.WeightMap.Layers) {
 		_ = t.createSplatTextures(t.host)
 	}
-	device := t.gpuDevice()
 	for i := range t.SplatTextures {
 		dirty := t.SplatTextures[i].Dirty
 		if region.Valid {
@@ -100,8 +99,11 @@ func (t *Terrain) ApplyTextureDirty(region DirtyRegion) {
 			continue
 		}
 		t.writeSplatPixelsRegion(i, dirty, request.Pixels)
-		if device != nil && t.SplatTextures[i].Texture != nil && t.SplatTextures[i].Texture.RenderId.IsValid() {
-			t.SplatTextures[i].Texture.WritePixels(device, []rendering.GPUImageWriteRequest{request})
+		texture := t.SplatTextures[i].Texture
+		if t.host != nil && texture != nil && texture.RenderId.IsValid() {
+			t.host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+				texture.WritePixels(device, []rendering.GPUImageWriteRequest{request})
+			})
 			t.SplatTextures[i].Dirty = subtractAppliedDirtyRegion(t.SplatTextures[i].Dirty, dirty)
 		}
 	}
