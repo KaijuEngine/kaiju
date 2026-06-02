@@ -15,6 +15,8 @@ If you want to test visuals or non-unit testable behavior, you can use the integ
 
 You will need to build the executable from within the `src/` folder after creating your integration test by running `go build -tags="debug,editor,filedrop,rawsrc" -o ../ ./`. This will create a `kaijuengine.com.exe` in the project root folder. You can run your integration test by running the executable with the `integrationtest` argument like `kaijuengine.com.exe -integrationtest=screenshot`.
 
+Integration tests can also export videos for review by video-capable vision models. Use `startVideoRecording(host, videoRecordingOptions{OutputPath: "integration_test.mp4"})` from `src/integration_testing`, then call `rec.Stop()` before any `os.Exit` so the encoder can finalize the file. MP4 and WebM are supported; the format is inferred from `.mp4` or `.webm`, or can be set with `Format`. Video recording streams raw frames to external `ffmpeg`, found via `KAIJU_FFMPEG` first and then `PATH`, so make sure ffmpeg is installed when running video integration tests. The recorder captures after successfully rendered frames and fails if the swapchain/window size changes during recording.
+
 Below is an example of an integration test that takes a screenshot of a red sphere and outputs a png file you can review for accuracy.
 ```go
 package integration_testing

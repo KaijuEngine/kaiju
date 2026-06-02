@@ -126,7 +126,9 @@ func (host *Host) renderCapturedFrame(frame RenderFrame) {
 	if gpuDevice.ReadyFrame(gpuInstance, frame.Window, frame.PrimaryCamera,
 		frame.UICamera, frame.Lights, frame.Runtime, frame.Views) {
 		host.Drawings.Render(gpuDevice, frame.Lights, frame.Views)
-		host.Window.SwapBuffersWithContainer(frame.Window, frame.Width, frame.Height)
+		if host.Window.SwapBuffersWithContainer(frame.Window, frame.Width, frame.Height) {
+			host.runAfterRenderCallbacks(gpuDevice, frame)
+		}
 	}
 }
 
@@ -162,5 +164,19 @@ func (host *Host) runBeforeRenderCallbacks() {
 	host.runnerMutex.Unlock()
 	for i := range callbacks {
 		callbacks[i]()
+	}
+}
+
+func (host *Host) runAfterRenderCallbacks(device *rendering.GPUDevice, frame RenderFrame) {
+	defer tracing.NewRegion("Host.RunAfterRenderCallbacks").End()
+	if len(host.postRenderRunner) == 0 {
+		return
+	}
+	host.runnerMutex.Lock()
+	callbacks := append([]afterRenderRun{}, host.postRenderRunner...)
+	host.postRenderRunner = host.postRenderRunner[:0]
+	host.runnerMutex.Unlock()
+	for i := range callbacks {
+		callbacks[i](device, frame)
 	}
 }

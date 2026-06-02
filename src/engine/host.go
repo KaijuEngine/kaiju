@@ -50,6 +50,8 @@ type timeRun struct {
 	call func()
 }
 
+type afterRenderRun func(*rendering.GPUDevice, RenderFrame)
+
 type hostCameras struct {
 	Primary cameras.Container
 	UI      cameras.Container
@@ -79,6 +81,7 @@ type Host struct {
 	timeRunner        []timeRun
 	frameRunner       []frameRun
 	preRenderRunner   []func()
+	postRenderRunner  []afterRenderRun
 	plugins           []*plugins.LuaVM
 	Window            *windowing.Window
 	LogStream         *logging.LogStream
@@ -479,6 +482,17 @@ func (host *Host) RunBeforeRender(call func()) {
 	}
 	host.runnerMutex.Lock()
 	host.preRenderRunner = append(host.preRenderRunner, call)
+	host.runnerMutex.Unlock()
+}
+
+// RunAfterRender runs call once after the next successfully swapped render
+// frame. When render-thread mode is active, call runs on the render thread.
+func (host *Host) RunAfterRender(call func(*rendering.GPUDevice, RenderFrame)) {
+	if call == nil {
+		return
+	}
+	host.runnerMutex.Lock()
+	host.postRenderRunner = append(host.postRenderRunner, call)
 	host.runnerMutex.Unlock()
 }
 

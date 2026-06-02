@@ -44,18 +44,36 @@ func takeScreenshotToFile(host *engine.Host, path string) {
 }
 
 func captureScreenshotImage(host *engine.Host) (*image.RGBA, error) {
-	device := host.Window.GpuHost.FirstInstance().PrimaryDevice()
-	pixels, err := device.Screenshot()
+	var pixels []byte
+	var width, height int
+	err := fmt.Errorf("cannot capture screenshot without a valid renderer")
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		pixels, width, height, err = captureScreenshotPixels(device)
+	})
 	if err != nil {
 		return nil, err
 	}
-	if len(pixels) == 0 {
-		return nil, fmt.Errorf("no pixels were returned for the frame")
-	}
-	size := device.LogicalDevice.SwapChain.Extent
-	img := image.NewRGBA(image.Rect(0, 0, int(size.X()), int(size.Y())))
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	copy(img.Pix, pixels)
 	return img, nil
+}
+
+func captureScreenshotPixels(device *rendering.GPUDevice) ([]byte, int, int, error) {
+	pixels, err := device.Screenshot()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if len(pixels) == 0 {
+		return nil, 0, 0, fmt.Errorf("no pixels were returned for the frame")
+	}
+	size := device.LogicalDevice.SwapChain.Extent
+	width := int(size.X())
+	height := int(size.Y())
+	expected := width * height * rendering.BytesInPixel
+	if len(pixels) != expected {
+		return nil, 0, 0, fmt.Errorf("screenshot returned %d bytes, expected %d", len(pixels), expected)
+	}
+	return pixels, width, height, nil
 }
 
 func writeScreenshotImage(img image.Image, path string) error {

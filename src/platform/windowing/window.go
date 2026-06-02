@@ -245,15 +245,17 @@ func (w *Window) SwapBuffers() {
 	}
 }
 
-func (w *Window) SwapBuffersWithContainer(container rendering.RenderingContainer, width, height int32) {
+func (w *Window) SwapBuffersWithContainer(container rendering.RenderingContainer, width, height int32) bool {
 	defer tracing.NewRegion("Window.SwapBuffersWithContainer").End()
 	inst := w.GpuInstance
 	if inst == nil || !inst.IsValid() {
-		return
+		return false
 	}
 	if inst.PrimaryDevice().SwapFrame(container, inst, width, height) {
 		swapBuffers(w.handle)
+		return true
 	}
+	return false
 }
 
 func (w *Window) DotsPerMillimeter() float64 {
