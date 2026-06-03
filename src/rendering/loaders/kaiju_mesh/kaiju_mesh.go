@@ -52,9 +52,14 @@ type KaijuMesh struct {
 	Name       string
 	Verts      []rendering.Vertex
 	Indexes    []uint32
+	Textures   map[string]string
 	BVH        *graviton.TriangleBVH
 	Animations []KaijuMeshAnimation
 	Joints     []KaijuMeshJoint
+}
+
+type SerializeOptions struct {
+	TextureURIs map[string]string
 }
 
 // LoadedResultToKaijuMesh will take in a [load_result.Result] and convert every
@@ -70,6 +75,7 @@ func LoadedResultToKaijuMesh(res load_result.Result) []KaijuMesh {
 			Name:       m.MeshName,
 			Verts:      slices.Clone(m.Verts),
 			Indexes:    slices.Clone(m.Indexes),
+			Textures:   cloneStringMap(m.Textures),
 			Animations: make([]KaijuMeshAnimation, len(res.Animations)),
 			Joints:     make([]KaijuMeshJoint, len(res.Joints)),
 		}
@@ -111,14 +117,21 @@ func LoadedResultToKaijuMesh(res load_result.Result) []KaijuMesh {
 // database or later use.
 func (k KaijuMesh) Serialize() ([]byte, error) {
 	defer tracing.NewRegion("KaijuMesh.Serialize").End()
-	return serializeNative(k)
+	return k.SerializeWithOptions(SerializeOptions{})
+}
+
+func (k KaijuMesh) SerializeWithOptions(options SerializeOptions) ([]byte, error) {
+	defer tracing.NewRegion("KaijuMesh.SerializeWithOptions").End()
+	return serializeGLB(k, options)
 }
 
 // Deserialize will construct a [KaijuMesh] from the given array of bytes. This
-// supports the current native mesh format and falls back to gob for legacy
-// assets.
+// supports GLB mesh content and falls back to native/gob for legacy assets.
 func Deserialize(data []byte) (KaijuMesh, error) {
 	defer tracing.NewRegion("kaiju_mesh.Deserialize").End()
+	if IsGLB(data) {
+		return deserializeGLB(data)
+	}
 	if isNativeMesh(data) {
 		return deserializeNative(data)
 	}
@@ -127,6 +140,17 @@ func Deserialize(data []byte) (KaijuMesh, error) {
 	var km KaijuMesh
 	err := dec.Decode(&km)
 	return km, err
+}
+
+func cloneStringMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 func ReadMesh(id string, host *engine.Host) (KaijuMesh, error) {

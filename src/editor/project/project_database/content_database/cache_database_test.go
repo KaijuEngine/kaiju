@@ -40,6 +40,7 @@ func newConfigFS(t *testing.T) (*project_file_system.FileSystem, string) {
 	if err != nil {
 		t.Fatalf("project_file_system.New: %v", err)
 	}
+	t.Cleanup(func() { pfs.Close() })
 	return &pfs, tmpDir
 }
 

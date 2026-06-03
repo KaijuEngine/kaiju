@@ -7,10 +7,14 @@
 package content_database
 
 import (
+	"encoding/binary"
+	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 
 	"kaijuengine.com/editor/project/project_file_system"
@@ -92,6 +96,45 @@ func TestMeshImportMonkeyFiles(t *testing.T) {
 	}
 }
 
+func TestMeshImportStoresGLBAndContentTextureURI(t *testing.T) {
+	pfs, importDir := newTexturedMeshImportFileSystem(t)
+	cache := New()
+	src := pfs.FullPath(filepath.Join(importDir, "textured.gltf"))
+	res, err := Import(src, pfs, &cache, "")
+	if err != nil {
+		t.Fatalf("Import(textured.gltf) returned error: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("Import returned %d mesh variants, want 1", len(res))
+	}
+	if got := filepath.Ext(res[0].Id); got != ".glb" {
+		t.Fatalf("mesh content id extension = %q, want .glb", got)
+	}
+	data, err := pfs.ReadFile(res[0].ContentPath().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !kaiju_mesh.IsGLB(data) {
+		t.Fatal("imported mesh content was not saved as GLB")
+	}
+	doc := testReadGLBJSON(t, data)
+	images, ok := doc["images"].([]any)
+	if !ok || len(images) != 1 {
+		t.Fatalf("expected one GLB image URI, got %#v", doc["images"])
+	}
+	img := images[0].(map[string]any)
+	uri, ok := img["uri"].(string)
+	if !ok {
+		t.Fatalf("GLB image did not contain a URI: %#v", img)
+	}
+	if !strings.HasPrefix(uri, "../texture/") || !strings.HasSuffix(uri, ".png") {
+		t.Fatalf("GLB texture URI = %q, want relative content texture path", uri)
+	}
+	if _, hasBufferView := img["bufferView"]; hasBufferView {
+		t.Fatalf("GLB image should not embed texture bufferView: %#v", img)
+	}
+}
+
 func newMockMeshImportFileSystem(t *testing.T) (*project_file_system.FileSystem, string) {
 	t.Helper()
 	pfs, err := project_file_system.New(t.TempDir())
@@ -121,6 +164,138 @@ func newMockMeshImportFileSystem(t *testing.T) (*project_file_system.FileSystem,
 		}
 	}
 	return &pfs, importDir
+}
+
+func newTexturedMeshImportFileSystem(t *testing.T) (*project_file_system.FileSystem, string) {
+	t.Helper()
+	pfs, err := project_file_system.New(t.TempDir())
+	if err != nil {
+		t.Fatalf("failed to create mock project filesystem: %v", err)
+	}
+	t.Cleanup(func() { pfs.Close() })
+	for _, dir := range []string{
+		filepath.Join(project_file_system.ContentFolder, project_file_system.ContentMeshFolder),
+		filepath.Join(project_file_system.ContentFolder, project_file_system.ContentTextureFolder),
+		filepath.Join(project_file_system.ContentFolder, project_file_system.ContentMaterialFolder),
+		filepath.Join(project_file_system.ContentConfigFolder, project_file_system.ContentMeshFolder),
+		filepath.Join(project_file_system.ContentConfigFolder, project_file_system.ContentTextureFolder),
+		filepath.Join(project_file_system.ContentConfigFolder, project_file_system.ContentMaterialFolder),
+	} {
+		if err = pfs.MkdirAll(dir, os.ModePerm); err != nil {
+			t.Fatalf("failed to create project database folder %q: %v", dir, err)
+		}
+	}
+	const importDir = "textured_mesh_import"
+	if err = pfs.Mkdir(importDir, os.ModePerm); err != nil {
+		t.Fatalf("failed to create import folder: %v", err)
+	}
+	gltfData, binData := texturedGLTFFixture(t)
+	pngData, err := os.ReadFile(filepath.Join(meshImportFixtureDir(t), "Monkey.png"))
+	if err != nil {
+		t.Fatalf("failed to read texture fixture: %v", err)
+	}
+	files := map[string][]byte{
+		"textured.gltf": []byte(gltfData),
+		"textured.bin":  binData,
+		"albedo.png":    pngData,
+	}
+	for name, data := range files {
+		if err = pfs.WriteFile(filepath.Join(importDir, name), data, os.ModePerm); err != nil {
+			t.Fatalf("failed to write %q: %v", name, err)
+		}
+	}
+	return &pfs, importDir
+}
+
+func texturedGLTFFixture(t *testing.T) (string, []byte) {
+	t.Helper()
+	binData := []byte{}
+	add := func(data []byte) (offset, length int) {
+		for len(binData)%4 != 0 {
+			binData = append(binData, 0)
+		}
+		offset = len(binData)
+		binData = append(binData, data...)
+		return offset, len(data)
+	}
+	posOff, posLen := add(testF32Bytes(0, 0, 0, 1, 0, 0, 0, 1, 0))
+	nmlOff, nmlLen := add(testF32Bytes(0, 0, 1, 0, 0, 1, 0, 0, 1))
+	uvOff, uvLen := add(testF32Bytes(0, 0, 1, 0, 0, 1))
+	idxOff, idxLen := add(testU32Bytes(0, 1, 2))
+	doc := map[string]any{
+		"asset": map[string]any{"version": "2.0"},
+		"buffers": []map[string]any{{
+			"uri":        "textured.bin",
+			"byteLength": len(binData),
+		}},
+		"bufferViews": []map[string]any{
+			{"buffer": 0, "byteOffset": posOff, "byteLength": posLen},
+			{"buffer": 0, "byteOffset": nmlOff, "byteLength": nmlLen},
+			{"buffer": 0, "byteOffset": uvOff, "byteLength": uvLen},
+			{"buffer": 0, "byteOffset": idxOff, "byteLength": idxLen},
+		},
+		"accessors": []map[string]any{
+			{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3", "min": []float32{0, 0, 0}, "max": []float32{1, 1, 0}},
+			{"bufferView": 1, "componentType": 5126, "count": 3, "type": "VEC3"},
+			{"bufferView": 2, "componentType": 5126, "count": 3, "type": "VEC2"},
+			{"bufferView": 3, "componentType": 5125, "count": 3, "type": "SCALAR"},
+		},
+		"images":   []map[string]any{{"uri": "albedo.png"}},
+		"textures": []map[string]any{{"source": 0}},
+		"materials": []map[string]any{{"pbrMetallicRoughness": map[string]any{
+			"baseColorTexture": map[string]any{"index": 0},
+		}}},
+		"meshes": []map[string]any{{
+			"name": "TexturedTriangle",
+			"primitives": []map[string]any{{
+				"attributes": map[string]any{"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
+				"indices":    3,
+				"material":   0,
+				"mode":       4,
+			}},
+		}},
+		"nodes":  []map[string]any{{"name": "TriangleNode", "mesh": 0}},
+		"scenes": []map[string]any{{"nodes": []int{0}}},
+		"scene":  0,
+	}
+	jsonData, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(jsonData), binData
+}
+
+func testF32Bytes(values ...float32) []byte {
+	out := make([]byte, len(values)*4)
+	for i, v := range values {
+		binary.LittleEndian.PutUint32(out[i*4:], math.Float32bits(v))
+	}
+	return out
+}
+
+func testU32Bytes(values ...uint32) []byte {
+	out := make([]byte, len(values)*4)
+	for i, v := range values {
+		binary.LittleEndian.PutUint32(out[i*4:], v)
+	}
+	return out
+}
+
+func testReadGLBJSON(t *testing.T, data []byte) map[string]any {
+	t.Helper()
+	if len(data) < 20 || string(data[:4]) != "glTF" {
+		t.Fatal("invalid GLB header")
+	}
+	jsonLen := int(binary.LittleEndian.Uint32(data[12:16]))
+	if string(data[16:20]) != "JSON" {
+		t.Fatal("missing GLB JSON chunk")
+	}
+	raw := strings.TrimRight(string(data[20:20+jsonLen]), " ")
+	doc := map[string]any{}
+	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
+		t.Fatal(err)
+	}
+	return doc
 }
 
 func meshImportFixtureDir(t *testing.T) string {

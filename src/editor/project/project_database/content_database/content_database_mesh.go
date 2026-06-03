@@ -39,9 +39,10 @@ type MeshConfig struct{}
 // See the documentation for the interface [ContentCategory] to learn more about
 // the following functions
 
-func (Mesh) Path() string       { return project_file_system.ContentMeshFolder }
-func (Mesh) TypeName() string   { return "Mesh" }
-func (Mesh) ExtNames() []string { return []string{".gltf", ".glb", ".obj", ".fbx"} }
+func (Mesh) Path() string                { return project_file_system.ContentMeshFolder }
+func (Mesh) TypeName() string            { return "Mesh" }
+func (Mesh) ExtNames() []string          { return []string{".glb", ".gltf", ".obj", ".fbx"} }
+func (Mesh) StoredExtName(string) string { return ".glb" }
 
 type meshImportPostProcData struct {
 	mesh         load_result.Mesh
@@ -57,6 +58,7 @@ func serializeKaijuMeshVariants(kms []kaiju_mesh.KaijuMesh) ([][]byte, error) {
 		return out, nil
 	}
 	serialize := func(index int) error {
+		kms[index].EnsureBVH()
 		data, err := kms[index].Serialize()
 		if err != nil {
 			return err
@@ -133,6 +135,14 @@ func writeMeshBVH(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.
 	if err = fs.WriteFile(path, data, os.ModePerm); err != nil {
 		slog.Error("failed to write the mesh BVH", "id", id, "path", path, "error", err)
 	}
+}
+
+func writeMeshTextureURIs(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, textureURIs map[string]string) error {
+	data, err := km.SerializeWithOptions(kaiju_mesh.SerializeOptions{TextureURIs: textureURIs})
+	if err != nil {
+		return err
+	}
+	return fs.WriteFile(path, data, os.ModePerm)
 }
 
 func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImport, error) {
@@ -298,15 +308,15 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			}
 		}
 	}
+	textureURIs := meshTextureURIs(variant.mesh.Textures, res, fs, cache, cc.Config.SrcPath)
+	if len(textureURIs) > 0 {
+		if err := writeMeshTextureURIs(variant.kaijuMesh, res.ContentPath().String(), fs, textureURIs); err != nil {
+			slog.Error("failed to write mesh GLB texture references", "id", res.Id, "error", err)
+		}
+	}
 	matchTexture := func(srcPath string) rendering.MaterialTextureData {
-		for i := range res.Dependencies {
-			cc, err := cache.Read(res.Dependencies[i].Id)
-			if err != nil {
-				continue
-			}
-			if fs.NormalizePath(srcPath) == filepath.ToSlash(cc.Config.SrcPath) {
-				return rendering.MaterialTextureData{Texture: res.Dependencies[i].Id, Filter: "Linear"}
-			}
+		if depId := meshTextureDependencyId(srcPath, res, fs, cache, cc.Config.SrcPath); depId != "" {
+			return rendering.MaterialTextureData{Texture: depId, Filter: "Linear"}
 		}
 		return rendering.MaterialTextureData{}
 	}
@@ -426,6 +436,80 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		return err
 	}
 	return nil
+}
+
+func meshTextureURIs(textures map[string]string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, meshSrcPath string) map[string]string {
+	out := make(map[string]string, len(textures))
+	for slot, texKey := range textures {
+		depId := meshTextureDependencyId(texKey, res, fs, cache, meshSrcPath)
+		if depId == "" {
+			continue
+		}
+		uri, err := filepath.Rel(filepath.Dir(res.ContentPath().String()),
+			project_file_system.AsContentPath(filepath.Join(
+				project_file_system.ContentFolder,
+				project_file_system.ContentTextureFolder,
+				depId)).String())
+		if err != nil {
+			continue
+		}
+		out[slot] = filepath.ToSlash(uri)
+	}
+	return out
+}
+
+func meshTextureDependencyId(texKey string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, meshSrcPath string) string {
+	if texKey == "" {
+		return ""
+	}
+	if cc, err := cache.Read(texKey); err == nil && cc.Config.Type == (Texture{}).TypeName() {
+		return texKey
+	}
+	candidates := meshTextureSourceCandidates(texKey, meshSrcPath, fs)
+	for i := range res.Dependencies {
+		cc, err := cache.Read(res.Dependencies[i].Id)
+		if err != nil || cc.Config.Type != (Texture{}).TypeName() {
+			continue
+		}
+		srcPath := filepath.ToSlash(cc.Config.SrcPath)
+		if slices.Contains(candidates, srcPath) {
+			return res.Dependencies[i].Id
+		}
+	}
+	base := filepath.Base(filepath.ToSlash(texKey))
+	if base == "" || base == "." {
+		return ""
+	}
+	match := ""
+	for i := range res.Dependencies {
+		cc, err := cache.Read(res.Dependencies[i].Id)
+		if err != nil || cc.Config.Type != (Texture{}).TypeName() {
+			continue
+		}
+		if filepath.Base(filepath.ToSlash(cc.Config.SrcPath)) != base {
+			continue
+		}
+		if match != "" {
+			return ""
+		}
+		match = res.Dependencies[i].Id
+	}
+	return match
+}
+
+func meshTextureSourceCandidates(texKey, meshSrcPath string, fs *project_file_system.FileSystem) []string {
+	candidates := []string{
+		filepath.ToSlash(texKey),
+		filepath.ToSlash(fs.NormalizePath(texKey)),
+	}
+	if meshSrcPath != "" && !filepath.IsAbs(texKey) {
+		meshDir := filepath.Dir(meshSrcPath)
+		candidates = append(candidates,
+			filepath.ToSlash(filepath.Join(meshDir, texKey)),
+			filepath.ToSlash(fs.NormalizePath(filepath.Join(meshDir, texKey))))
+	}
+	slices.Sort(candidates)
+	return slices.Compact(candidates)
 }
 
 func meshEmbeddedTextureExtension(data []byte) string {

@@ -478,8 +478,14 @@ func (p *Project) ensureBuiltInEntityDataBindings() {
 }
 
 func (p *Project) TryUpgrade() error {
+	oldVersion := p.Settings.EditorVersion
 	if err := p.fileSystem.TryUpgrade(); err != nil {
 		return err
+	}
+	if oldVersion < meshGLBContentEditorVersion {
+		if err := p.upgradeMeshContentToGLB(); err != nil {
+			return err
+		}
 	}
 	p.writeProjectTitle()
 	return nil

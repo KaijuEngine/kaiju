@@ -70,6 +70,10 @@ type ContentCategory interface {
 	PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error
 }
 
+type storedExtensionNamer interface {
+	StoredExtName(src string) string
+}
+
 // CategoryFromTypeName is an auxiliary function for getting the category that
 // matches the type supplied. If the content is found, true will be returned,
 // otherwise false.
