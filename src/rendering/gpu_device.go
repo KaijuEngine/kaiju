@@ -181,9 +181,21 @@ func (g *GPUDevice) DestroyRenderViewResources(view *RenderView) {
 		return
 	}
 	if state, ok := g.globalUniforms[view]; ok {
-		g.destroyGlobalUniformBufferSet(state)
+		g.deferGlobalUniformBufferSetDestroy(state)
 		delete(g.globalUniforms, view)
 	}
+}
+
+func (g *GPUDevice) deferGlobalUniformBufferSetDestroy(state *globalUniformBufferSet) {
+	if state == nil {
+		return
+	}
+	pd := bufferTrash{delay: maxFramesInFlight + 1}
+	for i := range maxFramesInFlight {
+		pd.buffers[i] = state.buffers[i]
+		pd.memories[i] = state.memory[i]
+	}
+	g.LogicalDevice.bufferTrash.Add(pd)
 }
 
 func (g *GPUDevice) ensureGlobalUniformsForView(view *RenderView) (*globalUniformBufferSet, error) {

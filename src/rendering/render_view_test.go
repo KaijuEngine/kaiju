@@ -233,6 +233,56 @@ func TestRenderViewProcessPendingDestroysDrawGroupViewState(t *testing.T) {
 	}
 }
 
+func TestDestroyRenderViewResourcesDefersGlobalUniformsAfterViewDescriptors(t *testing.T) {
+	view := newRenderView(RenderViewOptions{Name: "preview"}, 0)
+	rp := &RenderPass{}
+	mat := &Material{renderPass: rp, Instances: make(map[string]*Material), Textures: []*Texture{{Key: "t"}}}
+	mesh := NewMesh("mesh", testVerts(), []uint32{0, 1})
+	drawings := NewDrawings()
+	drawings.AddDrawing(Drawing{Material: mat, Mesh: mesh, ShaderData: newTestDrawInstance()})
+	drawings.PreparePending(0)
+
+	group := &drawings.renderPassGroups[0].draws[0].instanceGroups[0]
+	state := group.viewStateForView(view)
+	state.descriptorPool = testDescriptorPoolHandle(10)
+	state.descriptorSets[0] = testDescriptorSetHandle(11)
+
+	device := &GPUDevice{
+		globalUniforms: map[*RenderView]*globalUniformBufferSet{
+			view: {
+				buffers: [maxFramesInFlight]GPUBuffer{testBufferHandle(12)},
+				memory:  [maxFramesInFlight]GPUDeviceMemory{testMemoryHandle(13)},
+			},
+		},
+	}
+	destroyRenderViewResources(view, device, &drawings)
+
+	if _, ok := group.viewStates[view]; ok {
+		t.Fatalf("destroyed render view state remained on draw group")
+	}
+	if _, ok := device.globalUniforms[view]; ok {
+		t.Fatalf("destroyed render view global uniforms remained in device map")
+	}
+	trash := device.LogicalDevice.bufferTrash.trash
+	if len(trash) != 2 {
+		t.Fatalf("trash count = %d, want descriptor and global uniform entries: %+v", len(trash), trash)
+	}
+	descriptorDelay, globalDelay := -1, -1
+	for i := range trash {
+		if trash[i].pool.IsValid() {
+			descriptorDelay = trash[i].delay
+		} else if trash[i].buffers[0].IsValid() {
+			globalDelay = trash[i].delay
+		}
+	}
+	if descriptorDelay != maxFramesInFlight {
+		t.Fatalf("descriptor trash delay = %d, want %d", descriptorDelay, maxFramesInFlight)
+	}
+	if globalDelay != maxFramesInFlight+1 {
+		t.Fatalf("global uniform trash delay = %d, want %d", globalDelay, maxFramesInFlight+1)
+	}
+}
+
 func mustCreateRenderView(t *testing.T, manager *RenderViewManager, options RenderViewOptions) *RenderView {
 	t.Helper()
 	view, err := manager.Create(options)
