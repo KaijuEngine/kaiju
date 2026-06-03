@@ -68,12 +68,22 @@ func ArithmeticString(args []string) (int, error) {
 func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32) float32 {
 	dpmm := window.DotsPerMillimeter()
 	parse := func(raw string, cut int) float32 {
-		var v float32
-		fmt.Sscanf(raw[:len(raw)-cut], "%f", &v)
-		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			return 0
+		// strconv.ParseFloat is orders of magnitude faster than fmt.Sscanf("%f"),
+		// which dominated CPU: this runs for every CSS length on every layout
+		// pass. Preserve fmt's leniency (take the longest leading numeric prefix,
+		// tolerating trailing garbage) by trimming trailing chars until it parses;
+		// valid input parses on the first try so the common path stays fast.
+		s := strings.TrimSpace(raw[:len(raw)-cut])
+		for len(s) > 0 {
+			if f, err := strconv.ParseFloat(s, 32); err == nil {
+				if math.IsNaN(f) || math.IsInf(f, 0) {
+					return 0
+				}
+				return float32(f)
+			}
+			s = s[:len(s)-1]
 		}
-		return v
+		return 0
 	}
 	switch {
 	case strings.HasSuffix(str, "vmin"):

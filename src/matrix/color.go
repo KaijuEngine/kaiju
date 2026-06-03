@@ -144,6 +144,32 @@ func ColorMix(lhs, rhs Color, amount Float) Color {
 	}
 }
 
+// ColorOver alpha-composites src "over" dst using straight (non-premultiplied)
+// alpha and returns the result as a straight-alpha color. This is the standard
+// Porter-Duff "over" operator:
+//
+//	A_out   = src.A + dst.A*(1-src.A)
+//	RGB_out = (src.RGB*src.A + dst.RGB*dst.A*(1-src.A)) / A_out
+//
+// When dst is opaque (the common case for calculated/"used" UI colors) the
+// result is opaque and is exactly what src looks like painted on top of dst.
+// If both src and dst are effectively transparent the result is transparent
+// (RGB carried from src so a sensible hue remains for later compositing).
+func ColorOver(src, dst Color) Color {
+	sa := src[A]
+	outA := sa + dst[A]*(1-sa)
+	if outA <= 0.00001 {
+		return Color{src[R], src[G], src[B], 0}
+	}
+	dContrib := dst[A] * (1 - sa)
+	return Color{
+		(src[R]*sa + dst[R]*dContrib) / outA,
+		(src[G]*sa + dst[G]*dContrib) / outA,
+		(src[B]*sa + dst[B]*dContrib) / outA,
+		outA,
+	}
+}
+
 func ColorFromHexString(str string) (Color, error) {
 	c8, err := Color8FromHexString(str)
 	return ColorFromColor8(c8), err

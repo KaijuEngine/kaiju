@@ -24,6 +24,24 @@ type StyleSheet struct {
 	stateFuncDepth int
 }
 
+// varRefSentinel prefixes a deferred custom-property reference that is stored
+// inside a PropertyValue's Str field or a function value's Args slice (e.g.
+// var() inside calc()). The NUL byte cannot appear in real CSS source, so this
+// marker can never collide with a genuine token.
+const varRefSentinel = "\x00var:"
+
+// makeVarRef encodes a deferred reference to the given custom property name.
+func makeVarRef(name string) string { return varRefSentinel + name }
+
+// parseVarRef returns the custom property name and true when s is a deferred
+// var reference produced by makeVarRef.
+func parseVarRef(s string) (string, bool) {
+	if strings.HasPrefix(s, varRefSentinel) {
+		return s[len(varRefSentinel):], true
+	}
+	return "", false
+}
+
 func (s *StyleSheet) addGroup() {
 	g := SelectorGroup{
 		Selectors: make([]Selector, 0),
@@ -182,7 +200,7 @@ func (s *StyleSheet) readSelector(cssParser *css.Parser) {
 	s.Groups[idx].Selectors = append(s.Groups[idx].Selectors, sel)
 }
 
-func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window helpers.WindowDimensions) {
+func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, _ helpers.WindowDimensions) {
 	r := Rule{
 		Property: prop,
 		Values:   make([]PropertyValue, 0),
@@ -208,20 +226,24 @@ func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window hel
 				last := &r.Values[len(r.Values)-1]
 				str := string(val.Data)
 				if last.Str == "var" {
+					// Drop the placeholder "var" function value and record a
+					// deferred reference to the custom property. Resolution is
+					// performed after the whole sheet is parsed so the final
+					// (last-:root-wins) value of every custom property is used,
+					// matching CSS computed-value semantics.
 					r.Values = r.Values[0 : len(r.Values)-1]
-					if len(r.Values) > 0 {
+					if s.stateFuncDepth > 1 && len(r.Values) > 0 {
+						// var() nested inside another function (e.g. calc()):
+						// record the deferred reference in the enclosing
+						// function's argument list, preserving argument order.
 						last = &r.Values[len(r.Values)-1]
-					}
-					if v, ok := s.CustomVars[str]; ok {
-						for i := range v {
-							if s.stateFuncDepth > 1 {
-								last.Args = append(last.Args, v[i])
-							} else {
-								r.Values = append(r.Values, PropertyValue{
-									Str: v[i],
-								})
-							}
-						}
+						last.Args = append(last.Args, makeVarRef(str))
+					} else {
+						// Top-level var(): record a deferred placeholder value
+						// that will expand into zero or more values later.
+						r.Values = append(r.Values, PropertyValue{
+							Str: makeVarRef(str),
+						})
 					}
 				} else {
 					last.Args = append(last.Args, str)
@@ -233,18 +255,67 @@ func (s *StyleSheet) readProperty(prop string, cssParser *css.Parser, window hel
 			}
 		}
 	}
+	// Numeric resolution is intentionally deferred to resolveRuleVars (called
+	// post-parse) because deferred var references are not yet substituted here.
+	s.currentGroup().AddRule(r)
+}
+
+// resolveVars walks every parsed rule in the sheet and substitutes the final
+// value of each deferred custom-property reference, then computes numeric forms.
+// It must be called once after the entire sheet has been parsed, when
+// s.CustomVars holds the last-wins value for every custom property.
+func (s *StyleSheet) resolveVars(window helpers.WindowDimensions) {
+	for gi := range s.Groups {
+		g := &s.Groups[gi]
+		for ri := range g.Rules {
+			s.resolveRuleVars(&g.Rules[ri], window)
+		}
+	}
+}
+
+// resolveRuleVars substitutes deferred var references in a single rule and then
+// computes the numeric forms of every value. An unknown custom property resolves
+// to nothing, preserving the previous eager behavior.
+func (s *StyleSheet) resolveRuleVars(r *Rule, window helpers.WindowDimensions) {
+	// Expand top-level deferred var placeholders. A custom property can expand
+	// to multiple tokens, so the value slice is rebuilt.
+	resolved := make([]PropertyValue, 0, len(r.Values))
+	for i := range r.Values {
+		v := r.Values[i]
+		if name, ok := parseVarRef(v.Str); ok {
+			for _, sub := range s.CustomVars[name] {
+				resolved = append(resolved, PropertyValue{Str: sub})
+			}
+			continue
+		}
+		// Expand deferred var references stored inside function arguments
+		// (e.g. var() nested in calc()), preserving argument order.
+		if len(v.Args) > 0 {
+			args := make([]string, 0, len(v.Args))
+			for _, a := range v.Args {
+				if name, ok := parseVarRef(a); ok {
+					args = append(args, s.CustomVars[name]...)
+					continue
+				}
+				args = append(args, a)
+			}
+			v.Args = args
+		}
+		resolved = append(resolved, v)
+	}
+	r.Values = resolved
+
 	for i := range r.Values {
 		v := &r.Values[i]
 		if len(v.Args) > 0 {
 			v.ArgNums = make([]float32, len(v.Args))
-			for i := range v.Args {
-				v.ArgNums[i] = helpers.NumFromLength(v.Args[i], window)
+			for j := range v.Args {
+				v.ArgNums[j] = helpers.NumFromLength(v.Args[j], window)
 			}
 		} else {
 			v.Num = helpers.NumFromLength(v.Str, window)
 		}
 	}
-	s.currentGroup().AddRule(r)
 }
 
 func NewStyleSheet() StyleSheet {
@@ -326,6 +397,9 @@ func (s *StyleSheet) Parse(cssStr string, window helpers.WindowDimensions) {
 			s.CustomVars[name] = vals
 		}
 	}
+	// All custom properties are now known with their final (last :root wins)
+	// values; substitute deferred var references and compute numeric forms.
+	s.resolveVars(window)
 	s.removeLastGroup()
 }
 
@@ -344,7 +418,13 @@ func (s *StyleSheet) ParseInline(cssStr string, window helpers.WindowDimensions)
 			s.readProperty(string(propData), cssParser, window)
 		}
 	}
+	// Resolve any deferred var references using whatever custom properties are
+	// known on this style sheet (e.g. those declared by an already-parsed
+	// :root block) and compute numeric forms.
 	group := s.currentGroup()
+	for ri := range group.Rules {
+		s.resolveRuleVars(&group.Rules[ri], window)
+	}
 	s.removeLastGroup()
 	return group
 }

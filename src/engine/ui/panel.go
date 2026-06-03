@@ -284,11 +284,19 @@ func (p *Panel) FittingContentHeight() bool {
 
 func (p *Panel) FitContentWidth() {
 	pd := p.PanelData()
+	old := pd.fitContent
 	switch pd.fitContent {
 	case ContentFitNone:
 		pd.fitContent = ContentFitWidth
 	case ContentFitHeight:
 		pd.fitContent = ContentFitBoth
+	}
+	// Idempotent: this is an enable-setter that CSS re-applies on every layout
+	// pass (height/width: fit-content). Dirtying unconditionally re-triggered
+	// relayout every pass so Clean() never converged. Only dirty on a real
+	// state change.
+	if pd.fitContent == old {
+		return
 	}
 	if p.dirtyType == DirtyTypeNone {
 		p.Base().SetDirty(DirtyTypeLayout)
@@ -299,11 +307,15 @@ func (p *Panel) FitContentWidth() {
 
 func (p *Panel) FitContentHeight() {
 	pd := p.PanelData()
+	old := pd.fitContent
 	switch pd.fitContent {
 	case ContentFitNone:
 		pd.fitContent = ContentFitHeight
 	case ContentFitWidth:
 		pd.fitContent = ContentFitBoth
+	}
+	if pd.fitContent == old {
+		return
 	}
 	if p.dirtyType == DirtyTypeNone {
 		p.Base().SetDirty(DirtyTypeLayout)
@@ -313,7 +325,11 @@ func (p *Panel) FitContentHeight() {
 }
 
 func (p *Panel) FitContent() {
-	p.PanelData().fitContent = ContentFitBoth
+	pd := p.PanelData()
+	if pd.fitContent == ContentFitBoth {
+		return
+	}
+	pd.fitContent = ContentFitBoth
 	if p.dirtyType == DirtyTypeNone {
 		p.Base().SetDirty(DirtyTypeLayout)
 	} else {
@@ -587,6 +603,46 @@ func (p *Panel) panelPostLayoutUpdate() {
 		if pd.HasMaxHeight() && h > pd.maxSize.Y() {
 			h = pd.maxSize.Y()
 		}
+		// Clamp fit-content to the parent's content box. A fit-content element
+		// must not grow past its container (the container scrolls, or the window
+		// resizes) — this is also what CSS fit-content means: min(max-content,
+		// available). Critically, it breaks the runaway where a fit-content flex
+		// container sums a width/height:100% child that resolves back to the
+		// container's own (growing) size, so flex widths could explode and the
+		// layout never converged. An explicit min-size still wins (the author has
+		// opted into overflow).
+		if !p.entity.IsRoot() {
+			if pu := FirstOnEntity(p.entity.Parent); pu != nil && !pu.IsType(ElementTypeLabel) {
+				pl := pu.Layout()
+				ps := pl.PixelSize()
+				availW := ps.X() - pl.Padding().Horizontal() - pl.Border().Horizontal()
+				availH := ps.Y() - pl.Padding().Vertical() - pl.Border().Vertical()
+				// A flex container with align-items:stretch fills its parent on the
+				// CROSS axis (column -> width, row -> height). When it is ALSO
+				// fit-content on that axis, make the cross size DEFINITE (= parent
+				// available) rather than content-derived. Otherwise it fits to
+				// children that are themselves stretched / width|height:100% to
+				// fill it -> a circular dependency that drifts on sub-pixel float
+				// error so Clean() never converges. Making it definite propagates a
+				// concrete cross size down through nested stretch-flex containers
+				// (and matches CSS: an auto-size block/flex box fills its container
+				// on the block axis). An explicit min-size still wins.
+				stretch := p.IsFlex() && pd.flexAlignItems == FlexAlignStretch
+				colCross := pd.flexDirection == FlexDirectionColumn || pd.flexDirection == FlexDirectionColumnReverse
+				switch {
+				case stretch && colCross && availW > 0 && !(pd.HasMinWidth() && pd.minSize.X() > availW):
+					w = availW // cross = width: fill definitely
+				case availW > 0 && w > availW && !(pd.HasMinWidth() && pd.minSize.X() > availW):
+					w = availW // clamp to container
+				}
+				switch {
+				case stretch && !colCross && availH > 0 && !(pd.HasMinHeight() && pd.minSize.Y() > availH):
+					h = availH // cross = height: fill definitely
+				case availH > 0 && h > availH && !(pd.HasMinHeight() && pd.minSize.Y() > availH):
+					h = availH // clamp to container
+				}
+			}
+		}
 		switch pd.fitContent {
 		case ContentFitWidth:
 			p.layout.ScaleWidth(max(1, w))
@@ -605,7 +661,15 @@ func (p *Panel) panelPostLayoutUpdate() {
 		yScroll += scrollBarWidth
 	}
 	pd.maxScroll = matrix.NewVec2(max(0, bounds.X()-ws.X()), max(0.0, yScroll))
-	if !matrix.Vec2Roughly(last, pd.maxScroll) {
+	// Re-dirty/reveal scrollbars only when maxScroll moves by at least the
+	// same fraction-of-a-pixel that Scale/ScaleWidth/ScaleHeight require to
+	// actually apply a resize. Using a tighter tolerance here (the old
+	// Vec2Roughly == 0.001) created a dead zone: a sub-0.2px content drift
+	// re-dirtied this panel every layout pass, but Scale refused to resolve a
+	// sub-0.2px change, so Clean() never converged and burned all 100
+	// iterations every frame (frame-rate collapse). maxScroll is still stored
+	// precisely above, so scrolling stays exact.
+	if !matrix.Vec2ApproxTo(last, pd.maxScroll, fractionOfPixel) {
 		if pd.scrollBarX != nil {
 			pd.scrollBarX.Base().Show()
 		}
@@ -685,6 +749,50 @@ func (p *Panel) UnEnforceColor() {
 }
 
 func (p *Panel) Color() matrix.Color { return p.shaderData.FgColor }
+
+// CalculatedBGColor returns this panel's opaque "used" background color: its own
+// fill (which may be partially or fully transparent) alpha-composited over its
+// parent's calculated background, recursively up to the manager's opaque root
+// backdrop. This is the actual color a child element or its text visually sits
+// on. The font renderer uses it as the glyph-edge blend target so anti-aliasing
+// produces no halo, regardless of how transparent the intervening panels are.
+//
+// It is computed live by walking ancestors (cheap: tree depth is small and this
+// only runs while the UI is dirty/cleaning). The result is opaque whenever the
+// root backdrop is opaque (the default), which is why text composited onto it
+// can be rendered fully opaque and halo-free.
+func (p *Panel) CalculatedBGColor() matrix.Color {
+	return matrix.ColorOver(p.ownCalculatedFill(), p.parentCalculatedBG())
+}
+
+// ownCalculatedFill is this panel's contribution to the calculated color chain:
+// its fill color when it actually paints a background, otherwise fully
+// transparent so the parent's background shows through. A plain container that
+// paints nothing still carries a default opaque-white shaderData.FgColor; using
+// that directly would make text on transparent containers blend toward (and box
+// itself in) white. Background()==nil (no valid drawing) means "paints nothing".
+func (p *Panel) ownCalculatedFill() matrix.Color {
+	c := p.shaderData.FgColor
+	if !p.PanelData().drawing.IsValid() {
+		c.SetA(0)
+	}
+	return c
+}
+
+// parentCalculatedBG returns the opaque calculated background that this panel is
+// painted on top of: the nearest ancestor panel's CalculatedBGColor, or the
+// manager's root backdrop when there is no ancestor panel.
+func (p *Panel) parentCalculatedBG() matrix.Color {
+	if pe := p.entity.Parent; pe != nil {
+		if pp := FirstPanelOnEntity(pe); pp != nil {
+			return pp.CalculatedBGColor()
+		}
+	}
+	if m := p.man.Value(); m != nil {
+		return m.RootBackgroundColor()
+	}
+	return matrix.ColorBlack()
+}
 
 func (p *Panel) SetColor(bgColor matrix.Color) {
 	if p.HasEnforcedColor() {
@@ -1991,6 +2099,10 @@ func (p *Panel) setColorInternal(bgColor matrix.Color) {
 		}
 	}
 	p.shaderData.FgColor = bgColor
+	// A fill change shifts the calculated ("used") background that descendant
+	// text composites against, so re-render the subtree to refresh glyph colors
+	// (labels recompute their surface from this panel each render pass).
+	p.Base().SetDirty(DirtyTypeColorChange)
 }
 
 func (p *Panel) AllowClickThrough() {

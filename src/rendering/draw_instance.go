@@ -7,14 +7,23 @@
 package rendering
 
 import (
+	"log/slog"
 	"reflect"
+	"sync/atomic"
 	"unsafe"
 
+	"kaijuengine.com/build"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
+
+// drawDiag gates logging of the instance-buffer write guard. The guard itself
+// (skip a write that would run past the mapped buffer) is always on so a sizing
+// bug degrades to a missed draw instead of a SIGBUS/SIGSEGV. TEMP diagnostic.
+var drawDiag = build.Debug
+var drawDiagCount atomic.Int64
 
 type ViewCuller interface {
 	IsInView(box graviton.AABB) bool
@@ -281,6 +290,7 @@ type DrawInstanceViewState struct {
 	boundInstanceData []InstanceCopyData
 	visibleCount      int
 	frameData         DrawInstanceFrameData
+	lastInstanceCount uintptr
 }
 
 type DrawInstanceFrameData struct {
@@ -477,6 +487,35 @@ func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, ligh
 			if state.generatedSets && len(state.boundInstanceData) > 0 {
 				for j := range state.boundInstanceData {
 					d.updateBoundData(state, instanceIndex, j, instance, frame)
+				}
+			}
+			if drawDiag {
+				// Guard against writing past the mapped instance buffer. The buffer
+				// was allocated for state.lastInstanceCount instances of
+				// state.instanceBuffer.size bytes each; base is its frame mapping. A
+				// nil base or an offset past capacity means the buffer geometry
+				// disagrees with what we're about to write (e.g. a shader whose
+				// reflected instance stride is smaller than the instance data) — skip
+				// this write rather than fault. Use continue (NOT break) so the loop
+				// keeps scanning and the destroyed-instance compaction above still
+				// runs for the remaining instances; breaking here orphaned destroyed
+				// instances, leaking them into the group every frame.
+				// capBytes is only known when the buffer was sized via resizeBuffers
+				// (size>0); guard the overrun check on it so manually-mapped buffers
+				// (e.g. tests) aren't falsely skipped. A nil base always skips.
+				capBytes := state.instanceBuffer.size * uintptr(state.lastInstanceCount)
+				if base == nil || (capBytes > 0 && offset+uintptr(d.instanceSize) > capBytes) {
+					if drawDiagCount.Add(1)%120 == 1 {
+						slog.Warn("DrawInstanceGroup.UpdateDataForView: skipping out-of-bounds instance write (shader/instance stride mismatch?)",
+							"frame", frame, "baseNil", base == nil,
+							"offset", uint64(offset), "instanceSize", d.instanceSize,
+							"padding", state.rawData.padding, "stride", d.instanceSize+state.rawData.padding,
+							"capBytes", uint64(capBytes), "iSize", uint64(state.instanceBuffer.size),
+							"lastInstanceCount", state.lastInstanceCount,
+							"writtenSoFar", instanceIndex, "instances", len(d.Instances),
+							"layer", int(d.EffectiveLayer()), "hasView", view != nil)
+					}
+					continue
 				}
 			}
 			to := unsafe.Pointer(uintptr(base) + offset)

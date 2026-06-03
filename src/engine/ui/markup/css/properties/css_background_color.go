@@ -19,16 +19,6 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
-	for _, c := range elm.Children {
-		if c.IsText() {
-			c.UI.ToLabel().SetBGColor(color)
-		} else if !c.UI.IsType(ui.ElementTypeLabel) && c.UI.ToPanel().Background() == nil { // Only continue if transparent
-			setChildTextBackgroundColor(c, color)
-		}
-	}
-}
-
 func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("Expected exactly 1 value but got %d", len(values))
@@ -45,13 +35,10 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 	hex := values[0].Str
 	if hex == "inherit" {
 		if isLabel {
-			pBase := panel.Base()
-			elm.UI.AddEvent(ui.EventTypeRender, func() {
-				if pBase.Entity().Parent != nil {
-					p := ui.FirstPanelOnEntity(pBase.Entity().Parent)
-					elm.UI.ToLabel().SetBGColor(p.Base().ShaderData().FgColor)
-				}
-			})
+			// A label's font now blends against its calculated surface (the
+			// real opaque color behind it, resolved by walking up the panel
+			// tree), so "inherit" needs no work: leaving the label background
+			// transparent makes the text track whatever the parent renders.
 			return nil
 		}
 		if applyPanelColor {
@@ -93,8 +80,9 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 		panel.Base().ToInput().SetBGColor(color)
 	} else if panel.Base().IsType(ui.ElementTypeTextArea) {
 		panel.Base().ToTextArea().SetBGColor(color)
-	} else if !panel.HasEnforcedColor() {
-		setChildTextBackgroundColor(elm, color)
 	}
+	// Child text no longer needs its background pushed down: each label resolves
+	// its own opaque surface by walking up the panel tree (CalculatedBGColor),
+	// which composites partial transparency correctly at every level.
 	return nil
 }
