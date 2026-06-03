@@ -138,6 +138,32 @@
 				left: 0;
 				z-index: 1;
 			}
+			.meshExpand {
+				position: absolute;
+				width: 16px;
+				height: 16px;
+				top: 0;
+				right: 0;
+				z-index: 2;
+				background-color: #121212;
+				color: #AAA;
+				text-align: center;
+			}
+			.meshExpand:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.entry.meshChild {
+				margin-left: 12px;
+				width: 9em;
+			}
+			.entry.meshChild.wide {
+				width: calc(100% - 12px);
+			}
+			.entry.meshChild .preview {
+				width: 9em;
+				height: 9em;
+			}
 			#multiSelectNote {
 				text-align: center;
 			}
@@ -176,6 +202,7 @@
 					<img class="preview" src="editor/textures/icons/file.png" />
 					<div class="entryLabel">Name...</div>
 					<img class="typeThumb" src="editor/textures/icons/file.png" />
+					<span class="meshExpand" onclick="toggleMeshEntry">+</span>
 				</span>
 			</div>
 			<div class="right edPanelBg">

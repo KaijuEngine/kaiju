@@ -52,5 +52,10 @@ func (a *FileDatabase) Exists(key string) bool {
 	return err == nil
 }
 
-func (a *FileDatabase) Close()                                        {}
+func (a *FileDatabase) Close() {
+	if a.root != nil {
+		a.root.Close()
+		a.root = nil
+	}
+}
 func (a *FileDatabase) PostWindowCreate(PostWindowCreateHandle) error { return nil }

@@ -122,6 +122,101 @@ func TestKaijuMeshSerializeTextureURIs(t *testing.T) {
 	}
 }
 
+func TestKaijuMeshSetSerializeMultiMesh(t *testing.T) {
+	set := KaijuMeshSet{
+		Name: "multi",
+		Meshes: []KaijuMesh{
+			{
+				Key:  "left",
+				Name: "Left",
+				Node: KaijuMeshNode{Name: "LeftNode", Position: matrix.Vec3{1, 0, 0}, Scale: matrix.Vec3One()},
+				Verts: []rendering.Vertex{
+					{Position: matrix.Vec3{0, 0, 0}, Normal: matrix.Vec3Forward(), Color: matrix.ColorWhite()},
+					{Position: matrix.Vec3{1, 0, 0}, Normal: matrix.Vec3Forward(), Color: matrix.ColorWhite()},
+					{Position: matrix.Vec3{0, 1, 0}, Normal: matrix.Vec3Forward(), Color: matrix.ColorWhite()},
+				},
+				Indexes: []uint32{0, 1, 2},
+			},
+			{
+				Key:  "right",
+				Name: "Right",
+				Node: KaijuMeshNode{Name: "RightNode", Position: matrix.Vec3{-1, 0, 0}, Scale: matrix.Vec3One()},
+				Verts: []rendering.Vertex{
+					{Position: matrix.Vec3{0, 0, 0}, Normal: matrix.Vec3Forward(), Color: matrix.ColorWhite()},
+					{Position: matrix.Vec3{0, 1, 0}, Normal: matrix.Vec3Forward(), Color: matrix.ColorWhite()},
+					{Position: matrix.Vec3{-1, 0, 0}, Normal: matrix.Vec3Forward(), Color: matrix.ColorWhite()},
+				},
+				Indexes: []uint32{0, 1, 2},
+			},
+		},
+	}
+	set.EnsureBVH()
+	data, err := set.SerializeWithOptions(SerializeOptions{
+		MeshTextureURIs: map[string]map[string]string{
+			"left": {"baseColor": "../texture/left.png"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !IsGLB(data) {
+		t.Fatal("expected KaijuMeshSet.Serialize to write GLB data")
+	}
+	_, doc, _, err := decodeGLB(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Meshes) != 2 {
+		t.Fatalf("GLB meshes = %d, want 2", len(doc.Meshes))
+	}
+	if len(doc.Nodes) < 2 {
+		t.Fatalf("GLB nodes = %d, want at least 2", len(doc.Nodes))
+	}
+	if doc.Extras == nil || len(doc.Extras.Kaiju.Meshes) != 2 {
+		t.Fatalf("extras.kaiju.meshes = %#v, want 2 entries", doc.Extras)
+	}
+	for i := range doc.Extras.Kaiju.Meshes {
+		extra := doc.Extras.Kaiju.Meshes[i]
+		if extra.Key == "" {
+			t.Fatalf("extras.kaiju.meshes[%d] had no key", i)
+		}
+		if extra.Blobs == nil || extra.Blobs.TriangleBVH == nil || extra.Blobs.TriangleBVH.BufferView == nil {
+			t.Fatalf("extras.kaiju.meshes[%d] missing triangle BVH bufferView", i)
+		}
+		view := doc.BufferViews[*extra.Blobs.TriangleBVH.BufferView]
+		if view.Target != 0 {
+			t.Fatalf("expected BVH bufferView to have no target, got %d", view.Target)
+		}
+	}
+	db := singleAssetDatabase{key: "multi.glb", data: data}
+	if res, err := meshloaders.GLTF("multi.glb", db); err != nil {
+		t.Fatalf("serialized multi-mesh GLB failed standard glTF import: %v", err)
+	} else if len(res.Meshes) != 2 {
+		t.Fatalf("standard glTF import returned %d meshes, want 2", len(res.Meshes))
+	}
+	loadedSet, err := DeserializeSet(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loadedSet.Meshes) != 2 {
+		t.Fatalf("DeserializeSet meshes = %d, want 2", len(loadedSet.Meshes))
+	}
+	right, ok := loadedSet.MeshByKey("right")
+	if !ok {
+		t.Fatal("DeserializeSet could not find right submesh")
+	}
+	if right.BVH == nil {
+		t.Fatal("expected right submesh BVH to round trip")
+	}
+	first, err := Deserialize(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Key != "left" {
+		t.Fatalf("Deserialize returned key %q, want first/default key left", first.Key)
+	}
+}
+
 func TestKaijuMeshSerializeRoundTripSkinAnimation(t *testing.T) {
 	rotation := matrix.QuaternionFromEuler(matrix.Vec3{0, 45, 0})
 	km := KaijuMesh{

@@ -13,14 +13,13 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
-	"sync"
 
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders"
@@ -34,7 +33,20 @@ func init() { addCategory(Mesh{}) }
 // extension. This file can contain multiple meshes as well as the textures that
 // are assigned to the meshes. The textures will be imported as dependencies.
 type Mesh struct{}
-type MeshConfig struct{}
+type MeshConfig struct {
+	Submeshes []MeshSubmeshConfig `json:",omitempty"`
+}
+
+type MeshSubmeshConfig struct {
+	Key      string
+	Name     string
+	Material string      `json:",omitempty"`
+	Missing  bool        `json:",omitempty"`
+	NodeName string      `json:",omitempty"`
+	Position matrix.Vec3 `json:",omitempty"`
+	Rotation matrix.Vec3 `json:",omitempty"`
+	Scale    matrix.Vec3 `json:",omitempty"`
+}
 
 // See the documentation for the interface [ContentCategory] to learn more about
 // the following functions
@@ -45,64 +57,15 @@ func (Mesh) ExtNames() []string          { return []string{".glb", ".gltf", ".ob
 func (Mesh) StoredExtName(string) string { return ".glb" }
 
 type meshImportPostProcData struct {
-	mesh         load_result.Mesh
-	kaijuMesh    kaiju_mesh.KaijuMesh
+	set          kaiju_mesh.KaijuMeshSet
 	meshes       []load_result.Mesh
-	isAnimated   bool
+	isAnimated   []bool
 	textureBytes map[string][]byte
 }
 
-func serializeKaijuMeshVariants(kms []kaiju_mesh.KaijuMesh) ([][]byte, error) {
-	out := make([][]byte, len(kms))
-	if len(kms) == 0 {
-		return out, nil
-	}
-	serialize := func(index int) error {
-		kms[index].EnsureBVH()
-		data, err := kms[index].Serialize()
-		if err != nil {
-			return err
-		}
-		out[index] = data
-		return nil
-	}
-	workers := min(runtime.GOMAXPROCS(0), len(kms))
-	if workers <= 1 {
-		for i := range kms {
-			if err := serialize(i); err != nil {
-				return nil, err
-			}
-		}
-		return out, nil
-	}
-	jobs := make(chan int)
-	var firstErr error
-	errMutex := sync.Mutex{}
-	group := sync.WaitGroup{}
-	group.Add(workers)
-	for range workers {
-		go func() {
-			defer group.Done()
-			for idx := range jobs {
-				if err := serialize(idx); err != nil {
-					errMutex.Lock()
-					if firstErr == nil {
-						firstErr = err
-					}
-					errMutex.Unlock()
-				}
-			}
-		}()
-	}
-	for i := range kms {
-		jobs <- i
-	}
-	close(jobs)
-	group.Wait()
-	if firstErr != nil {
-		return nil, firstErr
-	}
-	return out, nil
+func serializeKaijuMeshSet(set kaiju_mesh.KaijuMeshSet) ([]byte, error) {
+	set.EnsureBVH()
+	return set.Serialize()
 }
 
 func EnsureMeshBVHInBackground(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
@@ -127,6 +90,29 @@ func SaveMeshBVHInBackground(km kaiju_mesh.KaijuMesh, path string, fs *project_f
 }
 
 func writeMeshBVH(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
+	data, readErr := fs.ReadFile(path)
+	if readErr == nil && kaiju_mesh.IsGLB(data) {
+		if set, err := kaiju_mesh.DeserializeSet(data); err == nil && len(set.Meshes) > 0 {
+			ref := kaiju_mesh.ParseMeshRef(id)
+			if ref.Key == "" {
+				ref.Key = km.Key
+			}
+			for i := range set.Meshes {
+				if ref.Key == "" || set.Meshes[i].Key == ref.Key {
+					set.Meshes[i].BVH = km.BVH
+					serialized, err := set.Serialize()
+					if err != nil {
+						slog.Error("failed to serialize the mesh-set BVH", "id", id, "error", err)
+						return
+					}
+					if err = fs.WriteFile(path, serialized, os.ModePerm); err != nil {
+						slog.Error("failed to write the mesh-set BVH", "id", id, "path", path, "error", err)
+					}
+					return
+				}
+			}
+		}
+	}
 	data, err := km.Serialize()
 	if err != nil {
 		slog.Error("failed to serialize the mesh BVH", "id", id, "error", err)
@@ -139,6 +125,14 @@ func writeMeshBVH(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.
 
 func writeMeshTextureURIs(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, textureURIs map[string]string) error {
 	data, err := km.SerializeWithOptions(kaiju_mesh.SerializeOptions{TextureURIs: textureURIs})
+	if err != nil {
+		return err
+	}
+	return fs.WriteFile(path, data, os.ModePerm)
+}
+
+func writeMeshSetTextureURIs(set kaiju_mesh.KaijuMeshSet, path string, fs *project_file_system.FileSystem, textureURIs map[string]map[string]string) error {
+	data, err := set.SerializeWithOptions(kaiju_mesh.SerializeOptions{MeshTextureURIs: textureURIs})
 	if err != nil {
 		return err
 	}
@@ -158,6 +152,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if err != nil {
 			return p, err
 		}
+		defer adb.Close()
 		if res, err = loaders.GLTF(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
@@ -166,6 +161,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if err != nil {
 			return p, err
 		}
+		defer adb.Close()
 		if res, err = loaders.OBJ(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
@@ -174,6 +170,7 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		if err != nil {
 			return p, err
 		}
+		defer adb.Close()
 		if res, err = loaders.FBX(filepath.Base(src), adb); err != nil {
 			return p, err
 		}
@@ -182,38 +179,33 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 		return p, NoMeshesInFileError{Path: src}
 	}
 	baseName := fileNameNoExt(src)
-	kms := kaiju_mesh.LoadedResultToKaijuMesh(res)
-	serializedMeshes, err := serializeKaijuMeshVariants(kms)
+	set := kaiju_mesh.LoadedResultToKaijuMeshSet(baseName, res)
+	serializedSet, err := serializeKaijuMeshSet(set)
 	if err != nil {
 		return p, err
 	}
-	postProcData := map[string]meshImportPostProcData{}
-	for i := range kms {
-		parts := strings.Split(kms[i].Name, "/")
-		v := ImportVariant{
-			Name: fmt.Sprintf("%s-%s", baseName, parts[len(parts)-1]),
-			Data: serializedMeshes[i],
-		}
-		p.Variants = append(p.Variants, v)
+	isAnimated := make([]bool, len(res.Meshes))
+	for i := range res.Meshes {
 		if res.Meshes[i].Node == nil {
 			slog.Warn("import mesh failure on node", "index", i, "name", res.Meshes[i].Name)
 			continue
 		}
-		isAnimated := false
 		if nodeIndex := meshNodeIndex(res, res.Meshes[i].Node); nodeIndex >= 0 {
-			isAnimated = res.IsTreeAnimated(nodeIndex)
+			isAnimated[i] = res.IsTreeAnimated(nodeIndex)
 		} else {
 			slog.Warn("import mesh failure on node index", "index", i, "name", res.Meshes[i].Name)
 		}
-		postProcData[v.Name] = meshImportPostProcData{
-			mesh:         res.Meshes[i],
-			kaijuMesh:    kms[i],
-			meshes:       res.Meshes,
-			isAnimated:   isAnimated,
-			textureBytes: res.TextureBytes,
-		}
 	}
-	p.postProcessData = postProcData
+	p.Variants = []ImportVariant{{
+		Name: baseName,
+		Data: serializedSet,
+	}}
+	p.postProcessData = meshImportPostProcData{
+		set:          set,
+		meshes:       res.Meshes,
+		isAnimated:   isAnimated,
+		textureBytes: res.TextureBytes,
+	}
 	for i := range res.Meshes {
 		t := res.Meshes[i].Textures
 		p.Dependencies = slices.Grow(p.Dependencies, len(p.Dependencies)+len(t))
@@ -250,31 +242,85 @@ func meshNodeIndex(res load_result.Result, node *load_result.Node) int {
 
 func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSystem) (ProcessedImport, error) {
 	defer tracing.NewRegion("Mesh.Reimport").End()
-	return reimportByNameMatching(c, id, cache, fs)
+	path, err := contentIdToSrcPath(id, cache, fs)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	proc, err := c.Import(path, fs)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	cc, err := cache.Read(id)
+	if err != nil {
+		return ProcessedImport{}, err
+	}
+	for i := range proc.Variants {
+		if proc.Variants[i].Name == cc.Config.SrcName {
+			return ProcessedImport{
+				Variants:        []ImportVariant{proc.Variants[i]},
+				postProcessData: proc.postProcessData,
+			}, nil
+		}
+	}
+	data, ok := proc.postProcessData.(meshImportPostProcData)
+	if !ok {
+		return ProcessedImport{}, ReimportMeshMissingError{
+			Path: path,
+			Name: cc.Config.SrcName,
+		}
+	}
+	baseName := fileNameNoExt(path)
+	for i := range data.set.Meshes {
+		if legacySplitMeshVariantName(baseName, data.set.Meshes[i].Name) != cc.Config.SrcName &&
+			data.set.Meshes[i].Key != cc.Config.SrcName {
+			continue
+		}
+		single := kaiju_mesh.KaijuMeshSet{
+			Name:   data.set.Name,
+			Meshes: []kaiju_mesh.KaijuMesh{data.set.Meshes[i]},
+		}
+		serialized, err := serializeKaijuMeshSet(single)
+		if err != nil {
+			return ProcessedImport{}, err
+		}
+		return ProcessedImport{
+			Variants: []ImportVariant{{
+				Name: cc.Config.SrcName,
+				Data: serialized,
+			}},
+			postProcessData: meshImportPostProcData{
+				set:          single,
+				textureBytes: data.textureBytes,
+			},
+		}, nil
+	}
+	return ProcessedImport{}, ReimportMeshMissingError{
+		Path: path,
+		Name: cc.Config.SrcName,
+	}
+}
+
+func legacySplitMeshVariantName(baseName, meshName string) string {
+	parts := strings.Split(meshName, "/")
+	return fmt.Sprintf("%s-%s", baseName, parts[len(parts)-1])
 }
 
 func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
-	meshes := proc.postProcessData.(map[string]meshImportPostProcData)
+	data := proc.postProcessData.(meshImportPostProcData)
 	cc, err := cache.Read(res.Id)
 	if err != nil {
 		return err
 	}
-	variant, ok := meshes[cc.Config.Name]
-	if !ok {
-		slog.Error("failed to locate the mesh in the post processing data", "name", cc.Config.Name)
-		return nil
-	}
-	EnsureMeshBVHInBackground(variant.kaijuMesh, res.ContentPath().String(), fs, res.Id)
 	texKeyToDepId := make(map[string]string)
 	texKeyToData := make(map[string][]byte)
-	for i := range variant.meshes {
-		for texType, texKey := range variant.meshes[i].Textures {
+	for i := range data.meshes {
+		for texType, texKey := range data.meshes[i].Textures {
 			if strings.HasPrefix(texKey, "embedded_") {
 				if _, ok := texKeyToData[texKey]; !ok {
-					texKeyToData[texKey] = variant.textureBytes[texKey]
+					texKeyToData[texKey] = data.textureBytes[texKey]
 				}
-				variant.meshes[i].Textures[texType] = texKey
+				data.meshes[i].Textures[texType] = texKey
 			}
 		}
 	}
@@ -299,20 +345,28 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		texKeyToDepId[texKey] = texRes[0].Id
 		os.Remove(tf.Name())
 	}
-	for i := range variant.meshes {
-		for texType, texKey := range variant.meshes[i].Textures {
+	for i := range data.meshes {
+		for texType, texKey := range data.meshes[i].Textures {
 			if depId, ok := texKeyToDepId[texKey]; ok {
-				variant.meshes[i].Textures[texType] = depId
+				data.meshes[i].Textures[texType] = depId
 			} else if strings.HasPrefix(texKey, "embedded_") {
-				variant.meshes[i].Textures[texType] = ""
+				data.meshes[i].Textures[texType] = ""
 			}
 		}
 	}
-	textureURIs := meshTextureURIs(variant.mesh.Textures, res, fs, cache, cc.Config.SrcPath)
-	if len(textureURIs) > 0 {
-		if err := writeMeshTextureURIs(variant.kaijuMesh, res.ContentPath().String(), fs, textureURIs); err != nil {
-			slog.Error("failed to write mesh GLB texture references", "id", res.Id, "error", err)
+	textureURIs := make(map[string]map[string]string, len(data.set.Meshes))
+	for i := range data.set.Meshes {
+		if i >= len(data.meshes) {
+			continue
 		}
+		uris := meshTextureURIs(data.meshes[i].Textures, res, fs, cache, cc.Config.SrcPath)
+		data.set.Meshes[i].Textures = cloneTextureMap(uris)
+		if len(uris) > 0 {
+			textureURIs[data.set.Meshes[i].Key] = uris
+		}
+	}
+	if err := writeMeshSetTextureURIs(data.set, res.ContentPath().String(), fs, textureURIs); err != nil {
+		slog.Error("failed to write mesh GLB texture references", "id", res.Id, "error", err)
 	}
 	matchTexture := func(srcPath string) rendering.MaterialTextureData {
 		if depId := meshTextureDependencyId(srcPath, res, fs, cache, cc.Config.SrcPath); depId != "" {
@@ -320,65 +374,76 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		}
 		return rendering.MaterialTextureData{}
 	}
+	materials := make(map[string]string, len(data.set.Meshes))
+	for i := range data.set.Meshes {
+		if i >= len(data.meshes) {
+			continue
+		}
+		mat := meshMaterialData(data.meshes[i].Textures, meshImportIsAnimated(data, i), matchTexture)
+		matName := meshImportMaterialName(cc.Config.Name, len(data.set.Meshes), data.set.Meshes[i].Name)
+		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId)
+		if err != nil {
+			return err
+		}
+		materials[data.set.Meshes[i].Key] = matId
+		data.set.Meshes[i].Material = matId
+	}
+	cc.Config.Mesh = &MeshConfig{Submeshes: meshConfigSubmeshes(data.set, materials, nil)}
+	if err := WriteConfig(cc.Path, cc.Config, fs); err != nil {
+		return err
+	}
+	cache.IndexCachedContent(cc)
+	return nil
+}
+
+func meshMaterialData(textures map[string]string, isAnimated bool, matchTexture func(string) rendering.MaterialTextureData) rendering.MaterialData {
+	remaining := cloneTextureMap(textures)
 	var mat rendering.MaterialData
-	if _, ok := variant.mesh.Textures["metallicRoughness"]; ok {
+	if _, ok := remaining["metallicRoughness"]; ok {
 		mat = rendering.MaterialData{
 			Shader:          "pbr.shader",
 			RenderPass:      "opaque.renderpass",
 			ShaderPipeline:  "basic.shaderpipeline",
-			Textures:        make([]rendering.MaterialTextureData, 0, len(variant.mesh.Textures)),
+			Textures:        make([]rendering.MaterialTextureData, 0, len(remaining)),
 			IsLit:           true,
 			ReceivesShadows: true,
 			CastsShadows:    true,
 		}
-		if variant.isAnimated {
+		if isAnimated {
 			mat.Shader = "pbr_skinned.shader"
 		}
-		if t, ok := variant.mesh.Textures["baseColor"]; ok {
-			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.mesh.Textures, "baseColor")
-		} else {
-			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
-				Texture: assets.TextureSquare, Filter: "Linear"})
-		}
-		if t, ok := variant.mesh.Textures["normal"]; ok {
-			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.mesh.Textures, "normal")
-		} else {
-			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
-				Texture: assets.TextureSquare, Filter: "Linear"})
-		}
-		if t, ok := variant.mesh.Textures["metallicRoughness"]; ok {
-			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.mesh.Textures, "metallicRoughness")
-		} else {
-			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
-				Texture: assets.TextureSquare, Filter: "Linear"})
-		}
-		if t, ok := variant.mesh.Textures["emissive"]; ok {
-			mat.Textures = append(mat.Textures, matchTexture(t))
-			delete(variant.mesh.Textures, "emissive")
-		} else {
-			mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
-				Texture: assets.TextureSquare, Filter: "Linear"})
-		}
-		for _, t := range variant.mesh.Textures {
-			mat.Textures = append(mat.Textures, matchTexture(t))
+		for _, slot := range []string{"baseColor", "normal", "metallicRoughness", "emissive"} {
+			if tex, ok := remaining[slot]; ok {
+				mat.Textures = append(mat.Textures, matchTexture(tex))
+				delete(remaining, slot)
+			} else {
+				mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
+					Texture: assets.TextureSquare, Filter: "Linear"})
+			}
 		}
 	} else {
 		mat = rendering.MaterialData{
 			Shader:         "basic.shader",
 			RenderPass:     "opaque.renderpass",
 			ShaderPipeline: "basic.shaderpipeline",
-			Textures:       make([]rendering.MaterialTextureData, 0, len(variant.mesh.Textures)),
+			Textures:       make([]rendering.MaterialTextureData, 0, len(remaining)),
 		}
-		if variant.isAnimated {
+		if isAnimated {
 			mat.Shader = "basic_skinned.shader"
 		}
-		for _, t := range variant.mesh.Textures {
-			mat.Textures = append(mat.Textures, matchTexture(t))
-		}
 	}
+	keys := make([]string, 0, len(remaining))
+	for key := range remaining {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		mat.Textures = append(mat.Textures, matchTexture(remaining[key]))
+	}
+	return mat
+}
+
+func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (string, error) {
 	// Determine if a matching material already exists
 	options := cache.ListByType(Material{}.TypeName())
 	// Searching reverse here as the latest additions are more likely to collide
@@ -406,36 +471,100 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			same = mat.Textures[j] == dm.Textures[j]
 		}
 		if same {
-			return nil
+			return options[i].Id(), nil
 		}
 	}
 	f, err := os.CreateTemp("", "*-kaiju-mat.material")
 	if err != nil {
-		return err
+		return "", err
 	}
 	tempPath := f.Name()
 	defer os.Remove(tempPath)
 	if err = json.NewEncoder(f).Encode(mat); err != nil {
 		f.Close()
-		return err
+		return "", err
 	}
 	if err = f.Close(); err != nil {
-		return err
+		return "", err
 	}
 	matRes, err := Import(tempPath, fs, cache, linkedId)
 	if err != nil {
-		return err
+		return "", err
 	}
 	res.Dependencies = append(res.Dependencies, matRes[0])
 	ccMat, err := cache.Read(matRes[0].Id)
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = cache.Rename(ccMat.Id(), fmt.Sprintf("%s_mat", cc.Config.Name), fs)
+	_, err = cache.Rename(ccMat.Id(), name, fs)
 	if !errors.Is(err, CacheContentNameEqual) {
-		return err
+		return "", err
 	}
-	return nil
+	return matRes[0].Id, nil
+}
+
+func meshImportMaterialName(assetName string, meshCount int, meshName string) string {
+	if meshCount <= 1 || strings.TrimSpace(meshName) == "" {
+		return fmt.Sprintf("%s_mat", assetName)
+	}
+	name := strings.NewReplacer("/", "-", "\\", "-", ":", "-").Replace(meshName)
+	return fmt.Sprintf("%s_%s_mat", assetName, name)
+}
+
+func meshImportIsAnimated(data meshImportPostProcData, index int) bool {
+	return index >= 0 && index < len(data.isAnimated) && data.isAnimated[index]
+}
+
+func cloneTextureMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func meshConfigSubmeshes(set kaiju_mesh.KaijuMeshSet, materials map[string]string, old *MeshConfig) []MeshSubmeshConfig {
+	oldByKey := map[string]MeshSubmeshConfig{}
+	if old != nil {
+		for i := range old.Submeshes {
+			oldByKey[old.Submeshes[i].Key] = old.Submeshes[i]
+		}
+	}
+	out := make([]MeshSubmeshConfig, 0, len(set.Meshes)+len(oldByKey))
+	seen := make(map[string]bool, len(set.Meshes))
+	for i := range set.Meshes {
+		mesh := &set.Meshes[i]
+		mat := materials[mesh.Key]
+		if mat == "" {
+			if oldSubmesh, ok := oldByKey[mesh.Key]; ok {
+				mat = oldSubmesh.Material
+			}
+		}
+		out = append(out, MeshSubmeshConfig{
+			Key:      mesh.Key,
+			Name:     mesh.Name,
+			Material: mat,
+			NodeName: mesh.Node.Name,
+			Position: mesh.Node.Position,
+			Rotation: mesh.Node.Rotation,
+			Scale:    mesh.Node.Scale,
+		})
+		seen[mesh.Key] = true
+	}
+	if old != nil {
+		for i := range old.Submeshes {
+			submesh := old.Submeshes[i]
+			if seen[submesh.Key] {
+				continue
+			}
+			submesh.Missing = true
+			out = append(out, submesh)
+		}
+	}
+	return out
 }
 
 func meshTextureURIs(textures map[string]string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, meshSrcPath string) map[string]string {
@@ -530,23 +659,73 @@ func meshEmbeddedTextureExtension(data []byte) string {
 
 func (Mesh) PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache) error {
 	defer tracing.NewRegion("Mesh.PostReimportProcessing").End()
-	meshes, ok := proc.postProcessData.(map[string]meshImportPostProcData)
+	data, ok := proc.postProcessData.(meshImportPostProcData)
 	if !ok || len(proc.Variants) == 0 {
 		return nil
 	}
-	variant, ok := meshes[proc.Variants[0].Name]
-	if !ok {
-		cc, err := cache.Read(res.Id)
-		if err != nil {
-			return err
+	cc, err := cache.Read(res.Id)
+	if err != nil {
+		return err
+	}
+	preserveMeshSetKeys(&data.set, cc.Config.Mesh)
+	data.set.EnsureBVH()
+	serialized, err := data.set.Serialize()
+	if err != nil {
+		return err
+	}
+	if err := fs.WriteFile(res.ContentPath().String(), serialized, os.ModePerm); err != nil {
+		return err
+	}
+	cc.Config.Mesh = &MeshConfig{Submeshes: meshConfigSubmeshes(data.set, nil, cc.Config.Mesh)}
+	if err := WriteConfig(cc.Path, cc.Config, fs); err != nil {
+		return err
+	}
+	cache.IndexCachedContent(cc)
+	return nil
+}
+
+func preserveMeshSetKeys(set *kaiju_mesh.KaijuMeshSet, old *MeshConfig) {
+	if set == nil || old == nil || len(old.Submeshes) == 0 {
+		return
+	}
+	oldByKey := make(map[string]MeshSubmeshConfig, len(old.Submeshes))
+	oldByName := make(map[string]MeshSubmeshConfig, len(old.Submeshes))
+	oldByNodeName := make(map[string]MeshSubmeshConfig, len(old.Submeshes))
+	for i := range old.Submeshes {
+		sub := old.Submeshes[i]
+		if sub.Key != "" {
+			oldByKey[sub.Key] = sub
 		}
-		variant, ok = meshes[cc.Config.SrcName]
-		if !ok {
-			slog.Error("failed to locate the reimported mesh in the post processing data",
-				"name", cc.Config.SrcName)
-			return nil
+		if sub.Name != "" {
+			if _, exists := oldByName[sub.Name]; !exists {
+				oldByName[sub.Name] = sub
+			}
+		}
+		if sub.NodeName != "" {
+			if _, exists := oldByNodeName[sub.NodeName]; !exists {
+				oldByNodeName[sub.NodeName] = sub
+			}
 		}
 	}
-	EnsureMeshBVHInBackground(variant.kaijuMesh, res.ContentPath().String(), fs, res.Id)
-	return nil
+	used := make(map[string]bool, len(set.Meshes))
+	for i := range set.Meshes {
+		if _, ok := oldByKey[set.Meshes[i].Key]; ok {
+			used[set.Meshes[i].Key] = true
+		}
+	}
+	for i := range set.Meshes {
+		if used[set.Meshes[i].Key] {
+			continue
+		}
+		oldSubmesh, ok := oldByName[set.Meshes[i].Name]
+		if !ok && set.Meshes[i].Node.Name != "" {
+			oldSubmesh, ok = oldByNodeName[set.Meshes[i].Node.Name]
+		}
+		if !ok || oldSubmesh.Key == "" || used[oldSubmesh.Key] {
+			used[set.Meshes[i].Key] = true
+			continue
+		}
+		set.Meshes[i].Key = oldSubmesh.Key
+		used[oldSubmesh.Key] = true
+	}
 }

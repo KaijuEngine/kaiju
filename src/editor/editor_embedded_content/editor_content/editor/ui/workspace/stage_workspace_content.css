@@ -54,6 +54,29 @@
 	left: 0;
 	z-index: 1;
 }
+.meshExpand {
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	top: 0;
+	right: 0;
+	z-index: 2;
+	background-color: #121212;
+	color: #AAA;
+	text-align: center;
+}
+.meshExpand:hover {
+	background-color: #575757;
+	color: white;
+}
+.entry.meshChild {
+	margin-left: 12px;
+	width: 4.5em;
+}
+.entry.meshChild .preview {
+	width: 4.5em;
+	height: 4.5em;
+}
 .contentSearchInput {
 	margin-left: 2em;
 	width: calc(100% - 2em);

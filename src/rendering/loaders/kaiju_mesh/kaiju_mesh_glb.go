@@ -178,8 +178,9 @@ type glbExtras struct {
 }
 
 type glbKaijuExtras struct {
-	Version int          `json:"version"`
-	Blobs   *glbBlobRefs `json:"blobs,omitempty"`
+	Version int                 `json:"version"`
+	Blobs   *glbBlobRefs        `json:"blobs,omitempty"`
+	Meshes  []glbKaijuMeshExtra `json:"meshes,omitempty"`
 }
 
 type glbBlobRefs struct {
@@ -189,6 +190,15 @@ type glbBlobRefs struct {
 type glbBlobRef struct {
 	BufferView *int   `json:"bufferView,omitempty"`
 	Format     string `json:"format,omitempty"`
+}
+
+type glbKaijuMeshExtra struct {
+	Key      string       `json:"key,omitempty"`
+	Name     string       `json:"name,omitempty"`
+	Mesh     int          `json:"mesh"`
+	Node     int          `json:"node"`
+	Material string       `json:"material,omitempty"`
+	Blobs    *glbBlobRefs `json:"blobs,omitempty"`
 }
 
 type glbWriter struct {
@@ -226,11 +236,15 @@ func IsGLB(data []byte) bool {
 }
 
 func serializeGLB(k KaijuMesh, options SerializeOptions) ([]byte, error) {
-	if len(k.Verts) == 0 {
-		return nil, errors.New("kaiju glb serialization requires vertices")
+	if k.Key == "" {
+		k.Key = "mesh"
 	}
-	if len(k.Indexes) == 0 {
-		return nil, errors.New("kaiju glb serialization requires indexes")
+	return serializeGLBSet(KaijuMeshSet{Name: k.Name, Meshes: []KaijuMesh{k}}, options)
+}
+
+func serializeGLBSet(set KaijuMeshSet, options SerializeOptions) ([]byte, error) {
+	if len(set.Meshes) == 0 {
+		return nil, errors.New("kaiju glb serialization requires at least one mesh")
 	}
 	w := glbWriter{
 		doc: glbDocument{
@@ -242,35 +256,66 @@ func serializeGLB(k KaijuMesh, options SerializeOptions) ([]byte, error) {
 		},
 	}
 	w.doc.Buffers = []glbBuffer{{}}
-	primitive, err := w.meshPrimitive(k, options)
-	if err != nil {
-		return nil, err
+	skeletonMesh := firstAnimatedMesh(set.Meshes)
+	w.buildSkeletonNodes(skeletonMesh)
+	extras := glbKaijuExtras{
+		Version: 1,
+		Meshes:  make([]glbKaijuMeshExtra, 0, len(set.Meshes)),
 	}
-	w.doc.Meshes = []glbMesh{{
-		Name:       k.Name,
-		Primitives: []glbPrimitive{primitive},
-	}}
-	meshNode := w.buildNodes(k)
-	w.doc.Nodes[meshNode].Mesh = ptrInt(0)
-	if len(w.doc.Skins) > 0 {
-		w.doc.Nodes[meshNode].Skin = ptrInt(0)
-	}
-	w.doc.Scenes = []glbScene{{
-		Name:  "Scene",
-		Nodes: glbSceneNodes(w.doc.Nodes, meshNode),
-	}}
-	if k.BVH != nil {
-		view := w.addBufferView(serializeTriangleBVHBlob(k.BVH), 0)
-		w.doc.Extras = &glbExtras{Kaiju: glbKaijuExtras{
-			Version: 1,
-			Blobs: &glbBlobRefs{TriangleBVH: &glbBlobRef{
+	for i := range set.Meshes {
+		mesh := set.Meshes[i]
+		if mesh.Key == "" {
+			mesh.Key = fmt.Sprintf("mesh_%d", i)
+		}
+		if len(mesh.Verts) == 0 {
+			return nil, errors.New("kaiju glb serialization requires vertices")
+		}
+		if len(mesh.Indexes) == 0 {
+			return nil, errors.New("kaiju glb serialization requires indexes")
+		}
+		primitive, err := w.meshPrimitive(mesh, options)
+		if err != nil {
+			return nil, err
+		}
+		meshIdx := len(w.doc.Meshes)
+		w.doc.Meshes = append(w.doc.Meshes, glbMesh{
+			Name:       mesh.Name,
+			Primitives: []glbPrimitive{primitive},
+		})
+		nodeIdx := len(w.doc.Nodes)
+		node := glbNode{
+			Name: meshNodeName(mesh),
+			Mesh: ptrInt(meshIdx),
+		}
+		if len(w.doc.Skins) > 0 && shouldWriteSkinAttributes(mesh) {
+			node.Skin = ptrInt(0)
+		}
+		applyNodeTransform(&node, mesh.Node)
+		w.doc.Nodes = append(w.doc.Nodes, node)
+		extra := glbKaijuMeshExtra{
+			Key:      mesh.Key,
+			Name:     mesh.Name,
+			Mesh:     meshIdx,
+			Node:     nodeIdx,
+			Material: mesh.Material,
+		}
+		if mesh.BVH != nil {
+			view := w.addBufferView(serializeTriangleBVHBlob(mesh.BVH), 0)
+			extra.Blobs = &glbBlobRefs{TriangleBVH: &glbBlobRef{
 				BufferView: ptrInt(view),
 				Format:     "kaiju.triangle_bvh.le.v1",
-			}},
-		}}
-	} else {
-		w.doc.Extras = &glbExtras{Kaiju: glbKaijuExtras{Version: 1}}
+			}}
+			if i == 0 {
+				extras.Blobs = extra.Blobs
+			}
+		}
+		extras.Meshes = append(extras.Meshes, extra)
 	}
+	w.doc.Extras = &glbExtras{Kaiju: extras}
+	w.doc.Scenes = []glbScene{{
+		Name:  "Scene",
+		Nodes: glbRootNodes(w.doc.Nodes),
+	}}
 	w.doc.Buffers[0].ByteLength = len(w.bin)
 	jsonBytes, err := json.Marshal(w.doc)
 	if err != nil {
@@ -397,6 +442,60 @@ func (w *glbWriter) buildNodes(k KaijuMesh) int {
 	return meshNode
 }
 
+func (w *glbWriter) buildSkeletonNodes(k KaijuMesh) {
+	maxNode := -1
+	for i := range k.Joints {
+		maxNode = max(maxNode, int(k.Joints[i].Id), int(k.Joints[i].Parent))
+	}
+	for i := range k.Animations {
+		for j := range k.Animations[i].Frames {
+			for b := range k.Animations[i].Frames[j].Bones {
+				maxNode = max(maxNode, k.Animations[i].Frames[j].Bones[b].NodeIndex)
+			}
+		}
+	}
+	if maxNode < 0 {
+		return
+	}
+	w.doc.Nodes = make([]glbNode, maxNode+1)
+	for i := range w.doc.Nodes {
+		w.doc.Nodes[i].Name = fmt.Sprintf("Node_%d", i)
+	}
+	for i := range k.Joints {
+		j := &k.Joints[i]
+		if j.Id < 0 || int(j.Id) >= len(w.doc.Nodes) {
+			continue
+		}
+		node := &w.doc.Nodes[j.Id]
+		node.Name = fmt.Sprintf("Joint_%d", j.Id)
+		node.Translation = vec3JSON(j.Position)
+		node.Scale = vec3JSON(j.Scale)
+		q := matrix.QuaternionFromEuler(j.Rotation)
+		node.Rotation = quatXYZWJSON(q)
+		if j.Parent >= 0 && int(j.Parent) < len(w.doc.Nodes) {
+			w.doc.Nodes[j.Parent].Children = appendUniqueInt(w.doc.Nodes[j.Parent].Children, int(j.Id))
+		}
+	}
+	if len(k.Joints) > 0 {
+		invBind := make([]byte, 0, len(k.Joints)*16*4)
+		jointNodes := make([]int, len(k.Joints))
+		for i := range k.Joints {
+			jointNodes[i] = int(k.Joints[i].Id)
+			for _, v := range k.Joints[i].Skin {
+				invBind = appendF32(invBind, float32(v))
+			}
+		}
+		ibm := w.addAccessor(w.addBufferView(invBind, glbArrayBufferTarget),
+			glbComponentFloat, len(k.Joints), glbTypeMat4, nil, nil)
+		w.doc.Skins = []glbSkin{{
+			Name:                "Skin",
+			InverseBindMatrices: ibm,
+			Joints:              jointNodes,
+		}}
+	}
+	w.addAnimations(k)
+}
+
 func (w *glbWriter) addAnimations(k KaijuMesh) {
 	for i := range k.Animations {
 		anim := &k.Animations[i]
@@ -490,6 +589,9 @@ func (w *glbWriter) addMaterial(k KaijuMesh, options SerializeOptions) *int {
 	if len(options.TextureURIs) > 0 {
 		textureURIs = options.TextureURIs
 	}
+	if perMesh := options.MeshTextureURIs[k.Key]; len(perMesh) > 0 {
+		textureURIs = perMesh
+	}
 	if len(textureURIs) == 0 {
 		return nil
 	}
@@ -569,28 +671,41 @@ func (w *glbWriter) alignBin() {
 }
 
 func deserializeGLB(data []byte) (KaijuMesh, error) {
+	set, err := deserializeGLBSet(data)
+	if err != nil {
+		return KaijuMesh{}, err
+	}
+	if len(set.Meshes) == 0 {
+		return KaijuMesh{}, errors.New("glb contains no meshes")
+	}
+	return set.Meshes[0], nil
+}
+
+func deserializeGLBSet(data []byte) (KaijuMeshSet, error) {
 	db := singleAssetDatabase{key: "mesh.glb", data: data}
 	res, err := meshloaders.GLTF("mesh.glb", db)
 	if err != nil {
-		return KaijuMesh{}, err
+		return KaijuMeshSet{}, err
 	}
 	meshes := LoadedResultToKaijuMesh(res)
 	if len(meshes) == 0 {
-		return KaijuMesh{}, errors.New("glb contains no meshes")
+		return KaijuMeshSet{}, errors.New("glb contains no meshes")
 	}
 	_, doc, bin, err := decodeGLB(data)
 	if err != nil {
-		return KaijuMesh{}, err
+		return KaijuMeshSet{}, err
 	}
-	if bvh, err := glbTriangleBVH(&doc, bin); err != nil {
-		return KaijuMesh{}, err
-	} else if bvh != nil {
-		meshes[0].BVH = bvh
+	if err = applyGLBExtrasToMeshes(&doc, bin, meshes); err != nil {
+		return KaijuMeshSet{}, err
 	}
-	if len(doc.Meshes) > 0 && doc.Meshes[0].Name != "" {
-		meshes[0].Name = doc.Meshes[0].Name
+	if meshes[0].BVH == nil {
+		if bvh, err := glbTriangleBVH(&doc, bin); err != nil {
+			return KaijuMeshSet{}, err
+		} else if bvh != nil {
+			meshes[0].BVH = bvh
+		}
 	}
-	return meshes[0], nil
+	return KaijuMeshSet{Meshes: meshes}, nil
 }
 
 func encodeGLB(jsonBytes, bin []byte) []byte {
@@ -665,6 +780,131 @@ func glbTriangleBVH(doc *glbDocument, bin []byte) (*graviton.TriangleBVH, error)
 		return nil, errors.New("triangle BVH bufferView exceeds BIN chunk")
 	}
 	return deserializeTriangleBVHBlob(bin[view.ByteOffset:end])
+}
+
+func glbTriangleBVHRef(ref *glbBlobRef, doc *glbDocument, bin []byte) (*graviton.TriangleBVH, error) {
+	if ref == nil || ref.BufferView == nil {
+		return nil, nil
+	}
+	if ref.Format != "kaiju.triangle_bvh.le.v1" {
+		return nil, fmt.Errorf("unsupported triangle BVH blob format %q", ref.Format)
+	}
+	idx := *ref.BufferView
+	if idx < 0 || idx >= len(doc.BufferViews) {
+		return nil, fmt.Errorf("invalid triangle BVH bufferView %d", idx)
+	}
+	view := doc.BufferViews[idx]
+	end := view.ByteOffset + view.ByteLength
+	if view.ByteOffset < 0 || view.ByteLength < 0 || end > len(bin) {
+		return nil, errors.New("triangle BVH bufferView exceeds BIN chunk")
+	}
+	return deserializeTriangleBVHBlob(bin[view.ByteOffset:end])
+}
+
+func applyGLBExtrasToMeshes(doc *glbDocument, bin []byte, meshes []KaijuMesh) error {
+	if doc.Extras == nil {
+		return nil
+	}
+	for i := range doc.Extras.Kaiju.Meshes {
+		extra := &doc.Extras.Kaiju.Meshes[i]
+		if extra.Mesh < 0 || extra.Mesh >= len(meshes) {
+			continue
+		}
+		mesh := &meshes[extra.Mesh]
+		if extra.Key != "" {
+			mesh.Key = extra.Key
+		}
+		if extra.Name != "" {
+			mesh.Name = extra.Name
+		} else if extra.Mesh < len(doc.Meshes) && doc.Meshes[extra.Mesh].Name != "" {
+			mesh.Name = doc.Meshes[extra.Mesh].Name
+		}
+		mesh.Material = extra.Material
+		if extra.Node >= 0 && extra.Node < len(doc.Nodes) {
+			mesh.Node = kaijuNodeFromGLB(doc.Nodes[extra.Node])
+		}
+		if extra.Blobs != nil && extra.Blobs.TriangleBVH != nil {
+			bvh, err := glbTriangleBVHRef(extra.Blobs.TriangleBVH, doc, bin)
+			if err != nil {
+				return err
+			}
+			mesh.BVH = bvh
+		}
+	}
+	used := make(map[string]int, len(meshes))
+	for i := range meshes {
+		if meshes[i].Key == "" {
+			meshes[i].Key = stableMeshKey(meshes[i].Name, i, used)
+		} else {
+			used[meshes[i].Key]++
+		}
+		if meshes[i].Name == "" && i < len(doc.Meshes) {
+			meshes[i].Name = doc.Meshes[i].Name
+		}
+	}
+	return nil
+}
+
+func firstAnimatedMesh(meshes []KaijuMesh) KaijuMesh {
+	for i := range meshes {
+		if len(meshes[i].Joints) > 0 || len(meshes[i].Animations) > 0 {
+			return meshes[i]
+		}
+	}
+	if len(meshes) == 0 {
+		return KaijuMesh{}
+	}
+	return meshes[0]
+}
+
+func meshNodeName(mesh KaijuMesh) string {
+	if mesh.Node.Name != "" {
+		return mesh.Node.Name
+	}
+	return mesh.Name
+}
+
+func applyNodeTransform(node *glbNode, transform KaijuMeshNode) {
+	if !matrix.Vec3Approx(transform.Position, matrix.Vec3Zero()) {
+		node.Translation = vec3JSON(transform.Position)
+	}
+	if !matrix.Vec3Approx(transform.Scale, matrix.Vec3Zero()) &&
+		!matrix.Vec3Approx(transform.Scale, matrix.Vec3One()) {
+		node.Scale = vec3JSON(transform.Scale)
+	}
+	if !matrix.Vec3Approx(transform.Rotation, matrix.Vec3Zero()) {
+		node.Rotation = quatXYZWJSON(matrix.QuaternionFromEuler(transform.Rotation))
+	}
+}
+
+func kaijuNodeFromGLB(node glbNode) KaijuMeshNode {
+	out := KaijuMeshNode{
+		Name:  node.Name,
+		Scale: matrix.Vec3One(),
+	}
+	if node.Translation != nil && len(node.Translation) >= 3 {
+		out.Position = matrix.Vec3{
+			matrix.Float(node.Translation[0]),
+			matrix.Float(node.Translation[1]),
+			matrix.Float(node.Translation[2]),
+		}
+	}
+	if node.Scale != nil && len(node.Scale) >= 3 {
+		out.Scale = matrix.Vec3{
+			matrix.Float(node.Scale[0]),
+			matrix.Float(node.Scale[1]),
+			matrix.Float(node.Scale[2]),
+		}
+	}
+	if node.Rotation != nil && len(node.Rotation) >= 4 {
+		out.Rotation = matrix.QuaternionFromXYZW([4]matrix.Float{
+			matrix.Float(node.Rotation[0]),
+			matrix.Float(node.Rotation[1]),
+			matrix.Float(node.Rotation[2]),
+			matrix.Float(node.Rotation[3]),
+		}).ToEuler()
+	}
+	return out
 }
 
 func appendPadded(data []byte, pad byte) []byte {
@@ -821,6 +1061,24 @@ func glbSceneNodes(nodes []glbNode, meshNode int) []int {
 		}
 	}
 	return appendUniqueInt(out, meshNode)
+}
+
+func glbRootNodes(nodes []glbNode) []int {
+	hasParent := make([]bool, len(nodes))
+	for i := range nodes {
+		for _, child := range nodes[i].Children {
+			if child >= 0 && child < len(hasParent) {
+				hasParent[child] = true
+			}
+		}
+	}
+	out := make([]int, 0, len(nodes))
+	for i := range nodes {
+		if !hasParent[i] {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 func ptrInt(v int) *int { return &v }

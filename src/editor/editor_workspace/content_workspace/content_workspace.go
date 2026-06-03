@@ -36,6 +36,7 @@ import (
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 const (
@@ -121,6 +122,7 @@ func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 			"rightClickContent":   w.rightClickContent,
 			"rightClickTag":       w.rightClickTag,
 			"clickClearSelection": w.clickClearSelection,
+			"toggleMeshEntry":     w.toggleMeshEntry,
 			"clickPlayAudio":      w.clickPlayAudio,
 			"changeAudioPosition": w.changeAudioPosition,
 			"clickOpenInEditor":   w.clickOpenInEditor,
@@ -327,7 +329,10 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		cc := &ccAll[i]
 		w.allowEntryVisualsClickThrough(cpys[i])
 		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
+		cpys[i].SetAttribute("data-content-id", cc.Id())
+		cpys[i].SetAttribute("data-mesh-key", "")
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
+		cpys[i].SetAttribute("data-expanded", "false")
 		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
 		w.loadEntryImage(cpys[i], cc)
@@ -337,8 +342,20 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		if err == nil {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
+		submeshes := contentWorkspaceMeshSubmeshes(cc.Config.Mesh)
+		cpys[i].SetAttribute("data-has-submeshes", fmt.Sprintf("%t", len(submeshes) > 1))
+		w.setMeshExpandVisible(cpys[i], len(submeshes) > 1)
+		last := cpys[i]
+		for _, submesh := range submeshes {
+			child := w.Doc.DuplicateElementWithoutApplyStyles(w.entryTemplate)
+			w.Doc.InsertElementAfter(child, last)
+			w.setupSubmeshEntry(child, cc, submesh)
+			child.UI.Hide()
+			last = child
+		}
 	}
 	w.Doc.ApplyStyles()
+	w.runFilter()
 	w.editor.ContentPreviewer().GeneratePreviews(ids)
 }
 
@@ -397,9 +414,53 @@ func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_datab
 func (w *ContentWorkspace) allowEntryVisualsClickThrough(e *document.Element) {
 	for i := range e.Children {
 		child := e.Children[i]
+		if child.HasClass("meshExpand") {
+			continue
+		}
 		if child.HasClass("preview") || child.HasClass("entryLabel") || child.HasClass("typeThumb") {
 			child.UIPanel.AllowClickThrough()
 		}
+	}
+}
+
+func (w *ContentWorkspace) setupSubmeshEntry(e *document.Element, cc *content_database.CachedContent, submesh content_database.MeshSubmeshConfig) {
+	w.allowEntryVisualsClickThrough(e)
+	w.Doc.SetElementIdWithoutApplyStyles(e, contentWorkspaceSubmeshElementId(cc.Id(), submesh.Key))
+	e.SetAttribute("data-content-id", cc.Id())
+	e.SetAttribute("data-mesh-key", submesh.Key)
+	e.SetAttribute("data-parent-id", cc.Id())
+	e.SetAttribute("data-type", strings.ToLower(cc.Config.Type))
+	e.SetAttribute("data-expanded", "")
+	e.SetAttribute("data-has-submeshes", "false")
+	classes := []string{"entry", "meshChild"}
+	if w.isListMode {
+		classes = append(classes, "wide")
+	}
+	w.Doc.SetElementClassesWithoutApply(e, classes...)
+	e.Children[1].InnerLabel().SetText(contentWorkspaceMeshName(submesh.Name, submesh.Key))
+	w.setMeshExpandVisible(e, false)
+	w.setSubmeshEntryIcon(e)
+}
+
+func (w *ContentWorkspace) setSubmeshEntryIcon(e *document.Element) {
+	tex, err := w.Host.TextureCache().Texture(
+		fmt.Sprintf("editor/textures/icons/%s.png", (content_database.Mesh{}).TypeName()),
+		rendering.TextureFilterLinear)
+	if err != nil {
+		return
+	}
+	e.Children[0].UI.ToPanel().SetBackground(tex)
+	e.Children[2].UI.ToPanel().SetBackground(tex)
+}
+
+func (w *ContentWorkspace) setMeshExpandVisible(e *document.Element, visible bool) {
+	if len(e.Children) <= 3 {
+		return
+	}
+	if visible {
+		e.Children[3].UI.Show()
+	} else {
+		e.Children[3].UI.Hide()
 	}
 }
 
@@ -548,7 +609,7 @@ func (w *ContentWorkspace) showRightPanel() {
 	if len(w.selectedContent) == 0 {
 		return
 	}
-	id := w.selectedContent[0].Attribute("id")
+	id := w.contentEntryId(w.selectedContent[0])
 	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
@@ -713,6 +774,11 @@ func (w *ContentWorkspace) removeContentView(id []string) {
 		if elm, ok := w.Doc.GetElementById(id[i]); ok {
 			w.Doc.RemoveElementWithoutApplyStyles(elm)
 		}
+		for _, entry := range w.Doc.GetElementsByGroup("entry") {
+			if entry.Attribute("data-parent-id") == id[i] {
+				w.Doc.RemoveElementWithoutApplyStyles(entry)
+			}
+		}
 	}
 	w.Doc.ApplyStyles()
 }
@@ -746,11 +812,17 @@ func (w *ContentWorkspace) entryMouseEnter(e *document.Element) {
 		w.hideTooltip()
 		return
 	}
-	id := e.Attribute("id")
+	id := w.contentEntryId(e)
 	cc, err := w.cache.Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
+	}
+	if key := e.Attribute("data-mesh-key"); key != "" {
+		if submesh, ok := contentWorkspaceMeshConfigSubmesh(cc.Config.Mesh, key); ok {
+			w.showTooltip(fmt.Sprintf("Name: %s\nType: Mesh\nSubmesh: %s", cc.Config.Name, submesh.Name))
+			return
+		}
 	}
 	if len(cc.Config.Tags) == 0 {
 		w.showTooltip(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
@@ -831,15 +903,19 @@ func (w *ContentWorkspace) hideTooltip() {
 
 func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.rightClickContent").End()
-	id := e.Attribute("id")
+	id := w.contentEntryId(e)
+	ref := id
+	if key := e.Attribute("data-mesh-key"); key != "" {
+		ref = kaiju_mesh.MeshRefString(id, key)
+	}
 	options := []context_menu.ContextMenuOption{
 		{
 			Label: "Copy ID to clipboard",
-			Call:  func() { w.Host.Window.CopyToClipboard(id) },
+			Call:  func() { w.Host.Window.CopyToClipboard(ref) },
 		},
 		{
 			Label: "Find references",
-			Call:  func() { w.editor.ShowReferences(id) },
+			Call:  func() { w.editor.ShowReferences(ref) },
 		},
 		{
 			Label: "Create table of contents",
@@ -903,6 +979,30 @@ func (w *ContentWorkspace) clickClearSelection(e *document.Element) {
 	w.clearSelection()
 }
 
+func (w *ContentWorkspace) toggleMeshEntry(e *document.Element) {
+	defer tracing.NewRegion("ContentWorkspace.toggleMeshEntry").End()
+	parent := e.Parent.Value()
+	if parent == nil || parent.Attribute("data-mesh-key") != "" {
+		return
+	}
+	expanded := parent.Attribute("data-expanded") == "true"
+	if expanded {
+		parent.SetAttribute("data-expanded", "false")
+		e.InnerLabel().SetText("+")
+	} else {
+		parent.SetAttribute("data-expanded", "true")
+		e.InnerLabel().SetText("-")
+	}
+	w.runFilter()
+}
+
+func (w *ContentWorkspace) contentEntryId(e *document.Element) string {
+	if id := e.Attribute("data-content-id"); id != "" {
+		return id
+	}
+	return e.Attribute("id")
+}
+
 func (w *ContentWorkspace) clickPlayAudio(*document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.clickClearSelection").End()
 	w.audio.playAudioId(w.selectedIds()[0])
@@ -949,9 +1049,9 @@ func (w *ContentWorkspace) addTagToSelected(tag string) {
 
 func (w *ContentWorkspace) selectedIds() []string {
 	defer tracing.NewRegion("ContentWorkspace.selectedId").End()
-	ids := make([]string, len(w.selectedContent))
+	ids := make([]string, 0, len(w.selectedContent))
 	for i := range w.selectedContent {
-		ids[i] = w.selectedContent[i].Attribute("id")
+		ids = klib.AppendUnique(ids, w.contentEntryId(w.selectedContent[i]))
 	}
 	return ids
 }
@@ -961,16 +1061,24 @@ func (w *ContentWorkspace) runFilter() {
 	entries := w.Doc.GetElementsByGroup("entry")
 	for i := range entries {
 		e := entries[i]
-		id := e.Attribute("id")
+		id := w.contentEntryId(e)
 		if id == "entryTemplate" {
 			continue
 		}
 		hide := ShouldHideContent(id, w.typeFiltersDisable, w.tagFiltersDisable, w.cache)
+		visible := false
 		if !hide && ShouldShowContent(w.query, id, w.typeFilters, w.tagFilters, w.cache) {
-			e.UI.Show()
-		} else {
-			e.UI.Hide()
+			if parentId := e.Attribute("data-parent-id"); parentId != "" {
+				parent, ok := w.Doc.GetElementById(parentId)
+				if ok && parent.Attribute("data-expanded") == "true" {
+					visible = true
+				}
+			} else {
+				visible = true
+			}
 		}
+		e.UI.SetVisibility(visible)
+		w.setMeshExpandVisible(e, visible && e.Attribute("data-parent-id") == "" && e.Attribute("data-has-submeshes") == "true")
 	}
 	w.contentList.UIPanel.ResetScroll()
 	w.Host.RunOnMainThread(w.Doc.Clean)
@@ -985,6 +1093,50 @@ func (w *ContentWorkspace) updateIndexForCachedContent(cc *content_database.Cach
 	return nil
 }
 
+func contentWorkspaceMeshSubmeshes(cfg *content_database.MeshConfig) []content_database.MeshSubmeshConfig {
+	if cfg == nil || len(cfg.Submeshes) <= 1 {
+		return nil
+	}
+	out := make([]content_database.MeshSubmeshConfig, 0, len(cfg.Submeshes))
+	for i := range cfg.Submeshes {
+		if !cfg.Submeshes[i].Missing {
+			out = append(out, cfg.Submeshes[i])
+		}
+	}
+	if len(out) <= 1 {
+		return nil
+	}
+	return out
+}
+
+func contentWorkspaceMeshConfigSubmesh(cfg *content_database.MeshConfig, key string) (content_database.MeshSubmeshConfig, bool) {
+	if cfg == nil {
+		return content_database.MeshSubmeshConfig{}, false
+	}
+	for i := range cfg.Submeshes {
+		if cfg.Submeshes[i].Key == key {
+			return cfg.Submeshes[i], true
+		}
+	}
+	return content_database.MeshSubmeshConfig{}, false
+}
+
+func contentWorkspaceMeshName(name, key string) string {
+	if strings.TrimSpace(name) != "" {
+		parts := strings.Split(name, "/")
+		return parts[len(parts)-1]
+	}
+	if strings.TrimSpace(key) != "" {
+		return key
+	}
+	return "Mesh"
+}
+
+func contentWorkspaceSubmeshElementId(id, key string) string {
+	replacer := strings.NewReplacer("#", "_", "=", "_", "&", "_", "?", "_", "/", "_", "\\", "_", ":", "_", " ", "_")
+	return id + "__mesh__" + replacer.Replace(key)
+}
+
 func (w *ContentWorkspace) enableListMode() {
 	w.isListMode = true
 	for _, c := range w.contentList.Children[1:] {
@@ -992,6 +1144,7 @@ func (w *ContentWorkspace) enableListMode() {
 		for _, cc := range c.Children {
 			w.Doc.SetElementClassesWithoutApply(cc, append(cc.ClassList(), "wide")...)
 		}
+		w.setMeshExpandVisible(c, c.Attribute("data-has-submeshes") == "true")
 	}
 }
 
@@ -1003,6 +1156,7 @@ func (w *ContentWorkspace) disableListMode() {
 			cc.UI.Show()
 			w.Doc.SetElementClassesWithoutApply(cc, klib.SlicesRemoveElement(cc.ClassList(), "wide")...)
 		}
+		w.setMeshExpandVisible(c, c.Attribute("data-has-submeshes") == "true")
 	}
 }
 

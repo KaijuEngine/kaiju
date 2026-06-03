@@ -1014,11 +1014,26 @@ func (dui *WorkspaceDetailsUI) setMeshInputValue(meshId string) {
 		return
 	}
 	str := meshId
-	cc, err := dui.workspace.Value().ed.Cache().Read(str)
+	ref := kaiju_mesh.ParseMeshRef(meshId)
+	cc, err := dui.workspace.Value().ed.Cache().Read(ref.Asset)
 	if err == nil {
 		str = cc.Config.Name
+		if ref.Key != "" {
+			if submesh, ok := meshConfigSubmesh(cc.Config.Mesh, ref.Key); ok {
+				str = fmt.Sprintf("%s / %s", cc.Config.Name, meshStageName(submesh.Name, submesh.Key))
+			} else {
+				str = fmt.Sprintf("%s / %s", cc.Config.Name, ref.Key)
+			}
+		}
 	}
 	dui.detailsMesh.InnerLabel().SetText(str)
+}
+
+func meshDragAccepted(cc content_database.CachedContent, key string) bool {
+	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return true
+	}
+	return key != "" || len(meshSubmeshes(cc.Config.Mesh)) == 0
 }
 
 func (dui *WorkspaceDetailsUI) setMaterialInputValue(materialId string) {
@@ -1083,7 +1098,14 @@ func (dui *WorkspaceDetailsUI) contentIdDrop(e *document.Element) {
 	if cc.Config.Type != e.Attribute("data-type") {
 		return
 	}
-	e.InnerLabel().SetText(cc.Id())
+	value := cc.Id()
+	if cc.Config.Type == (content_database.Mesh{}).TypeName() {
+		if !meshDragAccepted(cc, dd.key) {
+			return
+		}
+		value = dd.MeshRef()
+	}
+	e.InnerLabel().SetText(value)
 	dui.commonChangeData(e, false)
 }
 
@@ -1099,6 +1121,9 @@ func (dui *WorkspaceDetailsUI) contentIdDragEnter(e *document.Element) {
 		return
 	}
 	if cc.Config.Type != e.Attribute("data-type") {
+		return
+	}
+	if cc.Config.Type == (content_database.Mesh{}).TypeName() && !meshDragAccepted(cc, dd.key) {
 		return
 	}
 	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
@@ -1124,7 +1149,10 @@ func (dui *WorkspaceDetailsUI) meshIdDrop(e *document.Element) {
 	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
 		return
 	}
-	dui.changeMesh(cc.Id())
+	if !meshDragAccepted(cc, dd.key) {
+		return
+	}
+	dui.changeMesh(dd.MeshRef())
 }
 
 func (dui *WorkspaceDetailsUI) meshIdDragEnter(e *document.Element) {
@@ -1139,6 +1167,9 @@ func (dui *WorkspaceDetailsUI) meshIdDragEnter(e *document.Element) {
 		return
 	}
 	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return
+	}
+	if !meshDragAccepted(cc, dd.key) {
 		return
 	}
 	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")

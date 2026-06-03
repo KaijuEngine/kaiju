@@ -1147,7 +1147,7 @@ func (d *Document) insertElementAt(elm *Element, parent *Element, index int) {
 	if parent != nil {
 		parent.Children = slices.Insert(parent.Children, index, elm)
 		elm.Parent = weak.Make(parent)
-		parent.UI.ToPanel().AddChild(elm.UI)
+		parent.UI.ToPanel().InsertChild(elm.UI, index)
 	}
 	if !d.isElementInDocument(elm) {
 		d.appendElement(elm)
