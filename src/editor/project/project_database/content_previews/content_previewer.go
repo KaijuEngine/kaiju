@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"kaijuengine.com/editor/project/project_database/content_database"
@@ -22,6 +23,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 const (
@@ -62,12 +64,35 @@ func (p *ContentPreviewer) GeneratePreviews(ids []string) {
 	defer tracing.NewRegion("ContentPreviewer.GeneratePreviews").End()
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.pending = append(p.pending, ids...)
+	p.pending = append(p.pending, p.expandPreviewIds(ids)...)
 	if p.inProc {
 		return
 	}
 	// goroutine
 	go p.nextPreview()
+}
+
+func (p *ContentPreviewer) expandPreviewIds(ids []string) []string {
+	expanded := make([]string, 0, len(ids))
+	for _, id := range ids {
+		expanded = append(expanded, id)
+		ref := kaiju_mesh.ParseMeshRef(id)
+		if ref.Key != "" {
+			continue
+		}
+		cc, err := p.ed.Cache().Read(ref.Asset)
+		if err != nil || cc.Config.Type != (content_database.Mesh{}).TypeName() ||
+			cc.Config.Mesh == nil || len(cc.Config.Mesh.Submeshes) <= 1 {
+			continue
+		}
+		for i := range cc.Config.Mesh.Submeshes {
+			submesh := &cc.Config.Mesh.Submeshes[i]
+			if submesh.Key != "" && !submesh.Missing {
+				expanded = append(expanded, kaiju_mesh.MeshRefString(ref.Asset, submesh.Key))
+			}
+		}
+	}
+	return expanded
 }
 
 func (p *ContentPreviewer) DeletePreviewImage(id string) error {
@@ -138,9 +163,11 @@ func (p *ContentPreviewer) completeProc() {
 
 func (p *ContentPreviewer) proc(id string) {
 	defer tracing.NewRegion("ContentPreviewer.proc").End()
-	cc, err := p.ed.Cache().Read(id)
+	ref := kaiju_mesh.ParseMeshRef(id)
+	cc, err := p.ed.Cache().Read(ref.Asset)
 	if err != nil {
 		slog.Error("failed to read the cache for content", "id", id, "error", err)
+		p.completeProc()
 		return
 	}
 	if p.previewExists(id) {
@@ -170,7 +197,15 @@ func (p *ContentPreviewer) writePreviewFile(id string, data []byte) error {
 }
 
 func (p *ContentPreviewer) previewPath(id string) string {
-	return filepath.Join(project_file_system.EditorCacheContentPreviews, contentPreviewCacheVersion, id)
+	return filepath.Join(project_file_system.EditorCacheContentPreviews, contentPreviewCacheVersion, previewFileName(id))
+}
+
+func previewFileName(id string) string {
+	replacer := strings.NewReplacer(
+		"<", "_", ">", "_", ":", "_", `"`, "_", "/", "_", "\\", "_",
+		"|", "_", "?", "_", "*", "_",
+	)
+	return replacer.Replace(id)
 }
 
 func (p *ContentPreviewer) readRenderPassAfterNextRender(host *engine.Host, id string, shaderData ...rendering.DrawInstance) {

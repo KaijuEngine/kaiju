@@ -257,7 +257,12 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 func (cui *WorkspaceContentUI) contentPreviewGenerated(id string) {
 	defer tracing.NewRegion("WorkspaceContentUI.contentPreviewGenerated").End()
 	w := cui.workspace.Value()
-	elm, ok := cui.doc.GetElementById(id)
+	ref := kaiju_mesh.ParseMeshRef(id)
+	elementId := ref.Asset
+	if ref.Key != "" {
+		elementId = stageSubmeshElementId(ref.Asset, ref.Key)
+	}
+	elm, ok := cui.doc.GetElementById(elementId)
 	if !ok {
 		return
 	}

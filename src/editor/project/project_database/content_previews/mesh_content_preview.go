@@ -65,7 +65,8 @@ func (p *ContentPreviewer) renderMesh(id string) {
 
 func readMeshSet(id string, ed EditorInterface) (kaiju_mesh.KaijuMeshSet, error) {
 	defer tracing.NewRegion("content_previews.readMeshSet").End()
-	cc, err := ed.Cache().Read(id)
+	ref := kaiju_mesh.ParseMeshRef(id)
+	cc, err := ed.Cache().Read(ref.Asset)
 	if err != nil {
 		return kaiju_mesh.KaijuMeshSet{}, err
 	}
@@ -77,7 +78,18 @@ func readMeshSet(id string, ed EditorInterface) (kaiju_mesh.KaijuMeshSet, error)
 	if err != nil {
 		return kaiju_mesh.KaijuMeshSet{}, err
 	}
-	return kaiju_mesh.DeserializeSet(data)
+	set, err := kaiju_mesh.DeserializeSet(data)
+	if err != nil {
+		return kaiju_mesh.KaijuMeshSet{}, err
+	}
+	if ref.Key == "" {
+		return set, nil
+	}
+	mesh, ok := set.MeshByKey(ref.Key)
+	if !ok {
+		return kaiju_mesh.KaijuMeshSet{}, fmt.Errorf("mesh %q not found in %q", ref.Key, ref.Asset)
+	}
+	return kaiju_mesh.KaijuMeshSet{Name: set.Name, Meshes: []kaiju_mesh.KaijuMesh{mesh}}, nil
 }
 
 func adjustMeshColorAndLocation(cam cameras.Camera, km *kaiju_mesh.KaijuMesh) {

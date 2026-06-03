@@ -375,7 +375,12 @@ func (w *ContentWorkspace) focusContent(id string) {
 func (w *ContentWorkspace) contentPreviewGenerated(id string) {
 	defer tracing.NewRegion("ContentWorkspace.contentPreviewGenerated").End()
 	w.Host.RunOnMainThread(func() {
-		elm, ok := w.Doc.GetElementById(id)
+		ref := kaiju_mesh.ParseMeshRef(id)
+		elementId := ref.Asset
+		if ref.Key != "" {
+			elementId = contentWorkspaceSubmeshElementId(ref.Asset, ref.Key)
+		}
+		elm, ok := w.Doc.GetElementById(elementId)
 		if !ok {
 			return
 		}

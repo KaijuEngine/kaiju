@@ -9,6 +9,10 @@ package content_previews
 import (
 	"testing"
 
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
@@ -45,9 +49,53 @@ func TestAdjustMeshSetColorAndLocationFramesAllSubmeshesTogether(t *testing.T) {
 	}
 }
 
+func TestContentPreviewerExpandsMultiMeshParentToSubmeshPreviewRefs(t *testing.T) {
+	cache := content_database.New()
+	cache.IndexCachedContent(content_database.CachedContent{
+		Path: project_file_system.ContentPath("database/content/mesh/temple.glb").ToConfigPath().String(),
+		Config: content_database.ContentConfig{
+			Type: content_database.Mesh{}.TypeName(),
+			Mesh: &content_database.MeshConfig{Submeshes: []content_database.MeshSubmeshConfig{
+				{Key: "roof"},
+				{Key: "wall"},
+				{Key: "removed", Missing: true},
+			}},
+		},
+	})
+	previewer := ContentPreviewer{ed: previewTestEditor{cache: &cache}}
+
+	got := previewer.expandPreviewIds([]string{"temple.glb"})
+	want := []string{
+		"temple.glb",
+		kaiju_mesh.MeshRefString("temple.glb", "roof"),
+		kaiju_mesh.MeshRefString("temple.glb", "wall"),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("expanded ids = %#v, want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expanded ids = %#v, want %#v", got, want)
+		}
+	}
+}
+
 func absFloat(v matrix.Float) matrix.Float {
 	if v < 0 {
 		return -v
 	}
 	return v
 }
+
+type previewTestEditor struct {
+	cache *content_database.Cache
+}
+
+func (e previewTestEditor) Host() *engine.Host { return nil }
+func (e previewTestEditor) Events() *editor_events.EditorEvents {
+	return nil
+}
+func (e previewTestEditor) ProjectFileSystem() *project_file_system.FileSystem {
+	return nil
+}
+func (e previewTestEditor) Cache() *content_database.Cache { return e.cache }
