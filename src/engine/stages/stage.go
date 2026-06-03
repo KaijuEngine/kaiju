@@ -369,9 +369,10 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 		}
 		texs = append(texs, tex)
 	}
-	// TODO:  This should be based on the rendering.MaterialData texture count
 	if len(textureIds) == 0 {
-		slog.Warn("missing textures for mesh, using a fallback one")
+		texs = append(texs, mat.Textures...)
+	}
+	if len(texs) == 0 {
 		tex, err := host.TextureCache().Texture(assets.TextureSquare,
 			rendering.TextureFilterLinear)
 		if err != nil {

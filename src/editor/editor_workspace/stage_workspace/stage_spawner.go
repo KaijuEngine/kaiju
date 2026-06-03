@@ -525,14 +525,47 @@ func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km ka
 
 func meshSubmeshMaterial(cc *content_database.CachedContent, key string) string {
 	if cc.Config.Mesh != nil {
+		var first string
 		for i := range cc.Config.Mesh.Submeshes {
 			submesh := &cc.Config.Mesh.Submeshes[i]
+			if submesh.Missing || submesh.Material == "" {
+				continue
+			}
+			if first == "" {
+				first = submesh.Material
+			}
 			if submesh.Key == key && submesh.Material != "" {
 				return submesh.Material
 			}
 		}
+		if key == "" && first != "" {
+			return first
+		}
 	}
 	return assets.MaterialDefinitionBasic
+}
+
+func (w *StageWorkspace) meshDefaultMaterial(meshId string) (string, bool) {
+	ref := kaiju_mesh.ParseMeshRef(meshId)
+	if ref.Asset == "" {
+		return assets.MaterialDefinitionBasic, true
+	}
+	cc, err := w.ed.Cache().Read(ref.Asset)
+	if err != nil || cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return assets.MaterialDefinitionBasic, true
+	}
+	return meshSubmeshMaterial(&cc, ref.Key), true
+}
+
+func shouldAutoApplyMeshMaterial(materialId string) bool {
+	return materialId == "" || materialId == assets.MaterialDefinitionBasic
+}
+
+func cloneTextureIDs(ids []string) []string {
+	if ids == nil {
+		return nil
+	}
+	return append([]string(nil), ids...)
 }
 
 func meshStageName(name, key string) string {
@@ -554,6 +587,14 @@ func (w *StageWorkspace) setEntityMesh(e *editor_stage_manager.StageEntity, mesh
 	km, mesh, ok := w.meshById(meshId)
 	if !ok {
 		return false
+	}
+	if shouldAutoApplyMeshMaterial(e.StageData.Description.Material) {
+		if matId, ok := w.meshDefaultMaterial(meshId); ok && matId != "" {
+			e.StageData.Description.Material = matId
+			if matId != assets.MaterialDefinitionBasic {
+				e.StageData.Description.Textures = nil
+			}
+		}
 	}
 	mat, ok := w.materialForEntity(e)
 	if !ok {
@@ -657,6 +698,9 @@ func (w *StageWorkspace) materialForEntity(e *editor_stage_manager.StageEntity) 
 		}
 		texs = append(texs, tex)
 	}
+	if len(e.StageData.Description.Textures) == 0 {
+		texs = append(texs, mat.Textures...)
+	}
 	if len(texs) == 0 {
 		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 		if err != nil {
@@ -683,7 +727,7 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 		return false
 	}
 	texs := mat.Textures
-	storeTextureIds := make([]string, 0, len(texs))
+	var storeTextureIds []string
 	if textureIds != nil {
 		texs = make([]*rendering.Texture, 0, len(textureIds))
 		for _, texId := range textureIds {
@@ -694,7 +738,7 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 			}
 			texs = append(texs, tex)
 		}
-		storeTextureIds = append(storeTextureIds, textureIds...)
+		storeTextureIds = cloneTextureIDs(textureIds)
 	}
 	if len(texs) == 0 {
 		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
@@ -705,11 +749,6 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 		texs = append(texs, tex)
 	}
 	mat = mat.CreateInstance(texs)
-	if textureIds == nil {
-		for _, tex := range mat.Textures {
-			storeTextureIds = append(storeTextureIds, tex.Key)
-		}
-	}
 	if e.StageData.ShaderData != nil {
 		e.StageData.ShaderData.Destroy()
 	}

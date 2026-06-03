@@ -174,6 +174,14 @@ func TestMeshImportMultiMeshStoresOneGLBWithSubmeshConfig(t *testing.T) {
 		cc.Config.Mesh.Submeshes[0].Key == cc.Config.Mesh.Submeshes[1].Key {
 		t.Fatalf("submesh keys were not stable unique values: %#v", cc.Config.Mesh.Submeshes)
 	}
+	configMaterials := make(map[string]string, len(cc.Config.Mesh.Submeshes))
+	for i := range cc.Config.Mesh.Submeshes {
+		submesh := cc.Config.Mesh.Submeshes[i]
+		if submesh.Material == "" {
+			t.Fatalf("submesh %q did not receive a generated material id", submesh.Key)
+		}
+		configMaterials[submesh.Key] = submesh.Material
+	}
 	data, err := pfs.ReadFile(res[0].ContentPath().String())
 	if err != nil {
 		t.Fatal(err)
@@ -188,6 +196,31 @@ func TestMeshImportMultiMeshStoresOneGLBWithSubmeshConfig(t *testing.T) {
 	for i := range set.Meshes {
 		if set.Meshes[i].BVH == nil {
 			t.Fatalf("submesh %d did not contain a BVH", i)
+		}
+		if got := set.Meshes[i].Material; got != configMaterials[set.Meshes[i].Key] {
+			t.Fatalf("submesh %q GLB material = %q, want config material %q",
+				set.Meshes[i].Key, got, configMaterials[set.Meshes[i].Key])
+		}
+	}
+	doc := testReadGLBJSON(t, data)
+	extras, ok := doc["extras"].(map[string]any)
+	if !ok {
+		t.Fatalf("GLB extras missing: %#v", doc["extras"])
+	}
+	kaijuExtras, ok := extras["kaiju"].(map[string]any)
+	if !ok {
+		t.Fatalf("GLB extras.kaiju missing: %#v", extras)
+	}
+	meshExtras, ok := kaijuExtras["meshes"].([]any)
+	if !ok || len(meshExtras) != len(cc.Config.Mesh.Submeshes) {
+		t.Fatalf("GLB extras.kaiju.meshes = %#v", kaijuExtras["meshes"])
+	}
+	for i := range meshExtras {
+		extra := meshExtras[i].(map[string]any)
+		key := extra["key"].(string)
+		if got := extra["material"]; got != configMaterials[key] {
+			t.Fatalf("GLB extras material for %q = %#v, want %q",
+				key, got, configMaterials[key])
 		}
 	}
 }

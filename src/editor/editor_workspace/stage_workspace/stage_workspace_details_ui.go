@@ -1238,9 +1238,12 @@ func (dui *WorkspaceDetailsUI) changeMesh(meshId string) {
 		fromMeshId: entity.StageData.Description.Mesh,
 		toMeshId:   meshId,
 		fromMatId:  entity.StageData.Description.Material,
+		fromTexIds: cloneTextureIDs(entity.StageData.Description.Textures),
 	}
 	if h.apply(meshId) {
 		h.toMatId = entity.StageData.Description.Material
+		h.toTexIds = cloneTextureIDs(entity.StageData.Description.Textures)
+		h.toStateSet = true
 		w.ed.History().Add(h)
 	}
 }
@@ -1262,10 +1265,10 @@ func (dui *WorkspaceDetailsUI) changeMaterial(materialId string) {
 		entity:         entity,
 		fromMaterialId: entity.StageData.Description.Material,
 		toMaterialId:   materialId,
-		fromTextureIds: append([]string{}, entity.StageData.Description.Textures...),
+		fromTextureIds: cloneTextureIDs(entity.StageData.Description.Textures),
 	}
 	if h.apply(materialId, nil) {
-		h.toTextureIds = append([]string{}, entity.StageData.Description.Textures...)
+		h.toTextureIds = cloneTextureIDs(entity.StageData.Description.Textures)
 		w.ed.History().Add(h)
 	}
 }

@@ -365,9 +365,6 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 			textureURIs[data.set.Meshes[i].Key] = uris
 		}
 	}
-	if err := writeMeshSetTextureURIs(data.set, res.ContentPath().String(), fs, textureURIs); err != nil {
-		slog.Error("failed to write mesh GLB texture references", "id", res.Id, "error", err)
-	}
 	matchTexture := func(srcPath string) rendering.MaterialTextureData {
 		if depId := meshTextureDependencyId(srcPath, res, fs, cache, cc.Config.SrcPath); depId != "" {
 			return rendering.MaterialTextureData{Texture: depId, Filter: "Linear"}
@@ -387,6 +384,9 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		}
 		materials[data.set.Meshes[i].Key] = matId
 		data.set.Meshes[i].Material = matId
+	}
+	if err := writeMeshSetTextureURIs(data.set, res.ContentPath().String(), fs, textureURIs); err != nil {
+		slog.Error("failed to write mesh GLB texture and material references", "id", res.Id, "error", err)
 	}
 	cc.Config.Mesh = &MeshConfig{Submeshes: meshConfigSubmeshes(data.set, materials, nil)}
 	if err := WriteConfig(cc.Path, cc.Config, fs); err != nil {
@@ -497,7 +497,7 @@ func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *Impo
 		return "", err
 	}
 	_, err = cache.Rename(ccMat.Id(), name, fs)
-	if !errors.Is(err, CacheContentNameEqual) {
+	if err != nil && !errors.Is(err, CacheContentNameEqual) {
 		return "", err
 	}
 	return matRes[0].Id, nil
@@ -668,20 +668,99 @@ func (Mesh) PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *
 		return err
 	}
 	preserveMeshSetKeys(&data.set, cc.Config.Mesh)
+	res.Dependencies = meshLinkedTextureDependencies(res.Id, cache)
+	textureURIs := make(map[string]map[string]string, len(data.set.Meshes))
+	for i := range data.set.Meshes {
+		if i >= len(data.meshes) {
+			continue
+		}
+		uris := meshTextureURIs(data.meshes[i].Textures, res, fs, cache, cc.Config.SrcPath)
+		data.set.Meshes[i].Textures = cloneTextureMap(uris)
+		if len(uris) > 0 {
+			textureURIs[data.set.Meshes[i].Key] = uris
+		}
+	}
+	matchTexture := func(srcPath string) rendering.MaterialTextureData {
+		if depId := meshTextureDependencyId(srcPath, res, fs, cache, cc.Config.SrcPath); depId != "" {
+			return rendering.MaterialTextureData{Texture: depId, Filter: "Linear"}
+		}
+		return rendering.MaterialTextureData{}
+	}
+	materials, err := meshSetMaterials(data, cc.Config.Mesh, res, fs, cache, cc.Config.LinkedId, matchTexture)
+	if err != nil {
+		return err
+	}
+	for i := range data.set.Meshes {
+		data.set.Meshes[i].Material = materials[data.set.Meshes[i].Key]
+	}
 	data.set.EnsureBVH()
-	serialized, err := data.set.Serialize()
+	serialized, err := data.set.SerializeWithOptions(kaiju_mesh.SerializeOptions{
+		MeshTextureURIs: textureURIs,
+	})
 	if err != nil {
 		return err
 	}
 	if err := fs.WriteFile(res.ContentPath().String(), serialized, os.ModePerm); err != nil {
 		return err
 	}
-	cc.Config.Mesh = &MeshConfig{Submeshes: meshConfigSubmeshes(data.set, nil, cc.Config.Mesh)}
+	cc.Config.Mesh = &MeshConfig{Submeshes: meshConfigSubmeshes(data.set, materials, cc.Config.Mesh)}
 	if err := WriteConfig(cc.Path, cc.Config, fs); err != nil {
 		return err
 	}
 	cache.IndexCachedContent(cc)
 	return nil
+}
+
+func meshLinkedTextureDependencies(id string, cache *Cache) []ImportResult {
+	linked, err := cache.ReadLinked(id)
+	if err != nil {
+		return nil
+	}
+	out := make([]ImportResult, 0, len(linked))
+	for i := range linked {
+		if linked[i].Config.Type == (Texture{}).TypeName() {
+			out = append(out, ImportResult{Id: linked[i].Id(), Category: Texture{}})
+		}
+	}
+	return out
+}
+
+func meshSetMaterials(
+	data meshImportPostProcData,
+	old *MeshConfig,
+	res *ImportResult,
+	fs *project_file_system.FileSystem,
+	cache *Cache,
+	linkedId string,
+	matchTexture func(string) rendering.MaterialTextureData,
+) (map[string]string, error) {
+	oldByKey := make(map[string]string)
+	if old != nil {
+		for i := range old.Submeshes {
+			if old.Submeshes[i].Key != "" && old.Submeshes[i].Material != "" {
+				oldByKey[old.Submeshes[i].Key] = old.Submeshes[i].Material
+			}
+		}
+	}
+	materials := make(map[string]string, len(data.set.Meshes))
+	for i := range data.set.Meshes {
+		key := data.set.Meshes[i].Key
+		if matId := oldByKey[key]; matId != "" {
+			materials[key] = matId
+			continue
+		}
+		if i >= len(data.meshes) {
+			continue
+		}
+		mat := meshMaterialData(data.meshes[i].Textures, meshImportIsAnimated(data, i), matchTexture)
+		matName := meshImportMaterialName(data.set.Name, len(data.set.Meshes), data.set.Meshes[i].Name)
+		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId)
+		if err != nil {
+			return nil, err
+		}
+		materials[key] = matId
+	}
+	return materials, nil
 }
 
 func preserveMeshSetKeys(set *kaiju_mesh.KaijuMeshSet, old *MeshConfig) {
