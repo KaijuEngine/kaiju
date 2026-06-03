@@ -168,6 +168,12 @@ func (p *ContentPreviewer) writePreviewFile(id string, data []byte) error {
 	return pfs.WriteFile(filepath.Join(dir, id), data, os.ModePerm)
 }
 
+func (p *ContentPreviewer) readRenderPassAfterNextRender(host *engine.Host, sd rendering.DrawInstance, id string) {
+	host.RunAfterRender(func(*rendering.GPUDevice, engine.RenderFrame) {
+		p.readRenderPass(host, sd, id)
+	})
+}
+
 func (p *ContentPreviewer) readRenderPass(host *engine.Host, sd rendering.DrawInstance, id string) {
 	defer p.completeProc()
 	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(&host.Window.GpuHost)

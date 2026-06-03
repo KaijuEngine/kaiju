@@ -50,9 +50,7 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 	host.Drawings.AddDrawing(draw)
 	host.RunBeforeRender(func() {
 		mat.Shader.DelayedCreate(host.Window.GpuInstance.PrimaryDevice(), host.AssetDatabase())
-		host.RunAfterFrames(1, func() {
-			p.readRenderPass(host, sd, id)
-		})
+		p.readRenderPassAfterNextRender(host, sd, id)
 	})
 }
 
