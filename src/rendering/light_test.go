@@ -73,6 +73,13 @@ func TestLightResetFrameDirty(t *testing.T) {
 	if light.ResetFrameDirty() {
 		t.Fatalf("second ResetFrameDirty should return false")
 	}
+	light.reset = true
+	if !light.ResetFrameDirty() {
+		t.Fatalf("ResetFrameDirty should report pending light-space recalculation")
+	}
+	if light.reset {
+		t.Fatalf("ResetFrameDirty should clear pending light-space recalculation")
+	}
 }
 
 func TestLightTransformToGPU(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
@@ -166,6 +167,7 @@ func (t *TransformationManager) translateMove(pos matrix.Vec3) {
 		t.memento.to[i].position = t.memento.from[i].position.Add(delta)
 		sel[i].Transform.SetWorldPosition(t.memento.to[i].position)
 	}
+	t.updateDataBindings(sel)
 }
 
 func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
@@ -222,6 +224,7 @@ func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
 		t.memento.to[i].rotation = newRot
 		sel[i].Transform.SetWorldRotation(newRot)
 	}
+	t.updateDataBindings(sel)
 }
 
 func (t *TransformationManager) rotateEnd(rot matrix.Vec4) {
@@ -266,6 +269,7 @@ func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
 			sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 		}
 	}
+	t.updateDataBindings(sel)
 }
 
 func (t *TransformationManager) scaleEnd(scale matrix.Vec3) {
@@ -293,5 +297,18 @@ func (t *TransformationManager) setupMemento() {
 		t.memento.to[i].rotation = t.memento.from[i].rotation
 		t.memento.from[i].scale = sel[i].Transform.WorldScale()
 		t.memento.to[i].scale = t.memento.from[i].scale
+	}
+}
+
+func (t *TransformationManager) updateDataBindings(entities []*editor_stage_manager.StageEntity) {
+	view := t.view.Value()
+	if view == nil {
+		return
+	}
+	host := weak.Make(view.host)
+	for _, entity := range entities {
+		for _, db := range entity.DataBindings() {
+			data_binding_renderer.Updated(db, host, entity)
+		}
 	}
 }

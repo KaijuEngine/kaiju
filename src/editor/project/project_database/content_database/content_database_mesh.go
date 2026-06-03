@@ -418,7 +418,7 @@ func meshMaterialData(textures map[string]string, isAnimated bool, matchTexture 
 				delete(remaining, slot)
 			} else {
 				mat.Textures = append(mat.Textures, rendering.MaterialTextureData{
-					Texture: assets.TextureSquare, Filter: "Linear"})
+					Texture: pbrFallbackTexture(slot), Filter: "Linear"})
 			}
 		}
 	} else {
@@ -441,6 +441,19 @@ func meshMaterialData(textures map[string]string, isAnimated bool, matchTexture 
 		mat.Textures = append(mat.Textures, matchTexture(remaining[key]))
 	}
 	return mat
+}
+
+func pbrFallbackTexture(slot string) string {
+	switch slot {
+	case "normal":
+		return assets.TexturePBRDefaultNormal
+	case "metallicRoughness":
+		return assets.TexturePBRDefaultMetallicRough
+	case "emissive":
+		return assets.TextureBlankSquare
+	default:
+		return assets.TextureSquare
+	}
 }
 
 func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (string, error) {
