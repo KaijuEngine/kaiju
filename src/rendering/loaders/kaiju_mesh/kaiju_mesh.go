@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log/slog"
+	"runtime"
 	"slices"
 	"sync"
 
@@ -62,23 +63,45 @@ type KaijuMesh struct {
 // may find some use for it.
 func LoadedResultToKaijuMesh(res load_result.Result) []KaijuMesh {
 	defer tracing.NewRegion("kaiju_mesh.LoadedResultToKaijuMesh").End()
-	out := make([]KaijuMesh, 0, len(res.Meshes))
-	for i := range res.Meshes {
-		m := &res.Meshes[i]
-		km := KaijuMesh{
+	out := make([]KaijuMesh, len(res.Meshes))
+	build := func(meshIndex int) {
+		m := &res.Meshes[meshIndex]
+		out[meshIndex] = KaijuMesh{
 			Name:       m.MeshName,
 			Verts:      slices.Clone(m.Verts),
 			Indexes:    slices.Clone(m.Indexes),
 			Animations: make([]KaijuMeshAnimation, len(res.Animations)),
 			Joints:     make([]KaijuMeshJoint, len(res.Joints)),
 		}
-		for i := range res.Joints {
-			km.Joints[i].fromLoadResult(&res, &res.Joints[i])
+		for jointIndex := range res.Joints {
+			out[meshIndex].Joints[jointIndex].fromLoadResult(&res, &res.Joints[jointIndex])
 		}
-		for i := range res.Animations {
-			km.Animations[i].fromLoadResult(&res.Animations[i])
+		for animIndex := range res.Animations {
+			out[meshIndex].Animations[animIndex].fromLoadResult(&res.Animations[animIndex])
 		}
-		out = append(out, km)
+	}
+	workers := min(runtime.GOMAXPROCS(0), len(res.Meshes))
+	if workers <= 1 {
+		for i := range res.Meshes {
+			build(i)
+		}
+	} else {
+		jobs := make(chan int)
+		group := sync.WaitGroup{}
+		group.Add(workers)
+		for range workers {
+			go func() {
+				defer group.Done()
+				for idx := range jobs {
+					build(idx)
+				}
+			}()
+		}
+		for i := range res.Meshes {
+			jobs <- i
+		}
+		close(jobs)
+		group.Wait()
 	}
 	debug.Ensure(len(out) == len(res.Meshes))
 	return out

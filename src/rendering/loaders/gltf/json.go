@@ -154,6 +154,7 @@ type Image struct {
 
 type Accessor struct {
 	BufferView    int32         `json:"bufferView"`
+	ByteOffset    int32         `json:"byteOffset"`
 	ComponentType ComponentType `json:"componentType"`
 	Count         int32         `json:"count"`
 	Max           matrix.Vec3   `json:"max"`
@@ -165,6 +166,7 @@ type BufferView struct {
 	Buffer     int32 `json:"buffer"`
 	ByteLength int32 `json:"byteLength"`
 	ByteOffset int32 `json:"byteOffset"`
+	ByteStride int32 `json:"byteStride"`
 	Target     int32 `json:"target"`
 }
 

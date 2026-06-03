@@ -13,8 +13,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/engine/assets"
@@ -47,6 +49,58 @@ type meshImportPostProcData struct {
 	meshes       []load_result.Mesh
 	isAnimated   bool
 	textureBytes map[string][]byte
+}
+
+func serializeKaijuMeshVariants(kms []kaiju_mesh.KaijuMesh) ([][]byte, error) {
+	out := make([][]byte, len(kms))
+	if len(kms) == 0 {
+		return out, nil
+	}
+	serialize := func(index int) error {
+		data, err := kms[index].Serialize()
+		if err != nil {
+			return err
+		}
+		out[index] = data
+		return nil
+	}
+	workers := min(runtime.GOMAXPROCS(0), len(kms))
+	if workers <= 1 {
+		for i := range kms {
+			if err := serialize(i); err != nil {
+				return nil, err
+			}
+		}
+		return out, nil
+	}
+	jobs := make(chan int)
+	var firstErr error
+	errMutex := sync.Mutex{}
+	group := sync.WaitGroup{}
+	group.Add(workers)
+	for range workers {
+		go func() {
+			defer group.Done()
+			for idx := range jobs {
+				if err := serialize(idx); err != nil {
+					errMutex.Lock()
+					if firstErr == nil {
+						firstErr = err
+					}
+					errMutex.Unlock()
+				}
+			}
+		}()
+	}
+	for i := range kms {
+		jobs <- i
+	}
+	close(jobs)
+	group.Wait()
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	return out, nil
 }
 
 func EnsureMeshBVHInBackground(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
@@ -119,16 +173,16 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	}
 	baseName := fileNameNoExt(src)
 	kms := kaiju_mesh.LoadedResultToKaijuMesh(res)
+	serializedMeshes, err := serializeKaijuMeshVariants(kms)
+	if err != nil {
+		return p, err
+	}
 	postProcData := map[string]meshImportPostProcData{}
 	for i := range kms {
-		kd, err := kms[i].Serialize()
-		if err != nil {
-			return p, err
-		}
 		parts := strings.Split(kms[i].Name, "/")
 		v := ImportVariant{
 			Name: fmt.Sprintf("%s-%s", baseName, parts[len(parts)-1]),
-			Data: kd,
+			Data: serializedMeshes[i],
 		}
 		p.Variants = append(p.Variants, v)
 		if res.Meshes[i].Node == nil {
