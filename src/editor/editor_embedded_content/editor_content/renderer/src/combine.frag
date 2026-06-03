@@ -41,11 +41,12 @@ bool shouldOutlineAgainst(vec4 pos, vec4 normal, vec4 neighbor, vec4 neighborNor
 }
 
 void main() {
-	vec2 uv = gl_FragCoord.xy / screenSize;
+	vec2 gBufferSize = vec2(textureSize(textures[1], 0));
+	vec2 uv = gl_FragCoord.xy / gBufferSize;
 	vec4 pos = texture(textures[1], uv);
 	vec4 normal = texture(textures[2], uv);
-	vec2 dx = vec2(1.0 / screenSize.x, 0.0);
-	vec2 dy = vec2(0.0, 1.0 / screenSize.y);
+	vec2 dx = vec2(1.0 / gBufferSize.x, 0.0);
+	vec2 dy = vec2(0.0, 1.0 / gBufferSize.y);
 	bool outline = false;
 	vec2 offsets[16] = vec2[](
 		-dx - dy,  // top-left

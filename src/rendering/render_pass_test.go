@@ -9,6 +9,7 @@ package rendering
 import (
 	"math"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -212,5 +213,27 @@ func TestEditorPickRenderPassAsset(t *testing.T) {
 		len(pass.SubpassDescriptions[0].ColorAttachmentReferences) != 1 ||
 		len(pass.SubpassDescriptions[0].DepthStencilAttachment) != 1 {
 		t.Fatalf("unexpected subpass attachments: %+v", pass.SubpassDescriptions)
+	}
+}
+
+func TestCombineShaderSamplesGBufferByTextureSize(t *testing.T) {
+	data, err := os.ReadFile("../editor/editor_embedded_content/editor_content/renderer/src/combine.frag")
+	if err != nil {
+		t.Fatalf("failed to read combine.frag: %v", err)
+	}
+	src := string(data)
+	for _, needle := range []string{
+		"textureSize(textures[1], 0)",
+		"gl_FragCoord.xy / gBufferSize",
+		"1.0 / gBufferSize.x",
+		"1.0 / gBufferSize.y",
+	} {
+		if !strings.Contains(src, needle) {
+			t.Fatalf("combine shader should contain %q", needle)
+		}
+	}
+	if strings.Contains(src, "gl_FragCoord.xy / screenSize") ||
+		strings.Contains(src, "1.0 / screenSize") {
+		t.Fatalf("combine shader should not use screenSize for G-buffer sampling")
 	}
 }
