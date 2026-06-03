@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	sphereRadius   = 1
-	sphereSegments = 32
+	contentPreviewCacheVersion = "v2"
+	sphereRadius               = 1
+	sphereSegments             = 32
 )
 
 type ContentPreviewer struct {
@@ -71,19 +72,19 @@ func (p *ContentPreviewer) GeneratePreviews(ids []string) {
 
 func (p *ContentPreviewer) DeletePreviewImage(id string) error {
 	defer tracing.NewRegion("ContentPreviewer.DeletePreviewImage").End()
-	path := filepath.Join(project_file_system.EditorCacheContentPreviews, id)
+	path := p.previewPath(id)
 	return p.ed.ProjectFileSystem().Remove(path)
 }
 
 func (p *ContentPreviewer) LoadPreviewImage(id string) (*rendering.Texture, error) {
 	defer tracing.NewRegion("ContentPreviewer.LoadPreviewImage").End()
-	path := filepath.Join(project_file_system.EditorCacheContentPreviews, id)
+	path := p.previewPath(id)
 	data, err := p.ed.ProjectFileSystem().ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	host := p.ed.Host()
-	texKey := "preview_" + id
+	texKey := "preview_" + contentPreviewCacheVersion + "_" + id
 	const filter = rendering.TextureFilterLinear
 	tex, err := host.TextureCache().Texture(texKey, filter)
 	if tex == nil || err != nil {
@@ -105,8 +106,7 @@ func (p *ContentPreviewer) useCachedTexture(texKey string, data []byte, filter r
 
 func (p *ContentPreviewer) previewExists(id string) bool {
 	defer tracing.NewRegion("ContentPreviewer.previewExists").End()
-	path := filepath.Join(project_file_system.EditorCacheContentPreviews, id)
-	return p.ed.ProjectFileSystem().Exists(path)
+	return p.ed.ProjectFileSystem().Exists(p.previewPath(id))
 }
 
 func (p *ContentPreviewer) nextPreview() {
@@ -163,21 +163,32 @@ func (p *ContentPreviewer) proc(id string) {
 func (p *ContentPreviewer) writePreviewFile(id string, data []byte) error {
 	defer tracing.NewRegion("ContentPreviewer.writePreviewFile").End()
 	pfs := p.ed.ProjectFileSystem()
-	dir := project_file_system.EditorCacheContentPreviews
+	path := p.previewPath(id)
+	dir := filepath.Dir(path)
 	pfs.MkdirAll(dir, os.ModePerm)
-	return pfs.WriteFile(filepath.Join(dir, id), data, os.ModePerm)
+	return pfs.WriteFile(path, data, os.ModePerm)
 }
 
-func (p *ContentPreviewer) readRenderPassAfterNextRender(host *engine.Host, sd rendering.DrawInstance, id string) {
+func (p *ContentPreviewer) previewPath(id string) string {
+	return filepath.Join(project_file_system.EditorCacheContentPreviews, contentPreviewCacheVersion, id)
+}
+
+func (p *ContentPreviewer) readRenderPassAfterNextRender(host *engine.Host, id string, shaderData ...rendering.DrawInstance) {
 	host.RunAfterRender(func(*rendering.GPUDevice, engine.RenderFrame) {
-		p.readRenderPass(host, sd, id)
+		p.readRenderPass(host, id, shaderData...)
 	})
 }
 
-func (p *ContentPreviewer) readRenderPass(host *engine.Host, sd rendering.DrawInstance, id string) {
+func (p *ContentPreviewer) readRenderPass(host *engine.Host, id string, shaderData ...rendering.DrawInstance) {
 	defer p.completeProc()
+	defer func() {
+		for _, sd := range shaderData {
+			if sd != nil {
+				sd.Destroy()
+			}
+		}
+	}()
 	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(&host.Window.GpuHost)
-	sd.Destroy()
 	if err != nil {
 		slog.Error("failed to read the mesh preview image from GPU", "id", id, "error", err)
 		return
