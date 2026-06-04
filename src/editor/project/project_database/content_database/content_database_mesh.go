@@ -373,6 +373,7 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		}
 		return rendering.MaterialTextureData{}
 	}
+	materialCache := newMeshMaterialSignatureCache()
 	materials := make(map[string]string, len(data.set.Meshes))
 	for i := range data.set.Meshes {
 		if i >= len(data.meshes) {
@@ -380,7 +381,7 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 		}
 		mat := meshMaterialData(data.meshes[i].Textures, meshImportIsAnimated(data, i), matchTexture)
 		matName := meshImportMaterialName(cc.Config.Name, len(data.set.Meshes), data.set.Meshes[i].Name)
-		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId)
+		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId, materialCache)
 		if err != nil {
 			return err
 		}
@@ -396,6 +397,22 @@ func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *pr
 	}
 	cache.IndexCachedContent(cc)
 	return nil
+}
+
+func (Mesh) PreWriteImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (bool, error) {
+	defer tracing.NewRegion("Mesh.PreWriteImportProcessing").End()
+	data, ok := proc.postProcessData.(meshFastGLTFPostProcData)
+	if !ok {
+		return false, nil
+	}
+	out, err := meshFastGLTFFinalizeImport(data, res, fs, cache, linkedId)
+	if err != nil {
+		return true, err
+	}
+	if len(proc.Variants) > 0 {
+		proc.Variants[0].Data = out
+	}
+	return true, nil
 }
 
 func meshMaterialData(textures map[string]string, isAnimated bool, matchTexture func(string) rendering.MaterialTextureData) rendering.MaterialData {
@@ -458,10 +475,45 @@ func pbrFallbackTexture(slot string) string {
 	}
 }
 
-func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (string, error) {
-	// Determine if a matching material already exists
+type meshMaterialSignatureCache struct {
+	loaded      bool
+	bySignature map[string]string
+}
+
+func newMeshMaterialSignatureCache() *meshMaterialSignatureCache {
+	return &meshMaterialSignatureCache{bySignature: make(map[string]string)}
+}
+
+type meshMaterialSignature struct {
+	Shader          string
+	RenderPass      string
+	ShaderPipeline  string
+	Textures        []rendering.MaterialTextureData
+	PrepassMaterial string
+	IsLit           bool
+	ReceivesShadows bool
+	CastsShadows    bool
+}
+
+func meshMaterialSignatureKey(mat rendering.MaterialData) string {
+	data, _ := json.Marshal(meshMaterialSignature{
+		Shader:          mat.Shader,
+		RenderPass:      mat.RenderPass,
+		ShaderPipeline:  mat.ShaderPipeline,
+		Textures:        mat.Textures,
+		PrepassMaterial: mat.PrepassMaterial,
+		IsLit:           mat.IsLit,
+		ReceivesShadows: mat.ReceivesShadows,
+		CastsShadows:    mat.CastsShadows,
+	})
+	return string(data)
+}
+
+func (c *meshMaterialSignatureCache) load(fs *project_file_system.FileSystem, cache *Cache) {
+	if c == nil || c.loaded {
+		return
+	}
 	options := cache.ListByType(Material{}.TypeName())
-	// Searching reverse here as the latest additions are more likely to collide
 	for i := len(options) - 1; i >= 0; i-- {
 		d, err := fs.ReadFile(options[i].ContentPath())
 		if err != nil {
@@ -471,23 +523,22 @@ func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *Impo
 		if err = json.Unmarshal(d, &dm); err != nil {
 			continue
 		}
-		same := mat.Shader == dm.Shader &&
-			mat.RenderPass == dm.RenderPass &&
-			mat.ShaderPipeline == dm.ShaderPipeline &&
-			mat.PrepassMaterial == dm.PrepassMaterial &&
-			mat.IsLit == dm.IsLit &&
-			mat.ReceivesShadows == dm.ReceivesShadows &&
-			mat.CastsShadows == dm.CastsShadows &&
-			len(mat.Textures) == len(dm.Textures)
-		if !same {
-			continue
+		key := meshMaterialSignatureKey(dm)
+		if _, exists := c.bySignature[key]; !exists {
+			c.bySignature[key] = options[i].Id()
 		}
-		for j := 0; j < len(mat.Textures) && same; j++ {
-			same = mat.Textures[j] == dm.Textures[j]
-		}
-		if same {
-			return options[i].Id(), nil
-		}
+	}
+	c.loaded = true
+}
+
+func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string, materialCache *meshMaterialSignatureCache) (string, error) {
+	if materialCache == nil {
+		materialCache = newMeshMaterialSignatureCache()
+	}
+	signature := meshMaterialSignatureKey(mat)
+	materialCache.load(fs, cache)
+	if id := materialCache.bySignature[signature]; id != "" {
+		return id, nil
 	}
 	f, err := os.CreateTemp("", "*-kaiju-mat.material")
 	if err != nil {
@@ -515,6 +566,7 @@ func importOrFindMeshMaterial(mat rendering.MaterialData, name string, res *Impo
 	if err != nil && !errors.Is(err, CacheContentNameEqual) {
 		return "", err
 	}
+	materialCache.bySignature[signature] = matRes[0].Id
 	return matRes[0].Id, nil
 }
 
@@ -704,7 +756,8 @@ func (Mesh) PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *
 		}
 		return rendering.MaterialTextureData{}
 	}
-	materials, err := meshSetMaterials(data, cc.Config.Mesh, res, fs, cache, cc.Config.LinkedId, matchTexture)
+	materialCache := newMeshMaterialSignatureCache()
+	materials, err := meshSetMaterials(data, cc.Config.Mesh, res, fs, cache, cc.Config.LinkedId, matchTexture, materialCache)
 	if err != nil {
 		return err
 	}
@@ -751,6 +804,7 @@ func meshSetMaterials(
 	cache *Cache,
 	linkedId string,
 	matchTexture func(string) rendering.MaterialTextureData,
+	materialCache *meshMaterialSignatureCache,
 ) (map[string]string, error) {
 	oldByKey := make(map[string]string)
 	if old != nil {
@@ -772,7 +826,7 @@ func meshSetMaterials(
 		}
 		mat := meshMaterialData(data.meshes[i].Textures, meshImportIsAnimated(data, i), matchTexture)
 		matName := meshImportMaterialName(data.set.Name, len(data.set.Meshes), data.set.Meshes[i].Name)
-		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId)
+		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId, materialCache)
 		if err != nil {
 			return nil, err
 		}

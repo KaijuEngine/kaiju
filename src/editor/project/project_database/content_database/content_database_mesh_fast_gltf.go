@@ -77,7 +77,7 @@ func meshFastImportGLTF(src string) (ProcessedImport, error) {
 	if len(submeshes) == 0 {
 		return ProcessedImport{}, NoMeshesInFileError{Path: src}
 	}
-	bin, err := meshFastGLTFCompactBuffers(doc, buffers, imageBufferViews)
+	bin, err := meshFastGLTFImportBIN(src, doc, buffers, imageBufferViews, textureBytes)
 	if err != nil {
 		return ProcessedImport{}, err
 	}
@@ -339,32 +339,107 @@ func meshFastGLTFCompactBuffers(
 	skipViews map[int]bool,
 ) ([]byte, error) {
 	viewValues := meshFastArrayField(doc, "bufferViews")
-	bin := []byte{}
+	type compactView struct {
+		view   map[string]any
+		data   []byte
+		offset int
+	}
+	views := make([]compactView, len(viewValues))
+	totalLen := 0
 	for i := range viewValues {
 		view, ok := meshFastMap(viewValues[i])
 		if !ok {
 			return nil, fmt.Errorf("bufferView %d is not an object", i)
 		}
 		if skipViews[i] {
-			view["buffer"] = 0
-			view["byteOffset"] = len(bin)
-			view["byteLength"] = 0
+			views[i] = compactView{view: view, offset: totalLen}
 			continue
 		}
 		data, err := meshFastGLTFBufferViewBytes(doc, buffers, i)
 		if err != nil {
 			return nil, err
 		}
-		for len(bin)%4 != 0 {
-			bin = append(bin, 0)
-		}
+		totalLen = meshFastAlign4(totalLen)
+		views[i] = compactView{view: view, data: data, offset: totalLen}
+		totalLen += len(data)
+	}
+	bin := make([]byte, totalLen)
+	for i := range views {
+		view := views[i].view
 		view["buffer"] = 0
-		view["byteOffset"] = len(bin)
-		view["byteLength"] = len(data)
-		bin = append(bin, data...)
+		view["byteOffset"] = views[i].offset
+		view["byteLength"] = len(views[i].data)
+		if len(views[i].data) > 0 {
+			copy(bin[views[i].offset:], views[i].data)
+		}
 	}
 	doc["buffers"] = []any{map[string]any{"byteLength": len(bin)}}
 	return bin, nil
+}
+
+func meshFastGLTFImportBIN(
+	src string,
+	doc map[string]any,
+	buffers [][]byte,
+	imageBufferViews map[int]bool,
+	textureBytes map[string][]byte,
+) ([]byte, error) {
+	if meshFastGLTFCanReuseGLBBIN(src, doc, buffers, imageBufferViews, textureBytes) {
+		bufferValues := meshFastArrayField(doc, "buffers")
+		buffer, _ := meshFastMap(bufferValues[0])
+		buffer["byteLength"] = len(buffers[0])
+		delete(buffer, "uri")
+		return buffers[0], nil
+	}
+	return meshFastGLTFCompactBuffers(doc, buffers, imageBufferViews)
+}
+
+func meshFastGLTFCanReuseGLBBIN(
+	src string,
+	doc map[string]any,
+	buffers [][]byte,
+	imageBufferViews map[int]bool,
+	textureBytes map[string][]byte,
+) bool {
+	if strings.ToLower(filepath.Ext(src)) != ".glb" || len(buffers) != 1 ||
+		len(imageBufferViews) != 0 || len(textureBytes) != 0 {
+		return false
+	}
+	bufferValues := meshFastArrayField(doc, "buffers")
+	if len(bufferValues) != 1 {
+		return false
+	}
+	buffer, ok := meshFastMap(bufferValues[0])
+	if !ok {
+		return false
+	}
+	if uri, ok := meshFastStringField(buffer, "uri"); ok && uri != "" {
+		return false
+	}
+	for i, value := range meshFastArrayField(doc, "bufferViews") {
+		view, ok := meshFastMap(value)
+		if !ok {
+			return false
+		}
+		bufferIndex, _ := meshFastIntField(view, "buffer")
+		byteOffset, _ := meshFastIntField(view, "byteOffset")
+		byteLength, _ := meshFastIntField(view, "byteLength")
+		if bufferIndex != 0 || byteOffset < 0 || byteLength < 0 ||
+			byteOffset+byteLength > len(buffers[0]) {
+			return false
+		}
+		if imageBufferViews[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func meshFastAlign4(n int) int {
+	if rem := n % 4; rem != 0 {
+		return n + (4 - rem)
+	}
+	return n
 }
 
 func meshFastGLTFSubmeshes(
@@ -553,6 +628,16 @@ func meshFastGLTFNodeTransform(node map[string]any) (matrix.Vec3, matrix.Vec3, m
 	return position, rotation, scale
 }
 
+func meshFastGLTFProcessedData(
+	data meshFastGLTFPostProcData,
+	imageURIs map[int]string,
+	materials map[string]string,
+) ([]byte, error) {
+	meshFastGLTFApplyImageURIs(data.doc, imageURIs)
+	meshFastGLTFApplyKaijuExtras(data.doc, data.submeshes, materials)
+	return meshFastEncodeGLB(data.doc, data.bin)
+}
+
 func meshFastGLTFWriteProcessed(
 	data meshFastGLTFPostProcData,
 	path string,
@@ -560,25 +645,23 @@ func meshFastGLTFWriteProcessed(
 	imageURIs map[int]string,
 	materials map[string]string,
 ) error {
-	meshFastGLTFApplyImageURIs(data.doc, imageURIs)
-	meshFastGLTFApplyKaijuExtras(data.doc, data.submeshes, materials)
-	out, err := meshFastEncodeGLB(data.doc, data.bin)
+	out, err := meshFastGLTFProcessedData(data, imageURIs, materials)
 	if err != nil {
 		return err
 	}
 	return fs.WriteFile(path, out, os.ModePerm)
 }
 
-func meshFastGLTFPostImportProcessing(
+func meshFastGLTFFinalizeImport(
 	data meshFastGLTFPostProcData,
 	res *ImportResult,
 	fs *project_file_system.FileSystem,
 	cache *Cache,
 	linkedId string,
-) error {
+) ([]byte, error) {
 	cc, err := cache.Read(res.Id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	meshFastGLTFImportEmbeddedTextures(&data, res, fs, cache, linkedId)
 	textureURIs := make(map[string]map[string]string, len(data.submeshes))
@@ -594,23 +677,39 @@ func meshFastGLTFPostImportProcessing(
 		}
 		return rendering.MaterialTextureData{}
 	}
-	materials, err := meshFastGLTFMaterials(data, nil, res, fs, cache, linkedId, cc.Config.Name, matchTexture)
+	materialCache := newMeshMaterialSignatureCache()
+	materials, err := meshFastGLTFMaterials(data, nil, res, fs, cache, linkedId, cc.Config.Name, matchTexture, materialCache)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i := range data.submeshes {
 		data.submeshes[i].Material = materials[data.submeshes[i].Key]
 	}
 	imageURIs := meshFastGLTFTextureImageURIs(data, textureURIs, res, fs, cache, cc.Config.SrcPath)
-	if err := meshFastGLTFWriteProcessed(data, res.ContentPath().String(), fs, imageURIs, materials); err != nil {
-		return err
+	out, err := meshFastGLTFProcessedData(data, imageURIs, materials)
+	if err != nil {
+		return nil, err
 	}
 	cc.Config.Mesh = &MeshConfig{Submeshes: meshFastGLTFConfigSubmeshes(data.submeshes, materials, nil)}
 	if err := WriteConfig(cc.Path, cc.Config, fs); err != nil {
-		return err
+		return nil, err
 	}
 	cache.IndexCachedContent(cc)
-	return nil
+	return out, nil
+}
+
+func meshFastGLTFPostImportProcessing(
+	data meshFastGLTFPostProcData,
+	res *ImportResult,
+	fs *project_file_system.FileSystem,
+	cache *Cache,
+	linkedId string,
+) error {
+	out, err := meshFastGLTFFinalizeImport(data, res, fs, cache, linkedId)
+	if err != nil {
+		return err
+	}
+	return fs.WriteFile(res.ContentPath().String(), out, os.ModePerm)
 }
 
 func meshFastGLTFPostReimportProcessing(
@@ -641,7 +740,8 @@ func meshFastGLTFPostReimportProcessing(
 		}
 		return rendering.MaterialTextureData{}
 	}
-	materials, err := meshFastGLTFMaterials(data, cc.Config.Mesh, res, fs, cache, cc.Config.LinkedId, cc.Config.Name, matchTexture)
+	materialCache := newMeshMaterialSignatureCache()
+	materials, err := meshFastGLTFMaterials(data, cc.Config.Mesh, res, fs, cache, cc.Config.LinkedId, cc.Config.Name, matchTexture, materialCache)
 	if err != nil {
 		return err
 	}
@@ -717,6 +817,7 @@ func meshFastGLTFMaterials(
 	linkedId string,
 	assetName string,
 	matchTexture func(string) rendering.MaterialTextureData,
+	materialCache *meshMaterialSignatureCache,
 ) (map[string]string, error) {
 	oldByKey := make(map[string]string)
 	if old != nil {
@@ -735,7 +836,7 @@ func meshFastGLTFMaterials(
 		}
 		mat := meshMaterialData(data.submeshes[i].Textures, data.submeshes[i].IsAnimated, matchTexture)
 		matName := meshImportMaterialName(assetName, len(data.submeshes), data.submeshes[i].Name)
-		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId)
+		matId, err := importOrFindMeshMaterial(mat, matName, res, fs, cache, linkedId, materialCache)
 		if err != nil {
 			return nil, err
 		}

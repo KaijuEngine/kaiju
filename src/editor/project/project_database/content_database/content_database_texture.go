@@ -43,7 +43,16 @@ func (Texture) Import(src string, _ *project_file_system.FileSystem) (ProcessedI
 	var decoder func(r io.Reader) (image.Image, error) = nil
 	switch strings.ToLower(filepath.Ext(src)) {
 	case ".png":
-		decoder = png.Decode
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return ProcessedImport{}, ImageImportError{err, "open"}
+		}
+		if _, err = png.DecodeConfig(bytes.NewReader(data)); err != nil {
+			return ProcessedImport{}, ImageImportError{err, "decode"}
+		}
+		return ProcessedImport{Variants: []ImportVariant{
+			{Name: fileNameNoExt(src), Data: data},
+		}}, nil
 	case ".jpg":
 		fallthrough
 	case ".jpeg":

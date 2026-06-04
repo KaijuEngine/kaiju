@@ -7,13 +7,16 @@
 package content_database
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -227,6 +230,41 @@ func TestMeshImportMultiMeshStoresOneGLBWithSubmeshConfig(t *testing.T) {
 	}
 }
 
+func TestMeshImportPlainGLBReusesBINWithoutCompaction(t *testing.T) {
+	pfs, importDir := newEmptyMeshImportProjectFileSystem(t, "plain_glb_import")
+	gltfData, binData := multiMeshGLTFFixture(t)
+	doc := map[string]any{}
+	if err := json.Unmarshal([]byte(gltfData), &doc); err != nil {
+		t.Fatal(err)
+	}
+	unusedTail := bytes.Repeat([]byte{0x7f}, 1024)
+	binData = append(binData, unusedTail...)
+	doc["buffers"] = []any{map[string]any{"byteLength": len(binData)}}
+	glbData, err := meshFastEncodeGLB(doc, binData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalBin := testReadGLBBIN(t, glbData)
+	if err := pfs.WriteFile(filepath.Join(importDir, "plain.glb"), glbData, os.ModePerm); err != nil {
+		t.Fatalf("failed to write plain.glb: %v", err)
+	}
+	cache := New()
+	src := pfs.FullPath(filepath.Join(importDir, "plain.glb"))
+	res, err := Import(src, pfs, &cache, "")
+	if err != nil {
+		t.Fatalf("Import(plain.glb) returned error: %v", err)
+	}
+	data, err := pfs.ReadFile(res[0].ContentPath().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	importedBin := testReadGLBBIN(t, data)
+	if !bytes.Equal(importedBin, originalBin) {
+		t.Fatalf("plain GLB BIN changed during import: got %d bytes, want original %d bytes",
+			len(importedBin), len(originalBin))
+	}
+}
+
 func TestMeshImportEmbeddedGLBTextureExtractsAndCompacts(t *testing.T) {
 	pfs, importDir := newEmptyMeshImportProjectFileSystem(t, "embedded_glb_import")
 	glbData, originalBinLen := embeddedTextureGLBFixture(t)
@@ -271,6 +309,27 @@ func TestMeshImportEmbeddedGLBTextureExtractsAndCompacts(t *testing.T) {
 	}
 	if set.Meshes[0].BVH != nil {
 		t.Fatal("fast imported GLB unexpectedly contained an import-time BVH")
+	}
+}
+
+func TestTextureImportPNGPreservesValidatedBytes(t *testing.T) {
+	src := filepath.Join(meshImportFixtureDir(t), "Monkey.png")
+	original, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proc, err := (Texture{}).Import(src, nil)
+	if err != nil {
+		t.Fatalf("Texture.Import(Monkey.png) returned error: %v", err)
+	}
+	if len(proc.Variants) != 1 {
+		t.Fatalf("Texture.Import returned %d variants, want 1", len(proc.Variants))
+	}
+	if !bytes.Equal(proc.Variants[0].Data, original) {
+		t.Fatal("PNG import rewrote bytes, want validated byte-preserving fast path")
+	}
+	if _, err := png.DecodeConfig(bytes.NewReader(proc.Variants[0].Data)); err != nil {
+		t.Fatalf("imported PNG bytes failed validation: %v", err)
 	}
 }
 
@@ -698,7 +757,250 @@ func testReadGLBBIN(t *testing.T, data []byte) []byte {
 	return data[binStart : binStart+binLen]
 }
 
-func meshImportFixtureDir(t *testing.T) string {
+func BenchmarkMeshFastImportExternalTextureGLB(b *testing.B) {
+	data, texture := benchmarkGeneratedGLB(b, 8, 6000, benchmarkGLBTextureExternal)
+	dir := b.TempDir()
+	src := filepath.Join(dir, "bench.glb")
+	if err := os.WriteFile(src, data, os.ModePerm); err != nil {
+		b.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "albedo.png"), texture, os.ModePerm); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for range b.N {
+		if _, err := meshFastImportGLTF(src); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMeshFastImportEmbeddedPNGGLB(b *testing.B) {
+	data, _ := benchmarkGeneratedGLB(b, 8, 6000, benchmarkGLBTextureEmbedded)
+	src := filepath.Join(b.TempDir(), "bench.glb")
+	if err := os.WriteFile(src, data, os.ModePerm); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for range b.N {
+		if _, err := meshFastImportGLTF(src); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkMeshImportMultiSubmeshMaterialGeneration(b *testing.B) {
+	data, _ := benchmarkGeneratedGLB(b, 32, 768, benchmarkGLBTextureNone)
+	pfs, importDir := newBenchmarkMeshImportFileSystem(b)
+	cache := New()
+	b.ReportAllocs()
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		name := "multi_" + strconv.Itoa(i) + ".glb"
+		importPath := filepath.Join(importDir, name)
+		if err := pfs.WriteFile(importPath, data, os.ModePerm); err != nil {
+			b.Fatal(err)
+		}
+		if _, err := Import(pfs.FullPath(importPath), pfs, &cache, ""); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+type benchmarkGLBTextureMode int
+
+const (
+	benchmarkGLBTextureNone benchmarkGLBTextureMode = iota
+	benchmarkGLBTextureExternal
+	benchmarkGLBTextureEmbedded
+)
+
+func benchmarkGeneratedGLB(tb testing.TB, meshCount, vertexCount int, textureMode benchmarkGLBTextureMode) ([]byte, []byte) {
+	tb.Helper()
+	binData := []byte{}
+	add := func(data []byte) (offset, length int) {
+		for len(binData)%4 != 0 {
+			binData = append(binData, 0)
+		}
+		offset = len(binData)
+		binData = append(binData, data...)
+		return offset, len(data)
+	}
+	bufferViews := make([]map[string]any, 0, meshCount*3+1)
+	accessors := make([]map[string]any, 0, meshCount*3)
+	meshes := make([]map[string]any, meshCount)
+	nodes := make([]map[string]any, meshCount)
+	sceneNodes := make([]int, meshCount)
+	for meshIndex := 0; meshIndex < meshCount; meshIndex++ {
+		base := float32(meshIndex)
+		posOff, posLen := add(benchmarkVec3Bytes(vertexCount, base))
+		nmlOff, nmlLen := add(benchmarkNormalBytes(vertexCount))
+		idxOff, idxLen := add(benchmarkIndexBytes(vertexCount))
+		posAccessor := len(accessors)
+		accessors = append(accessors,
+			map[string]any{
+				"bufferView":    len(bufferViews),
+				"componentType": 5126,
+				"count":         vertexCount,
+				"type":          "VEC3",
+				"min":           []float32{base, 0, 0},
+				"max":           []float32{base + float32(vertexCount-1), 1, 1},
+			},
+			map[string]any{
+				"bufferView":    len(bufferViews) + 1,
+				"componentType": 5126,
+				"count":         vertexCount,
+				"type":          "VEC3",
+			},
+			map[string]any{
+				"bufferView":    len(bufferViews) + 2,
+				"componentType": 5125,
+				"count":         vertexCount,
+				"type":          "SCALAR",
+			},
+		)
+		bufferViews = append(bufferViews,
+			map[string]any{"buffer": 0, "byteOffset": posOff, "byteLength": posLen},
+			map[string]any{"buffer": 0, "byteOffset": nmlOff, "byteLength": nmlLen},
+			map[string]any{"buffer": 0, "byteOffset": idxOff, "byteLength": idxLen},
+		)
+		primitive := map[string]any{
+			"attributes": map[string]any{"POSITION": posAccessor, "NORMAL": posAccessor + 1},
+			"indices":    posAccessor + 2,
+			"mode":       4,
+		}
+		if textureMode != benchmarkGLBTextureNone {
+			primitive["material"] = 0
+		}
+		meshes[meshIndex] = map[string]any{
+			"name": "BenchMesh" + strconv.Itoa(meshIndex),
+			"primitives": []map[string]any{
+				primitive,
+			},
+		}
+		nodes[meshIndex] = map[string]any{
+			"name": "BenchNode" + strconv.Itoa(meshIndex),
+			"mesh": meshIndex,
+		}
+		sceneNodes[meshIndex] = meshIndex
+	}
+	doc := map[string]any{
+		"asset":       map[string]any{"version": "2.0"},
+		"buffers":     []map[string]any{{"byteLength": len(binData)}},
+		"bufferViews": bufferViews,
+		"accessors":   accessors,
+		"meshes":      meshes,
+		"nodes":       nodes,
+		"scenes":      []map[string]any{{"nodes": sceneNodes}},
+		"scene":       0,
+	}
+	texture := benchmarkPNGBytes(tb)
+	switch textureMode {
+	case benchmarkGLBTextureExternal:
+		doc["images"] = []map[string]any{{"uri": "albedo.png"}}
+		doc["textures"] = []map[string]any{{"source": 0}}
+		doc["materials"] = benchmarkGLBMaterials()
+	case benchmarkGLBTextureEmbedded:
+		for len(binData)%4 != 0 {
+			binData = append(binData, 0)
+		}
+		imageOffset := len(binData)
+		binData = append(binData, texture...)
+		bufferViews = append(bufferViews, map[string]any{
+			"buffer":     0,
+			"byteOffset": imageOffset,
+			"byteLength": len(texture),
+		})
+		doc["buffers"] = []map[string]any{{"byteLength": len(binData)}}
+		doc["bufferViews"] = bufferViews
+		doc["images"] = []map[string]any{{"bufferView": len(bufferViews) - 1, "mimeType": "image/png"}}
+		doc["textures"] = []map[string]any{{"source": 0}}
+		doc["materials"] = benchmarkGLBMaterials()
+	}
+	data, err := meshFastEncodeGLB(doc, binData)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return data, texture
+}
+
+func benchmarkGLBMaterials() []map[string]any {
+	return []map[string]any{{
+		"pbrMetallicRoughness": map[string]any{
+			"baseColorTexture": map[string]any{"index": 0},
+		},
+	}}
+}
+
+func benchmarkVec3Bytes(count int, base float32) []byte {
+	out := make([]byte, count*3*4)
+	for i := 0; i < count; i++ {
+		offset := i * 12
+		binary.LittleEndian.PutUint32(out[offset:], math.Float32bits(base+float32(i)))
+		binary.LittleEndian.PutUint32(out[offset+4:], math.Float32bits(float32(i%7)))
+		binary.LittleEndian.PutUint32(out[offset+8:], math.Float32bits(float32(i%11)))
+	}
+	return out
+}
+
+func benchmarkNormalBytes(count int) []byte {
+	out := make([]byte, count*3*4)
+	for i := 0; i < count; i++ {
+		offset := i * 12
+		binary.LittleEndian.PutUint32(out[offset+8:], math.Float32bits(1))
+	}
+	return out
+}
+
+func benchmarkIndexBytes(count int) []byte {
+	out := make([]byte, count*4)
+	for i := 0; i < count; i++ {
+		binary.LittleEndian.PutUint32(out[i*4:], uint32(i))
+	}
+	return out
+}
+
+func benchmarkPNGBytes(tb testing.TB) []byte {
+	tb.Helper()
+	data, err := os.ReadFile(filepath.Join(meshImportFixtureDir(tb), "Monkey.png"))
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return data
+}
+
+func newBenchmarkMeshImportFileSystem(tb testing.TB) (*project_file_system.FileSystem, string) {
+	tb.Helper()
+	pfs, err := project_file_system.New(tb.TempDir())
+	if err != nil {
+		tb.Fatalf("failed to create benchmark project filesystem: %v", err)
+	}
+	tb.Cleanup(func() { pfs.Close() })
+	for _, dir := range []string{
+		filepath.Join(project_file_system.ContentFolder, project_file_system.ContentMeshFolder),
+		filepath.Join(project_file_system.ContentFolder, project_file_system.ContentTextureFolder),
+		filepath.Join(project_file_system.ContentFolder, project_file_system.ContentMaterialFolder),
+		filepath.Join(project_file_system.ContentConfigFolder, project_file_system.ContentMeshFolder),
+		filepath.Join(project_file_system.ContentConfigFolder, project_file_system.ContentTextureFolder),
+		filepath.Join(project_file_system.ContentConfigFolder, project_file_system.ContentMaterialFolder),
+	} {
+		if err = pfs.MkdirAll(dir, os.ModePerm); err != nil {
+			tb.Fatalf("failed to create benchmark project database folder %q: %v", dir, err)
+		}
+	}
+	const importDir = "benchmark_mesh_import"
+	if err = pfs.Mkdir(importDir, os.ModePerm); err != nil {
+		tb.Fatalf("failed to create benchmark import folder: %v", err)
+	}
+	return &pfs, importDir
+}
+
+func meshImportFixtureDir(t testing.TB) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
