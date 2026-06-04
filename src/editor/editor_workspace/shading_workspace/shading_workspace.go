@@ -62,7 +62,7 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		w.root.UIPanel.AllowClickThrough()
 	}
 	w.graph.Initialize(ed.Host())
-	w.graph.CreateNode(shaderGraphNodeSpec{
+	source := w.graph.CreateNode(shaderGraphNodeSpec{
 		Name:        "Test Node",
 		Description: "Temporary shader graph node used to verify layout, clipping, and dragging.",
 		Inputs: []shaderGraphPortSpec{
@@ -73,7 +73,19 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		Outputs: []shaderGraphPortSpec{
 			{Name: "Material", Type: "surface"},
 		},
-	}, matrix.NewVec2(48, 48))
+	}, matrix.NewVec2(42, 56))
+	output := w.graph.CreateNode(shaderGraphNodeSpec{
+		Name:        "Material Output",
+		Description: "Temporary output node used to verify connected shader graph sockets.",
+		Inputs: []shaderGraphPortSpec{
+			{Name: "Surface", Type: "surface"},
+			{Name: "Volume", Type: "volume"},
+			{Name: "Displacement", Type: "vec3"},
+		},
+	}, matrix.NewVec2(350, 150))
+	if source != nil && output != nil {
+		w.graph.CreateConnection(source.Output(0), output.Input(0))
+	}
 	return nil
 }
 

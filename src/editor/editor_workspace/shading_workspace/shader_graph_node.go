@@ -27,20 +27,25 @@ const (
 var (
 	shaderGraphNodeAccentColor = matrix.NewColor(0.4078, 0.1647, 0.1765, 1) // #682A2D from default.css
 	shaderGraphNodeBodyColor   = matrix.NewColor(0.12, 0.13, 0.15, 1)
+	shaderGraphSurfaceColor    = matrix.NewColor(0.39, 0.82, 0.43, 1.0)
 )
 
 type shaderGraphNode struct {
+	graph       *shaderGraph
 	host        *engine.Host
 	root        *ui.Panel
 	title       *ui.Label
 	description *ui.Label
+	inputs      []*shaderGraphPort
+	outputs     []*shaderGraphPort
 	position    matrix.Vec2
 	dragging    bool
 	dragMouse   matrix.Vec2
 	dragOrigin  matrix.Vec2
 }
 
-func (n *shaderGraphNode) Initialize(host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, spec shaderGraphNodeSpec, position matrix.Vec2) {
+func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, spec shaderGraphNodeSpec, position matrix.Vec2) {
+	n.graph = graph
 	n.host = host
 	n.position = position
 	n.root = uiMan.Add().ToPanel()
@@ -67,6 +72,20 @@ func (n *shaderGraphNode) Initialize(host *engine.Host, uiMan *ui.Manager, paren
 	n.createHeader(uiMan, spec.Name)
 	n.createDescription(uiMan, spec.Description)
 	n.createPorts(uiMan, spec.Inputs, spec.Outputs)
+}
+
+func (n *shaderGraphNode) Input(index int) *shaderGraphPort {
+	if index < 0 || index >= len(n.inputs) {
+		return nil
+	}
+	return n.inputs[index]
+}
+
+func (n *shaderGraphNode) Output(index int) *shaderGraphPort {
+	if index < 0 || index >= len(n.outputs) {
+		return nil
+	}
+	return n.outputs[index]
 }
 
 func (n *shaderGraphNode) Update() {
@@ -147,15 +166,15 @@ func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, inputs, outputs []shade
 	for i := range rowCount {
 		y := startY + float32(i)*shaderGraphNodePortHeight
 		if i < len(inputs) {
-			n.createPort(uiMan, inputs[i], false, y)
+			n.inputs = append(n.inputs, n.createPort(uiMan, inputs[i], false, i, y))
 		}
 		if i < len(outputs) {
-			n.createPort(uiMan, outputs[i], true, y)
+			n.outputs = append(n.outputs, n.createPort(uiMan, outputs[i], true, i, y))
 		}
 	}
 }
 
-func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec, output bool, y float32) {
+func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec, output bool, index int, y float32) *shaderGraphPort {
 	const dotSize = float32(8)
 	dotX := shaderGraphNodePadding
 	labelX := shaderGraphNodePadding + dotSize + 6
@@ -189,6 +208,19 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	label.Base().Layout().Scale(shaderGraphNodeWidth*0.5-shaderGraphNodePadding*2-dotSize, shaderGraphNodePortHeight)
 	label.Base().Layout().SetOffset(labelX, y)
 	n.root.AddChild(label.Base())
+
+	graphPort := &shaderGraphPort{
+		graph:       n.graph,
+		node:        n,
+		spec:        port,
+		output:      output,
+		index:       index,
+		dot:         dot,
+		label:       label,
+		localAnchor: matrix.NewVec2(matrix.Float(dotX+dotSize*0.5), matrix.Float(y+8+dotSize*0.5)),
+	}
+	graphPort.bindEvents()
+	return graphPort
 }
 
 func shaderGraphNodeHeight(spec shaderGraphNodeSpec) float32 {
@@ -211,6 +243,8 @@ func shaderGraphPortColor(portType string, output bool) matrix.Color {
 		return matrix.NewColor(0.42, 0.76, 0.47, 1)
 	case "color":
 		return matrix.NewColor(0.91, 0.58, 0.30, 1)
+	case "surface", "volume":
+		return shaderGraphSurfaceColor
 	default:
 		if output {
 			return matrix.NewColor(0.76, 0.58, 0.92, 1)
