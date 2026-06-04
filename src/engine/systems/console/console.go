@@ -12,6 +12,7 @@ import (
 
 	"kaijuengine.com/debug"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
@@ -75,6 +76,8 @@ type Console struct {
 	isActive bool
 	input    *ui.Input
 	data     map[string]ConsoleData
+	OnOpen   events.Event
+	OnClose  events.Event
 }
 
 func For(host *engine.Host) *Console {
@@ -134,6 +137,7 @@ func (c *Console) show() {
 	}
 	c.isActive = true
 	c.input.Focus()
+	c.OnOpen.Execute()
 }
 
 func (c *Console) hide() {
@@ -142,6 +146,7 @@ func (c *Console) hide() {
 		c.doc.Elements[i].UI.Entity().Deactivate()
 	}
 	c.isActive = false
+	c.OnClose.Execute()
 }
 
 func (c *Console) IsActive() bool {

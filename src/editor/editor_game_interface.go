@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/console"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -79,4 +80,6 @@ func (EditorGame) Launch(host *engine.Host) {
 		// that owns the resolution flow and calls onResolved itself.
 		ed.validateCompiledPlugins(ed.newProjectOverlay)
 	})
+	console.For(host).OnOpen.Add(func() { ed.BlurInterface() })
+	console.For(host).OnClose.Add(func() { ed.FocusInterface() })
 }

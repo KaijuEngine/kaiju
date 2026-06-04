@@ -83,7 +83,7 @@ type Editor struct {
 	updateId         engine.UpdateId
 	webAPIServer     *webapi.Server[*Editor]
 	actions          *editor_action.Service
-	blurred          bool
+	blurred          int
 	actionPaletteKey struct {
 		pending bool
 		moved   bool
@@ -127,7 +127,8 @@ func (ed *Editor) ContentPreviewer() *content_previews.ContentPreviewer {
 // includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) FocusInterface() {
 	defer tracing.NewRegion("Editor.FocusInterface").End()
-	if !ed.blurred {
+	ed.blurred = max(ed.blurred-1, 0)
+	if ed.blurred > 0 {
 		return
 	}
 	ed.globalInterfaces.menuBar.Focus()
@@ -135,7 +136,6 @@ func (ed *Editor) FocusInterface() {
 	if ed.currentWorkspace != nil {
 		ed.currentWorkspace.Focus()
 	}
-	ed.blurred = false
 }
 
 // FocusInterface is responsible for disabling the input on the various
@@ -143,7 +143,8 @@ func (ed *Editor) FocusInterface() {
 // includes the menu bar, status bar, and whichever workspace is active.
 func (ed *Editor) BlurInterface() {
 	defer tracing.NewRegion("Editor.BlurInterface").End()
-	if ed.blurred {
+	ed.blurred++
+	if ed.blurred > 1 {
 		return
 	}
 	ed.globalInterfaces.menuBar.Blur()
@@ -151,7 +152,6 @@ func (ed *Editor) BlurInterface() {
 	if ed.currentWorkspace != nil {
 		ed.currentWorkspace.Blur()
 	}
-	ed.blurred = true
 }
 
 func (ed *Editor) IsInputFocused() bool {
@@ -467,7 +467,7 @@ func sliceEqual(a, b []string) bool {
 
 func (ed *Editor) update(deltaTime float64) {
 	ed.updatePowerState(deltaTime)
-	if ed.blurred {
+	if ed.blurred > 0 {
 		return
 	}
 	if context_menu.IsOpen() {
