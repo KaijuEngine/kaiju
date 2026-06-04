@@ -146,16 +146,9 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	var res load_result.Result
 	switch ext {
 	case ".gltf":
-		fallthrough
+		return meshFastImportGLTF(src)
 	case ".glb":
-		adb, err := assets.NewFileDatabase(filepath.Dir(src))
-		if err != nil {
-			return p, err
-		}
-		defer adb.Close()
-		if res, err = loaders.GLTF(filepath.Base(src), adb); err != nil {
-			return p, err
-		}
+		return meshFastImportGLTF(src)
 	case ".obj":
 		adb, err := assets.NewFileDatabase(filepath.Dir(src))
 		if err != nil {
@@ -264,6 +257,12 @@ func (c Mesh) Reimport(id string, cache *Cache, fs *project_file_system.FileSyst
 	}
 	data, ok := proc.postProcessData.(meshImportPostProcData)
 	if !ok {
+		if fastData, fastOK := proc.postProcessData.(meshFastGLTFPostProcData); fastOK && len(proc.Variants) > 0 {
+			return ProcessedImport{
+				Variants:        []ImportVariant{proc.Variants[0]},
+				postProcessData: fastData,
+			}, nil
+		}
 		return ProcessedImport{}, ReimportMeshMissingError{
 			Path: path,
 			Name: cc.Config.SrcName,
@@ -307,6 +306,9 @@ func legacySplitMeshVariantName(baseName, meshName string) string {
 
 func (Mesh) PostImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) error {
 	defer tracing.NewRegion("Mesh.PostImportProcessing").End()
+	if data, ok := proc.postProcessData.(meshFastGLTFPostProcData); ok {
+		return meshFastGLTFPostImportProcessing(data, res, fs, cache, linkedId)
+	}
 	data := proc.postProcessData.(meshImportPostProcData)
 	cc, err := cache.Read(res.Id)
 	if err != nil {
@@ -672,6 +674,9 @@ func meshEmbeddedTextureExtension(data []byte) string {
 
 func (Mesh) PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache) error {
 	defer tracing.NewRegion("Mesh.PostReimportProcessing").End()
+	if data, ok := proc.postProcessData.(meshFastGLTFPostProcData); ok {
+		return meshFastGLTFPostReimportProcessing(data, res, fs, cache)
+	}
 	data, ok := proc.postProcessData.(meshImportPostProcData)
 	if !ok || len(proc.Variants) == 0 {
 		return nil

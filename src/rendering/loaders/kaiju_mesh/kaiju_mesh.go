@@ -256,9 +256,13 @@ func meshKeysForResult(res load_result.Result) []string {
 		if name == "" {
 			name = res.Meshes[i].MeshName
 		}
-		out[i] = stableMeshKey(name, i, used)
+		out[i] = StableMeshKey(name, i, used)
 	}
 	return out
+}
+
+func StableMeshKey(name string, index int, used map[string]int) string {
+	return stableMeshKey(name, index, used)
 }
 
 func stableMeshKey(name string, index int, used map[string]int) string {
