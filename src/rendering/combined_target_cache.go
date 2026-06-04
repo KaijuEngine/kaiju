@@ -108,6 +108,7 @@ func (e *combinedTargetDrawEntry) build(device *GPUDevice, specs []combinedTarge
 			Mesh:       mesh,
 			ShaderData: sd,
 			Sort:       specs[i].sort,
+			Layer:      RenderLayerUI,
 			ViewCuller: culler,
 		})
 	}
