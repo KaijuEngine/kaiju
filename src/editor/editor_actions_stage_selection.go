@@ -16,11 +16,12 @@ import (
 )
 
 const (
-	ActionStageSelectAll       editor_action.ActionID = "stage.selectAll"
-	ActionStageClearSelection  editor_action.ActionID = "stage.clearSelection"
-	ActionStageSelectByID      editor_action.ActionID = "stage.selectById"
-	ActionStageDeleteSelection editor_action.ActionID = "stage.deleteSelection"
-	ActionStageDuplicate       editor_action.ActionID = "stage.duplicateSelection"
+	ActionStageSelectAll        editor_action.ActionID = "stage.selectAll"
+	ActionStageClearSelection   editor_action.ActionID = "stage.clearSelection"
+	ActionStageSelectByID       editor_action.ActionID = "stage.selectById"
+	ActionStageDeleteSelection  editor_action.ActionID = "stage.deleteSelection"
+	ActionStageDuplicate        editor_action.ActionID = "stage.duplicateSelection"
+	ActionStageRemoveFromParent editor_action.ActionID = "stage.removeFromParent"
 )
 
 type selectByIDActionArgs struct {
@@ -95,6 +96,16 @@ func registerStageSelectionActions(ed *Editor, mustRegister editorActionRegistra
 		Visible:           true,
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionDuplicateSelection, ed.stageSelectionCanRun)
+	mustRegister(editor_action.Definition{
+		ID:                ActionStageRemoveFromParent,
+		Label:             "Remove from parent",
+		Description:       "Moves the selected stage entity to the root of the hierarchy.",
+		Category:          "Stage",
+		Tags:              []string{"actor", "entity", "selection", "hierarchy", "parent", "root", "remove"},
+		UndoPolicy:        editor_action.UndoPolicyManaged,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionRemoveFromParent, ed.stageSingleSelectionWithParentCanRun)
 }
 
 func (ed *Editor) actionSelectAll(editor_action.Context, editor_action.Request) editor_action.Result {
@@ -138,4 +149,12 @@ func (ed *Editor) actionDeleteSelection(editor_action.Context, editor_action.Req
 func (ed *Editor) actionDuplicateSelection(editor_action.Context, editor_action.Request) editor_action.Result {
 	ed.stageView.DuplicateSelected(&ed.project)
 	return stageSelectionResult("selection duplicated", ed.stageView.Manager().Selection())
+}
+
+func (ed *Editor) actionRemoveFromParent(editor_action.Context, editor_action.Request) editor_action.Result {
+	entity, ok := ed.StageWorkspace().RemoveSelectedEntityFromParent()
+	if !ok {
+		return editor_action.Failure("selected entity was not removed from parent")
+	}
+	return stageResult("selected entity removed from parent", entity, ed.stageView.Manager().Selection())
 }

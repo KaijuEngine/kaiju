@@ -168,10 +168,7 @@ func (hui *WorkspaceHierarchyUI) deleteContextEntity(entity *editor_stage_manage
 
 func (hui *WorkspaceHierarchyUI) removeEntityFromParent(entity *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.removeEntityFromParent").End()
-	if entity == nil || entity.IsDeleted() || entity.IsLocked() || entity.Parent == nil {
-		return
-	}
-	hui.workspace.Value().stageView.Manager().SetEntityParent(entity, nil)
+	hui.workspace.Value().RemoveEntityFromParent(entity)
 }
 
 func (hui *WorkspaceHierarchyUI) alignEntityWithView(entity *editor_stage_manager.StageEntity) {

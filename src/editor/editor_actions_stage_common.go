@@ -39,6 +39,23 @@ func (ed *Editor) stageSingleSelectionCanRun(ctx editor_action.Context, req edit
 	return editor_action.Success("")
 }
 
+func (ed *Editor) stageSingleSelectionWithParentCanRun(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
+	if can := ed.stageSingleSelectionCanRun(ctx, req); !can.OK {
+		return can
+	}
+	entity := ed.stageView.Manager().Selection()[0]
+	if entity == nil || entity.IsDeleted() {
+		return editor_action.Failure("selected entity is not available")
+	}
+	if entity.IsLocked() {
+		return editor_action.Failure("selected entity is locked")
+	}
+	if entity.Parent == nil {
+		return editor_action.Failure("selected entity has no parent")
+	}
+	return editor_action.Success("")
+}
+
 func (ed *Editor) stageTransformToolCanRun(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
 	if can := ed.stageSelectionCanRun(ctx, req); !can.OK {
 		return can
