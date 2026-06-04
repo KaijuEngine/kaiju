@@ -1071,6 +1071,18 @@ func (textarea *TextArea) delete(kb *hid.Keyboard) {
 	data.hasPreferredCursorX = false
 }
 
+// ApplyColorRange colors a [start,end) rune range of the text area's content in
+// place (no glyph re-mesh), the same mechanism Label uses. SetText clears color ranges, 
+// so re-apply after the text changes.
+func (textarea *TextArea) ApplyColorRange(start, end int, fg, bg matrix.Color) {
+	textarea.Data().label.ColorRange(start, end, fg, bg)
+}
+
+// ClearColorRanges removes all applied color ranges.
+func (textarea *TextArea) ClearColorRanges() {
+	textarea.Data().label.ClearColorRanges()
+}
+
 func (textarea *TextArea) SetFontFace(face rendering.FontFace) {
 	data := textarea.Data()
 	data.label.SetFontFace(face)

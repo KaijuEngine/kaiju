@@ -59,6 +59,7 @@ type Window struct {
 	cursorChangeCount        int
 	cachedScreenSizeWidthMM  int
 	cacheScreenSizeHeightMM  int
+	dpmmCache                atomic.Uint64 // cached DotsPerMillimeter (float bits); 0 = recompute
 	windowSync               chan struct{}
 	titleBarMode             TitleBarMode
 	syncRequest              bool
@@ -258,8 +259,20 @@ func (w *Window) SwapBuffersWithContainer(container rendering.RenderingContainer
 	return false
 }
 
+// DotsPerMillimeter returns the window's DPI scaled to dots/mm. The underlying
+// platform query is a cgo call (e.g. cocoa_get_backing_scale_factor on macOS)
+// and was being invoked for every CSS length resolution during layout, which
+// dominated CPU. The value only changes on resize / display change, so it is
+// cached here and invalidated by the resize/move handlers. Cache is lock-free
 func (w *Window) DotsPerMillimeter() float64 {
-	return w.dotsPerMillimeter()
+	if bits := w.dpmmCache.Load(); bits != 0 {
+		return math.Float64frombits(bits)
+	}
+	v := w.dotsPerMillimeter()
+	if v > 0 {
+		w.dpmmCache.Store(math.Float64bits(v))
+	}
+	return v
 }
 
 // NOTE: currently only implemented on windows
@@ -505,6 +518,7 @@ func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 	w.right = int(evt.right)
 	w.bottom = int(evt.bottom)
 	w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM = 0, 0
+	w.dpmmCache.Store(0)
 }
 
 func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
@@ -517,6 +531,7 @@ func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
 	w.right = w.x + ww
 	w.bottom = w.y + wh
 	w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM = 0, 0
+	w.dpmmCache.Store(0)
 	w.invalidateMonitorCache()
 	w.OnMove.Execute()
 }

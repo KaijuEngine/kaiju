@@ -8,8 +8,16 @@ package ui
 
 import (
 	"log/slog"
+	"os"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"sync/atomic"
+	"time"
 	"weak"
 
+	"kaijuengine.com/build"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/pooling"
 	"kaijuengine.com/engine/systems/events"
@@ -19,6 +27,71 @@ import (
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
 )
+
+// uiDiagEnabled gates the temporary layout-convergence diagnostics. Enable with
+// KAIJU_UI_DIAG=1 to log slow / non-converging UI.Clean passes and the elements
+// that stay dirty. TEMP: remove once the layout perf issue is resolved.
+var uiDiagEnabled = os.Getenv("KAIJU_UI_DIAG") != "" && build.Debug
+var uiDiagCount atomic.Int64
+
+// diagCapturing/diagDirtyCounts capture WHICH call site re-dirties each element
+// during the one instrumented settle-pass in uiCleanDiag. Single-root use only
+// (the gallery has one UI root) so the plain map needs no synchronization.
+var diagCapturing atomic.Bool
+var diagDirtyCounts map[string]int
+
+// diagDirtySource walks the stack past the dirty plumbing (SetDirty/
+// layoutChanged/setDirtyInternal) to the real setter that requested the dirty,
+// returning "shortFunc:line". TEMP diagnostic (uiDiagEnabled).
+func diagDirtySource() string {
+	var pcs [16]uintptr
+	n := runtime.Callers(3, pcs[:])
+	frames := runtime.CallersFrames(pcs[:n])
+	for {
+		f, more := frames.Next()
+		nm := f.Function
+		if strings.Contains(nm, "layoutChanged") || strings.HasSuffix(nm, ".SetDirty") ||
+			strings.Contains(nm, "setDirtyInternal") || strings.Contains(nm, "diagDirtySource") {
+			if !more {
+				break
+			}
+			continue
+		}
+		if idx := strings.LastIndexByte(nm, '/'); idx >= 0 {
+			nm = nm[idx+1:]
+		}
+		return nm + ":" + strconv.Itoa(f.Line)
+	}
+	return "?"
+}
+
+func diagRecord(ui *UI, dirtyType DirtyType) {
+	if diagDirtyCounts == nil {
+		return
+	}
+	diagDirtyCounts[diagAncestry(ui)+" elm="+strconv.Itoa(int(ui.elmType))+
+		" dirty="+strconv.Itoa(dirtyType)+" <- "+diagDirtySource()]++
+}
+
+// diagAncestry returns the chain of up to 6 ancestor entity names (· for an
+// unnamed entity), nearest first, to locate otherwise-unnamed elements in the
+// tree. TEMP diagnostic (uiDiagEnabled).
+func diagAncestry(t *UI) string {
+	var b strings.Builder
+	e := &t.entity
+	for i := 0; i < 6 && e != nil; i++ {
+		if i > 0 {
+			b.WriteByte('<')
+		}
+		if nm := e.Name(); nm != "" {
+			b.WriteString(nm)
+		} else {
+			b.WriteByte('*') // unnamed entity
+		}
+		e = e.Parent
+	}
+	return b.String()
+}
 
 type DirtyType = int
 type ElementType = uint8
@@ -314,6 +387,9 @@ func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
 
 func (ui *UI) SetDirty(dirtyType DirtyType) {
 	defer tracing.NewRegion("UI.SetDirty").End()
+	if uiDiagEnabled && diagCapturing.Load() {
+		diagRecord(ui, dirtyType)
+	}
 	ui.setDirtyInternal(dirtyType)
 }
 
@@ -337,6 +413,10 @@ func (ui *UI) Clean() {
 	if ui.flags.dontClean() {
 		return
 	}
+	var diagStart time.Time
+	if uiDiagEnabled {
+		diagStart = time.Now()
+	}
 	root := ui.rootUI()
 	tree := []*UI{root}
 	var createTree func(target *engine.Entity)
@@ -352,18 +432,69 @@ func (ui *UI) Clean() {
 	createTree(root.Entity())
 	stabilized := false
 	maxIterations := 100
+	iterations := 0
+	// Convergence guard. Most layouts settle in 1-4 iterations. A few flex
+	// subtrees never fully settle: they oscillate by a tiny amount forever
+	// (the flex main-axis fit-content interaction plus the world<->local matrix
+	// round-trip accumulating sub-pixel error across deep nesting). Without a
+	// guard that burns all 100 iterations every frame. The rendered result is
+	// already pixel-accurate, so after a minimum number of passes we stop once
+	// the layout is only jittering below settleEpsilon, or once it is clearly
+	// oscillating (the largest per-pass size change has stopped decreasing)
+	// rather than converging.
+	const settleEpsilon = 1.0
+	const minGuardIterations = 10 // 10% of maxIterations
+	prevMaxDelta := float32(-1)
+	stalls := 0
 	for !stabilized && maxIterations > 0 {
 		stabilized = true
+		maxDelta := float32(0)
 		for i := range tree {
 			if !tree[i].IsActive() {
 				continue
 			}
+			before := tree[i].Layout().PixelSize()
 			tree[i].cleanDirty()
 			tree[i].Layout().update()
 			tree[i].postLayoutUpdate()
+			after := tree[i].Layout().PixelSize()
+			if d := after.X() - before.X(); d > maxDelta {
+				maxDelta = d
+			} else if -d > maxDelta {
+				maxDelta = -d
+			}
+			if d := after.Y() - before.Y(); d > maxDelta {
+				maxDelta = d
+			} else if -d > maxDelta {
+				maxDelta = -d
+			}
 			stabilized = stabilized && tree[i].dirty() == DirtyTypeNone
 		}
 		maxIterations--
+		iterations++
+		if stabilized {
+			break
+		}
+		if iterations >= minGuardIterations {
+			if maxDelta < settleEpsilon {
+				break // only sub-pixel jitter remains; accept it
+			}
+			if prevMaxDelta >= 0 && maxDelta >= prevMaxDelta*0.95 {
+				// Not shrinking pass-over-pass -> oscillating, not converging.
+				stalls++
+				if stalls >= 2 {
+					break
+				}
+			} else {
+				stalls = 0
+			}
+		}
+		prevMaxDelta = maxDelta
+	}
+	if uiDiagEnabled {
+		if elapsed := time.Since(diagStart); !stabilized || elapsed > 30*time.Millisecond {
+			uiCleanDiag(root, tree, iterations, elapsed, stabilized)
+		}
 	}
 	for i := range tree {
 		if !tree[i].IsActive() {
@@ -372,6 +503,84 @@ func (ui *UI) Clean() {
 		tree[i].GenerateScissor()
 		tree[i].render()
 	}
+}
+
+// uiCleanDiag logs why a Clean() pass was slow or failed to converge, naming the
+// elements still dirty after the iteration cap so the oscillating subtree can be
+// identified (dirty type, own size, parent size). TEMP diagnostic (uiDiagEnabled).
+func uiCleanDiag(root *UI, tree []*UI, iterations int, elapsed time.Duration, stabilized bool) {
+	n := uiDiagCount.Add(1)
+	if n > 3 && n%60 != 0 {
+		return // a few immediate samples, then throttle to limit log spam
+	}
+	// layoutMode: 0=Flow(block), 1=Grid, 2=Flex; -1=label/none.
+	layoutModeOf := func(u *UI) int {
+		if u == nil || u.IsType(ElementTypeLabel) {
+			return -1
+		}
+		return u.ToPanel().PanelData().layoutMode
+	}
+	parentOf := func(t *UI) (string, int) {
+		if p := t.entity.Parent; p != nil {
+			pname := p.Name()
+			if pu := FirstOnEntity(p); pu != nil {
+				return pname, layoutModeOf(pu)
+			}
+			return pname, -1
+		}
+		return "<root>", -1
+	}
+	// 1) End-state stuck nodes (dirty != None after the 100-iteration cap) with
+	// their own and their parent's layout mode (confirms flow vs flex).
+	logged := 0
+	for i := range tree {
+		t := tree[i]
+		if !t.IsActive() || t.dirty() == DirtyTypeNone || logged >= 12 {
+			continue
+		}
+		logged++
+		ps := t.Layout().PixelSize()
+		pname, pmode := parentOf(t)
+		slog.Warn("  ui-diag stuck",
+			"name", t.entity.Name(), "elmType", int(t.elmType), "dirty", int(t.dirty()),
+			"mode", layoutModeOf(t), "w", ps.X(), "h", ps.Y(),
+			"parent", pname, "parentMode", pmode)
+	}
+	// 2) One extra instrumented settle-pass that captures WHICH call site
+	// re-dirties each element (the actual non-convergence source). Since sizes
+	// are stable, the culprit is a layout setter firing without a real change
+	// (e.g. an exact-Approx guard tripping on a float artifact).
+	diagDirtyCounts = make(map[string]int, 32)
+	diagCapturing.Store(true)
+	for i := range tree {
+		t := tree[i]
+		if !t.IsActive() {
+			continue
+		}
+		t.cleanDirty()
+		t.Layout().update()
+		t.postLayoutUpdate()
+	}
+	diagCapturing.Store(false)
+	type srcCount struct {
+		what  string
+		count int
+	}
+	srcs := make([]srcCount, 0, len(diagDirtyCounts))
+	for k, c := range diagDirtyCounts {
+		srcs = append(srcs, srcCount{k, c})
+	}
+	sort.Slice(srcs, func(i, j int) bool { return srcs[i].count > srcs[j].count })
+	for i := range srcs {
+		if i >= 12 {
+			break
+		}
+		slog.Warn("  ui-diag dirty-source", "count", srcs[i].count, "what", srcs[i].what)
+	}
+	diagDirtyCounts = nil
+	slog.Warn("UI.Clean slow/non-converged",
+		"root", root.entity.Name(), "converged", stabilized, "iterations", iterations,
+		"elapsedMs", elapsed.Milliseconds(), "treeSize", len(tree), "dirtyEvents", len(srcs))
 }
 
 func (ui *UI) GenerateScissor() {

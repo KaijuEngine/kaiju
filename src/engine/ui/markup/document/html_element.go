@@ -157,7 +157,12 @@ func (e *Element) IsSelect() bool {
 }
 
 func (e *Element) IsSelectOption() bool {
-	return e.Data == "option"
+	// Must be an <option> ELEMENT, not a text node whose content happens to be
+	// the word "option" (html.Node stores tag name and text in the same .Data
+	// field). Misclassifying such text skipped its Label UI — leaving the label
+	// blank and nil-dereferencing when the subtree is cloned (e.g. a popover row
+	// proto whose label text is "option").
+	return e.Type == html.ElementNode && e.Data == "option"
 }
 
 func NewHTML(htmlStr string) *Element {
@@ -302,18 +307,27 @@ func (e *Element) Clone(parent *Element) *Element {
 		elm.Parent = weak.Make(parent)
 	}
 	var eParent *engine.Entity
-	if parent != nil {
+	if parent != nil && parent.UI != nil {
 		eParent = parent.UI.Entity()
 	}
-	elm.UI = e.UI.Clone(eParent)
-	if !elm.UI.IsType(ui.ElementTypeLabel) {
-		elm.UIPanel = elm.UI.ToPanel()
+	// Some elements intentionally have no UI (createUIElement returns early for
+	// select options), so mirror that here instead of nil-dereferencing e.UI /
+	// elm.UI when cloning a subtree that contains one (e.g. the MultiSelect
+	// popover rows). Children are still cloned so any UI-bearing descendants are
+	// reproduced.
+	if e.UI != nil {
+		elm.UI = e.UI.Clone(eParent)
+		if !elm.UI.IsType(ui.ElementTypeLabel) {
+			elm.UIPanel = elm.UI.ToPanel()
+		}
 	}
 	elm.Children = make([]*Element, 0, len(e.Children))
 	for i := range e.Children {
 		e.Children[i].Clone(elm)
 	}
 	elm.Stylizer = e.Stylizer.clone(elm)
-	elm.UI.Layout().Stylizer = &elm.Stylizer
+	if elm.UI != nil {
+		elm.UI.Layout().Stylizer = &elm.Stylizer
+	}
 	return elm
 }

@@ -93,7 +93,17 @@ func classifyHTMLInputType(rawType string) htmlInputType {
 }
 
 type Document struct {
-	host              weak.Pointer[engine.Host]
+	host weak.Pointer[engine.Host]
+	// uiMan is a STRONG reference to the manager that owns this document's UI
+	// elements. The manager's update is registered with only a weak self-ref and
+	// is torn down by runtime.AddCleanup when the manager is GC'd, and elements
+	// hold the manager weakly too. A dedicated manager (e.g. a floating overlay's
+	// NewContext manager) therefore has no strong owner once its builder returns
+	// and would be collected mid-use — its update stops (the overlay never
+	// renders) and element.man goes nil (nil-deref on input). Keeping it alive as
+	// long as the document lives ties the manager's lifetime to the widget; it is
+	// released on Destroy (doc cleared) so the manager is then cleaned up.
+	uiMan             *ui.Manager
 	Elements          []*Element
 	TopElements       []*Element
 	HeadElements      []*Element
@@ -527,6 +537,7 @@ func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 
 func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
 	parsed := &Document{
+		uiMan:         uiMan,
 		Elements:      make([]*Element, 0),
 		groups:        map[string][]*Element{},
 		ids:           map[string]*Element{},

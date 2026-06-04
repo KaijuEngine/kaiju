@@ -23,6 +23,15 @@ func (p Height) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
 	}
 
+	if values[0].Str == "initial" {
+		return nil
+	}
+
+	if values[0].Str == "fit-content" {
+		panel.FitContentHeight()
+		return nil
+	}
+
 	height := helpers.NumFromLength(values[0].Str, host.Window)
 
 	panel.DontFitContentHeight()

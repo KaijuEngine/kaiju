@@ -63,7 +63,11 @@ func (label *Label) Init(text string) {
 		text:            text,
 		textLength:      utf8.RuneCountInString(text),
 		fgColor:         matrix.ColorWhite(),
-		bgColor:         matrix.ColorBlack(),
+		// Transparent (alpha 0) by default so the font renderer blends glyph
+		// edges against the label's calculated surface (the real opaque color
+		// behind the text) instead of a fixed color, avoiding halos. An opaque
+		// bgColor (alpha >= 1) is treated as an intentional text-highlight box.
+		bgColor:         matrix.ColorTransparent(),
 		fontSize:        LabelFontSize,
 		baseline:        rendering.FontBaselineTop,
 		justify:         rendering.FontJustifyLeft,
@@ -128,9 +132,10 @@ func (label *Label) FontFace() rendering.FontFace { return label.LabelData().fon
 func (label *Label) colorRange(section colorRange) {
 	ld := label.LabelData()
 	end := len(ld.runeShaderData)
+	fg, bg := label.resolveFontColors(section.hue, section.bgHue)
 	for i := section.start; i < section.end && end > section.end; i++ {
-		ld.runeShaderData[i].FgColor = section.hue
-		ld.runeShaderData[i].BgColor = section.bgHue
+		ld.runeShaderData[i].FgColor = fg
+		ld.runeShaderData[i].BgColor = bg
 	}
 }
 
@@ -182,7 +187,17 @@ func (label *Label) renderText() {
 				pl.padding.Horizontal() - pl.border.Horizontal()
 			if contentWidth > 0 {
 				if ld.overrideMaxWidth <= 0 {
-					label.layout.ScaleWidth(contentWidth)
+					// Re-anchor after growing: a transform's position is its
+					// CENTER (layoutFloating -> al() = -parentW/2 + selfW/2),
+					// so changing the width without re-running layoutFloating
+					// leaves the center where the narrow label sat. The glyphs
+					// (built below from WorldScale, origin -es.X()/2) would then
+					// be emitted ~(newW-oldW)/2 px left of the box and the
+					// parent scissor would clip the start of the text. Re-anchor
+					// for the new width before the meshes are generated.
+					if label.layout.ScaleWidth(contentWidth) {
+						layoutFloating(&label.layout)
+					}
 				}
 				if ld.overrideMaxWidth <= 0 || maxWidth > contentWidth {
 					maxWidth = contentWidth
@@ -193,9 +208,13 @@ func (label *Label) renderText() {
 			label.layout.ScaleHeight(label.measure(maxWidth).Height())
 		}
 		host := label.man.Value().Host
+		// Resolve against the calculated surface so the font cache picks the
+		// crisp non-OIT material (both colors opaque) instead of fringing the
+		// edges over solid backgrounds.
+		fg, bg := label.resolveFontColors(ld.fgColor, ld.bgColor)
 		ld.runeDrawings = host.FontCache().RenderMeshesWithLetterSpacing(
 			host, ld.text, 0, 0, 0, ld.fontSize,
-			maxWidth, ld.fgColor, ld.bgColor, ld.justify,
+			maxWidth, fg, bg, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight, ld.letterSpacing, &host.Cameras.UI)
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
@@ -204,7 +223,7 @@ func (label *Label) renderText() {
 			rd.Transform = &label.entity.Transform
 			rd.Layer = rendering.RenderLayerUI
 			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
-			if ld.bgColor.A() < 1.0 {
+			if bg.A() < 1.0 {
 				transparent := ld.runeDrawings[i]
 				transparent.Material = host.FontCache().TransparentMaterial(
 					ld.runeDrawings[i].Material)
@@ -243,11 +262,51 @@ func (label *Label) labelRender() {
 	ld.renderRequired = false
 }
 
+// calculatedSurface returns the opaque "used" color this text visually sits on:
+// the parent panel's calculated background, or the manager's root backdrop when
+// the label has no parent panel. Used as the glyph-edge blend target so
+// anti-aliasing produces no halo.
+func (label *Label) calculatedSurface() matrix.Color {
+	if label.entity.Parent != nil {
+		if p := FirstPanelOnEntity(label.entity.Parent); p != nil {
+			return p.CalculatedBGColor()
+		}
+	}
+	if m := label.man.Value(); m != nil {
+		return m.RootBackgroundColor()
+	}
+	return matrix.ColorBlack()
+}
+
+// resolveFontColors maps an intended (fg, bg) pair to the colors handed to the
+// font shader. When bg is already opaque (alpha >= 1) it is an intentional
+// highlight box and the pair is used as-is. Otherwise the glyph blends against
+// the label's calculated surface: the foreground is composited over that surface
+// to a fully opaque RGB (partial fg transparency folded into the color, so muted
+// text stays halo-free) and the background becomes the opaque surface itself.
+//
+// Both returned colors are opaque, which selects the cheap non-OIT text material
+// (see rendering/font.go: opaque iff fg.A==1 && bg.A==1). That matters for
+// crispness: the order-independent-transparency material darkens glyph edges
+// (a visible fringe over bright solid backgrounds like accent buttons). The
+// shader does mix(bg, fg, coverage), so the per-glyph quad is filled with the
+// surface color outside the glyph — but since the surface IS the real backdrop,
+// that fill is invisible and the anti-aliased edges blend toward the correct
+// color with no halo.
+func (label *Label) resolveFontColors(fg, bg matrix.Color) (matrix.Color, matrix.Color) {
+	if bg.A() >= 1.0 {
+		return fg, bg
+	}
+	surface := label.calculatedSurface()
+	return matrix.ColorOver(fg, surface), surface
+}
+
 func (label *Label) updateColors() {
 	ld := label.LabelData()
+	fg, bg := label.resolveFontColors(ld.fgColor, ld.bgColor)
 	for i := range ld.runeShaderData {
-		ld.runeShaderData[i].FgColor = ld.fgColor
-		ld.runeShaderData[i].BgColor = ld.bgColor
+		ld.runeShaderData[i].FgColor = fg
+		ld.runeShaderData[i].BgColor = bg
 	}
 }
 

@@ -281,13 +281,15 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
 	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
-	bin.texture.MipLevels = 1
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
 	out, _ := adb.Read(face.string() + ".bin")
 	if bin.texture == nil || out == nil || len(out) == 0 {
 		return false
 	}
+	// Set MipLevels only after confirming the texture loaded; a missing font
+	// (nil texture) must fail gracefully here, not nil-deref.
+	bin.texture.MipLevels = 1
 	read := bytes.NewReader(out)
 	// Create an int32 variable named count that is read from read
 	var count int32

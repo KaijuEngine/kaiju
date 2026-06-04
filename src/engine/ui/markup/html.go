@@ -53,6 +53,25 @@ func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData an
 	return doc, nil
 }
 
+// DocumentFromHTMLAssetWithCSS loads an HTML document from the asset database
+// like DocumentFromHTMLAsset (including kaiju-include expansion) but forwards an
+// explicit cssStr into the style cascade. DocumentFromHTMLAsset hardcodes an
+// empty cssStr, which prevents callers from theming asset-sourced templates;
+// this variant closes that gap. The cssStr is parsed after css.DefaultCSS/OverrideCSS
+// and before any document <style>/<link>, so later rules win (there is no specificity weighting).
+func DocumentFromHTMLAssetWithCSS(uiMan *ui.Manager, htmlPath, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error) {
+	host := uiMan.Host
+	m, err := host.AssetDatabase().ReadText(htmlPath)
+	if err != nil {
+		return nil, err
+	}
+	m, err = expandHTMLIncludes(host.AssetDatabase(), htmlPath, m, map[string]bool{})
+	if err != nil {
+		return nil, err
+	}
+	return DocumentFromHTMLString(uiMan, m, cssStr, withData, funcMap, root), nil
+}
+
 func expandHTMLIncludes(db assets.Database, ownerPath, html string, stack map[string]bool) (string, error) {
 	var firstErr error
 	expanded := htmlIncludeTagRE.ReplaceAllStringFunc(html, func(includeTag string) string {

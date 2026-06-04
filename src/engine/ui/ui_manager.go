@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/pooling"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 )
@@ -30,8 +31,36 @@ type Manager struct {
 	updateId        engine.UpdateId
 	skipUpdate      int
 	resizeEvtId     events.Id
+	rootBGColor     matrix.Color
 	windowResized   bool
 	windowMinimized bool
+}
+
+// RootBackgroundColor is the opaque backdrop that the top of the UI tree
+// composites against when computing calculated ("used") colors for halo-free
+// font rendering. It is the color a root-level transparent element resolves to.
+// Defaults to opaque black; a zero (fully transparent) value is treated as
+// opaque black so the calculated-color chain is always grounded on an opaque
+// backdrop.
+func (man *Manager) RootBackgroundColor() matrix.Color {
+	if man.rootBGColor.A() <= 0 {
+		return matrix.ColorBlack()
+	}
+	return man.rootBGColor
+}
+
+// SetRootBackgroundColor overrides the backdrop used for calculated colors and
+// re-renders the root elements so the new value propagates down the tree.
+func (man *Manager) SetRootBackgroundColor(c matrix.Color) {
+	if man.rootBGColor.Equals(c) {
+		return
+	}
+	man.rootBGColor = c
+	man.pools.Each(func(elm *UI) {
+		if elm.IsValid() && elm.entity.IsRoot() {
+			elm.SetDirty(DirtyTypeColorChange)
+		}
+	})
 }
 
 func (man *Manager) update(deltaTime float64) {

@@ -977,7 +977,15 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 	if input.IsDisabled() {
 		return
 	}
-	host := input.man.Value().Host
+	// doKeyCallbacks invokes this for EVERY registered input on every keypress,
+	// regardless of focus. A destroyed/recycled input (pooled UI) can still have
+	// a live callback for a frame; its manager weak-ref is then dead. Guard it so
+	// a stray keypress no-ops instead of nil-derefing host below.
+	man := input.man.Value()
+	if man == nil || input.entity.IsDestroyed() {
+		return
+	}
+	host := man.Host
 	data := input.InputData()
 	if input.entity.IsActive() && data.isActive {
 		if keyState == hid.KeyStateDown {
