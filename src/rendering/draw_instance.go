@@ -228,9 +228,7 @@ func (s *ShaderDataBase) UpdateModelForView(view *RenderView, viewCuller ViewCul
 	}
 	if s.transform != nil && s.transform.IsDirty() {
 		s.forceUpdateTransformModel()
-		a := s.model.TransformPoint(container.Min())
-		b := s.model.TransformPoint(container.Max())
-		s.aabb = graviton.AABBFromMinMax(a, b)
+		s.aabb = container.Transform(s.model)
 		recalcCulling = true
 	} else if s.transform == nil {
 		s.aabb = container

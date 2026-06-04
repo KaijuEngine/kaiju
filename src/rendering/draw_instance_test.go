@@ -121,6 +121,27 @@ func TestShaderDataBaseTransformModelAndBounds(t *testing.T) {
 	}
 }
 
+func TestShaderDataBaseTransformBoundsUsesAllCorners(t *testing.T) {
+	base := NewShaderDataBase()
+	container := graviton.AABBFromMinMax(matrix.Vec3{-1, -1, -1}, matrix.Vec3{1, 1, 1})
+
+	var transform matrix.Transform
+	transform.SetupRawTransform()
+	transform.SetRotation(matrix.Vec3{0, 0, 45})
+	base.setTransform(&transform)
+	base.UpdateModel(&testViewCuller{inView: true}, container)
+
+	want := container.Transform(base.Model())
+	got := base.renderBounds()
+	if !matrix.Vec3ApproxTo(got.Center, want.Center, 0.0001) ||
+		!matrix.Vec3ApproxTo(got.Extent, want.Extent, 0.0001) {
+		t.Fatalf("rotated bounds = %+v, want %+v", got, want)
+	}
+	if got.Extent.X() < 1.4 || got.Extent.Y() < 1.4 {
+		t.Fatalf("rotated bounds collapsed on an axis: %+v", got)
+	}
+}
+
 func TestShaderDataBaseCulling(t *testing.T) {
 	base := NewShaderDataBase()
 	culler := &testViewCuller{inView: false, viewChanged: true}
