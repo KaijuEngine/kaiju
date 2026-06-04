@@ -60,9 +60,9 @@ type EditorEvents struct {
 	// particle system content id and switch itself active.
 	OnRequestOpenParticleSystem events.EventWithArg[string]
 
-	// OnRequestOpenShadingSpec asks the shading workspace to open the given
+	// OnRequestOpenVulkanSpec asks the Vulkan workspace to open the given
 	// shader / material / render pass content id and switch itself active.
-	OnRequestOpenShadingSpec events.EventWithArg[string]
+	OnRequestOpenVulkanSpec events.EventWithArg[string]
 
 	// OnRequestOpenTerrain asks the terrain workspace to open the given
 	// terrain content id and switch itself active.

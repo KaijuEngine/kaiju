@@ -48,6 +48,7 @@ import (
 	_ "kaijuengine.com/editor/editor_workspace/terrain_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/ui_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/vfx_workspace"
+	_ "kaijuengine.com/editor/editor_workspace/vulkan_workspace"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the
@@ -291,6 +292,7 @@ var defaultWorkspaceOrder = []string{
 	"terrain",
 	"vfx",
 	"ui",
+	"vulkan",
 	"shading",
 	"settings",
 }

@@ -1227,7 +1227,7 @@ func (w *ContentWorkspace) openInEditor(cc content_database.CachedContent) {
 	case content_database.ShaderPipeline{}.TypeName():
 		fallthrough
 	case content_database.Shader{}.TypeName():
-		w.editor.Events().OnRequestOpenShadingSpec.Execute(cc.Id())
+		w.editor.Events().OnRequestOpenVulkanSpec.Execute(cc.Id())
 		return
 	case content_database.Terrain{}.TypeName():
 		w.editor.Events().OnRequestOpenTerrain.Execute(cc.Id())
