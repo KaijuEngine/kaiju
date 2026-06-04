@@ -7,6 +7,7 @@
 package editor_controls
 
 import (
+	"log/slog"
 	"math"
 
 	"kaijuengine.com/editor/editor_settings"
@@ -474,7 +475,16 @@ func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 			scale *= zoom / 1.0
 		}
 		zoomFloor := klib.ClampAbs(mouse.Scroll().Y(), e.Settings.ZoomSpeed)
-		tc.Dolly(zoomFloor * scale)
+		if hid.Keyboard.KeyHeld(host.Window.Keyboard, hid.KeyboardKeyLeftAlt) {
+			hitPoint, ok := tc.ForwardPlaneHit(mp, tc.LookAt())
+			if ok {
+				tc.DollyTo(zoomFloor*scale, hitPoint)
+			} else {
+				slog.Warn("CameraCursor Zoom: mouse screen to world conversion failed")
+			}
+		} else {
+			tc.Dolly(zoomFloor * scale)
+		}
 		changed = true
 	}
 	e.lastMousePos = mp
