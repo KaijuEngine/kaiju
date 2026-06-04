@@ -458,7 +458,7 @@ func (w *StageWorkspace) readMeshSet(cc *content_database.CachedContent) (kaiju_
 }
 
 func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km kaiju_mesh.KaijuMesh, contentPath string, point matrix.Vec3, parent *editor_stage_manager.StageEntity, sourceLocalTransform bool) *editor_stage_manager.StageEntity {
-	defer tracing.NewRegion("StageWorkspace.spawnMeshEntity")
+	defer tracing.NewRegion("StageWorkspace.spawnMeshEntity").End()
 	mat, err := w.Host.MaterialCache().Material(materialId)
 	if err != nil {
 		slog.Error("failed to find the mesh material", "id", materialId, "error", err)
