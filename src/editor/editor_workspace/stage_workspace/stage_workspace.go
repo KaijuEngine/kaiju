@@ -202,6 +202,7 @@ func (w *StageWorkspace) Open() {
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
+	w.stageViewport.bind(w.stageView)
 	w.applyViewportLayout()
 	w.stageView.Open()
 	w.Doc.MarkDirty()

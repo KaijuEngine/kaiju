@@ -4,13 +4,49 @@
 		<style>
 			.shadingWorkspace {
 				position: absolute;
-				top: var(--ed-menu-bar-height);
+				top: 0;
 				width: 100%;
+				height: 100%;
+			}
+			#stageViewport {
+				position: absolute;
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 50%;
 				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				z-index: 2;
+			}
+			#dimensionToggle {
+				position: absolute;
+				font-size: 0.6em;
+				top: 2.5em;
+				left: 25%;
+				padding: 0.25em;
+				transform: translateX(-50%);
+				color: white;
+				background-color: #282828;
+				border: 2px solid #AAA;
+				z-index: 3;
+			}
+			#dimensionToggle:hover {
+				background-color: #AAA;
+			}
+			#shaderGraphArea {
+				position: absolute;
+				right: 0;
+				top: var(--ed-menu-bar-height);
+				width: 50%;
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				border-left: 2px solid black;
+				z-index: 1;
 			}
 		</style>
 	</head>
 	<body>
-		<div class="shadingWorkspace edPanelBg"></div>
+		<div id="shadingWorkspace" class="shadingWorkspace edPanelBg">
+			<img id="stageViewport" src="square.png" />
+			<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
+			<div id="shaderGraphArea" class="edPanelBg"></div>
+		</div>
 	</body>
 </html>

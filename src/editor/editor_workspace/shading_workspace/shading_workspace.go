@@ -7,9 +7,13 @@
 package shading_workspace
 
 import (
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 const (
@@ -23,6 +27,15 @@ func init() {
 
 type ShadingWorkspace struct {
 	common_workspace.CommonWorkspace
+	ed              editor_workspace.WorkspaceEditorInterface
+	stageView       *editor_stage_view.StageView
+	root            *document.Element
+	stageViewport   *document.Element
+	dimensionToggle *document.Element
+}
+
+type ShadingWorkspaceUIData struct {
+	CameraMode string
 }
 
 func (w *ShadingWorkspace) ID() string          { return ID }
@@ -30,22 +43,75 @@ func (w *ShadingWorkspace) DisplayName() string { return DisplayName }
 func (w *ShadingWorkspace) IsRequired() bool    { return false }
 
 func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
-	return w.CommonWorkspace.InitializeWithUI(ed.Host(),
-		"editor/ui/workspace/shading_workspace.go.html", nil, nil)
+	defer tracing.NewRegion("ShadingWorkspace.Initialize").End()
+	w.ed = ed
+	w.stageView = ed.StageView()
+	data := ShadingWorkspaceUIData{CameraMode: w.stageView.Camera().ModeString()}
+	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(),
+		"editor/ui/workspace/shading_workspace.go.html", data, map[string]func(*document.Element){
+			"toggleDimension": w.toggleDimension,
+		}); err != nil {
+		return err
+	}
+	w.root, _ = w.Doc.GetElementById("shadingWorkspace")
+	w.stageViewport, _ = w.Doc.GetElementById("stageViewport")
+	w.dimensionToggle, _ = w.Doc.GetElementById("dimensionToggle")
+	if w.root != nil {
+		w.root.UIPanel.AllowClickThrough()
+	}
+	return nil
 }
 
 func (w *ShadingWorkspace) Shutdown() {
+	defer tracing.NewRegion("ShadingWorkspace.Shutdown").End()
 	w.CommonShutdown()
 }
 
 func (w *ShadingWorkspace) Open() {
+	defer tracing.NewRegion("ShadingWorkspace.Open").End()
 	w.CommonOpen()
+	if w.stageViewport != nil {
+		w.stageView.SetViewportUI(w.stageViewport.UI)
+	}
+	if w.dimensionToggle != nil {
+		w.dimensionToggle.InnerLabel().SetText(w.stageView.Camera().ModeString())
+	}
+	w.stageView.Open()
 }
 
 func (w *ShadingWorkspace) Close() {
+	defer tracing.NewRegion("ShadingWorkspace.Close").End()
+	if w.stageView != nil {
+		w.stageView.SetViewportUI(nil)
+		w.stageView.Close()
+	}
 	w.CommonClose()
 }
 
 func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
+}
+
+func (w *ShadingWorkspace) Update(deltaTime float64) {
+	defer tracing.NewRegion("ShadingWorkspace.Update").End()
+	if w.UiMan.IsUpdateDisabled() {
+		return
+	}
+	if w.IsBlurred || w.UiMan.Group.HasRequests() {
+		return
+	}
+	w.stageView.Update(deltaTime, w.ed.Project())
+}
+
+func (w *ShadingWorkspace) toggleDimension(e *document.Element) {
+	defer tracing.NewRegion("ShadingWorkspace.toggleDimension").End()
+	lbl := e.InnerLabel()
+	switch lbl.Text() {
+	case "3D":
+		lbl.SetText("2D")
+		w.stageView.SetCameraMode(editor_controls.EditorCameraMode2d)
+	case "2D":
+		lbl.SetText("3D")
+		w.stageView.SetCameraMode(editor_controls.EditorCameraMode3d)
+	}
 }
