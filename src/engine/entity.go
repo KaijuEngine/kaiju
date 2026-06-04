@@ -9,6 +9,7 @@ package engine
 import (
 	"log/slog"
 	"slices"
+	"sync"
 	"weak"
 
 	"kaijuengine.com/engine/systems/events"
@@ -38,7 +39,7 @@ type Entity struct {
 	Transform             matrix.Transform
 	Parent                *Entity
 	Children              []*Entity
-	namedData             map[string][]any
+	namedData             sync.Map
 	OnDestroy             events.Event
 	OnDestroyRequested    events.Event
 	OnActivate            events.Event
@@ -61,7 +62,6 @@ func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.isActive = true
 	e.Children = make([]*Entity, 0)
 	e.Transform.Initialize(workGroup)
-	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
 }
 
@@ -263,10 +263,10 @@ func (e *Entity) Root() *Entity {
 // data to the same key. It is recommended to compile the data into a single
 // structure so the slice length is 1, but sometimes that's not reasonable.
 func (e *Entity) AddNamedData(key string, data any) {
-	if _, ok := e.namedData[key]; !ok {
-		e.namedData[key] = make([]any, 0)
-	}
-	e.namedData[key] = append(e.namedData[key], data)
+	current, _ := e.namedData.LoadOrStore(key, []any{})
+	v := current.([]any)
+	v = append(v, data)
+	e.namedData.Store(key, v)
 }
 
 // RemoveNamedData will remove the specified data from the entity's named data
@@ -274,10 +274,12 @@ func (e *Entity) AddNamedData(key string, data any) {
 //
 // *This will remove the entire slice and all of it's data*
 func (e *Entity) RemoveNamedData(key string, data any) {
-	if _, ok := e.namedData[key]; ok {
-		for i := range e.namedData[key] {
-			if e.namedData[key][i] == data {
-				e.namedData[key] = slices.Delete(e.namedData[key], i, i+1)
+	if current, ok := e.namedData.Load(key); ok {
+		v := current.([]any)
+		for i := range v {
+			if v[i] == data {
+				v = slices.Delete(v, i, i+1)
+				e.namedData.Store(key, v)
 				break
 			}
 		}
@@ -287,14 +289,14 @@ func (e *Entity) RemoveNamedData(key string, data any) {
 // RemoveNamedDataByName will remove all of the stored named data
 // that matches the given key on the entity
 func (e *Entity) RemoveNamedDataByName(key string) {
-	delete(e.namedData, key)
+	e.namedData.Delete(key)
 }
 
 // NamedData will return the data associated with the specified key. If the key
 // does not exist, nil will be returned.
 func (e *Entity) NamedData(key string) []any {
-	if _, ok := e.namedData[key]; ok {
-		return e.namedData[key]
+	if current, ok := e.namedData.Load(key); ok {
+		return current.([]any)
 	}
 	return nil
 }
