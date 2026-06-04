@@ -236,7 +236,7 @@ func (cui *WorkspaceContentUI) removeContent(ids []string) {
 			slog.Error("failed to find element to remove", "id", id)
 		}
 		for _, entry := range cui.doc.GetElementsByGroup("entry") {
-			if entry.Attribute("data-parent-id") == id {
+			if entry != nil && entry.Attribute("data-parent-id") == id {
 				cui.doc.RemoveElement(entry)
 			}
 		}

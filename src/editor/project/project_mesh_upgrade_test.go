@@ -15,6 +15,7 @@ import (
 
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
@@ -90,8 +91,19 @@ func TestUpgradeMeshContentToGLBRewritesLegacyContentInPlace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if km.BVH == nil {
-		t.Fatal("expected upgraded GLB mesh to include generated BVH")
+	if km.BVH != nil {
+		t.Fatal("expected upgraded GLB mesh to omit triangle BVH")
+	}
+	bvh := km.GenerateBVH(nil, nil, "hit")
+	target, _, ok := bvh.RayIntersect(graviton.Ray{
+		Origin:    matrix.Vec3{0.25, 0.25, 1},
+		Direction: matrix.Vec3{0, 0, -1},
+	}, 2)
+	if !ok {
+		t.Fatal("expected upgraded GLB mesh to generate runtime bounds BVH")
+	}
+	if target != "hit" {
+		t.Fatalf("runtime bounds BVH target = %v, want hit", target)
 	}
 	if !project.fileSystem.Exists(cfgPath) {
 		t.Fatal("mesh config path should not be renamed during upgrade")

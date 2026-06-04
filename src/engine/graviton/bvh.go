@@ -53,13 +53,7 @@ func (item BVHItem) Bounds() AABB {
 	if _, ok := item.HitCheck.(*BVH); ok {
 		return bounds
 	}
-	mat := item.Transform.WorldMatrix()
-	min := mat.TransformPoint(bounds.Min())
-	max := mat.TransformPoint(bounds.Max())
-	return AABB{
-		Center: min.Add(max).Shrink(2.0),
-		Extent: max.Subtract(min).Shrink(2.0),
-	}
+	return bounds.Transform(item.Transform.WorldMatrix())
 }
 
 func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {

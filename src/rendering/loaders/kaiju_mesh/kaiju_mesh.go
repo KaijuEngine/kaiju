@@ -363,21 +363,31 @@ func (k *KaijuMesh) GenerateBVHArchive() *graviton.TriangleBVH {
 
 func (k *KaijuMesh) GenerateBVH(threads *concurrent.Threads, transform *matrix.Transform, data any) *graviton.BVH {
 	defer tracing.NewRegion("KaijuMesh.GenerateBVH").End()
-	if k.BVH == nil {
-		k.BVH = k.GenerateBVHArchive()
-		if k.BVH == nil {
-			return nil
-		}
+	bounds, ok := k.bounds()
+	if !ok {
+		return nil
 	}
-	bvh := k.BVH.ToBVH(transform, data)
-	bvh.Refit()
-	return bvh
+	return graviton.NewBVH([]graviton.HitObject{bounds}, transform, data)
 }
 
 func (k KaijuMesh) generateBVH(threads *concurrent.Threads, transform *matrix.Transform, data any) *graviton.BVH {
 	defer tracing.NewRegion("KaijuMesh.generateBVH").End()
 	tris := k.bvhTriangles(threads)
 	return graviton.NewBVH(tris, transform, data)
+}
+
+func (k KaijuMesh) bounds() (graviton.AABB, bool) {
+	if len(k.Verts) == 0 {
+		return graviton.AABB{}, false
+	}
+	min := k.Verts[0].Position
+	max := min
+	for i := 1; i < len(k.Verts); i++ {
+		pos := k.Verts[i].Position
+		min = matrix.Vec3Min(min, pos)
+		max = matrix.Vec3Max(max, pos)
+	}
+	return graviton.AABBFromMinMax(min, max), true
 }
 
 func (k KaijuMesh) bvhTriangles(threads *concurrent.Threads) []graviton.HitObject {

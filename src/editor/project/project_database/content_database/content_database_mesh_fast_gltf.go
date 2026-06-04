@@ -66,9 +66,12 @@ func meshFastImportGLTF(src string) (ProcessedImport, error) {
 	if err != nil {
 		return ProcessedImport{}, err
 	}
-	imageSources, imageBufferViews, textureBytes, err := meshFastGLTFImageSources(doc, buffers, src)
+	imageSources, skipBufferViews, textureBytes, err := meshFastGLTFImageSources(doc, buffers, src)
 	if err != nil {
 		return ProcessedImport{}, err
+	}
+	for view := range meshFastGLTFKaijuBVHBufferViews(doc) {
+		skipBufferViews[view] = true
 	}
 	submeshes, err := meshFastGLTFSubmeshes(doc, imageSources)
 	if err != nil {
@@ -77,7 +80,7 @@ func meshFastImportGLTF(src string) (ProcessedImport, error) {
 	if len(submeshes) == 0 {
 		return ProcessedImport{}, NoMeshesInFileError{Path: src}
 	}
-	bin, err := meshFastGLTFImportBIN(src, doc, buffers, imageBufferViews, textureBytes)
+	bin, err := meshFastGLTFImportBIN(src, doc, buffers, skipBufferViews, textureBytes)
 	if err != nil {
 		return ProcessedImport{}, err
 	}
@@ -311,6 +314,45 @@ func meshFastGLTFImageSources(
 	return sources, imageBufferViews, textureBytes, nil
 }
 
+func meshFastGLTFKaijuBVHBufferViews(doc map[string]any) map[int]bool {
+	extras, ok := meshFastMap(doc["extras"])
+	if !ok {
+		return nil
+	}
+	kaiju, ok := meshFastMap(extras["kaiju"])
+	if !ok {
+		return nil
+	}
+	out := map[int]bool{}
+	meshFastGLTFCollectTriangleBVHBlobViews(kaiju["blobs"], out)
+	for _, value := range meshFastArrayField(kaiju, "meshes") {
+		extra, ok := meshFastMap(value)
+		if !ok {
+			continue
+		}
+		meshFastGLTFCollectTriangleBVHBlobViews(extra["blobs"], out)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func meshFastGLTFCollectTriangleBVHBlobViews(blobsValue any, out map[int]bool) {
+	blobs, ok := meshFastMap(blobsValue)
+	if !ok {
+		return
+	}
+	ref, ok := meshFastMap(blobs["triangleBVH"])
+	if !ok {
+		return
+	}
+	view, ok := meshFastIntField(ref, "bufferView")
+	if ok && view >= 0 {
+		out[view] = true
+	}
+}
+
 func meshFastGLTFBufferViewBytes(doc map[string]any, buffers [][]byte, viewIndex int) ([]byte, error) {
 	viewValues := meshFastArrayField(doc, "bufferViews")
 	if viewIndex < 0 || viewIndex >= len(viewValues) {
@@ -381,28 +423,28 @@ func meshFastGLTFImportBIN(
 	src string,
 	doc map[string]any,
 	buffers [][]byte,
-	imageBufferViews map[int]bool,
+	skipBufferViews map[int]bool,
 	textureBytes map[string][]byte,
 ) ([]byte, error) {
-	if meshFastGLTFCanReuseGLBBIN(src, doc, buffers, imageBufferViews, textureBytes) {
+	if meshFastGLTFCanReuseGLBBIN(src, doc, buffers, skipBufferViews, textureBytes) {
 		bufferValues := meshFastArrayField(doc, "buffers")
 		buffer, _ := meshFastMap(bufferValues[0])
 		buffer["byteLength"] = len(buffers[0])
 		delete(buffer, "uri")
 		return buffers[0], nil
 	}
-	return meshFastGLTFCompactBuffers(doc, buffers, imageBufferViews)
+	return meshFastGLTFCompactBuffers(doc, buffers, skipBufferViews)
 }
 
 func meshFastGLTFCanReuseGLBBIN(
 	src string,
 	doc map[string]any,
 	buffers [][]byte,
-	imageBufferViews map[int]bool,
+	skipBufferViews map[int]bool,
 	textureBytes map[string][]byte,
 ) bool {
 	if strings.ToLower(filepath.Ext(src)) != ".glb" || len(buffers) != 1 ||
-		len(imageBufferViews) != 0 || len(textureBytes) != 0 {
+		len(skipBufferViews) != 0 || len(textureBytes) != 0 {
 		return false
 	}
 	bufferValues := meshFastArrayField(doc, "buffers")
@@ -428,7 +470,7 @@ func meshFastGLTFCanReuseGLBBIN(
 			byteOffset+byteLength > len(buffers[0]) {
 			return false
 		}
-		if imageBufferViews[i] {
+		if skipBufferViews[i] {
 			return false
 		}
 	}
@@ -879,10 +921,12 @@ func meshFastGLTFApplyKaijuExtras(
 	if _, ok := kaiju["version"]; !ok {
 		kaiju["version"] = 1
 	}
+	delete(kaiju, "blobs")
 	oldExtras := meshFastGLTFExistingMeshExtras(kaiju)
 	meshExtras := make([]any, len(submeshes))
 	for i := range submeshes {
 		extra := meshFastCloneMap(oldExtras[i])
+		delete(extra, "blobs")
 		extra["key"] = submeshes[i].Key
 		extra["name"] = submeshes[i].Name
 		extra["mesh"] = i

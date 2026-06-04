@@ -39,7 +39,6 @@ func (p *Project) upgradeMeshContentToGLB() error {
 		if err != nil {
 			return err
 		}
-		km.EnsureBVH()
 		textureURIs := p.meshUpgradeTextureURIs(meshes[i])
 		out, err := km.SerializeWithOptions(kaiju_mesh.SerializeOptions{TextureURIs: textureURIs})
 		if err != nil {

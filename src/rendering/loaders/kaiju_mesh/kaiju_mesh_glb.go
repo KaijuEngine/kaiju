@@ -299,16 +299,6 @@ func serializeGLBSet(set KaijuMeshSet, options SerializeOptions) ([]byte, error)
 			Node:     nodeIdx,
 			Material: mesh.Material,
 		}
-		if mesh.BVH != nil {
-			view := w.addBufferView(serializeTriangleBVHBlob(mesh.BVH), 0)
-			extra.Blobs = &glbBlobRefs{TriangleBVH: &glbBlobRef{
-				BufferView: ptrInt(view),
-				Format:     "kaiju.triangle_bvh.le.v1",
-			}}
-			if i == 0 {
-				extras.Blobs = extra.Blobs
-			}
-		}
 		extras.Meshes = append(extras.Meshes, extra)
 	}
 	w.doc.Extras = &glbExtras{Kaiju: extras}

@@ -18,7 +18,7 @@ import (
 	meshloaders "kaijuengine.com/rendering/loaders"
 )
 
-func TestKaijuMeshSerializePreservesBVH(t *testing.T) {
+func TestKaijuMeshSerializeOmitsTriangleBVH(t *testing.T) {
 	km := KaijuMesh{
 		Name: "triangle",
 		Verts: []rendering.Vertex{
@@ -30,7 +30,7 @@ func TestKaijuMeshSerializePreservesBVH(t *testing.T) {
 	}
 	km.EnsureBVH()
 	if km.BVH == nil {
-		t.Fatal("expected mesh import data to include a BVH archive")
+		t.Fatal("expected explicit BVH archive generation to produce data")
 	}
 	data, err := km.Serialize()
 	if err != nil {
@@ -43,14 +43,13 @@ func TestKaijuMeshSerializePreservesBVH(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Extras == nil || doc.Extras.Kaiju.Blobs == nil ||
-		doc.Extras.Kaiju.Blobs.TriangleBVH == nil ||
-		doc.Extras.Kaiju.Blobs.TriangleBVH.BufferView == nil {
-		t.Fatal("expected serialized GLB to reference triangle BVH in extras.kaiju")
+	if doc.Extras == nil || doc.Extras.Kaiju.Blobs != nil {
+		t.Fatalf("serialized GLB should not reference triangle BVH blobs: %#v", doc.Extras)
 	}
-	view := doc.BufferViews[*doc.Extras.Kaiju.Blobs.TriangleBVH.BufferView]
-	if view.Target != 0 {
-		t.Fatalf("expected BVH bufferView to have no glTF target, got %d", view.Target)
+	for i := range doc.Extras.Kaiju.Meshes {
+		if doc.Extras.Kaiju.Meshes[i].Blobs != nil {
+			t.Fatalf("serialized GLB mesh %d should not reference triangle BVH blobs", i)
+		}
 	}
 	db := singleAssetDatabase{key: "mesh.glb", data: data}
 	if res, err := meshloaders.GLTF("mesh.glb", db); err != nil {
@@ -62,8 +61,8 @@ func TestKaijuMeshSerializePreservesBVH(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.BVH == nil {
-		t.Fatal("expected serialized mesh to preserve the BVH archive")
+	if loaded.BVH != nil {
+		t.Fatal("expected serialized GLB to omit the mesh triangle BVH archive")
 	}
 	bvh := loaded.GenerateBVH(nil, nil, "hit")
 	target, _, ok := bvh.RayIntersect(graviton.Ray{
@@ -71,10 +70,10 @@ func TestKaijuMeshSerializePreservesBVH(t *testing.T) {
 		Direction: matrix.Vec3{0, 0, -1},
 	}, 2)
 	if !ok {
-		t.Fatal("expected restored BVH to intersect the triangle")
+		t.Fatal("expected runtime bounds BVH to intersect the mesh bounds")
 	}
 	if target != "hit" {
-		t.Fatalf("expected restored BVH data to be hydrated, got %v", target)
+		t.Fatalf("expected runtime bounds BVH data to be hydrated, got %v", target)
 	}
 }
 
@@ -88,7 +87,6 @@ func TestKaijuMeshSerializeTextureURIs(t *testing.T) {
 		},
 		Indexes: []uint32{0, 1, 2},
 	}
-	km.EnsureBVH()
 	data, err := km.SerializeWithOptions(SerializeOptions{
 		TextureURIs: map[string]string{
 			"baseColor":         "../texture/base.png",
@@ -150,7 +148,6 @@ func TestKaijuMeshSetSerializeMultiMesh(t *testing.T) {
 			},
 		},
 	}
-	set.EnsureBVH()
 	data, err := set.SerializeWithOptions(SerializeOptions{
 		MeshTextureURIs: map[string]map[string]string{
 			"left": {"baseColor": "../texture/left.png"},
@@ -180,12 +177,8 @@ func TestKaijuMeshSetSerializeMultiMesh(t *testing.T) {
 		if extra.Key == "" {
 			t.Fatalf("extras.kaiju.meshes[%d] had no key", i)
 		}
-		if extra.Blobs == nil || extra.Blobs.TriangleBVH == nil || extra.Blobs.TriangleBVH.BufferView == nil {
-			t.Fatalf("extras.kaiju.meshes[%d] missing triangle BVH bufferView", i)
-		}
-		view := doc.BufferViews[*extra.Blobs.TriangleBVH.BufferView]
-		if view.Target != 0 {
-			t.Fatalf("expected BVH bufferView to have no target, got %d", view.Target)
+		if extra.Blobs != nil {
+			t.Fatalf("extras.kaiju.meshes[%d] should not include triangle BVH blobs", i)
 		}
 	}
 	db := singleAssetDatabase{key: "multi.glb", data: data}
@@ -205,8 +198,8 @@ func TestKaijuMeshSetSerializeMultiMesh(t *testing.T) {
 	if !ok {
 		t.Fatal("DeserializeSet could not find right submesh")
 	}
-	if right.BVH == nil {
-		t.Fatal("expected right submesh BVH to round trip")
+	if right.BVH != nil {
+		t.Fatal("expected right submesh GLB data to omit triangle BVH")
 	}
 	first, err := Deserialize(data)
 	if err != nil {
@@ -280,7 +273,6 @@ func TestKaijuMeshSerializeRoundTripSkinAnimation(t *testing.T) {
 			},
 		}},
 	}
-	km.EnsureBVH()
 	data, err := km.Serialize()
 	if err != nil {
 		t.Fatal(err)
@@ -346,8 +338,8 @@ func TestKaijuMeshSerializeRoundTripSkinAnimation(t *testing.T) {
 			}
 		}
 	}
-	if loaded.BVH == nil {
-		t.Fatal("expected skinned GLB round trip to preserve BVH")
+	if loaded.BVH != nil {
+		t.Fatal("expected skinned GLB round trip to omit triangle BVH")
 	}
 }
 
@@ -391,11 +383,22 @@ func TestKaijuMeshGenerateBVHFallsBackWhenArchiveMissing(t *testing.T) {
 		},
 		Indexes: []uint32{0, 1, 2},
 	}
-	if bvh := km.GenerateBVH(nil, nil, nil); bvh == nil {
+	bvh := km.GenerateBVH(nil, nil, "hit")
+	if bvh == nil {
 		t.Fatal("expected legacy mesh data to generate a fallback BVH")
 	}
-	if km.BVH == nil {
-		t.Fatal("expected fallback BVH generation to populate the mesh archive")
+	if km.BVH != nil {
+		t.Fatal("expected runtime BVH generation not to populate the triangle archive")
+	}
+	target, _, ok := bvh.RayIntersect(graviton.Ray{
+		Origin:    matrix.Vec3{0.25, 0.25, 1},
+		Direction: matrix.Vec3{0, 0, -1},
+	}, 2)
+	if !ok {
+		t.Fatal("expected runtime bounds BVH to intersect the mesh bounds")
+	}
+	if target != "hit" {
+		t.Fatalf("expected runtime bounds BVH data to be hydrated, got %v", target)
 	}
 }
 

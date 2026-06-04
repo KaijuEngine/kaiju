@@ -365,13 +365,16 @@ func (a AABB) Transform(m matrix.Mat4) AABB {
 func (box AABB) Bounds() AABB { return box }
 
 func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
-	mat := transform.WorldMatrix()
-	min := mat.TransformPoint(box.Min())
-	max := mat.TransformPoint(box.Max())
-	tBox := NewAABB(min.Add(max).Shrink(2.0), max.Subtract(min).Shrink(2.0))
+	tBox := box
+	if transform != nil {
+		tBox = box.Transform(transform.WorldMatrix())
+	}
 	pt, ok := tBox.RayHit(ray)
-	if ray.Origin.Distance(pt) > length {
+	if !ok {
 		return matrix.Vec3{}, false
 	}
-	return pt, ok
+	if ray.Origin.Distance(pt) > matrix.Float(length) {
+		return matrix.Vec3{}, false
+	}
+	return pt, true
 }

@@ -64,29 +64,15 @@ type meshImportPostProcData struct {
 }
 
 func serializeKaijuMeshSet(set kaiju_mesh.KaijuMeshSet) ([]byte, error) {
-	set.EnsureBVH()
 	return set.Serialize()
 }
 
 func EnsureMeshBVHInBackground(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
-	if km.BVH != nil {
-		return
-	}
-	// goroutine
-	go func() {
-		km.EnsureBVH()
-		if km.BVH == nil {
-			return
-		}
-		writeMeshBVH(km, path, fs, id)
-	}()
+	// Mesh BVHs are generated cheaply from local bounds at runtime now.
 }
 
 func SaveMeshBVHInBackground(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
-	if km.BVH == nil {
-		return
-	}
-	go writeMeshBVH(km, path, fs, id)
+	// Mesh BVHs are generated cheaply from local bounds at runtime now.
 }
 
 func writeMeshBVH(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
@@ -766,7 +752,6 @@ func (Mesh) PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *
 	for i := range data.set.Meshes {
 		data.set.Meshes[i].Material = materials[data.set.Meshes[i].Key]
 	}
-	data.set.EnsureBVH()
 	serialized, err := data.set.SerializeWithOptions(kaiju_mesh.SerializeOptions{
 		MeshTextureURIs: textureURIs,
 	})

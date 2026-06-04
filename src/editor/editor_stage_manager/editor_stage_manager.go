@@ -713,7 +713,6 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("StageManager.spawnLoadedEntity").End()
 	const rootFolder = project_file_system.ContentFolder
-	const meshFolder = project_file_system.ContentMeshFolder
 	const texFolder = project_file_system.ContentTextureFolder
 	desc := &e.StageData.Description
 	meshId := desc.Mesh
@@ -778,12 +777,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	mat = mat.CreateInstance(texs)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
 	e.StageData.Mesh = mesh
-	missingBVH := km.BVH == nil && !builtIn
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
-	if missingBVH {
-		content_database.SaveMeshBVHInBackground(km,
-			filepath.Join(rootFolder, meshFolder, meshRef.Asset), fs, meshId)
-	}
 	m.AddBVH(e)
 	host.RunOnMainThread(func() {
 		host.RunOnRenderThread(func(device *rendering.GPUDevice) {

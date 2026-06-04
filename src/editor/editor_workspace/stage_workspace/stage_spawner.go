@@ -395,7 +395,7 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	defer tracing.NewRegion("StageWorkspace.spawnMesh").End()
 	w.ed.History().BeginTransaction()
 	defer w.ed.History().CommitTransaction()
-	set, path, ok := w.readMeshSet(cc)
+	set, _, ok := w.readMeshSet(cc)
 	if !ok {
 		return
 	}
@@ -407,7 +407,7 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 			ref := kaiju_mesh.MeshRefString(cc.Id(), mesh.Key)
 			name := meshStageName(mesh.Name, mesh.Key)
 			matId := meshSubmeshMaterial(cc, mesh.Key)
-			child := w.spawnMeshEntity(name, ref, matId, *mesh, path, matrix.Vec3Zero(), parent, false)
+			child := w.spawnMeshEntity(name, ref, matId, *mesh, matrix.Vec3Zero(), parent, false)
 			if child == nil {
 				continue
 			}
@@ -422,14 +422,14 @@ func (w *StageWorkspace) spawnMesh(cc *content_database.CachedContent, point mat
 	}
 	mesh := &set.Meshes[0]
 	matId := meshSubmeshMaterial(cc, mesh.Key)
-	w.spawnMeshEntity(cc.Config.Name, cc.Id(), matId, *mesh, path, point, nil, false)
+	w.spawnMeshEntity(cc.Config.Name, cc.Id(), matId, *mesh, point, nil, false)
 }
 
 func (w *StageWorkspace) spawnSubmesh(cc *content_database.CachedContent, key string, point matrix.Vec3) {
 	defer tracing.NewRegion("StageWorkspace.spawnSubmesh").End()
 	w.ed.History().BeginTransaction()
 	defer w.ed.History().CommitTransaction()
-	set, path, ok := w.readMeshSet(cc)
+	set, _, ok := w.readMeshSet(cc)
 	if !ok {
 		return
 	}
@@ -439,7 +439,7 @@ func (w *StageWorkspace) spawnSubmesh(cc *content_database.CachedContent, key st
 		return
 	}
 	ref := kaiju_mesh.MeshRefString(cc.Id(), key)
-	w.spawnMeshEntity(meshStageName(km.Name, km.Key), ref, meshSubmeshMaterial(cc, key), km, path, point, nil, false)
+	w.spawnMeshEntity(meshStageName(km.Name, km.Key), ref, meshSubmeshMaterial(cc, key), km, point, nil, false)
 }
 
 func (w *StageWorkspace) readMeshSet(cc *content_database.CachedContent) (kaiju_mesh.KaijuMeshSet, string, bool) {
@@ -457,7 +457,7 @@ func (w *StageWorkspace) readMeshSet(cc *content_database.CachedContent) (kaiju_
 	return set, path, true
 }
 
-func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km kaiju_mesh.KaijuMesh, contentPath string, point matrix.Vec3, parent *editor_stage_manager.StageEntity, sourceLocalTransform bool) *editor_stage_manager.StageEntity {
+func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km kaiju_mesh.KaijuMesh, point matrix.Vec3, parent *editor_stage_manager.StageEntity, sourceLocalTransform bool) *editor_stage_manager.StageEntity {
 	defer tracing.NewRegion("StageWorkspace.spawnMeshEntity").End()
 	mat, err := w.Host.MaterialCache().Material(materialId)
 	if err != nil {
@@ -499,11 +499,7 @@ func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km ka
 	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(km.Verts)
 	e.StageData.Description.Mesh = meshRef
 	e.StageData.Description.Material = mat.Id
-	missingBVH := km.BVH == nil
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
-	if missingBVH {
-		content_database.SaveMeshBVHInBackground(km, contentPath, w.ed.ProjectFileSystem(), meshRef)
-	}
 	man.AddBVH(e)
 	man.RefitBVH(e)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())

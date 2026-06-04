@@ -333,7 +333,7 @@ func TestTextureImportPNGPreservesValidatedBytes(t *testing.T) {
 	}
 }
 
-func TestMeshImportKaijuGLBPreservesExistingBVH(t *testing.T) {
+func TestMeshImportKaijuGLBStripsExistingBVH(t *testing.T) {
 	pfs, importDir := newEmptyMeshImportProjectFileSystem(t, "kaiju_glb_import")
 	km := kaiju_mesh.KaijuMesh{
 		Key:  "triangle",
@@ -345,11 +345,40 @@ func TestMeshImportKaijuGLBPreservesExistingBVH(t *testing.T) {
 		},
 		Indexes: []uint32{0, 1, 2},
 	}
-	km.EnsureBVH()
 	glbData, err := km.Serialize()
 	if err != nil {
 		t.Fatal(err)
 	}
+	doc := testReadGLBJSON(t, glbData)
+	bin := slices.Clone(testReadGLBBIN(t, glbData))
+	for len(bin)%4 != 0 {
+		bin = append(bin, 0)
+	}
+	blobOffset := len(bin)
+	fakeBVHBlob := bytes.Repeat([]byte{0x7b}, 256)
+	bin = append(bin, fakeBVHBlob...)
+	bufferViews := doc["bufferViews"].([]any)
+	bvhView := len(bufferViews)
+	bufferViews = append(bufferViews, map[string]any{
+		"buffer":     0,
+		"byteOffset": blobOffset,
+		"byteLength": len(fakeBVHBlob),
+	})
+	doc["bufferViews"] = bufferViews
+	doc["buffers"] = []any{map[string]any{"byteLength": len(bin)}}
+	kaijuExtras := doc["extras"].(map[string]any)["kaiju"].(map[string]any)
+	blobRef := map[string]any{
+		"bufferView": bvhView,
+		"format":     "kaiju.triangle_bvh.le.v1",
+	}
+	kaijuExtras["blobs"] = map[string]any{"triangleBVH": blobRef}
+	meshExtras := kaijuExtras["meshes"].([]any)
+	meshExtras[0].(map[string]any)["blobs"] = map[string]any{"triangleBVH": blobRef}
+	glbData, err = meshFastEncodeGLB(doc, bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceBinLen := len(testReadGLBBIN(t, glbData))
 	if err := pfs.WriteFile(filepath.Join(importDir, "kaiju.glb"), glbData, os.ModePerm); err != nil {
 		t.Fatalf("failed to write kaiju.glb: %v", err)
 	}
@@ -370,8 +399,20 @@ func TestMeshImportKaijuGLBPreservesExistingBVH(t *testing.T) {
 	if len(set.Meshes) != 1 {
 		t.Fatalf("DeserializeSet meshes = %d, want 1", len(set.Meshes))
 	}
-	if set.Meshes[0].BVH == nil {
-		t.Fatal("fast importing a Kaiju GLB dropped the existing BVH")
+	if set.Meshes[0].BVH != nil {
+		t.Fatal("fast importing a Kaiju GLB preserved a triangle BVH")
+	}
+	importedDoc := testReadGLBJSON(t, data)
+	importedKaiju := importedDoc["extras"].(map[string]any)["kaiju"].(map[string]any)
+	if _, ok := importedKaiju["blobs"]; ok {
+		t.Fatalf("imported GLB kept top-level BVH blob metadata: %#v", importedKaiju["blobs"])
+	}
+	importedMeshes := importedKaiju["meshes"].([]any)
+	if _, ok := importedMeshes[0].(map[string]any)["blobs"]; ok {
+		t.Fatalf("imported GLB kept mesh BVH blob metadata: %#v", importedMeshes[0])
+	}
+	if got := len(testReadGLBBIN(t, data)); got >= sourceBinLen {
+		t.Fatalf("imported GLB BIN length = %d, want less than source %d after stripping BVH", got, sourceBinLen)
 	}
 }
 
