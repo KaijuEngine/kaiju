@@ -244,6 +244,9 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 	if w.UiMan.Group.HasRequests() {
 		return
 	}
+	if !w.IsFocusedOnInput() {
+		w.hierarchyUI.updateKeyboardSelection()
+	}
 	w.detailsUI.update()
 	w.stageView.Update(deltaTime, w.ed.Project())
 	w.cameraPreview.updatePlacement(w)

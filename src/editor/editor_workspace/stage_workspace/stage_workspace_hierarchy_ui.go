@@ -20,6 +20,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
@@ -284,6 +285,86 @@ func (hui *WorkspaceHierarchyUI) hierarchyRows() []*document.Element {
 		collect(hui.entityList.Children[i])
 	}
 	return rows
+}
+
+func (hui *WorkspaceHierarchyUI) updateKeyboardSelection() bool {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.updateKeyboardSelection").End()
+	w := hui.workspace.Value()
+	if w == nil || !elementIsActive(hui.hierarchyArea) {
+		return false
+	}
+	kb := &w.Host.Window.Keyboard
+	if kb.HasModifier() {
+		return false
+	}
+	direction := 0
+	if kb.KeyDown(hid.KeyboardKeyUp) {
+		direction = -1
+	} else if kb.KeyDown(hid.KeyboardKeyDown) {
+		direction = 1
+	}
+	if direction == 0 {
+		return false
+	}
+	man := w.stageView.Manager()
+	if !man.HasSelection() {
+		return false
+	}
+	rows := hui.selectableHierarchyRows()
+	if len(rows) == 0 {
+		return false
+	}
+	selected := man.LastSelected()
+	selectedId := selected.StageData.Description.Id
+	idx := -1
+	for i, row := range rows {
+		if row.Attribute("id") == selectedId {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		if direction > 0 {
+			idx = -1
+		} else {
+			idx = len(rows)
+		}
+	}
+	next := idx + direction
+	if next < 0 || next >= len(rows) {
+		return false
+	}
+	man.SelectEntityById(rows[next].Attribute("id"))
+	return true
+}
+
+func (hui *WorkspaceHierarchyUI) selectableHierarchyRows() []*document.Element {
+	defer tracing.NewRegion("WorkspaceHierarchyUI.selectableHierarchyRows").End()
+	w := hui.workspace.Value()
+	if w == nil {
+		return nil
+	}
+	man := w.stageView.Manager()
+	rows := hui.hierarchyRows()
+	selectable := make([]*document.Element, 0, len(rows))
+	for _, row := range rows {
+		entity, ok := man.EntityById(row.Attribute("id"))
+		if !ok || entity.IsDeleted() || entity.IsLocked() || !hui.hierarchyRowVisible(row) {
+			continue
+		}
+		selectable = append(selectable, row)
+	}
+	return selectable
+}
+
+func (hui *WorkspaceHierarchyUI) hierarchyRowVisible(row *document.Element) bool {
+	for row != nil && row != hui.entityList {
+		if row.UI == nil || !row.UI.IsActive() {
+			return false
+		}
+		row = row.Parent.Value()
+	}
+	return true
 }
 
 func (hui *WorkspaceHierarchyUI) entityToggleChildren(e *document.Element) {
