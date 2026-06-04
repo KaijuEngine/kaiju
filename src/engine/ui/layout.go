@@ -86,9 +86,6 @@ func (l *Layout) ClearStyles() {
 	l.flexOrder = 0
 	l.alignSelf = FlexAlignAuto
 	l.positioning = PositioningStatic
-	if ps.X() > 0 && ps.Y() > 0 {
-		l.Scale(ps.X(), ps.Y())
-	}
 }
 
 func (l *Layout) PixelSize() matrix.Vec2 {
