@@ -81,10 +81,8 @@ func (host *Host) captureRenderLights() rendering.LightsForRender {
 		Lights:     append([]rendering.Light(nil), host.lighting.Lights.Cache...),
 		HasChanges: host.lighting.Lights.HasChanges(),
 	}
-	for i := range host.lighting.Lights.Cache {
-		if host.lighting.Lights.Cache[i].ResetFrameDirty() {
-			lights.HasChanges = true
-		}
+	if host.lighting.Lights.ConsumeFrameDirty() {
+		lights.HasChanges = true
 	}
 	return lights
 }

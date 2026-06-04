@@ -22,64 +22,117 @@ import (
 
 func (p *ContentPreviewer) renderMesh(id string) {
 	defer tracing.NewRegion("ContentPreviewer.renderMesh").End()
-	km, err := readMesh(id, p.ed)
+	set, err := readMeshSet(id, p.ed)
 	if err != nil {
 		slog.Error("failed to generate a preview for mesh", "id", id, "error", err)
 		p.completeProc()
 		return
 	}
 	host := p.ed.Host()
-	adjustMeshColorAndLocation(p.cam, &km)
-	mesh := rendering.NewMesh("tmp", km.Verts, km.Indexes)
-	sd := shader_data_registry.Create(p.mat.Shader.ShaderDataName())
-	sd.(*shader_data_registry.ShaderDataEdThumbPreviewMesh).SetCamera(
-		p.cam.View(), p.cam.Projection())
-	draw := rendering.Drawing{
-		Material:   p.mat,
-		Mesh:       mesh,
-		ShaderData: sd,
+	adjustMeshSetColorAndLocation(p.cam, &set)
+	meshes := make([]*rendering.Mesh, 0, len(set.Meshes))
+	shaderData := make([]rendering.DrawInstance, 0, len(set.Meshes))
+	for i := range set.Meshes {
+		km := &set.Meshes[i]
+		if len(km.Verts) == 0 || len(km.Indexes) == 0 {
+			continue
+		}
+		mesh := rendering.NewMesh(fmt.Sprintf("tmp_%s_%d", id, i), km.Verts, km.Indexes)
+		sd := shader_data_registry.Create(p.mat.Shader.ShaderDataName())
+		sd.(*shader_data_registry.ShaderDataEdThumbPreviewMesh).SetCamera(
+			p.cam.View(), p.cam.Projection())
+		draw := rendering.Drawing{
+			Material:   p.mat,
+			Mesh:       mesh,
+			ShaderData: sd,
+		}
+		host.Drawings.AddDrawing(draw)
+		meshes = append(meshes, mesh)
+		shaderData = append(shaderData, sd)
 	}
-	host.Drawings.AddDrawing(draw)
+	if len(meshes) == 0 {
+		slog.Error("failed to generate a preview for mesh with no drawable submeshes", "id", id)
+		p.completeProc()
+		return
+	}
 	host.RunBeforeRender(func() {
-		mesh.DelayedCreate(host.Window.GpuInstance.PrimaryDevice())
-		p.readRenderPassAfterNextRender(host, sd, id)
+		for _, mesh := range meshes {
+			mesh.DelayedCreate(host.Window.GpuInstance.PrimaryDevice())
+		}
+		p.readRenderPassAfterNextRender(host, id, shaderData...)
 	})
 }
 
-func readMesh(id string, ed EditorInterface) (kaiju_mesh.KaijuMesh, error) {
-	defer tracing.NewRegion("content_previews.readMesh").End()
-	cc, err := ed.Cache().Read(id)
+func readMeshSet(id string, ed EditorInterface) (kaiju_mesh.KaijuMeshSet, error) {
+	defer tracing.NewRegion("content_previews.readMeshSet").End()
+	ref := kaiju_mesh.ParseMeshRef(id)
+	cc, err := ed.Cache().Read(ref.Asset)
 	if err != nil {
-		return kaiju_mesh.KaijuMesh{}, err
+		return kaiju_mesh.KaijuMeshSet{}, err
 	}
 	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
-		return kaiju_mesh.KaijuMesh{},
+		return kaiju_mesh.KaijuMeshSet{},
 			fmt.Errorf("can't generate a mesh preview image for content, the provided id '%s' is not a mesh", id)
 	}
 	data, err := ed.ProjectFileSystem().ReadFile(cc.ContentPath())
 	if err != nil {
-		return kaiju_mesh.KaijuMesh{}, err
+		return kaiju_mesh.KaijuMeshSet{}, err
 	}
-	return kaiju_mesh.Deserialize(data)
+	set, err := kaiju_mesh.DeserializeSet(data)
+	if err != nil {
+		return kaiju_mesh.KaijuMeshSet{}, err
+	}
+	if ref.Key == "" {
+		return set, nil
+	}
+	mesh, ok := set.MeshByKey(ref.Key)
+	if !ok {
+		return kaiju_mesh.KaijuMeshSet{}, fmt.Errorf("mesh %q not found in %q", ref.Key, ref.Asset)
+	}
+	return kaiju_mesh.KaijuMeshSet{Name: set.Name, Meshes: []kaiju_mesh.KaijuMesh{mesh}}, nil
 }
 
 func adjustMeshColorAndLocation(cam cameras.Camera, km *kaiju_mesh.KaijuMesh) {
 	defer tracing.NewRegion("content_previews.adjustMeshColorAndLocation").End()
-	offset := matrix.Vec3Zero()
-	points := make([]matrix.Vec3, len(km.Verts))
-	for i := range km.Verts {
-		km.Verts[i].Color = matrix.ColorSlateGrey()
-		points[i] = km.Verts[i].Position
-		offset.AddAssign(km.Verts[i].Position)
+	set := kaiju_mesh.KaijuMeshSet{Meshes: []kaiju_mesh.KaijuMesh{*km}}
+	adjustMeshSetColorAndLocation(cam, &set)
+	if len(set.Meshes) > 0 {
+		*km = set.Meshes[0]
 	}
-	offset = offset.Shrink(matrix.Float(len(km.Verts))).Negative()
-	for i := range km.Verts {
-		points[i].AddAssign(offset)
+}
+
+func adjustMeshSetColorAndLocation(cam cameras.Camera, set *kaiju_mesh.KaijuMeshSet) {
+	defer tracing.NewRegion("content_previews.adjustMeshSetColorAndLocation").End()
+	pointCount := 0
+	for meshIndex := range set.Meshes {
+		pointCount += len(set.Meshes[meshIndex].Verts)
+	}
+	if pointCount == 0 {
+		return
+	}
+	points := make([]matrix.Vec3, 0, pointCount)
+	center := matrix.Vec3Zero()
+	for meshIndex := range set.Meshes {
+		km := &set.Meshes[meshIndex]
+		for vertIndex := range km.Verts {
+			km.Verts[vertIndex].Color = matrix.ColorSlateGrey()
+			points = append(points, km.Verts[vertIndex].Position)
+			center.AddAssign(km.Verts[vertIndex].Position)
+		}
+	}
+	center = center.Shrink(matrix.Float(len(points)))
+	centerOffset := center.Negative()
+	for i := range points {
+		points[i].AddAssign(centerOffset)
 	}
 	box := graviton.AABBFromPoints(points)
-	offset = cam.Position()
-	offset.AddAssign(cam.Forward().Scale(box.Size().Length() * 1.35))
-	for i := range km.Verts {
-		km.Verts[i].Position = points[i].Add(offset)
+	previewOffset := cam.Position()
+	previewOffset.AddAssign(cam.Forward().Scale(box.Size().Length() * 1.35))
+	for meshIndex := range set.Meshes {
+		km := &set.Meshes[meshIndex]
+		for vertIndex := range km.Verts {
+			km.Verts[vertIndex].Position.AddAssign(centerOffset)
+			km.Verts[vertIndex].Position.AddAssign(previewOffset)
+		}
 	}
 }

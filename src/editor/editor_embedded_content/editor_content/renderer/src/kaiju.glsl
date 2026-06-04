@@ -308,12 +308,18 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	void calcVertexLightInformation() {
 	#if defined(LAYOUT_FRAG_LIGHT_COUNT) && defined(LAYOUT_FRAG_LIGHT_T_POS) && defined(LAYOUT_FRAG_LIGHT_T_DIR) && defined(LAYOUT_FRAG_POS_LIGHT_SPACE) && defined(LAYOUT_FRAG_LIGHT_INDEXES) && defined(LAYOUT_FRAG_LIGHT_COUNT) && defined(LAYOUT_FRAG_TANGENT_VIEW_POS) && defined(LAYOUT_FRAG_TANGENT_FRAG_POS) && defined(LAYOUT_FRAG_NORMAL)
 		mat3 nmlMat = transpose(inverse(mat3(model)));
-		vec3 T = normalize(nmlMat * Tangent.xyz);
 		vec3 N = normalize(nmlMat * Normal);
-		// re-orthogonalize T with respect to N
-		T = normalize(T - dot(T, N) * N);
+		vec3 T = nmlMat * Tangent.xyz;
+		if (dot(T, T) <= 0.00000001) {
+			vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+			T = normalize(cross(up, N));
+		} else {
+			T = normalize(T);
+			// re-orthogonalize T with respect to N
+			T = normalize(T - dot(T, N) * N);
+		}
 		// then retrieve perpendicular vector B with the cross product of T and N
-		vec3 B = cross(N, T);
+		vec3 B = cross(N, T) * (Tangent.w < 0.0 ? -1.0 : 1.0);
 		mat3 TBN = transpose(mat3(T, B, N));
 		fragLightCount = 0;
 		for (int i = 0; i < NR_LIGHTS; ++i) {

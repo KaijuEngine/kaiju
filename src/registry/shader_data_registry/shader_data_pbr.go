@@ -18,6 +18,7 @@ func init() {
 		return &ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
+			MeRoEmAo:       matrix.NewVec4(1, 1, 0, 1),
 			LightIds:       [...]int32{-1, -1, -1, -1},
 		}
 	}, "pbr")
@@ -37,21 +38,27 @@ func (t ShaderDataPBR) Size() int {
 }
 
 func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender) {
+	selectPBRLights(&s.ShaderDataBase, &s.LightIds, lights)
+}
+
+func selectPBRLights(base *rendering.ShaderDataBase, ids *[4]int32, lights rendering.LightsForRender) {
 	shouldUpdate := lights.HasChanges
-	t := s.Transform()
+	t := base.Transform()
 	shouldUpdate = shouldUpdate || (t != nil && t.IsDirty())
 	if !shouldUpdate {
 		return
 	}
-	// TODO:  This is for testing, should select closest
-	for i := range s.LightIds {
-		s.LightIds[i] = -1
+	for i := range ids {
+		ids[i] = -1
 	}
+	slot := 0
 	for i := range lights.Lights {
-		if lights.Lights[i].IsValid() {
-			s.LightIds[i] = int32(i)
-		} else {
+		if slot >= len(ids) {
 			break
+		}
+		if lights.Lights[i].IsValid() {
+			ids[slot] = int32(i)
+			slot++
 		}
 	}
 }

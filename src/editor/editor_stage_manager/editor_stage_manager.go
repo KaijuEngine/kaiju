@@ -720,17 +720,16 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	materialId := desc.Material
 	textureIds := desc.Textures
 	var km kaiju_mesh.KaijuMesh
+	var err error
 	var builtIn bool
-	if km.Verts, km.Indexes, builtIn = rendering.BuiltInMeshData(meshId); !builtIn {
-		meshPath := filepath.Join(rootFolder, meshFolder, meshId)
-		kmData, err := fs.ReadFile(meshPath)
+	meshRef := kaiju_mesh.ParseMeshRef(meshId)
+	if meshRef.Key == "" {
+		km.Verts, km.Indexes, builtIn = rendering.BuiltInMeshData(meshId)
+	}
+	if !builtIn {
+		km, err = kaiju_mesh.ReadMesh(meshId, host)
 		if err != nil {
 			slog.Error("failed to load the mesh data", "id", meshId, "error", err)
-			return err
-		}
-		km, err = kaiju_mesh.Deserialize(kmData)
-		if err != nil {
-			slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
 			return err
 		}
 	}
@@ -765,9 +764,10 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		}
 		texs = append(texs, tex)
 	}
-	// TODO:  This should be based on the rendering.MaterialData texture count
 	if len(textureIds) == 0 {
-		slog.Warn("missing textures for mesh, using a fallback one")
+		texs = append(texs, mat.Textures...)
+	}
+	if len(texs) == 0 {
 		tex, err := host.TextureCache().Texture(assets.TextureSquare,
 			rendering.TextureFilterLinear)
 		if err != nil {
@@ -782,7 +782,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
 	if missingBVH {
 		content_database.SaveMeshBVHInBackground(km,
-			filepath.Join(rootFolder, meshFolder, meshId), fs, meshId)
+			filepath.Join(rootFolder, meshFolder, meshRef.Asset), fs, meshId)
 	}
 	m.AddBVH(e)
 	host.RunOnMainThread(func() {

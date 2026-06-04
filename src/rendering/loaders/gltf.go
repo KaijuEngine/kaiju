@@ -667,6 +667,10 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF, primitive int, workers in
 	if err != nil {
 		return []rendering.Vertex{}, err
 	}
+	col0, hasCol0, err := gltfPrimitiveAccessor(doc, prim, gltf.COLOR_0)
+	if err != nil {
+		return []rendering.Vertex{}, err
+	}
 	jnt0, hasJnt0, err := gltfPrimitiveAccessor(doc, prim, gltf.JOINTS_0)
 	if err != nil {
 		return []rendering.Vertex{}, err
@@ -710,6 +714,15 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF, primitive int, workers in
 			return []rendering.Vertex{}, err
 		}
 		if err = gltfValidateAccessorCount(tex1, vertCount, "texcoord1"); err != nil {
+			return []rendering.Vertex{}, err
+		}
+	}
+	if hasCol0 {
+		if col0.accessor.ComponentType != gltf.FLOAT ||
+			(col0.accessor.Type != gltf.VEC3 && col0.accessor.Type != gltf.VEC4) {
+			return []rendering.Vertex{}, errors.New("COLOR_0 must be FLOAT VEC3 or VEC4")
+		}
+		if err = gltfValidateAccessorCount(col0, vertCount, "color0"); err != nil {
 			return []rendering.Vertex{}, err
 		}
 	}
@@ -791,6 +804,18 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF, primitive int, workers in
 				}
 			} else {
 				vertData[i].UV0 = matrix.Vec2Zero()
+			}
+			if hasCol0 {
+				alpha := matrix.Float(1)
+				if col0.componentCount >= 4 {
+					alpha = col0.float(i, 3)
+				}
+				vertData[i].Color = matrix.Color{
+					col0.float(i, 0),
+					col0.float(i, 1),
+					col0.float(i, 2),
+					alpha,
+				}
 			}
 			for vertData[i].UV0.X() > 1.0 {
 				vertData[i].UV0[matrix.Vx] -= 1.0

@@ -8,9 +8,11 @@ package assets
 
 // Textures
 const (
-	TextureSquare      = "square.png"
-	TextureCube        = "cube.png"
-	TextureBlankSquare = "blank_square.png"
+	TextureSquare                  = "square.png"
+	TextureCube                    = "cube.png"
+	TextureBlankSquare             = "blank_square.png"
+	TexturePBRDefaultNormal        = "pbr_default_normal.png"
+	TexturePBRDefaultMetallicRough = "pbr_default_metallic_roughness.png"
 )
 
 // Material definitions

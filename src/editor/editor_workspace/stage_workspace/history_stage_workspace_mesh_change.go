@@ -16,6 +16,9 @@ type detailsMeshChangeHistory struct {
 	toMeshId   string
 	fromMatId  string
 	toMatId    string
+	fromTexIds []string
+	toTexIds   []string
+	toStateSet bool
 }
 
 func (h *detailsMeshChangeHistory) apply(meshId string) bool {
@@ -33,10 +36,15 @@ func (h *detailsMeshChangeHistory) apply(meshId string) bool {
 	}
 	switch meshId {
 	case h.fromMeshId:
-		h.entity.StageData.Description.Material = h.fromMatId
+		if !h.workspace.setEntityMaterial(h.entity, h.fromMatId, h.fromTexIds) {
+			return false
+		}
 	case h.toMeshId:
-		if h.toMatId != "" {
-			h.entity.StageData.Description.Material = h.toMatId
+		if !h.toStateSet {
+			break
+		}
+		if !h.workspace.setEntityMaterial(h.entity, h.toMatId, h.toTexIds) {
+			return false
 		}
 	}
 	if h.detailsUI != nil {

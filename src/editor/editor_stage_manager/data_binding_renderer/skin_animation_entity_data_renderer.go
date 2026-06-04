@@ -107,14 +107,11 @@ func (c *SkinAnimationEntityDataRenderer) bindSkin(host *engine.Host, target *ed
 	meshId := string(data.FieldValueByName("MeshId").(content_id.Mesh))
 	g := c.Skins[target]
 	if len(g.animations) == 0 {
-		if !host.AssetDatabase().Exists(meshId) {
+		meshAsset := kaiju_mesh.ParseMeshRef(meshId).Asset
+		if !host.AssetDatabase().Exists(meshAsset) {
 			return
 		}
-		meshData, err := host.AssetDatabase().Read(meshId)
-		if err != nil {
-			return
-		}
-		km, err := kaiju_mesh.Deserialize(meshData)
+		km, err := kaiju_mesh.ReadMesh(meshId, host)
 		if err != nil {
 			return
 		}

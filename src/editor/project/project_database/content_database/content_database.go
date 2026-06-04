@@ -85,7 +85,11 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	dependencyMap := map[string][]ImportResult{}
 	for i := range proc.Variants {
 		res[i].Category = cat
-		res[i].generateUniqueFileId(fs, filepath.Ext(path))
+		storedExt := filepath.Ext(path)
+		if ext, ok := cat.(storedExtensionNamer); ok {
+			storedExt = ext.StoredExtName(path)
+		}
+		res[i].generateUniqueFileId(fs, storedExt)
 		if useLinkedId && linkedId == "" {
 			linkedId = res[i].Id
 		}
@@ -123,12 +127,15 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			} else {
 				var deps []ImportResult
 				deps, err = Import(proc.Dependencies[j], fs, cache, linkedId)
-				res[i].Dependencies = append(res[i].Dependencies, deps...)
-				dependencyMap[proc.Dependencies[j]] = res[i].Dependencies
 				if err != nil {
 					break
 				}
+				res[i].Dependencies = append(res[i].Dependencies, deps...)
+				dependencyMap[proc.Dependencies[j]] = deps
 			}
+		}
+		if err != nil {
+			return res, err
 		}
 		cache.Index(res[i].ConfigPath().String(), fs)
 		if err = cat.PostImportProcessing(proc, &res[i], fs, cache, linkedId); err != nil {

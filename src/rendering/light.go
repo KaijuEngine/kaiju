@@ -180,7 +180,7 @@ func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *Materia
 	return light
 }
 
-func (l *Light) FrameDirty() bool { return l.reset }
+func (l *Light) FrameDirty() bool { return l.frameDirty || l.reset }
 
 func (l *Light) Type() LightType { return l.lightType }
 func (l *Light) IsValid() bool   { return l.device != nil }
@@ -407,8 +407,9 @@ func (l *Light) SetCastsShadows(castsShadows bool) {
 }
 
 func (l *Light) ResetFrameDirty() bool {
-	wasReset := l.frameDirty
+	wasReset := l.frameDirty || l.reset
 	l.frameDirty = false
+	l.reset = false
 	return wasReset
 }
 

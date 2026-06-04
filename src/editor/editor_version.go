@@ -6,4 +6,4 @@
 
 package editor
 
-const EditorVersion float64 = 0.0018
+const EditorVersion float64 = 0.0019

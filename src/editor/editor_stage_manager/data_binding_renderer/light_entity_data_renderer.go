@@ -114,7 +114,10 @@ func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_m
 }
 
 func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	l := c.Lights[target]
+	l, ok := c.Lights[target]
+	if !ok || l.light == nil {
+		return
+	}
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	if l.light.Type() != lightType {
 		host.RunOnRenderThread(func(device *rendering.GPUDevice) {

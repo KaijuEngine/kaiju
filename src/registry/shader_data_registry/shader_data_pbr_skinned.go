@@ -18,6 +18,7 @@ func init() {
 		return &ShaderDataPbrSkinned{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
+			MeRoEmAo:       matrix.NewVec4(1, 1, 0, 1),
 			LightIds:       [...]int32{-1, -1, -1, -1},
 		}
 	}, "pbr_skinned")
@@ -39,6 +40,10 @@ func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHead
 
 func (t ShaderDataPbrSkinned) Size() int {
 	return int(unsafe.Sizeof(ShaderDataPbrSkinned{}) - rendering.ShaderBaseDataStart)
+}
+
+func (s *ShaderDataPbrSkinned) SelectLights(lights rendering.LightsForRender) {
+	selectPBRLights(&s.ShaderDataBase, &s.LightIds, lights)
 }
 
 func (t *ShaderDataPbrSkinned) InstanceBoundDataSize() int {

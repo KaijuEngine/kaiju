@@ -60,12 +60,29 @@ func (c *LightCollection) setHasChanges() {
 
 func (c *LightCollection) Clear() {
 	c.pools.Clear()
+	c.setHasChanges()
 }
 
 func (c *LightCollection) HasChanges() bool {
 	changes := c.hasChanges
 	c.hasChanges = false
 	return changes
+}
+
+func (c *LightCollection) HasFrameDirty() bool {
+	dirty := false
+	c.pools.Each(func(elm *LightEntry) {
+		dirty = dirty || elm.Light.FrameDirty()
+	})
+	return dirty
+}
+
+func (c *LightCollection) ConsumeFrameDirty() bool {
+	dirty := false
+	c.pools.Each(func(elm *LightEntry) {
+		dirty = elm.Light.ResetFrameDirty() || dirty
+	})
+	return dirty
 }
 
 func (c *LightCollection) UpdateCache(point matrix.Vec3) []rendering.Light {
@@ -80,11 +97,11 @@ func (c *LightCollection) findLocalLights(point matrix.Vec3, writeTo []rendering
 	defer tracing.NewRegion("LightCollection.FindClosest").End()
 	const moveDistanceToRecalculate = 1
 	debug.Assert(len(writeTo) > 0, "you can not use an empty slice for LightCollection.FindClosest")
-	if !matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
+	if c.hasChanges || c.HasFrameDirty() || !matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
 		c.itrDists = klib.WipeSlice(c.itrDists)
 		c.pools.Each(func(elm *LightEntry) {
 			if elm.Type() != rendering.LightTypeDirectional {
-				elm.lastDist = point.Subtract(elm.Transform.Position()).Length()
+				elm.lastDist = point.Subtract(elm.Transform.WorldPosition()).Length()
 			}
 			c.itrDists = append(c.itrDists, elm)
 		})
