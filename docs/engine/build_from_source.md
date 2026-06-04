@@ -34,7 +34,7 @@ Expected output: amd64
 - Pull the repository
 - Go into src `cd src`
 - To build the exe in debug mode, run:
-  - `go build -tags="debug,editor,filedrop" -o ../ ./`
+  - `go build -tags="debug,editor,filedrop,filedialog" -o ../ ./`
 - To build the exe, run:
   - `go build -ldflags="-s -w" -tags="editor" -o ../ ./`
 
@@ -47,7 +47,7 @@ you'll need to install the [DirectX runtime from Microsoft](https://www.microsof
 - Pull the repository
 - Go into src `cd src`
 - To build the exe in debug mode, run:
-  - `go build -tags="debug,editor,filedrop" -o ../ ./`
+  - `go build -tags="debug,editor,filedrop,filedialog" -o ../ ./`
 - To build the exe, run:
   - `go build -ldflags="-s -w" -tags="editor" -o ../ ./`
 
@@ -62,7 +62,7 @@ you'll need to install the [DirectX runtime from Microsoft](https://www.microsof
 - Pull the repository
 - Go into src: `cd src`
 - To build the editor in debug mode, run:
-  - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -tags="debug,editor,filedrop" -o ../bin/kaiju`
+  - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -tags="debug,editor,filedrop,filedialog" -o ../bin/kaiju`
 - To build the editor, run:
   - `CGO_ENABLED=1 CGO_CFLAGS="-I$VULKAN_SDK/include" CGO_LDFLAGS="-L$VULKAN_SDK/lib -lMoltenVK -Wl,-rpath,$VULKAN_SDK/lib" go build -ldflags="-s -w" -tags="editor" -o ../bin/kaiju`
 

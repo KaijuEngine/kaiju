@@ -2,7 +2,7 @@
   <configuration default="false" name="Build &amp; Run Debug" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="kaiju" />
     <working_directory value="$PROJECT_DIR$/src" />
-    <go_parameters value="-tags=&quot;debug,editor&quot;" />
+    <go_parameters value="-tags=&quot;debug,editor,filedrop,filedialog&quot;" />
     <useCustomBuildTags value="true" />
     <kind value="DIRECTORY" />
     <package value="kaijuengine.com" />

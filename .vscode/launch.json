@@ -11,7 +11,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
+			"buildFlags": "-tags=debug,editor,filedrop,filedialog,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
 			}
@@ -23,7 +23,7 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"args": ["-trace"],
-			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
+			"buildFlags": "-tags=debug,editor,filedrop,filedialog,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
 			}
@@ -34,7 +34,7 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=editor,filedrop",
+			"buildFlags": "-tags=editor,filedrop,filedialog",
 			"env": {
 				"CGO_ENABLED": "1",
 			}
