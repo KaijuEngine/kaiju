@@ -14,12 +14,10 @@ import (
 
 	"kaijuengine.com/editor/editor_overlay/context_menu"
 	"kaijuengine.com/editor/editor_stage_manager"
-	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
-	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
@@ -178,51 +176,7 @@ func (hui *WorkspaceHierarchyUI) removeEntityFromParent(entity *editor_stage_man
 
 func (hui *WorkspaceHierarchyUI) alignEntityWithView(entity *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceHierarchyUI.alignEntityWithView").End()
-	if entity == nil || entity.IsDeleted() || entity.IsLocked() {
-		return
-	}
-	w := hui.workspace.Value()
-	cam := w.Host.PrimaryCamera()
-	position := cam.Position()
-	rotation := viewAlignedRotation(cam.Up(), cam.Forward())
-	posHistory := &detailTransformHistory{
-		entities:      []*editor_stage_manager.StageEntity{entity},
-		transformType: transformHistoryTypePosition,
-		prevValues:    []matrix.Vec3{entity.Transform.Position()},
-	}
-	rotHistory := &detailTransformHistory{
-		entities:      []*editor_stage_manager.StageEntity{entity},
-		transformType: transformHistoryTypeRotation,
-		prevValues:    []matrix.Vec3{entity.Transform.Rotation()},
-	}
-	history := w.ed.History()
-	history.BeginTransaction()
-	defer history.CommitTransaction()
-	entity.Transform.SetWorldPosition(position)
-	entity.Transform.SetWorldRotation(rotation)
-	posHistory.nextValues = []matrix.Vec3{entity.Transform.Position()}
-	rotHistory.nextValues = []matrix.Vec3{entity.Transform.Rotation()}
-	history.Add(posHistory)
-	history.Add(rotHistory)
-	man := w.stageView.Manager()
-	man.RefitBVH(entity)
-	for _, db := range entity.DataBindings() {
-		data_binding_renderer.Updated(db, weak.Make(w.Host), entity)
-	}
-}
-
-func viewAlignedRotation(up, forward matrix.Vec3) matrix.Vec3 {
-	forward = forward.Normal()
-	up = up.Normal()
-	right := matrix.Vec3Cross(up, forward).Normal()
-	up = matrix.Vec3Cross(forward, right).Normal()
-	rot := matrix.Mat4{
-		right.X(), right.Y(), right.Z(), 0,
-		up.X(), up.Y(), up.Z(), 0,
-		forward.X(), forward.Y(), forward.Z(), 0,
-		0, 0, 0, 1,
-	}
-	return rot.ExtractRotation().ToEuler()
+	hui.workspace.Value().AlignEntityWithView(entity)
 }
 
 func (hui *WorkspaceHierarchyUI) selectEntityRange(id string) {

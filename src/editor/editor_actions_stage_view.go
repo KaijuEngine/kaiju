@@ -22,6 +22,7 @@ const (
 	ActionStageToggleDetailsPanel   editor_action.ActionID = "stage.toggleDetailsPanel"
 	ActionStageRenameActor          editor_action.ActionID = "stage.renameActor"
 	ActionStageFocusSelection       editor_action.ActionID = "stage.focusSelection"
+	ActionStageAlignWithView        editor_action.ActionID = "stage.alignWithView"
 	ActionStageTransformMove        editor_action.ActionID = "stage.transformMove"
 	ActionStageTransformRotate      editor_action.ActionID = "stage.transformRotate"
 	ActionStageTransformScale       editor_action.ActionID = "stage.transformScale"
@@ -130,6 +131,16 @@ func registerStageViewActions(ed *Editor, mustRegister editorActionRegistrar) {
 		Visible:           true,
 		RequiredWorkspace: stage_workspace.ID,
 	}, ed.actionFocusSelection, ed.stageSelectionCanRun)
+	mustRegister(editor_action.Definition{
+		ID:                ActionStageAlignWithView,
+		Label:             "Align with view",
+		Description:       "Moves and rotates the selected stage actor to match the current viewport camera.",
+		Category:          "Stage",
+		Tags:              []string{"actor", "entity", "selection", "align", "view", "camera", "viewport"},
+		UndoPolicy:        editor_action.UndoPolicyManaged,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionAlignWithView, ed.stageSingleSelectionCanRun)
 	mustRegister(editor_action.Definition{
 		ID:          ActionStageTransformMove,
 		Label:       "Move Tool",
@@ -292,6 +303,14 @@ func (ed *Editor) actionFocusSelection(editor_action.Context, editor_action.Requ
 		return editor_action.Failure("stage selection was not focused")
 	}
 	return stageSelectionResult("stage selection focused", ed.stageView.Manager().Selection())
+}
+
+func (ed *Editor) actionAlignWithView(editor_action.Context, editor_action.Request) editor_action.Result {
+	entity, ok := ed.StageWorkspace().AlignSelectedEntityWithView()
+	if !ok {
+		return editor_action.Failure("stage selection was not aligned with view")
+	}
+	return stageResult("stage selection aligned with view", entity, ed.stageView.Manager().Selection())
 }
 
 func (ed *Editor) actionTransformMove(editor_action.Context, editor_action.Request) editor_action.Result {
