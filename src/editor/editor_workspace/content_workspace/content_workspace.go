@@ -73,6 +73,7 @@ type ContentWorkspace struct {
 	tooltipLabel       *ui.Label
 	pageData           WorkspaceUIData
 	isListMode         bool
+	contentLoader      BatchedContentLoader
 	audio              ContentAudioView
 	info               struct {
 		multiSelectNote  *document.Element
@@ -99,6 +100,7 @@ func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.pfs = ed.ProjectFileSystem()
 	w.cache = ed.Cache()
 	w.editor = ed
+	w.contentLoader.Configure(host, DefaultContentLoadBatchSize, w.addContentBatch)
 	w.audio.workspace = weak.Make(w)
 	ids := w.pageData.SetupUIData(w.cache)
 	if err := w.CommonWorkspace.InitializeWithUI(host,
@@ -171,6 +173,7 @@ func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 // disabling/re-enabling within a session becomes a hot path.)
 func (w *ContentWorkspace) Shutdown() {
 	defer tracing.NewRegion("ContentWorkspace.Shutdown").End()
+	w.contentLoader.Stop()
 	w.CommonShutdown()
 }
 
@@ -309,6 +312,11 @@ func (w *ContentWorkspace) toggleListView(e *document.Element) {
 
 func (w *ContentWorkspace) addContent(ids []string) {
 	defer tracing.NewRegion("ContentWorkspace.addContent").End()
+	w.contentLoader.Enqueue(ids)
+}
+
+func (w *ContentWorkspace) addContentBatch(ids []string) {
+	defer tracing.NewRegion("ContentWorkspace.addContentBatch").End()
 	if len(ids) == 0 {
 		return
 	}
@@ -336,9 +344,9 @@ func (w *ContentWorkspace) addContent(ids []string) {
 		lbl := cpys[i].Children[1].InnerLabel()
 		lbl.SetText(cc.Config.Name)
 		w.loadEntryImage(cpys[i], cc)
-		tex, err := w.Host.TextureCache().Texture(
+		tex, err := w.Host.TextureCache().TextureWithPriority(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
-			rendering.TextureFilterLinear)
+			rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 		if err == nil {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
@@ -399,7 +407,8 @@ func (w *ContentWorkspace) loadEntryImage(e *document.Element, cc *content_datab
 	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
+			tex, err := w.Host.TextureCache().TextureWithPriority(
+				cc.Id(), rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 			if err != nil {
 				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
@@ -448,9 +457,9 @@ func (w *ContentWorkspace) setupSubmeshEntry(e *document.Element, cc *content_da
 }
 
 func (w *ContentWorkspace) setSubmeshEntryIcon(e *document.Element) {
-	tex, err := w.Host.TextureCache().Texture(
+	tex, err := w.Host.TextureCache().TextureWithPriority(
 		fmt.Sprintf("editor/textures/icons/%s.png", (content_database.Mesh{}).TypeName()),
-		rendering.TextureFilterLinear)
+		rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 	if err != nil {
 		return
 	}

@@ -105,7 +105,11 @@ type globalUI struct {
 	statusBar status_bar.StatusBar
 }
 
-const editorPowerPollInterval = 5.0
+const (
+	editorPowerPollInterval         = 5.0
+	launchMaxTextureCreatesPerFrame = 8
+	launchMaxTextureBytesPerFrame   = 32 * 1024 * 1024
+)
 
 type powerStatusQuery func() (platformPower.Status, error)
 
@@ -231,7 +235,17 @@ func (ed *Editor) postProjectLoad() {
 		// before this is complete will have issues.
 		ed.project.ReadSourceCode()
 	}
-	ed.host.AssetDatabase().(*editor_embedded_content.EditorContent).Pfs = ed.project.FileSystem()
+	editorContent := ed.host.AssetDatabase().(*editor_embedded_content.EditorContent)
+	editorContent.Pfs = ed.project.FileSystem()
+	editorContent.SetProjectContentIndex(ed.project.CacheDatabase().List())
+	ed.events.OnContentAdded.Add(func(ids []string) {
+		editorContent.IndexProjectContentIDs(ed.project.CacheDatabase(), ids)
+	})
+	ed.events.OnContentRemoved.Add(editorContent.RemoveProjectContentIDs)
+	ed.host.TextureCache().SetUploadBudget(rendering.TextureUploadBudget{
+		MaxCreatesPerFrame: launchMaxTextureCreatesPerFrame,
+		MaxBytesPerFrame:   launchMaxTextureBytesPerFrame,
+	})
 	ed.setupWindowActivity()
 	ed.activeWorkspaces = map[string]editor_workspace.Workspace{}
 	ed.initializedWorkspaces = map[string]struct{}{}

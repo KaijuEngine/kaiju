@@ -25,7 +25,7 @@ type TextureCleanup struct {
 	device weak.Pointer[GPUDevice]
 }
 
-func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData) error {
+func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch *TextureUploadBatch) error {
 	defer tracing.NewRegion("GPUDevice.setupTextureImpl").End()
 	width := max(data.Width, texture.Width)
 	height := max(data.Height, texture.Height)
@@ -105,9 +105,16 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData) error 
 	if err != nil {
 		return err
 	}
+	cleanupStaging := func() {
+		g.DestroyBuffer(stagingBuffer)
+		g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+		g.FreeMemory(stagingBufferMemory)
+		g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
+	}
 	var stageData unsafe.Pointer
 	err = g.MapMemory(stagingBufferMemory, 0, memLen, 0, &stageData)
 	if err != nil {
+		cleanupStaging()
 		return err
 	}
 	offset := uintptr(0)
@@ -131,6 +138,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData) error 
 		Flags:       flags,
 	})
 	if err != nil {
+		cleanupStaging()
 		return err
 	}
 	texture.RenderId.MipLevels = uint32(mip)
@@ -138,17 +146,28 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData) error 
 	texture.RenderId.Width = width
 	texture.RenderId.Height = height
 	texture.RenderId.LayerCount = int(layerCount)
+	cmd := (*CommandRecorder)(nil)
+	if batch != nil {
+		cmd = batch.cmd
+	} else {
+		cmd = g.beginSingleTimeCommands()
+	}
 	g.TransitionImageLayout(&texture.RenderId,
 		GPUImageLayoutTransferDstOptimal, GPUImageAspectColorBit,
-		texture.RenderId.Access, nil)
-	g.CopyBufferToImage(stagingBuffer, texture.RenderId.Image,
+		texture.RenderId.Access, cmd)
+	g.copyBufferToImageWithCommand(cmd, stagingBuffer, texture.RenderId.Image,
 		uint32(width), uint32(height), int(layerCount))
-	g.DestroyBuffer(stagingBuffer)
-	g.LogicalDevice.dbg.remove(stagingBuffer.handle)
-	g.FreeMemory(stagingBufferMemory)
-	g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
-	g.GenerateMipMaps(&texture.RenderId, format,
+	err = g.generateMipMapsWithCommand(cmd, &texture.RenderId, format,
 		uint32(width), uint32(height), uint32(mip), filter)
+	if batch != nil {
+		batch.DeferCleanup(cleanupStaging)
+	} else {
+		g.endSingleTimeCommands(cmd)
+		cleanupStaging()
+	}
+	if err != nil {
+		return err
+	}
 	err = g.LogicalDevice.CreateImageView(&texture.RenderId,
 		GPUImageAspectColorBit, viewTypeFromDimensions(data))
 	if err != nil {
@@ -173,13 +192,18 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData) error 
 
 func (g *GPUDevice) generateMipMapsImpl(texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {
 	defer tracing.NewRegion("GPUDevice.generateMipMapsImpl").End()
+	cmd := g.beginSingleTimeCommands()
+	defer g.endSingleTimeCommands(cmd)
+	return g.generateMipMapsWithCommand(cmd, texId, imageFormat, texWidth, texHeight, mipLevels, filter)
+}
+
+func (g *GPUDevice) generateMipMapsWithCommand(cmd *CommandRecorder, texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {
+	defer tracing.NewRegion("GPUDevice.generateMipMapsWithCommand").End()
 	fp := g.PhysicalDevice.FormatProperties(imageFormat)
 	if (fp.OptimalTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) == 0 {
 		slog.Error("Texture image format does not support linear blitting")
 		return fmt.Errorf("Texture image format does not support linear blitting")
 	}
-	cmd := g.beginSingleTimeCommands()
-	defer g.endSingleTimeCommands(cmd)
 	barrier := vk.ImageMemoryBarrier{
 		SType:               vulkan_const.StructureTypeImageMemoryBarrier,
 		Image:               vk.Image(texId.Image.handle),

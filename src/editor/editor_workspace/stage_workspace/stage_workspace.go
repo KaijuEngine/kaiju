@@ -178,6 +178,7 @@ func (w *StageWorkspace) panelDocuments() []*document.Document {
 
 func (w *StageWorkspace) Shutdown() {
 	defer tracing.NewRegion("StageWorkspace.Shutdown").End()
+	w.contentUI.contentLoader.Stop()
 	if w.ed != nil {
 		w.ed.Events().OnRequestOpenStage.Remove(w.openStageSubID)
 	}

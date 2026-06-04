@@ -309,10 +309,23 @@ func (t *Texture) ReadPendingDataForTransparency() bool {
 
 func (t *Texture) DelayedCreate(device *GPUDevice) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
+	t.delayedCreate(device, nil)
+}
+
+func (t *Texture) DelayedCreateInBatch(device *GPUDevice, batch *TextureUploadBatch) {
+	defer tracing.NewRegion("Texture.DelayedCreateInBatch").End()
+	t.delayedCreate(device, batch)
+}
+
+func (t *Texture) delayedCreate(device *GPUDevice, batch *TextureUploadBatch) {
 	if t.RenderId.IsValid() {
 		return
 	}
-	device.SetupTexture(t, t.pendingData)
+	if batch != nil {
+		device.SetupTextureInBatch(t, t.pendingData, batch)
+	} else {
+		device.SetupTexture(t, t.pendingData)
+	}
 	t.pendingData = nil
 }
 

@@ -40,6 +40,7 @@ type WorkspaceContentUI struct {
 	filterArea         *document.Element
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
+	contentLoader      content_workspace.BatchedContentLoader
 	dragging           *document.Element
 	tooltipPanel       *ui.Panel
 	tooltipLabel       *ui.Label
@@ -92,6 +93,7 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.tagFilters = klib.NewSet[string]()
 	cui.tagFiltersDisable = klib.NewSet[string]()
 	cui.doc = w.contentDoc
+	cui.contentLoader.Configure(w.Host, content_workspace.DefaultContentLoadBatchSize, cui.addContentBatch)
 	cui.contentArea, _ = cui.doc.GetElementById("contentArea")
 	cui.contentPreviewArea, _ = cui.doc.GetElementById("contentPreviewArea")
 	cui.filterArea, _ = cui.doc.GetElementById("filterArea")
@@ -116,6 +118,11 @@ func (cui *WorkspaceContentUI) open() {
 
 func (cui *WorkspaceContentUI) addContent(ids []string) {
 	defer tracing.NewRegion("WorkspaceContentUI.addContent").End()
+	cui.contentLoader.Enqueue(ids)
+}
+
+func (cui *WorkspaceContentUI) addContentBatch(ids []string) {
+	defer tracing.NewRegion("WorkspaceContentUI.addContentBatch").End()
 	if len(ids) == 0 {
 		return
 	}
@@ -144,9 +151,9 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
 		cui.loadEntryImage(cpys[i], cc)
-		tex, err := w.Host.TextureCache().Texture(
+		tex, err := w.Host.TextureCache().TextureWithPriority(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
-			rendering.TextureFilterLinear)
+			rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 		if err == nil {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
@@ -194,9 +201,9 @@ func (cui *WorkspaceContentUI) setupSubmeshEntry(e *document.Element, cc *conten
 }
 
 func (cui *WorkspaceContentUI) setSubmeshEntryIcon(e *document.Element) {
-	tex, err := cui.workspace.Value().Host.TextureCache().Texture(
+	tex, err := cui.workspace.Value().Host.TextureCache().TextureWithPriority(
 		fmt.Sprintf("editor/textures/icons/%s.png", (content_database.Mesh{}).TypeName()),
-		rendering.TextureFilterLinear)
+		rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 	if err != nil {
 		return
 	}
@@ -281,7 +288,8 @@ func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_d
 	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
+			tex, err := w.Host.TextureCache().TextureWithPriority(
+				cc.Id(), rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 			if err != nil {
 				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return

@@ -173,6 +173,11 @@ func (g *GPUDevice) copyBufferToImageImpl(buffer GPUBuffer, image GPUImage, widt
 	defer tracing.NewRegion("Vulkan.copyBufferToImageImpl").End()
 	cmd := g.beginSingleTimeCommands()
 	defer g.endSingleTimeCommands(cmd)
+	g.copyBufferToImageWithCommand(cmd, buffer, image, width, height, layerCount)
+}
+
+func (g *GPUDevice) copyBufferToImageWithCommand(cmd *CommandRecorder, buffer GPUBuffer, image GPUImage, width, height uint32, layerCount int) {
+	defer tracing.NewRegion("Vulkan.copyBufferToImageWithCommand").End()
 	offset := vk.DeviceSize(0)
 	for i := range layerCount {
 		region := vk.BufferImageCopy{}

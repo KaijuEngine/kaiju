@@ -13,9 +13,51 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
+type TextureUploadBatch struct {
+	device  *GPUDevice
+	cmd     *CommandRecorder
+	cleanup []func()
+}
+
+func (g *GPUDevice) BeginTextureUploadBatch() *TextureUploadBatch {
+	defer tracing.NewRegion("GPUDevice.BeginTextureUploadBatch").End()
+	if g == nil {
+		return nil
+	}
+	return &TextureUploadBatch{
+		device: g,
+		cmd:    g.beginSingleTimeCommands(),
+	}
+}
+
+func (b *TextureUploadBatch) DeferCleanup(call func()) {
+	if b == nil || call == nil {
+		return
+	}
+	b.cleanup = append(b.cleanup, call)
+}
+
+func (b *TextureUploadBatch) End() {
+	defer tracing.NewRegion("TextureUploadBatch.End").End()
+	if b == nil || b.device == nil || b.cmd == nil {
+		return
+	}
+	b.device.endSingleTimeCommands(b.cmd)
+	for i := range b.cleanup {
+		b.cleanup[i]()
+	}
+	b.cleanup = nil
+	b.cmd = nil
+}
+
 func (g *GPUDevice) SetupTexture(texture *Texture, data *TextureData) error {
 	defer tracing.NewRegion("GPUDevice.SetupTexture").End()
-	return g.setupTextureImpl(texture, data)
+	return g.setupTextureImpl(texture, data, nil)
+}
+
+func (g *GPUDevice) SetupTextureInBatch(texture *Texture, data *TextureData, batch *TextureUploadBatch) error {
+	defer tracing.NewRegion("GPUDevice.SetupTextureInBatch").End()
+	return g.setupTextureImpl(texture, data, batch)
 }
 
 func (g *GPUDevice) GenerateMipMaps(texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {

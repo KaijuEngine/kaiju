@@ -111,14 +111,7 @@ func (p *ContentPreviewer) LoadPreviewImage(id string) (*rendering.Texture, erro
 	host := p.ed.Host()
 	texKey := "preview_" + contentPreviewCacheVersion + "_" + id
 	const filter = rendering.TextureFilterLinear
-	tex, err := host.TextureCache().Texture(texKey, filter)
-	if tex == nil || err != nil {
-		tex, err = p.useCachedTexture(texKey, data, filter)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return tex, nil
+	return cachedPreviewTexture(host.TextureCache(), texKey, data, filter)
 }
 
 // useCachedTexture attempts to insert the preview image data into the texture cache and returns the texture if successful.
@@ -126,7 +119,15 @@ func (p *ContentPreviewer) LoadPreviewImage(id string) (*rendering.Texture, erro
 func (p *ContentPreviewer) useCachedTexture(texKey string, data []byte, filter rendering.TextureFilter) (*rendering.Texture, error) {
 	defer tracing.NewRegion("ContentPreviewer.useCachedTexture").End()
 	host := p.ed.Host()
-	return host.TextureCache().InsertImageTexture(texKey, data, filter)
+	return cachedPreviewTexture(host.TextureCache(), texKey, data, filter)
+}
+
+func cachedPreviewTexture(textureCache *rendering.TextureCache, texKey string, data []byte, filter rendering.TextureFilter) (*rendering.Texture, error) {
+	if tex, ok := textureCache.Find(texKey, filter); ok {
+		return tex, nil
+	}
+	return textureCache.InsertImageTextureWithPriority(
+		texKey, data, filter, rendering.TextureUploadPriorityHigh)
 }
 
 func (p *ContentPreviewer) previewExists(id string) bool {
