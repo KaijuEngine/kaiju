@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -78,6 +79,7 @@ var (
 // to the files within the project.
 type FileSystem struct {
 	*os.Root
+	fileLocks sync.Map
 }
 
 // New creates a new FileSystem that is rooted to the given project path. This
@@ -101,6 +103,18 @@ func New(rootPath string) (FileSystem, error) {
 
 // IsValid will return true if this project file system has been setup already.
 func (fs *FileSystem) IsValid() bool { return fs.Root != nil }
+
+func (fs *FileSystem) Lock(path string) {
+	mu := &sync.Mutex{}
+	m, _ := fs.fileLocks.LoadOrStore(path, mu)
+	m.(*sync.Mutex).Lock()
+}
+
+func (fs *FileSystem) Unlock(path string) {
+	if m, ok := fs.fileLocks.Load(path); ok {
+		m.(*sync.Mutex).Unlock()
+	}
+}
 
 // SetupStructure goes through and ensure all the base folders are created for
 // the project. This will only create the folders if they do not yet exist.

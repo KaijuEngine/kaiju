@@ -90,6 +90,8 @@ func SaveMeshBVHInBackground(km kaiju_mesh.KaijuMesh, path string, fs *project_f
 }
 
 func writeMeshBVH(km kaiju_mesh.KaijuMesh, path string, fs *project_file_system.FileSystem, id string) {
+	fs.Lock(path)
+	defer fs.Unlock(path)
 	data, readErr := fs.ReadFile(path)
 	if readErr == nil && kaiju_mesh.IsGLB(data) {
 		if set, err := kaiju_mesh.DeserializeSet(data); err == nil && len(set.Meshes) > 0 {
