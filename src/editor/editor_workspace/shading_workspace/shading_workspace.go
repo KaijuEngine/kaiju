@@ -13,6 +13,7 @@ import (
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -32,6 +33,7 @@ type ShadingWorkspace struct {
 	root            *document.Element
 	stageViewport   *document.Element
 	dimensionToggle *document.Element
+	graph           shaderGraph
 }
 
 type ShadingWorkspaceUIData struct {
@@ -59,11 +61,25 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	if w.root != nil {
 		w.root.UIPanel.AllowClickThrough()
 	}
+	w.graph.Initialize(ed.Host())
+	w.graph.CreateNode(shaderGraphNodeSpec{
+		Name:        "Test Node",
+		Description: "Temporary shader graph node used to verify layout, clipping, and dragging.",
+		Inputs: []shaderGraphPortSpec{
+			{Name: "Base Color", Type: "color"},
+			{Name: "Roughness", Type: "float"},
+			{Name: "Normal", Type: "vec3"},
+		},
+		Outputs: []shaderGraphPortSpec{
+			{Name: "Material", Type: "surface"},
+		},
+	}, matrix.NewVec2(48, 48))
 	return nil
 }
 
 func (w *ShadingWorkspace) Shutdown() {
 	defer tracing.NewRegion("ShadingWorkspace.Shutdown").End()
+	w.graph.Shutdown()
 	w.CommonShutdown()
 }
 
@@ -76,6 +92,7 @@ func (w *ShadingWorkspace) Open() {
 	if w.dimensionToggle != nil {
 		w.dimensionToggle.InnerLabel().SetText(w.stageView.Camera().ModeString())
 	}
+	w.graph.Open()
 	w.stageView.Open()
 }
 
@@ -85,6 +102,7 @@ func (w *ShadingWorkspace) Close() {
 		w.stageView.SetViewportUI(nil)
 		w.stageView.Close()
 	}
+	w.graph.Close()
 	w.CommonClose()
 }
 
@@ -97,7 +115,11 @@ func (w *ShadingWorkspace) Update(deltaTime float64) {
 	if w.UiMan.IsUpdateDisabled() {
 		return
 	}
-	if w.IsBlurred || w.UiMan.Group.HasRequests() {
+	if w.IsBlurred {
+		return
+	}
+	w.graph.Update()
+	if w.UiMan.Group.HasRequests() {
 		return
 	}
 	w.stageView.Update(deltaTime, w.ed.Project())
