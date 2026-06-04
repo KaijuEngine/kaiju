@@ -92,8 +92,12 @@ func Show(host *engine.Host, service *editor_action.Service, onClose func()) (*A
 		switch keyId {
 		case hid.KeyboardKeyEscape:
 			p.Close()
+		case hid.KeyboardKeyUp:
+			p.moveSelection(-1)
+		case hid.KeyboardKeyDown:
+			p.moveSelection(1)
 		case hid.KeyboardKeyEnter, hid.KeyboardKeyReturn:
-			p.runFirstVisible()
+			p.runSelected()
 		}
 	})
 	existing = p
@@ -153,6 +157,62 @@ func (p *ActionPalette) updateVisibleEntries(query string) {
 	p.list.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
+func (p *ActionPalette) moveSelection(delta int) {
+	defer tracing.NewRegion("ActionPalette.moveSelection").End()
+	if p.list == nil || delta == 0 {
+		return
+	}
+	visible := make([]*document.Element, 0, len(p.list.Children))
+	selectedIdx := -1
+	for _, child := range p.list.Children {
+		if !child.UI.Entity().IsActive() {
+			continue
+		}
+		if child.HasClass("selected") {
+			selectedIdx = len(visible)
+		}
+		visible = append(visible, child)
+	}
+	if len(visible) == 0 {
+		return
+	}
+	nextIdx := 0
+	if selectedIdx >= 0 {
+		nextIdx = selectedIdx + delta
+		if nextIdx < 0 {
+			nextIdx = len(visible) - 1
+		} else if nextIdx >= len(visible) {
+			nextIdx = 0
+		}
+	} else if delta < 0 {
+		nextIdx = len(visible) - 1
+	}
+	p.selectEntry(visible[nextIdx])
+	if list := p.list.UI.ToPanel(); list != nil {
+		list.ScrollToChild(visible[nextIdx].UI)
+	}
+}
+
+func (p *ActionPalette) selectEntry(target *document.Element) {
+	defer tracing.NewRegion("ActionPalette.selectEntry").End()
+	if p.list == nil {
+		return
+	}
+	for _, child := range p.list.Children {
+		classes := []string{"actionEntry"}
+		if child == target {
+			classes = append(classes, "selected")
+		}
+		if p.doc != nil {
+			p.doc.SetElementClassesWithoutApply(child, classes...)
+		}
+	}
+	if p.doc != nil {
+		p.doc.ApplyStyles()
+	}
+	p.list.UI.SetDirty(ui.DirtyTypeLayout)
+}
+
 func (p *ActionPalette) clickMiss(*document.Element) {
 	defer tracing.NewRegion("ActionPalette.clickMiss").End()
 	p.Close()
@@ -163,11 +223,27 @@ func (p *ActionPalette) clickAction(e *document.Element) {
 	p.runElement(e)
 }
 
-func (p *ActionPalette) runFirstVisible() {
-	defer tracing.NewRegion("ActionPalette.runFirstVisible").End()
-	if child := p.firstVisibleEntry(); child != nil {
+func (p *ActionPalette) runSelected() {
+	defer tracing.NewRegion("ActionPalette.runSelected").End()
+	child := p.selectedVisibleEntry()
+	if child == nil {
+		child = p.firstVisibleEntry()
+	}
+	if child != nil {
 		p.runElement(child)
 	}
+}
+
+func (p *ActionPalette) selectedVisibleEntry() *document.Element {
+	if p.list == nil {
+		return nil
+	}
+	for _, child := range p.list.Children {
+		if child.UI.Entity().IsActive() && child.HasClass("selected") {
+			return child
+		}
+	}
+	return nil
 }
 
 func (p *ActionPalette) firstVisibleEntry() *document.Element {
