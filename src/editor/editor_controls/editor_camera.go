@@ -7,13 +7,16 @@
 package editor_controls
 
 import (
+	"fmt"
 	"log/slog"
 	"math"
 
+	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/engine/systems/console"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
@@ -87,6 +90,22 @@ func (e *EditorCamera) Camera() cameras.Camera { return e.camera }
 func (e *EditorCamera) UseAsPrimary(host *engine.Host) {
 	if host != nil && e.camera != nil {
 		host.Cameras.Primary.ChangeCamera(e.camera)
+		if build.Debug && host.Window != nil {
+			console.For(host).AddCommand("camdump",
+				"Dumps the primary camera information",
+				func(h *engine.Host, s string) string {
+					c := host.PrimaryCamera()
+					p := c.Position()
+					l := c.LookAt()
+					return fmt.Sprintf(
+						`Position: <%f, %f, %f>
+Look at: <%f, %f, %f>
+Near: %f
+Far: %f
+Width: %f
+Height: %f`, p.X(), p.Y(), p.Z(), l.X(), l.Y(), l.Z(), c.NearPlane(), c.FarPlane(), c.Width(), c.Height())
+				})
+		}
 	}
 }
 
