@@ -25,3 +25,13 @@ func TestShaderGraphGraphPositionFromViewRemovesPan(t *testing.T) {
 		t.Fatalf("graphPositionFromView() = %v, want %v", got, want)
 	}
 }
+
+func TestShaderGraphCenterViewResetsPan(t *testing.T) {
+	graph := shaderGraph{pan: matrix.NewVec2(24, -16)}
+
+	graph.CenterView()
+
+	if !matrix.Vec2Approx(graph.pan, matrix.Vec2Zero()) {
+		t.Fatalf("pan = %v, want zero", graph.pan)
+	}
+}

@@ -172,6 +172,10 @@ func (w *RenderGraphWorkspace) ShowCreateNodeMenu() {
 	w.createNodeMenu.Show(position, w.graph.graphPositionFromView(position))
 }
 
+func (w *RenderGraphWorkspace) CenterView() {
+	w.graph.CenterView()
+}
+
 func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
 	if _, ok := shaderGraphNodeCatalogSpec(args.NodeID); !ok {
 		return nil, false

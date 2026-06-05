@@ -75,6 +75,14 @@ func (g *shaderGraph) applyViewOffsets() {
 	}
 }
 
+func (g *shaderGraph) CenterView() {
+	if g == nil {
+		return
+	}
+	g.pan = matrix.Vec2Zero()
+	g.applyViewOffsets()
+}
+
 func (g *shaderGraph) viewPosition(position matrix.Vec2) matrix.Vec2 {
 	return position.Add(g.pan)
 }

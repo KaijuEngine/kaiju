@@ -89,18 +89,23 @@ func TestRenderGraphActionsDefaultBindings(t *testing.T) {
 	ed := &Editor{}
 	ed.history.Initialize(8)
 	ed.initializeActions()
-	bindings := editor_action.BindingsForAction(
-		ed.Actions().DefaultBindings(), nil,
-		render_graph_workspace.ActionRenderGraphShowCreateNodeMenu, render_graph_workspace.ID)
-	if len(bindings) != 1 {
-		t.Fatalf("%s bindings = %d, want 1",
-			render_graph_workspace.ActionRenderGraphShowCreateNodeMenu, len(bindings))
+	checks := []struct {
+		action editor_action.ActionID
+		chord  editor_action.KeyChord
+	}{
+		{render_graph_workspace.ActionRenderGraphShowCreateNodeMenu, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}},
+		{render_graph_workspace.ActionRenderGraphCenterView, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKey0)}}},
 	}
-	want := editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}
-	if !editor_action.ChordsEqual(bindings[0].Chord, want) {
-		t.Fatalf("%s chord = %s, want %s",
-			render_graph_workspace.ActionRenderGraphShowCreateNodeMenu,
-			editor_action.FormatKeyChord(bindings[0].Chord), editor_action.FormatKeyChord(want))
+	for _, check := range checks {
+		bindings := editor_action.BindingsForAction(
+			ed.Actions().DefaultBindings(), nil, check.action, render_graph_workspace.ID)
+		if len(bindings) != 1 {
+			t.Fatalf("%s bindings = %d, want 1", check.action, len(bindings))
+		}
+		if !editor_action.ChordsEqual(bindings[0].Chord, check.chord) {
+			t.Fatalf("%s chord = %s, want %s", check.action,
+				editor_action.FormatKeyChord(bindings[0].Chord), editor_action.FormatKeyChord(check.chord))
+		}
 	}
 }
 
