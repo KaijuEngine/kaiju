@@ -367,6 +367,12 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 		return emitVertexColor(node, port)
 	case "add", "subtract", "multiply", "divide", "minimum", "maximum", "power":
 		return c.emitFloatBinary(node)
+	case "add-vec2", "subtract-vec2", "multiply-vec2", "divide-vec2":
+		return c.emitVectorArithmetic(node, port, renderGraphOutputVec2)
+	case "add-vec3", "subtract-vec3", "multiply-vec3", "divide-vec3":
+		return c.emitVectorArithmetic(node, port, renderGraphOutputVec3)
+	case "add-vec4", "subtract-vec4", "multiply-vec4", "divide-vec4":
+		return c.emitVectorArithmetic(node, port, renderGraphOutputVec4)
 	case "absolute", "one-minus", "floor", "ceiling", "fraction", "sine", "cosine", "tangent", "square-root":
 		return c.emitFloatUnary(node)
 	case "clamp", "lerp":
@@ -417,6 +423,43 @@ func (c *renderGraphOutputCompiler) emitFloatBinary(node RenderGraphNode) (rende
 		value = "pow(" + a + ", " + b + ")"
 	}
 	return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: value}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitVectorArithmetic(node RenderGraphNode, port int, vectorType string) (renderGraphOutputExpression, error) {
+	if port != 0 {
+		if vectorType == renderGraphOutputVec4 && port == 1 {
+			value, err := c.emitVectorArithmeticValue(node, vectorType)
+			return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, err
+		}
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph vector arithmetic node %q has invalid output %d", node.ID, port)
+	}
+	value, err := c.emitVectorArithmeticValue(node, vectorType)
+	return renderGraphOutputExpression{Type: vectorType, Value: value}, err
+}
+
+func (c *renderGraphOutputCompiler) emitVectorArithmeticValue(node RenderGraphNode, vectorType string) (string, error) {
+	a, err := c.inputExpression(node, 0, vectorType)
+	if err != nil {
+		return "", err
+	}
+	b, err := c.inputExpression(node, 1, vectorType)
+	if err != nil {
+		return "", err
+	}
+	operator := ""
+	switch {
+	case strings.HasPrefix(node.Type, "add-"):
+		operator = "+"
+	case strings.HasPrefix(node.Type, "subtract-"):
+		operator = "-"
+	case strings.HasPrefix(node.Type, "multiply-"):
+		operator = "*"
+	case strings.HasPrefix(node.Type, "divide-"):
+		operator = "/"
+	default:
+		return "", fmt.Errorf("render graph vector arithmetic node %q is not supported", node.Type)
+	}
+	return "(" + a + " " + operator + " " + b + ")", nil
 }
 
 func (c *renderGraphOutputCompiler) emitFloatUnary(node RenderGraphNode) (renderGraphOutputExpression, error) {

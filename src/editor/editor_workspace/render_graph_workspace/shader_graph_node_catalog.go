@@ -440,6 +440,30 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			[]string{"math", "float", "product"}, "A", "B", "Value"),
 		shaderGraphFloatBinaryNode("divide", "Divide", "Divides A by B.",
 			[]string{"math", "float", "quotient"}, "A", "B", "Value"),
+		shaderGraphVectorBinaryNode("add-vec2", "Add Vec2", "Adds two vec2 values component-wise.",
+			[]string{"math", "vector", "vec2", "add", "plus", "sum"}, "vec2"),
+		shaderGraphVectorBinaryNode("subtract-vec2", "Subtract Vec2", "Subtracts B from A component-wise.",
+			[]string{"math", "vector", "vec2", "subtract", "minus", "difference"}, "vec2"),
+		shaderGraphVectorBinaryNode("multiply-vec2", "Multiply Vec2", "Multiplies two vec2 values component-wise.",
+			[]string{"math", "vector", "vec2", "multiply", "product"}, "vec2"),
+		shaderGraphVectorBinaryNode("divide-vec2", "Divide Vec2", "Divides A by B component-wise.",
+			[]string{"math", "vector", "vec2", "divide", "quotient"}, "vec2"),
+		shaderGraphVectorBinaryNode("add-vec3", "Add Vec3", "Adds two vec3 values component-wise.",
+			[]string{"math", "vector", "vec3", "add", "plus", "sum"}, "vec3"),
+		shaderGraphVectorBinaryNode("subtract-vec3", "Subtract Vec3", "Subtracts B from A component-wise.",
+			[]string{"math", "vector", "vec3", "subtract", "minus", "difference"}, "vec3"),
+		shaderGraphVectorBinaryNode("multiply-vec3", "Multiply Vec3", "Multiplies two vec3 values component-wise.",
+			[]string{"math", "vector", "vec3", "multiply", "product"}, "vec3"),
+		shaderGraphVectorBinaryNode("divide-vec3", "Divide Vec3", "Divides A by B component-wise.",
+			[]string{"math", "vector", "vec3", "divide", "quotient"}, "vec3"),
+		shaderGraphVectorBinaryNode("add-vec4", "Add Vec4", "Adds two vec4 values component-wise.",
+			[]string{"math", "vector", "vec4", "add", "plus", "sum", "color"}, "vec4"),
+		shaderGraphVectorBinaryNode("subtract-vec4", "Subtract Vec4", "Subtracts B from A component-wise.",
+			[]string{"math", "vector", "vec4", "subtract", "minus", "difference", "color"}, "vec4"),
+		shaderGraphVectorBinaryNode("multiply-vec4", "Multiply Vec4", "Multiplies two vec4 values component-wise.",
+			[]string{"math", "vector", "vec4", "multiply", "product", "color"}, "vec4"),
+		shaderGraphVectorBinaryNode("divide-vec4", "Divide Vec4", "Divides A by B component-wise.",
+			[]string{"math", "vector", "vec4", "divide", "quotient", "color"}, "vec4"),
 		shaderGraphFloatBinaryNode("minimum", "Minimum", "Returns the smaller of two float values.",
 			[]string{"math", "float", "min", "minimum"}, "A", "B", "Value"),
 		shaderGraphFloatBinaryNode("maximum", "Maximum", "Returns the larger of two float values.",
@@ -702,6 +726,28 @@ func shaderGraphFloatTernaryNode(id, name, description string, tags []string, a,
 			Outputs: []shaderGraphPortSpec{
 				{Name: output, Type: "float"},
 			},
+		},
+	}
+}
+
+func shaderGraphVectorBinaryNode(id, name, description string, tags []string, vectorType string) shaderGraphNodeCatalogEntry {
+	outputs := []shaderGraphPortSpec{{Name: "Vector", Type: vectorType}}
+	if vectorType == "vec4" {
+		outputs = append(outputs, shaderGraphPortSpec{Name: "Color", Type: "color"})
+	}
+	return shaderGraphNodeCatalogEntry{
+		ID:          id,
+		Name:        name,
+		Description: description,
+		Tags:        tags,
+		Spec: shaderGraphNodeSpec{
+			Name:        name,
+			Description: description,
+			Inputs: []shaderGraphPortSpec{
+				{Name: "A", Type: vectorType},
+				{Name: "B", Type: vectorType},
+			},
+			Outputs: outputs,
 		},
 	}
 }

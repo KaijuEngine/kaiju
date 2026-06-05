@@ -81,6 +81,28 @@ func TestShaderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodeCatalogHasVectorArithmeticNodes(t *testing.T) {
+	want := []string{
+		"add-vec2",
+		"subtract-vec2",
+		"multiply-vec2",
+		"divide-vec2",
+		"add-vec3",
+		"subtract-vec3",
+		"multiply-vec3",
+		"divide-vec3",
+		"add-vec4",
+		"subtract-vec4",
+		"multiply-vec4",
+		"divide-vec4",
+	}
+	for _, id := range want {
+		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+			t.Fatalf("expected catalog node %q to be registered", id)
+		}
+	}
+}
+
 func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 	seen := map[string]bool{}
 	for _, entry := range shaderGraphNodeCatalog() {
@@ -205,6 +227,44 @@ func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
 	}
 	if dot.Inputs[0].Type != "vec3" || dot.Inputs[1].Type != "vec3" || dot.Outputs[0].Type != "float" {
 		t.Fatalf("dot-product ports = %#v -> %#v, want vec3,vec3 -> float", dot.Inputs, dot.Outputs)
+	}
+}
+
+func TestShaderGraphVectorArithmeticNodePortTypes(t *testing.T) {
+	tests := []struct {
+		id         string
+		vectorType string
+		outputs    int
+	}{
+		{id: "add-vec2", vectorType: "vec2", outputs: 1},
+		{id: "subtract-vec2", vectorType: "vec2", outputs: 1},
+		{id: "multiply-vec2", vectorType: "vec2", outputs: 1},
+		{id: "divide-vec2", vectorType: "vec2", outputs: 1},
+		{id: "add-vec3", vectorType: "vec3", outputs: 1},
+		{id: "subtract-vec3", vectorType: "vec3", outputs: 1},
+		{id: "multiply-vec3", vectorType: "vec3", outputs: 1},
+		{id: "divide-vec3", vectorType: "vec3", outputs: 1},
+		{id: "add-vec4", vectorType: "vec4", outputs: 2},
+		{id: "subtract-vec4", vectorType: "vec4", outputs: 2},
+		{id: "multiply-vec4", vectorType: "vec4", outputs: 2},
+		{id: "divide-vec4", vectorType: "vec4", outputs: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			spec, ok := shaderGraphNodeCatalogSpec(tt.id)
+			if !ok {
+				t.Fatalf("%s node missing", tt.id)
+			}
+			if len(spec.Inputs) != 2 || spec.Inputs[0].Type != tt.vectorType || spec.Inputs[1].Type != tt.vectorType {
+				t.Fatalf("%s inputs = %#v, want two %s inputs", tt.id, spec.Inputs, tt.vectorType)
+			}
+			if len(spec.Outputs) != tt.outputs || spec.Outputs[0].Type != tt.vectorType {
+				t.Fatalf("%s outputs = %#v, want %d outputs starting with %s", tt.id, spec.Outputs, tt.outputs, tt.vectorType)
+			}
+			if tt.vectorType == "vec4" && spec.Outputs[1].Type != "color" {
+				t.Fatalf("%s outputs = %#v, want second color output", tt.id, spec.Outputs)
+			}
+		})
 	}
 }
 

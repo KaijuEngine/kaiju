@@ -310,6 +310,87 @@ func TestRenderGraphCompilerSupportsVectorCompositionNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerSupportsVectorArithmeticNodes(t *testing.T) {
+	tests := []struct {
+		nodeType   string
+		vectorType string
+		want       string
+	}{
+		{
+			nodeType:   "add-vec2",
+			vectorType: "vec2",
+			want:       "float roughness = clamp(((vec2(0.25, 0.5) + vec2(0.5, 0.25))).x, MIN_ROUGHNESS, 1.0);",
+		},
+		{
+			nodeType:   "subtract-vec2",
+			vectorType: "vec2",
+			want:       "float roughness = clamp(((vec2(0.25, 0.5) - vec2(0.5, 0.25))).x, MIN_ROUGHNESS, 1.0);",
+		},
+		{
+			nodeType:   "multiply-vec2",
+			vectorType: "vec2",
+			want:       "float roughness = clamp(((vec2(0.25, 0.5) * vec2(0.5, 0.25))).x, MIN_ROUGHNESS, 1.0);",
+		},
+		{
+			nodeType:   "divide-vec2",
+			vectorType: "vec2",
+			want:       "float roughness = clamp(((vec2(0.25, 0.5) / vec2(0.5, 0.25))).x, MIN_ROUGHNESS, 1.0);",
+		},
+		{
+			nodeType:   "add-vec3",
+			vectorType: "vec3",
+			want:       "vec3 N = safeNormalize((vec3(0.25, 0.5, 0.75) + vec3(0.5, 0.25, 0.125)), geometricNormal);",
+		},
+		{
+			nodeType:   "subtract-vec3",
+			vectorType: "vec3",
+			want:       "vec3 N = safeNormalize((vec3(0.25, 0.5, 0.75) - vec3(0.5, 0.25, 0.125)), geometricNormal);",
+		},
+		{
+			nodeType:   "multiply-vec3",
+			vectorType: "vec3",
+			want:       "vec3 N = safeNormalize((vec3(0.25, 0.5, 0.75) * vec3(0.5, 0.25, 0.125)), geometricNormal);",
+		},
+		{
+			nodeType:   "divide-vec3",
+			vectorType: "vec3",
+			want:       "vec3 N = safeNormalize((vec3(0.25, 0.5, 0.75) / vec3(0.5, 0.25, 0.125)), geometricNormal);",
+		},
+		{
+			nodeType:   "add-vec4",
+			vectorType: "vec4",
+			want:       "vec4 graphBaseColor = ((vec4(0.25, 0.5, 0.75, 1.0) + vec4(0.5, 0.25, 0.125, 0.75)) * fragColor);",
+		},
+		{
+			nodeType:   "subtract-vec4",
+			vectorType: "vec4",
+			want:       "vec4 graphBaseColor = ((vec4(0.25, 0.5, 0.75, 1.0) - vec4(0.5, 0.25, 0.125, 0.75)) * fragColor);",
+		},
+		{
+			nodeType:   "multiply-vec4",
+			vectorType: "vec4",
+			want:       "vec4 graphBaseColor = ((vec4(0.25, 0.5, 0.75, 1.0) * vec4(0.5, 0.25, 0.125, 0.75)) * fragColor);",
+		},
+		{
+			nodeType:   "divide-vec4",
+			vectorType: "vec4",
+			want:       "vec4 graphBaseColor = ((vec4(0.25, 0.5, 0.75, 1.0) / vec4(0.5, 0.25, 0.125, 0.75)) * fragColor);",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.nodeType, func(t *testing.T) {
+			doc := vectorArithmeticCompilerDocument(tt.nodeType, tt.vectorType)
+			out, err := compileRenderGraphDocumentOutput(doc)
+			if err != nil {
+				t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+			}
+			if !strings.Contains(out.FragmentSource, tt.want) {
+				t.Fatalf("generated fragment missing %q", tt.want)
+			}
+		})
+	}
+}
+
 func TestRenderGraphCompilerSupportsMathAndMixColorNodes(t *testing.T) {
 	clamp := true
 	a := matrix.NewColor(1, 0, 0, 1)
@@ -646,6 +727,94 @@ func TestRenderGraphCompilerValidationFailures(t *testing.T) {
 
 func ptrColor(color matrix.Color) *matrix.Color {
 	return &color
+}
+
+func vectorArithmeticCompilerDocument(nodeType, vectorType string) RenderGraphDocument {
+	doc := defaultRenderGraphCompilerDocument()
+	switch vectorType {
+	case "vec2":
+		doc.Nodes = append(doc.Nodes,
+			renderGraphCompilerValueNode("a-x", "0.25"),
+			renderGraphCompilerValueNode("a-y", "0.5"),
+			renderGraphCompilerValueNode("b-x", "0.5"),
+			renderGraphCompilerValueNode("b-y", "0.25"),
+			RenderGraphNode{ID: "a", Type: "combine-vec2"},
+			RenderGraphNode{ID: "b", Type: "combine-vec2"},
+			RenderGraphNode{ID: "math", Type: nodeType},
+			RenderGraphNode{ID: "split", Type: "split-vec2"},
+		)
+		doc.Connections = append(doc.Connections,
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a-x", Port: 0}, Input: RenderGraphPortRef{Node: "a", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a-y", Port: 0}, Input: RenderGraphPortRef{Node: "a", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b-x", Port: 0}, Input: RenderGraphPortRef{Node: "b", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b-y", Port: 0}, Input: RenderGraphPortRef{Node: "b", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a", Port: 0}, Input: RenderGraphPortRef{Node: "math", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b", Port: 0}, Input: RenderGraphPortRef{Node: "math", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "math", Port: 0}, Input: RenderGraphPortRef{Node: "split", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "split", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		)
+	case "vec3":
+		doc.Nodes = append(doc.Nodes,
+			RenderGraphNode{
+				ID:   "a",
+				Type: "vector",
+				Values: map[string]RenderGraphFieldValue{
+					"vector": {Parts: []string{"0.25", "0.5", "0.75"}},
+				},
+			},
+			RenderGraphNode{
+				ID:   "b",
+				Type: "vector",
+				Values: map[string]RenderGraphFieldValue{
+					"vector": {Parts: []string{"0.5", "0.25", "0.125"}},
+				},
+			},
+			RenderGraphNode{ID: "math", Type: nodeType},
+		)
+		doc.Connections = append(doc.Connections,
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a", Port: 0}, Input: RenderGraphPortRef{Node: "math", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b", Port: 0}, Input: RenderGraphPortRef{Node: "math", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "math", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 2}},
+		)
+	case "vec4":
+		doc.Nodes = append(doc.Nodes,
+			renderGraphCompilerValueNode("a-x", "0.25"),
+			renderGraphCompilerValueNode("a-y", "0.5"),
+			renderGraphCompilerValueNode("a-z", "0.75"),
+			renderGraphCompilerValueNode("a-w", "1"),
+			renderGraphCompilerValueNode("b-x", "0.5"),
+			renderGraphCompilerValueNode("b-y", "0.25"),
+			renderGraphCompilerValueNode("b-z", "0.125"),
+			renderGraphCompilerValueNode("b-w", "0.75"),
+			RenderGraphNode{ID: "a", Type: "combine-vec4"},
+			RenderGraphNode{ID: "b", Type: "combine-vec4"},
+			RenderGraphNode{ID: "math", Type: nodeType},
+		)
+		doc.Connections = append(doc.Connections,
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a-x", Port: 0}, Input: RenderGraphPortRef{Node: "a", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a-y", Port: 0}, Input: RenderGraphPortRef{Node: "a", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a-z", Port: 0}, Input: RenderGraphPortRef{Node: "a", Port: 2}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a-w", Port: 0}, Input: RenderGraphPortRef{Node: "a", Port: 3}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b-x", Port: 0}, Input: RenderGraphPortRef{Node: "b", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b-y", Port: 0}, Input: RenderGraphPortRef{Node: "b", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b-z", Port: 0}, Input: RenderGraphPortRef{Node: "b", Port: 2}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b-w", Port: 0}, Input: RenderGraphPortRef{Node: "b", Port: 3}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "a", Port: 0}, Input: RenderGraphPortRef{Node: "math", Port: 0}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "b", Port: 0}, Input: RenderGraphPortRef{Node: "math", Port: 1}},
+			RenderGraphConnection{Output: RenderGraphPortRef{Node: "math", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+		)
+	}
+	return doc
+}
+
+func renderGraphCompilerValueNode(id, value string) RenderGraphNode {
+	return RenderGraphNode{
+		ID:   id,
+		Type: "value",
+		Values: map[string]RenderGraphFieldValue{
+			"value": {Text: value},
+		},
+	}
 }
 
 func defaultRenderGraphCompilerDocument() RenderGraphDocument {
