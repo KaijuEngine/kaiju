@@ -78,7 +78,7 @@ func (w *RenderGraphWorkspace) loadRenderGraph(*document.Element) {
 		if strings.TrimSpace(id) == "" {
 			return
 		}
-		w.loadRenderGraphID(id)
+		w.LoadRenderGraphID(id)
 	}, func() {
 		w.ed.FocusInterface()
 	}); err != nil {
@@ -87,7 +87,8 @@ func (w *RenderGraphWorkspace) loadRenderGraph(*document.Element) {
 	}
 }
 
-func (w *RenderGraphWorkspace) loadRenderGraphID(id string) {
+func (w *RenderGraphWorkspace) LoadRenderGraphID(id string) {
+	defer tracing.NewRegion("RenderGraphWorkspace.LoadRenderGraphID").End()
 	cache := w.ed.Cache()
 	pfs := w.ed.ProjectFileSystem()
 	if cache == nil || pfs == nil {

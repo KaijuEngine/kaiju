@@ -26,6 +26,7 @@ import (
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
+	"kaijuengine.com/editor/editor_workspace/render_graph_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
@@ -969,6 +970,12 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 				},
 			})
 		}
+		if cc.Config.Type == (content_database.RenderGraph{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Open in Render Graph",
+				Call:  func() { w.openInRenderGraph(id) },
+			})
+		}
 		if isEditableText {
 			options = append(options, context_menu.ContextMenuOption{
 				Label: "Open in editor",
@@ -986,6 +993,25 @@ func (w *ContentWorkspace) rightClickContent(e *document.Element) {
 	}
 
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), nil)
+}
+
+func (w *ContentWorkspace) openInRenderGraph(id string) {
+	defer tracing.NewRegion("ContentWorkspace.openInRenderGraph").End()
+	workspace, ok := w.editor.Workspace(render_graph_workspace.ID)
+	if !ok {
+		slog.Warn("render graph workspace is not available")
+		return
+	}
+	renderGraph, ok := workspace.(*render_graph_workspace.RenderGraphWorkspace)
+	if !ok {
+		slog.Warn("workspace is not a render graph workspace", "id", render_graph_workspace.ID)
+		return
+	}
+	if err := w.editor.SelectWorkspace(render_graph_workspace.ID); err != nil {
+		slog.Error("failed to open render graph workspace", "error", err)
+		return
+	}
+	renderGraph.LoadRenderGraphID(id)
 }
 
 func (w *ContentWorkspace) clickClearSelection(e *document.Element) {
