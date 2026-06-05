@@ -9,11 +9,11 @@ package settings_workspace
 import "testing"
 
 func TestShortcutTextMatchesFilter(t *testing.T) {
-	haystack := "Global Save Stage editor.saveStage Ctrl/Cmd+S Saves the current stage"
+	haystack := "Stage Save Stage editor.saveStage Ctrl/Cmd+S Saves the current stage"
 	for _, query := range []string{
 		"",
 		"save",
-		"global save",
+		"stage save",
 		"ctrl/cmd+s",
 		"stage current",
 	} {
@@ -24,7 +24,7 @@ func TestShortcutTextMatchesFilter(t *testing.T) {
 }
 
 func TestShortcutTextMatchesFilterRequiresAllTokens(t *testing.T) {
-	haystack := "Global Save Stage editor.saveStage Ctrl/Cmd+S"
+	haystack := "Stage Save Stage editor.saveStage Ctrl/Cmd+S"
 	for _, query := range []string{
 		"save missing",
 		"content ctrl/cmd+s",

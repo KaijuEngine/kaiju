@@ -57,6 +57,7 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 		action editor_action.ActionID
 		chord  editor_action.KeyChord
 	}{
+		{ActionEditorSaveStage, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true}},
 		{ActionStageToggleViewportLayout, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyP)}}},
 		{ActionStageToggleContentPanel, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}},
 		{ActionStageToggleHierarchyPanel, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyH)}}},
@@ -81,6 +82,37 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 		if !editor_action.ChordsEqual(chord, check.chord) {
 			t.Fatalf("%s chord = %s, want %s", check.action,
 				editor_action.FormatKeyChord(chord), editor_action.FormatKeyChord(check.chord))
+		}
+	}
+}
+
+func TestSaveActionsDefaultBindingsAreWorkspaceScoped(t *testing.T) {
+	ed := &Editor{}
+	ed.history.Initialize(8)
+	ed.initializeActions()
+	defaults := ed.Actions().DefaultBindings()
+	saveChord := editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true}
+	checks := []struct {
+		action    editor_action.ActionID
+		workspace string
+		want      int
+	}{
+		{ActionEditorSaveStage, "", 0},
+		{ActionEditorSaveStage, stage_workspace.ID, 1},
+		{ActionEditorSaveStage, render_graph_workspace.ID, 0},
+		{render_graph_workspace.ActionRenderGraphSave, "", 0},
+		{render_graph_workspace.ActionRenderGraphSave, stage_workspace.ID, 0},
+		{render_graph_workspace.ActionRenderGraphSave, render_graph_workspace.ID, 1},
+	}
+	for _, check := range checks {
+		bindings := editor_action.BindingsForAction(defaults, nil, check.action, check.workspace)
+		if len(bindings) != check.want {
+			t.Fatalf("%s workspace %q bindings = %d, want %d",
+				check.action, check.workspace, len(bindings), check.want)
+		}
+		if check.want == 1 && !editor_action.ChordsEqual(bindings[0].Chord, saveChord) {
+			t.Fatalf("%s workspace %q chord = %s, want %s", check.action, check.workspace,
+				editor_action.FormatKeyChord(bindings[0].Chord), editor_action.FormatKeyChord(saveChord))
 		}
 	}
 }

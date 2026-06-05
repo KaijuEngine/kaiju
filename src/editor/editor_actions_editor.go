@@ -8,6 +8,7 @@ package editor
 
 import (
 	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/editor/editor_workspace/stage_workspace"
 	"kaijuengine.com/platform/hid"
 )
 
@@ -34,9 +35,10 @@ func registerEditorActions(ed *Editor, mustRegister editorActionRegistrar) {
 			Enabled: true,
 			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true},
 		}},
-		UndoPolicy: editor_action.UndoPolicyNone,
-		Visible:    true,
-	}, ed.actionSaveStage, nil)
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: stage_workspace.ID,
+	}, ed.actionSaveStage, ed.stageCanRun)
 	mustRegister(editor_action.Definition{
 		ID:          ActionEditorUndo,
 		Label:       "Undo",
