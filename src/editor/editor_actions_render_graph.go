@@ -26,7 +26,7 @@ func registerRenderGraphActions(ed *Editor, mustRegister editorActionRegistrar) 
 		DefaultBindings: []editor_action.ActionBinding{{
 			Action:  render_graph_workspace.ActionRenderGraphShowCreateNodeMenu,
 			Enabled: true,
-			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}},
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyN)}},
 		}},
 		UndoPolicy:        editor_action.UndoPolicyNone,
 		Visible:           true,

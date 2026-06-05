@@ -139,7 +139,7 @@ func TestRenderGraphActionsDefaultBindings(t *testing.T) {
 		action editor_action.ActionID
 		chord  editor_action.KeyChord
 	}{
-		{render_graph_workspace.ActionRenderGraphShowCreateNodeMenu, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}},
+		{render_graph_workspace.ActionRenderGraphShowCreateNodeMenu, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyN)}}},
 		{render_graph_workspace.ActionRenderGraphCenterView, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKey0)}}},
 		{render_graph_workspace.ActionRenderGraphFocusSelection, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF)}}},
 		{render_graph_workspace.ActionRenderGraphSave, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true}},
