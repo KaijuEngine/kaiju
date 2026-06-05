@@ -76,6 +76,21 @@ func registerRenderGraphActions(ed *Editor, mustRegister editorActionRegistrar) 
 		Visible:           true,
 		RequiredWorkspace: render_graph_workspace.ID,
 	}, ed.actionRenderGraphFocusSelection, ed.renderGraphCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          render_graph_workspace.ActionRenderGraphSave,
+		Label:       "Save Render Graph",
+		Description: "Saves the current render graph.",
+		Category:    "Render Graph",
+		Tags:        []string{"render", "graph", "save", "content"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  render_graph_workspace.ActionRenderGraphSave,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: render_graph_workspace.ID,
+	}, ed.actionRenderGraphSave, ed.renderGraphCanRun)
 }
 
 func (ed *Editor) renderGraphCanRun(editor_action.Context, editor_action.Request) editor_action.Result {
@@ -127,6 +142,15 @@ func (ed *Editor) actionRenderGraphFocusSelection(editor_action.Context, editor_
 		return editor_action.Failure("no render graph nodes are selected")
 	}
 	return editor_action.Success("render graph selection focused")
+}
+
+func (ed *Editor) actionRenderGraphSave(editor_action.Context, editor_action.Request) editor_action.Result {
+	w, ok := ed.renderGraphWorkspace()
+	if !ok {
+		return editor_action.Failure("render graph workspace is not available")
+	}
+	w.SaveCurrentGraph()
+	return editor_action.Success("render graph saved")
 }
 
 func (ed *Editor) renderGraphWorkspace() (*render_graph_workspace.RenderGraphWorkspace, bool) {

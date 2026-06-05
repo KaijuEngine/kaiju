@@ -133,7 +133,11 @@ func (w *RenderGraphWorkspace) LoadRenderGraphID(id string) {
 }
 
 func (w *RenderGraphWorkspace) saveRenderGraph(*document.Element) {
-	defer tracing.NewRegion("RenderGraphWorkspace.saveRenderGraph").End()
+	w.SaveCurrentGraph()
+}
+
+func (w *RenderGraphWorkspace) SaveCurrentGraph() {
+	defer tracing.NewRegion("RenderGraphWorkspace.SaveCurrentGraph").End()
 	if w.ed == nil {
 		return
 	}
