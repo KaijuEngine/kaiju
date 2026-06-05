@@ -24,48 +24,41 @@
 			#renderGraphPanel h2 {
 				height: 24px;
 				margin-bottom: 10px;
-				font-size: 0.9em;
+				font-size: 1.05em;
 				color: white;
-			}
-			#renderGraphPanel h3 {
-				height: 20px;
-				margin-top: 14px;
-				margin-bottom: 6px;
-				font-size: 0.68em;
-				color: #cfd5df;
 			}
 			.renderGraphFieldLabel {
 				width: 100%;
-				height: 18px;
+				height: 20px;
 				margin-bottom: 4px;
-				font-size: 0.58em;
+				font-size: 0.72em;
 				color: #aeb6c4;
 			}
 			#renderGraphName {
 				width: 100%;
-				height: 30px;
+				height: 32px;
 				margin-bottom: 8px;
 				padding: 4px 6px;
 				color: #e4e7ec;
 				background-color: #111318;
 				border: 1px solid #343842;
 				border-radius: 4px;
-				font-size: 0.62em;
+				font-size: 0.76em;
 			}
 			.renderGraphActionRow {
 				width: 100%;
-				height: 30px;
+				height: 32px;
 				margin-bottom: 8px;
 			}
 			.renderGraphActionRow button {
 				width: 74px;
-				height: 28px;
+				height: 30px;
 				margin-right: 5px;
 				color: #e8ebf0;
 				background-color: #242832;
 				border: 1px solid #3a3f4b;
 				border-radius: 4px;
-				font-size: 0.58em;
+				font-size: 0.72em;
 			}
 			.renderGraphActionRow button:hover {
 				background-color: #303542;
@@ -79,16 +72,7 @@
 				color: #aeb6c4;
 				background-color: #111318;
 				border: 1px solid #2c3039;
-				font-size: 0.52em;
-			}
-			#renderGraphNodeProperties {
-				width: 100%;
-				min-height: 120px;
-				padding: 8px;
-				color: #8f98a8;
-				background-color: #111318;
-				border: 1px solid #2c3039;
-				font-size: 0.56em;
+				font-size: 0.7em;
 			}
 			#stageViewport {
 				position: absolute;
@@ -98,7 +82,7 @@
 			}
 			#dimensionToggle {
 				position: absolute;
-				font-size: 0.6em;
+				font-size: 0.72em;
 				top: 2.5em;
 				left: 50%;
 				padding: 0.25em;
@@ -133,7 +117,7 @@
 				width: 100%;
 				height: 26px;
 				color: white;
-				font-size: 0.72em;
+				font-size: 0.84em;
 			}
 			.createNodeMenuTitle {
 				position: absolute;
@@ -152,7 +136,7 @@
 				background-color: #2a2d34;
 				border: 1px solid #3a3d45;
 				border-radius: 4px;
-				font-size: 0.68em;
+				font-size: 0.78em;
 			}
 			.createNodeMenuClose:hover {
 				background-color: #682A2D;
@@ -168,7 +152,7 @@
 				background-color: #111318;
 				border: 1px solid #343842;
 				border-radius: 4px;
-				font-size: 0.62em;
+				font-size: 0.76em;
 			}
 			#createNodeList {
 				position: relative;
@@ -198,7 +182,7 @@
 				top: 4px;
 				width: 104px;
 				height: 20px;
-				font-size: 0.72em;
+				font-size: 0.82em;
 				color: white;
 			}
 			.createNodeMenuItemDescription {
@@ -207,7 +191,7 @@
 				top: 6px;
 				width: calc(100% - 124px);
 				height: 16px;
-				font-size: 0.46em;
+				font-size: 0.58em;
 				color: #aeb6c4;
 			}
 			#createNodeEmpty {
@@ -215,7 +199,7 @@
 				width: 100%;
 				padding-top: 20px;
 				color: #aeb6c4;
-				font-size: 0.58em;
+				font-size: 0.72em;
 				text-align: center;
 			}
 		</style>
@@ -232,8 +216,6 @@
 					<button onclick="saveRenderGraph">Save</button>
 				</div>
 				<div id="renderGraphStatus">Unsaved render graph</div>
-				<h3>Properties</h3>
-				<div id="renderGraphNodeProperties">No node selected</div>
 			</div>
 			<img id="stageViewport" src="square.png" />
 			<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
