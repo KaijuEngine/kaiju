@@ -11,16 +11,14 @@
 			#stageViewport {
 				position: absolute;
 				left: 0;
-				top: var(--ed-menu-bar-height);
-				width: 50%;
-				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				width: 100%;
 				z-index: 2;
 			}
 			#dimensionToggle {
 				position: absolute;
 				font-size: 0.6em;
 				top: 2.5em;
-				left: 25%;
+				left: 50%;
 				padding: 0.25em;
 				transform: translateX(-50%);
 				color: white;
@@ -33,11 +31,9 @@
 			}
 			#shaderGraphArea {
 				position: absolute;
-				right: 0;
-				top: var(--ed-menu-bar-height);
-				width: 50%;
-				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
-				border-left: 2px solid black;
+				left: 0;
+				width: 100%;
+				border-top: 2px solid black;
 				z-index: 1;
 			}
 			#createNodeMenu {
@@ -146,22 +142,21 @@
 		<div id="shadingWorkspace" class="shadingWorkspace edPanelBg">
 			<img id="stageViewport" src="square.png" />
 			<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
-			<div id="shaderGraphArea" class="edPanelBg">
-				<div id="createNodeMenu">
-					<div class="createNodeMenuHeader">
-						<span class="createNodeMenuTitle">Create Node</span>
-						<button class="createNodeMenuClose" onclick="closeCreateNodeMenu">X</button>
-					</div>
-					<input id="createNodeSearch" type="text" placeholder="Search nodes" onchange="filterCreateNodeMenu" />
-					<div id="createNodeList">
-						{{ range .CreateNodes }}
-						<button class="createNodeMenuItem" data-node-id="{{ .ID }}" data-search="{{ .Search }}" onclick="selectCreateNode">
-							<div class="createNodeMenuItemName">{{ .Name }}</div>
-							<div class="createNodeMenuItemDescription">{{ .Description }}</div>
-						</button>
-						{{ end }}
-						<div id="createNodeEmpty">No nodes found</div>
-					</div>
+			<div id="shaderGraphArea" class="edPanelBg"></div>
+			<div id="createNodeMenu">
+				<div class="createNodeMenuHeader">
+					<span class="createNodeMenuTitle">Create Node</span>
+					<button class="createNodeMenuClose" onclick="closeCreateNodeMenu">X</button>
+				</div>
+				<input id="createNodeSearch" type="text" placeholder="Search nodes" onchange="filterCreateNodeMenu" />
+				<div id="createNodeList">
+					{{ range .CreateNodes }}
+					<button class="createNodeMenuItem" data-node-id="{{ .ID }}" data-search="{{ .Search }}" onclick="selectCreateNode">
+						<div class="createNodeMenuItemName">{{ .Name }}</div>
+						<div class="createNodeMenuItemDescription">{{ .Description }}</div>
+					</button>
+					{{ end }}
+					<div id="createNodeEmpty">No nodes found</div>
 				</div>
 			</div>
 		</div>

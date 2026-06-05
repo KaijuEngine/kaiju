@@ -178,9 +178,11 @@ func (g *shaderGraph) applyLayout() {
 	}
 	windowWidth := float32(g.host.Window.Width())
 	windowHeight := float32(g.host.Window.Height())
-	width := max(1, windowWidth*0.5)
-	height := max(1, windowHeight-shadingGraphMenuBarHeight-shadingGraphStatusBarHeight)
+	contentHeight := max(1, windowHeight-shadingGraphMenuBarHeight-shadingGraphStatusBarHeight)
+	stageHeight := max(1, contentHeight*0.5)
+	graphHeight := max(1, contentHeight-stageHeight)
+	width := max(1, windowWidth)
 	layout := g.root.Base().Layout()
-	layout.Scale(width, height)
-	layout.SetOffset(windowWidth*0.5, shadingGraphMenuBarHeight)
+	layout.Scale(width, graphHeight)
+	layout.SetOffset(0, shadingGraphMenuBarHeight+stageHeight)
 }

@@ -109,12 +109,15 @@ func (m *shaderGraphCreateNodeMenu) positionRoot(position matrix.Vec2) {
 	if m.workspace == nil || m.workspace.shaderGraphArea == nil {
 		return
 	}
-	areaSize := m.workspace.shaderGraphArea.UI.Layout().PixelSize()
+	areaLayout := m.workspace.shaderGraphArea.UI.Layout()
+	areaSize := areaLayout.PixelSize()
+	areaOffset := areaLayout.Offset()
 	x := matrix.Clamp(position.X(), 8, max(8, areaSize.X()-shaderGraphCreateMenuWidth-8))
 	y := matrix.Clamp(position.Y(), 8, max(8, areaSize.Y()-shaderGraphCreateMenuHeight-8))
 	layout := m.root.UI.Layout()
 	layout.SetPositioning(ui.PositioningAbsolute)
-	layout.SetOffset(float32(x), float32(y))
+	layout.SetOffset(float32(areaOffset.X()+x), float32(areaOffset.Y()+y))
+	layout.SetZ(40)
 }
 
 func shaderGraphCreateMenuMatches(search, query string) bool {

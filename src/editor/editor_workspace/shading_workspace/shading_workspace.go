@@ -111,6 +111,7 @@ func (w *ShadingWorkspace) Shutdown() {
 func (w *ShadingWorkspace) Open() {
 	defer tracing.NewRegion("ShadingWorkspace.Open").End()
 	w.CommonOpen()
+	w.applyLayout()
 	if w.stageViewport != nil {
 		w.stageView.SetViewportUI(w.stageViewport.UI)
 	}
@@ -145,6 +146,7 @@ func (w *ShadingWorkspace) Update(deltaTime float64) {
 	if w.IsBlurred {
 		return
 	}
+	w.applyLayout()
 	w.createNodeMenu.Update()
 	w.graph.Update()
 	if w.UiMan.Group.HasRequests() {
@@ -167,6 +169,7 @@ func (w *ShadingWorkspace) toggleDimension(e *document.Element) {
 }
 
 func (w *ShadingWorkspace) ShowCreateNodeMenu() {
+	w.applyLayout()
 	position := w.createNodeMenuPosition()
 	w.createNodeMenu.Show(position, w.graph.graphPositionFromView(position))
 }

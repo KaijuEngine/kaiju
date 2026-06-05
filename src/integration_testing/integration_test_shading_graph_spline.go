@@ -29,10 +29,14 @@ import (
 	"kaijuengine.com/engine"
 )
 
-const shadingGraphSplineScreenshotOutput = "integration_test_shading_graph_spline.png"
+const (
+	shadingGraphSplineScreenshotOutput     = "integration_test_shading_graph_spline.png"
+	shadingGraphCreateMenuScreenshotOutput = "integration_test_shading_create_menu.png"
+)
 
 func init() {
 	tests["shading-graph-spline"] = IntegrationTestShadingGraphSpline
+	tests["shading-create-menu"] = IntegrationTestShadingCreateMenu
 }
 
 func IntegrationTestShadingGraphSpline(host *engine.Host) {
@@ -40,6 +44,7 @@ func IntegrationTestShadingGraphSpline(host *engine.Host) {
 	if err != nil {
 		failShadingGraphSplineIntegration("create test editor", err)
 	}
+	createStageViewportSelectedSphere(host)
 	workspace := &shading_workspace.ShadingWorkspace{}
 	if err = workspace.Initialize(ed); err != nil {
 		failShadingGraphSplineIntegration("initialize shading workspace", err)
@@ -66,19 +71,57 @@ func IntegrationTestShadingGraphSpline(host *engine.Host) {
 	})
 }
 
-func assertShadingGraphSplineScreenshot(img image.Image) error {
+func IntegrationTestShadingCreateMenu(host *engine.Host) {
+	ed, err := newShadingGraphSplineTestEditor(host)
+	if err != nil {
+		failShadingCreateMenuIntegration("create test editor", err)
+	}
+	workspace := &shading_workspace.ShadingWorkspace{}
+	if err = workspace.Initialize(ed); err != nil {
+		failShadingCreateMenuIntegration("initialize shading workspace", err)
+	}
+	workspace.Open()
+	updateId := host.Updater.AddUpdate(workspace.Update)
+
+	host.RunAfterFrames(8, func() {
+		workspace.ShowCreateNodeMenu()
+	})
+	host.RunAfterFrames(24, func() {
+		img, err := captureScreenshotImage(host)
+		if err != nil {
+			failShadingCreateMenuIntegration("capture screenshot", err)
+		}
+		if err = assertShadingCreateMenuScreenshot(host, workspace, img); err != nil {
+			_ = writeScreenshotImage(img, shadingGraphCreateMenuScreenshotOutput)
+			failShadingCreateMenuIntegration("screenshot smoke check", err)
+		}
+		if err = writeScreenshotImage(img, shadingGraphCreateMenuScreenshotOutput); err != nil {
+			failShadingCreateMenuIntegration("write screenshot", err)
+		}
+		host.Updater.RemoveUpdate(&updateId)
+		ed.cleanup()
+		slog.Info("Screenshot captured", "path", shadingGraphCreateMenuScreenshotOutput)
+		os.Exit(0)
+	})
+}
+
+func assertShadingGraphSplineScreenshot(img *image.RGBA) error {
 	bounds := img.Bounds()
 	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
 		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
 	}
+	graphTop := bounds.Min.Y + int(24+float32(bounds.Dy()-45)*0.5)
+	stageRect := image.Rect(bounds.Min.X, bounds.Min.Y+24, bounds.Max.X, graphTop)
+	if pixels := countSaturatedPixels(img, stageRect); pixels < 150 {
+		return fmt.Errorf("expected rendered scene content in top stage viewport, found %d saturated pixels", pixels)
+	}
 	greenSplinePixels := 0
 	greenWirePixels := 0
 	redAccentPixels := 0
-	graphLeft := bounds.Min.X + bounds.Dx()/2
-	wireMinX := graphLeft + 300
-	wireMaxX := graphLeft + 360
-	wireMinY := bounds.Min.Y + 165
-	wireMaxY := bounds.Min.Y + 280
+	wireMinX := bounds.Min.X + 300
+	wireMaxX := bounds.Min.X + 360
+	wireMinY := graphTop + 165
+	wireMaxY := graphTop + 280
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r16, g16, b16, _ := img.At(x, y).RGBA()
@@ -104,6 +147,47 @@ func assertShadingGraphSplineScreenshot(img image.Image) error {
 	}
 	if redAccentPixels < 1200 {
 		return fmt.Errorf("expected visible node accent pixels, found %d", redAccentPixels)
+	}
+	return nil
+}
+
+func assertShadingCreateMenuScreenshot(host *engine.Host, workspace *shading_workspace.ShadingWorkspace, img *image.RGBA) error {
+	menu, ok := workspace.Doc.GetElementById("createNodeMenu")
+	if !ok || menu == nil || menu.UI == nil || !menu.UI.IsActive() {
+		return fmt.Errorf("create node menu is not active")
+	}
+	rect := elementBoundsRectangle(host, img.Bounds(), menu.UI)
+	if rect.Dx() < 250 || rect.Dy() < 250 {
+		return fmt.Errorf("create node menu has invalid screenshot bounds %v", rect)
+	}
+	redPixels := 0
+	darkPanelPixels := 0
+	lightTextPixels := 0
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r > 80 && r < 150 && g > 20 && g < 95 && b > 20 && b < 105 && r-g > 35 {
+				redPixels++
+			}
+			if r >= 15 && r <= 45 && g >= 15 && g <= 48 && b >= 18 && b <= 58 {
+				darkPanelPixels++
+			}
+			if r > 180 && g > 180 && b > 180 {
+				lightTextPixels++
+			}
+		}
+	}
+	if redPixels < 4 {
+		return fmt.Errorf("expected visible create menu accent pixels, found %d", redPixels)
+	}
+	if darkPanelPixels < 10000 {
+		return fmt.Errorf("expected visible create menu panel pixels, found %d", darkPanelPixels)
+	}
+	if lightTextPixels < 60 {
+		return fmt.Errorf("expected visible create menu text pixels, found %d", lightTextPixels)
 	}
 	return nil
 }
@@ -221,6 +305,19 @@ func failShadingGraphSplineIntegration(message string, err error) {
 	} else {
 		slog.Error("shading graph spline integration test failed",
 			"path", shadingGraphSplineScreenshotOutput,
+			"message", message)
+	}
+	os.Exit(1)
+}
+
+func failShadingCreateMenuIntegration(message string, err error) {
+	if err != nil {
+		slog.Error("shading create menu integration test failed",
+			"path", shadingGraphCreateMenuScreenshotOutput,
+			"message", message, "error", err)
+	} else {
+		slog.Error("shading create menu integration test failed",
+			"path", shadingGraphCreateMenuScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)
