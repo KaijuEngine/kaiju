@@ -25,7 +25,7 @@ const (
 	shaderGraphNodePortLabelGap = float32(8)
 	shaderGraphNodeFieldStartY  = shaderGraphNodeHeaderH + 38
 	shaderGraphNodePortStartY   = shaderGraphNodeHeaderH + 42
-	shaderGraphNodePortDotSize  = float32(7)
+	shaderGraphNodePortDotSize  = float32(10)
 )
 
 var (
@@ -354,6 +354,7 @@ func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, spec shaderGraphNodeSpe
 func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec, output bool, index int, y float32, paired bool) *shaderGraphPort {
 	const dotSize = shaderGraphNodePortDotSize
 	dotX := shaderGraphNodePadding
+	dotY := y + (shaderGraphNodePortHeight-dotSize)*0.5
 	labelX := shaderGraphNodePadding + dotSize + shaderGraphNodePortLabelGap
 	labelWidth := shaderGraphNodeWidth*0.5 - shaderGraphNodePadding*2 - dotSize - shaderGraphNodePortLabelGap
 	justify := rendering.FontJustifyLeft
@@ -373,6 +374,19 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 		}
 	}
 
+	hitX := min(dotX, labelX)
+	hitRight := max(dotX+dotSize, labelX+labelWidth)
+	hit := uiMan.Add().ToPanel()
+	hit.Init(nil, ui.ElementTypePanel)
+	hit.DontFitContent()
+	hit.SetColor(matrix.ColorTransparent())
+	hit.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	hit.Base().Layout().SetZ(5.35)
+	hit.Base().Layout().Scale(hitRight-hitX, shaderGraphNodePortHeight)
+	hit.Base().Layout().SetOffset(hitX, y)
+	n.bindSelectionEvent(hit.Base())
+	n.root.AddChild(hit.Base())
+
 	dot := uiMan.Add().ToPanel()
 	dot.Init(nil, ui.ElementTypePanel)
 	dot.DontFitContent()
@@ -381,7 +395,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	dot.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	dot.Base().Layout().SetZ(5.2)
 	dot.Base().Layout().Scale(dotSize, dotSize)
-	dot.Base().Layout().SetOffset(dotX, y+6.5)
+	dot.Base().Layout().SetOffset(dotX, dotY)
 	n.bindSelectionEvent(dot.Base())
 	n.root.AddChild(dot.Base())
 
@@ -405,9 +419,10 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 		spec:        port,
 		output:      output,
 		index:       index,
+		hit:         hit,
 		dot:         dot,
 		label:       label,
-		localAnchor: matrix.NewVec2(matrix.Float(dotX+dotSize*0.5), matrix.Float(y+6.5+dotSize*0.5)),
+		localAnchor: matrix.NewVec2(matrix.Float(dotX+dotSize*0.5), matrix.Float(dotY+dotSize*0.5)),
 	}
 	graphPort.bindEvents()
 	return graphPort

@@ -19,6 +19,7 @@ type shaderGraphPort struct {
 	spec        shaderGraphPortSpec
 	output      bool
 	index       int
+	hit         *ui.Panel
 	dot         *ui.Panel
 	label       *ui.Label
 	localAnchor matrix.Vec2
@@ -50,10 +51,26 @@ func shaderGraphPortRef(port *shaderGraphPort) (RenderGraphPortRef, bool) {
 }
 
 func (p *shaderGraphPort) bindEvents() {
-	if p == nil || p.dot == nil || p.graph == nil {
+	if p == nil || p.graph == nil {
 		return
 	}
-	p.dot.Base().AddEvent(ui.EventTypeDown, func() {
+	if p.hit != nil {
+		p.bindTargetEvents(p.hit.Base())
+		return
+	}
+	if p.dot != nil {
+		p.bindTargetEvents(p.dot.Base())
+	}
+	if p.label != nil {
+		p.bindTargetEvents(p.label.Base())
+	}
+}
+
+func (p *shaderGraphPort) bindTargetEvents(target *ui.UI) {
+	if target == nil || p == nil || p.graph == nil {
+		return
+	}
+	target.AddEvent(ui.EventTypeDown, func() {
 		if p.graph.isPanInputHeld() {
 			return
 		}
@@ -63,10 +80,10 @@ func (p *shaderGraphPort) bindEvents() {
 		}
 		p.graph.beginConnection(p)
 	})
-	p.dot.Base().AddEvent(ui.EventTypeUp, func() {
+	target.AddEvent(ui.EventTypeUp, func() {
 		p.graph.finishConnection(p)
 	})
-	p.dot.Base().AddEvent(ui.EventTypeDragEnd, func() {
+	target.AddEvent(ui.EventTypeDragEnd, func() {
 		p.graph.finishConnection(nil)
 	})
 }
