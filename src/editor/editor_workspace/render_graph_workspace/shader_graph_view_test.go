@@ -1,4 +1,4 @@
-package shading_workspace
+package render_graph_workspace
 
 import (
 	"testing"

@@ -1,7 +1,7 @@
 //go:build editor
 
 /******************************************************************************/
-/* integration_test_shading_graph_spline.go                                   */
+/* integration_test_render_graph_workspace.go                                 */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
@@ -20,7 +20,7 @@ import (
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
-	"kaijuengine.com/editor/editor_workspace/shading_workspace"
+	"kaijuengine.com/editor/editor_workspace/render_graph_workspace"
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_database/content_database"
@@ -30,26 +30,26 @@ import (
 )
 
 const (
-	shadingGraphSplineScreenshotOutput     = "integration_test_shading_graph_spline.png"
-	shadingGraphCreateMenuScreenshotOutput = "integration_test_shading_create_menu.png"
-	shadingGraphNodeFieldsScreenshotOutput = "integration_test_shading_node_fields.png"
+	renderGraphSplineScreenshotOutput     = "integration_test_render_graph_spline.png"
+	renderGraphCreateMenuScreenshotOutput = "integration_test_render_graph_create_menu.png"
+	renderGraphNodeFieldsScreenshotOutput = "integration_test_render_graph_node_fields.png"
 )
 
 func init() {
-	tests["shading-graph-spline"] = IntegrationTestShadingGraphSpline
-	tests["shading-create-menu"] = IntegrationTestShadingCreateMenu
-	tests["shading-node-fields"] = IntegrationTestShadingNodeFields
+	tests["render-graph-spline"] = IntegrationTestRenderGraphSpline
+	tests["render-graph-create-menu"] = IntegrationTestRenderGraphCreateMenu
+	tests["render-graph-node-fields"] = IntegrationTestRenderGraphNodeFields
 }
 
-func IntegrationTestShadingGraphSpline(host *engine.Host) {
-	ed, err := newShadingGraphSplineTestEditor(host)
+func IntegrationTestRenderGraphSpline(host *engine.Host) {
+	ed, err := newRenderGraphWorkspaceTestEditor(host)
 	if err != nil {
-		failShadingGraphSplineIntegration("create test editor", err)
+		failRenderGraphSplineIntegration("create test editor", err)
 	}
 	createStageViewportSelectedSphere(host)
-	workspace := &shading_workspace.ShadingWorkspace{}
+	workspace := &render_graph_workspace.RenderGraphWorkspace{}
 	if err = workspace.Initialize(ed); err != nil {
-		failShadingGraphSplineIntegration("initialize shading workspace", err)
+		failRenderGraphSplineIntegration("initialize render graph workspace", err)
 	}
 	workspace.Open()
 	updateId := host.Updater.AddUpdate(workspace.Update)
@@ -57,30 +57,30 @@ func IntegrationTestShadingGraphSpline(host *engine.Host) {
 	host.RunAfterFrames(24, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
-			failShadingGraphSplineIntegration("capture screenshot", err)
+			failRenderGraphSplineIntegration("capture screenshot", err)
 		}
-		if err = assertShadingGraphSplineScreenshot(img); err != nil {
-			_ = writeScreenshotImage(img, shadingGraphSplineScreenshotOutput)
-			failShadingGraphSplineIntegration("screenshot smoke check", err)
+		if err = assertRenderGraphSplineScreenshot(img); err != nil {
+			_ = writeScreenshotImage(img, renderGraphSplineScreenshotOutput)
+			failRenderGraphSplineIntegration("screenshot smoke check", err)
 		}
-		if err = writeScreenshotImage(img, shadingGraphSplineScreenshotOutput); err != nil {
-			failShadingGraphSplineIntegration("write screenshot", err)
+		if err = writeScreenshotImage(img, renderGraphSplineScreenshotOutput); err != nil {
+			failRenderGraphSplineIntegration("write screenshot", err)
 		}
 		host.Updater.RemoveUpdate(&updateId)
 		ed.cleanup()
-		slog.Info("Screenshot captured", "path", shadingGraphSplineScreenshotOutput)
+		slog.Info("Screenshot captured", "path", renderGraphSplineScreenshotOutput)
 		os.Exit(0)
 	})
 }
 
-func IntegrationTestShadingCreateMenu(host *engine.Host) {
-	ed, err := newShadingGraphSplineTestEditor(host)
+func IntegrationTestRenderGraphCreateMenu(host *engine.Host) {
+	ed, err := newRenderGraphWorkspaceTestEditor(host)
 	if err != nil {
-		failShadingCreateMenuIntegration("create test editor", err)
+		failRenderGraphCreateMenuIntegration("create test editor", err)
 	}
-	workspace := &shading_workspace.ShadingWorkspace{}
+	workspace := &render_graph_workspace.RenderGraphWorkspace{}
 	if err = workspace.Initialize(ed); err != nil {
-		failShadingCreateMenuIntegration("initialize shading workspace", err)
+		failRenderGraphCreateMenuIntegration("initialize render graph workspace", err)
 	}
 	workspace.Open()
 	updateId := host.Updater.AddUpdate(workspace.Update)
@@ -91,68 +91,68 @@ func IntegrationTestShadingCreateMenu(host *engine.Host) {
 	host.RunAfterFrames(24, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
-			failShadingCreateMenuIntegration("capture screenshot", err)
+			failRenderGraphCreateMenuIntegration("capture screenshot", err)
 		}
-		if err = assertShadingCreateMenuScreenshot(host, workspace, img); err != nil {
-			_ = writeScreenshotImage(img, shadingGraphCreateMenuScreenshotOutput)
-			failShadingCreateMenuIntegration("screenshot smoke check", err)
+		if err = assertRenderGraphCreateMenuScreenshot(host, workspace, img); err != nil {
+			_ = writeScreenshotImage(img, renderGraphCreateMenuScreenshotOutput)
+			failRenderGraphCreateMenuIntegration("screenshot smoke check", err)
 		}
-		if err = writeScreenshotImage(img, shadingGraphCreateMenuScreenshotOutput); err != nil {
-			failShadingCreateMenuIntegration("write screenshot", err)
+		if err = writeScreenshotImage(img, renderGraphCreateMenuScreenshotOutput); err != nil {
+			failRenderGraphCreateMenuIntegration("write screenshot", err)
 		}
 		host.Updater.RemoveUpdate(&updateId)
 		ed.cleanup()
-		slog.Info("Screenshot captured", "path", shadingGraphCreateMenuScreenshotOutput)
+		slog.Info("Screenshot captured", "path", renderGraphCreateMenuScreenshotOutput)
 		os.Exit(0)
 	})
 }
 
-func IntegrationTestShadingNodeFields(host *engine.Host) {
-	ed, err := newShadingGraphSplineTestEditor(host)
+func IntegrationTestRenderGraphNodeFields(host *engine.Host) {
+	ed, err := newRenderGraphWorkspaceTestEditor(host)
 	if err != nil {
-		failShadingNodeFieldsIntegration("create test editor", err)
+		failRenderGraphNodeFieldsIntegration("create test editor", err)
 	}
-	workspace := &shading_workspace.ShadingWorkspace{}
+	workspace := &render_graph_workspace.RenderGraphWorkspace{}
 	if err = workspace.Initialize(ed); err != nil {
-		failShadingNodeFieldsIntegration("initialize shading workspace", err)
+		failRenderGraphNodeFieldsIntegration("initialize render graph workspace", err)
 	}
 	workspace.Open()
 	updateId := host.Updater.AddUpdate(workspace.Update)
 
 	host.RunAfterFrames(8, func() {
-		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+		workspace.CreateNodeFromAction(render_graph_workspace.CreateNodeActionArgs{
 			NodeID: "value", X: 42, Y: 190, UsePosition: true,
 		})
-		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+		workspace.CreateNodeFromAction(render_graph_workspace.CreateNodeActionArgs{
 			NodeID: "color", X: 280, Y: 190, UsePosition: true,
 		})
-		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+		workspace.CreateNodeFromAction(render_graph_workspace.CreateNodeActionArgs{
 			NodeID: "vector", X: 518, Y: 190, UsePosition: true,
 		})
-		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+		workspace.CreateNodeFromAction(render_graph_workspace.CreateNodeActionArgs{
 			NodeID: "mix-color", X: 756, Y: 155, UsePosition: true,
 		})
 	})
 	host.RunAfterFrames(32, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
-			failShadingNodeFieldsIntegration("capture screenshot", err)
+			failRenderGraphNodeFieldsIntegration("capture screenshot", err)
 		}
-		if err = assertShadingNodeFieldsScreenshot(img); err != nil {
-			_ = writeScreenshotImage(img, shadingGraphNodeFieldsScreenshotOutput)
-			failShadingNodeFieldsIntegration("screenshot smoke check", err)
+		if err = assertRenderGraphNodeFieldsScreenshot(img); err != nil {
+			_ = writeScreenshotImage(img, renderGraphNodeFieldsScreenshotOutput)
+			failRenderGraphNodeFieldsIntegration("screenshot smoke check", err)
 		}
-		if err = writeScreenshotImage(img, shadingGraphNodeFieldsScreenshotOutput); err != nil {
-			failShadingNodeFieldsIntegration("write screenshot", err)
+		if err = writeScreenshotImage(img, renderGraphNodeFieldsScreenshotOutput); err != nil {
+			failRenderGraphNodeFieldsIntegration("write screenshot", err)
 		}
 		host.Updater.RemoveUpdate(&updateId)
 		ed.cleanup()
-		slog.Info("Screenshot captured", "path", shadingGraphNodeFieldsScreenshotOutput)
+		slog.Info("Screenshot captured", "path", renderGraphNodeFieldsScreenshotOutput)
 		os.Exit(0)
 	})
 }
 
-func assertShadingGraphSplineScreenshot(img *image.RGBA) error {
+func assertRenderGraphSplineScreenshot(img *image.RGBA) error {
 	bounds := img.Bounds()
 	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
 		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
@@ -198,7 +198,7 @@ func assertShadingGraphSplineScreenshot(img *image.RGBA) error {
 	return nil
 }
 
-func assertShadingCreateMenuScreenshot(host *engine.Host, workspace *shading_workspace.ShadingWorkspace, img *image.RGBA) error {
+func assertRenderGraphCreateMenuScreenshot(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, img *image.RGBA) error {
 	menu, ok := workspace.Doc.GetElementById("createNodeMenu")
 	if !ok || menu == nil || menu.UI == nil || !menu.UI.IsActive() {
 		return fmt.Errorf("create node menu is not active")
@@ -239,7 +239,7 @@ func assertShadingCreateMenuScreenshot(host *engine.Host, workspace *shading_wor
 	return nil
 }
 
-func assertShadingNodeFieldsScreenshot(img *image.RGBA) error {
+func assertRenderGraphNodeFieldsScreenshot(img *image.RGBA) error {
 	bounds := img.Bounds()
 	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
 		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
@@ -271,7 +271,7 @@ func assertShadingNodeFieldsScreenshot(img *image.RGBA) error {
 	return nil
 }
 
-type shadingGraphSplineTestEditor struct {
+type renderGraphWorkspaceTestEditor struct {
 	host           *engine.Host
 	settings       editor_settings.Settings
 	events         editor_events.EditorEvents
@@ -284,8 +284,8 @@ type shadingGraphSplineTestEditor struct {
 	stageView      editor_stage_view.StageView
 }
 
-func newShadingGraphSplineTestEditor(host *engine.Host) (*shadingGraphSplineTestEditor, error) {
-	projectDir, err := os.MkdirTemp("", "kaiju-shading-graph-spline-")
+func newRenderGraphWorkspaceTestEditor(host *engine.Host) (*renderGraphWorkspaceTestEditor, error) {
+	projectDir, err := os.MkdirTemp("", "kaiju-render-graph-spline-")
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func newShadingGraphSplineTestEditor(host *engine.Host) (*shadingGraphSplineTest
 	if err = fs.Mkdir(project_file_system.DatabaseFolder, os.ModePerm); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
-	ed := &shadingGraphSplineTestEditor{
+	ed := &renderGraphWorkspaceTestEditor{
 		host:       host,
 		projectDir: projectDir,
 		projectFS:  fs,
@@ -317,13 +317,13 @@ func newShadingGraphSplineTestEditor(host *engine.Host) (*shadingGraphSplineTest
 		},
 	}
 	ed.history.Initialize(512)
-	ed.project.Settings.Name = "Shading Graph Spline Integration"
+	ed.project.Settings.Name = "Render Graph Workspace Integration"
 	ed.project.Settings.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
 	ed.stageView.Initialize(host, ed)
 	return ed, nil
 }
 
-func (e *shadingGraphSplineTestEditor) cleanup() {
+func (e *renderGraphWorkspaceTestEditor) cleanup() {
 	if e.projectFS.Root != nil {
 		_ = e.projectFS.Close()
 	}
@@ -332,84 +332,84 @@ func (e *shadingGraphSplineTestEditor) cleanup() {
 	}
 }
 
-func (e *shadingGraphSplineTestEditor) Host() *engine.Host { return e.host }
+func (e *renderGraphWorkspaceTestEditor) Host() *engine.Host { return e.host }
 
-func (e *shadingGraphSplineTestEditor) Cache() *content_database.Cache { return &e.cache }
+func (e *renderGraphWorkspaceTestEditor) Cache() *content_database.Cache { return &e.cache }
 
-func (e *shadingGraphSplineTestEditor) ContentPreviewer() *content_previews.ContentPreviewer {
+func (e *renderGraphWorkspaceTestEditor) ContentPreviewer() *content_previews.ContentPreviewer {
 	return &e.contentPreview
 }
 
-func (e *shadingGraphSplineTestEditor) Actions() *editor_action.Service { return nil }
+func (e *renderGraphWorkspaceTestEditor) Actions() *editor_action.Service { return nil }
 
-func (e *shadingGraphSplineTestEditor) Settings() *editor_settings.Settings { return &e.settings }
+func (e *renderGraphWorkspaceTestEditor) Settings() *editor_settings.Settings { return &e.settings }
 
-func (e *shadingGraphSplineTestEditor) Events() *editor_events.EditorEvents { return &e.events }
+func (e *renderGraphWorkspaceTestEditor) Events() *editor_events.EditorEvents { return &e.events }
 
-func (e *shadingGraphSplineTestEditor) History() *memento.History { return &e.history }
+func (e *renderGraphWorkspaceTestEditor) History() *memento.History { return &e.history }
 
-func (e *shadingGraphSplineTestEditor) Project() *project.Project { return &e.project }
+func (e *renderGraphWorkspaceTestEditor) Project() *project.Project { return &e.project }
 
-func (e *shadingGraphSplineTestEditor) ProjectFileSystem() *project_file_system.FileSystem {
+func (e *renderGraphWorkspaceTestEditor) ProjectFileSystem() *project_file_system.FileSystem {
 	return &e.projectFS
 }
 
-func (e *shadingGraphSplineTestEditor) StageView() *editor_stage_view.StageView {
+func (e *renderGraphWorkspaceTestEditor) StageView() *editor_stage_view.StageView {
 	return &e.stageView
 }
 
-func (e *shadingGraphSplineTestEditor) BlurInterface() {}
+func (e *renderGraphWorkspaceTestEditor) BlurInterface() {}
 
-func (e *shadingGraphSplineTestEditor) FocusInterface() {}
+func (e *renderGraphWorkspaceTestEditor) FocusInterface() {}
 
-func (e *shadingGraphSplineTestEditor) IsInputFocused() bool { return false }
+func (e *renderGraphWorkspaceTestEditor) IsInputFocused() bool { return false }
 
-func (e *shadingGraphSplineTestEditor) SelectWorkspace(string) error { return nil }
+func (e *renderGraphWorkspaceTestEditor) SelectWorkspace(string) error { return nil }
 
-func (e *shadingGraphSplineTestEditor) Workspace(string) (editor_workspace.Workspace, bool) {
+func (e *renderGraphWorkspaceTestEditor) Workspace(string) (editor_workspace.Workspace, bool) {
 	return nil, false
 }
 
-func (e *shadingGraphSplineTestEditor) Workspaces() []editor_workspace.Workspace { return nil }
+func (e *renderGraphWorkspaceTestEditor) Workspaces() []editor_workspace.Workspace { return nil }
 
-func (e *shadingGraphSplineTestEditor) UpdateSettings() {}
+func (e *renderGraphWorkspaceTestEditor) UpdateSettings() {}
 
-func (e *shadingGraphSplineTestEditor) ShowReferences(string) {}
+func (e *renderGraphWorkspaceTestEditor) ShowReferences(string) {}
 
-func failShadingGraphSplineIntegration(message string, err error) {
+func failRenderGraphSplineIntegration(message string, err error) {
 	if err != nil {
-		slog.Error("shading graph spline integration test failed",
-			"path", shadingGraphSplineScreenshotOutput,
+		slog.Error("render graph spline integration test failed",
+			"path", renderGraphSplineScreenshotOutput,
 			"message", message, "error", err)
 	} else {
-		slog.Error("shading graph spline integration test failed",
-			"path", shadingGraphSplineScreenshotOutput,
+		slog.Error("render graph spline integration test failed",
+			"path", renderGraphSplineScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)
 }
 
-func failShadingCreateMenuIntegration(message string, err error) {
+func failRenderGraphCreateMenuIntegration(message string, err error) {
 	if err != nil {
-		slog.Error("shading create menu integration test failed",
-			"path", shadingGraphCreateMenuScreenshotOutput,
+		slog.Error("render graph create menu integration test failed",
+			"path", renderGraphCreateMenuScreenshotOutput,
 			"message", message, "error", err)
 	} else {
-		slog.Error("shading create menu integration test failed",
-			"path", shadingGraphCreateMenuScreenshotOutput,
+		slog.Error("render graph create menu integration test failed",
+			"path", renderGraphCreateMenuScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)
 }
 
-func failShadingNodeFieldsIntegration(message string, err error) {
+func failRenderGraphNodeFieldsIntegration(message string, err error) {
 	if err != nil {
-		slog.Error("shading node fields integration test failed",
-			"path", shadingGraphNodeFieldsScreenshotOutput,
+		slog.Error("render graph node fields integration test failed",
+			"path", renderGraphNodeFieldsScreenshotOutput,
 			"message", message, "error", err)
 	} else {
-		slog.Error("shading node fields integration test failed",
-			"path", shadingGraphNodeFieldsScreenshotOutput,
+		slog.Error("render graph node fields integration test failed",
+			"path", renderGraphNodeFieldsScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)

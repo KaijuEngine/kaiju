@@ -1,10 +1,10 @@
 /******************************************************************************/
-/* shading_workspace_create_menu.go                                           */
+/* render_graph_workspace_create_menu.go                                      */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package shading_workspace
+package render_graph_workspace
 
 import (
 	"strings"
@@ -21,7 +21,7 @@ const (
 )
 
 type shaderGraphCreateNodeMenu struct {
-	workspace      *ShadingWorkspace
+	workspace      *RenderGraphWorkspace
 	root           *document.Element
 	search         *document.Element
 	empty          *document.Element
@@ -30,7 +30,7 @@ type shaderGraphCreateNodeMenu struct {
 	open           bool
 }
 
-func (m *shaderGraphCreateNodeMenu) Initialize(workspace *ShadingWorkspace) {
+func (m *shaderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) {
 	m.workspace = workspace
 	if workspace == nil || workspace.Doc == nil {
 		return
@@ -142,25 +142,25 @@ func shaderGraphCreateMenuAllowChildrenClickThrough(element *document.Element) {
 	}
 }
 
-func (w *ShadingWorkspace) filterCreateNodeMenu(e *document.Element) {
+func (w *RenderGraphWorkspace) filterCreateNodeMenu(e *document.Element) {
 	if e == nil || e.UI == nil {
 		return
 	}
 	w.createNodeMenu.Filter(e.UI.ToInput().Text())
 }
 
-func (w *ShadingWorkspace) selectCreateNode(e *document.Element) {
+func (w *RenderGraphWorkspace) selectCreateNode(e *document.Element) {
 	if e == nil {
 		return
 	}
 	w.runCreateNodeAction(e.Attribute("data-node-id"))
 }
 
-func (w *ShadingWorkspace) closeCreateNodeMenu(*document.Element) {
+func (w *RenderGraphWorkspace) closeCreateNodeMenu(*document.Element) {
 	w.createNodeMenu.Hide()
 }
 
-func (w *ShadingWorkspace) createNodeMenuPosition() matrix.Vec2 {
+func (w *RenderGraphWorkspace) createNodeMenuPosition() matrix.Vec2 {
 	mousePosition, ok := w.graphLocalMousePosition()
 	if ok {
 		return mousePosition
@@ -168,11 +168,11 @@ func (w *ShadingWorkspace) createNodeMenuPosition() matrix.Vec2 {
 	return w.defaultCreateNodeViewPosition()
 }
 
-func (w *ShadingWorkspace) defaultCreateNodePosition() matrix.Vec2 {
+func (w *RenderGraphWorkspace) defaultCreateNodePosition() matrix.Vec2 {
 	return w.graph.graphPositionFromView(w.defaultCreateNodeViewPosition())
 }
 
-func (w *ShadingWorkspace) defaultCreateNodeViewPosition() matrix.Vec2 {
+func (w *RenderGraphWorkspace) defaultCreateNodeViewPosition() matrix.Vec2 {
 	if w.graph.root == nil {
 		return matrix.NewVec2(48, 48)
 	}
@@ -184,7 +184,7 @@ func (w *ShadingWorkspace) defaultCreateNodeViewPosition() matrix.Vec2 {
 	)
 }
 
-func (w *ShadingWorkspace) graphLocalMousePosition() (matrix.Vec2, bool) {
+func (w *RenderGraphWorkspace) graphLocalMousePosition() (matrix.Vec2, bool) {
 	if w.ed == nil || w.ed.Host() == nil || w.ed.Host().Window == nil || w.graph.root == nil {
 		return matrix.Vec2Zero(), false
 	}

@@ -1,10 +1,10 @@
 /******************************************************************************/
-/* shading_workspace_actions.go                                               */
+/* render_graph_workspace_actions.go                                          */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package shading_workspace
+package render_graph_workspace
 
 import (
 	"kaijuengine.com/editor/editor_action"
@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	ActionShadingShowCreateNodeMenu editor_action.ActionID = "shading.showCreateNodeMenu"
-	ActionShadingCreateNode         editor_action.ActionID = "shading.createNode"
+	ActionRenderGraphShowCreateNodeMenu editor_action.ActionID = "renderGraph.showCreateNodeMenu"
+	ActionRenderGraphCreateNode         editor_action.ActionID = "renderGraph.createNode"
 )
 
 type CreateNodeActionArgs struct {
@@ -39,7 +39,7 @@ func CreateNodeActionVariants() []editor_action.Variant {
 		variants = append(variants, editor_action.Variant{
 			Label:       "Create " + entry.Name + " Node",
 			Description: entry.Description,
-			Tags:        append([]string{"shader", "graph", "node", "create"}, entry.Tags...),
+			Tags:        append([]string{"render", "graph", "node", "create"}, entry.Tags...),
 			Params:      editor_action.Params(CreateNodeActionArgs{NodeID: entry.ID}),
 		})
 	}

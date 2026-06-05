@@ -1,17 +1,17 @@
 /******************************************************************************/
-/* shading_workspace_layout.go                                                */
+/* render_graph_workspace_layout.go                                           */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package shading_workspace
+package render_graph_workspace
 
 import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
-func (w *ShadingWorkspace) applyLayout() {
+func (w *RenderGraphWorkspace) applyLayout() {
 	if w.Host == nil || w.Host.Window == nil {
 		return
 	}
@@ -26,7 +26,7 @@ func (w *ShadingWorkspace) applyLayout() {
 	w.applyPanelLayout(w.shaderGraphArea, 0, graphTop, windowWidth, graphHeight, 1)
 }
 
-func (w *ShadingWorkspace) applyPanelLayout(element *document.Element, x, y, width, height, z float32) {
+func (w *RenderGraphWorkspace) applyPanelLayout(element *document.Element, x, y, width, height, z float32) {
 	if element == nil || element.UI == nil {
 		return
 	}

@@ -1,10 +1,10 @@
 /******************************************************************************/
-/* shading_workspace.go                                                       */
+/* render_graph_workspace.go                                                  */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package shading_workspace
+package render_graph_workspace
 
 import (
 	"kaijuengine.com/editor/editor_action"
@@ -19,15 +19,15 @@ import (
 )
 
 const (
-	ID          = "shading"
-	DisplayName = "Shading"
+	ID          = "renderGraph"
+	DisplayName = "Render Graph"
 )
 
 func init() {
-	editor_workspace_registry.Register(&ShadingWorkspace{})
+	editor_workspace_registry.Register(&RenderGraphWorkspace{})
 }
 
-type ShadingWorkspace struct {
+type RenderGraphWorkspace struct {
 	common_workspace.CommonWorkspace
 	ed              editor_workspace.WorkspaceEditorInterface
 	stageView       *editor_stage_view.StageView
@@ -40,25 +40,25 @@ type ShadingWorkspace struct {
 	createNodeCount int
 }
 
-type ShadingWorkspaceUIData struct {
+type RenderGraphWorkspaceUIData struct {
 	CameraMode  string
 	CreateNodes []shaderGraphNodeMenuData
 }
 
-func (w *ShadingWorkspace) ID() string          { return ID }
-func (w *ShadingWorkspace) DisplayName() string { return DisplayName }
-func (w *ShadingWorkspace) IsRequired() bool    { return false }
+func (w *RenderGraphWorkspace) ID() string          { return ID }
+func (w *RenderGraphWorkspace) DisplayName() string { return DisplayName }
+func (w *RenderGraphWorkspace) IsRequired() bool    { return false }
 
-func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
-	defer tracing.NewRegion("ShadingWorkspace.Initialize").End()
+func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
+	defer tracing.NewRegion("RenderGraphWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
-	data := ShadingWorkspaceUIData{
+	data := RenderGraphWorkspaceUIData{
 		CameraMode:  w.stageView.Camera().ModeString(),
 		CreateNodes: shaderGraphNodeCatalogMenuData(),
 	}
 	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(),
-		"editor/ui/workspace/shading_workspace.go.html", data, map[string]func(*document.Element){
+		"editor/ui/workspace/render_graph_workspace.go.html", data, map[string]func(*document.Element){
 			"toggleDimension":      w.toggleDimension,
 			"filterCreateNodeMenu": w.filterCreateNodeMenu,
 			"selectCreateNode":     w.selectCreateNode,
@@ -66,7 +66,7 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 		}); err != nil {
 		return err
 	}
-	w.root, _ = w.Doc.GetElementById("shadingWorkspace")
+	w.root, _ = w.Doc.GetElementById("renderGraphWorkspace")
 	w.stageViewport, _ = w.Doc.GetElementById("stageViewport")
 	w.shaderGraphArea, _ = w.Doc.GetElementById("shaderGraphArea")
 	w.dimensionToggle, _ = w.Doc.GetElementById("dimensionToggle")
@@ -102,14 +102,14 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	return nil
 }
 
-func (w *ShadingWorkspace) Shutdown() {
-	defer tracing.NewRegion("ShadingWorkspace.Shutdown").End()
+func (w *RenderGraphWorkspace) Shutdown() {
+	defer tracing.NewRegion("RenderGraphWorkspace.Shutdown").End()
 	w.graph.Shutdown()
 	w.CommonShutdown()
 }
 
-func (w *ShadingWorkspace) Open() {
-	defer tracing.NewRegion("ShadingWorkspace.Open").End()
+func (w *RenderGraphWorkspace) Open() {
+	defer tracing.NewRegion("RenderGraphWorkspace.Open").End()
 	w.CommonOpen()
 	w.applyLayout()
 	if w.stageViewport != nil {
@@ -123,8 +123,8 @@ func (w *ShadingWorkspace) Open() {
 	w.stageView.Open()
 }
 
-func (w *ShadingWorkspace) Close() {
-	defer tracing.NewRegion("ShadingWorkspace.Close").End()
+func (w *RenderGraphWorkspace) Close() {
+	defer tracing.NewRegion("RenderGraphWorkspace.Close").End()
 	if w.stageView != nil {
 		w.stageView.SetViewportUI(nil)
 		w.stageView.Close()
@@ -134,12 +134,12 @@ func (w *ShadingWorkspace) Close() {
 	w.CommonClose()
 }
 
-func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
+func (w *RenderGraphWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
-func (w *ShadingWorkspace) Update(deltaTime float64) {
-	defer tracing.NewRegion("ShadingWorkspace.Update").End()
+func (w *RenderGraphWorkspace) Update(deltaTime float64) {
+	defer tracing.NewRegion("RenderGraphWorkspace.Update").End()
 	if w.UiMan.IsUpdateDisabled() {
 		return
 	}
@@ -155,8 +155,8 @@ func (w *ShadingWorkspace) Update(deltaTime float64) {
 	w.stageView.Update(deltaTime, w.ed.Project())
 }
 
-func (w *ShadingWorkspace) toggleDimension(e *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.toggleDimension").End()
+func (w *RenderGraphWorkspace) toggleDimension(e *document.Element) {
+	defer tracing.NewRegion("RenderGraphWorkspace.toggleDimension").End()
 	lbl := e.InnerLabel()
 	switch lbl.Text() {
 	case "3D":
@@ -168,13 +168,13 @@ func (w *ShadingWorkspace) toggleDimension(e *document.Element) {
 	}
 }
 
-func (w *ShadingWorkspace) ShowCreateNodeMenu() {
+func (w *RenderGraphWorkspace) ShowCreateNodeMenu() {
 	w.applyLayout()
 	position := w.createNodeMenuPosition()
 	w.createNodeMenu.Show(position, w.graph.graphPositionFromView(position))
 }
 
-func (w *ShadingWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
+func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
 	spec, ok := shaderGraphNodeCatalogSpec(args.NodeID)
 	if !ok {
 		return nil, false
@@ -189,10 +189,10 @@ func (w *ShadingWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*sha
 	return node, true
 }
 
-func (w *ShadingWorkspace) runCreateNodeAction(nodeID string) {
+func (w *RenderGraphWorkspace) runCreateNodeAction(nodeID string) {
 	position := w.createNodeMenu.CreatePosition()
 	w.ed.Actions().Run(editor_action.Request{
-		ID: ActionShadingCreateNode,
+		ID: ActionRenderGraphCreateNode,
 		Params: CreateNodeActionArgs{
 			NodeID:      nodeID,
 			X:           float32(position.X()),

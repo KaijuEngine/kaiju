@@ -4,7 +4,7 @@
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package shading_workspace
+package render_graph_workspace
 
 import (
 	"kaijuengine.com/matrix"
