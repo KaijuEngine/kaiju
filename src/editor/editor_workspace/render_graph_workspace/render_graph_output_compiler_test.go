@@ -781,6 +781,215 @@ func TestRenderGraphCompilerSupportsTexelSizeNode(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerSupportsNormalMapHelperNodes(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "rgb",
+			Type: "vector",
+			Values: map[string]RenderGraphFieldValue{
+				"vector": {Parts: []string{"0.5", "0.5", "1"}},
+			},
+		},
+		RenderGraphNode{
+			ID:   "normal-map",
+			Type: "normal-map",
+			Values: map[string]RenderGraphFieldValue{
+				"strength": {Text: "0.8"},
+				"y":        {Option: "directx"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "normal-strength",
+			Type: "normal-strength",
+			Values: map[string]RenderGraphFieldValue{
+				"strength": {Text: "0.25"},
+			},
+		},
+		RenderGraphNode{ID: "normal-context", Type: "normal-vector"},
+		RenderGraphNode{ID: "blend", Type: "blend-normals"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "rgb", Port: 0}, Input: RenderGraphPortRef{Node: "normal-map", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "normal-map", Port: 0}, Input: RenderGraphPortRef{Node: "normal-strength", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "normal-strength", Port: 0}, Input: RenderGraphPortRef{Node: "blend", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "normal-context", Port: 0}, Input: RenderGraphPortRef{Node: "blend", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "blend", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 2}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"vec3 graphTangentNormalFromMap(vec3 sampleRGB, float strength, float flipY)",
+		"graphTangentNormalFromMap(vec3(0.5, 0.5, 1.0), 0.8, -1.0)",
+		"graphApplyNormalStrength(",
+		"graphBlendNormals(",
+		"vec3 N = safeNormalize(graphBlendNormals(",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
+func TestRenderGraphCompilerSupportsPackedPBRMapHelperNode(t *testing.T) {
+	packed := matrix.NewColor(0.125, 0.25, 0.5, 1)
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "packed-color",
+			Type: "color",
+			Values: map[string]RenderGraphFieldValue{
+				"color": {Color: &packed},
+			},
+		},
+		RenderGraphNode{
+			ID:   "packed",
+			Type: "orm-mra-unpack",
+			Values: map[string]RenderGraphFieldValue{
+				"layout": {Option: "mra"},
+			},
+		},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "packed-color", Port: 0}, Input: RenderGraphPortRef{Node: "packed", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "packed", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "packed", Port: 2}, Input: RenderGraphPortRef{Node: "bsdf", Port: 3}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "packed", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 4}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"float metallic = clamp(clamp((vec4(0.125, 0.25, 0.5, 1.0)).r, 0.0, 1.0), 0.0, 1.0);",
+		"float roughness = clamp(clamp((vec4(0.125, 0.25, 0.5, 1.0)).g, 0.0, 1.0), MIN_ROUGHNESS, 1.0);",
+		"float occlusion = clamp(clamp((vec4(0.125, 0.25, 0.5, 1.0)).b, 0.0, 1.0), 0.0, 1.0);",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
+func TestRenderGraphCompilerSupportsHeightBumpAndParallaxHelpers(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		renderGraphCompilerValueNode("height", "0.8"),
+		RenderGraphNode{
+			ID:   "bump",
+			Type: "height-bump",
+			Values: map[string]RenderGraphFieldValue{
+				"strength": {Text: "0.02"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "parallax",
+			Type: "parallax",
+			Values: map[string]RenderGraphFieldValue{
+				"scale": {Text: "0.1"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "mask",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture":     {Text: "height-mask.png"},
+				"label":       {Text: "Height Mask"},
+				"color-space": {Option: "linear"},
+			},
+		},
+		RenderGraphNode{ID: "sample", Type: "sample-texture-2d"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "height", Port: 0}, Input: RenderGraphPortRef{Node: "bump", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "bump", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 2}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "height", Port: 0}, Input: RenderGraphPortRef{Node: "parallax", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "mask", Port: 0}, Input: RenderGraphPortRef{Node: "sample", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "parallax", Port: 0}, Input: RenderGraphPortRef{Node: "sample", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample", Port: 2}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"vec3 graphBumpNormal(float height, float strength, vec3 geometricNormal)",
+		"graphBumpNormal(0.8, 0.02, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0)))",
+		"vec2 graphParallaxUV(vec2 uv, float height, float scale, vec3 geometricNormal)",
+		"texture(textures[4], graphParallaxUV(fragTexCoords, 0.8, 0.1, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))))",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
+func TestRenderGraphCompilerSupportsTriplanarAndDetailTextureHelpers(t *testing.T) {
+	base := matrix.NewColor(0.25, 0.5, 0.75, 1)
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "base",
+			Type: "color",
+			Values: map[string]RenderGraphFieldValue{
+				"color": {Color: &base},
+			},
+		},
+		RenderGraphNode{
+			ID:   "detail-map",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture":     {Text: "detail.png"},
+				"label":       {Text: "Detail"},
+				"color-space": {Option: "linear"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "triplanar",
+			Type: "triplanar",
+			Values: map[string]RenderGraphFieldValue{
+				"scale": {Text: "2"},
+				"blend": {Text: "5"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "detail",
+			Type: "detail-texture",
+			Values: map[string]RenderGraphFieldValue{
+				"mode":     {Option: "overlay"},
+				"strength": {Text: "0.5"},
+			},
+		},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "base", Port: 0}, Input: RenderGraphPortRef{Node: "detail", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "detail-map", Port: 0}, Input: RenderGraphPortRef{Node: "triplanar", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "triplanar", Port: 0}, Input: RenderGraphPortRef{Node: "detail", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "detail", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"#define SAMPLER_COUNT   5",
+		"vec4 graphOverlayColor(vec4 base, vec4 detail)",
+		"graphTriplanarSample(textures[4], fragPos, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0)), 2.0, 5.0)",
+		"graphOverlayColor(vec4(0.25, 0.5, 0.75, 1.0), graphTriplanarSample(textures[4]",
+		"vec4 graphBaseColor = (clamp(mix(vec4(0.25, 0.5, 0.75, 1.0), graphOverlayColor(",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerValidationFailures(t *testing.T) {
 	tests := []struct {
 		name string

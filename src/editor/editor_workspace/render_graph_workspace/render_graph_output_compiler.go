@@ -362,6 +362,22 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 		return c.emitChannelMask(node)
 	case "texel-size":
 		return c.emitTexelSize(node, port)
+	case "normal-map":
+		return c.emitNormalMap(node, port)
+	case "normal-strength":
+		return c.emitNormalStrength(node)
+	case "blend-normals":
+		return c.emitBlendNormals(node)
+	case "orm-mra-unpack":
+		return c.emitPackedPBRMap(node, port)
+	case "height-bump":
+		return c.emitHeightBump(node)
+	case "parallax":
+		return c.emitParallax(node, port)
+	case "triplanar":
+		return c.emitTriplanar(node, port)
+	case "detail-texture":
+		return c.emitDetailTexture(node)
 	case "time":
 		return emitTime(node, port)
 	case "world-position":
@@ -753,6 +769,218 @@ func (c *renderGraphOutputCompiler) emitTexelSize(node RenderGraphNode, port int
 	}
 }
 
+func (c *renderGraphOutputCompiler) emitNormalMap(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	rgb, err := c.inputExpression(node, 0, renderGraphOutputVec3)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	uv, err := c.optionalInputExpression(node, 1, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	strength, err := c.optionalInputOrFloatField(node, 2, "strength", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	flipY := "1.0"
+	if c.fieldValue(node, "y").Option == "directx" {
+		flipY = "-1.0"
+	}
+	tangentNormal := "graphTangentNormalFromMap(" + rgb + ", " + strength + ", " + flipY + ")"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{
+			Type: renderGraphOutputVec3,
+			Value: "graphWorldNormalFromTangent(" + tangentNormal + ", " + uv + ", " +
+				graphGeometricNormalExpression() + ")",
+		}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: tangentNormal}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph normal map node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitNormalStrength(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	strength, err := c.optionalInputOrFloatField(node, 1, "strength", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type: renderGraphOutputVec3,
+		Value: "graphApplyNormalStrength(" + normal + ", " + strength + ", " +
+			graphGeometricNormalExpression() + ")",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitBlendNormals(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	base, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	detail, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, graphGeometricNormalExpression())
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	strength, err := c.optionalInputOrFloatField(node, 2, "strength", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type: renderGraphOutputVec3,
+		Value: "graphBlendNormals(" + base + ", " + detail + ", " + strength + ", " +
+			graphGeometricNormalExpression() + ")",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitPackedPBRMap(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	packed, err := c.inputExpression(node, 0, renderGraphOutputColor)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	layout := c.fieldValue(node, "layout").Option
+	components := []string{".r", ".g", ".b"}
+	if layout == "mra" {
+		components = []string{".b", ".g", ".r"}
+	}
+	if port < 0 || port >= len(components) {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph packed pbr map node %q has invalid output %d", node.ID, port)
+	}
+	return renderGraphOutputExpression{
+		Type:  renderGraphOutputFloat,
+		Value: "clamp((" + packed + ")" + components[port] + ", 0.0, 1.0)",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitHeightBump(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	height, err := c.optionalInputExpression(node, 0, renderGraphOutputFloat, "0.5")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	strength, err := c.optionalInputOrFloatField(node, 1, "strength", "0.05")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type: renderGraphOutputVec3,
+		Value: "graphBumpNormal(" + height + ", " + strength + ", " +
+			graphGeometricNormalExpression() + ")",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitParallax(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	height, err := c.optionalInputExpression(node, 1, renderGraphOutputFloat, "0.5")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	scale, err := c.optionalInputOrFloatField(node, 2, "scale", "0.05")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	parallaxUV := "graphParallaxUV(" + uv + ", " + height + ", " + scale + ", " +
+		graphGeometricNormalExpression() + ")"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: parallaxUV}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: "(" + parallaxUV + " - " + uv + ")"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph parallax node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitTriplanar(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	texRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 0}]
+	if !ok {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q texture input is disconnected", node.ID)
+	}
+	texture, err := c.emitExpression(texRef, renderGraphOutputTex2D)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	position, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, "fragPos")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	normal, err := c.optionalInputExpression(node, 2, renderGraphOutputVec3, graphGeometricNormalExpression())
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	scale, err := c.optionalInputOrFloatField(node, 3, "scale", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	blend, err := c.optionalInputOrFloatField(node, 4, "blend", "4.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	sample := "graphTriplanarSample(" + texture.Value + ", " + position + ", " + normal + ", " + scale + ", " + blend + ")"
+	if texture.ColorSpace == "srgb" {
+		sample = "graphSrgbToLinear(" + sample + ")"
+	}
+	return emitColorLikeOutput(node, port, sample, "triplanar")
+}
+
+func (c *renderGraphOutputCompiler) emitDetailTexture(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	base, err := c.optionalInputExpression(node, 0, renderGraphOutputColor, "vec4(1.0)")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	detail, err := c.optionalInputExpression(node, 1, renderGraphOutputColor, "vec4(1.0)")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	mask, err := c.optionalInputExpression(node, 2, renderGraphOutputFloat, "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	strength, err := c.optionalInputOrFloatField(node, 3, "strength", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	factor := "clamp((" + mask + ") * (" + strength + "), 0.0, 1.0)"
+	value := ""
+	switch c.fieldValue(node, "mode").Option {
+	case "add":
+		value = "mix(" + base + ", vec4((" + base + ").rgb + ((" + detail + ").rgb - vec3(0.5)), (" + base + ").a), " + factor + ")"
+	case "overlay":
+		value = "mix(" + base + ", graphOverlayColor(" + base + ", " + detail + "), " + factor + ")"
+	default:
+		value = "mix(" + base + ", vec4((" + base + ").rgb * (" + detail + ").rgb, (" + base + ").a), " + factor + ")"
+	}
+	if c.fieldValue(node, "clamp").Bool {
+		value = "clamp(" + value + ", vec4(0.0), vec4(1.0))"
+	}
+	return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, nil
+}
+
+func emitColorLikeOutput(node RenderGraphNode, port int, value, label string) (renderGraphOutputExpression, error) {
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: value + ".rgb"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: value + ".r"}, nil
+	case 3:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: value + ".g"}, nil
+	case 4:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: value + ".b"}, nil
+	case 5:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: value + ".a"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph %s node %q has invalid output %d", label, node.ID, port)
+	}
+}
+
 func (c *renderGraphOutputCompiler) emitCombineVector(node RenderGraphNode, port int, constructor, outputType string, count int) (renderGraphOutputExpression, error) {
 	components := make([]string, count)
 	for i := range components {
@@ -928,6 +1156,25 @@ func (c *renderGraphOutputCompiler) optionalInputExpression(node RenderGraphNode
 		return "", err
 	}
 	return expr.Value, nil
+}
+
+func (c *renderGraphOutputCompiler) optionalInputOrFloatField(node RenderGraphNode, input int, field, fallback string) (string, error) {
+	ref, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: input}]
+	if ok {
+		expr, err := c.emitExpression(ref, renderGraphOutputFloat)
+		if err != nil {
+			return "", err
+		}
+		return expr.Value, nil
+	}
+	if strings.TrimSpace(field) == "" {
+		return fallback, nil
+	}
+	value, err := c.floatField(node, field)
+	if err != nil {
+		return "", err
+	}
+	return value, nil
 }
 
 func (c *renderGraphOutputCompiler) uniqueTextureLabel(label string) string {
@@ -1188,6 +1435,68 @@ mat3 cotangentFrame(vec3 n, vec3 pos, vec2 uv) {
 	}
 	float invMax = inversesqrt(maxLen);
 	return mat3(t * invMax, b * invMax, n);
+}
+
+vec3 graphTangentNormalFromMap(vec3 sampleRGB, float strength, float flipY) {
+	vec3 tangentNormal = sampleRGB * 2.0 - 1.0;
+	tangentNormal.y *= flipY;
+	tangentNormal.xy *= max(strength, 0.0);
+	if (dot(tangentNormal, tangentNormal) <= 0.0001) {
+		return vec3(0.0, 0.0, 1.0);
+	}
+	return normalize(tangentNormal);
+}
+
+vec3 graphWorldNormalFromTangent(vec3 tangentNormal, vec2 uv, vec3 geometricNormal) {
+	mat3 tbn = cotangentFrame(geometricNormal, fragPos, uv);
+	return safeNormalize(tbn * safeNormalize(tangentNormal, vec3(0.0, 0.0, 1.0)), geometricNormal);
+}
+
+vec3 graphApplyNormalStrength(vec3 normal, float strength, vec3 geometricNormal) {
+	return safeNormalize(mix(geometricNormal, normal, max(strength, 0.0)), geometricNormal);
+}
+
+vec3 graphBlendNormals(vec3 base, vec3 detail, float strength, vec3 geometricNormal) {
+	vec3 safeBase = safeNormalize(base, geometricNormal);
+	vec3 safeDetail = safeNormalize(detail, geometricNormal);
+	return safeNormalize(safeBase + (safeDetail - geometricNormal) * max(strength, 0.0), safeBase);
+}
+
+vec3 graphBumpNormal(float height, float strength, vec3 geometricNormal) {
+	vec3 dpdx = dFdx(fragPos);
+	vec3 dpdy = dFdy(fragPos);
+	float dhdx = dFdx(height);
+	float dhdy = dFdy(height);
+	vec3 r1 = cross(dpdy, geometricNormal);
+	vec3 r2 = cross(geometricNormal, dpdx);
+	float det = dot(dpdx, r1);
+	vec3 gradient = sign(det) * (dhdx * r1 + dhdy * r2);
+	return safeNormalize(abs(det) * geometricNormal - max(strength, 0.0) * gradient, geometricNormal);
+}
+
+vec2 graphParallaxUV(vec2 uv, float height, float scale, vec3 geometricNormal) {
+	vec3 viewDir = safeNormalize(cameraPosition.xyz - fragPos, geometricNormal);
+	mat3 tbn = cotangentFrame(geometricNormal, fragPos, uv);
+	vec3 tangentView = transpose(tbn) * viewDir;
+	float denom = max(abs(tangentView.z), 0.05);
+	float centeredHeight = height - 0.5;
+	return uv - (tangentView.xy / denom) * centeredHeight * scale;
+}
+
+vec4 graphTriplanarSample(sampler2D tex, vec3 position, vec3 normal, float scale, float blendPower) {
+	vec3 weights = pow(max(abs(safeNormalize(normal, vec3(0.0, 1.0, 0.0))), vec3(0.0001)), vec3(max(blendPower, 0.0001)));
+	weights /= max(weights.x + weights.y + weights.z, 0.0001);
+	vec3 p = position * max(abs(scale), 0.0001);
+	vec4 xSample = texture(tex, p.zy);
+	vec4 ySample = texture(tex, p.xz);
+	vec4 zSample = texture(tex, p.xy);
+	return xSample * weights.x + ySample * weights.y + zSample * weights.z;
+}
+
+vec4 graphOverlayColor(vec4 base, vec4 detail) {
+	vec3 low = 2.0 * base.rgb * detail.rgb;
+	vec3 high = 1.0 - 2.0 * (1.0 - base.rgb) * (1.0 - detail.rgb);
+	return vec4(mix(low, high, step(vec3(0.5), base.rgb)), base.a);
 }
 
 vec3 pbrNormal(vec3 geometricNormal) {

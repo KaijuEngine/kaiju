@@ -341,6 +341,259 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			},
 		},
 		{
+			ID:          "normal-map",
+			Name:        "Normal Map",
+			Description: "Unpacks a tangent-space normal map sample into a world-space normal.",
+			Tags:        []string{"material", "texture", "normal", "map", "tangent", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Normal Map",
+				Description: "Unpacks a tangent-space normal map sample into a world-space normal.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "strength",
+						Label:   "Strength",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+					{
+						ID:      "y",
+						Label:   "Y",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "opengl",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "OpenGL +Y", Value: "opengl"},
+							{Label: "DirectX -Y", Value: "directx"},
+						},
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "RGB", Type: "vec3"},
+					{Name: "UV", Type: "vec2"},
+					{Name: "Strength", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+					{Name: "Tangent", Type: "vec3"},
+				},
+			},
+		},
+		{
+			ID:          "normal-strength",
+			Name:        "Normal Strength",
+			Description: "Adjusts a normal's influence relative to the geometric normal.",
+			Tags:        []string{"material", "normal", "strength", "blend", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Normal Strength",
+				Description: "Adjusts a normal's influence relative to the geometric normal.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "strength",
+						Label:   "Strength",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+					{Name: "Strength", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+				},
+			},
+		},
+		{
+			ID:          "blend-normals",
+			Name:        "Blend Normals",
+			Description: "Layers a detail normal over a base normal.",
+			Tags:        []string{"material", "normal", "blend", "detail", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Blend Normals",
+				Description: "Layers a detail normal over a base normal.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "strength",
+						Label:   "Strength",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Base", Type: "vec3"},
+					{Name: "Detail", Type: "vec3"},
+					{Name: "Strength", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+				},
+			},
+		},
+		{
+			ID:          "orm-mra-unpack",
+			Name:        "ORM/MRA Unpack",
+			Description: "Extracts occlusion, roughness, and metallic channels from a packed PBR map.",
+			Tags:        []string{"material", "texture", "orm", "mra", "packed", "roughness", "metallic", "occlusion"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "ORM/MRA Unpack",
+				Description: "Extracts occlusion, roughness, and metallic channels from a packed PBR map.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "layout",
+						Label:   "Layout",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "orm",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "ORM", Value: "orm"},
+							{Label: "MRA", Value: "mra"},
+						},
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Map", Type: "color"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Occlusion", Type: "float"},
+					{Name: "Roughness", Type: "float"},
+					{Name: "Metallic", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "height-bump",
+			Name:        "Height/Bump",
+			Description: "Derives a perturbed normal from a scalar height map.",
+			Tags:        []string{"material", "texture", "height", "bump", "normal", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Height/Bump",
+				Description: "Derives a perturbed normal from a scalar height map.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "strength",
+						Label:   "Strength",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "0.050",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Height", Type: "float"},
+					{Name: "Strength", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+				},
+			},
+		},
+		{
+			ID:          "parallax",
+			Name:        "Parallax",
+			Description: "Offsets UV coordinates using a height map and view direction.",
+			Tags:        []string{"material", "texture", "height", "parallax", "uv", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Parallax",
+				Description: "Offsets UV coordinates using a height map and view direction.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "scale",
+						Label:   "Scale",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "0.050",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+					{Name: "Height", Type: "float"},
+					{Name: "Scale", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+					{Name: "Offset", Type: "vec2"},
+				},
+			},
+		},
+		{
+			ID:          "triplanar",
+			Name:        "Triplanar",
+			Description: "Samples a Texture 2D from world-space projection axes.",
+			Tags:        []string{"material", "texture", "triplanar", "projection", "world", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Triplanar",
+				Description: "Samples a Texture 2D from world-space projection axes.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "scale",
+						Label:   "Scale",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+					{
+						ID:      "blend",
+						Label:   "Blend",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "4.000",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Texture", Type: "texture2D"},
+					{Name: "Position", Type: "vec3"},
+					{Name: "Normal", Type: "vec3"},
+					{Name: "Scale", Type: "float"},
+					{Name: "Blend", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+					{Name: "RGB", Type: "vec3"},
+					{Name: "R", Type: "float"},
+					{Name: "G", Type: "float"},
+					{Name: "B", Type: "float"},
+					{Name: "A", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "detail-texture",
+			Name:        "Detail Texture",
+			Description: "Blends a detail texture sample into a base color.",
+			Tags:        []string{"material", "texture", "detail", "blend", "color", "pbr"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Detail Texture",
+				Description: "Blends a detail texture sample into a base color.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "mode",
+						Label:   "Mode",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "multiply",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "Multiply", Value: "multiply"},
+							{Label: "Add", Value: "add"},
+							{Label: "Overlay", Value: "overlay"},
+						},
+					},
+					{
+						ID:      "strength",
+						Label:   "Strength",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+					{
+						ID:          "clamp",
+						Label:       "Clamp",
+						Type:        shaderGraphNodeFieldBool,
+						DefaultBool: true,
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Base", Type: "color"},
+					{Name: "Detail", Type: "color"},
+					{Name: "Mask", Type: "float"},
+					{Name: "Strength", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+				},
+			},
+		},
+		{
 			ID:          "time",
 			Name:        "Time",
 			Description: "Runtime shader time values.",

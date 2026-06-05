@@ -46,6 +46,24 @@ func TestShaderGraphNodeCatalogHasTextureNodes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodeCatalogHasMaterialTextureHelperNodes(t *testing.T) {
+	want := []string{
+		"normal-map",
+		"normal-strength",
+		"blend-normals",
+		"orm-mra-unpack",
+		"height-bump",
+		"parallax",
+		"triplanar",
+		"detail-texture",
+	}
+	for _, id := range want {
+		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+			t.Fatalf("expected catalog node %q to be registered", id)
+		}
+	}
+}
+
 func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
 	want := []string{
 		"time",
@@ -136,6 +154,55 @@ func TestShaderGraphTextureNodePortTypes(t *testing.T) {
 	}
 	if len(sample.Outputs) != 6 || sample.Outputs[0].Type != "color" || sample.Outputs[1].Type != "vec3" || sample.Outputs[5].Type != "float" {
 		t.Fatalf("sample-texture-2d outputs = %#v, want color, vec3, float channels", sample.Outputs)
+	}
+}
+
+func TestShaderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
+	normalMap, ok := shaderGraphNodeCatalogSpec("normal-map")
+	if !ok {
+		t.Fatal("normal-map node missing")
+	}
+	if len(normalMap.Inputs) != 3 || normalMap.Inputs[0].Type != "vec3" ||
+		normalMap.Inputs[1].Type != "vec2" || normalMap.Inputs[2].Type != "float" ||
+		len(normalMap.Outputs) != 2 || normalMap.Outputs[0].Type != "vec3" ||
+		normalMap.Outputs[1].Type != "vec3" {
+		t.Fatalf("normal-map ports = %#v -> %#v, want vec3,vec2,float -> vec3,vec3",
+			normalMap.Inputs, normalMap.Outputs)
+	}
+
+	packed, ok := shaderGraphNodeCatalogSpec("orm-mra-unpack")
+	if !ok {
+		t.Fatal("orm-mra-unpack node missing")
+	}
+	if len(packed.Inputs) != 1 || packed.Inputs[0].Type != "color" ||
+		len(packed.Outputs) != 3 || packed.Outputs[0].Type != "float" ||
+		packed.Outputs[1].Name != "Roughness" || packed.Outputs[2].Name != "Metallic" {
+		t.Fatalf("orm-mra-unpack ports = %#v -> %#v, want color -> occlusion/roughness/metallic floats",
+			packed.Inputs, packed.Outputs)
+	}
+
+	parallax, ok := shaderGraphNodeCatalogSpec("parallax")
+	if !ok {
+		t.Fatal("parallax node missing")
+	}
+	if len(parallax.Inputs) != 3 || parallax.Inputs[0].Type != "vec2" ||
+		parallax.Inputs[1].Type != "float" || parallax.Inputs[2].Type != "float" ||
+		len(parallax.Outputs) != 2 || parallax.Outputs[0].Type != "vec2" ||
+		parallax.Outputs[1].Type != "vec2" {
+		t.Fatalf("parallax ports = %#v -> %#v, want vec2,float,float -> vec2,vec2",
+			parallax.Inputs, parallax.Outputs)
+	}
+
+	triplanar, ok := shaderGraphNodeCatalogSpec("triplanar")
+	if !ok {
+		t.Fatal("triplanar node missing")
+	}
+	if len(triplanar.Inputs) != 5 || triplanar.Inputs[0].Type != "texture2D" ||
+		triplanar.Inputs[1].Type != "vec3" || triplanar.Inputs[2].Type != "vec3" ||
+		len(triplanar.Outputs) != 6 || triplanar.Outputs[0].Type != "color" ||
+		triplanar.Outputs[1].Type != "vec3" || triplanar.Outputs[5].Type != "float" {
+		t.Fatalf("triplanar ports = %#v -> %#v, want texture2D,vec3,vec3,float,float -> color/rgb/channels",
+			triplanar.Inputs, triplanar.Outputs)
 	}
 }
 
