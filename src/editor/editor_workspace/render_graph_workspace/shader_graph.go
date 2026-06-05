@@ -32,6 +32,11 @@ type shaderGraph struct {
 	panning       bool
 	panMouse      matrix.Vec2
 	hasPanMouse   bool
+	viewport      shaderGraphViewport
+}
+
+type shaderGraphViewport struct {
+	x, y, width, height float32
 }
 
 func (g *shaderGraph) Initialize(host *engine.Host) {
@@ -139,6 +144,15 @@ func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnec
 	return connection
 }
 
+func (g *shaderGraph) SetViewport(x, y, width, height float32) {
+	g.viewport = shaderGraphViewport{
+		x:      x,
+		y:      y,
+		width:  width,
+		height: height,
+	}
+}
+
 func (g *shaderGraph) clear() {
 	for i := range g.connections {
 		g.connections[i].Destroy()
@@ -222,13 +236,20 @@ func (g *shaderGraph) applyLayout() {
 	if g.host == nil || g.host.Window == nil || g.root == nil {
 		return
 	}
-	windowWidth := float32(g.host.Window.Width())
-	windowHeight := float32(g.host.Window.Height())
-	contentHeight := max(1, windowHeight-shadingGraphMenuBarHeight-shadingGraphStatusBarHeight)
-	stageHeight := max(1, contentHeight*0.5)
-	graphHeight := max(1, contentHeight-stageHeight)
-	width := max(1, windowWidth)
+	viewport := g.viewport
+	if viewport.width <= 0 || viewport.height <= 0 {
+		windowWidth := float32(g.host.Window.Width())
+		windowHeight := float32(g.host.Window.Height())
+		contentHeight := max(1, windowHeight-shadingGraphMenuBarHeight-shadingGraphStatusBarHeight)
+		stageHeight := max(1, contentHeight*0.5)
+		viewport = shaderGraphViewport{
+			x:      0,
+			y:      shadingGraphMenuBarHeight + stageHeight,
+			width:  max(1, windowWidth),
+			height: max(1, contentHeight-stageHeight),
+		}
+	}
 	layout := g.root.Base().Layout()
-	layout.Scale(width, graphHeight)
-	layout.SetOffset(0, shadingGraphMenuBarHeight+stageHeight)
+	layout.Scale(max(1, viewport.width), max(1, viewport.height))
+	layout.SetOffset(viewport.x, viewport.y)
 }

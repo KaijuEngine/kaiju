@@ -18,6 +18,7 @@ const renderGraphDocumentVersion = 1
 
 type RenderGraphDocument struct {
 	Version     int                     `json:"version"`
+	Name        string                  `json:"name,omitempty"`
 	Pan         matrix.Vec2             `json:"pan,omitempty"`
 	Nodes       []RenderGraphNode       `json:"nodes"`
 	Connections []RenderGraphConnection `json:"connections,omitempty"`

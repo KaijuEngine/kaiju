@@ -59,7 +59,7 @@ func IntegrationTestRenderGraphSpline(host *engine.Host) {
 		if err != nil {
 			failRenderGraphSplineIntegration("capture screenshot", err)
 		}
-		if err = assertRenderGraphSplineScreenshot(img); err != nil {
+		if err = assertRenderGraphSplineScreenshot(host, workspace, img); err != nil {
 			_ = writeScreenshotImage(img, renderGraphSplineScreenshotOutput)
 			failRenderGraphSplineIntegration("screenshot smoke check", err)
 		}
@@ -138,7 +138,7 @@ func IntegrationTestRenderGraphNodeFields(host *engine.Host) {
 		if err != nil {
 			failRenderGraphNodeFieldsIntegration("capture screenshot", err)
 		}
-		if err = assertRenderGraphNodeFieldsScreenshot(img); err != nil {
+		if err = assertRenderGraphNodeFieldsScreenshot(host, workspace, img); err != nil {
 			_ = writeScreenshotImage(img, renderGraphNodeFieldsScreenshotOutput)
 			failRenderGraphNodeFieldsIntegration("screenshot smoke check", err)
 		}
@@ -152,23 +152,24 @@ func IntegrationTestRenderGraphNodeFields(host *engine.Host) {
 	})
 }
 
-func assertRenderGraphSplineScreenshot(img *image.RGBA) error {
+func assertRenderGraphSplineScreenshot(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, img *image.RGBA) error {
 	bounds := img.Bounds()
 	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
 		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
 	}
-	graphTop := bounds.Min.Y + int(24+float32(bounds.Dy()-45)*0.5)
-	stageRect := image.Rect(bounds.Min.X, bounds.Min.Y+24, bounds.Max.X, graphTop)
+	graphRect := renderGraphWorkspaceGraphRect(host, workspace, bounds)
+	graphTop := graphRect.Min.Y
+	stageRect := image.Rect(graphRect.Min.X, bounds.Min.Y+24, graphRect.Max.X, graphTop)
 	if pixels := countSaturatedPixels(img, stageRect); pixels < 150 {
 		return fmt.Errorf("expected rendered scene content in top stage viewport, found %d saturated pixels", pixels)
 	}
 	greenSplinePixels := 0
 	greenWirePixels := 0
 	redAccentPixels := 0
-	wireMinX := bounds.Min.X + 300
-	wireMaxX := bounds.Min.X + 360
-	wireMinY := graphTop + 165
-	wireMaxY := graphTop + 280
+	wireMinX := graphRect.Min.X + 230
+	wireMaxX := graphRect.Min.X + 390
+	wireMinY := graphTop + 105
+	wireMaxY := graphTop + 245
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r16, g16, b16, _ := img.At(x, y).RGBA()
@@ -239,13 +240,12 @@ func assertRenderGraphCreateMenuScreenshot(host *engine.Host, workspace *render_
 	return nil
 }
 
-func assertRenderGraphNodeFieldsScreenshot(img *image.RGBA) error {
+func assertRenderGraphNodeFieldsScreenshot(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, img *image.RGBA) error {
 	bounds := img.Bounds()
 	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
 		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
 	}
-	graphTop := bounds.Min.Y + int(24+float32(bounds.Dy()-45)*0.5)
-	graphRect := image.Rect(bounds.Min.X, graphTop, bounds.Max.X, bounds.Max.Y)
+	graphRect := renderGraphWorkspaceGraphRect(host, workspace, bounds)
 	whiteSwatchPixels := 0
 	fieldBorderPixels := 0
 	for y := graphRect.Min.Y; y < graphRect.Max.Y; y++ {
@@ -269,6 +269,19 @@ func assertRenderGraphNodeFieldsScreenshot(img *image.RGBA) error {
 		return fmt.Errorf("expected visible field control border pixels, found %d", fieldBorderPixels)
 	}
 	return nil
+}
+
+func renderGraphWorkspaceGraphRect(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, bounds image.Rectangle) image.Rectangle {
+	if workspace != nil && workspace.Doc != nil {
+		if graphArea, ok := workspace.Doc.GetElementById("shaderGraphArea"); ok && graphArea != nil && graphArea.UI != nil {
+			rect := elementBoundsRectangle(host, bounds, graphArea.UI)
+			if rect.Dx() > 0 && rect.Dy() > 0 {
+				return rect
+			}
+		}
+	}
+	graphTop := bounds.Min.Y + int(24+float32(bounds.Dy()-45)*0.5)
+	return image.Rect(bounds.Min.X, graphTop, bounds.Max.X, bounds.Max.Y)
 }
 
 type renderGraphWorkspaceTestEditor struct {

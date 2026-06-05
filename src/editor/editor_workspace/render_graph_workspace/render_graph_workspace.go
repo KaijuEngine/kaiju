@@ -14,7 +14,6 @@ import (
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/engine/ui/markup/document"
-	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -32,17 +31,23 @@ type RenderGraphWorkspace struct {
 	ed              editor_workspace.WorkspaceEditorInterface
 	stageView       *editor_stage_view.StageView
 	root            *document.Element
+	sidePanel       *document.Element
 	stageViewport   *document.Element
 	shaderGraphArea *document.Element
 	dimensionToggle *document.Element
+	nameInput       *document.Element
+	status          *document.Element
 	graph           shaderGraph
 	createNodeMenu  shaderGraphCreateNodeMenu
 	createNodeCount int
+	currentGraphID  string
+	currentName     string
 }
 
 type RenderGraphWorkspaceUIData struct {
 	CameraMode  string
 	CreateNodes []shaderGraphNodeMenuData
+	GraphName   string
 }
 
 func (w *RenderGraphWorkspace) ID() string          { return ID }
@@ -53,9 +58,11 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	defer tracing.NewRegion("RenderGraphWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
+	w.currentName = defaultRenderGraphName
 	data := RenderGraphWorkspaceUIData{
 		CameraMode:  w.stageView.Camera().ModeString(),
 		CreateNodes: shaderGraphNodeCatalogMenuData(),
+		GraphName:   w.currentName,
 	}
 	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(),
 		"editor/ui/workspace/render_graph_workspace.go.html", data, map[string]func(*document.Element){
@@ -63,23 +70,28 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 			"filterCreateNodeMenu": w.filterCreateNodeMenu,
 			"selectCreateNode":     w.selectCreateNode,
 			"closeCreateNodeMenu":  w.closeCreateNodeMenu,
+			"renameRenderGraph":    w.renameRenderGraph,
+			"newRenderGraph":       w.newRenderGraph,
+			"loadRenderGraph":      w.loadRenderGraph,
+			"saveRenderGraph":      w.saveRenderGraph,
 		}); err != nil {
 		return err
 	}
 	w.root, _ = w.Doc.GetElementById("renderGraphWorkspace")
+	w.sidePanel, _ = w.Doc.GetElementById("renderGraphPanel")
 	w.stageViewport, _ = w.Doc.GetElementById("stageViewport")
 	w.shaderGraphArea, _ = w.Doc.GetElementById("shaderGraphArea")
 	w.dimensionToggle, _ = w.Doc.GetElementById("dimensionToggle")
+	w.nameInput, _ = w.Doc.GetElementById("renderGraphName")
+	w.status, _ = w.Doc.GetElementById("renderGraphStatus")
 	if w.root != nil {
 		w.root.UIPanel.AllowClickThrough()
 	}
 	w.createNodeMenu.Initialize(w)
 	w.graph.Initialize(ed.Host())
-	source, _ := w.graph.CreateCatalogNode("principled-bsdf", matrix.NewVec2(42, 56))
-	output, _ := w.graph.CreateCatalogNode("material-output", matrix.NewVec2(350, 150))
-	if source != nil && output != nil {
-		w.graph.CreateConnection(source.Output(0), output.Input(0))
-	}
+	w.resetGraphToDefault()
+	w.updateGraphNameInput()
+	w.setRenderGraphStatus("Unsaved render graph")
 	return nil
 }
 
@@ -170,15 +182,29 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 }
 
 func (w *RenderGraphWorkspace) GraphDocument() RenderGraphDocument {
-	return w.graph.Document()
+	document := w.graph.Document()
+	document.Name = w.currentName
+	return document
 }
 
 func (w *RenderGraphWorkspace) SerializeGraph() ([]byte, error) {
-	return w.graph.Serialize()
+	return SerializeRenderGraphDocument(w.GraphDocument())
 }
 
 func (w *RenderGraphWorkspace) DeserializeGraph(data []byte) error {
-	return w.graph.Deserialize(data)
+	document, err := DeserializeRenderGraphDocument(data)
+	if err != nil {
+		return err
+	}
+	if err = w.graph.LoadDocument(document); err != nil {
+		return err
+	}
+	w.currentGraphID = ""
+	if document.Name != "" {
+		w.currentName = document.Name
+	}
+	w.updateGraphNameInput()
+	return nil
 }
 
 func (w *RenderGraphWorkspace) runCreateNodeAction(nodeID string) {

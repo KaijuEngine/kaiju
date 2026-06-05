@@ -8,6 +8,88 @@
 				width: 100%;
 				height: 100%;
 			}
+			#renderGraphPanel {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 260px;
+				height: 100%;
+				padding: 10px;
+				color: #e4e7ec;
+				background-color: #17191d;
+				border-right: 2px solid black;
+				z-index: 5;
+				overflow-y: auto;
+			}
+			#renderGraphPanel h2 {
+				height: 24px;
+				margin-bottom: 10px;
+				font-size: 0.9em;
+				color: white;
+			}
+			#renderGraphPanel h3 {
+				height: 20px;
+				margin-top: 14px;
+				margin-bottom: 6px;
+				font-size: 0.68em;
+				color: #cfd5df;
+			}
+			.renderGraphFieldLabel {
+				width: 100%;
+				height: 18px;
+				margin-bottom: 4px;
+				font-size: 0.58em;
+				color: #aeb6c4;
+			}
+			#renderGraphName {
+				width: 100%;
+				height: 30px;
+				margin-bottom: 8px;
+				padding: 4px 6px;
+				color: #e4e7ec;
+				background-color: #111318;
+				border: 1px solid #343842;
+				border-radius: 4px;
+				font-size: 0.62em;
+			}
+			.renderGraphActionRow {
+				width: 100%;
+				height: 30px;
+				margin-bottom: 8px;
+			}
+			.renderGraphActionRow button {
+				width: 74px;
+				height: 28px;
+				margin-right: 5px;
+				color: #e8ebf0;
+				background-color: #242832;
+				border: 1px solid #3a3f4b;
+				border-radius: 4px;
+				font-size: 0.58em;
+			}
+			.renderGraphActionRow button:hover {
+				background-color: #303542;
+				border-color: #682A2D;
+			}
+			#renderGraphStatus {
+				width: 100%;
+				min-height: 24px;
+				margin-bottom: 10px;
+				padding: 5px 6px;
+				color: #aeb6c4;
+				background-color: #111318;
+				border: 1px solid #2c3039;
+				font-size: 0.52em;
+			}
+			#renderGraphNodeProperties {
+				width: 100%;
+				min-height: 120px;
+				padding: 8px;
+				color: #8f98a8;
+				background-color: #111318;
+				border: 1px solid #2c3039;
+				font-size: 0.56em;
+			}
 			#stageViewport {
 				position: absolute;
 				left: 0;
@@ -140,6 +222,19 @@
 	</head>
 	<body>
 		<div id="renderGraphWorkspace" class="renderGraphWorkspace edPanelBg">
+			<div id="renderGraphPanel">
+				<h2>Render Graph</h2>
+				<div class="renderGraphFieldLabel">Name</div>
+				<input id="renderGraphName" type="text" value="{{ .GraphName }}" placeholder="Render graph name" onchange="renameRenderGraph" onsubmit="renameRenderGraph" />
+				<div class="renderGraphActionRow">
+					<button onclick="newRenderGraph">New</button>
+					<button onclick="loadRenderGraph">Load</button>
+					<button onclick="saveRenderGraph">Save</button>
+				</div>
+				<div id="renderGraphStatus">Unsaved render graph</div>
+				<h3>Properties</h3>
+				<div id="renderGraphNodeProperties">No node selected</div>
+			</div>
 			<img id="stageViewport" src="square.png" />
 			<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
 			<div id="shaderGraphArea" class="edPanelBg"></div>
