@@ -122,7 +122,7 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 		slog.Error("failed to load transform wire material", "error", err)
 		return
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	sd.(*shader_data_registry.ShaderDataEdFrustumWire).Color = matrix.ColorWhite()
 	sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()
 	host.Drawings.AddDrawing(rendering.Drawing{

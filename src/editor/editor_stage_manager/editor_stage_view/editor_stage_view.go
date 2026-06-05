@@ -279,7 +279,7 @@ func (v *StageView) createViewportGrid() {
 	grid := rendering.NewMeshGrid(v.host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	v.gridTransform.Initialize(v.host.WorkGroup())
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	v.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
 	v.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
 	v.host.Drawings.AddDrawing(rendering.Drawing{

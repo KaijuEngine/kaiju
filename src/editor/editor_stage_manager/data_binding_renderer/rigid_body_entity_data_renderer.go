@@ -139,7 +139,7 @@ func rigidBodyLoadWireframe(host *engine.Host, g rigidBodyGizmo, transform *matr
 		slog.Error("missing shape for rigid body wireframe")
 		return nil, errors.New("could not select the correct shape")
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	gsd := sd.(*shader_data_registry.ShaderDataEdTransformWire)
 	gsd.Color = matrix.NewColor(0, 1, 0, 1)
 	if (g.Shape == engine_entity_data_physics.ShapeMesh && !g.HasMesh) ||

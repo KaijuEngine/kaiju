@@ -97,7 +97,7 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 	for i := range mat.Textures {
 		e.StageData.Description.Textures[i] = mat.Textures[i].Key
 	}
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,

@@ -400,7 +400,7 @@ func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *re
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{texture})
 	mesh := rendering.NewMeshQuad(host.MeshCache())
-	sd := shader_data_registry.Create(mat.Shader.ShaderDataName()).(*shader_data_registry.ShaderDataUnlit)
+	sd := shader_data_registry.Create(mat.Shader.DrawInstanceDataName()).(*shader_data_registry.ShaderDataUnlit)
 	sd.Color = color
 	d := rendering.Drawing{
 		Material:   mat,

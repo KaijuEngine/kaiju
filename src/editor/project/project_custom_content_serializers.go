@@ -82,7 +82,7 @@ func (p *Project) stageArchiveSerializer(reader content_archive.FileReader, rawD
 			if err != nil {
 				return
 			}
-			sd := shader_data_registry.Create(sh.Name)
+			sd := shader_data_registry.Create(sh.DrawInstanceDataName())
 			v := reflect.ValueOf(sd)
 			for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
 				v = v.Elem()

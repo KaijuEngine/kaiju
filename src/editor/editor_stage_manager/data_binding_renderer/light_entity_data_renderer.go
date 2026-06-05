@@ -163,7 +163,7 @@ func (c *LightEntityDataRenderer) createLines(host *engine.Host, transform *matr
 		grid = rendering.NewMeshGrid(host.MeshCache(), key,
 			points, matrix.Color{1, 1, 1, 1})
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	gsd := sd.(*shader_data_registry.ShaderDataEdTransformWire)
 	gsd.Color = matrix.NewColor(1, 1, 1, 1)
 	host.Drawings.AddDrawing(rendering.Drawing{

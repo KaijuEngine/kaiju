@@ -42,6 +42,7 @@ type RenderGraphWorkspace struct {
 	createNodeCount int
 	currentGraphID  string
 	currentName     string
+	generated       RenderGraphGenerated
 }
 
 type RenderGraphWorkspaceUIData struct {
@@ -199,6 +200,10 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 func (w *RenderGraphWorkspace) GraphDocument() RenderGraphDocument {
 	document := w.graph.Document()
 	document.Name = w.currentName
+	if !w.generated.IsZero() {
+		generated := w.generated
+		document.Generated = &generated
+	}
 	return document
 }
 
@@ -215,6 +220,10 @@ func (w *RenderGraphWorkspace) DeserializeGraph(data []byte) error {
 		return err
 	}
 	w.currentGraphID = ""
+	w.generated = RenderGraphGenerated{}
+	if document.Generated != nil {
+		w.generated = *document.Generated
+	}
 	if document.Name != "" {
 		w.currentName = document.Name
 	}

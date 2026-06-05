@@ -159,7 +159,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 		slog.Error("failed to load transform wire material", "error", err)
 		return rendering.Drawing{}, err
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = color
 	sd.Deactivate()
 	return rendering.Drawing{

@@ -63,6 +63,7 @@ func (w *RenderGraphWorkspace) newRenderGraph(*document.Element) {
 	defer tracing.NewRegion("RenderGraphWorkspace.newRenderGraph").End()
 	w.currentGraphID = ""
 	w.currentName = defaultRenderGraphName
+	w.generated = RenderGraphGenerated{}
 	w.resetGraphToDefault()
 	w.updateGraphNameInput()
 	w.setRenderGraphStatus("Unsaved render graph")
@@ -119,6 +120,10 @@ func (w *RenderGraphWorkspace) LoadRenderGraphID(id string) {
 		return
 	}
 	w.currentGraphID = id
+	w.generated = RenderGraphGenerated{}
+	if document.Generated != nil {
+		w.generated = *document.Generated
+	}
 	w.currentName = renderGraphCleanName(cc.Config.Name)
 	if w.currentName == "" && document.Name != "" {
 		w.currentName = renderGraphCleanName(document.Name)
@@ -140,57 +145,68 @@ func (w *RenderGraphWorkspace) saveRenderGraph(*document.Element) {
 		w.setRenderGraphStatus("Save failed")
 		return
 	}
+	saved := false
 	if w.currentGraphID == "" {
-		w.saveNewRenderGraphContent(data)
+		saved = w.saveNewRenderGraphContent(data)
+	} else {
+		saved = w.saveExistingRenderGraphContent(data)
+	}
+	if !saved {
 		return
 	}
-	w.saveExistingRenderGraphContent(data)
+	if err = w.generateRenderGraphOutputs(); err != nil {
+		slog.Error("failed to generate render graph outputs", "id", w.currentGraphID, "error", err)
+		w.setRenderGraphStatus("Saved graph; output generation failed")
+		return
+	}
+	w.setRenderGraphStatus("Saved and generated material")
 }
 
-func (w *RenderGraphWorkspace) saveNewRenderGraphContent(data []byte) {
+func (w *RenderGraphWorkspace) saveNewRenderGraphContent(data []byte) bool {
 	pfs := w.ed.ProjectFileSystem()
 	cache := w.ed.Cache()
 	if pfs == nil || cache == nil {
-		return
+		return false
 	}
 	ids := content_database.ImportRaw(w.currentName, data, content_database.RenderGraph{}, pfs, cache)
 	if len(ids) == 0 {
 		w.setRenderGraphStatus("Save failed")
-		return
+		return false
 	}
 	w.currentGraphID = ids[0]
 	w.ed.Events().OnContentAdded.Execute(ids)
 	w.ed.Events().OnContentChangesSaved.Execute(w.currentGraphID)
 	w.setRenderGraphStatus("Saved")
+	return true
 }
 
-func (w *RenderGraphWorkspace) saveExistingRenderGraphContent(data []byte) {
+func (w *RenderGraphWorkspace) saveExistingRenderGraphContent(data []byte) bool {
 	pfs := w.ed.ProjectFileSystem()
 	cache := w.ed.Cache()
 	if pfs == nil || cache == nil {
-		return
+		return false
 	}
 	cc, err := cache.Read(w.currentGraphID)
 	if err != nil {
 		w.currentGraphID = ""
-		w.saveNewRenderGraphContent(data)
-		return
+		return w.saveNewRenderGraphContent(data)
 	}
 	if cc.Config.Name != w.currentName {
 		if _, err = cache.Rename(w.currentGraphID, w.currentName, pfs); err != nil {
 			slog.Error("failed to rename render graph while saving", "id", w.currentGraphID, "error", err)
 			w.setRenderGraphStatus("Save failed")
-			return
+			return false
 		}
 		w.ed.Events().OnContentRenamed.Execute(w.currentGraphID)
 	}
 	if err = pfs.WriteFile(cc.ContentPath(), data, os.ModePerm); err != nil {
 		slog.Error("failed to write render graph", "id", w.currentGraphID, "path", cc.ContentPath(), "error", err)
 		w.setRenderGraphStatus("Save failed")
-		return
+		return false
 	}
 	w.ed.Events().OnContentChangesSaved.Execute(w.currentGraphID)
 	w.setRenderGraphStatus("Saved")
+	return true
 }
 
 func (w *RenderGraphWorkspace) renderGraphNameFromInput() string {

@@ -1031,7 +1031,7 @@ func (w *TerrainWorkspace) initBrushRing(host *engine.Host) {
 		slog.Error("failed to load terrain brush ring material", "error", err)
 		return
 	}
-	w.brushRingData = shader_data_registry.Create(material.Shader.ShaderDataName())
+	w.brushRingData = shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	w.brushRingData.(*shader_data_registry.ShaderDataEdTransformWire).Color =
 		matrix.NewColor(0.2, 0.75, 1.0, 1.0)
 	w.brushRingData.Deactivate()

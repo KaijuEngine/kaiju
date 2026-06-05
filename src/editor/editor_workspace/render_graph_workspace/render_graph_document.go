@@ -21,8 +21,23 @@ type RenderGraphDocument struct {
 	Name        string                  `json:"name,omitempty"`
 	Pan         matrix.Vec2             `json:"pan,omitempty"`
 	Zoom        matrix.Float            `json:"zoom,omitempty"`
+	Generated   *RenderGraphGenerated   `json:"generated,omitempty"`
 	Nodes       []RenderGraphNode       `json:"nodes"`
 	Connections []RenderGraphConnection `json:"connections,omitempty"`
+}
+
+type RenderGraphGenerated struct {
+	ShaderID           string `json:"shaderId,omitempty"`
+	MaterialID         string `json:"materialId,omitempty"`
+	FragmentSpvID      string `json:"fragmentSpvId,omitempty"`
+	FragmentSourcePath string `json:"fragmentSourcePath,omitempty"`
+}
+
+func (g RenderGraphGenerated) IsZero() bool {
+	return strings.TrimSpace(g.ShaderID) == "" &&
+		strings.TrimSpace(g.MaterialID) == "" &&
+		strings.TrimSpace(g.FragmentSpvID) == "" &&
+		strings.TrimSpace(g.FragmentSourcePath) == ""
 }
 
 type RenderGraphNode struct {

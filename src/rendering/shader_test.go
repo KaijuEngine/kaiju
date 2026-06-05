@@ -104,6 +104,7 @@ func TestShaderDataCompiledDescriptorSetLayoutStructure(t *testing.T) {
 func TestShaderDataCompile(t *testing.T) {
 	source := ShaderData{
 		Name:                      "shader",
+		DrawInstanceData:          "pbr",
 		Vertex:                    "source.vert",
 		VertexSpv:                 "compiled.vert.spv",
 		Fragment:                  "source.frag",
@@ -117,6 +118,7 @@ func TestShaderDataCompile(t *testing.T) {
 	}
 	compiled := source.Compile()
 	if compiled.Name != source.Name ||
+		compiled.DrawInstanceData != source.DrawInstanceData ||
 		compiled.Vertex != source.VertexSpv ||
 		compiled.Fragment != source.FragmentSpv ||
 		compiled.Geometry != source.GeometrySpv ||
@@ -127,9 +129,27 @@ func TestShaderDataCompile(t *testing.T) {
 	}
 }
 
+func TestShaderDataDrawInstanceDataNameDefaultsToShaderName(t *testing.T) {
+	source := ShaderData{Name: "shader"}
+	if got := source.DrawInstanceDataName(); got != "shader" {
+		t.Fatalf("ShaderData.DrawInstanceDataName = %q, want shader", got)
+	}
+	compiled := source.Compile()
+	if got := compiled.DrawInstanceDataName(); got != "shader" {
+		t.Fatalf("ShaderDataCompiled.DrawInstanceDataName = %q, want shader", got)
+	}
+	shader := NewShader(compiled)
+	if got := shader.DrawInstanceDataName(); got != "shader" {
+		t.Fatalf("Shader.DrawInstanceDataName = %q, want shader", got)
+	}
+}
+
 func TestNewShaderAndReload(t *testing.T) {
-	graphics := NewShader(ShaderDataCompiled{Name: "graphics", Vertex: "vert.spv"})
-	if graphics.Type != ShaderTypeGraphics || graphics.ShaderDataName() != "graphics" || graphics.subShaders == nil {
+	graphics := NewShader(ShaderDataCompiled{Name: "graphics", DrawInstanceData: "pbr", Vertex: "vert.spv"})
+	if graphics.Type != ShaderTypeGraphics ||
+		graphics.ShaderDataName() != "graphics" ||
+		graphics.DrawInstanceDataName() != "pbr" ||
+		graphics.subShaders == nil {
 		t.Fatalf("unexpected graphics shader: %+v", graphics)
 	}
 	compute := NewShader(ShaderDataCompiled{Name: "compute", Compute: "comp.spv"})

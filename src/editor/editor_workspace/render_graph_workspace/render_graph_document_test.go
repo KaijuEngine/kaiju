@@ -10,6 +10,12 @@ import (
 func TestRenderGraphDocumentJSONRoundTrip(t *testing.T) {
 	clamp := true
 	document := RenderGraphDocument{
+		Generated: &RenderGraphGenerated{
+			ShaderID:           "shader-id.shader",
+			MaterialID:         "material-id.material",
+			FragmentSpvID:      "fragment-id.spv",
+			FragmentSourcePath: "database/src/render/shader/render_graph_test.frag",
+		},
 		Nodes: []RenderGraphNode{
 			{
 				ID:       "node-value",
@@ -60,6 +66,12 @@ func TestRenderGraphDocumentJSONRoundTrip(t *testing.T) {
 	}
 	if got := loaded.Connections[0].Input.Node; got != "node-mix" {
 		t.Fatalf("loaded connection input node = %q, want node-mix", got)
+	}
+	if loaded.Generated == nil {
+		t.Fatal("loaded generated output metadata is nil")
+	}
+	if got := loaded.Generated.MaterialID; got != "material-id.material" {
+		t.Fatalf("loaded generated material id = %q, want material-id.material", got)
 	}
 }
 

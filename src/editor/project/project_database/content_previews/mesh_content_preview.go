@@ -38,7 +38,7 @@ func (p *ContentPreviewer) renderMesh(id string) {
 			continue
 		}
 		mesh := rendering.NewMesh(fmt.Sprintf("tmp_%s_%d", id, i), km.Verts, km.Indexes)
-		sd := shader_data_registry.Create(p.mat.Shader.ShaderDataName())
+		sd := shader_data_registry.Create(p.mat.Shader.DrawInstanceDataName())
 		sd.(*shader_data_registry.ShaderDataEdThumbPreviewMesh).SetCamera(
 			p.cam.View(), p.cam.Projection())
 		draw := rendering.Drawing{
