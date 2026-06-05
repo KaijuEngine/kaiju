@@ -75,6 +75,32 @@ func (c *shaderGraphConnection) matches(outputRef, inputRef RenderGraphPortRef) 
 	return ok && currentOutput == outputRef && currentInput == inputRef
 }
 
+func (c *shaderGraphConnection) renderConnection() (RenderGraphConnection, bool) {
+	if c == nil {
+		return RenderGraphConnection{}, false
+	}
+	outputRef, inputRef, ok := shaderGraphConnectionRefs(c.output, c.input)
+	if !ok {
+		return RenderGraphConnection{}, false
+	}
+	return RenderGraphConnection{Output: outputRef, Input: inputRef}, true
+}
+
+func (c *shaderGraphConnection) touchesPort(port *shaderGraphPort) bool {
+	portRef, ok := shaderGraphPortRef(port)
+	if c == nil || !ok {
+		return false
+	}
+	outputRef, inputRef, ok := shaderGraphConnectionRefs(c.output, c.input)
+	if !ok {
+		return false
+	}
+	if port.output {
+		return outputRef == portRef
+	}
+	return inputRef == portRef
+}
+
 func (c *shaderGraphConnection) touchesNode(id string) bool {
 	if c == nil || id == "" {
 		return false

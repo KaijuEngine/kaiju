@@ -4,7 +4,11 @@ import (
 	"testing"
 
 	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/windowing"
 )
 
 func TestShaderGraphSelectNodesReplaceAppendToggle(t *testing.T) {
@@ -76,6 +80,26 @@ func TestShaderGraphSelectionHistoryUndoRedo(t *testing.T) {
 	history.Redo()
 	if graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("redo should restore next selection")
+	}
+}
+
+func TestShaderGraphSelectionEventSkipsAltInput(t *testing.T) {
+	keyboard := hid.NewKeyboard()
+	keyboard.SetKeyDown(hid.KeyboardKeyLeftAlt)
+	graph := shaderGraph{
+		host: &engine.Host{
+			Window: &windowing.Window{Keyboard: keyboard},
+		},
+	}
+	node := &shaderGraphNode{id: "node", graph: &graph}
+	graph.nodes = []*shaderGraphNode{node}
+	target := &ui.UI{}
+	node.bindSelectionEvent(target)
+
+	target.ExecuteEvent(ui.EventTypeDown)
+
+	if graph.IsSelected(node) {
+		t.Fatal("alt down should not select the node")
 	}
 }
 

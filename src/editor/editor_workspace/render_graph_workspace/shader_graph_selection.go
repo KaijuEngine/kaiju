@@ -179,6 +179,9 @@ func (n *shaderGraphNode) bindSelectionEvent(target *ui.UI) {
 		return
 	}
 	target.AddEvent(ui.EventTypeDown, func() {
+		if n.graph != nil && n.graph.isAltInputHeld() {
+			return
+		}
 		if n.graph != nil {
 			n.graph.SelectNodeFromInput(n)
 		}

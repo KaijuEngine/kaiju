@@ -42,12 +42,23 @@ func (p *shaderGraphPort) Color() matrix.Color {
 	return shaderGraphPortColor(p.spec.Type, p.output)
 }
 
+func shaderGraphPortRef(port *shaderGraphPort) (RenderGraphPortRef, bool) {
+	if port == nil || port.node == nil || port.node.id == "" {
+		return RenderGraphPortRef{}, false
+	}
+	return RenderGraphPortRef{Node: port.node.id, Port: port.index}, true
+}
+
 func (p *shaderGraphPort) bindEvents() {
 	if p == nil || p.dot == nil || p.graph == nil {
 		return
 	}
 	p.dot.Base().AddEvent(ui.EventTypeDown, func() {
 		if p.graph.isPanInputHeld() {
+			return
+		}
+		if p.graph.isAltInputHeld() {
+			p.graph.DisconnectPort(p)
 			return
 		}
 		p.graph.beginConnection(p)

@@ -293,6 +293,57 @@ func (g *shaderGraph) RemoveConnection(outputRef, inputRef RenderGraphPortRef) b
 	return false
 }
 
+func (g *shaderGraph) DisconnectPort(port *shaderGraphPort) bool {
+	if port == nil {
+		return false
+	}
+	removed := g.removeConnectionsTouchingPort(port)
+	if len(removed) == 0 {
+		return false
+	}
+	if g.history != nil {
+		g.history.Add(&shaderGraphConnectionDisconnectHistory{
+			graph:       g,
+			connections: removed,
+		})
+	}
+	return true
+}
+
+func (g *shaderGraph) removeConnectionsTouchingPort(port *shaderGraphPort) []RenderGraphConnection {
+	if g == nil {
+		return nil
+	}
+	removed := make([]RenderGraphConnection, 0)
+	for i := len(g.connections) - 1; i >= 0; i-- {
+		connection := g.connections[i]
+		if connection == nil || !connection.touchesPort(port) {
+			continue
+		}
+		renderConnection, ok := connection.renderConnection()
+		if ok {
+			removed = append(removed, renderConnection)
+		}
+		connection.Destroy()
+		g.connections = slices.Delete(g.connections, i, i+1)
+	}
+	return removed
+}
+
+func (g *shaderGraph) removeConnectionRef(connection RenderGraphConnection) bool {
+	if g == nil {
+		return false
+	}
+	return g.RemoveConnection(connection.Output, connection.Input)
+}
+
+func (g *shaderGraph) createConnectionRef(connection RenderGraphConnection) *shaderGraphConnection {
+	if g == nil {
+		return nil
+	}
+	return g.createConnectionFromRefs(connection.Output, connection.Input)
+}
+
 func (g *shaderGraph) connectionByRefs(outputRef, inputRef RenderGraphPortRef) *shaderGraphConnection {
 	if g == nil {
 		return nil

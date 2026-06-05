@@ -95,6 +95,11 @@ func (g *shaderGraph) isPanInputHeld() bool {
 		keyboard.KeyHeld(hid.KeyboardKeySpace)
 }
 
+func (g *shaderGraph) isAltInputHeld() bool {
+	return g != nil && g.host != nil && g.host.Window != nil &&
+		g.host.Window.Keyboard.HasAlt()
+}
+
 func (g *shaderGraph) stopNodeDrags() {
 	for i := range g.nodes {
 		g.nodes[i].stopDrag()
