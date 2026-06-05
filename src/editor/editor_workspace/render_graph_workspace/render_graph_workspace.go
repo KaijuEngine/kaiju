@@ -89,6 +89,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	}
 	w.createNodeMenu.Initialize(w)
 	w.graph.Initialize(ed.Host(), ed.History())
+	w.graph.zoomBlocked = w.createNodeMenu.BlocksGraphZoom
 	w.resetGraphToDefault()
 	w.updateGraphNameInput()
 	w.setRenderGraphStatus("Unsaved render graph")

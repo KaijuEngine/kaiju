@@ -81,6 +81,18 @@ func (m *shaderGraphCreateNodeMenu) CreatePosition() matrix.Vec2 {
 	return m.createPosition
 }
 
+func (m *shaderGraphCreateNodeMenu) BlocksGraphZoom(position matrix.Vec2) bool {
+	if !m.open || m.root == nil || m.root.UI == nil || !m.root.UI.IsActive() {
+		return false
+	}
+	layout := m.root.UI.Layout()
+	offset := layout.Offset()
+	size := layout.PixelSize()
+	return position.X() >= offset.X() && position.Y() >= offset.Y() &&
+		position.X() <= offset.X()+size.X() &&
+		position.Y() <= offset.Y()+size.Y()
+}
+
 func (m *shaderGraphCreateNodeMenu) Filter(query string) {
 	query = strings.ToLower(strings.TrimSpace(query))
 	visible := 0

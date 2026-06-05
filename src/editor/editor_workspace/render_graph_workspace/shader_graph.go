@@ -37,6 +37,7 @@ type shaderGraph struct {
 	pendingVisual *shaderGraphSpline
 	pan           matrix.Vec2
 	zoom          matrix.Float
+	zoomBlocked   func(matrix.Vec2) bool
 	panning       bool
 	panMouse      matrix.Vec2
 	hasPanMouse   bool

@@ -60,7 +60,11 @@ func (g *shaderGraph) updateZoom() {
 		return
 	}
 	mouse := &g.host.Window.Mouse
-	if !mouse.Scrolled() || !g.screenPositionInside(mouse.ScreenPosition()) {
+	mousePosition := mouse.ScreenPosition()
+	if !mouse.Scrolled() || !g.screenPositionInside(mousePosition) {
+		return
+	}
+	if g.zoomBlocked != nil && g.zoomBlocked(mousePosition) {
 		return
 	}
 	scroll := matrix.Float(mouse.ScrollY)
@@ -77,7 +81,7 @@ func (g *shaderGraph) updateZoom() {
 	} else {
 		next /= factor
 	}
-	g.setZoomAroundViewPosition(next, g.screenToViewPosition(mouse.ScreenPosition()))
+	g.setZoomAroundViewPosition(next, g.screenToViewPosition(mousePosition))
 }
 
 func (g *shaderGraph) isPanInputHeld() bool {
