@@ -331,6 +331,27 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 		return c.emitChannelMask(node)
 	case "texel-size":
 		return c.emitTexelSize(node, port)
+	case "time":
+		return emitTime(node, port)
+	case "world-position":
+		return emitVec3Context(node, port, "fragPos")
+	case "normal-vector":
+		return emitVec3Context(node, port, graphGeometricNormalExpression())
+	case "tangent-vector":
+		return emitVec3Context(node, port, "safeNormalize(cotangentFrame("+
+			graphGeometricNormalExpression()+", fragPos, fragTexCoords)[0], vec3(1.0, 0.0, 0.0))")
+	case "bitangent-vector":
+		return emitVec3Context(node, port, "safeNormalize(cotangentFrame("+
+			graphGeometricNormalExpression()+", fragPos, fragTexCoords)[1], vec3(0.0, 0.0, 1.0))")
+	case "view-direction":
+		return emitVec3Context(node, port, "safeNormalize(cameraPosition.xyz - fragPos, "+
+			graphGeometricNormalExpression()+")")
+	case "camera-position":
+		return emitVec3Context(node, port, "cameraPosition.xyz")
+	case "screen-position":
+		return emitScreenPosition(node, port)
+	case "vertex-color":
+		return emitVertexColor(node, port)
 	case "add", "subtract", "multiply", "divide", "minimum", "maximum", "power":
 		return c.emitFloatBinary(node)
 	case "absolute", "one-minus", "floor", "ceiling", "fraction", "sine", "cosine", "tangent", "square-root":
@@ -656,6 +677,69 @@ func (c *renderGraphOutputCompiler) emitTexelSize(node RenderGraphNode, port int
 	default:
 		return renderGraphOutputExpression{}, fmt.Errorf("render graph texel size node %q has invalid output %d", node.ID, port)
 	}
+}
+
+func emitTime(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "time"}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "sin(time)"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "cos(time)"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph time node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func emitVec3Context(node RenderGraphNode, port int, value string) (renderGraphOutputExpression, error) {
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: value}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + value + ").x"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + value + ").y"}, nil
+	case 3:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + value + ").z"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph context node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func emitScreenPosition(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	uv := "(gl_FragCoord.xy / max(screenSize, vec2(1.0)))"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: uv}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: "gl_FragCoord.xy"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: uv + ".x"}, nil
+	case 3:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: uv + ".y"}, nil
+	case 4:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "gl_FragCoord.z"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph screen position node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func emitVertexColor(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: "fragColor"}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: "fragColor.rgb"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "fragColor.a"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph vertex color node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func graphGeometricNormalExpression() string {
+	return "safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))"
 }
 
 func (c *renderGraphOutputCompiler) inputExpression(node RenderGraphNode, input int, wantType string) (string, error) {

@@ -46,6 +46,25 @@ func TestShaderGraphNodeCatalogHasTextureNodes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
+	want := []string{
+		"time",
+		"world-position",
+		"normal-vector",
+		"tangent-vector",
+		"bitangent-vector",
+		"view-direction",
+		"camera-position",
+		"screen-position",
+		"vertex-color",
+	}
+	for _, id := range want {
+		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+			t.Fatalf("expected catalog node %q to be registered", id)
+		}
+	}
+}
+
 func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 	seen := map[string]bool{}
 	for _, entry := range shaderGraphNodeCatalog() {
@@ -74,6 +93,33 @@ func TestShaderGraphTextureNodePortTypes(t *testing.T) {
 	}
 	if len(sample.Outputs) != 6 || sample.Outputs[0].Type != "color" || sample.Outputs[1].Type != "vec3" || sample.Outputs[5].Type != "float" {
 		t.Fatalf("sample-texture-2d outputs = %#v, want color, vec3, float channels", sample.Outputs)
+	}
+}
+
+func TestShaderGraphContextNodePortTypes(t *testing.T) {
+	world, ok := shaderGraphNodeCatalogSpec("world-position")
+	if !ok {
+		t.Fatal("world-position node missing")
+	}
+	if len(world.Outputs) != 4 || world.Outputs[0].Type != "vec3" || world.Outputs[3].Type != "float" {
+		t.Fatalf("world-position outputs = %#v, want vec3 plus float components", world.Outputs)
+	}
+
+	screen, ok := shaderGraphNodeCatalogSpec("screen-position")
+	if !ok {
+		t.Fatal("screen-position node missing")
+	}
+	if len(screen.Outputs) != 5 || screen.Outputs[0].Type != "vec2" || screen.Outputs[1].Type != "vec2" || screen.Outputs[4].Type != "float" {
+		t.Fatalf("screen-position outputs = %#v, want vec2, vec2, float components", screen.Outputs)
+	}
+
+	vertexColor, ok := shaderGraphNodeCatalogSpec("vertex-color")
+	if !ok {
+		t.Fatal("vertex-color node missing")
+	}
+	if len(vertexColor.Outputs) != 3 || vertexColor.Outputs[0].Type != "color" ||
+		vertexColor.Outputs[1].Type != "vec3" || vertexColor.Outputs[2].Type != "float" {
+		t.Fatalf("vertex-color outputs = %#v, want color, vec3, float", vertexColor.Outputs)
 	}
 }
 

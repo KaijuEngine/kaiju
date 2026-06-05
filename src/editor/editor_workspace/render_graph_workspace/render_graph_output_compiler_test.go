@@ -175,6 +175,57 @@ func TestRenderGraphCompilerMapsExpandedPrincipledInputs(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerSupportsShaderContextNodes(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{ID: "time", Type: "time"},
+		RenderGraphNode{ID: "world", Type: "world-position"},
+		RenderGraphNode{ID: "normal-context", Type: "normal-vector"},
+		RenderGraphNode{ID: "tangent", Type: "tangent-vector"},
+		RenderGraphNode{ID: "bitangent", Type: "bitangent-vector"},
+		RenderGraphNode{ID: "view", Type: "view-direction"},
+		RenderGraphNode{ID: "camera", Type: "camera-position"},
+		RenderGraphNode{ID: "screen", Type: "screen-position"},
+		RenderGraphNode{ID: "vertex-color", Type: "vertex-color"},
+		RenderGraphNode{ID: "metallic", Type: "dot-product"},
+		RenderGraphNode{ID: "roughness", Type: "dot-product"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "tangent", Port: 0}, Input: RenderGraphPortRef{Node: "metallic", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "bitangent", Port: 0}, Input: RenderGraphPortRef{Node: "metallic", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "metallic", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 3}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "view", Port: 0}, Input: RenderGraphPortRef{Node: "roughness", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "normal-context", Port: 0}, Input: RenderGraphPortRef{Node: "roughness", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "roughness", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "normal-context", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 2}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "world", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 4}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "vertex-color", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 5}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "time", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 6}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "screen", Port: 2}, Input: RenderGraphPortRef{Node: "bsdf", Port: 7}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "camera", Port: 3}, Input: RenderGraphPortRef{Node: "bsdf", Port: 8}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	source := out.FragmentSource
+	for _, want := range []string{
+		"float metallic = clamp(dot(safeNormalize(cotangentFrame(",
+		"fragPos, fragTexCoords)[1], vec3(0.0, 0.0, 1.0))), 0.0, 1.0);",
+		"float roughness = clamp(dot(safeNormalize(cameraPosition.xyz - fragPos, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))), safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))), MIN_ROUGHNESS, 1.0);",
+		"vec3 N = safeNormalize(safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0)), geometricNormal);",
+		"float occlusion = clamp((fragPos).x, 0.0, 1.0);",
+		"vec3 emission = max((fragColor).rgb, vec3(0.0)) * max(time, 0.0);",
+		"float alpha = clamp((gl_FragCoord.xy / max(screenSize, vec2(1.0))).x, 0.0, 1.0);",
+		"vec3 F0 = mix(vec3(0.04 * clamp((cameraPosition.xyz).z, 0.0, 1.0)), albedo, metallic);",
+	} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerSupportsMathAndMixColorNodes(t *testing.T) {
 	clamp := true
 	a := matrix.NewColor(1, 0, 0, 1)
