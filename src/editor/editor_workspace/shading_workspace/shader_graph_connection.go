@@ -46,7 +46,17 @@ func (c *shaderGraphConnection) Update() {
 	}
 	c.visual.Show()
 	c.visual.SetColor(c.output.Color())
-	c.visual.Update(c.output.Anchor(), c.input.Anchor())
+	graph := c.output.graph
+	if graph == nil {
+		graph = c.input.graph
+	}
+	start := c.output.Anchor()
+	end := c.input.Anchor()
+	if graph != nil {
+		start = graph.viewPosition(start)
+		end = graph.viewPosition(end)
+	}
+	c.visual.Update(start, end)
 }
 
 func (c *shaderGraphConnection) Hide() {

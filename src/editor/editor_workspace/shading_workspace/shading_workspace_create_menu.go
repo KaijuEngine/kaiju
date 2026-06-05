@@ -45,12 +45,12 @@ func (m *shaderGraphCreateNodeMenu) Initialize(workspace *ShadingWorkspace) {
 	m.Hide()
 }
 
-func (m *shaderGraphCreateNodeMenu) Show(position matrix.Vec2) {
+func (m *shaderGraphCreateNodeMenu) Show(position, createPosition matrix.Vec2) {
 	if m.root == nil {
 		return
 	}
 	m.open = true
-	m.createPosition = position
+	m.createPosition = createPosition
 	m.root.UI.Show()
 	m.positionRoot(position)
 	if m.search != nil && m.search.UI != nil {
@@ -162,10 +162,14 @@ func (w *ShadingWorkspace) createNodeMenuPosition() matrix.Vec2 {
 	if ok {
 		return mousePosition
 	}
-	return w.defaultCreateNodePosition()
+	return w.defaultCreateNodeViewPosition()
 }
 
 func (w *ShadingWorkspace) defaultCreateNodePosition() matrix.Vec2 {
+	return w.graph.graphPositionFromView(w.defaultCreateNodeViewPosition())
+}
+
+func (w *ShadingWorkspace) defaultCreateNodeViewPosition() matrix.Vec2 {
 	if w.graph.root == nil {
 		return matrix.NewVec2(48, 48)
 	}

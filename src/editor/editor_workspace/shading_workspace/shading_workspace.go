@@ -167,7 +167,8 @@ func (w *ShadingWorkspace) toggleDimension(e *document.Element) {
 }
 
 func (w *ShadingWorkspace) ShowCreateNodeMenu() {
-	w.createNodeMenu.Show(w.createNodeMenuPosition())
+	position := w.createNodeMenuPosition()
+	w.createNodeMenu.Show(position, w.graph.graphPositionFromView(position))
 }
 
 func (w *ShadingWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {

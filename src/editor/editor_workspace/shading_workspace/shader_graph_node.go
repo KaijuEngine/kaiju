@@ -67,7 +67,7 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 
 	height := shaderGraphNodeHeight(spec)
 	n.root.Base().Layout().Scale(shaderGraphNodeWidth, height)
-	n.root.Base().Layout().SetOffset(n.position.X(), n.position.Y())
+	n.applyViewOffset()
 
 	n.createHeader(uiMan, spec.Name)
 	n.createDescription(uiMan, spec.Description)
@@ -100,11 +100,14 @@ func (n *shaderGraphNode) Update() {
 	current := mouse.ScreenPosition()
 	delta := current.Subtract(n.dragMouse)
 	n.position = n.dragOrigin.Add(delta)
-	n.root.Base().Layout().SetOffset(n.position.X(), n.position.Y())
+	n.applyViewOffset()
 }
 
 func (n *shaderGraphNode) beginDrag() {
 	if n.host == nil || n.host.Window == nil {
+		return
+	}
+	if n.graph != nil && n.graph.isPanInputHeld() {
 		return
 	}
 	n.dragging = true
@@ -114,6 +117,17 @@ func (n *shaderGraphNode) beginDrag() {
 
 func (n *shaderGraphNode) stopDrag() {
 	n.dragging = false
+}
+
+func (n *shaderGraphNode) applyViewOffset() {
+	if n.root == nil {
+		return
+	}
+	position := n.position
+	if n.graph != nil {
+		position = n.graph.viewPosition(position)
+	}
+	n.root.Base().Layout().SetOffset(position.X(), position.Y())
 }
 
 func (n *shaderGraphNode) bindDragEvents(target *ui.UI) {

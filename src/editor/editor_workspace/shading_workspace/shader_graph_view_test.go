@@ -1,0 +1,27 @@
+package shading_workspace
+
+import (
+	"testing"
+
+	"kaijuengine.com/matrix"
+)
+
+func TestShaderGraphViewPositionUsesPan(t *testing.T) {
+	graph := shaderGraph{pan: matrix.NewVec2(24, -16)}
+	position := matrix.NewVec2(100, 80)
+	want := matrix.NewVec2(124, 64)
+
+	if got := graph.viewPosition(position); !matrix.Vec2Approx(got, want) {
+		t.Fatalf("viewPosition() = %v, want %v", got, want)
+	}
+}
+
+func TestShaderGraphGraphPositionFromViewRemovesPan(t *testing.T) {
+	graph := shaderGraph{pan: matrix.NewVec2(24, -16)}
+	position := matrix.NewVec2(124, 64)
+	want := matrix.NewVec2(100, 80)
+
+	if got := graph.graphPositionFromView(position); !matrix.Vec2Approx(got, want) {
+		t.Fatalf("graphPositionFromView() = %v, want %v", got, want)
+	}
+}

@@ -26,6 +26,10 @@ type shaderGraph struct {
 	connections   []*shaderGraphConnection
 	pendingFrom   *shaderGraphPort
 	pendingVisual *shaderGraphSpline
+	pan           matrix.Vec2
+	panning       bool
+	panMouse      matrix.Vec2
+	hasPanMouse   bool
 }
 
 func (g *shaderGraph) Initialize(host *engine.Host) {
@@ -59,8 +63,10 @@ func (g *shaderGraph) Open() {
 	if g.root == nil {
 		return
 	}
+	g.hasPanMouse = false
 	g.root.Base().Show()
 	g.applyLayout()
+	g.applyViewOffsets()
 	for i := range g.connections {
 		g.connections[i].Update()
 	}
@@ -73,6 +79,8 @@ func (g *shaderGraph) Close() {
 	for i := range g.nodes {
 		g.nodes[i].stopDrag()
 	}
+	g.panning = false
+	g.hasPanMouse = false
 	for i := range g.connections {
 		g.connections[i].Hide()
 	}
@@ -84,6 +92,7 @@ func (g *shaderGraph) Update() {
 		return
 	}
 	g.applyLayout()
+	g.updatePan()
 	for i := range g.nodes {
 		g.nodes[i].Update()
 	}
@@ -154,8 +163,8 @@ func (g *shaderGraph) updatePendingConnection() {
 		g.cancelPendingConnection()
 		return
 	}
-	end := mouse.ScreenPosition().Subtract(g.root.Base().Layout().Offset())
-	start := g.pendingFrom.Anchor()
+	end := g.screenToViewPosition(mouse.ScreenPosition())
+	start := g.viewPosition(g.pendingFrom.Anchor())
 	if g.pendingFrom.output {
 		g.pendingVisual.Update(start, end)
 	} else {

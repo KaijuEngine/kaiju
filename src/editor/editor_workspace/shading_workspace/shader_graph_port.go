@@ -47,6 +47,9 @@ func (p *shaderGraphPort) bindEvents() {
 		return
 	}
 	p.dot.Base().AddEvent(ui.EventTypeDown, func() {
+		if p.graph.isPanInputHeld() {
+			return
+		}
 		p.graph.beginConnection(p)
 	})
 	p.dot.Base().AddEvent(ui.EventTypeUp, func() {
