@@ -17,11 +17,13 @@ import (
 )
 
 const (
-	shaderGraphNodeWidth      = float32(260)
-	shaderGraphNodeBaseHeight = float32(108)
-	shaderGraphNodePortHeight = float32(24)
-	shaderGraphNodeHeaderH    = float32(30)
-	shaderGraphNodePadding    = float32(10)
+	shaderGraphNodeWidth       = float32(210)
+	shaderGraphNodeBaseHeight  = float32(74)
+	shaderGraphNodePortHeight  = float32(20)
+	shaderGraphNodeHeaderH     = float32(24)
+	shaderGraphNodePadding     = float32(8)
+	shaderGraphNodePortStartY  = shaderGraphNodeHeaderH + 42
+	shaderGraphNodePortDotSize = float32(7)
 )
 
 var (
@@ -151,7 +153,7 @@ func (n *shaderGraphNode) createHeader(uiMan *ui.Manager, name string) {
 
 	n.title = uiMan.Add().ToLabel()
 	n.title.Init(name)
-	n.title.SetFontSize(14)
+	n.title.SetFontSize(12)
 	n.title.SetWrap(false)
 	n.title.SetColor(matrix.ColorWhite())
 	n.title.SetBaseline(rendering.FontBaselineCenter)
@@ -165,20 +167,19 @@ func (n *shaderGraphNode) createHeader(uiMan *ui.Manager, name string) {
 func (n *shaderGraphNode) createDescription(uiMan *ui.Manager, description string) {
 	n.description = uiMan.Add().ToLabel()
 	n.description.Init(description)
-	n.description.SetFontSize(11)
+	n.description.SetFontSize(9)
 	n.description.SetColor(matrix.NewColor(0.70, 0.74, 0.80, 1))
 	n.description.SetWidthAutoHeight(shaderGraphNodeWidth - shaderGraphNodePadding*2)
 	n.description.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	n.description.Base().Layout().SetZ(5.1)
-	n.description.Base().Layout().SetOffset(shaderGraphNodePadding, shaderGraphNodeHeaderH+8)
+	n.description.Base().Layout().SetOffset(shaderGraphNodePadding, shaderGraphNodeHeaderH+6)
 	n.root.AddChild(n.description.Base())
 }
 
 func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, inputs, outputs []shaderGraphPortSpec) {
 	rowCount := max(len(inputs), len(outputs))
-	startY := shaderGraphNodeHeaderH + 48
 	for i := range rowCount {
-		y := startY + float32(i)*shaderGraphNodePortHeight
+		y := shaderGraphNodePortStartY + float32(i)*shaderGraphNodePortHeight
 		if i < len(inputs) {
 			n.inputs = append(n.inputs, n.createPort(uiMan, inputs[i], false, i, y))
 		}
@@ -189,9 +190,9 @@ func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, inputs, outputs []shade
 }
 
 func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec, output bool, index int, y float32) *shaderGraphPort {
-	const dotSize = float32(8)
+	const dotSize = shaderGraphNodePortDotSize
 	dotX := shaderGraphNodePadding
-	labelX := shaderGraphNodePadding + dotSize + 6
+	labelX := shaderGraphNodePadding + dotSize + 5
 	justify := rendering.FontJustifyLeft
 	if output {
 		dotX = shaderGraphNodeWidth - shaderGraphNodePadding - dotSize
@@ -207,12 +208,12 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	dot.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	dot.Base().Layout().SetZ(5.2)
 	dot.Base().Layout().Scale(dotSize, dotSize)
-	dot.Base().Layout().SetOffset(dotX, y+8)
+	dot.Base().Layout().SetOffset(dotX, y+6.5)
 	n.root.AddChild(dot.Base())
 
 	label := uiMan.Add().ToLabel()
 	label.Init(shaderGraphPortLabel(port))
-	label.SetFontSize(11)
+	label.SetFontSize(10)
 	label.SetWrap(false)
 	label.SetColor(matrix.NewColor(0.86, 0.88, 0.91, 1))
 	label.SetJustify(justify)
@@ -231,7 +232,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 		index:       index,
 		dot:         dot,
 		label:       label,
-		localAnchor: matrix.NewVec2(matrix.Float(dotX+dotSize*0.5), matrix.Float(y+8+dotSize*0.5)),
+		localAnchor: matrix.NewVec2(matrix.Float(dotX+dotSize*0.5), matrix.Float(y+6.5+dotSize*0.5)),
 	}
 	graphPort.bindEvents()
 	return graphPort
