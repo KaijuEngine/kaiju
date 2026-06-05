@@ -226,6 +226,90 @@ func TestRenderGraphCompilerSupportsShaderContextNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerSupportsVectorCompositionNodes(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "x",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.25"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "y",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.5"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "z",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.75"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "w",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "1.0"},
+			},
+		},
+		RenderGraphNode{ID: "combine2", Type: "combine-vec2"},
+		RenderGraphNode{ID: "split2", Type: "split-vec2"},
+		RenderGraphNode{ID: "combine3", Type: "combine-vec3"},
+		RenderGraphNode{ID: "split3", Type: "split-vec3"},
+		RenderGraphNode{ID: "combine4", Type: "combine-vec4"},
+		RenderGraphNode{ID: "split4", Type: "split-vec4"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "x", Port: 0}, Input: RenderGraphPortRef{Node: "combine2", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "y", Port: 0}, Input: RenderGraphPortRef{Node: "combine2", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "combine2", Port: 0}, Input: RenderGraphPortRef{Node: "split2", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split2", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 3}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split2", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "x", Port: 0}, Input: RenderGraphPortRef{Node: "combine3", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "y", Port: 0}, Input: RenderGraphPortRef{Node: "combine3", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "z", Port: 0}, Input: RenderGraphPortRef{Node: "combine3", Port: 2}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "combine3", Port: 0}, Input: RenderGraphPortRef{Node: "split3", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "combine3", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 2}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split3", Port: 2}, Input: RenderGraphPortRef{Node: "bsdf", Port: 4}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split3", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 8}},
+
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "x", Port: 0}, Input: RenderGraphPortRef{Node: "combine4", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "y", Port: 0}, Input: RenderGraphPortRef{Node: "combine4", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "z", Port: 0}, Input: RenderGraphPortRef{Node: "combine4", Port: 2}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "w", Port: 0}, Input: RenderGraphPortRef{Node: "combine4", Port: 3}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "combine4", Port: 0}, Input: RenderGraphPortRef{Node: "split4", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "combine4", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "combine4", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 5}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split4", Port: 3}, Input: RenderGraphPortRef{Node: "bsdf", Port: 7}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	source := out.FragmentSource
+	for _, want := range []string{
+		"vec4 graphBaseColor = (vec4(0.25, 0.5, 0.75, 1.0) * fragColor);",
+		"float alpha = clamp((vec4(0.25, 0.5, 0.75, 1.0)).w, 0.0, 1.0);",
+		"float metallic = clamp((vec2(0.25, 0.5)).x, 0.0, 1.0);",
+		"float roughness = clamp((vec2(0.25, 0.5)).y, MIN_ROUGHNESS, 1.0);",
+		"float occlusion = clamp((vec3(0.25, 0.5, 0.75)).z, 0.0, 1.0);",
+		"vec3 emission = max((vec4(0.25, 0.5, 0.75, 1.0)).rgb, vec3(0.0)) * max(fragEmissive, 0.0);",
+		"vec3 N = safeNormalize(vec3(0.25, 0.5, 0.75), geometricNormal);",
+		"vec3 F0 = mix(vec3(0.04 * clamp((vec3(0.25, 0.5, 0.75)).x, 0.0, 1.0)), albedo, metallic);",
+	} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerSupportsMathAndMixColorNodes(t *testing.T) {
 	clamp := true
 	a := matrix.NewColor(1, 0, 0, 1)

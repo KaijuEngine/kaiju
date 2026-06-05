@@ -99,6 +99,18 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				},
 			},
 		},
+		shaderGraphCombineVectorNode("combine-vec2", "Combine Vec2", "Constructs a vec2 from scalar components.",
+			[]string{"vector", "vec2", "compose", "combine", "construct"}, []string{"X", "Y"}, "vec2"),
+		shaderGraphCombineVectorNode("combine-vec3", "Combine Vec3", "Constructs a vec3 from scalar components.",
+			[]string{"vector", "vec3", "compose", "combine", "construct"}, []string{"X", "Y", "Z"}, "vec3"),
+		shaderGraphCombineVectorNode("combine-vec4", "Combine Vec4", "Constructs a vec4 from scalar components.",
+			[]string{"vector", "vec4", "compose", "combine", "construct", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
+		shaderGraphSplitVectorNode("split-vec2", "Split Vec2", "Splits a vec2 into scalar components.",
+			[]string{"vector", "vec2", "split", "components", "xy"}, []string{"X", "Y"}, "vec2"),
+		shaderGraphSplitVectorNode("split-vec3", "Split Vec3", "Splits a vec3 into scalar components.",
+			[]string{"vector", "vec3", "split", "components", "xyz"}, []string{"X", "Y", "Z"}, "vec3"),
+		shaderGraphSplitVectorNode("split-vec4", "Split Vec4", "Splits a vec4 into scalar components.",
+			[]string{"vector", "vec4", "split", "components", "xyzw", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
 		{
 			ID:          "texture-2d",
 			Name:        "Texture 2D",
@@ -692,6 +704,50 @@ func shaderGraphFloatTernaryNode(id, name, description string, tags []string, a,
 			Outputs: []shaderGraphPortSpec{
 				{Name: output, Type: "float"},
 			},
+		},
+	}
+}
+
+func shaderGraphCombineVectorNode(id, name, description string, tags, components []string, outputType string) shaderGraphNodeCatalogEntry {
+	inputs := make([]shaderGraphPortSpec, len(components))
+	for i := range components {
+		inputs[i] = shaderGraphPortSpec{Name: components[i], Type: "float"}
+	}
+	outputs := []shaderGraphPortSpec{{Name: "Vector", Type: outputType}}
+	if outputType == "vec4" {
+		outputs = append(outputs, shaderGraphPortSpec{Name: "Color", Type: "color"})
+	}
+	return shaderGraphNodeCatalogEntry{
+		ID:          id,
+		Name:        name,
+		Description: description,
+		Tags:        tags,
+		Spec: shaderGraphNodeSpec{
+			Name:        name,
+			Description: description,
+			Inputs:      inputs,
+			Outputs:     outputs,
+		},
+	}
+}
+
+func shaderGraphSplitVectorNode(id, name, description string, tags, components []string, inputType string) shaderGraphNodeCatalogEntry {
+	outputs := make([]shaderGraphPortSpec, len(components))
+	for i := range components {
+		outputs[i] = shaderGraphPortSpec{Name: components[i], Type: "float"}
+	}
+	return shaderGraphNodeCatalogEntry{
+		ID:          id,
+		Name:        name,
+		Description: description,
+		Tags:        tags,
+		Spec: shaderGraphNodeSpec{
+			Name:        name,
+			Description: description,
+			Inputs: []shaderGraphPortSpec{
+				{Name: "Vector", Type: inputType},
+			},
+			Outputs: outputs,
 		},
 	}
 }

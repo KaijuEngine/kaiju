@@ -429,6 +429,8 @@ func shaderGraphPortColor(portType string, output bool) matrix.Color {
 		return matrix.NewColor(0.46, 0.73, 0.86, 1)
 	case "vec3":
 		return matrix.NewColor(0.42, 0.76, 0.47, 1)
+	case "vec4":
+		return matrix.NewColor(0.58, 0.55, 0.90, 1)
 	case "color":
 		return matrix.NewColor(0.91, 0.58, 0.30, 1)
 	case "texture2D", "texture2d":

@@ -21,6 +21,7 @@ const (
 	renderGraphOutputFloat = "float"
 	renderGraphOutputVec2  = "vec2"
 	renderGraphOutputVec3  = "vec3"
+	renderGraphOutputVec4  = "vec4"
 	renderGraphOutputColor = "color"
 	renderGraphOutputTex2D = "texture2d"
 )
@@ -317,6 +318,18 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "vector":
 		value, err := c.vectorField(node, "vector")
 		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: value}, err
+	case "combine-vec2":
+		return c.emitCombineVector(node, port, "vec2", renderGraphOutputVec2, 2)
+	case "combine-vec3":
+		return c.emitCombineVector(node, port, "vec3", renderGraphOutputVec3, 3)
+	case "combine-vec4":
+		return c.emitCombineVector(node, port, "vec4", renderGraphOutputVec4, 4)
+	case "split-vec2":
+		return c.emitSplitVector(node, port, renderGraphOutputVec2, 2)
+	case "split-vec3":
+		return c.emitSplitVector(node, port, renderGraphOutputVec3, 3)
+	case "split-vec4":
+		return c.emitSplitVector(node, port, renderGraphOutputVec4, 4)
 	case "texture-2d":
 		return c.emitTexture2D(node)
 	case "sample-texture-2d":
@@ -677,6 +690,39 @@ func (c *renderGraphOutputCompiler) emitTexelSize(node RenderGraphNode, port int
 	default:
 		return renderGraphOutputExpression{}, fmt.Errorf("render graph texel size node %q has invalid output %d", node.ID, port)
 	}
+}
+
+func (c *renderGraphOutputCompiler) emitCombineVector(node RenderGraphNode, port int, constructor, outputType string, count int) (renderGraphOutputExpression, error) {
+	components := make([]string, count)
+	for i := range components {
+		value, err := c.optionalInputExpression(node, i, renderGraphOutputFloat, "0.0")
+		if err != nil {
+			return renderGraphOutputExpression{}, err
+		}
+		components[i] = value
+	}
+	value := constructor + "(" + strings.Join(components, ", ") + ")"
+	if outputType == renderGraphOutputVec4 && port == 1 {
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, nil
+	}
+	if port != 0 {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph combine vector node %q has invalid output %d", node.ID, port)
+	}
+	return renderGraphOutputExpression{Type: outputType, Value: value}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitSplitVector(node RenderGraphNode, port int, inputType string, count int) (renderGraphOutputExpression, error) {
+	if port < 0 || port >= count {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph split vector node %q has invalid output %d", node.ID, port)
+	}
+	value, err := c.inputExpression(node, 0, inputType)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type:  renderGraphOutputFloat,
+		Value: "(" + value + ")." + "xyzw"[port:port+1],
+	}, nil
 }
 
 func emitTime(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {

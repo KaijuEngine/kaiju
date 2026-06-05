@@ -65,6 +65,22 @@ func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
+	want := []string{
+		"combine-vec2",
+		"combine-vec3",
+		"combine-vec4",
+		"split-vec2",
+		"split-vec3",
+		"split-vec4",
+	}
+	for _, id := range want {
+		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+			t.Fatalf("expected catalog node %q to be registered", id)
+		}
+	}
+}
+
 func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 	seen := map[string]bool{}
 	for _, entry := range shaderGraphNodeCatalog() {
@@ -120,6 +136,44 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 	if len(vertexColor.Outputs) != 3 || vertexColor.Outputs[0].Type != "color" ||
 		vertexColor.Outputs[1].Type != "vec3" || vertexColor.Outputs[2].Type != "float" {
 		t.Fatalf("vertex-color outputs = %#v, want color, vec3, float", vertexColor.Outputs)
+	}
+}
+
+func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
+	combine2, ok := shaderGraphNodeCatalogSpec("combine-vec2")
+	if !ok {
+		t.Fatal("combine-vec2 node missing")
+	}
+	if len(combine2.Inputs) != 2 || combine2.Inputs[0].Type != "float" ||
+		len(combine2.Outputs) != 1 || combine2.Outputs[0].Type != "vec2" {
+		t.Fatalf("combine-vec2 ports = %#v -> %#v, want float,float -> vec2", combine2.Inputs, combine2.Outputs)
+	}
+
+	combine4, ok := shaderGraphNodeCatalogSpec("combine-vec4")
+	if !ok {
+		t.Fatal("combine-vec4 node missing")
+	}
+	if len(combine4.Inputs) != 4 || len(combine4.Outputs) != 2 ||
+		combine4.Outputs[0].Type != "vec4" || combine4.Outputs[1].Type != "color" {
+		t.Fatalf("combine-vec4 ports = %#v -> %#v, want four floats -> vec4 and color", combine4.Inputs, combine4.Outputs)
+	}
+
+	split3, ok := shaderGraphNodeCatalogSpec("split-vec3")
+	if !ok {
+		t.Fatal("split-vec3 node missing")
+	}
+	if len(split3.Inputs) != 1 || split3.Inputs[0].Type != "vec3" ||
+		len(split3.Outputs) != 3 || split3.Outputs[2].Type != "float" {
+		t.Fatalf("split-vec3 ports = %#v -> %#v, want vec3 -> three floats", split3.Inputs, split3.Outputs)
+	}
+
+	split4, ok := shaderGraphNodeCatalogSpec("split-vec4")
+	if !ok {
+		t.Fatal("split-vec4 node missing")
+	}
+	if len(split4.Inputs) != 1 || split4.Inputs[0].Type != "vec4" ||
+		len(split4.Outputs) != 4 || split4.Outputs[3].Name != "W" || split4.Outputs[3].Type != "float" {
+		t.Fatalf("split-vec4 ports = %#v -> %#v, want vec4 -> four floats", split4.Inputs, split4.Outputs)
 	}
 }
 
