@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -105,6 +106,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	w.graph.connectionDropOnBlank = w.showCreateNodeMenuForConnection
 	w.graph.selectTexture = w.selectGraphTexture
 	w.graph.textureName = w.graphTextureName
+	w.graph.root.Base().AddEvent(ui.EventTypeRightClick, w.showCreateNodeMenuFromRightClick)
 	w.resetGraphToDefault()
 	w.updateGraphNameInput()
 	w.setRenderGraphStatus("Unsaved render graph")
@@ -224,6 +226,13 @@ func (w *RenderGraphWorkspace) ShowCreateNodeMenu() {
 	w.applyLayout()
 	position := w.createNodeMenuPosition()
 	w.createNodeMenu.Show(position, w.graph.graphPositionFromView(position))
+}
+
+func (w *RenderGraphWorkspace) showCreateNodeMenuFromRightClick() {
+	w.ed.Actions().Run(editor_action.Request{
+		ID:     ActionRenderGraphShowCreateNodeMenu,
+		Source: editor_action.SourceMenu,
+	})
 }
 
 func (w *RenderGraphWorkspace) showCreateNodeMenuForConnection(source *shaderGraphPort, position, createPosition matrix.Vec2) {
