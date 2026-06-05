@@ -88,7 +88,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 		w.root.UIPanel.AllowClickThrough()
 	}
 	w.createNodeMenu.Initialize(w)
-	w.graph.Initialize(ed.Host())
+	w.graph.Initialize(ed.Host(), ed.History())
 	w.resetGraphToDefault()
 	w.updateGraphNameInput()
 	w.setRenderGraphStatus("Unsaved render graph")

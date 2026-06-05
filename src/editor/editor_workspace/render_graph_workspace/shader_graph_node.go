@@ -30,6 +30,7 @@ const (
 var (
 	shaderGraphNodeAccentColor = matrix.NewColor(0.4078, 0.1647, 0.1765, 1) // #682A2D from default.css
 	shaderGraphNodeBodyColor   = matrix.NewColor(0.12, 0.13, 0.15, 1)
+	shaderGraphNodeSelectColor = matrix.NewColor(0.95, 0.72, 0.28, 1)
 	shaderGraphSurfaceColor    = matrix.NewColor(0.39, 0.82, 0.43, 1.0)
 )
 
@@ -47,9 +48,12 @@ type shaderGraphNode struct {
 	outputs     []*shaderGraphPort
 	values      map[string]shaderGraphNodeFieldValue
 	position    matrix.Vec2
+	selected    bool
 	dragging    bool
 	dragMouse   matrix.Vec2
 	dragOrigin  matrix.Vec2
+	dragNodes   []*shaderGraphNode
+	dragOrigins []matrix.Vec2
 }
 
 func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, spec shaderGraphNodeSpec, position matrix.Vec2) {
@@ -124,8 +128,7 @@ func (n *shaderGraphNode) Update() {
 	}
 	current := mouse.ScreenPosition()
 	delta := current.Subtract(n.dragMouse)
-	n.position = n.dragOrigin.Add(delta)
-	n.applyViewOffset()
+	n.applyDragDelta(delta)
 }
 
 func (n *shaderGraphNode) beginDrag() {
@@ -138,10 +141,44 @@ func (n *shaderGraphNode) beginDrag() {
 	n.dragging = true
 	n.dragMouse = n.host.Window.Mouse.ScreenPosition()
 	n.dragOrigin = n.position
+	n.captureDragNodes()
+}
+
+func (n *shaderGraphNode) setSelected(selected bool) {
+	if n == nil || n.selected == selected {
+		return
+	}
+	n.selected = selected
+	if n.root == nil {
+		return
+	}
+	if selected {
+		n.root.SetBorderSize(2, 2, 2, 2)
+		n.root.SetBorderColor(
+			shaderGraphNodeSelectColor,
+			shaderGraphNodeSelectColor,
+			shaderGraphNodeSelectColor,
+			shaderGraphNodeSelectColor,
+		)
+		return
+	}
+	n.root.SetBorderSize(1, 1, 1, 1)
+	n.root.SetBorderColor(
+		shaderGraphNodeAccentColor,
+		shaderGraphNodeAccentColor,
+		shaderGraphNodeAccentColor,
+		shaderGraphNodeAccentColor,
+	)
 }
 
 func (n *shaderGraphNode) stopDrag() {
+	if !n.dragging {
+		return
+	}
+	n.addDragHistory()
 	n.dragging = false
+	n.dragNodes = nil
+	n.dragOrigins = nil
 }
 
 func (n *shaderGraphNode) applyViewOffset() {
@@ -156,9 +193,70 @@ func (n *shaderGraphNode) applyViewOffset() {
 }
 
 func (n *shaderGraphNode) bindDragEvents(target *ui.UI) {
+	n.bindSelectionEvent(target)
 	target.AddEvent(ui.EventTypeDown, n.beginDrag)
 	target.AddEvent(ui.EventTypeUp, n.stopDrag)
 	target.AddEvent(ui.EventTypeDragEnd, n.stopDrag)
+}
+
+func (n *shaderGraphNode) captureDragNodes() {
+	nodes := []*shaderGraphNode{n}
+	if n.graph != nil && n.graph.IsSelected(n) {
+		selection := n.graph.Selection()
+		if len(selection) > 0 {
+			nodes = selection
+		}
+	}
+	n.dragNodes = nodes
+	n.dragOrigins = make([]matrix.Vec2, len(nodes))
+	for i := range nodes {
+		if nodes[i] != nil {
+			n.dragOrigins[i] = nodes[i].position
+		}
+	}
+}
+
+func (n *shaderGraphNode) applyDragDelta(delta matrix.Vec2) {
+	if len(n.dragNodes) == 0 {
+		n.position = n.dragOrigin.Add(delta)
+		n.applyViewOffset()
+		return
+	}
+	for i := range n.dragNodes {
+		node := n.dragNodes[i]
+		if node == nil || i >= len(n.dragOrigins) {
+			continue
+		}
+		node.position = n.dragOrigins[i].Add(delta)
+		node.applyViewOffset()
+	}
+}
+
+func (n *shaderGraphNode) addDragHistory() {
+	if n.graph == nil || n.graph.history == nil || len(n.dragNodes) == 0 {
+		return
+	}
+	history := &shaderGraphNodePositionHistory{
+		graph: n.graph,
+		ids:   make([]string, 0, len(n.dragNodes)),
+		from:  make([]matrix.Vec2, 0, len(n.dragNodes)),
+		to:    make([]matrix.Vec2, 0, len(n.dragNodes)),
+	}
+	for i := range n.dragNodes {
+		node := n.dragNodes[i]
+		if node == nil || node.id == "" || i >= len(n.dragOrigins) {
+			continue
+		}
+		if matrix.Vec2Approx(node.position, n.dragOrigins[i]) {
+			continue
+		}
+		history.ids = append(history.ids, node.id)
+		history.from = append(history.from, n.dragOrigins[i])
+		history.to = append(history.to, node.position)
+	}
+	if len(history.ids) > 0 {
+		n.graph.history.Add(history)
+	}
 }
 
 func (n *shaderGraphNode) createBodyDragSurface(uiMan *ui.Manager, height float32) {
@@ -247,6 +345,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	dot.Base().Layout().SetZ(5.2)
 	dot.Base().Layout().Scale(dotSize, dotSize)
 	dot.Base().Layout().SetOffset(dotX, y+6.5)
+	n.bindSelectionEvent(dot.Base())
 	n.root.AddChild(dot.Base())
 
 	label := uiMan.Add().ToLabel()
@@ -260,6 +359,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	label.Base().Layout().SetZ(5.2)
 	label.Base().Layout().Scale(shaderGraphNodeWidth*0.5-shaderGraphNodePadding*2-dotSize, shaderGraphNodePortHeight)
 	label.Base().Layout().SetOffset(labelX, y)
+	n.bindSelectionEvent(label.Base())
 	n.root.AddChild(label.Base())
 
 	graphPort := &shaderGraphPort{

@@ -89,6 +89,7 @@ func (f *shaderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
 	f.label.Base().Layout().SetZ(5.2)
 	f.label.Base().Layout().Scale(shaderGraphFieldLabelWidth, shaderGraphFieldHeight)
 	f.label.Base().Layout().SetOffset(shaderGraphNodePadding, y)
+	f.node.bindSelectionEvent(f.label.Base())
 	f.node.root.AddChild(f.label.Base())
 }
 
@@ -105,6 +106,7 @@ func (f *shaderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
 		value.Bool = cb.IsChecked()
 		f.node.setFieldValue(f.spec.ID, value)
 	})
+	f.node.bindSelectionEvent(cb.Base())
 	f.checkbox = cb
 	f.node.root.AddChild(cb.Base())
 }
@@ -122,6 +124,7 @@ func (f *shaderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
 	f.selectRoot.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
 	f.selectRoot.Base().AddEvent(ui.EventTypeClick, f.toggleSelectList)
 	f.selectRoot.Base().AddEvent(ui.EventTypeMiss, f.hideSelectList)
+	f.node.bindSelectionEvent(f.selectRoot.Base())
 	f.node.root.AddChild(f.selectRoot.Base())
 
 	f.selectLabel = uiMan.Add().ToLabel()
@@ -183,6 +186,7 @@ func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 		row.Base().AddEvent(ui.EventTypeClick, func() {
 			f.pickSelectOption(option)
 		})
+		f.node.bindSelectionEvent(row.Base())
 		f.selectList.AddChild(row.Base())
 
 		label := uiMan.Add().ToLabel()
@@ -253,6 +257,7 @@ func (f *shaderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
 	f.swatch.Base().Layout().Scale(swatchSize, swatchSize)
 	f.swatch.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
 	f.swatch.Base().AddEvent(ui.EventTypeClick, f.openColorPicker)
+	f.node.bindSelectionEvent(f.swatch.Base())
 	f.node.root.AddChild(f.swatch.Base())
 
 	inputX := shaderGraphFieldControlX + swatchSize + 4
@@ -314,6 +319,7 @@ func (f *shaderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float3
 	input.Base().Layout().SetZ(5.2)
 	input.Base().Layout().Scale(width, shaderGraphFieldControlH)
 	input.Base().Layout().SetOffset(x, y)
+	f.node.bindSelectionEvent(input.Base())
 	f.node.root.AddChild(input.Base())
 	return input
 }

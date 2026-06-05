@@ -9,6 +9,7 @@ package render_graph_workspace
 import (
 	"fmt"
 
+	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
@@ -22,9 +23,11 @@ const (
 
 type shaderGraph struct {
 	host          *engine.Host
+	history       *memento.History
 	uiMan         ui.Manager
 	root          *ui.Panel
 	nodes         []*shaderGraphNode
+	selected      []*shaderGraphNode
 	connections   []*shaderGraphConnection
 	pendingFrom   *shaderGraphPort
 	pendingVisual *shaderGraphSpline
@@ -39,8 +42,9 @@ type shaderGraphViewport struct {
 	x, y, width, height float32
 }
 
-func (g *shaderGraph) Initialize(host *engine.Host) {
+func (g *shaderGraph) Initialize(host *engine.Host, history *memento.History) {
 	g.host = host
+	g.history = history
 	g.uiMan.Init(host)
 	g.root = g.uiMan.Add().ToPanel()
 	g.root.Init(nil, ui.ElementTypePanel)
@@ -49,6 +53,7 @@ func (g *shaderGraph) Initialize(host *engine.Host) {
 	g.root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	g.root.Base().Layout().SetZ(4)
 	g.root.Base().Hide()
+	g.root.Base().AddEvent(ui.EventTypeDown, g.clearSelectionFromInput)
 }
 
 func (g *shaderGraph) Shutdown() {
@@ -154,6 +159,7 @@ func (g *shaderGraph) SetViewport(x, y, width, height float32) {
 }
 
 func (g *shaderGraph) clear() {
+	g.setSelectionNodes(nil)
 	for i := range g.connections {
 		g.connections[i].Destroy()
 	}
