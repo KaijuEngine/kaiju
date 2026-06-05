@@ -324,6 +324,7 @@ func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnec
 			return existing
 		}
 	}
+	g.removeConnectionsTouchingPort(input)
 	connection := &shaderGraphConnection{}
 	connection.Initialize(g.host, g.root, output, input)
 	g.connections = append(g.connections, connection)
@@ -342,15 +343,20 @@ func (g *shaderGraph) ConnectPorts(a, b *shaderGraphPort) *shaderGraphConnection
 	if existing := g.connectionByRefs(outputRef, inputRef); existing != nil {
 		return existing
 	}
+	replaced := g.removeConnectionsTouchingPort(input)
 	connection := g.CreateConnection(output, input)
 	if connection == nil {
+		for i := range replaced {
+			g.createConnectionRef(replaced[i])
+		}
 		return nil
 	}
 	if g.history != nil {
 		g.history.Add(&shaderGraphConnectionHistory{
-			graph:  g,
-			output: outputRef,
-			input:  inputRef,
+			graph:    g,
+			output:   outputRef,
+			input:    inputRef,
+			replaced: replaced,
 		})
 	}
 	return connection
