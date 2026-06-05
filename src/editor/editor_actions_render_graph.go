@@ -91,6 +91,21 @@ func registerRenderGraphActions(ed *Editor, mustRegister editorActionRegistrar) 
 		Visible:           true,
 		RequiredWorkspace: render_graph_workspace.ID,
 	}, ed.actionRenderGraphSave, ed.renderGraphCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          render_graph_workspace.ActionRenderGraphDeleteSelection,
+		Label:       "Delete Render Graph Selection",
+		Description: "Deletes the selected render graph nodes.",
+		Category:    "Render Graph",
+		Tags:        []string{"render", "graph", "node", "selection", "delete", "remove"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  render_graph_workspace.ActionRenderGraphDeleteSelection,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyDelete)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyManaged,
+		Visible:           true,
+		RequiredWorkspace: render_graph_workspace.ID,
+	}, ed.actionRenderGraphDeleteSelection, ed.renderGraphCanRun)
 }
 
 func (ed *Editor) renderGraphCanRun(editor_action.Context, editor_action.Request) editor_action.Result {
@@ -151,6 +166,17 @@ func (ed *Editor) actionRenderGraphSave(editor_action.Context, editor_action.Req
 	}
 	w.SaveCurrentGraph()
 	return editor_action.Success("render graph saved")
+}
+
+func (ed *Editor) actionRenderGraphDeleteSelection(editor_action.Context, editor_action.Request) editor_action.Result {
+	w, ok := ed.renderGraphWorkspace()
+	if !ok {
+		return editor_action.Failure("render graph workspace is not available")
+	}
+	if !w.DeleteSelectedNodes() {
+		return editor_action.Failure("no render graph nodes are selected")
+	}
+	return editor_action.Success("render graph selection deleted")
 }
 
 func (ed *Editor) renderGraphWorkspace() (*render_graph_workspace.RenderGraphWorkspace, bool) {

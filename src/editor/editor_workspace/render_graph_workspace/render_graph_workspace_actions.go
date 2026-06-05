@@ -17,6 +17,7 @@ const (
 	ActionRenderGraphCenterView         editor_action.ActionID = "renderGraph.centerView"
 	ActionRenderGraphFocusSelection     editor_action.ActionID = "renderGraph.focusSelection"
 	ActionRenderGraphSave               editor_action.ActionID = "renderGraph.save"
+	ActionRenderGraphDeleteSelection    editor_action.ActionID = "renderGraph.deleteSelection"
 )
 
 type CreateNodeActionArgs struct {

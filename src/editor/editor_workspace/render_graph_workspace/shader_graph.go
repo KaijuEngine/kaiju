@@ -196,6 +196,23 @@ func (g *shaderGraph) createNodeFromSnapshot(node RenderGraphNode) *shaderGraphN
 			position: node.Position,
 			values:   make(map[string]shaderGraphNodeFieldValue, len(spec.Fields)),
 		}
+		for i := range spec.Inputs {
+			created.inputs = append(created.inputs, &shaderGraphPort{
+				graph: g,
+				node:  created,
+				spec:  spec.Inputs[i],
+				index: i,
+			})
+		}
+		for i := range spec.Outputs {
+			created.outputs = append(created.outputs, &shaderGraphPort{
+				graph:  g,
+				node:   created,
+				spec:   spec.Outputs[i],
+				output: true,
+				index:  i,
+			})
+		}
 		g.nodes = append(g.nodes, created)
 	}
 	for key, value := range renderGraphFieldValuesToNode(node.Values) {
@@ -233,6 +250,67 @@ func (g *shaderGraph) RemoveNode(id string) bool {
 	g.nodes = slices.Delete(g.nodes, nodeIndex, nodeIndex+1)
 	g.setSelectionNodes(g.selected)
 	return true
+}
+
+func (g *shaderGraph) DeleteSelectedNodes() bool {
+	if g == nil || len(g.selected) == 0 {
+		return false
+	}
+	nodes := make([]RenderGraphNode, 0, len(g.selected))
+	nodeIDs := make(map[string]struct{}, len(g.selected))
+	for i := range g.selected {
+		node := g.selected[i]
+		if node == nil || node.id == "" {
+			continue
+		}
+		nodes = append(nodes, renderGraphNodeFromShaderGraphNode(node))
+		nodeIDs[node.id] = struct{}{}
+	}
+	if len(nodes) == 0 {
+		return false
+	}
+	connections := g.connectionsTouchingNodes(nodeIDs)
+	for i := range nodes {
+		g.RemoveNode(nodes[i].ID)
+	}
+	g.setSelectionNodes(nil)
+	if g.history != nil {
+		g.history.Add(&shaderGraphNodeDeleteHistory{
+			graph:       g,
+			nodes:       nodes,
+			connections: connections,
+		})
+	}
+	return true
+}
+
+func (g *shaderGraph) connectionsTouchingNodes(nodeIDs map[string]struct{}) []RenderGraphConnection {
+	if g == nil || len(nodeIDs) == 0 {
+		return nil
+	}
+	connections := make([]RenderGraphConnection, 0)
+	seen := make(map[RenderGraphConnection]struct{})
+	for i := range g.connections {
+		connection := g.connections[i]
+		if connection == nil {
+			continue
+		}
+		renderConnection, ok := connection.renderConnection()
+		if !ok {
+			continue
+		}
+		_, outputDeleted := nodeIDs[renderConnection.Output.Node]
+		_, inputDeleted := nodeIDs[renderConnection.Input.Node]
+		if !outputDeleted && !inputDeleted {
+			continue
+		}
+		if _, exists := seen[renderConnection]; exists {
+			continue
+		}
+		seen[renderConnection] = struct{}{}
+		connections = append(connections, renderConnection)
+	}
+	return connections
 }
 
 func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnection {

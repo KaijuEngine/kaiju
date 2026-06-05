@@ -97,6 +97,7 @@ func TestRenderGraphActionsDefaultBindings(t *testing.T) {
 		{render_graph_workspace.ActionRenderGraphCenterView, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKey0)}}},
 		{render_graph_workspace.ActionRenderGraphFocusSelection, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF)}}},
 		{render_graph_workspace.ActionRenderGraphSave, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyS)}, CtrlOrMeta: true}},
+		{render_graph_workspace.ActionRenderGraphDeleteSelection, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyDelete)}}},
 	}
 	for _, check := range checks {
 		bindings := editor_action.BindingsForAction(

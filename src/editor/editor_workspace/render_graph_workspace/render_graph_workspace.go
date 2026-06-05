@@ -229,6 +229,10 @@ func (w *RenderGraphWorkspace) FocusSelectedNodes() bool {
 	return w.graph.FocusSelection()
 }
 
+func (w *RenderGraphWorkspace) DeleteSelectedNodes() bool {
+	return w.graph.DeleteSelectedNodes()
+}
+
 func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
 	if _, ok := shaderGraphNodeCatalogSpec(args.NodeID); !ok {
 		return nil, false
