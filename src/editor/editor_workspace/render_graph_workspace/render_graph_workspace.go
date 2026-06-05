@@ -75,27 +75,8 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	}
 	w.createNodeMenu.Initialize(w)
 	w.graph.Initialize(ed.Host())
-	source := w.graph.CreateNode(shaderGraphNodeSpec{
-		Name:        "Test Node",
-		Description: "Temporary shader graph node used to verify layout, clipping, and dragging.",
-		Inputs: []shaderGraphPortSpec{
-			{Name: "Base Color", Type: "color"},
-			{Name: "Roughness", Type: "float"},
-			{Name: "Normal", Type: "vec3"},
-		},
-		Outputs: []shaderGraphPortSpec{
-			{Name: "Material", Type: "surface"},
-		},
-	}, matrix.NewVec2(42, 56))
-	output := w.graph.CreateNode(shaderGraphNodeSpec{
-		Name:        "Material Output",
-		Description: "Temporary output node used to verify connected shader graph sockets.",
-		Inputs: []shaderGraphPortSpec{
-			{Name: "Surface", Type: "surface"},
-			{Name: "Volume", Type: "volume"},
-			{Name: "Displacement", Type: "vec3"},
-		},
-	}, matrix.NewVec2(350, 150))
+	source, _ := w.graph.CreateCatalogNode("principled-bsdf", matrix.NewVec2(42, 56))
+	output, _ := w.graph.CreateCatalogNode("material-output", matrix.NewVec2(350, 150))
 	if source != nil && output != nil {
 		w.graph.CreateConnection(source.Output(0), output.Input(0))
 	}
@@ -175,18 +156,29 @@ func (w *RenderGraphWorkspace) ShowCreateNodeMenu() {
 }
 
 func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
-	spec, ok := shaderGraphNodeCatalogSpec(args.NodeID)
-	if !ok {
+	if _, ok := shaderGraphNodeCatalogSpec(args.NodeID); !ok {
 		return nil, false
 	}
 	position := args.position(w.defaultCreateNodePosition())
-	node := w.graph.CreateNode(spec, position)
-	if node == nil {
+	node, ok := w.graph.CreateCatalogNode(args.NodeID, position)
+	if !ok || node == nil {
 		return nil, false
 	}
 	w.createNodeCount++
 	w.createNodeMenu.Hide()
 	return node, true
+}
+
+func (w *RenderGraphWorkspace) GraphDocument() RenderGraphDocument {
+	return w.graph.Document()
+}
+
+func (w *RenderGraphWorkspace) SerializeGraph() ([]byte, error) {
+	return w.graph.Serialize()
+}
+
+func (w *RenderGraphWorkspace) DeserializeGraph(data []byte) error {
+	return w.graph.Deserialize(data)
 }
 
 func (w *RenderGraphWorkspace) runCreateNodeAction(nodeID string) {

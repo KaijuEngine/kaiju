@@ -7,6 +7,8 @@
 package render_graph_workspace
 
 import (
+	"fmt"
+
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
@@ -45,14 +47,10 @@ func (g *shaderGraph) Initialize(host *engine.Host) {
 }
 
 func (g *shaderGraph) Shutdown() {
-	for i := range g.connections {
-		g.connections[i].Destroy()
-	}
+	g.clear()
 	if g.pendingVisual != nil {
 		g.pendingVisual.Destroy()
 	}
-	g.nodes = nil
-	g.connections = nil
 	g.pendingFrom = nil
 	g.pendingVisual = nil
 	g.root = nil
@@ -103,10 +101,28 @@ func (g *shaderGraph) Update() {
 }
 
 func (g *shaderGraph) CreateNode(spec shaderGraphNodeSpec, position matrix.Vec2) *shaderGraphNode {
+	return g.createNode("", spec, position, "")
+}
+
+func (g *shaderGraph) CreateCatalogNode(typeID string, position matrix.Vec2) (*shaderGraphNode, bool) {
+	spec, ok := shaderGraphNodeCatalogSpec(typeID)
+	if !ok {
+		return nil, false
+	}
+	node := g.createNode(typeID, spec, position, "")
+	return node, node != nil
+}
+
+func (g *shaderGraph) createNode(typeID string, spec shaderGraphNodeSpec, position matrix.Vec2, id string) *shaderGraphNode {
 	if g.root == nil {
 		return nil
 	}
 	node := &shaderGraphNode{}
+	node.id = id
+	if node.id == "" {
+		node.id = g.nextNodeID()
+	}
+	node.typeID = typeID
 	node.Initialize(g, g.host, &g.uiMan, g.root, spec, position)
 	g.nodes = append(g.nodes, node)
 	return node
@@ -121,6 +137,36 @@ func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnec
 	connection.Initialize(g.host, g.root, output, input)
 	g.connections = append(g.connections, connection)
 	return connection
+}
+
+func (g *shaderGraph) clear() {
+	for i := range g.connections {
+		g.connections[i].Destroy()
+	}
+	for i := range g.nodes {
+		if g.nodes[i].root != nil && g.host != nil {
+			g.host.DestroyEntity(g.nodes[i].root.Base().Entity())
+		}
+	}
+	g.nodes = nil
+	g.connections = nil
+	g.cancelPendingConnection()
+}
+
+func (g *shaderGraph) nextNodeID() string {
+	for i := len(g.nodes) + 1; ; i++ {
+		id := "node-" + fmt.Sprint(i)
+		found := false
+		for j := range g.nodes {
+			if g.nodes[j].id == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return id
+		}
+	}
 }
 
 func (g *shaderGraph) beginConnection(port *shaderGraphPort) {

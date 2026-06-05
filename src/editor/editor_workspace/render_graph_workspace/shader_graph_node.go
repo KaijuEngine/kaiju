@@ -38,6 +38,8 @@ type shaderGraphNode struct {
 	host        *engine.Host
 	root        *ui.Panel
 	bodyDrag    *ui.Panel
+	id          string
+	typeID      string
 	title       *ui.Label
 	description *ui.Label
 	fields      []*shaderGraphNodeField

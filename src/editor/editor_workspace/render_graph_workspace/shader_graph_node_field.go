@@ -348,3 +348,39 @@ func (f *shaderGraphNodeField) setColor(color matrix.Color) {
 		f.inputs[0].SetTextWithoutEvent(color.Hex())
 	}
 }
+
+func (n *shaderGraphNode) applyFieldValues() {
+	if n == nil {
+		return
+	}
+	for i := range n.fields {
+		field := n.fields[i]
+		value := n.FieldValue(field.spec.ID)
+		switch field.spec.Type {
+		case shaderGraphNodeFieldBool:
+			if field.checkbox != nil {
+				field.checkbox.SetCheckedWithoutEvent(value.Bool)
+			}
+		case shaderGraphNodeFieldSelect:
+			if field.selectLabel != nil {
+				field.selectLabel.SetText(field.selectLabelText())
+			}
+		case shaderGraphNodeFieldColor:
+			if field.swatch != nil {
+				field.swatch.SetColor(value.Color)
+			}
+			if len(field.inputs) > 0 {
+				field.inputs[0].SetTextWithoutEvent(value.Color.Hex())
+			}
+		case shaderGraphNodeFieldVector3:
+			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
+			for j := range field.inputs {
+				field.inputs[j].SetTextWithoutEvent(parts[j])
+			}
+		default:
+			if len(field.inputs) > 0 {
+				field.inputs[0].SetTextWithoutEvent(value.Text)
+			}
+		}
+	}
+}
