@@ -100,6 +100,19 @@ func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphMaterialOutputOnlyExposesCompiledSurfaceInput(t *testing.T) {
+	output, ok := shaderGraphNodeCatalogSpec("material-output")
+	if !ok {
+		t.Fatal("material-output node missing")
+	}
+	if len(output.Inputs) != 1 {
+		t.Fatalf("material-output inputs = %#v, want only surface", output.Inputs)
+	}
+	if output.Inputs[0].Name != "Surface" || output.Inputs[0].Type != "surface" {
+		t.Fatalf("material-output input = %#v, want Surface surface", output.Inputs[0])
+	}
+}
+
 func TestShaderGraphNodeCatalogCompatibleIDsForOutputVec2(t *testing.T) {
 	ids := shaderGraphNodeCatalogCompatibleIDs(true, " Vec2 ")
 

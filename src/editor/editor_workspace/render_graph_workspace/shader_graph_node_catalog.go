@@ -481,8 +481,6 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				Description: "Terminal output for the material shader.",
 				Inputs: []shaderGraphPortSpec{
 					{Name: "Surface", Type: "surface"},
-					{Name: "Volume", Type: "volume"},
-					{Name: "Displacement", Type: "vec3"},
 				},
 			},
 		},
