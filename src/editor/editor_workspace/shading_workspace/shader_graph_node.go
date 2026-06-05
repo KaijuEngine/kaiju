@@ -37,6 +37,7 @@ type shaderGraphNode struct {
 	graph       *shaderGraph
 	host        *engine.Host
 	root        *ui.Panel
+	bodyDrag    *ui.Panel
 	title       *ui.Label
 	description *ui.Label
 	fields      []*shaderGraphNodeField
@@ -75,6 +76,7 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 	n.root.Base().Layout().Scale(shaderGraphNodeWidth, height)
 	n.applyViewOffset()
 
+	n.createBodyDragSurface(uiMan, height)
 	n.createHeader(uiMan, spec.Name)
 	n.createDescription(uiMan, spec.Description)
 	n.createFields(uiMan, spec.Fields)
@@ -155,7 +157,19 @@ func (n *shaderGraphNode) bindDragEvents(target *ui.UI) {
 	target.AddEvent(ui.EventTypeDown, n.beginDrag)
 	target.AddEvent(ui.EventTypeUp, n.stopDrag)
 	target.AddEvent(ui.EventTypeDragEnd, n.stopDrag)
-	target.AddEvent(ui.EventTypeMiss, n.stopDrag)
+}
+
+func (n *shaderGraphNode) createBodyDragSurface(uiMan *ui.Manager, height float32) {
+	n.bodyDrag = uiMan.Add().ToPanel()
+	n.bodyDrag.Init(nil, ui.ElementTypePanel)
+	n.bodyDrag.DontFitContent()
+	n.bodyDrag.SetColor(matrix.ColorTransparent())
+	n.bodyDrag.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	n.bodyDrag.Base().Layout().SetZ(5.05)
+	n.bodyDrag.Base().Layout().Scale(shaderGraphNodeWidth, max(1, height-shaderGraphNodeHeaderH))
+	n.bodyDrag.Base().Layout().SetOffset(0, shaderGraphNodeHeaderH)
+	n.bindDragEvents(n.bodyDrag.Base())
+	n.root.AddChild(n.bodyDrag.Base())
 }
 
 func (n *shaderGraphNode) createHeader(uiMan *ui.Manager, name string) {
