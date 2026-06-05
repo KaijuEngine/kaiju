@@ -65,6 +65,10 @@ func (l *Layout) ClearStyles() {
 		l.border.Horizontal() != 0 || l.border.Vertical() != 0 {
 		ps.SetX(ps.X() - l.padding.Horizontal() - l.border.Horizontal())
 		ps.SetY(ps.Y() - l.padding.Vertical() - l.border.Vertical())
+		// Write the box-model-stripped size back to the transform, mirroring how
+		// SetPadding/SetBorder apply it. Without this the inflated scale persists
+		// and re-applying padding after ClearStyles accumulates.
+		l.Scale(ps.Width(), ps.Height())
 	}
 	l.offset = matrix.Vec2{}
 	l.rowLayoutOffset = matrix.Vec2{}
@@ -499,6 +503,14 @@ func (l *Layout) prepare() {
 		} else {
 			l.runningStylizer = true
 			l.ui.ToSlider().onLayoutUpdating()
+			l.runningStylizer = false
+		}
+	case ElementTypeVirtualList:
+		if l.runningStylizer {
+			l.ui.ToVirtualList().onLayoutUpdating()
+		} else {
+			l.runningStylizer = true
+			l.ui.ToVirtualList().onLayoutUpdating()
 			l.runningStylizer = false
 		}
 	}
