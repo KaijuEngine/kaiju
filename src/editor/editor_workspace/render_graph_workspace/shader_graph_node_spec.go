@@ -16,6 +16,8 @@ const (
 	shaderGraphNodeFieldBool    shaderGraphNodeFieldType = "bool"
 	shaderGraphNodeFieldSelect  shaderGraphNodeFieldType = "select"
 	shaderGraphNodeFieldColor   shaderGraphNodeFieldType = "color"
+	shaderGraphNodeFieldTexture shaderGraphNodeFieldType = "texture"
+	shaderGraphNodeFieldVector2 shaderGraphNodeFieldType = "vector2"
 	shaderGraphNodeFieldVector3 shaderGraphNodeFieldType = "vector3"
 )
 

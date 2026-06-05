@@ -85,7 +85,7 @@ func TestRenderGraphGeneratedShaderUsesPBRDrawInstanceData(t *testing.T) {
 		t.Fatal(err)
 	}
 	shader, err := buildRenderGraphShaderData(&pfs, "render_graph_abc", "database/src/render/shader/render_graph_abc.frag",
-		"fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"})
+		"fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"}, nil)
 	if err != nil {
 		t.Fatalf("buildRenderGraphShaderData error = %v", err)
 	}

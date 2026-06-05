@@ -44,6 +44,8 @@ type shaderGraph struct {
 	boxSelecting  bool
 	boxStart      matrix.Vec2
 	viewport      shaderGraphViewport
+	selectTexture func(current string, onSelect func(string), onClose func())
+	textureName   func(id string) string
 }
 
 type shaderGraphViewport struct {

@@ -84,11 +84,11 @@ func (w *RenderGraphWorkspace) generateRenderGraphOutputs() error {
 		return err
 	}
 	shaderData, err := buildRenderGraphShaderData(pfs, renderGraphGeneratedShaderName(w.currentGraphID),
-		sourcePath, w.generated.FragmentSpvID, fragmentLayout)
+		sourcePath, w.generated.FragmentSpvID, fragmentLayout, compiled.SamplerLabels)
 	if err != nil {
 		return err
 	}
-	materialData := renderGraphGeneratedMaterialData(w.generated.ShaderID)
+	materialData := renderGraphGeneratedMaterialData(w.generated.ShaderID, compiled.Textures)
 
 	generated := w.generated
 	generated.FragmentSourcePath = sourcePath
@@ -255,10 +255,13 @@ func compileRenderGraphFragmentToSPV(pfs *project_file_system.FileSystem, source
 }
 
 func buildRenderGraphShaderData(pfs *project_file_system.FileSystem, shaderName, fragmentSource, fragmentSpv string,
-	fragmentLayout rendering.ShaderLayoutGroup) (rendering.ShaderData, error) {
+	fragmentLayout rendering.ShaderLayoutGroup, samplerLabels []string) (rendering.ShaderData, error) {
 	stock, err := stockPBRShaderData(pfs)
 	if err != nil {
 		return rendering.ShaderData{}, err
+	}
+	if len(samplerLabels) == 0 {
+		samplerLabels = renderGraphSamplerLabels(renderGraphDefaultTextureSlots())
 	}
 	layouts := make([]rendering.ShaderLayoutGroup, 0, len(stock.LayoutGroups)+1)
 	for i := range stock.LayoutGroups {
@@ -276,7 +279,7 @@ func buildRenderGraphShaderData(pfs *project_file_system.FileSystem, shaderName,
 		Vertex:           "pbr.vert",
 		Fragment:         filepath.ToSlash(fragmentSource),
 		LayoutGroups:     layouts,
-		SamplerLabels:    []string{"Diffuse", "Normal", "Metallic Roughness", "Emissive"},
+		SamplerLabels:    append([]string(nil), samplerLabels...),
 		VertexSpv:        "pbr.vert.spv",
 		FragmentSpv:      fragmentSpv,
 	}, nil
@@ -294,17 +297,15 @@ func stockPBRShaderData(pfs *project_file_system.FileSystem) (rendering.ShaderDa
 	return shader, nil
 }
 
-func renderGraphGeneratedMaterialData(shaderID string) rendering.MaterialData {
+func renderGraphGeneratedMaterialData(shaderID string, textures []rendering.MaterialTextureData) rendering.MaterialData {
+	if len(textures) == 0 {
+		textures = renderGraphDefaultTextureSlots()
+	}
 	return rendering.MaterialData{
-		Shader:         shaderID,
-		RenderPass:     "opaque.renderpass",
-		ShaderPipeline: "basic.shaderpipeline",
-		Textures: []rendering.MaterialTextureData{
-			{Label: "Diffuse", Texture: "square.png", Filter: "Linear"},
-			{Label: "Normal", Texture: "pbr_default_normal.png", Filter: "Linear"},
-			{Label: "Metallic Roughness", Texture: "pbr_default_metallic_roughness.png", Filter: "Linear"},
-			{Label: "Emissive", Texture: "blank_square.png", Filter: "Linear"},
-		},
+		Shader:          shaderID,
+		RenderPass:      "opaque.renderpass",
+		ShaderPipeline:  "basic.shaderpipeline",
+		Textures:        append([]rendering.MaterialTextureData(nil), textures...),
 		IsLit:           true,
 		ReceivesShadows: true,
 		CastsShadows:    true,

@@ -40,6 +40,8 @@ type shaderGraphNodeField struct {
 	selectLabel *ui.Label
 	selectList  *ui.Panel
 	swatch      *ui.Panel
+	textureRoot *ui.Panel
+	textureText *ui.Label
 }
 
 func (n *shaderGraphNode) createFields(uiMan *ui.Manager, fields []shaderGraphNodeFieldSpec) {
@@ -67,6 +69,10 @@ func (f *shaderGraphNodeField) create(uiMan *ui.Manager, y float32) {
 		f.createSelect(uiMan, y)
 	case shaderGraphNodeFieldColor:
 		f.createColor(uiMan, y)
+	case shaderGraphNodeFieldTexture:
+		f.createTexture(uiMan, y)
+	case shaderGraphNodeFieldVector2:
+		f.createVector2(uiMan, y)
 	case shaderGraphNodeFieldVector3:
 		f.createVector3(uiMan, y)
 	default:
@@ -76,6 +82,34 @@ func (f *shaderGraphNodeField) create(uiMan *ui.Manager, y float32) {
 			f.node.setFieldValue(f.spec.ID, value)
 		})
 	}
+}
+
+func (f *shaderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
+	f.textureRoot = uiMan.Add().ToPanel()
+	f.textureRoot.Init(nil, ui.ElementTypePanel)
+	f.textureRoot.DontFitContent()
+	f.textureRoot.SetColor(shaderGraphFieldControlColor)
+	f.textureRoot.SetBorderSize(1, 1, 1, 1)
+	f.textureRoot.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	f.textureRoot.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	f.textureRoot.Base().Layout().SetZ(5.2)
+	f.textureRoot.Base().Layout().Scale(f.controlWidth(), shaderGraphFieldControlH)
+	f.textureRoot.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
+	f.textureRoot.Base().AddEvent(ui.EventTypeClick, f.openTextureSelector)
+	f.node.bindSelectionEvent(f.textureRoot.Base())
+	f.node.root.AddChild(f.textureRoot.Base())
+
+	f.textureText = uiMan.Add().ToLabel()
+	f.textureText.Init(f.textureDisplayText())
+	f.textureText.SetFontSize(9)
+	f.textureText.SetWrap(false)
+	f.textureText.SetColor(shaderGraphFieldTextColor)
+	f.textureText.SetBaseline(rendering.FontBaselineCenter)
+	f.textureText.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	f.textureText.Base().Layout().SetZ(5.3)
+	f.textureText.Base().Layout().Scale(f.controlWidth()-8, shaderGraphFieldControlH)
+	f.textureText.Base().Layout().SetOffset(4, 0)
+	f.textureRoot.AddChild(f.textureText.Base())
 }
 
 func (f *shaderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
@@ -274,18 +308,27 @@ func (f *shaderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
 }
 
 func (f *shaderGraphNodeField) createVector3(uiMan *ui.Manager, y float32) {
-	parts := f.node.FieldValue(f.spec.ID).Parts
-	labels := []string{"X", "Y", "Z"}
+	f.createVectorInputs(uiMan, y, 3, []string{"X", "Y", "Z"})
+}
+
+func (f *shaderGraphNodeField) createVector2(uiMan *ui.Manager, y float32) {
+	f.createVectorInputs(uiMan, y, 2, []string{"X", "Y"})
+}
+
+func (f *shaderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, count int, labels []string) {
+	parts := shaderGraphFieldParts(f.node.FieldValue(f.spec.ID).Parts, count)
 	gap := float32(3)
-	width := (f.controlWidth() - gap*2) / 3
-	for i := 0; i < 3; i++ {
+	width := (f.controlWidth() - gap*float32(count-1)) / float32(count)
+	for i := 0; i < count; i++ {
 		x := shaderGraphFieldControlX + float32(i)*(width+gap)
 		input := f.createInput(uiMan, x, y+1, width, parts[i], true)
 		index := i
-		input.SetPlaceholder(labels[i])
+		if i < len(labels) {
+			input.SetPlaceholder(labels[i])
+		}
 		input.Base().AddEvent(ui.EventTypeChange, func() {
 			value := f.node.FieldValue(f.spec.ID)
-			value.Parts = shaderGraphFieldParts(value.Parts, 3)
+			value.Parts = shaderGraphFieldParts(value.Parts, count)
 			value.Parts[index] = input.Text()
 			f.node.setFieldValue(f.spec.ID, value)
 		})
@@ -355,6 +398,36 @@ func (f *shaderGraphNodeField) setColor(color matrix.Color) {
 	}
 }
 
+func (f *shaderGraphNodeField) openTextureSelector() {
+	if f.node == nil || f.node.graph == nil || f.node.graph.selectTexture == nil {
+		return
+	}
+	current := f.node.FieldValue(f.spec.ID).Text
+	f.node.graph.selectTexture(current, func(id string) {
+		value := f.node.FieldValue(f.spec.ID)
+		value.Text = id
+		f.node.setFieldValue(f.spec.ID, value)
+		f.updateTextureText()
+	}, nil)
+}
+
+func (f *shaderGraphNodeField) updateTextureText() {
+	if f.textureText != nil {
+		f.textureText.SetText(f.textureDisplayText())
+	}
+}
+
+func (f *shaderGraphNodeField) textureDisplayText() string {
+	id := f.node.FieldValue(f.spec.ID).Text
+	if id == "" {
+		return "None"
+	}
+	if f.node != nil && f.node.graph != nil && f.node.graph.textureName != nil {
+		return f.node.graph.textureName(id)
+	}
+	return id
+}
+
 func (n *shaderGraphNode) applyFieldValues() {
 	if n == nil {
 		return
@@ -377,6 +450,13 @@ func (n *shaderGraphNode) applyFieldValues() {
 			}
 			if len(field.inputs) > 0 {
 				field.inputs[0].SetTextWithoutEvent(value.Color.Hex())
+			}
+		case shaderGraphNodeFieldTexture:
+			field.updateTextureText()
+		case shaderGraphNodeFieldVector2:
+			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
+			for j := range field.inputs {
+				field.inputs[j].SetTextWithoutEvent(parts[j])
 			}
 		case shaderGraphNodeFieldVector3:
 			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))

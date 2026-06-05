@@ -11,16 +11,23 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/rendering"
 )
 
 const (
 	renderGraphOutputFloat = "float"
+	renderGraphOutputVec2  = "vec2"
 	renderGraphOutputVec3  = "vec3"
 	renderGraphOutputColor = "color"
+	renderGraphOutputTex2D = "texture2d"
 )
 
 type renderGraphCompiledOutput struct {
 	FragmentSource string
+	SamplerLabels  []string
+	Textures       []rendering.MaterialTextureData
 }
 
 type renderGraphOutputSurface struct {
@@ -32,8 +39,9 @@ type renderGraphOutputSurface struct {
 }
 
 type renderGraphOutputExpression struct {
-	Type  string
-	Value string
+	Type       string
+	Value      string
+	ColorSpace string
 }
 
 type renderGraphOutputCompiler struct {
@@ -43,6 +51,7 @@ type renderGraphOutputCompiler struct {
 	incoming map[RenderGraphPortRef]RenderGraphPortRef
 	cache    map[RenderGraphPortRef]renderGraphOutputExpression
 	visiting map[RenderGraphPortRef]bool
+	textures []rendering.MaterialTextureData
 }
 
 func compileRenderGraphDocumentOutput(document RenderGraphDocument) (renderGraphCompiledOutput, error) {
@@ -55,7 +64,9 @@ func compileRenderGraphDocumentOutput(document RenderGraphDocument) (renderGraph
 		return renderGraphCompiledOutput{}, err
 	}
 	return renderGraphCompiledOutput{
-		FragmentSource: renderGraphPBRFragmentSource(surface),
+		FragmentSource: renderGraphPBRFragmentSource(surface, len(compiler.textures)),
+		SamplerLabels:  renderGraphSamplerLabels(compiler.textures),
+		Textures:       append([]rendering.MaterialTextureData(nil), compiler.textures...),
 	}, nil
 }
 
@@ -70,6 +81,7 @@ func newRenderGraphOutputCompiler(document RenderGraphDocument) (*renderGraphOut
 		incoming: make(map[RenderGraphPortRef]RenderGraphPortRef, len(document.Connections)),
 		cache:    map[RenderGraphPortRef]renderGraphOutputExpression{},
 		visiting: map[RenderGraphPortRef]bool{},
+		textures: renderGraphDefaultTextureSlots(),
 	}
 	for i := range document.Nodes {
 		node := document.Nodes[i]
@@ -237,6 +249,20 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "vector":
 		value, err := c.vectorField(node, "vector")
 		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: value}, err
+	case "texture-2d":
+		return c.emitTexture2D(node)
+	case "sample-texture-2d":
+		return c.emitSampleTexture2D(node, port)
+	case "uv":
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: "fragTexCoords"}, nil
+	case "uv-transform":
+		return c.emitUVTransform(node)
+	case "split-rgba":
+		return c.emitSplitRGBA(node, port)
+	case "channel-mask":
+		return c.emitChannelMask(node)
+	case "texel-size":
+		return c.emitTexelSize(node, port)
 	case "add", "subtract", "multiply", "divide", "minimum", "maximum", "power":
 		return c.emitFloatBinary(node)
 	case "absolute", "one-minus", "floor", "ceiling", "fraction", "sine", "cosine", "tangent", "square-root":
@@ -422,6 +448,142 @@ func (c *renderGraphOutputCompiler) emitMixColor(node RenderGraphNode) (renderGr
 	return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, nil
 }
 
+func (c *renderGraphOutputCompiler) emitTexture2D(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	texture := strings.TrimSpace(c.fieldValue(node, "texture").Text)
+	if texture == "" {
+		texture = assets.TextureSquare
+	}
+	label := strings.TrimSpace(c.fieldValue(node, "label").Text)
+	if label == "" {
+		label = "Texture"
+	}
+	filter := c.fieldValue(node, "filter").Option
+	switch filter {
+	case "Nearest", "Linear":
+	default:
+		filter = "Linear"
+	}
+	index := len(c.textures)
+	c.textures = append(c.textures, rendering.MaterialTextureData{
+		Label:   c.uniqueTextureLabel(label),
+		Texture: texture,
+		Filter:  filter,
+	})
+	colorSpace := c.fieldValue(node, "color-space").Option
+	if colorSpace != "linear" {
+		colorSpace = "srgb"
+	}
+	return renderGraphOutputExpression{
+		Type:       renderGraphOutputTex2D,
+		Value:      fmt.Sprintf("textures[%d]", index),
+		ColorSpace: colorSpace,
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitSampleTexture2D(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	texRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 0}]
+	if !ok {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q texture input is disconnected", node.ID)
+	}
+	texture, err := c.emitExpression(texRef, renderGraphOutputTex2D)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	uv, err := c.optionalInputExpression(node, 1, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	sample := "texture(" + texture.Value + ", " + uv + ")"
+	if texture.ColorSpace == "srgb" {
+		sample = "graphSrgbToLinear(" + sample + ")"
+	}
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: sample}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: sample + ".rgb"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: sample + ".r"}, nil
+	case 3:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: sample + ".g"}, nil
+	case 4:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: sample + ".b"}, nil
+	case 5:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: sample + ".a"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph sample texture node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitUVTransform(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	tiling, err := c.vector2Field(node, "tiling")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	offset, err := c.vector2Field(node, "offset")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: "((" + uv + ") * " + tiling + " + " + offset + ")"}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitSplitRGBA(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	color, err := c.inputExpression(node, 0, renderGraphOutputColor)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	components := []string{".r", ".g", ".b", ".a"}
+	if port < 0 || port >= len(components) {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph split rgba node %q has invalid output %d", node.ID, port)
+	}
+	return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + color + ")" + components[port]}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitChannelMask(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	color, err := c.inputExpression(node, 0, renderGraphOutputColor)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	switch c.fieldValue(node, "channel").Option {
+	case "g":
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + color + ").g"}, nil
+	case "b":
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + color + ").b"}, nil
+	case "a":
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + color + ").a"}, nil
+	case "luma":
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "dot((" + color + ").rgb, vec3(0.2126, 0.7152, 0.0722))"}, nil
+	default:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + color + ").r"}, nil
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitTexelSize(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	texRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 0}]
+	if !ok {
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q texture input is disconnected", node.ID)
+	}
+	texture, err := c.emitExpression(texRef, renderGraphOutputTex2D)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	size := "(1.0 / vec2(textureSize(" + texture.Value + ", 0)))"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: size}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: size + ".x"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: size + ".y"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph texel size node %q has invalid output %d", node.ID, port)
+	}
+}
+
 func (c *renderGraphOutputCompiler) inputExpression(node RenderGraphNode, input int, wantType string) (string, error) {
 	ref, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: input}]
 	if !ok {
@@ -432,6 +594,34 @@ func (c *renderGraphOutputCompiler) inputExpression(node RenderGraphNode, input 
 		return "", err
 	}
 	return expr.Value, nil
+}
+
+func (c *renderGraphOutputCompiler) optionalInputExpression(node RenderGraphNode, input int, wantType, fallback string) (string, error) {
+	ref, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: input}]
+	if !ok {
+		return fallback, nil
+	}
+	expr, err := c.emitExpression(ref, wantType)
+	if err != nil {
+		return "", err
+	}
+	return expr.Value, nil
+}
+
+func (c *renderGraphOutputCompiler) uniqueTextureLabel(label string) string {
+	used := map[string]bool{}
+	for i := range c.textures {
+		used[c.textures[i].Label] = true
+	}
+	if !used[label] {
+		return label
+	}
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s %d", label, i)
+		if !used[candidate] {
+			return candidate
+		}
+	}
 }
 
 func (c *renderGraphOutputCompiler) fieldValue(node RenderGraphNode, id string) shaderGraphNodeFieldValue {
@@ -482,6 +672,22 @@ func (c *renderGraphOutputCompiler) vectorField(node RenderGraphNode, id string)
 	return "vec3(" + x + ", " + y + ", " + z + ")", nil
 }
 
+func (c *renderGraphOutputCompiler) vector2Field(node RenderGraphNode, id string) (string, error) {
+	parts := c.fieldValue(node, id).Parts
+	if len(parts) < 2 {
+		parts = shaderGraphFieldParts(parts, 2)
+	}
+	x, err := glslFloatFromText(parts[0])
+	if err != nil {
+		return "", err
+	}
+	y, err := glslFloatFromText(parts[1])
+	if err != nil {
+		return "", err
+	}
+	return "vec2(" + x + ", " + y + ")", nil
+}
+
 func glslFloatFromText(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -508,7 +714,27 @@ func glslFloat(value float64) string {
 	return out
 }
 
-func renderGraphPBRFragmentSource(surface renderGraphOutputSurface) string {
+func renderGraphDefaultTextureSlots() []rendering.MaterialTextureData {
+	return []rendering.MaterialTextureData{
+		{Label: "Diffuse", Texture: assets.TextureSquare, Filter: "Linear"},
+		{Label: "Normal", Texture: assets.TexturePBRDefaultNormal, Filter: "Linear"},
+		{Label: "Metallic Roughness", Texture: assets.TexturePBRDefaultMetallicRough, Filter: "Linear"},
+		{Label: "Emissive", Texture: assets.TextureBlankSquare, Filter: "Linear"},
+	}
+}
+
+func renderGraphSamplerLabels(textures []rendering.MaterialTextureData) []string {
+	labels := make([]string, len(textures))
+	for i := range textures {
+		labels[i] = textures[i].Label
+	}
+	return labels
+}
+
+func renderGraphPBRFragmentSource(surface renderGraphOutputSurface, samplerCount int) string {
+	if samplerCount < 4 {
+		samplerCount = 4
+	}
 	roughnessExpr := "clamp(mrSample.g * max(" + surface.Roughness + ", MIN_ROUGHNESS), MIN_ROUGHNESS, 1.0)"
 	if !surface.UseTextureRoughness {
 		roughnessExpr = "clamp(" + surface.Roughness + ", MIN_ROUGHNESS, 1.0)"
@@ -521,7 +747,7 @@ func renderGraphPBRFragmentSource(surface renderGraphOutputSurface) string {
 #define FRAGMENT_SHADER
 #define HAS_GBUFFER
 
-#define SAMPLER_COUNT   4
+#define SAMPLER_COUNT   %d
 #define SHADOW_SAMPLERS
 
 #define LAYOUT_FRAG_COLOR 0
@@ -554,6 +780,10 @@ vec3 srgbToLinear(vec3 color) {
 
 vec3 linearToSrgb(vec3 color) {
 	return pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
+}
+
+vec4 graphSrgbToLinear(vec4 color) {
+	return vec4(srgbToLinear(color.rgb), color.a);
 }
 
 vec3 acesTonemap(vec3 color) {
@@ -693,5 +923,5 @@ void main() {
 	color = linearToSrgb(acesTonemap(color));
 	processFinalColor(vec4(color, alpha));
 }
-`, surface.BaseColor, roughnessExpr, normalExpr)
+`, samplerCount, surface.BaseColor, roughnessExpr, normalExpr)
 }

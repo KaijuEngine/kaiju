@@ -26,6 +26,23 @@ func TestShaderGraphNodeCatalogHasCommonMathNodes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodeCatalogHasTextureNodes(t *testing.T) {
+	want := []string{
+		"texture-2d",
+		"sample-texture-2d",
+		"uv",
+		"uv-transform",
+		"split-rgba",
+		"channel-mask",
+		"texel-size",
+	}
+	for _, id := range want {
+		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+			t.Fatalf("expected catalog node %q to be registered", id)
+		}
+	}
+}
+
 func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 	seen := map[string]bool{}
 	for _, entry := range shaderGraphNodeCatalog() {
@@ -33,6 +50,27 @@ func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 			t.Fatalf("duplicate shader graph node catalog id %q", entry.ID)
 		}
 		seen[entry.ID] = true
+	}
+}
+
+func TestShaderGraphTextureNodePortTypes(t *testing.T) {
+	texture, ok := shaderGraphNodeCatalogSpec("texture-2d")
+	if !ok {
+		t.Fatal("texture-2d node missing")
+	}
+	if len(texture.Outputs) != 1 || texture.Outputs[0].Type != "texture2D" {
+		t.Fatalf("texture-2d outputs = %#v, want texture2D", texture.Outputs)
+	}
+
+	sample, ok := shaderGraphNodeCatalogSpec("sample-texture-2d")
+	if !ok {
+		t.Fatal("sample-texture-2d node missing")
+	}
+	if len(sample.Inputs) != 2 || sample.Inputs[0].Type != "texture2D" || sample.Inputs[1].Type != "vec2" {
+		t.Fatalf("sample-texture-2d inputs = %#v, want texture2D, vec2", sample.Inputs)
+	}
+	if len(sample.Outputs) != 6 || sample.Outputs[0].Type != "color" || sample.Outputs[1].Type != "vec3" || sample.Outputs[5].Type != "float" {
+		t.Fatalf("sample-texture-2d outputs = %#v, want color, vec3, float channels", sample.Outputs)
 	}
 }
 

@@ -7,12 +7,17 @@
 package render_graph_workspace
 
 import (
+	"log/slog"
+
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_overlay/content_selector"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -91,6 +96,8 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	w.createNodeMenu.Initialize(w)
 	w.graph.Initialize(ed.Host(), ed.History())
 	w.graph.zoomBlocked = w.createNodeMenu.BlocksGraphZoom
+	w.graph.selectTexture = w.selectGraphTexture
+	w.graph.textureName = w.graphTextureName
 	w.resetGraphToDefault()
 	w.updateGraphNameInput()
 	w.setRenderGraphStatus("Unsaved render graph")
@@ -153,6 +160,44 @@ func (w *RenderGraphWorkspace) Update(deltaTime float64) {
 		return
 	}
 	w.stageView.Update(deltaTime, w.ed.Project())
+}
+
+func (w *RenderGraphWorkspace) selectGraphTexture(current string, onSelect func(string), onClose func()) {
+	if w.ed == nil || w.Host == nil || w.ed.Cache() == nil {
+		return
+	}
+	w.ed.BlurInterface()
+	if _, err := content_selector.Show(w.Host, (content_database.Texture{}).TypeName(), w.ed.Cache(), func(id string) {
+		w.ed.FocusInterface()
+		if onSelect != nil {
+			onSelect(id)
+		}
+	}, func() {
+		w.ed.FocusInterface()
+		if onClose != nil {
+			onClose()
+		}
+	}); err != nil {
+		w.ed.FocusInterface()
+		slog.Error("failed to show render graph texture selector", "texture", current, "error", err)
+	}
+}
+
+func (w *RenderGraphWorkspace) graphTextureName(id string) string {
+	if id == "" {
+		return "None"
+	}
+	if id == assets.TextureSquare {
+		return assets.TextureSquare
+	}
+	if w.ed == nil || w.ed.Cache() == nil {
+		return id
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil || cc.Config.Name == "" {
+		return id
+	}
+	return cc.Config.Name
 }
 
 func (w *RenderGraphWorkspace) toggleDimension(e *document.Element) {

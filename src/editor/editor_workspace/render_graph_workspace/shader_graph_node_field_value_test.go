@@ -20,6 +20,31 @@ func TestShaderGraphDefaultVector3FieldValuePadsComponents(t *testing.T) {
 	}
 }
 
+func TestShaderGraphDefaultVector2FieldValuePadsComponents(t *testing.T) {
+	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
+		Type:          shaderGraphNodeFieldVector2,
+		DefaultValues: []string{"1"},
+	})
+
+	want := []string{"1", "0"}
+	for i := range want {
+		if value.Parts[i] != want[i] {
+			t.Fatalf("component %d = %q, want %q", i, value.Parts[i], want[i])
+		}
+	}
+}
+
+func TestShaderGraphDefaultTextureFieldValueUsesDefaultAsset(t *testing.T) {
+	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
+		Type:    shaderGraphNodeFieldTexture,
+		Default: "albedo.png",
+	})
+
+	if value.Text != "albedo.png" {
+		t.Fatalf("Text = %q, want albedo.png", value.Text)
+	}
+}
+
 func TestShaderGraphDefaultFieldValueUsesFirstSelectOption(t *testing.T) {
 	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
 		Type: shaderGraphNodeFieldSelect,

@@ -26,6 +26,10 @@ func shaderGraphDefaultFieldValue(spec shaderGraphNodeFieldSpec) shaderGraphNode
 			color = matrix.ColorWhite()
 		}
 		return shaderGraphNodeFieldValue{Color: color}
+	case shaderGraphNodeFieldTexture:
+		return shaderGraphNodeFieldValue{Text: spec.Default}
+	case shaderGraphNodeFieldVector2:
+		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 2)}
 	case shaderGraphNodeFieldVector3:
 		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 3)}
 	case shaderGraphNodeFieldSelect:

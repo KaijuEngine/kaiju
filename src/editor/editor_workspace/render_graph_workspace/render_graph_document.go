@@ -233,6 +233,8 @@ func renderGraphFieldValuesFromNode(node *shaderGraphNode) map[string]RenderGrap
 		case shaderGraphNodeFieldColor:
 			color := value.Color
 			out[field.spec.ID] = RenderGraphFieldValue{Color: &color}
+		case shaderGraphNodeFieldVector2:
+			out[field.spec.ID] = RenderGraphFieldValue{Parts: append([]string(nil), value.Parts...)}
 		case shaderGraphNodeFieldVector3:
 			out[field.spec.ID] = RenderGraphFieldValue{Parts: append([]string(nil), value.Parts...)}
 		case shaderGraphNodeFieldSelect:

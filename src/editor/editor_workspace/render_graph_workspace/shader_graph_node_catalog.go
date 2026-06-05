@@ -9,6 +9,7 @@ package render_graph_workspace
 import (
 	"strings"
 
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
 )
 
@@ -89,6 +90,186 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				},
 				Outputs: []shaderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
+				},
+			},
+		},
+		{
+			ID:          "texture-2d",
+			Name:        "Texture 2D",
+			Description: "Texture asset used by texture sample nodes.",
+			Tags:        []string{"texture", "image", "sampler", "asset"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Texture 2D",
+				Description: "Texture asset used by texture sample nodes.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "texture",
+						Label:   "Texture",
+						Type:    shaderGraphNodeFieldTexture,
+						Default: assets.TextureSquare,
+					},
+					{
+						ID:      "label",
+						Label:   "Label",
+						Type:    shaderGraphNodeFieldText,
+						Default: "Texture",
+					},
+					{
+						ID:      "filter",
+						Label:   "Filter",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "Linear",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "Linear", Value: "Linear"},
+							{Label: "Nearest", Value: "Nearest"},
+						},
+					},
+					{
+						ID:      "color-space",
+						Label:   "Space",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "srgb",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "sRGB", Value: "srgb"},
+							{Label: "Linear", Value: "linear"},
+						},
+					},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Texture", Type: "texture2D"},
+				},
+			},
+		},
+		{
+			ID:          "sample-texture-2d",
+			Name:        "Sample Texture 2D",
+			Description: "Samples a Texture 2D at UV coordinates.",
+			Tags:        []string{"texture", "sample", "image", "sampler", "uv"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Sample Texture 2D",
+				Description: "Samples a Texture 2D at UV coordinates.",
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Texture", Type: "texture2D"},
+					{Name: "UV", Type: "vec2"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+					{Name: "RGB", Type: "vec3"},
+					{Name: "R", Type: "float"},
+					{Name: "G", Type: "float"},
+					{Name: "B", Type: "float"},
+					{Name: "A", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "uv",
+			Name:        "UV",
+			Description: "Primary mesh UV coordinates.",
+			Tags:        []string{"texture", "uv", "coordinates", "texcoord"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "UV",
+				Description: "Primary mesh UV coordinates.",
+				Outputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+				},
+			},
+		},
+		{
+			ID:          "uv-transform",
+			Name:        "UV Transform",
+			Description: "Applies tiling and offset to UV coordinates.",
+			Tags:        []string{"texture", "uv", "tiling", "offset", "coordinates"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "UV Transform",
+				Description: "Applies tiling and offset to UV coordinates.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:            "tiling",
+						Label:         "Tiling",
+						Type:          shaderGraphNodeFieldVector2,
+						DefaultValues: []string{"1", "1"},
+					},
+					{
+						ID:            "offset",
+						Label:         "Offset",
+						Type:          shaderGraphNodeFieldVector2,
+						DefaultValues: []string{"0", "0"},
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+				},
+			},
+		},
+		{
+			ID:          "split-rgba",
+			Name:        "Split RGBA",
+			Description: "Splits a color into scalar channels.",
+			Tags:        []string{"texture", "color", "channel", "rgba", "split"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Split RGBA",
+				Description: "Splits a color into scalar channels.",
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "R", Type: "float"},
+					{Name: "G", Type: "float"},
+					{Name: "B", Type: "float"},
+					{Name: "A", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "channel-mask",
+			Name:        "Channel Mask",
+			Description: "Extracts one scalar channel from a texture or color sample.",
+			Tags:        []string{"texture", "color", "channel", "mask", "rgba", "luminance"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Channel Mask",
+				Description: "Extracts one scalar channel from a texture or color sample.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "channel",
+						Label:   "Channel",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "r",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "R", Value: "r"},
+							{Label: "G", Value: "g"},
+							{Label: "B", Value: "b"},
+							{Label: "A", Value: "a"},
+							{Label: "Luma", Value: "luma"},
+						},
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "texel-size",
+			Name:        "Texel Size",
+			Description: "Returns inverse texture dimensions for a Texture 2D.",
+			Tags:        []string{"texture", "texel", "size", "dimensions", "pixel"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Texel Size",
+				Description: "Returns inverse texture dimensions for a Texture 2D.",
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Texture", Type: "texture2D"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Size", Type: "vec2"},
+					{Name: "Width", Type: "float"},
+					{Name: "Height", Type: "float"},
 				},
 			},
 		},

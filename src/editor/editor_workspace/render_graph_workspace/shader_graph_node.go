@@ -423,10 +423,14 @@ func shaderGraphPortColor(portType string, output bool) matrix.Color {
 	switch portType {
 	case "float":
 		return matrix.NewColor(0.35, 0.62, 0.92, 1)
+	case "vec2":
+		return matrix.NewColor(0.46, 0.73, 0.86, 1)
 	case "vec3":
 		return matrix.NewColor(0.42, 0.76, 0.47, 1)
 	case "color":
 		return matrix.NewColor(0.91, 0.58, 0.30, 1)
+	case "texture2D", "texture2d":
+		return matrix.NewColor(0.78, 0.61, 0.35, 1)
 	case "surface", "volume":
 		return shaderGraphSurfaceColor
 	default:
