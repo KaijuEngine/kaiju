@@ -42,9 +42,7 @@ func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isN
 		return shader, false
 	} else {
 		shader := NewShader(shaderData)
-		if shader != nil {
-			s.pendingShaders = append(s.pendingShaders, shader)
-		}
+		s.queuePendingShader(shader)
 		s.shaders[shader.data.Name] = shader
 		return shader, true
 	}
@@ -57,9 +55,7 @@ func (s *ShaderCache) AddShader(shader *Shader) {
 	if _, ok := s.shaders[shader.data.Name]; ok {
 		return
 	}
-	if shader != nil {
-		s.pendingShaders = append(s.pendingShaders, shader)
-	}
+	s.queuePendingShader(shader)
 	s.shaders[shader.data.Name] = shader
 }
 
@@ -81,6 +77,18 @@ func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled) {
 	}
 	queueDestroy(shader)
 	shader.Reload(shaderData)
+	s.queuePendingShader(shader)
+}
+
+func (s *ShaderCache) queuePendingShader(shader *Shader) {
+	if shader == nil {
+		return
+	}
+	for i := range s.pendingShaders {
+		if s.pendingShaders[i] == shader {
+			return
+		}
+	}
 	s.pendingShaders = append(s.pendingShaders, shader)
 }
 

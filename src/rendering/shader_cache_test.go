@@ -31,3 +31,19 @@ func TestShaderCacheReloadQueuesDestroyForCreatePending(t *testing.T) {
 		t.Fatalf("reload should queue the shader for pending creation")
 	}
 }
+
+func TestShaderCacheReloadDoesNotDuplicatePendingShader(t *testing.T) {
+	cache := NewShaderCache(nil, nil)
+	shader := NewShader(ShaderDataCompiled{Name: "test"})
+	cache.shaders[shader.data.Name] = shader
+	cache.pendingShaders = append(cache.pendingShaders, shader)
+
+	cache.ReloadShader(ShaderDataCompiled{Name: "test", Fragment: "updated.spv"})
+
+	if len(cache.pendingShaders) != 1 || cache.pendingShaders[0] != shader {
+		t.Fatalf("pending shaders = %+v, want one existing shader", cache.pendingShaders)
+	}
+	if shader.data.Fragment != "updated.spv" {
+		t.Fatalf("reload did not update pending shader data: %+v", shader.data)
+	}
+}

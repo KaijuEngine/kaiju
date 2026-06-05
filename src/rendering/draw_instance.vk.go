@@ -34,6 +34,7 @@ type ComputeShaderBuffer struct {
 type InstanceDriverData struct {
 	descriptorPool   GPUDescriptorPool
 	descriptorSets   [maxFramesInFlight]GPUDescriptorSet
+	descriptorLayout GPUDescriptorSetLayout
 	instanceBuffer   ShaderBuffer
 	imageInfos       []GPUDescriptorImageInfo
 	boundBuffers     []ShaderBuffer
@@ -77,8 +78,10 @@ func (b *ComputeShaderBuffer) WriteDescriptors(device *GPUDevice) {
 
 func (d *DrawInstanceGroup) generateInstanceDriverData(device *GPUDevice, material *Material, state *DrawInstanceViewState) {
 	if !state.generatedSets {
+		layout := material.Shader.RenderId.descriptorSetLayout
 		state.descriptorSets, state.descriptorPool, _ = device.createDescriptorSet(
-			material.Shader.RenderId.descriptorSetLayout, 0)
+			layout, 0)
+		state.descriptorLayout = layout
 		state.imageInfos = make([]GPUDescriptorImageInfo, len(d.MaterialInstance.Textures))
 		state.generatedSets = true
 		state.instanceBuffer.bindingId = 1
@@ -99,6 +102,13 @@ func (d *DrawInstanceGroup) generateInstanceDriverData(device *GPUDevice, materi
 			}
 		}
 	}
+}
+
+func (d *DrawInstanceGroup) instanceDescriptorLayoutChanged(material *Material, state *DrawInstanceViewState) bool {
+	return state.generatedSets &&
+		material != nil &&
+		material.Shader != nil &&
+		state.descriptorLayout.handle != material.Shader.RenderId.descriptorSetLayout.handle
 }
 
 func (d *DrawInstanceGroup) bindInstanceDriverData(state *DrawInstanceViewState) {

@@ -86,6 +86,10 @@ func (g *GPUDevice) FlushForReadback() bool {
 func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, state *DrawInstanceViewState) error {
 	defer tracing.NewRegion("GPUDevice.resizeUniformBuffer").End()
 	currentCount := len(group.Instances)
+	if currentCount > 0 && group.instanceDescriptorLayoutChanged(material, state) {
+		g.LogicalDevice.destroyGroupDescriptorSets(state)
+		state.instanceCapacity.Reset()
+	}
 	capacity, shouldResize := state.InstanceDriverData.instanceCapacity.Next(currentCount)
 	if !shouldResize {
 		return nil

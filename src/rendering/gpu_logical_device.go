@@ -133,6 +133,24 @@ func (g *GPULogicalDevice) destroyGroupViewState(state *DrawInstanceViewState) {
 	g.bufferTrash.Add(pd)
 }
 
+func (g *GPULogicalDevice) destroyGroupDescriptorSets(state *DrawInstanceViewState) {
+	if state == nil {
+		return
+	}
+	if state.descriptorPool.IsValid() || len(validDescriptorSets(state.descriptorSets)) > 0 {
+		g.bufferTrash.Add(bufferTrash{
+			delay: maxFramesInFlight,
+			pool:  state.descriptorPool,
+			sets:  state.descriptorSets,
+		})
+	}
+	state.descriptorPool = GPUDescriptorPool{}
+	state.descriptorSets = [maxFramesInFlight]GPUDescriptorSet{}
+	state.descriptorLayout = GPUDescriptorSetLayout{}
+	state.generatedSets = false
+	state.descriptorCache.Invalidate()
+}
+
 func drawInstanceViewStateHasResources(state *DrawInstanceViewState) bool {
 	if state.descriptorPool.IsValid() {
 		return true
