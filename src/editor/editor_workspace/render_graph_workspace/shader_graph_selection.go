@@ -73,16 +73,31 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 	if len(filtered) == 0 && mode != shaderGraphSelectionReplace {
 		return
 	}
-	if mode == shaderGraphSelectionReplace && len(filtered) == 1 && g.IsSelected(filtered[0]) {
-		return
-	}
-
 	from := g.selectionIDs()
 	next := slices.Clone(g.selected)
+	if mode == shaderGraphSelectionReplace && len(filtered) == 1 && g.IsSelected(filtered[0]) {
+		next = shaderGraphSelectionMoveToTop(next, filtered[0])
+		g.setSelectionNodes(next)
+		to := g.selectionIDs()
+		if slices.Equal(from, to) {
+			return
+		}
+		if g.history != nil {
+			g.history.Add(&shaderGraphSelectionHistory{
+				graph: g,
+				from:  from,
+				to:    to,
+			})
+		}
+		return
+	}
 	switch mode {
 	case shaderGraphSelectionAppend:
 		for i := range filtered {
-			if !slices.Contains(next, filtered[i]) {
+			if index := slices.Index(next, filtered[i]); index >= 0 {
+				next = slices.Delete(next, index, index+1)
+				next = append(next, filtered[i])
+			} else {
 				next = append(next, filtered[i])
 			}
 		}
@@ -132,12 +147,17 @@ func (g *shaderGraph) setSelectionNodes(nodes []*shaderGraphNode) {
 	}
 	for i := range previous {
 		if !slices.Contains(g.selected, previous[i]) {
+			if slices.Contains(g.nodes, previous[i]) {
+				g.assignNodeZSlot(previous[i])
+			}
 			previous[i].setSelected(false)
 		}
 	}
 	for i := range g.selected {
+		g.releaseNodeZSlot(g.selected[i])
 		g.selected[i].setSelected(true)
 	}
+	g.applySelectionZOrder()
 }
 
 func (g *shaderGraph) setSelectionIDs(ids []string) {
@@ -190,6 +210,16 @@ func (n *shaderGraphNode) bindSelectionEvent(target *ui.UI) {
 			n.graph.SelectNodeFromInput(n)
 		}
 	})
+}
+
+func shaderGraphSelectionMoveToTop(nodes []*shaderGraphNode, node *shaderGraphNode) []*shaderGraphNode {
+	if node == nil {
+		return nodes
+	}
+	if index := slices.Index(nodes, node); index >= 0 {
+		nodes = slices.Delete(nodes, index, index+1)
+	}
+	return append(nodes, node)
 }
 
 func shaderGraphSelectionModeFromKeyboard(kb *hid.Keyboard) shaderGraphSelectionMode {

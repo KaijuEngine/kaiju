@@ -36,26 +36,29 @@ var (
 )
 
 type shaderGraphNode struct {
-	graph       *shaderGraph
-	host        *engine.Host
-	root        *ui.Panel
-	bodyDrag    *ui.Panel
-	id          string
-	typeID      string
-	title       *ui.Label
-	description *ui.Label
-	fields      []*shaderGraphNodeField
-	inputs      []*shaderGraphPort
-	outputs     []*shaderGraphPort
-	values      map[string]shaderGraphNodeFieldValue
-	position    matrix.Vec2
-	height      float32
-	selected    bool
-	dragging    bool
-	dragMouse   matrix.Vec2
-	dragOrigin  matrix.Vec2
-	dragNodes   []*shaderGraphNode
-	dragOrigins []matrix.Vec2
+	graph         *shaderGraph
+	host          *engine.Host
+	root          *ui.Panel
+	bodyDrag      *ui.Panel
+	id            string
+	typeID        string
+	title         *ui.Label
+	description   *ui.Label
+	fields        []*shaderGraphNodeField
+	inputs        []*shaderGraphPort
+	outputs       []*shaderGraphPort
+	values        map[string]shaderGraphNodeFieldValue
+	position      matrix.Vec2
+	height        float32
+	zDepth        float32
+	zSlot         int
+	zSlotAssigned bool
+	selected      bool
+	dragging      bool
+	dragMouse     matrix.Vec2
+	dragOrigin    matrix.Vec2
+	dragNodes     []*shaderGraphNode
+	dragOrigins   []matrix.Vec2
 }
 
 func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, spec shaderGraphNodeSpec, position matrix.Vec2) {
@@ -76,7 +79,7 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 		shaderGraphNodeAccentColor,
 	)
 	n.root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	n.root.Base().Layout().SetZ(5)
+	n.root.Base().Layout().SetZ(n.zDepth)
 	n.bindDragEvents(n.root.Base())
 	parent.AddChild(n.root.Base())
 
@@ -291,7 +294,7 @@ func (n *shaderGraphNode) createBodyDragSurface(uiMan *ui.Manager, height float3
 	n.bodyDrag.DontFitContent()
 	n.bodyDrag.SetColor(matrix.ColorTransparent())
 	n.bodyDrag.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	n.bodyDrag.Base().Layout().SetZ(5.05)
+	n.bodyDrag.Base().Layout().SetZ(0.05)
 	n.bodyDrag.Base().Layout().Scale(shaderGraphNodeWidth, max(1, height-shaderGraphNodeHeaderH))
 	n.bodyDrag.Base().Layout().SetOffset(0, shaderGraphNodeHeaderH)
 	n.bindDragEvents(n.bodyDrag.Base())
@@ -304,7 +307,7 @@ func (n *shaderGraphNode) createHeader(uiMan *ui.Manager, name string) {
 	header.DontFitContent()
 	header.SetColor(shaderGraphNodeAccentColor)
 	header.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	header.Base().Layout().SetZ(5.1)
+	header.Base().Layout().SetZ(0.1)
 	header.Base().Layout().Scale(shaderGraphNodeWidth, shaderGraphNodeHeaderH)
 	header.Base().Layout().SetOffset(0, 0)
 	n.bindDragEvents(header.Base())
@@ -317,7 +320,7 @@ func (n *shaderGraphNode) createHeader(uiMan *ui.Manager, name string) {
 	n.title.SetColor(matrix.ColorWhite())
 	n.title.SetBaseline(rendering.FontBaselineCenter)
 	n.title.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	n.title.Base().Layout().SetZ(5.2)
+	n.title.Base().Layout().SetZ(0.2)
 	n.title.Base().Layout().Scale(shaderGraphNodeWidth-shaderGraphNodePadding*2, shaderGraphNodeHeaderH)
 	n.title.Base().Layout().SetOffset(shaderGraphNodePadding, 0)
 	header.AddChild(n.title.Base())
@@ -330,7 +333,7 @@ func (n *shaderGraphNode) createDescription(uiMan *ui.Manager, description strin
 	n.description.SetColor(matrix.NewColor(0.70, 0.74, 0.80, 1))
 	n.description.SetWidthAutoHeight(shaderGraphNodeWidth - shaderGraphNodePadding*2)
 	n.description.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	n.description.Base().Layout().SetZ(5.1)
+	n.description.Base().Layout().SetZ(0.1)
 	n.description.Base().Layout().SetOffset(shaderGraphNodePadding, shaderGraphNodeHeaderH+6)
 	n.root.AddChild(n.description.Base())
 }
@@ -381,7 +384,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	hit.DontFitContent()
 	hit.SetColor(matrix.ColorTransparent())
 	hit.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	hit.Base().Layout().SetZ(5.35)
+	hit.Base().Layout().SetZ(0.35)
 	hit.Base().Layout().Scale(hitRight-hitX, shaderGraphNodePortHeight)
 	hit.Base().Layout().SetOffset(hitX, y)
 	n.bindSelectionEvent(hit.Base())
@@ -393,7 +396,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	dot.SetColor(shaderGraphPortColor(port.Type, output))
 	dot.SetBorderRadius(dotSize*0.5, dotSize*0.5, dotSize*0.5, dotSize*0.5)
 	dot.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	dot.Base().Layout().SetZ(5.2)
+	dot.Base().Layout().SetZ(0.2)
 	dot.Base().Layout().Scale(dotSize, dotSize)
 	dot.Base().Layout().SetOffset(dotX, dotY)
 	n.bindSelectionEvent(dot.Base())
@@ -407,7 +410,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	label.SetJustify(justify)
 	label.SetBaseline(rendering.FontBaselineCenter)
 	label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	label.Base().Layout().SetZ(5.2)
+	label.Base().Layout().SetZ(0.2)
 	label.Base().Layout().Scale(labelWidth, shaderGraphNodePortHeight)
 	label.Base().Layout().SetOffset(labelX, y)
 	n.bindSelectionEvent(label.Base())

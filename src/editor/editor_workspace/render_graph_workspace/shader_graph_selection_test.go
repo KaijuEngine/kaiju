@@ -59,6 +59,43 @@ func TestShaderGraphSelectNodesReplaceAlreadySelectedPreservesSelection(t *testi
 	if !graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("replace on an already selected node should preserve selection")
 	}
+	if graph.selected[len(graph.selected)-1] != a {
+		t.Fatalf("replace on an already selected node should move it to the top of the selection")
+	}
+}
+
+func TestShaderGraphSelectionReusesZSlotsAndNewestSelectionIsHighest(t *testing.T) {
+	graph := shaderGraph{}
+	a := &shaderGraphNode{id: "a"}
+	b := &shaderGraphNode{id: "b"}
+	c := &shaderGraphNode{id: "c"}
+	graph.nodes = []*shaderGraphNode{a, b, c}
+	graph.assignNodeZSlot(a)
+	graph.assignNodeZSlot(b)
+	graph.assignNodeZSlot(c)
+
+	if a.zDepth == b.zDepth || b.zDepth == c.zDepth || a.zDepth == c.zDepth {
+		t.Fatalf("created nodes should each have a unique z-depth")
+	}
+
+	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
+	graph.SelectNodes([]*shaderGraphNode{b}, shaderGraphSelectionAppend)
+
+	if a.zSlotAssigned || b.zSlotAssigned {
+		t.Fatalf("selected nodes should use temporary selection z-depths")
+	}
+	if !(b.zDepth > a.zDepth && a.zDepth > c.zDepth) {
+		t.Fatalf("newest selected node should be highest: a=%v b=%v c=%v", a.zDepth, b.zDepth, c.zDepth)
+	}
+
+	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionToggle)
+
+	if !a.zSlotAssigned {
+		t.Fatalf("node removed from selection should return to an available z-depth")
+	}
+	if !(b.zDepth > a.zDepth) {
+		t.Fatalf("remaining selected node should stay above deselected node: a=%v b=%v", a.zDepth, b.zDepth)
+	}
 }
 
 func TestShaderGraphSelectionHistoryUndoRedo(t *testing.T) {

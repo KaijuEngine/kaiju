@@ -32,6 +32,7 @@ type shaderGraph struct {
 	root                  *ui.Panel
 	nodes                 []*shaderGraphNode
 	selected              []*shaderGraphNode
+	availableNodeZSlots   []int
 	connections           []*shaderGraphConnection
 	selectionBox          *ui.Panel
 	pendingFrom           *shaderGraphPort
@@ -183,7 +184,9 @@ func (g *shaderGraph) createNode(typeID string, spec shaderGraphNodeSpec, positi
 	}
 	node.typeID = typeID
 	node.Initialize(g, g.host, &g.uiMan, g.root, spec, position)
+	g.assignNodeZSlot(node)
 	g.nodes = append(g.nodes, node)
+	g.applySelectionZOrder()
 	return node
 }
 
@@ -257,6 +260,7 @@ func (g *shaderGraph) RemoveNode(id string) bool {
 		g.connections = slices.Delete(g.connections, i, i+1)
 	}
 	node := g.nodes[nodeIndex]
+	g.releaseNodeZSlot(node)
 	if node != nil && node.root != nil && g.host != nil {
 		g.host.DestroyEntity(node.root.Base().Entity())
 	}
@@ -507,6 +511,7 @@ func (g *shaderGraph) clear() {
 		}
 	}
 	g.nodes = nil
+	g.availableNodeZSlots = nil
 	g.connections = nil
 	g.cancelPendingConnection()
 }
