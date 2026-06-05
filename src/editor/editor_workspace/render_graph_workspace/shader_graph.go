@@ -173,6 +173,67 @@ func (g *shaderGraph) createNode(typeID string, spec shaderGraphNodeSpec, positi
 	return node
 }
 
+func (g *shaderGraph) createNodeFromSnapshot(node RenderGraphNode) *shaderGraphNode {
+	if g == nil || node.ID == "" {
+		return nil
+	}
+	if existing := g.nodeByID(node.ID); existing != nil {
+		return existing
+	}
+	spec, ok := shaderGraphNodeCatalogSpec(node.Type)
+	if !ok {
+		return nil
+	}
+	var created *shaderGraphNode
+	if g.root != nil && g.host != nil {
+		created = g.createNode(node.Type, spec, node.Position, node.ID)
+	} else {
+		created = &shaderGraphNode{
+			graph:    g,
+			id:       node.ID,
+			typeID:   node.Type,
+			position: node.Position,
+			values:   make(map[string]shaderGraphNodeFieldValue, len(spec.Fields)),
+		}
+		g.nodes = append(g.nodes, created)
+	}
+	for key, value := range renderGraphFieldValuesToNode(node.Values) {
+		created.values[key] = value
+	}
+	created.applyFieldValues()
+	return created
+}
+
+func (g *shaderGraph) RemoveNode(id string) bool {
+	if g == nil || id == "" {
+		return false
+	}
+	nodeIndex := -1
+	for i := range g.nodes {
+		if g.nodes[i] != nil && g.nodes[i].id == id {
+			nodeIndex = i
+			break
+		}
+	}
+	if nodeIndex < 0 {
+		return false
+	}
+	for i := len(g.connections) - 1; i >= 0; i-- {
+		if g.connections[i] == nil || !g.connections[i].touchesNode(id) {
+			continue
+		}
+		g.connections[i].Destroy()
+		g.connections = slices.Delete(g.connections, i, i+1)
+	}
+	node := g.nodes[nodeIndex]
+	if node != nil && node.root != nil && g.host != nil {
+		g.host.DestroyEntity(node.root.Base().Entity())
+	}
+	g.nodes = slices.Delete(g.nodes, nodeIndex, nodeIndex+1)
+	g.setSelectionNodes(g.selected)
+	return true
+}
+
 func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnection {
 	output, input, ok := shaderGraphConnectionPorts(a, b)
 	if !ok || g.root == nil {

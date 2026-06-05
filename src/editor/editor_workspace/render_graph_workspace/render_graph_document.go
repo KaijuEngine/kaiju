@@ -65,6 +65,18 @@ type RenderGraphPortRef struct {
 	Port int    `json:"port"`
 }
 
+func renderGraphNodeFromShaderGraphNode(node *shaderGraphNode) RenderGraphNode {
+	if node == nil {
+		return RenderGraphNode{}
+	}
+	return RenderGraphNode{
+		ID:       node.id,
+		Type:     node.typeID,
+		Position: node.position,
+		Values:   renderGraphFieldValuesFromNode(node),
+	}
+}
+
 func SerializeRenderGraphDocument(document RenderGraphDocument) ([]byte, error) {
 	if document.Version == 0 {
 		document.Version = renderGraphDocumentVersion
@@ -152,12 +164,9 @@ func (g *shaderGraph) Document() RenderGraphDocument {
 			id = fmt.Sprintf("node-%d", i+1)
 		}
 		nodeIDs[node] = id
-		document.Nodes = append(document.Nodes, RenderGraphNode{
-			ID:       id,
-			Type:     node.typeID,
-			Position: node.position,
-			Values:   renderGraphFieldValuesFromNode(node),
-		})
+		renderNode := renderGraphNodeFromShaderGraphNode(node)
+		renderNode.ID = id
+		document.Nodes = append(document.Nodes, renderNode)
 	}
 	for i := range g.connections {
 		connection := g.connections[i]

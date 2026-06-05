@@ -237,6 +237,12 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 	if !ok || node == nil {
 		return nil, false
 	}
+	if w.graph.history != nil {
+		w.graph.history.Add(&shaderGraphNodeCreateHistory{
+			graph: &w.graph,
+			node:  renderGraphNodeFromShaderGraphNode(node),
+		})
+	}
 	w.createNodeCount++
 	w.createNodeMenu.Hide()
 	return node, true

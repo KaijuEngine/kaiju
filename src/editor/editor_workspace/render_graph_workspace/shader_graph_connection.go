@@ -75,6 +75,14 @@ func (c *shaderGraphConnection) matches(outputRef, inputRef RenderGraphPortRef) 
 	return ok && currentOutput == outputRef && currentInput == inputRef
 }
 
+func (c *shaderGraphConnection) touchesNode(id string) bool {
+	if c == nil || id == "" {
+		return false
+	}
+	outputRef, inputRef, ok := shaderGraphConnectionRefs(c.output, c.input)
+	return ok && (outputRef.Node == id || inputRef.Node == id)
+}
+
 func shaderGraphConnectionRefs(output, input *shaderGraphPort) (RenderGraphPortRef, RenderGraphPortRef, bool) {
 	if output == nil || input == nil ||
 		output.node == nil || input.node == nil ||
