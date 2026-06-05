@@ -22,6 +22,7 @@ const (
 	shaderGraphNodePortHeight  = float32(20)
 	shaderGraphNodeHeaderH     = float32(24)
 	shaderGraphNodePadding     = float32(8)
+	shaderGraphNodeFieldStartY = shaderGraphNodeHeaderH + 38
 	shaderGraphNodePortStartY  = shaderGraphNodeHeaderH + 42
 	shaderGraphNodePortDotSize = float32(7)
 )
@@ -38,8 +39,10 @@ type shaderGraphNode struct {
 	root        *ui.Panel
 	title       *ui.Label
 	description *ui.Label
+	fields      []*shaderGraphNodeField
 	inputs      []*shaderGraphPort
 	outputs     []*shaderGraphPort
+	values      map[string]shaderGraphNodeFieldValue
 	position    matrix.Vec2
 	dragging    bool
 	dragMouse   matrix.Vec2
@@ -50,6 +53,7 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 	n.graph = graph
 	n.host = host
 	n.position = position
+	n.values = make(map[string]shaderGraphNodeFieldValue, len(spec.Fields))
 	n.root = uiMan.Add().ToPanel()
 	n.root.Init(nil, ui.ElementTypePanel)
 	n.root.DontFitContent()
@@ -73,7 +77,8 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 
 	n.createHeader(uiMan, spec.Name)
 	n.createDescription(uiMan, spec.Description)
-	n.createPorts(uiMan, spec.Inputs, spec.Outputs)
+	n.createFields(uiMan, spec.Fields)
+	n.createPorts(uiMan, spec)
 }
 
 func (n *shaderGraphNode) Input(index int) *shaderGraphPort {
@@ -88,6 +93,20 @@ func (n *shaderGraphNode) Output(index int) *shaderGraphPort {
 		return nil
 	}
 	return n.outputs[index]
+}
+
+func (n *shaderGraphNode) FieldValue(id string) shaderGraphNodeFieldValue {
+	if n == nil || n.values == nil {
+		return shaderGraphNodeFieldValue{}
+	}
+	return n.values[id]
+}
+
+func (n *shaderGraphNode) setFieldValue(id string, value shaderGraphNodeFieldValue) {
+	if n == nil || n.values == nil || id == "" {
+		return
+	}
+	n.values[id] = value
 }
 
 func (n *shaderGraphNode) Update() {
@@ -176,10 +195,13 @@ func (n *shaderGraphNode) createDescription(uiMan *ui.Manager, description strin
 	n.root.AddChild(n.description.Base())
 }
 
-func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, inputs, outputs []shaderGraphPortSpec) {
+func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, spec shaderGraphNodeSpec) {
+	inputs := spec.Inputs
+	outputs := spec.Outputs
 	rowCount := max(len(inputs), len(outputs))
+	startY := shaderGraphNodePortStartY + shaderGraphNodeFieldsHeight(spec)
 	for i := range rowCount {
-		y := shaderGraphNodePortStartY + float32(i)*shaderGraphNodePortHeight
+		y := startY + float32(i)*shaderGraphNodePortHeight
 		if i < len(inputs) {
 			n.inputs = append(n.inputs, n.createPort(uiMan, inputs[i], false, i, y))
 		}
@@ -240,7 +262,15 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 
 func shaderGraphNodeHeight(spec shaderGraphNodeSpec) float32 {
 	ports := max(len(spec.Inputs), len(spec.Outputs))
-	return shaderGraphNodeBaseHeight + float32(ports)*shaderGraphNodePortHeight
+	return shaderGraphNodeBaseHeight + shaderGraphNodeFieldsHeight(spec) +
+		float32(ports)*shaderGraphNodePortHeight
+}
+
+func shaderGraphNodeFieldsHeight(spec shaderGraphNodeSpec) float32 {
+	if len(spec.Fields) == 0 {
+		return 0
+	}
+	return float32(len(spec.Fields))*(shaderGraphFieldHeight+shaderGraphFieldGap) + 4
 }
 
 func shaderGraphPortLabel(port shaderGraphPortSpec) string {

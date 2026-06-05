@@ -6,7 +6,11 @@
 
 package shading_workspace
 
-import "strings"
+import (
+	"strings"
+
+	"kaijuengine.com/matrix"
+)
 
 type shaderGraphNodeCatalogEntry struct {
 	ID          string
@@ -33,6 +37,14 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Spec: shaderGraphNodeSpec{
 				Name:        "Value",
 				Description: "Single float value.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "value",
+						Label:   "Value",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+				},
 				Outputs: []shaderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
@@ -46,6 +58,14 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Spec: shaderGraphNodeSpec{
 				Name:        "Color",
 				Description: "Single color value.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:           "color",
+						Label:        "Color",
+						Type:         shaderGraphNodeFieldColor,
+						DefaultColor: matrix.ColorWhite(),
+					},
+				},
 				Outputs: []shaderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
@@ -59,6 +79,14 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Spec: shaderGraphNodeSpec{
 				Name:        "Vector",
 				Description: "Single vec3 value.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:            "vector",
+						Label:         "Vector",
+						Type:          shaderGraphNodeFieldVector3,
+						DefaultValues: []string{"0", "0", "0"},
+					},
+				},
 				Outputs: []shaderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
 				},
@@ -72,6 +100,25 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Spec: shaderGraphNodeSpec{
 				Name:        "Mix Color",
 				Description: "Blends two colors with a factor.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:          "clamp",
+						Label:       "Clamp",
+						Type:        shaderGraphNodeFieldBool,
+						DefaultBool: true,
+					},
+					{
+						ID:      "mode",
+						Label:   "Mode",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "mix",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "Mix", Value: "mix"},
+							{Label: "Add", Value: "add"},
+							{Label: "Multiply", Value: "multiply"},
+						},
+					},
+				},
 				Inputs: []shaderGraphPortSpec{
 					{Name: "Factor", Type: "float"},
 					{Name: "A", Type: "color"},

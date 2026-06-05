@@ -32,11 +32,13 @@ import (
 const (
 	shadingGraphSplineScreenshotOutput     = "integration_test_shading_graph_spline.png"
 	shadingGraphCreateMenuScreenshotOutput = "integration_test_shading_create_menu.png"
+	shadingGraphNodeFieldsScreenshotOutput = "integration_test_shading_node_fields.png"
 )
 
 func init() {
 	tests["shading-graph-spline"] = IntegrationTestShadingGraphSpline
 	tests["shading-create-menu"] = IntegrationTestShadingCreateMenu
+	tests["shading-node-fields"] = IntegrationTestShadingNodeFields
 }
 
 func IntegrationTestShadingGraphSpline(host *engine.Host) {
@@ -101,6 +103,51 @@ func IntegrationTestShadingCreateMenu(host *engine.Host) {
 		host.Updater.RemoveUpdate(&updateId)
 		ed.cleanup()
 		slog.Info("Screenshot captured", "path", shadingGraphCreateMenuScreenshotOutput)
+		os.Exit(0)
+	})
+}
+
+func IntegrationTestShadingNodeFields(host *engine.Host) {
+	ed, err := newShadingGraphSplineTestEditor(host)
+	if err != nil {
+		failShadingNodeFieldsIntegration("create test editor", err)
+	}
+	workspace := &shading_workspace.ShadingWorkspace{}
+	if err = workspace.Initialize(ed); err != nil {
+		failShadingNodeFieldsIntegration("initialize shading workspace", err)
+	}
+	workspace.Open()
+	updateId := host.Updater.AddUpdate(workspace.Update)
+
+	host.RunAfterFrames(8, func() {
+		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+			NodeID: "value", X: 42, Y: 190, UsePosition: true,
+		})
+		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+			NodeID: "color", X: 280, Y: 190, UsePosition: true,
+		})
+		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+			NodeID: "vector", X: 518, Y: 190, UsePosition: true,
+		})
+		workspace.CreateNodeFromAction(shading_workspace.CreateNodeActionArgs{
+			NodeID: "mix-color", X: 756, Y: 155, UsePosition: true,
+		})
+	})
+	host.RunAfterFrames(32, func() {
+		img, err := captureScreenshotImage(host)
+		if err != nil {
+			failShadingNodeFieldsIntegration("capture screenshot", err)
+		}
+		if err = assertShadingNodeFieldsScreenshot(img); err != nil {
+			_ = writeScreenshotImage(img, shadingGraphNodeFieldsScreenshotOutput)
+			failShadingNodeFieldsIntegration("screenshot smoke check", err)
+		}
+		if err = writeScreenshotImage(img, shadingGraphNodeFieldsScreenshotOutput); err != nil {
+			failShadingNodeFieldsIntegration("write screenshot", err)
+		}
+		host.Updater.RemoveUpdate(&updateId)
+		ed.cleanup()
+		slog.Info("Screenshot captured", "path", shadingGraphNodeFieldsScreenshotOutput)
 		os.Exit(0)
 	})
 }
@@ -188,6 +235,38 @@ func assertShadingCreateMenuScreenshot(host *engine.Host, workspace *shading_wor
 	}
 	if lightTextPixels < 60 {
 		return fmt.Errorf("expected visible create menu text pixels, found %d", lightTextPixels)
+	}
+	return nil
+}
+
+func assertShadingNodeFieldsScreenshot(img *image.RGBA) error {
+	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
+	}
+	graphTop := bounds.Min.Y + int(24+float32(bounds.Dy()-45)*0.5)
+	graphRect := image.Rect(bounds.Min.X, graphTop, bounds.Max.X, bounds.Max.Y)
+	whiteSwatchPixels := 0
+	fieldBorderPixels := 0
+	for y := graphRect.Min.Y; y < graphRect.Max.Y; y++ {
+		for x := graphRect.Min.X; x < graphRect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r > 220 && g > 220 && b > 220 {
+				whiteSwatchPixels++
+			}
+			if r >= 45 && r <= 75 && g >= 48 && g <= 78 && b >= 58 && b <= 92 {
+				fieldBorderPixels++
+			}
+		}
+	}
+	if whiteSwatchPixels < 80 {
+		return fmt.Errorf("expected visible color field swatch pixels, found %d", whiteSwatchPixels)
+	}
+	if fieldBorderPixels < 180 {
+		return fmt.Errorf("expected visible field control border pixels, found %d", fieldBorderPixels)
 	}
 	return nil
 }
@@ -318,6 +397,19 @@ func failShadingCreateMenuIntegration(message string, err error) {
 	} else {
 		slog.Error("shading create menu integration test failed",
 			"path", shadingGraphCreateMenuScreenshotOutput,
+			"message", message)
+	}
+	os.Exit(1)
+}
+
+func failShadingNodeFieldsIntegration(message string, err error) {
+	if err != nil {
+		slog.Error("shading node fields integration test failed",
+			"path", shadingGraphNodeFieldsScreenshotOutput,
+			"message", message, "error", err)
+	} else {
+		slog.Error("shading node fields integration test failed",
+			"path", shadingGraphNodeFieldsScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)
