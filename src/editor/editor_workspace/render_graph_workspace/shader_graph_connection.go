@@ -238,6 +238,9 @@ func (s *shaderGraphSpline) Update(start, end matrix.Vec2) {
 	c2 := end.Subtract(matrix.NewVec2(controlDistance, 0))
 	s.updateMesh(start, c1, c2, end)
 	s.shader.Scissor = s.panelScissor()
+	// Dynamic vertex edits change the mesh bounds while the transform stays fixed.
+	// Mark it dirty so render culling recalculates against the new bounds.
+	s.transform.SetDirty()
 	s.host.MeshCache().UpdateMeshVertices(s.mesh.Key(), s.verts)
 }
 
