@@ -97,6 +97,9 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 
 func (w *RenderGraphWorkspace) Shutdown() {
 	defer tracing.NewRegion("RenderGraphWorkspace.Shutdown").End()
+	if w.stageView != nil {
+		w.stageView.ClearViewportToolOwner(w)
+	}
 	w.graph.Shutdown()
 	w.CommonShutdown()
 }
@@ -114,11 +117,13 @@ func (w *RenderGraphWorkspace) Open() {
 	w.createNodeMenu.Hide()
 	w.graph.Open()
 	w.stageView.Open()
+	w.stageView.SetViewportToolOwner(w)
 }
 
 func (w *RenderGraphWorkspace) Close() {
 	defer tracing.NewRegion("RenderGraphWorkspace.Close").End()
 	if w.stageView != nil {
+		w.stageView.ClearViewportToolOwner(w)
 		w.stageView.SetViewportUI(nil)
 		w.stageView.Close()
 	}
