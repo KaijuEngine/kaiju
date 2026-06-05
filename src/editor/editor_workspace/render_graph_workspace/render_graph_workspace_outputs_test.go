@@ -3,6 +3,7 @@ package render_graph_workspace
 import (
 	"encoding/json"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -101,6 +102,58 @@ func TestRenderGraphGeneratedShaderUsesPBRDrawInstanceData(t *testing.T) {
 	}
 	if got := compiled.DrawInstanceDataName(); got != "pbr" {
 		t.Fatalf("compiled shader draw instance data = %q, want pbr", got)
+	}
+}
+
+func TestRenderGraphGeneratedShaderAndMaterialUseCompiledTextureSlots(t *testing.T) {
+	pfs, err := project_file_system.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pfs.Close()
+	stockShader, err := json.Marshal(rendering.ShaderData{
+		Name:         "pbr",
+		LayoutGroups: []rendering.ShaderLayoutGroup{{Type: "Vertex"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = pfs.MkdirAll(project_file_system.StockFolder, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err = pfs.WriteFile(project_file_system.StockFolder+"/pbr.shader", stockShader, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	textures := append(renderGraphDefaultTextureSlots(), rendering.MaterialTextureData{
+		Label:   "Mask",
+		Texture: "mask.png",
+		Filter:  "Nearest",
+	})
+	labels := renderGraphSamplerLabels(textures)
+	shader, err := buildRenderGraphShaderData(&pfs, "render_graph_abc", "database/src/render/shader/render_graph_abc.frag",
+		"fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"}, labels)
+	if err != nil {
+		t.Fatalf("buildRenderGraphShaderData error = %v", err)
+	}
+	if !slices.Equal(shader.SamplerLabels, labels) {
+		t.Fatalf("shader sampler labels = %#v, want %#v", shader.SamplerLabels, labels)
+	}
+
+	material := renderGraphGeneratedMaterialData("shader-id", textures)
+	if material.Shader != "shader-id" {
+		t.Fatalf("material shader = %q, want shader-id", material.Shader)
+	}
+	if len(material.Textures) != len(textures) {
+		t.Fatalf("material texture count = %d, want %d", len(material.Textures), len(textures))
+	}
+	if material.Textures[4].Label != "Mask" || material.Textures[4].Texture != "mask.png" ||
+		material.Textures[4].Filter != "Nearest" {
+		t.Fatalf("material custom texture = %#v, want Mask/mask.png/Nearest", material.Textures[4])
+	}
+	textures[4].Label = "Changed"
+	if material.Textures[4].Label != "Mask" {
+		t.Fatal("generated material texture slots should be copied from compiler output")
 	}
 }
 

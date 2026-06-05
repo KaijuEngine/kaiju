@@ -201,6 +201,92 @@ func TestRenderGraphCompilerSupportsTextureSamplingNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerReusesTextureNodeSamplerSlot(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "mask",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture":     {Text: `textures\mask.png`},
+				"label":       {Text: "Mask"},
+				"color-space": {Option: "linear"},
+			},
+		},
+		RenderGraphNode{ID: "sample-color", Type: "sample-texture-2d"},
+		RenderGraphNode{ID: "sample-roughness", Type: "sample-texture-2d"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "mask", Port: 0}, Input: RenderGraphPortRef{Node: "sample-color", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "mask", Port: 0}, Input: RenderGraphPortRef{Node: "sample-roughness", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample-color", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample-roughness", Port: 2}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	if len(out.Textures) != 5 {
+		t.Fatalf("texture slot count = %d, want 5", len(out.Textures))
+	}
+	if got := out.Textures[4].Texture; got != "textures/mask.png" {
+		t.Fatalf("texture slot asset = %q, want textures/mask.png", got)
+	}
+	if strings.Contains(out.FragmentSource, "textures[5]") {
+		t.Fatal("generated fragment allocated a duplicate sampler slot for the same texture node")
+	}
+	if strings.Contains(out.FragmentSource, "graphSrgbToLinear(texture(textures[4]") {
+		t.Fatal("linear texture sample should not be wrapped in graphSrgbToLinear")
+	}
+}
+
+func TestRenderGraphCompilerMakesDuplicateTextureLabelsUnique(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "mask-a",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture": {Text: "mask-a.png"},
+				"label":   {Text: "Mask"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "mask-b",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture": {Text: "mask-b.png"},
+				"label":   {Text: "Mask"},
+			},
+		},
+		RenderGraphNode{ID: "sample-a", Type: "sample-texture-2d"},
+		RenderGraphNode{ID: "sample-b", Type: "sample-texture-2d"},
+		RenderGraphNode{ID: "roughness", Type: "add"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "mask-a", Port: 0}, Input: RenderGraphPortRef{Node: "sample-a", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "mask-b", Port: 0}, Input: RenderGraphPortRef{Node: "sample-b", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample-a", Port: 2}, Input: RenderGraphPortRef{Node: "roughness", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample-b", Port: 2}, Input: RenderGraphPortRef{Node: "roughness", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "roughness", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	if len(out.SamplerLabels) != 6 {
+		t.Fatalf("sampler label count = %d, want 6", len(out.SamplerLabels))
+	}
+	if out.SamplerLabels[4] != "Mask" || out.SamplerLabels[5] != "Mask 2" {
+		t.Fatalf("custom sampler labels = %#v, want Mask and Mask 2", out.SamplerLabels[4:])
+	}
+	if !strings.Contains(out.FragmentSource, "#define SAMPLER_COUNT   6") {
+		t.Fatal("generated fragment did not include dynamic sampler count 6")
+	}
+}
+
 func TestRenderGraphCompilerSupportsTextureUtilityNodes(t *testing.T) {
 	doc := defaultRenderGraphCompilerDocument()
 	doc.Nodes = append(doc.Nodes,

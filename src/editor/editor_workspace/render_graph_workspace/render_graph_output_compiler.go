@@ -9,6 +9,7 @@ package render_graph_workspace
 import (
 	"fmt"
 	"math"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -45,13 +46,14 @@ type renderGraphOutputExpression struct {
 }
 
 type renderGraphOutputCompiler struct {
-	document RenderGraphDocument
-	nodes    map[string]RenderGraphNode
-	specs    map[string]shaderGraphNodeSpec
-	incoming map[RenderGraphPortRef]RenderGraphPortRef
-	cache    map[RenderGraphPortRef]renderGraphOutputExpression
-	visiting map[RenderGraphPortRef]bool
-	textures []rendering.MaterialTextureData
+	document     RenderGraphDocument
+	nodes        map[string]RenderGraphNode
+	specs        map[string]shaderGraphNodeSpec
+	incoming     map[RenderGraphPortRef]RenderGraphPortRef
+	cache        map[RenderGraphPortRef]renderGraphOutputExpression
+	visiting     map[RenderGraphPortRef]bool
+	textures     []rendering.MaterialTextureData
+	textureSlots map[string]int
 }
 
 func compileRenderGraphDocumentOutput(document RenderGraphDocument) (renderGraphCompiledOutput, error) {
@@ -75,13 +77,14 @@ func newRenderGraphOutputCompiler(document RenderGraphDocument) (*renderGraphOut
 		return nil, err
 	}
 	compiler := &renderGraphOutputCompiler{
-		document: document,
-		nodes:    make(map[string]RenderGraphNode, len(document.Nodes)),
-		specs:    make(map[string]shaderGraphNodeSpec, len(document.Nodes)),
-		incoming: make(map[RenderGraphPortRef]RenderGraphPortRef, len(document.Connections)),
-		cache:    map[RenderGraphPortRef]renderGraphOutputExpression{},
-		visiting: map[RenderGraphPortRef]bool{},
-		textures: renderGraphDefaultTextureSlots(),
+		document:     document,
+		nodes:        make(map[string]RenderGraphNode, len(document.Nodes)),
+		specs:        make(map[string]shaderGraphNodeSpec, len(document.Nodes)),
+		incoming:     make(map[RenderGraphPortRef]RenderGraphPortRef, len(document.Connections)),
+		cache:        map[RenderGraphPortRef]renderGraphOutputExpression{},
+		visiting:     map[RenderGraphPortRef]bool{},
+		textures:     renderGraphDefaultTextureSlots(),
+		textureSlots: map[string]int{},
 	}
 	for i := range document.Nodes {
 		node := document.Nodes[i]
@@ -449,10 +452,19 @@ func (c *renderGraphOutputCompiler) emitMixColor(node RenderGraphNode) (renderGr
 }
 
 func (c *renderGraphOutputCompiler) emitTexture2D(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	if index, ok := c.textureSlots[node.ID]; ok {
+		return renderGraphOutputExpression{
+			Type:       renderGraphOutputTex2D,
+			Value:      fmt.Sprintf("textures[%d]", index),
+			ColorSpace: c.textureColorSpace(node),
+		}, nil
+	}
 	texture := strings.TrimSpace(c.fieldValue(node, "texture").Text)
 	if texture == "" {
 		texture = assets.TextureSquare
 	}
+	texture = filepath.ToSlash(texture)
+	texture = strings.ReplaceAll(texture, "\\", "/")
 	label := strings.TrimSpace(c.fieldValue(node, "label").Text)
 	if label == "" {
 		label = "Texture"
@@ -469,14 +481,11 @@ func (c *renderGraphOutputCompiler) emitTexture2D(node RenderGraphNode) (renderG
 		Texture: texture,
 		Filter:  filter,
 	})
-	colorSpace := c.fieldValue(node, "color-space").Option
-	if colorSpace != "linear" {
-		colorSpace = "srgb"
-	}
+	c.textureSlots[node.ID] = index
 	return renderGraphOutputExpression{
 		Type:       renderGraphOutputTex2D,
 		Value:      fmt.Sprintf("textures[%d]", index),
-		ColorSpace: colorSpace,
+		ColorSpace: c.textureColorSpace(node),
 	}, nil
 }
 
@@ -622,6 +631,13 @@ func (c *renderGraphOutputCompiler) uniqueTextureLabel(label string) string {
 			return candidate
 		}
 	}
+}
+
+func (c *renderGraphOutputCompiler) textureColorSpace(node RenderGraphNode) string {
+	if c.fieldValue(node, "color-space").Option == "linear" {
+		return "linear"
+	}
+	return "srgb"
 }
 
 func (c *renderGraphOutputCompiler) fieldValue(node RenderGraphNode, id string) shaderGraphNodeFieldValue {
