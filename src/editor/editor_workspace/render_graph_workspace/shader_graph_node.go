@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	shaderGraphNodeWidth       = float32(210)
-	shaderGraphNodeBaseHeight  = float32(74)
-	shaderGraphNodePortHeight  = float32(20)
-	shaderGraphNodeHeaderH     = float32(24)
-	shaderGraphNodePadding     = float32(8)
-	shaderGraphNodeFieldStartY = shaderGraphNodeHeaderH + 38
-	shaderGraphNodePortStartY  = shaderGraphNodeHeaderH + 42
-	shaderGraphNodePortDotSize = float32(7)
+	shaderGraphNodeWidth        = float32(210)
+	shaderGraphNodeBaseHeight   = float32(74)
+	shaderGraphNodePortHeight   = float32(20)
+	shaderGraphNodeHeaderH      = float32(24)
+	shaderGraphNodePadding      = float32(8)
+	shaderGraphNodePortLabelGap = float32(8)
+	shaderGraphNodeFieldStartY  = shaderGraphNodeHeaderH + 38
+	shaderGraphNodePortStartY   = shaderGraphNodeHeaderH + 42
+	shaderGraphNodePortDotSize  = float32(7)
 )
 
 var (
@@ -342,23 +343,34 @@ func (n *shaderGraphNode) createPorts(uiMan *ui.Manager, spec shaderGraphNodeSpe
 	for i := range rowCount {
 		y := startY + float32(i)*shaderGraphNodePortHeight
 		if i < len(inputs) {
-			n.inputs = append(n.inputs, n.createPort(uiMan, inputs[i], false, i, y))
+			n.inputs = append(n.inputs, n.createPort(uiMan, inputs[i], false, i, y, i < len(outputs)))
 		}
 		if i < len(outputs) {
-			n.outputs = append(n.outputs, n.createPort(uiMan, outputs[i], true, i, y))
+			n.outputs = append(n.outputs, n.createPort(uiMan, outputs[i], true, i, y, i < len(inputs)))
 		}
 	}
 }
 
-func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec, output bool, index int, y float32) *shaderGraphPort {
+func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec, output bool, index int, y float32, paired bool) *shaderGraphPort {
 	const dotSize = shaderGraphNodePortDotSize
 	dotX := shaderGraphNodePadding
-	labelX := shaderGraphNodePadding + dotSize + 5
+	labelX := shaderGraphNodePadding + dotSize + shaderGraphNodePortLabelGap
+	labelWidth := shaderGraphNodeWidth*0.5 - shaderGraphNodePadding*2 - dotSize - shaderGraphNodePortLabelGap
 	justify := rendering.FontJustifyLeft
 	if output {
 		dotX = shaderGraphNodeWidth - shaderGraphNodePadding - dotSize
-		labelX = shaderGraphNodeWidth*0.5 - shaderGraphNodePadding
-		justify = rendering.FontJustifyRight
+		if paired {
+			labelX = shaderGraphNodeWidth*0.5 - shaderGraphNodePadding
+			labelWidth = dotX - labelX - shaderGraphNodePortLabelGap
+		} else {
+			labelWidth = shaderGraphNodeWidth * 0.45
+			labelX = dotX - labelWidth - shaderGraphNodePortLabelGap
+		}
+	}
+	if !paired {
+		if !output {
+			labelWidth = shaderGraphNodeWidth - shaderGraphNodePadding*2 - dotSize - shaderGraphNodePortLabelGap
+		}
 	}
 
 	dot := uiMan.Add().ToPanel()
@@ -374,7 +386,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	n.root.AddChild(dot.Base())
 
 	label := uiMan.Add().ToLabel()
-	label.Init(shaderGraphPortLabel(port))
+	label.Init(shaderGraphPortLabel(port, output))
 	label.SetFontSize(10)
 	label.SetWrap(false)
 	label.SetColor(matrix.NewColor(0.86, 0.88, 0.91, 1))
@@ -382,7 +394,7 @@ func (n *shaderGraphNode) createPort(uiMan *ui.Manager, port shaderGraphPortSpec
 	label.SetBaseline(rendering.FontBaselineCenter)
 	label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	label.Base().Layout().SetZ(5.2)
-	label.Base().Layout().Scale(shaderGraphNodeWidth*0.5-shaderGraphNodePadding*2-dotSize, shaderGraphNodePortHeight)
+	label.Base().Layout().Scale(labelWidth, shaderGraphNodePortHeight)
 	label.Base().Layout().SetOffset(labelX, y)
 	n.bindSelectionEvent(label.Base())
 	n.root.AddChild(label.Base())
@@ -414,7 +426,10 @@ func shaderGraphNodeFieldsHeight(spec shaderGraphNodeSpec) float32 {
 	return float32(len(spec.Fields))*(shaderGraphFieldHeight+shaderGraphFieldGap) + 4
 }
 
-func shaderGraphPortLabel(port shaderGraphPortSpec) string {
+func shaderGraphPortLabel(port shaderGraphPortSpec, output bool) string {
+	if output {
+		return port.Name
+	}
 	if port.Type == "" {
 		return port.Name
 	}

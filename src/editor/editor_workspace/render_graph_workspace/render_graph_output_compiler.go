@@ -729,10 +729,6 @@ func emitTime(node RenderGraphNode, port int) (renderGraphOutputExpression, erro
 	switch port {
 	case 0:
 		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "time"}, nil
-	case 1:
-		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "sin(time)"}, nil
-	case 2:
-		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "cos(time)"}, nil
 	default:
 		return renderGraphOutputExpression{}, fmt.Errorf("render graph time node %q has invalid output %d", node.ID, port)
 	}

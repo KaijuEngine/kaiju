@@ -301,8 +301,6 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				Description: "Runtime shader time values.",
 				Outputs: []shaderGraphPortSpec{
 					{Name: "Time", Type: "float"},
-					{Name: "Sine", Type: "float"},
-					{Name: "Cosine", Type: "float"},
 				},
 			},
 		},

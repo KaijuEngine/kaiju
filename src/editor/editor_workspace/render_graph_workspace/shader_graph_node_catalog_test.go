@@ -113,6 +113,14 @@ func TestShaderGraphTextureNodePortTypes(t *testing.T) {
 }
 
 func TestShaderGraphContextNodePortTypes(t *testing.T) {
+	timeNode, ok := shaderGraphNodeCatalogSpec("time")
+	if !ok {
+		t.Fatal("time node missing")
+	}
+	if len(timeNode.Outputs) != 1 || timeNode.Outputs[0].Name != "Time" || timeNode.Outputs[0].Type != "float" {
+		t.Fatalf("time outputs = %#v, want single Time float", timeNode.Outputs)
+	}
+
 	world, ok := shaderGraphNodeCatalogSpec("world-position")
 	if !ok {
 		t.Fatal("world-position node missing")
