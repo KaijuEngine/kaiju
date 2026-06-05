@@ -157,7 +157,6 @@ func (f *shaderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
 	f.selectRoot.Base().Layout().Scale(f.controlWidth(), shaderGraphFieldControlH)
 	f.selectRoot.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
 	f.selectRoot.Base().AddEvent(ui.EventTypeClick, f.toggleSelectList)
-	f.selectRoot.Base().AddEvent(ui.EventTypeMiss, f.hideSelectList)
 	f.node.bindSelectionEvent(f.selectRoot.Base())
 	f.node.root.AddChild(f.selectRoot.Base())
 
@@ -204,6 +203,7 @@ func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 	f.selectList.Base().Layout().SetZ(12)
 	f.selectList.Base().Layout().Scale(f.controlWidth(), optionHeight*float32(len(f.spec.Options)))
 	f.selectList.Base().Layout().SetOffset(shaderGraphFieldControlX, y+shaderGraphFieldControlH+2)
+	f.selectList.Base().AddEvent(ui.EventTypeMiss, f.hideSelectList)
 	f.selectList.Base().Hide()
 	f.node.root.AddChild(f.selectList.Base())
 
