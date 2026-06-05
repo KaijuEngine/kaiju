@@ -95,6 +95,7 @@ func TestRenderGraphActionsDefaultBindings(t *testing.T) {
 	}{
 		{render_graph_workspace.ActionRenderGraphShowCreateNodeMenu, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}},
 		{render_graph_workspace.ActionRenderGraphCenterView, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKey0)}}},
+		{render_graph_workspace.ActionRenderGraphFocusSelection, editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF)}}},
 	}
 	for _, check := range checks {
 		bindings := editor_action.BindingsForAction(

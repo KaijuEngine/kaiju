@@ -81,6 +81,33 @@ func TestShaderGraphSetZoomClampsToDefaultZoom(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodesBoundsUnionsSelectedNodes(t *testing.T) {
+	a := &shaderGraphNode{position: matrix.NewVec2(10, 20), height: 80}
+	b := &shaderGraphNode{position: matrix.NewVec2(260, 120), height: 140}
+
+	bounds, ok := shaderGraphNodesBounds([]*shaderGraphNode{nil, a, b})
+
+	if !ok {
+		t.Fatal("shaderGraphNodesBounds() should find bounds")
+	}
+	want := matrix.NewVec4(10, 20, 470, 260)
+	if !matrix.Vec4Approx(bounds, want) {
+		t.Fatalf("bounds = %v, want %v", bounds, want)
+	}
+}
+
+func TestShaderGraphFocusBoundsCentersBoundsAtCurrentZoom(t *testing.T) {
+	graph := shaderGraph{zoom: 0.5}
+	bounds := matrix.NewVec4(50, 100, 250, 200)
+
+	graph.focusBounds(bounds, matrix.NewVec2(400, 300))
+
+	center := matrix.NewVec2(150, 150)
+	if got := graph.viewPosition(center); !matrix.Vec2Approx(got, matrix.NewVec2(200, 150)) {
+		t.Fatalf("focused center view position = %v, want viewport center", got)
+	}
+}
+
 func TestShaderGraphCenterViewResetsPanAndZoom(t *testing.T) {
 	graph := shaderGraph{
 		pan:  matrix.NewVec2(24, -16),

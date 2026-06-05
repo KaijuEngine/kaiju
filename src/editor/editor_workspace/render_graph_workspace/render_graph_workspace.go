@@ -176,6 +176,11 @@ func (w *RenderGraphWorkspace) CenterView() {
 	w.graph.CenterView()
 }
 
+func (w *RenderGraphWorkspace) FocusSelectedNodes() bool {
+	w.applyLayout()
+	return w.graph.FocusSelection()
+}
+
 func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
 	if _, ok := shaderGraphNodeCatalogSpec(args.NodeID); !ok {
 		return nil, false

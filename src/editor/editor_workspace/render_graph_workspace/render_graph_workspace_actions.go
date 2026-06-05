@@ -15,6 +15,7 @@ const (
 	ActionRenderGraphShowCreateNodeMenu editor_action.ActionID = "renderGraph.showCreateNodeMenu"
 	ActionRenderGraphCreateNode         editor_action.ActionID = "renderGraph.createNode"
 	ActionRenderGraphCenterView         editor_action.ActionID = "renderGraph.centerView"
+	ActionRenderGraphFocusSelection     editor_action.ActionID = "renderGraph.focusSelection"
 )
 
 type CreateNodeActionArgs struct {

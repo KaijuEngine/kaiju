@@ -112,6 +112,53 @@ func (g *shaderGraph) CenterView() {
 	g.applyViewOffsets()
 }
 
+func (g *shaderGraph) FocusSelection() bool {
+	if g == nil || g.root == nil {
+		return false
+	}
+	bounds, ok := shaderGraphNodesBounds(g.selected)
+	if !ok {
+		return false
+	}
+	g.focusBounds(bounds, g.root.Base().Layout().PixelSize())
+	return true
+}
+
+func (g *shaderGraph) focusBounds(bounds matrix.Vec4, viewportSize matrix.Vec2) {
+	if g == nil {
+		return
+	}
+	center := matrix.NewVec2(
+		(bounds.Left()+bounds.Right())*0.5,
+		(bounds.Top()+bounds.Bottom())*0.5,
+	)
+	viewportCenter := viewportSize.Scale(0.5)
+	g.pan = viewportCenter.Subtract(center.Scale(g.zoomValue()))
+	g.applyViewOffsets()
+}
+
+func shaderGraphNodesBounds(nodes []*shaderGraphNode) (matrix.Vec4, bool) {
+	var bounds matrix.Vec4
+	hasBounds := false
+	for i := range nodes {
+		node := nodes[i]
+		if node == nil {
+			continue
+		}
+		nodeBounds := node.bounds()
+		if !hasBounds {
+			bounds = nodeBounds
+			hasBounds = true
+			continue
+		}
+		bounds.SetX(matrix.Min(bounds.Left(), nodeBounds.Left()))
+		bounds.SetY(matrix.Min(bounds.Top(), nodeBounds.Top()))
+		bounds.SetZ(matrix.Max(bounds.Right(), nodeBounds.Right()))
+		bounds.SetW(matrix.Max(bounds.Bottom(), nodeBounds.Bottom()))
+	}
+	return bounds, hasBounds
+}
+
 func (g *shaderGraph) zoomValue() matrix.Float {
 	if g == nil || g.zoom <= 0 {
 		return 1

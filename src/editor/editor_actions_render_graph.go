@@ -61,6 +61,21 @@ func registerRenderGraphActions(ed *Editor, mustRegister editorActionRegistrar) 
 		Visible:           true,
 		RequiredWorkspace: render_graph_workspace.ID,
 	}, ed.actionRenderGraphCenterView, ed.renderGraphCanRun)
+	mustRegister(editor_action.Definition{
+		ID:          render_graph_workspace.ActionRenderGraphFocusSelection,
+		Label:       "Focus Render Graph Selection",
+		Description: "Centers the render graph view on the selected nodes.",
+		Category:    "Render Graph",
+		Tags:        []string{"render", "graph", "node", "selection", "focus", "frame", "view"},
+		DefaultBindings: []editor_action.ActionBinding{{
+			Action:  render_graph_workspace.ActionRenderGraphFocusSelection,
+			Enabled: true,
+			Chord:   editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyF)}},
+		}},
+		UndoPolicy:        editor_action.UndoPolicyNone,
+		Visible:           true,
+		RequiredWorkspace: render_graph_workspace.ID,
+	}, ed.actionRenderGraphFocusSelection, ed.renderGraphCanRun)
 }
 
 func (ed *Editor) renderGraphCanRun(editor_action.Context, editor_action.Request) editor_action.Result {
@@ -101,6 +116,17 @@ func (ed *Editor) actionRenderGraphCenterView(editor_action.Context, editor_acti
 	}
 	w.CenterView()
 	return editor_action.Success("render graph view centered")
+}
+
+func (ed *Editor) actionRenderGraphFocusSelection(editor_action.Context, editor_action.Request) editor_action.Result {
+	w, ok := ed.renderGraphWorkspace()
+	if !ok {
+		return editor_action.Failure("render graph workspace is not available")
+	}
+	if !w.FocusSelectedNodes() {
+		return editor_action.Failure("no render graph nodes are selected")
+	}
+	return editor_action.Success("render graph selection focused")
 }
 
 func (ed *Editor) renderGraphWorkspace() (*render_graph_workspace.RenderGraphWorkspace, bool) {
