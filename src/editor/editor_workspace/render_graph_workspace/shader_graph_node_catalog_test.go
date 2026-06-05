@@ -83,6 +83,28 @@ func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphNodeCatalogHasProceduralNodes(t *testing.T) {
+	want := []string{
+		"noise",
+		"voronoi",
+		"checker",
+		"gradient",
+		"remap",
+		"posterize",
+		"posterize-color",
+		"fresnel",
+		"rim-light",
+		"fwidth",
+		"ddx",
+		"ddy",
+	}
+	for _, id := range want {
+		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+			t.Fatalf("expected catalog node %q to be registered", id)
+		}
+	}
+}
+
 func TestShaderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 	want := []string{
 		"vector2",
@@ -238,6 +260,60 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 	if len(vertexColor.Outputs) != 3 || vertexColor.Outputs[0].Type != "color" ||
 		vertexColor.Outputs[1].Type != "vec3" || vertexColor.Outputs[2].Type != "float" {
 		t.Fatalf("vertex-color outputs = %#v, want color, vec3, float", vertexColor.Outputs)
+	}
+}
+
+func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
+	noise, ok := shaderGraphNodeCatalogSpec("noise")
+	if !ok {
+		t.Fatal("noise node missing")
+	}
+	if len(noise.Inputs) != 4 || noise.Inputs[0].Type != "vec2" ||
+		len(noise.Outputs) != 2 || noise.Outputs[0].Type != "float" ||
+		noise.Outputs[1].Type != "color" {
+		t.Fatalf("noise ports = %#v -> %#v, want vec2,float,float,float -> float,color",
+			noise.Inputs, noise.Outputs)
+	}
+
+	voronoi, ok := shaderGraphNodeCatalogSpec("voronoi")
+	if !ok {
+		t.Fatal("voronoi node missing")
+	}
+	if len(voronoi.Inputs) != 3 || voronoi.Inputs[0].Type != "vec2" ||
+		len(voronoi.Outputs) != 4 || voronoi.Outputs[0].Name != "Distance" ||
+		voronoi.Outputs[3].Type != "color" {
+		t.Fatalf("voronoi ports = %#v -> %#v, want vec2,float,float -> distance/cell/edge/color",
+			voronoi.Inputs, voronoi.Outputs)
+	}
+
+	checker, ok := shaderGraphNodeCatalogSpec("checker")
+	if !ok {
+		t.Fatal("checker node missing")
+	}
+	if len(checker.Inputs) != 2 || checker.Inputs[0].Type != "vec2" ||
+		len(checker.Outputs) != 2 || checker.Outputs[0].Type != "color" ||
+		checker.Outputs[1].Type != "float" {
+		t.Fatalf("checker ports = %#v -> %#v, want vec2,float -> color,float",
+			checker.Inputs, checker.Outputs)
+	}
+
+	remap, ok := shaderGraphNodeCatalogSpec("remap")
+	if !ok {
+		t.Fatal("remap node missing")
+	}
+	if len(remap.Inputs) != 5 || len(remap.Outputs) != 1 || remap.Outputs[0].Type != "float" {
+		t.Fatalf("remap ports = %#v -> %#v, want five float inputs -> float", remap.Inputs, remap.Outputs)
+	}
+
+	rim, ok := shaderGraphNodeCatalogSpec("rim-light")
+	if !ok {
+		t.Fatal("rim-light node missing")
+	}
+	if len(rim.Inputs) != 5 || rim.Inputs[0].Type != "vec3" ||
+		len(rim.Outputs) != 2 || rim.Outputs[0].Type != "float" ||
+		rim.Outputs[1].Type != "color" {
+		t.Fatalf("rim-light ports = %#v -> %#v, want vec3,vec3,float,float,color -> float,color",
+			rim.Inputs, rim.Outputs)
 	}
 }
 

@@ -990,6 +990,158 @@ func TestRenderGraphCompilerSupportsTriplanarAndDetailTextureHelpers(t *testing.
 	}
 }
 
+func TestRenderGraphCompilerSupportsProceduralPatternNodes(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "noise",
+			Type: "noise",
+			Values: map[string]RenderGraphFieldValue{
+				"scale":     {Text: "12"},
+				"detail":    {Text: "3"},
+				"roughness": {Text: "0.65"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "voronoi",
+			Type: "voronoi",
+			Values: map[string]RenderGraphFieldValue{
+				"scale":  {Text: "5"},
+				"jitter": {Text: "0.75"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "checker",
+			Type: "checker",
+			Values: map[string]RenderGraphFieldValue{
+				"scale": {Text: "4"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "gradient",
+			Type: "gradient",
+			Values: map[string]RenderGraphFieldValue{
+				"mode":  {Option: "radial"},
+				"angle": {Text: "1.57"},
+			},
+		},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "noise", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "voronoi", Port: 2}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "checker", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 3}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "gradient", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 5}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "gradient", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 6}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"float graphFBM2D(vec2 p, float detail, float roughness)",
+		"vec3 graphVoronoi2D(vec2 p, float jitter)",
+		"float graphCheckerMask(vec2 uv, float scale)",
+		"float graphGradientFactor(vec2 uv, float angle, float radialMode)",
+		"vec4 graphBaseColor = (vec4(vec3(graphFBM2D((fragTexCoords) * 12.0, 3.0, 0.65)), 1.0) * fragColor);",
+		"float roughness = clamp((graphVoronoi2D((fragTexCoords) * 5.0, 0.75)).z, MIN_ROUGHNESS, 1.0);",
+		"float metallic = clamp(graphCheckerMask(fragTexCoords, 4.0), 0.0, 1.0);",
+		"graphGradientFactor(fragTexCoords, 1.57, 1.0)",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
+func TestRenderGraphCompilerSupportsProceduralUtilityNodes(t *testing.T) {
+	rimColor := matrix.NewColor(0.125, 0.25, 1, 1)
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		renderGraphCompilerValueNode("value", "0.42"),
+		RenderGraphNode{
+			ID:   "remap",
+			Type: "remap",
+			Values: map[string]RenderGraphFieldValue{
+				"in-min":  {Text: "0.2"},
+				"in-max":  {Text: "0.8"},
+				"out-min": {Text: "0"},
+				"out-max": {Text: "1"},
+				"clamp":   {Bool: ptrBool(true)},
+			},
+		},
+		RenderGraphNode{
+			ID:   "posterize",
+			Type: "posterize",
+			Values: map[string]RenderGraphFieldValue{
+				"steps": {Text: "5"},
+			},
+		},
+		RenderGraphNode{ID: "fwidth", Type: "fwidth"},
+		RenderGraphNode{
+			ID:   "fresnel",
+			Type: "fresnel",
+			Values: map[string]RenderGraphFieldValue{
+				"power": {Text: "4"},
+				"bias":  {Text: "0.1"},
+				"scale": {Text: "0.8"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "rim",
+			Type: "rim-light",
+			Values: map[string]RenderGraphFieldValue{
+				"power":     {Text: "2"},
+				"intensity": {Text: "1.5"},
+				"color":     {Color: &rimColor},
+			},
+		},
+		RenderGraphNode{
+			ID:   "posterize-color",
+			Type: "posterize-color",
+			Values: map[string]RenderGraphFieldValue{
+				"steps": {Text: "3"},
+			},
+		},
+		RenderGraphNode{ID: "ddx", Type: "ddx"},
+		RenderGraphNode{ID: "ddy", Type: "ddy"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "value", Port: 0}, Input: RenderGraphPortRef{Node: "remap", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "remap", Port: 0}, Input: RenderGraphPortRef{Node: "posterize", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "posterize", Port: 0}, Input: RenderGraphPortRef{Node: "fwidth", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "fwidth", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "fresnel", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 7}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "fresnel", Port: 0}, Input: RenderGraphPortRef{Node: "ddx", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "ddx", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 3}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "remap", Port: 0}, Input: RenderGraphPortRef{Node: "ddy", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "ddy", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 4}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "rim", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 8}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "rim", Port: 1}, Input: RenderGraphPortRef{Node: "posterize-color", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "posterize-color", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"float graphRemap(float value, float inMin, float inMax, float outMin, float outMax)",
+		"float graphPosterize(float value, float steps)",
+		"float graphFresnel(vec3 normal, vec3 viewDir, float power, float bias, float scale)",
+		"float graphRimFactor(vec3 normal, vec3 viewDir, float power, float intensity)",
+		"fwidth(graphPosterize(clamp(graphRemap(0.42, 0.2, 0.8, 0.0, 1.0), min(0.0, 1.0), max(0.0, 1.0)), 5.0))",
+		"float metallic = clamp(dFdx(graphFresnel(",
+		"float occlusion = clamp(dFdy(clamp(graphRemap(0.42, 0.2, 0.8, 0.0, 1.0), min(0.0, 1.0), max(0.0, 1.0))), 0.0, 1.0);",
+		"graphPosterizeColor(vec4((vec4(0.125, 0.25, 1.0, 1.0)).rgb * graphRimFactor(",
+		"vec3 F0 = mix(vec3(0.04 * clamp(graphRimFactor(",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerValidationFailures(t *testing.T) {
 	tests := []struct {
 		name string
@@ -1053,6 +1205,10 @@ func TestRenderGraphCompilerValidationFailures(t *testing.T) {
 
 func ptrColor(color matrix.Color) *matrix.Color {
 	return &color
+}
+
+func ptrBool(value bool) *bool {
+	return &value
 }
 
 func vectorArithmeticCompilerDocument(nodeType, vectorType string) RenderGraphDocument {

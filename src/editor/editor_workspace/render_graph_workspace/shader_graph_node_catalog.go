@@ -734,6 +734,343 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				},
 			},
 		},
+		{
+			ID:          "noise",
+			Name:        "Noise",
+			Description: "Layered value noise for procedural masks and color variation.",
+			Tags:        []string{"procedural", "noise", "fbm", "random", "mask", "texture"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Noise",
+				Description: "Layered value noise for procedural masks and color variation.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "scale",
+						Label:   "Scale",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "8.000",
+					},
+					{
+						ID:      "detail",
+						Label:   "Detail",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "4.000",
+					},
+					{
+						ID:      "roughness",
+						Label:   "Rough",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "0.500",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+					{Name: "Scale", Type: "float"},
+					{Name: "Detail", Type: "float"},
+					{Name: "Roughness", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+					{Name: "Color", Type: "color"},
+				},
+			},
+		},
+		{
+			ID:          "voronoi",
+			Name:        "Voronoi",
+			Description: "Cellular procedural pattern with distance, cell, and edge outputs.",
+			Tags:        []string{"procedural", "voronoi", "cellular", "cells", "random", "mask"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Voronoi",
+				Description: "Cellular procedural pattern with distance, cell, and edge outputs.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "scale",
+						Label:   "Scale",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "8.000",
+					},
+					{
+						ID:      "jitter",
+						Label:   "Jitter",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "1.000",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+					{Name: "Scale", Type: "float"},
+					{Name: "Jitter", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Distance", Type: "float"},
+					{Name: "Cell", Type: "float"},
+					{Name: "Edge", Type: "float"},
+					{Name: "Color", Type: "color"},
+				},
+			},
+		},
+		{
+			ID:          "checker",
+			Name:        "Checker",
+			Description: "Procedural checkerboard pattern with mask and color outputs.",
+			Tags:        []string{"procedural", "checker", "grid", "pattern", "mask", "texture"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Checker",
+				Description: "Procedural checkerboard pattern with mask and color outputs.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "scale",
+						Label:   "Scale",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "8.000",
+					},
+					{
+						ID:           "color-a",
+						Label:        "A",
+						Type:         shaderGraphNodeFieldColor,
+						DefaultColor: matrix.ColorWhite(),
+					},
+					{
+						ID:           "color-b",
+						Label:        "B",
+						Type:         shaderGraphNodeFieldColor,
+						DefaultColor: matrix.ColorBlack(),
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+					{Name: "Scale", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+					{Name: "Mask", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "gradient",
+			Name:        "Gradient",
+			Description: "Linear or radial procedural gradient.",
+			Tags:        []string{"procedural", "gradient", "ramp", "linear", "radial", "mask"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Gradient",
+				Description: "Linear or radial procedural gradient.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "mode",
+						Label:   "Mode",
+						Type:    shaderGraphNodeFieldSelect,
+						Default: "linear",
+						Options: []shaderGraphNodeFieldOption{
+							{Label: "Linear", Value: "linear"},
+							{Label: "Radial", Value: "radial"},
+						},
+					},
+					{
+						ID:      "angle",
+						Label:   "Angle",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "0.000",
+					},
+					{
+						ID:           "color-a",
+						Label:        "A",
+						Type:         shaderGraphNodeFieldColor,
+						DefaultColor: matrix.ColorBlack(),
+					},
+					{
+						ID:           "color-b",
+						Label:        "B",
+						Type:         shaderGraphNodeFieldColor,
+						DefaultColor: matrix.ColorWhite(),
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "UV", Type: "vec2"},
+					{Name: "Angle", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+					{Name: "Factor", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "remap",
+			Name:        "Remap",
+			Description: "Maps a value from one range to another.",
+			Tags:        []string{"procedural", "remap", "map", "range", "normalize", "mask"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Remap",
+				Description: "Maps a value from one range to another.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{ID: "in-min", Label: "In Min", Type: shaderGraphNodeFieldNumber, Default: "0.000"},
+					{ID: "in-max", Label: "In Max", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
+					{ID: "out-min", Label: "Out Min", Type: shaderGraphNodeFieldNumber, Default: "0.000"},
+					{ID: "out-max", Label: "Out Max", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
+					{ID: "clamp", Label: "Clamp", Type: shaderGraphNodeFieldBool, DefaultBool: false},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+					{Name: "In Min", Type: "float"},
+					{Name: "In Max", Type: "float"},
+					{Name: "Out Min", Type: "float"},
+					{Name: "Out Max", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "posterize",
+			Name:        "Posterize",
+			Description: "Quantizes a scalar value into a limited number of steps.",
+			Tags:        []string{"procedural", "posterize", "quantize", "steps", "toon", "mask"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Posterize",
+				Description: "Quantizes a scalar value into a limited number of steps.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "steps",
+						Label:   "Steps",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "4.000",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+					{Name: "Steps", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "posterize-color",
+			Name:        "Posterize Color",
+			Description: "Quantizes each color channel into a limited number of steps.",
+			Tags:        []string{"procedural", "posterize", "color", "quantize", "steps", "toon"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Posterize Color",
+				Description: "Quantizes each color channel into a limited number of steps.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:      "steps",
+						Label:   "Steps",
+						Type:    shaderGraphNodeFieldNumber,
+						Default: "4.000",
+					},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+					{Name: "Steps", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Color", Type: "color"},
+				},
+			},
+		},
+		{
+			ID:          "fresnel",
+			Name:        "Fresnel",
+			Description: "View-angle mask for edge highlights and falloff effects.",
+			Tags:        []string{"procedural", "fresnel", "rim", "view", "normal", "falloff"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Fresnel",
+				Description: "View-angle mask for edge highlights and falloff effects.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{ID: "power", Label: "Power", Type: shaderGraphNodeFieldNumber, Default: "5.000"},
+					{ID: "bias", Label: "Bias", Type: shaderGraphNodeFieldNumber, Default: "0.000"},
+					{ID: "scale", Label: "Scale", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+					{Name: "View", Type: "vec3"},
+					{Name: "Power", Type: "float"},
+					{Name: "Bias", Type: "float"},
+					{Name: "Scale", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Factor", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "rim-light",
+			Name:        "Rim Light",
+			Description: "Generates a colored rim-light mask from normal and view direction.",
+			Tags:        []string{"procedural", "rim", "light", "fresnel", "edge", "view"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Rim Light",
+				Description: "Generates a colored rim-light mask from normal and view direction.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{ID: "power", Label: "Power", Type: shaderGraphNodeFieldNumber, Default: "3.000"},
+					{ID: "intensity", Label: "Intens", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
+					{ID: "color", Label: "Color", Type: shaderGraphNodeFieldColor, DefaultColor: matrix.ColorWhite()},
+				},
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Normal", Type: "vec3"},
+					{Name: "View", Type: "vec3"},
+					{Name: "Power", Type: "float"},
+					{Name: "Intensity", Type: "float"},
+					{Name: "Color", Type: "color"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Factor", Type: "float"},
+					{Name: "Color", Type: "color"},
+				},
+			},
+		},
+		{
+			ID:          "fwidth",
+			Name:        "FWidth",
+			Description: "Returns the approximate screen-space width of a scalar expression.",
+			Tags:        []string{"procedural", "derivative", "fwidth", "antialias", "screen"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "FWidth",
+				Description: "Returns the approximate screen-space width of a scalar expression.",
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "ddx",
+			Name:        "DDX",
+			Description: "Returns the screen-space derivative of a scalar value along X.",
+			Tags:        []string{"procedural", "derivative", "ddx", "dfdx", "screen"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "DDX",
+				Description: "Returns the screen-space derivative of a scalar value along X.",
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+			},
+		},
+		{
+			ID:          "ddy",
+			Name:        "DDY",
+			Description: "Returns the screen-space derivative of a scalar value along Y.",
+			Tags:        []string{"procedural", "derivative", "ddy", "dfdy", "screen"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "DDY",
+				Description: "Returns the screen-space derivative of a scalar value along Y.",
+				Inputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Value", Type: "float"},
+				},
+			},
+		},
 		shaderGraphFloatBinaryNode("add", "Add", "Adds two float values.",
 			[]string{"math", "float", "plus", "sum"}, "A", "B", "Value"),
 		shaderGraphFloatBinaryNode("subtract", "Subtract", "Subtracts B from A.",

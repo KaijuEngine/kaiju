@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -313,7 +314,7 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 		value := c.fieldValue(node, "color").Color
 		return renderGraphOutputExpression{
 			Type:  renderGraphOutputColor,
-			Value: fmt.Sprintf("vec4(%s, %s, %s, %s)", glslFloat(float64(value.R())), glslFloat(float64(value.G())), glslFloat(float64(value.B())), glslFloat(float64(value.A()))),
+			Value: glslColor(value),
 		}, nil
 	case "vector":
 		value, err := c.vectorField(node, "vector")
@@ -399,6 +400,26 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 		return emitScreenPosition(node, port)
 	case "vertex-color":
 		return emitVertexColor(node, port)
+	case "noise":
+		return c.emitNoise(node, port)
+	case "voronoi":
+		return c.emitVoronoi(node, port)
+	case "checker":
+		return c.emitChecker(node, port)
+	case "gradient":
+		return c.emitGradient(node, port)
+	case "remap":
+		return c.emitRemap(node)
+	case "posterize":
+		return c.emitPosterize(node)
+	case "posterize-color":
+		return c.emitPosterizeColor(node)
+	case "fresnel":
+		return c.emitFresnel(node)
+	case "rim-light":
+		return c.emitRimLight(node, port)
+	case "fwidth", "ddx", "ddy":
+		return c.emitDerivative(node)
 	case "add", "subtract", "multiply", "divide", "minimum", "maximum", "power":
 		return c.emitFloatBinary(node)
 	case "add-vec2", "subtract-vec2", "multiply-vec2", "divide-vec2":
@@ -962,6 +983,245 @@ func (c *renderGraphOutputCompiler) emitDetailTexture(node RenderGraphNode) (ren
 	return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, nil
 }
 
+func (c *renderGraphOutputCompiler) emitNoise(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	scale, err := c.optionalInputOrFloatField(node, 1, "scale", "8.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	detail, err := c.optionalInputOrFloatField(node, 2, "detail", "4.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	roughness, err := c.optionalInputOrFloatField(node, 3, "roughness", "0.5")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	value := "graphFBM2D((" + uv + ") * " + scale + ", " + detail + ", " + roughness + ")"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: value}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: "vec4(vec3(" + value + "), 1.0)"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph noise node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitVoronoi(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	scale, err := c.optionalInputOrFloatField(node, 1, "scale", "8.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	jitter, err := c.optionalInputOrFloatField(node, 2, "jitter", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	value := "graphVoronoi2D((" + uv + ") * " + scale + ", " + jitter + ")"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + value + ").x"}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + value + ").y"}, nil
+	case 2:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: "(" + value + ").z"}, nil
+	case 3:
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: "vec4(vec3((" + value + ").y), 1.0)"}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph voronoi node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitChecker(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	scale, err := c.optionalInputOrFloatField(node, 1, "scale", "8.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	mask := "graphCheckerMask(" + uv + ", " + scale + ")"
+	switch port {
+	case 0:
+		a := c.colorFieldExpression(node, "color-a")
+		b := c.colorFieldExpression(node, "color-b")
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: "mix(" + a + ", " + b + ", " + mask + ")"}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: mask}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph checker node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitGradient(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	angle, err := c.optionalInputOrFloatField(node, 1, "angle", "0.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	radial := "0.0"
+	if c.fieldValue(node, "mode").Option == "radial" {
+		radial = "1.0"
+	}
+	factor := "graphGradientFactor(" + uv + ", " + angle + ", " + radial + ")"
+	switch port {
+	case 0:
+		a := c.colorFieldExpression(node, "color-a")
+		b := c.colorFieldExpression(node, "color-b")
+		return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: "mix(" + a + ", " + b + ", " + factor + ")"}, nil
+	case 1:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: factor}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph gradient node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitRemap(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	value, err := c.optionalInputExpression(node, 0, renderGraphOutputFloat, "0.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	inMin, err := c.optionalInputOrFloatField(node, 1, "in-min", "0.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	inMax, err := c.optionalInputOrFloatField(node, 2, "in-max", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	outMin, err := c.optionalInputOrFloatField(node, 3, "out-min", "0.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	outMax, err := c.optionalInputOrFloatField(node, 4, "out-max", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	result := "graphRemap(" + value + ", " + inMin + ", " + inMax + ", " + outMin + ", " + outMax + ")"
+	if c.fieldValue(node, "clamp").Bool {
+		result = "clamp(" + result + ", min(" + outMin + ", " + outMax + "), max(" + outMin + ", " + outMax + "))"
+	}
+	return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: result}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitPosterize(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	value, err := c.optionalInputExpression(node, 0, renderGraphOutputFloat, "0.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	steps, err := c.optionalInputOrFloatField(node, 1, "steps", "4.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type:  renderGraphOutputFloat,
+		Value: "graphPosterize(" + value + ", " + steps + ")",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitPosterizeColor(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	color, err := c.optionalInputExpression(node, 0, renderGraphOutputColor, "vec4(0.0, 0.0, 0.0, 1.0)")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	steps, err := c.optionalInputOrFloatField(node, 1, "steps", "4.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type:  renderGraphOutputColor,
+		Value: "graphPosterizeColor(" + color + ", " + steps + ")",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitFresnel(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	view, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, "safeNormalize(cameraPosition.xyz - fragPos, "+graphGeometricNormalExpression()+")")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	power, err := c.optionalInputOrFloatField(node, 2, "power", "5.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	bias, err := c.optionalInputOrFloatField(node, 3, "bias", "0.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	scale, err := c.optionalInputOrFloatField(node, 4, "scale", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	return renderGraphOutputExpression{
+		Type:  renderGraphOutputFloat,
+		Value: "graphFresnel(" + normal + ", " + view + ", " + power + ", " + bias + ", " + scale + ")",
+	}, nil
+}
+
+func (c *renderGraphOutputCompiler) emitRimLight(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
+	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	view, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, "safeNormalize(cameraPosition.xyz - fragPos, "+graphGeometricNormalExpression()+")")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	power, err := c.optionalInputOrFloatField(node, 2, "power", "3.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	intensity, err := c.optionalInputOrFloatField(node, 3, "intensity", "1.0")
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	factor := "graphRimFactor(" + normal + ", " + view + ", " + power + ", " + intensity + ")"
+	switch port {
+	case 0:
+		return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: factor}, nil
+	case 1:
+		color, err := c.optionalInputOrColorField(node, 4, "color", matrix.ColorWhite())
+		if err != nil {
+			return renderGraphOutputExpression{}, err
+		}
+		return renderGraphOutputExpression{
+			Type:  renderGraphOutputColor,
+			Value: "vec4((" + color + ").rgb * " + factor + ", (" + color + ").a)",
+		}, nil
+	default:
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph rim light node %q has invalid output %d", node.ID, port)
+	}
+}
+
+func (c *renderGraphOutputCompiler) emitDerivative(node RenderGraphNode) (renderGraphOutputExpression, error) {
+	value, err := c.inputExpression(node, 0, renderGraphOutputFloat)
+	if err != nil {
+		return renderGraphOutputExpression{}, err
+	}
+	fn := "fwidth"
+	switch node.Type {
+	case "ddx":
+		fn = "dFdx"
+	case "ddy":
+		fn = "dFdy"
+	}
+	return renderGraphOutputExpression{Type: renderGraphOutputFloat, Value: fn + "(" + value + ")"}, nil
+}
+
 func emitColorLikeOutput(node RenderGraphNode, port int, value, label string) (renderGraphOutputExpression, error) {
 	switch port {
 	case 0:
@@ -1177,6 +1437,25 @@ func (c *renderGraphOutputCompiler) optionalInputOrFloatField(node RenderGraphNo
 	return value, nil
 }
 
+func (c *renderGraphOutputCompiler) optionalInputOrColorField(node RenderGraphNode, input int, field string, fallback matrix.Color) (string, error) {
+	ref, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: input}]
+	if ok {
+		expr, err := c.emitExpression(ref, renderGraphOutputColor)
+		if err != nil {
+			return "", err
+		}
+		return expr.Value, nil
+	}
+	if strings.TrimSpace(field) == "" {
+		return glslColor(fallback), nil
+	}
+	return c.colorFieldExpression(node, field), nil
+}
+
+func (c *renderGraphOutputCompiler) colorFieldExpression(node RenderGraphNode, field string) string {
+	return glslColor(c.fieldValue(node, field).Color)
+}
+
 func (c *renderGraphOutputCompiler) uniqueTextureLabel(label string) string {
 	used := map[string]bool{}
 	for i := range c.textures {
@@ -1286,6 +1565,15 @@ func (c *renderGraphOutputCompiler) vector4Field(node RenderGraphNode, id string
 		return "", err
 	}
 	return "vec4(" + x + ", " + y + ", " + z + ", " + w + ")", nil
+}
+
+func glslColor(value matrix.Color) string {
+	return fmt.Sprintf("vec4(%s, %s, %s, %s)",
+		glslFloat(float64(value.R())),
+		glslFloat(float64(value.G())),
+		glslFloat(float64(value.B())),
+		glslFloat(float64(value.A())),
+	)
 }
 
 func glslFloatFromText(value string) (string, error) {
@@ -1497,6 +1785,121 @@ vec4 graphOverlayColor(vec4 base, vec4 detail) {
 	vec3 low = 2.0 * base.rgb * detail.rgb;
 	vec3 high = 1.0 - 2.0 * (1.0 - base.rgb) * (1.0 - detail.rgb);
 	return vec4(mix(low, high, step(vec3(0.5), base.rgb)), base.a);
+}
+
+float graphHash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+vec2 graphHash22(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xx + p3.yz) * p3.zy);
+}
+
+float graphNoise2D(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float a = graphHash12(i + vec2(0.0, 0.0));
+	float b = graphHash12(i + vec2(1.0, 0.0));
+	float c = graphHash12(i + vec2(0.0, 1.0));
+	float d = graphHash12(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float graphFBM2D(vec2 p, float detail, float roughness) {
+	float layers = clamp(floor(detail), 1.0, 8.0);
+	float amplitude = 0.5;
+	float frequency = 1.0;
+	float sum = 0.0;
+	float weight = 0.0;
+	for (int i = 0; i < 8; ++i) {
+		if (float(i) >= layers) {
+			break;
+		}
+		sum += graphNoise2D(p * frequency) * amplitude;
+		weight += amplitude;
+		frequency *= 2.0;
+		amplitude *= clamp(roughness, 0.0, 1.0);
+	}
+	return clamp(sum / max(weight, 0.0001), 0.0, 1.0);
+}
+
+vec3 graphVoronoi2D(vec2 p, float jitter) {
+	vec2 baseCell = floor(p);
+	vec2 local = fract(p);
+	float best = 8.0;
+	float second = 8.0;
+	float cellValue = 0.0;
+	for (int y = -1; y <= 1; ++y) {
+		for (int x = -1; x <= 1; ++x) {
+			vec2 cell = vec2(float(x), float(y));
+			vec2 offset = mix(vec2(0.5), graphHash22(baseCell + cell), clamp(jitter, 0.0, 1.0));
+			vec2 delta = cell + offset - local;
+			float dist = dot(delta, delta);
+			if (dist < best) {
+				second = best;
+				best = dist;
+				cellValue = graphHash12(baseCell + cell);
+			} else if (dist < second) {
+				second = dist;
+			}
+		}
+	}
+	float nearest = sqrt(best);
+	float edge = max(sqrt(second) - nearest, 0.0);
+	return vec3(nearest, cellValue, edge);
+}
+
+float graphCheckerMask(vec2 uv, float scale) {
+	vec2 cell = floor(uv * max(abs(scale), 0.0001));
+	return mod(cell.x + cell.y, 2.0);
+}
+
+float graphGradientFactor(vec2 uv, float angle, float radialMode) {
+	vec2 centered = uv - vec2(0.5);
+	vec2 direction = vec2(cos(angle), sin(angle));
+	float linear = dot(centered, direction) + 0.5;
+	float radial = length(centered) * 2.0;
+	return clamp(mix(linear, radial, step(0.5, radialMode)), 0.0, 1.0);
+}
+
+float graphRemap(float value, float inMin, float inMax, float outMin, float outMax) {
+	float denom = inMax - inMin;
+	if (abs(denom) <= 0.00000001) {
+		return outMin;
+	}
+	float t = (value - inMin) / denom;
+	return mix(outMin, outMax, t);
+}
+
+float graphPosterize(float value, float steps) {
+	float levels = max(floor(steps), 2.0);
+	float v = clamp(value, 0.0, 1.0);
+	return floor(v * (levels - 1.0) + 0.5) / (levels - 1.0);
+}
+
+vec4 graphPosterizeColor(vec4 color, float steps) {
+	return vec4(
+		graphPosterize(color.r, steps),
+		graphPosterize(color.g, steps),
+		graphPosterize(color.b, steps),
+		graphPosterize(color.a, steps)
+	);
+}
+
+float graphFresnel(vec3 normal, vec3 viewDir, float power, float bias, float scale) {
+	vec3 n = safeNormalize(normal, vec3(0.0, 1.0, 0.0));
+	vec3 v = safeNormalize(viewDir, vec3(0.0, 0.0, 1.0));
+	float facing = max(dot(n, v), 0.0);
+	return clamp(bias + scale * pow(1.0 - facing, max(power, 0.0001)), 0.0, 1.0);
+}
+
+float graphRimFactor(vec3 normal, vec3 viewDir, float power, float intensity) {
+	return clamp(graphFresnel(normal, viewDir, power, 0.0, 1.0) * max(intensity, 0.0), 0.0, 1.0);
 }
 
 vec3 pbrNormal(vec3 geometricNormal) {
