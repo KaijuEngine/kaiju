@@ -32,6 +32,8 @@ func shaderGraphDefaultFieldValue(spec shaderGraphNodeFieldSpec) shaderGraphNode
 		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 2)}
 	case shaderGraphNodeFieldVector3:
 		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 3)}
+	case shaderGraphNodeFieldVector4:
+		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 4)}
 	case shaderGraphNodeFieldSelect:
 		value := spec.Default
 		if value == "" && len(spec.Options) > 0 {

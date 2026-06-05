@@ -99,6 +99,49 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				},
 			},
 		},
+		{
+			ID:          "vector2",
+			Name:        "Vector 2",
+			Description: "Single vec2 value.",
+			Tags:        []string{"vector", "vec2", "constant"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Vector 2",
+				Description: "Single vec2 value.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:            "vector",
+						Label:         "Vector",
+						Type:          shaderGraphNodeFieldVector2,
+						DefaultValues: []string{"0", "0"},
+					},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Vector", Type: "vec2"},
+				},
+			},
+		},
+		{
+			ID:          "vector4",
+			Name:        "Vector 4",
+			Description: "Single vec4 value.",
+			Tags:        []string{"vector", "vec4", "constant", "color", "rgba"},
+			Spec: shaderGraphNodeSpec{
+				Name:        "Vector 4",
+				Description: "Single vec4 value.",
+				Fields: []shaderGraphNodeFieldSpec{
+					{
+						ID:            "vector",
+						Label:         "Vector",
+						Type:          shaderGraphNodeFieldVector4,
+						DefaultValues: []string{"0", "0", "0", "0"},
+					},
+				},
+				Outputs: []shaderGraphPortSpec{
+					{Name: "Vector", Type: "vec4"},
+					{Name: "Color", Type: "color"},
+				},
+			},
+		},
 		shaderGraphCombineVectorNode("combine-vec2", "Combine Vec2", "Constructs a vec2 from scalar components.",
 			[]string{"vector", "vec2", "compose", "combine", "construct"}, []string{"X", "Y"}, "vec2"),
 		shaderGraphCombineVectorNode("combine-vec3", "Combine Vec3", "Constructs a vec3 from scalar components.",
@@ -111,6 +154,12 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			[]string{"vector", "vec3", "split", "components", "xyz"}, []string{"X", "Y", "Z"}, "vec3"),
 		shaderGraphSplitVectorNode("split-vec4", "Split Vec4", "Splits a vec4 into scalar components.",
 			[]string{"vector", "vec4", "split", "components", "xyzw", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
+		shaderGraphSwizzleVectorNode("swizzle-vec2", "Swizzle Vec2", "Reorders vec2 components.",
+			[]string{"vector", "vec2", "swizzle", "reorder", "xy"}, []string{"X", "Y"}, "vec2"),
+		shaderGraphSwizzleVectorNode("swizzle-vec3", "Swizzle Vec3", "Reorders vec3 components.",
+			[]string{"vector", "vec3", "swizzle", "reorder", "xyz"}, []string{"X", "Y", "Z"}, "vec3"),
+		shaderGraphSwizzleVectorNode("swizzle-vec4", "Swizzle Vec4", "Reorders vec4/color components.",
+			[]string{"vector", "vec4", "color", "swizzle", "reorder", "xyzw", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
 		{
 			ID:          "texture-2d",
 			Name:        "Texture 2D",
@@ -794,6 +843,56 @@ func shaderGraphSplitVectorNode(id, name, description string, tags, components [
 			Outputs: outputs,
 		},
 	}
+}
+
+func shaderGraphSwizzleVectorNode(id, name, description string, tags, components []string, vectorType string) shaderGraphNodeCatalogEntry {
+	fields := make([]shaderGraphNodeFieldSpec, len(components))
+	options := shaderGraphSwizzleFieldOptions(components)
+	for i := range components {
+		fields[i] = shaderGraphNodeFieldSpec{
+			ID:      strings.ToLower(components[i]),
+			Label:   components[i],
+			Type:    shaderGraphNodeFieldSelect,
+			Default: strings.ToLower(components[i]),
+			Options: options,
+		}
+	}
+	outputs := []shaderGraphPortSpec{{Name: "Vector", Type: vectorType}}
+	if vectorType == "vec4" {
+		outputs = append(outputs, shaderGraphPortSpec{Name: "Color", Type: "color"})
+	}
+	return shaderGraphNodeCatalogEntry{
+		ID:          id,
+		Name:        name,
+		Description: description,
+		Tags:        tags,
+		Spec: shaderGraphNodeSpec{
+			Name:        name,
+			Description: description,
+			Fields:      fields,
+			Inputs: []shaderGraphPortSpec{
+				{Name: "Vector", Type: vectorType},
+			},
+			Outputs: outputs,
+		},
+	}
+}
+
+func shaderGraphSwizzleFieldOptions(components []string) []shaderGraphNodeFieldOption {
+	options := make([]shaderGraphNodeFieldOption, 0, len(components)+2)
+	for i := range components {
+		component := strings.ToLower(components[i])
+		label := components[i]
+		if len(components) == 4 {
+			label += " / " + []string{"R", "G", "B", "A"}[i]
+		}
+		options = append(options, shaderGraphNodeFieldOption{Label: label, Value: component})
+	}
+	options = append(options,
+		shaderGraphNodeFieldOption{Label: "0", Value: "0"},
+		shaderGraphNodeFieldOption{Label: "1", Value: "1"},
+	)
+	return options
 }
 
 func shaderGraphNodeCatalogMenuData() []shaderGraphNodeMenuData {

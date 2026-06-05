@@ -318,6 +318,18 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "vector":
 		value, err := c.vectorField(node, "vector")
 		return renderGraphOutputExpression{Type: renderGraphOutputVec3, Value: value}, err
+	case "vector2":
+		value, err := c.vector2Field(node, "vector")
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: value}, err
+	case "vector4":
+		value, err := c.vector4Field(node, "vector")
+		if port == 1 {
+			return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, err
+		}
+		if port != 0 {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph vector4 node %q has invalid output %d", node.ID, port)
+		}
+		return renderGraphOutputExpression{Type: renderGraphOutputVec4, Value: value}, err
 	case "combine-vec2":
 		return c.emitCombineVector(node, port, "vec2", renderGraphOutputVec2, 2)
 	case "combine-vec3":
@@ -330,6 +342,12 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 		return c.emitSplitVector(node, port, renderGraphOutputVec3, 3)
 	case "split-vec4":
 		return c.emitSplitVector(node, port, renderGraphOutputVec4, 4)
+	case "swizzle-vec2":
+		return c.emitSwizzleVector(node, port, renderGraphOutputVec2, "vec2", 2)
+	case "swizzle-vec3":
+		return c.emitSwizzleVector(node, port, renderGraphOutputVec3, "vec3", 3)
+	case "swizzle-vec4":
+		return c.emitSwizzleVector(node, port, renderGraphOutputVec4, "vec4", 4)
 	case "texture-2d":
 		return c.emitTexture2D(node)
 	case "sample-texture-2d":
@@ -768,6 +786,67 @@ func (c *renderGraphOutputCompiler) emitSplitVector(node RenderGraphNode, port i
 	}, nil
 }
 
+func (c *renderGraphOutputCompiler) emitSwizzleVector(node RenderGraphNode, port int, inputType, constructor string, count int) (renderGraphOutputExpression, error) {
+	if port != 0 {
+		if inputType == renderGraphOutputVec4 && port == 1 {
+			value, err := c.emitSwizzleVectorValue(node, inputType, constructor, count)
+			return renderGraphOutputExpression{Type: renderGraphOutputColor, Value: value}, err
+		}
+		return renderGraphOutputExpression{}, fmt.Errorf("render graph swizzle node %q has invalid output %d", node.ID, port)
+	}
+	value, err := c.emitSwizzleVectorValue(node, inputType, constructor, count)
+	return renderGraphOutputExpression{Type: inputType, Value: value}, err
+}
+
+func (c *renderGraphOutputCompiler) emitSwizzleVectorValue(node RenderGraphNode, inputType, constructor string, count int) (string, error) {
+	value, err := c.inputExpression(node, 0, inputType)
+	if err != nil {
+		return "", err
+	}
+	fields := []string{"x", "y", "z", "w"}[:count]
+	components := make([]string, count)
+	for i := range components {
+		selection := c.fieldValue(node, fields[i]).Option
+		if selection == "" {
+			selection = fields[i]
+		}
+		component, err := shaderGraphSwizzleComponentExpression(value, selection, count)
+		if err != nil {
+			return "", fmt.Errorf("render graph swizzle node %q component %q: %w", node.ID, fields[i], err)
+		}
+		components[i] = component
+	}
+	return constructor + "(" + strings.Join(components, ", ") + ")", nil
+}
+
+func shaderGraphSwizzleComponentExpression(value, selection string, count int) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(selection)) {
+	case "x", "r":
+		return "(" + value + ").x", nil
+	case "y", "g":
+		if count < 2 {
+			return "", fmt.Errorf("selection %q is unavailable for vec%d", selection, count)
+		}
+		return "(" + value + ").y", nil
+	case "z", "b":
+		if count < 3 {
+			return "", fmt.Errorf("selection %q is unavailable for vec%d", selection, count)
+		}
+		return "(" + value + ").z", nil
+	case "w", "a":
+		if count < 4 {
+			return "", fmt.Errorf("selection %q is unavailable for vec%d", selection, count)
+		}
+		return "(" + value + ").w", nil
+	case "0":
+		return "0.0", nil
+	case "1":
+		return "1.0", nil
+	default:
+		return "", fmt.Errorf("unsupported selection %q", selection)
+	}
+}
+
 func emitTime(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
 	switch port {
 	case 0:
@@ -936,6 +1015,30 @@ func (c *renderGraphOutputCompiler) vector2Field(node RenderGraphNode, id string
 		return "", err
 	}
 	return "vec2(" + x + ", " + y + ")", nil
+}
+
+func (c *renderGraphOutputCompiler) vector4Field(node RenderGraphNode, id string) (string, error) {
+	parts := c.fieldValue(node, id).Parts
+	if len(parts) < 4 {
+		parts = shaderGraphFieldParts(parts, 4)
+	}
+	x, err := glslFloatFromText(parts[0])
+	if err != nil {
+		return "", err
+	}
+	y, err := glslFloatFromText(parts[1])
+	if err != nil {
+		return "", err
+	}
+	z, err := glslFloatFromText(parts[2])
+	if err != nil {
+		return "", err
+	}
+	w, err := glslFloatFromText(parts[3])
+	if err != nil {
+		return "", err
+	}
+	return "vec4(" + x + ", " + y + ", " + z + ", " + w + ")", nil
 }
 
 func glslFloatFromText(value string) (string, error) {

@@ -19,6 +19,7 @@ const (
 	shaderGraphNodeFieldTexture shaderGraphNodeFieldType = "texture"
 	shaderGraphNodeFieldVector2 shaderGraphNodeFieldType = "vector2"
 	shaderGraphNodeFieldVector3 shaderGraphNodeFieldType = "vector3"
+	shaderGraphNodeFieldVector4 shaderGraphNodeFieldType = "vector4"
 )
 
 type shaderGraphNodeSpec struct {

@@ -75,6 +75,8 @@ func (f *shaderGraphNodeField) create(uiMan *ui.Manager, y float32) {
 		f.createVector2(uiMan, y)
 	case shaderGraphNodeFieldVector3:
 		f.createVector3(uiMan, y)
+	case shaderGraphNodeFieldVector4:
+		f.createVector4(uiMan, y)
 	default:
 		f.createTextInput(uiMan, y, f.spec.Default, f.spec.Type == shaderGraphNodeFieldNumber, func(text string) {
 			value := f.node.FieldValue(f.spec.ID)
@@ -311,6 +313,10 @@ func (f *shaderGraphNodeField) createVector3(uiMan *ui.Manager, y float32) {
 	f.createVectorInputs(uiMan, y, 3, []string{"X", "Y", "Z"})
 }
 
+func (f *shaderGraphNodeField) createVector4(uiMan *ui.Manager, y float32) {
+	f.createVectorInputs(uiMan, y, 4, []string{"X", "Y", "Z", "W"})
+}
+
 func (f *shaderGraphNodeField) createVector2(uiMan *ui.Manager, y float32) {
 	f.createVectorInputs(uiMan, y, 2, []string{"X", "Y"})
 }
@@ -459,6 +465,11 @@ func (n *shaderGraphNode) applyFieldValues() {
 				field.inputs[j].SetTextWithoutEvent(parts[j])
 			}
 		case shaderGraphNodeFieldVector3:
+			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
+			for j := range field.inputs {
+				field.inputs[j].SetTextWithoutEvent(parts[j])
+			}
+		case shaderGraphNodeFieldVector4:
 			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
 			for j := range field.inputs {
 				field.inputs[j].SetTextWithoutEvent(parts[j])

@@ -34,6 +34,20 @@ func TestShaderGraphDefaultVector2FieldValuePadsComponents(t *testing.T) {
 	}
 }
 
+func TestShaderGraphDefaultVector4FieldValuePadsComponents(t *testing.T) {
+	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
+		Type:          shaderGraphNodeFieldVector4,
+		DefaultValues: []string{"1", "2"},
+	})
+
+	want := []string{"1", "2", "0", "0"}
+	for i := range want {
+		if value.Parts[i] != want[i] {
+			t.Fatalf("component %d = %q, want %q", i, value.Parts[i], want[i])
+		}
+	}
+}
+
 func TestShaderGraphDefaultTextureFieldValueUsesDefaultAsset(t *testing.T) {
 	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
 		Type:    shaderGraphNodeFieldTexture,

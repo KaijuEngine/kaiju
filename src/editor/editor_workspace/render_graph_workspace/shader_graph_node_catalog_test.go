@@ -67,12 +67,17 @@ func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
 
 func TestShaderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 	want := []string{
+		"vector2",
+		"vector4",
 		"combine-vec2",
 		"combine-vec3",
 		"combine-vec4",
 		"split-vec2",
 		"split-vec3",
 		"split-vec4",
+		"swizzle-vec2",
+		"swizzle-vec3",
+		"swizzle-vec4",
 	}
 	for _, id := range want {
 		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
@@ -170,6 +175,22 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 }
 
 func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
+	vector2, ok := shaderGraphNodeCatalogSpec("vector2")
+	if !ok {
+		t.Fatal("vector2 node missing")
+	}
+	if len(vector2.Outputs) != 1 || vector2.Outputs[0].Type != "vec2" {
+		t.Fatalf("vector2 outputs = %#v, want vec2", vector2.Outputs)
+	}
+
+	vector4, ok := shaderGraphNodeCatalogSpec("vector4")
+	if !ok {
+		t.Fatal("vector4 node missing")
+	}
+	if len(vector4.Outputs) != 2 || vector4.Outputs[0].Type != "vec4" || vector4.Outputs[1].Type != "color" {
+		t.Fatalf("vector4 outputs = %#v, want vec4 and color", vector4.Outputs)
+	}
+
 	combine2, ok := shaderGraphNodeCatalogSpec("combine-vec2")
 	if !ok {
 		t.Fatal("combine-vec2 node missing")
@@ -204,6 +225,24 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 	if len(split4.Inputs) != 1 || split4.Inputs[0].Type != "vec4" ||
 		len(split4.Outputs) != 4 || split4.Outputs[3].Name != "W" || split4.Outputs[3].Type != "float" {
 		t.Fatalf("split-vec4 ports = %#v -> %#v, want vec4 -> four floats", split4.Inputs, split4.Outputs)
+	}
+
+	swizzle3, ok := shaderGraphNodeCatalogSpec("swizzle-vec3")
+	if !ok {
+		t.Fatal("swizzle-vec3 node missing")
+	}
+	if len(swizzle3.Inputs) != 1 || swizzle3.Inputs[0].Type != "vec3" ||
+		len(swizzle3.Outputs) != 1 || swizzle3.Outputs[0].Type != "vec3" {
+		t.Fatalf("swizzle-vec3 ports = %#v -> %#v, want vec3 -> vec3", swizzle3.Inputs, swizzle3.Outputs)
+	}
+
+	swizzle4, ok := shaderGraphNodeCatalogSpec("swizzle-vec4")
+	if !ok {
+		t.Fatal("swizzle-vec4 node missing")
+	}
+	if len(swizzle4.Inputs) != 1 || swizzle4.Inputs[0].Type != "vec4" ||
+		len(swizzle4.Outputs) != 2 || swizzle4.Outputs[0].Type != "vec4" || swizzle4.Outputs[1].Type != "color" {
+		t.Fatalf("swizzle-vec4 ports = %#v -> %#v, want vec4 -> vec4 and color", swizzle4.Inputs, swizzle4.Outputs)
 	}
 }
 

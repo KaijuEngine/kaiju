@@ -310,6 +310,123 @@ func TestRenderGraphCompilerSupportsVectorCompositionNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerSupportsVectorConstantNodes(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "v2",
+			Type: "vector2",
+			Values: map[string]RenderGraphFieldValue{
+				"vector": {Parts: []string{"0.33", "0.77"}},
+			},
+		},
+		RenderGraphNode{ID: "split2", Type: "split-vec2"},
+		RenderGraphNode{
+			ID:   "v4",
+			Type: "vector4",
+			Values: map[string]RenderGraphFieldValue{
+				"vector": {Parts: []string{"0.2", "0.4", "0.6", "1"}},
+			},
+		},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "v2", Port: 0}, Input: RenderGraphPortRef{Node: "split2", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split2", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "v4", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"vec4 graphBaseColor = (vec4(0.2, 0.4, 0.6, 1.0) * fragColor);",
+		"float roughness = clamp((vec2(0.33, 0.77)).y, MIN_ROUGHNESS, 1.0);",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
+func TestRenderGraphCompilerSupportsSwizzleVectorNodes(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "v2",
+			Type: "vector2",
+			Values: map[string]RenderGraphFieldValue{
+				"vector": {Parts: []string{"0.33", "0.77"}},
+			},
+		},
+		RenderGraphNode{
+			ID:   "swizzle2",
+			Type: "swizzle-vec2",
+			Values: map[string]RenderGraphFieldValue{
+				"x": {Option: "y"},
+				"y": {Option: "1"},
+			},
+		},
+		RenderGraphNode{ID: "split2", Type: "split-vec2"},
+		RenderGraphNode{
+			ID:   "v3",
+			Type: "vector",
+			Values: map[string]RenderGraphFieldValue{
+				"vector": {Parts: []string{"0.1", "0.2", "0.3"}},
+			},
+		},
+		RenderGraphNode{
+			ID:   "swizzle3",
+			Type: "swizzle-vec3",
+			Values: map[string]RenderGraphFieldValue{
+				"x": {Option: "z"},
+				"y": {Option: "x"},
+				"z": {Option: "0"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "v4",
+			Type: "vector4",
+			Values: map[string]RenderGraphFieldValue{
+				"vector": {Parts: []string{"0.2", "0.4", "0.6", "1"}},
+			},
+		},
+		RenderGraphNode{
+			ID:   "swizzle4",
+			Type: "swizzle-vec4",
+			Values: map[string]RenderGraphFieldValue{
+				"x": {Option: "w"},
+				"y": {Option: "z"},
+				"z": {Option: "y"},
+				"w": {Option: "x"},
+			},
+		},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "v2", Port: 0}, Input: RenderGraphPortRef{Node: "swizzle2", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "swizzle2", Port: 0}, Input: RenderGraphPortRef{Node: "split2", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "split2", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "v3", Port: 0}, Input: RenderGraphPortRef{Node: "swizzle3", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "swizzle3", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 2}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "v4", Port: 0}, Input: RenderGraphPortRef{Node: "swizzle4", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "swizzle4", Port: 1}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"vec4 graphBaseColor = (vec4((vec4(0.2, 0.4, 0.6, 1.0)).w, (vec4(0.2, 0.4, 0.6, 1.0)).z, (vec4(0.2, 0.4, 0.6, 1.0)).y, (vec4(0.2, 0.4, 0.6, 1.0)).x) * fragColor);",
+		"float roughness = clamp((vec2((vec2(0.33, 0.77)).y, 1.0)).x, MIN_ROUGHNESS, 1.0);",
+		"vec3 N = safeNormalize(vec3((vec3(0.1, 0.2, 0.3)).z, (vec3(0.1, 0.2, 0.3)).x, 0.0), geometricNormal);",
+	} {
+		if !strings.Contains(out.FragmentSource, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerSupportsVectorArithmeticNodes(t *testing.T) {
 	tests := []struct {
 		nodeType   string
