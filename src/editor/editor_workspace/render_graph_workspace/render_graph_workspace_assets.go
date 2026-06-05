@@ -23,6 +23,7 @@ const defaultRenderGraphName = "Untitled Render Graph"
 func (w *RenderGraphWorkspace) resetGraphToDefault() {
 	w.graph.clear()
 	w.graph.pan = matrix.Vec2Zero()
+	w.graph.zoom = 1
 	w.createNodeCount = 0
 	source, _ := w.graph.CreateCatalogNode("principled-bsdf", matrix.NewVec2(42, 56))
 	output, _ := w.graph.CreateCatalogNode("material-output", matrix.NewVec2(350, 150))

@@ -36,7 +36,7 @@ func (g *shaderGraph) finishBoxSelection(current matrix.Vec2) {
 	if g == nil {
 		return
 	}
-	if g.boxStart.Distance(current) <= shaderGraphBoxSelectThreshold {
+	if g.boxStart.Distance(current) <= shaderGraphBoxSelectThreshold/g.zoomValue() {
 		g.SelectNodes(nil, shaderGraphSelectionReplace)
 		g.cancelBoxSelection()
 		return
@@ -66,12 +66,13 @@ func (g *shaderGraph) updateSelectionBoxVisual(current matrix.Vec2) {
 	}
 	box := matrix.Vec4Area(g.boxStart.X(), g.boxStart.Y(), current.X(), current.Y())
 	viewPosition := g.viewPosition(matrix.NewVec2(box.Left(), box.Top()))
+	zoom := g.zoomValue()
 	width := max(matrix.Float(0.0001), box.Right()-box.Left())
 	height := max(matrix.Float(0.0001), box.Bottom()-box.Top())
 	base := g.selectionBox.Base()
 	base.Show()
 	base.Layout().SetOffset(viewPosition.X(), viewPosition.Y())
-	base.Layout().Scale(float32(width), float32(height))
+	base.Layout().Scale(float32(width*zoom), float32(height*zoom))
 	base.Clean()
 }
 

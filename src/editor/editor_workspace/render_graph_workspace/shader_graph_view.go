@@ -52,6 +52,34 @@ func (g *shaderGraph) updatePan() {
 	}
 }
 
+func (g *shaderGraph) updateZoom() {
+	if g == nil || g.host == nil || g.host.Window == nil || g.root == nil {
+		return
+	}
+	if g.uiMan.Group.IsFocusedOnInput() {
+		return
+	}
+	mouse := &g.host.Window.Mouse
+	if !mouse.Scrolled() || !g.screenPositionInside(mouse.ScreenPosition()) {
+		return
+	}
+	scroll := matrix.Float(mouse.ScrollY)
+	if matrix.Approx(scroll, 0) {
+		scroll = matrix.Float(mouse.ScrollX)
+	}
+	if matrix.Approx(scroll, 0) {
+		return
+	}
+	factor := matrix.Float(1) + matrix.Abs(scroll)*shaderGraphZoomStep
+	next := g.zoomValue()
+	if scroll > 0 {
+		next *= factor
+	} else {
+		next /= factor
+	}
+	g.setZoomAroundViewPosition(next, g.screenToViewPosition(mouse.ScreenPosition()))
+}
+
 func (g *shaderGraph) isPanInputHeld() bool {
 	if g == nil || g.host == nil || g.host.Window == nil {
 		return false
@@ -83,12 +111,34 @@ func (g *shaderGraph) CenterView() {
 	g.applyViewOffsets()
 }
 
+func (g *shaderGraph) zoomValue() matrix.Float {
+	if g == nil || g.zoom <= 0 {
+		return 1
+	}
+	return matrix.Clamp(g.zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
+}
+
+func (g *shaderGraph) setZoomAroundViewPosition(zoom matrix.Float, anchor matrix.Vec2) {
+	if g == nil {
+		return
+	}
+	next := matrix.Clamp(zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
+	if matrix.Approx(next, g.zoomValue()) {
+		g.zoom = next
+		return
+	}
+	graphAnchor := g.graphPositionFromView(anchor)
+	g.zoom = next
+	g.pan = anchor.Subtract(graphAnchor.Scale(next))
+	g.applyViewOffsets()
+}
+
 func (g *shaderGraph) viewPosition(position matrix.Vec2) matrix.Vec2 {
-	return position.Add(g.pan)
+	return position.Scale(g.zoomValue()).Add(g.pan)
 }
 
 func (g *shaderGraph) graphPositionFromView(position matrix.Vec2) matrix.Vec2 {
-	return position.Subtract(g.pan)
+	return position.Subtract(g.pan).Scale(1 / g.zoomValue())
 }
 
 func (g *shaderGraph) screenToViewPosition(position matrix.Vec2) matrix.Vec2 {

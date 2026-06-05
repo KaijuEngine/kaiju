@@ -20,6 +20,7 @@ type RenderGraphDocument struct {
 	Version     int                     `json:"version"`
 	Name        string                  `json:"name,omitempty"`
 	Pan         matrix.Vec2             `json:"pan,omitempty"`
+	Zoom        matrix.Float            `json:"zoom,omitempty"`
 	Nodes       []RenderGraphNode       `json:"nodes"`
 	Connections []RenderGraphConnection `json:"connections,omitempty"`
 }
@@ -125,6 +126,7 @@ func (g *shaderGraph) Document() RenderGraphDocument {
 	document := RenderGraphDocument{
 		Version: renderGraphDocumentVersion,
 		Pan:     g.pan,
+		Zoom:    g.zoomValue(),
 		Nodes:   make([]RenderGraphNode, 0, len(g.nodes)),
 	}
 	nodeIDs := make(map[*shaderGraphNode]string, len(g.nodes))
@@ -170,6 +172,11 @@ func (g *shaderGraph) LoadDocument(document RenderGraphDocument) error {
 	}
 	g.clear()
 	g.pan = document.Pan
+	g.zoom = document.Zoom
+	if g.zoom <= 0 {
+		g.zoom = 1
+	}
+	g.zoom = matrix.Clamp(g.zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
 	nodes := make(map[string]*shaderGraphNode, len(document.Nodes))
 	for i := range document.Nodes {
 		src := document.Nodes[i]

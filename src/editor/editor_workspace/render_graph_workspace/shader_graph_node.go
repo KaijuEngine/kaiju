@@ -130,6 +130,9 @@ func (n *shaderGraphNode) Update() {
 	}
 	current := mouse.ScreenPosition()
 	delta := current.Subtract(n.dragMouse)
+	if n.graph != nil {
+		delta = delta.Scale(1 / n.graph.zoomValue())
+	}
 	n.applyDragDelta(delta)
 }
 
@@ -188,8 +191,26 @@ func (n *shaderGraphNode) applyViewOffset() {
 		return
 	}
 	position := n.position
+	zoom := matrix.Float(1)
 	if n.graph != nil {
+		zoom = n.graph.zoomValue()
 		position = n.graph.viewPosition(position)
+	}
+	scale := matrix.NewVec3(
+		matrix.Float(shaderGraphNodeWidth)*zoom,
+		matrix.Float(n.height)*zoom,
+		1,
+	)
+	if parent := n.root.Base().Entity().Parent; parent != nil {
+		parentScale := parent.Transform.WorldScale()
+		if !matrix.Approx(parentScale.X(), 0) && !matrix.Approx(parentScale.Y(), 0) {
+			scale.SetX(scale.X() / parentScale.X())
+			scale.SetY(scale.Y() / parentScale.Y())
+		}
+	}
+	if !n.root.Base().Entity().Transform.Scale().Equals(scale) {
+		n.root.Base().Entity().Transform.SetScale(scale)
+		n.root.Base().SetDirty(ui.DirtyTypeResize)
 	}
 	n.root.Base().Layout().SetOffset(position.X(), position.Y())
 }

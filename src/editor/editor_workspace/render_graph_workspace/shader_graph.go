@@ -19,6 +19,9 @@ import (
 const (
 	shadingGraphMenuBarHeight   = float32(24.0)
 	shadingGraphStatusBarHeight = float32(20.8)
+	shaderGraphMinZoom          = matrix.Float(0.35)
+	shaderGraphMaxZoom          = matrix.Float(1.0)
+	shaderGraphZoomStep         = matrix.Float(0.1)
 )
 
 type shaderGraph struct {
@@ -33,6 +36,7 @@ type shaderGraph struct {
 	pendingFrom   *shaderGraphPort
 	pendingVisual *shaderGraphSpline
 	pan           matrix.Vec2
+	zoom          matrix.Float
 	panning       bool
 	panMouse      matrix.Vec2
 	hasPanMouse   bool
@@ -48,6 +52,7 @@ type shaderGraphViewport struct {
 func (g *shaderGraph) Initialize(host *engine.Host, history *memento.History) {
 	g.host = host
 	g.history = history
+	g.zoom = 1
 	g.uiMan.Init(host)
 	g.root = g.uiMan.Add().ToPanel()
 	g.root.Init(nil, ui.ElementTypePanel)
@@ -121,7 +126,10 @@ func (g *shaderGraph) Update() {
 	if g.root == nil || !g.root.Base().IsActive() {
 		return
 	}
-	g.applyLayout()
+	if g.applyLayout() {
+		g.applyViewOffsets()
+	}
+	g.updateZoom()
 	g.updatePan()
 	g.updateBoxSelection()
 	for i := range g.nodes {
@@ -262,9 +270,9 @@ func (g *shaderGraph) updatePendingConnection() {
 	}
 }
 
-func (g *shaderGraph) applyLayout() {
+func (g *shaderGraph) applyLayout() bool {
 	if g.host == nil || g.host.Window == nil || g.root == nil {
-		return
+		return false
 	}
 	viewport := g.viewport
 	if viewport.width <= 0 || viewport.height <= 0 {
@@ -280,6 +288,7 @@ func (g *shaderGraph) applyLayout() {
 		}
 	}
 	layout := g.root.Base().Layout()
-	layout.Scale(max(1, viewport.width), max(1, viewport.height))
+	resized := layout.Scale(max(1, viewport.width), max(1, viewport.height))
 	layout.SetOffset(viewport.x, viewport.y)
+	return resized
 }
