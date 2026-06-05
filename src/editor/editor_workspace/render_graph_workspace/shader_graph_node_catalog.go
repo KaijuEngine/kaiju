@@ -465,6 +465,12 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 					{Name: "Base Color", Type: "color"},
 					{Name: "Roughness", Type: "float"},
 					{Name: "Normal", Type: "vec3"},
+					{Name: "Metallic", Type: "float"},
+					{Name: "Occlusion", Type: "float"},
+					{Name: "Emission Color", Type: "color"},
+					{Name: "Emission Strength", Type: "float"},
+					{Name: "Alpha", Type: "float"},
+					{Name: "Specular", Type: "float"},
 				},
 				Outputs: []shaderGraphPortSpec{
 					{Name: "BSDF", Type: "surface"},

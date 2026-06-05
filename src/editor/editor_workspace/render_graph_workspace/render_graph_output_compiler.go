@@ -33,10 +33,20 @@ type renderGraphCompiledOutput struct {
 
 type renderGraphOutputSurface struct {
 	BaseColor           string
+	Metallic            string
 	Roughness           string
 	Normal              string
+	Occlusion           string
+	EmissionColor       string
+	EmissionStrength    string
+	Alpha               string
+	Specular            string
+	UseAlphaInput       bool
+	UseTextureMetallic  bool
 	UseTextureRoughness bool
 	UseTextureNormal    bool
+	UseTextureOcclusion bool
+	UseTextureEmission  bool
 }
 
 type renderGraphOutputExpression struct {
@@ -165,10 +175,19 @@ func (c *renderGraphOutputCompiler) materialOutputNode() (RenderGraphNode, error
 func (c *renderGraphOutputCompiler) compilePrincipledSurface(node RenderGraphNode) (renderGraphOutputSurface, error) {
 	surface := renderGraphOutputSurface{
 		BaseColor:           "fragColor",
+		Metallic:            "fragMetallic",
 		Roughness:           "fragRoughness",
 		Normal:              "pbrNormal(geometricNormal)",
+		Occlusion:           "1.0",
+		EmissionColor:       "vec3(0.0)",
+		EmissionStrength:    "fragEmissive",
+		Alpha:               "baseSample.a * graphBaseColor.a",
+		Specular:            "1.0",
+		UseTextureMetallic:  true,
 		UseTextureRoughness: true,
 		UseTextureNormal:    true,
+		UseTextureOcclusion: true,
+		UseTextureEmission:  true,
 	}
 	if colorRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 0}]; ok {
 		expr, err := c.emitExpression(colorRef, renderGraphOutputColor)
@@ -192,6 +211,52 @@ func (c *renderGraphOutputCompiler) compilePrincipledSurface(node RenderGraphNod
 		}
 		surface.Normal = "safeNormalize(" + expr.Value + ", geometricNormal)"
 		surface.UseTextureNormal = false
+	}
+	if metallicRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 3}]; ok {
+		expr, err := c.emitExpression(metallicRef, renderGraphOutputFloat)
+		if err != nil {
+			return surface, err
+		}
+		surface.Metallic = expr.Value
+		surface.UseTextureMetallic = false
+	}
+	if occlusionRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 4}]; ok {
+		expr, err := c.emitExpression(occlusionRef, renderGraphOutputFloat)
+		if err != nil {
+			return surface, err
+		}
+		surface.Occlusion = expr.Value
+		surface.UseTextureOcclusion = false
+	}
+	if emissionColorRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 5}]; ok {
+		expr, err := c.emitExpression(emissionColorRef, renderGraphOutputColor)
+		if err != nil {
+			return surface, err
+		}
+		surface.EmissionColor = "(" + expr.Value + ").rgb"
+		surface.UseTextureEmission = false
+	}
+	if emissionStrengthRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 6}]; ok {
+		expr, err := c.emitExpression(emissionStrengthRef, renderGraphOutputFloat)
+		if err != nil {
+			return surface, err
+		}
+		surface.EmissionStrength = expr.Value
+	}
+	if alphaRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 7}]; ok {
+		expr, err := c.emitExpression(alphaRef, renderGraphOutputFloat)
+		if err != nil {
+			return surface, err
+		}
+		surface.Alpha = expr.Value
+		surface.UseAlphaInput = true
+	}
+	if specularRef, ok := c.incoming[RenderGraphPortRef{Node: node.ID, Port: 8}]; ok {
+		expr, err := c.emitExpression(specularRef, renderGraphOutputFloat)
+		if err != nil {
+			return surface, err
+		}
+		surface.Specular = expr.Value
 	}
 	return surface, nil
 }
@@ -751,14 +816,32 @@ func renderGraphPBRFragmentSource(surface renderGraphOutputSurface, samplerCount
 	if samplerCount < 4 {
 		samplerCount = 4
 	}
+	metallicExpr := "clamp(mrSample.b * max(" + surface.Metallic + ", 0.0), 0.0, 1.0)"
+	if !surface.UseTextureMetallic {
+		metallicExpr = "clamp(" + surface.Metallic + ", 0.0, 1.0)"
+	}
 	roughnessExpr := "clamp(mrSample.g * max(" + surface.Roughness + ", MIN_ROUGHNESS), MIN_ROUGHNESS, 1.0)"
 	if !surface.UseTextureRoughness {
 		roughnessExpr = "clamp(" + surface.Roughness + ", MIN_ROUGHNESS, 1.0)"
+	}
+	occlusionExpr := "clamp(mrSample.r, 0.0, 1.0)"
+	if !surface.UseTextureOcclusion {
+		occlusionExpr = "clamp(" + surface.Occlusion + ", 0.0, 1.0)"
 	}
 	normalExpr := surface.Normal
 	if surface.UseTextureNormal {
 		normalExpr = "pbrNormal(geometricNormal)"
 	}
+	emissionColorExpr := "srgbToLinear(texture(textures[3], fragTexCoords).rgb)"
+	if !surface.UseTextureEmission {
+		emissionColorExpr = surface.EmissionColor
+	}
+	emissionExpr := "max(" + emissionColorExpr + ", vec3(0.0)) * max(" + surface.EmissionStrength + ", 0.0)"
+	alphaExpr := surface.Alpha
+	if surface.UseAlphaInput {
+		alphaExpr = "clamp(" + surface.Alpha + ", 0.0, 1.0)"
+	}
+	specularExpr := "clamp(" + surface.Specular + ", 0.0, 1.0)"
 	return fmt.Sprintf(`#version 460
 #define FRAGMENT_SHADER
 #define HAS_GBUFFER
@@ -870,13 +953,13 @@ void main() {
 	vec4 baseSample = texture(textures[0], fragTexCoords);
 	vec4 graphBaseColor = %s;
 	vec3 albedo = srgbToLinear(baseSample.rgb) * max(graphBaseColor.rgb, vec3(0.0));
-	float alpha = baseSample.a * graphBaseColor.a;
+	float alpha = %s;
 
 	vec4 mrSample = texture(textures[2], fragTexCoords);
-	float metallic = clamp(mrSample.b * max(fragMetallic, 0.0), 0.0, 1.0);
+	float metallic = %s;
 	float roughness = %s;
-	float occlusion = clamp(mrSample.r, 0.0, 1.0);
-	vec3 emission = srgbToLinear(texture(textures[3], fragTexCoords).rgb) * max(fragEmissive, 0.0);
+	float occlusion = %s;
+	vec3 emission = %s;
 
 	vec3 geometricNormal = safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0));
 	vec3 N = %s;
@@ -885,7 +968,7 @@ void main() {
 
 	processGBuffer(N);
 
-	vec3 F0 = mix(vec3(0.04), albedo, metallic);
+	vec3 F0 = mix(vec3(0.04 * %s), albedo, metallic);
 	vec3 Lo = vec3(0.0);
 	vec3 ambient = vec3(DEFAULT_AMBIENT_STRENGTH) * albedo * occlusion;
 
@@ -939,5 +1022,6 @@ void main() {
 	color = linearToSrgb(acesTonemap(color));
 	processFinalColor(vec4(color, alpha));
 }
-`, samplerCount, surface.BaseColor, roughnessExpr, normalExpr)
+`, samplerCount, surface.BaseColor, alphaExpr, metallicExpr, roughnessExpr,
+		occlusionExpr, emissionExpr, normalExpr, specularExpr)
 }

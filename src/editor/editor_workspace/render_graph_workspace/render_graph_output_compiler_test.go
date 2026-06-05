@@ -83,6 +83,98 @@ func TestRenderGraphCompilerMapsPrincipledInputs(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerMapsExpandedPrincipledInputs(t *testing.T) {
+	emission := matrix.NewColor(0.25, 0.5, 0.75, 1)
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "metallic",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.66"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "occlusion",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.42"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "emission-color",
+			Type: "color",
+			Values: map[string]RenderGraphFieldValue{
+				"color": {Color: &emission},
+			},
+		},
+		RenderGraphNode{
+			ID:   "emission-strength",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "3.5"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "alpha",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.7"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "specular",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.25"},
+			},
+		},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{
+			Output: RenderGraphPortRef{Node: "metallic", Port: 0},
+			Input:  RenderGraphPortRef{Node: "bsdf", Port: 3},
+		},
+		RenderGraphConnection{
+			Output: RenderGraphPortRef{Node: "occlusion", Port: 0},
+			Input:  RenderGraphPortRef{Node: "bsdf", Port: 4},
+		},
+		RenderGraphConnection{
+			Output: RenderGraphPortRef{Node: "emission-color", Port: 0},
+			Input:  RenderGraphPortRef{Node: "bsdf", Port: 5},
+		},
+		RenderGraphConnection{
+			Output: RenderGraphPortRef{Node: "emission-strength", Port: 0},
+			Input:  RenderGraphPortRef{Node: "bsdf", Port: 6},
+		},
+		RenderGraphConnection{
+			Output: RenderGraphPortRef{Node: "alpha", Port: 0},
+			Input:  RenderGraphPortRef{Node: "bsdf", Port: 7},
+		},
+		RenderGraphConnection{
+			Output: RenderGraphPortRef{Node: "specular", Port: 0},
+			Input:  RenderGraphPortRef{Node: "bsdf", Port: 8},
+		},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	source := out.FragmentSource
+	for _, want := range []string{
+		"float alpha = clamp(0.7, 0.0, 1.0);",
+		"float metallic = clamp(0.66, 0.0, 1.0);",
+		"float occlusion = clamp(0.42, 0.0, 1.0);",
+		"vec3 emission = max((vec4(0.25, 0.5, 0.75, 1.0)).rgb, vec3(0.0)) * max(3.5, 0.0);",
+		"vec3 F0 = mix(vec3(0.04 * clamp(0.25, 0.0, 1.0)), albedo, metallic);",
+	} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("generated fragment missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerSupportsMathAndMixColorNodes(t *testing.T) {
 	clamp := true
 	a := matrix.NewColor(1, 0, 0, 1)

@@ -100,6 +100,32 @@ func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
 	}
 }
 
+func TestShaderGraphPrincipledBSDFExposesExpandedPBRInputs(t *testing.T) {
+	bsdf, ok := shaderGraphNodeCatalogSpec("principled-bsdf")
+	if !ok {
+		t.Fatal("principled-bsdf node missing")
+	}
+	want := []shaderGraphPortSpec{
+		{Name: "Base Color", Type: "color"},
+		{Name: "Roughness", Type: "float"},
+		{Name: "Normal", Type: "vec3"},
+		{Name: "Metallic", Type: "float"},
+		{Name: "Occlusion", Type: "float"},
+		{Name: "Emission Color", Type: "color"},
+		{Name: "Emission Strength", Type: "float"},
+		{Name: "Alpha", Type: "float"},
+		{Name: "Specular", Type: "float"},
+	}
+	if len(bsdf.Inputs) != len(want) {
+		t.Fatalf("principled-bsdf inputs = %#v, want %#v", bsdf.Inputs, want)
+	}
+	for i := range want {
+		if bsdf.Inputs[i] != want[i] {
+			t.Fatalf("principled-bsdf input %d = %#v, want %#v", i, bsdf.Inputs[i], want[i])
+		}
+	}
+}
+
 func TestShaderGraphMaterialOutputOnlyExposesCompiledSurfaceInput(t *testing.T) {
 	output, ok := shaderGraphNodeCatalogSpec("material-output")
 	if !ok {
