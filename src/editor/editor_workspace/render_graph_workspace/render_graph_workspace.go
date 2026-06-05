@@ -61,6 +61,10 @@ func (w *RenderGraphWorkspace) ID() string          { return ID }
 func (w *RenderGraphWorkspace) DisplayName() string { return DisplayName }
 func (w *RenderGraphWorkspace) IsRequired() bool    { return false }
 
+func (w *RenderGraphWorkspace) IsFocusedOnInput() bool {
+	return w.CommonWorkspace.IsFocusedOnInput() || w.graph.IsFocusedOnInput()
+}
+
 func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	defer tracing.NewRegion("RenderGraphWorkspace.Initialize").End()
 	w.ed = ed

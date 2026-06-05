@@ -128,6 +128,10 @@ func (g *shaderGraph) Close() {
 	g.cancelPendingConnection()
 }
 
+func (g *shaderGraph) IsFocusedOnInput() bool {
+	return g != nil && g.uiMan.Group.IsFocusedOnInput()
+}
+
 func (g *shaderGraph) Update() {
 	if g.root == nil || !g.root.Base().IsActive() {
 		return
