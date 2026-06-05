@@ -81,12 +81,18 @@ func TestShaderGraphSetZoomClampsToDefaultZoom(t *testing.T) {
 	}
 }
 
-func TestShaderGraphCenterViewResetsPan(t *testing.T) {
-	graph := shaderGraph{pan: matrix.NewVec2(24, -16)}
+func TestShaderGraphCenterViewResetsPanAndZoom(t *testing.T) {
+	graph := shaderGraph{
+		pan:  matrix.NewVec2(24, -16),
+		zoom: 0.5,
+	}
 
 	graph.CenterView()
 
 	if !matrix.Vec2Approx(graph.pan, matrix.Vec2Zero()) {
 		t.Fatalf("pan = %v, want zero", graph.pan)
+	}
+	if !matrix.Approx(graph.zoom, 1) {
+		t.Fatalf("zoom = %v, want default zoom", graph.zoom)
 	}
 }

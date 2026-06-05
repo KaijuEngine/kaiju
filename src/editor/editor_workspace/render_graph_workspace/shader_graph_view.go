@@ -108,6 +108,7 @@ func (g *shaderGraph) CenterView() {
 		return
 	}
 	g.pan = matrix.Vec2Zero()
+	g.zoom = 1
 	g.applyViewOffsets()
 }
 
