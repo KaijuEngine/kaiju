@@ -8,6 +8,7 @@ package render_graph_workspace
 
 import (
 	"fmt"
+	"slices"
 
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/engine"
@@ -177,10 +178,83 @@ func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnec
 	if !ok || g.root == nil {
 		return nil
 	}
+	outputRef, inputRef, ok := shaderGraphConnectionRefs(output, input)
+	if ok {
+		if existing := g.connectionByRefs(outputRef, inputRef); existing != nil {
+			return existing
+		}
+	}
 	connection := &shaderGraphConnection{}
 	connection.Initialize(g.host, g.root, output, input)
 	g.connections = append(g.connections, connection)
 	return connection
+}
+
+func (g *shaderGraph) ConnectPorts(a, b *shaderGraphPort) *shaderGraphConnection {
+	output, input, ok := shaderGraphConnectionPorts(a, b)
+	if !ok {
+		return nil
+	}
+	outputRef, inputRef, ok := shaderGraphConnectionRefs(output, input)
+	if !ok {
+		return nil
+	}
+	if existing := g.connectionByRefs(outputRef, inputRef); existing != nil {
+		return existing
+	}
+	connection := g.CreateConnection(output, input)
+	if connection == nil {
+		return nil
+	}
+	if g.history != nil {
+		g.history.Add(&shaderGraphConnectionHistory{
+			graph:  g,
+			output: outputRef,
+			input:  inputRef,
+		})
+	}
+	return connection
+}
+
+func (g *shaderGraph) RemoveConnection(outputRef, inputRef RenderGraphPortRef) bool {
+	if g == nil {
+		return false
+	}
+	for i := range g.connections {
+		connection := g.connections[i]
+		if connection == nil || !connection.matches(outputRef, inputRef) {
+			continue
+		}
+		connection.Destroy()
+		g.connections = slices.Delete(g.connections, i, i+1)
+		return true
+	}
+	return false
+}
+
+func (g *shaderGraph) connectionByRefs(outputRef, inputRef RenderGraphPortRef) *shaderGraphConnection {
+	if g == nil {
+		return nil
+	}
+	for i := range g.connections {
+		connection := g.connections[i]
+		if connection != nil && connection.matches(outputRef, inputRef) {
+			return connection
+		}
+	}
+	return nil
+}
+
+func (g *shaderGraph) createConnectionFromRefs(outputRef, inputRef RenderGraphPortRef) *shaderGraphConnection {
+	if g == nil {
+		return nil
+	}
+	outputNode := g.nodeByID(outputRef.Node)
+	inputNode := g.nodeByID(inputRef.Node)
+	if outputNode == nil || inputNode == nil {
+		return nil
+	}
+	return g.CreateConnection(outputNode.Output(outputRef.Port), inputNode.Input(inputRef.Port))
 }
 
 func (g *shaderGraph) SetViewport(x, y, width, height float32) {
@@ -243,7 +317,7 @@ func (g *shaderGraph) finishConnection(port *shaderGraphPort) {
 		return
 	}
 	if port != nil && g.pendingFrom.CanConnect(port) {
-		g.CreateConnection(g.pendingFrom, port)
+		g.ConnectPorts(g.pendingFrom, port)
 	}
 	g.cancelPendingConnection()
 }

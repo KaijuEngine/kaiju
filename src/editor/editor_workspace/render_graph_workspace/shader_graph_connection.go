@@ -67,6 +67,29 @@ func (c *shaderGraphConnection) Destroy() {
 	c.visual.Destroy()
 }
 
+func (c *shaderGraphConnection) matches(outputRef, inputRef RenderGraphPortRef) bool {
+	if c == nil {
+		return false
+	}
+	currentOutput, currentInput, ok := shaderGraphConnectionRefs(c.output, c.input)
+	return ok && currentOutput == outputRef && currentInput == inputRef
+}
+
+func shaderGraphConnectionRefs(output, input *shaderGraphPort) (RenderGraphPortRef, RenderGraphPortRef, bool) {
+	if output == nil || input == nil ||
+		output.node == nil || input.node == nil ||
+		output.node.id == "" || input.node.id == "" {
+		return RenderGraphPortRef{}, RenderGraphPortRef{}, false
+	}
+	return RenderGraphPortRef{
+			Node: output.node.id,
+			Port: output.index,
+		}, RenderGraphPortRef{
+			Node: input.node.id,
+			Port: input.index,
+		}, true
+}
+
 type shaderGraphSpline struct {
 	host      *engine.Host
 	root      *ui.Panel
