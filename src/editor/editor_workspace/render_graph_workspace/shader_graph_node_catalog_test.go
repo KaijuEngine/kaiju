@@ -166,6 +166,13 @@ func TestShaderGraphTextureNodePortTypes(t *testing.T) {
 	if len(texture.Outputs) != 1 || texture.Outputs[0].Type != "texture2D" {
 		t.Fatalf("texture-2d outputs = %#v, want texture2D", texture.Outputs)
 	}
+	if len(texture.Fields) == 0 || texture.Fields[0].Type != shaderGraphNodeFieldTexture ||
+		!texture.Fields[0].Preview {
+		t.Fatalf("texture-2d first field = %#v, want texture field with preview", texture.Fields)
+	}
+	if got, want := shaderGraphNodeFieldHeight(texture.Fields[0]), shaderGraphFieldHeight; got <= want {
+		t.Fatalf("texture preview field height = %v, want greater than %v", got, want)
+	}
 
 	sample, ok := shaderGraphNodeCatalogSpec("sample-texture-2d")
 	if !ok {

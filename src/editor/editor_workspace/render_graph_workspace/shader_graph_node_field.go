@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/editor/editor_overlay/color_picker"
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
@@ -21,6 +22,7 @@ const (
 	shaderGraphFieldLabelWidth = float32(54)
 	shaderGraphFieldControlH   = float32(20)
 	shaderGraphFieldControlX   = shaderGraphNodePadding + shaderGraphFieldLabelWidth + 5
+	shaderGraphTexturePreview  = float32(52)
 )
 
 var (
@@ -31,25 +33,26 @@ var (
 )
 
 type shaderGraphNodeField struct {
-	node        *shaderGraphNode
-	spec        shaderGraphNodeFieldSpec
-	label       *ui.Label
-	inputs      []*ui.Input
-	checkbox    *ui.Checkbox
-	selectRoot  *ui.Panel
-	selectLabel *ui.Label
-	selectList  *ui.Panel
-	swatch      *ui.Panel
-	textureRoot *ui.Panel
-	textureText *ui.Label
+	node           *shaderGraphNode
+	spec           shaderGraphNodeFieldSpec
+	label          *ui.Label
+	inputs         []*ui.Input
+	checkbox       *ui.Checkbox
+	selectRoot     *ui.Panel
+	selectLabel    *ui.Label
+	selectList     *ui.Panel
+	swatch         *ui.Panel
+	textureRoot    *ui.Panel
+	textureText    *ui.Label
+	texturePreview *ui.Image
 }
 
 func (n *shaderGraphNode) createFields(uiMan *ui.Manager, fields []shaderGraphNodeFieldSpec) {
 	if len(fields) == 0 {
 		return
 	}
+	y := shaderGraphNodeFieldStartY
 	for i := range fields {
-		y := shaderGraphNodeFieldStartY + float32(i)*(shaderGraphFieldHeight+shaderGraphFieldGap)
 		field := &shaderGraphNodeField{
 			node: n,
 			spec: fields[i],
@@ -57,7 +60,15 @@ func (n *shaderGraphNode) createFields(uiMan *ui.Manager, fields []shaderGraphNo
 		n.fields = append(n.fields, field)
 		n.setFieldValue(fields[i].ID, shaderGraphDefaultFieldValue(fields[i]))
 		field.create(uiMan, y)
+		y += shaderGraphNodeFieldHeight(fields[i]) + shaderGraphFieldGap
 	}
+}
+
+func shaderGraphNodeFieldHeight(field shaderGraphNodeFieldSpec) float32 {
+	if field.Type == shaderGraphNodeFieldTexture && field.Preview {
+		return shaderGraphFieldControlH + 4 + shaderGraphTexturePreview
+	}
+	return shaderGraphFieldHeight
 }
 
 func (f *shaderGraphNodeField) create(uiMan *ui.Manager, y float32) {
@@ -112,6 +123,28 @@ func (f *shaderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
 	f.textureText.Base().Layout().Scale(f.controlWidth()-8, shaderGraphFieldControlH)
 	f.textureText.Base().Layout().SetOffset(4, 0)
 	f.textureRoot.AddChild(f.textureText.Base())
+
+	if f.spec.Preview {
+		f.createTexturePreview(uiMan, y)
+	}
+}
+
+func (f *shaderGraphNodeField) createTexturePreview(uiMan *ui.Manager, y float32) {
+	f.texturePreview = uiMan.Add().ToImage()
+	f.texturePreview.Init(nil)
+	preview := f.texturePreview.Base().ToPanel()
+	preview.DontFitContent()
+	preview.SetColor(matrix.ColorWhite())
+	preview.SetBorderSize(1, 1, 1, 1)
+	preview.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	f.texturePreview.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	f.texturePreview.Base().Layout().SetZ(0.2)
+	f.texturePreview.Base().Layout().Scale(shaderGraphTexturePreview, shaderGraphTexturePreview)
+	f.texturePreview.Base().Layout().SetOffset(shaderGraphFieldControlX, y+shaderGraphFieldControlH+4)
+	f.texturePreview.Base().AddEvent(ui.EventTypeClick, f.openTextureSelector)
+	f.node.bindSelectionEvent(f.texturePreview.Base())
+	f.node.root.AddChild(f.texturePreview.Base())
+	f.updateTexturePreview()
 }
 
 func (f *shaderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
@@ -421,6 +454,26 @@ func (f *shaderGraphNodeField) updateTextureText() {
 	if f.textureText != nil {
 		f.textureText.SetText(f.textureDisplayText())
 	}
+	f.updateTexturePreview()
+}
+
+func (f *shaderGraphNodeField) updateTexturePreview() {
+	if f.texturePreview == nil || f.node == nil || f.node.host == nil {
+		return
+	}
+	textureID := f.node.FieldValue(f.spec.ID).Text
+	if textureID == "" {
+		textureID = assets.TextureSquare
+	}
+	tex, err := f.node.host.TextureCache().Texture(textureID, rendering.TextureFilterLinear)
+	if err != nil {
+		slog.Error("failed to load shader graph texture preview", "texture", textureID, "error", err)
+		tex, err = f.node.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		if err != nil {
+			return
+		}
+	}
+	f.texturePreview.SetTexture(tex)
 }
 
 func (f *shaderGraphNodeField) textureDisplayText() string {

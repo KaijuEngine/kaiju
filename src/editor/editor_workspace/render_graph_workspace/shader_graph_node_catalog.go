@@ -174,6 +174,7 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 						Label:   "Texture",
 						Type:    shaderGraphNodeFieldTexture,
 						Default: assets.TextureSquare,
+						Preview: true,
 					},
 					{
 						ID:      "label",

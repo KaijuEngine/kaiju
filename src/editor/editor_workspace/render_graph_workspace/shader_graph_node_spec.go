@@ -43,6 +43,7 @@ type shaderGraphNodeFieldSpec struct {
 	DefaultValues []string
 	DefaultBool   bool
 	DefaultColor  matrix.Color
+	Preview       bool
 	Options       []shaderGraphNodeFieldOption
 }
 
