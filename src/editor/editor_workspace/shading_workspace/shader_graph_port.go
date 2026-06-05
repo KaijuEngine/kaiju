@@ -7,6 +7,8 @@
 package shading_workspace
 
 import (
+	"strings"
+
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 )
@@ -56,7 +58,9 @@ func (p *shaderGraphPort) bindEvents() {
 }
 
 func shaderGraphPortsCanConnect(a, b *shaderGraphPort) bool {
-	return a != nil && b != nil && a.output != b.output
+	return a != nil && b != nil &&
+		a.output != b.output &&
+		shaderGraphPortTypeKey(a.spec.Type) == shaderGraphPortTypeKey(b.spec.Type)
 }
 
 func shaderGraphConnectionPorts(a, b *shaderGraphPort) (output, input *shaderGraphPort, ok bool) {
@@ -67,4 +71,8 @@ func shaderGraphConnectionPorts(a, b *shaderGraphPort) (output, input *shaderGra
 		return a, b, true
 	}
 	return b, a, true
+}
+
+func shaderGraphPortTypeKey(portType string) string {
+	return strings.ToLower(strings.TrimSpace(portType))
 }

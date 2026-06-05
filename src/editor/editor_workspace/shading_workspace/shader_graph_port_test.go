@@ -9,10 +9,10 @@ package shading_workspace
 import "testing"
 
 func TestShaderGraphPortsCanConnectOnlyOppositeDirections(t *testing.T) {
-	inputA := &shaderGraphPort{output: false}
-	inputB := &shaderGraphPort{output: false}
-	outputA := &shaderGraphPort{output: true}
-	outputB := &shaderGraphPort{output: true}
+	inputA := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: "float"}}
+	inputB := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: "float"}}
+	outputA := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "float"}}
+	outputB := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "float"}}
 
 	if shaderGraphPortsCanConnect(inputA, inputB) {
 		t.Fatal("input ports should not connect to other input ports")
@@ -28,5 +28,23 @@ func TestShaderGraphPortsCanConnectOnlyOppositeDirections(t *testing.T) {
 	}
 	if shaderGraphPortsCanConnect(inputA, nil) {
 		t.Fatal("nil ports should not connect")
+	}
+}
+
+func TestShaderGraphPortsCanConnectRequiresMatchingTypes(t *testing.T) {
+	inputFloat := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: "float"}}
+	outputFloat := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "float"}}
+	outputColor := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "color"}}
+	inputSurface := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: " Surface "}}
+	outputSurface := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "surface"}}
+
+	if !shaderGraphPortsCanConnect(inputFloat, outputFloat) {
+		t.Fatal("matching input and output port types should connect")
+	}
+	if shaderGraphPortsCanConnect(inputFloat, outputColor) {
+		t.Fatal("mismatched input and output port types should not connect")
+	}
+	if !shaderGraphPortsCanConnect(inputSurface, outputSurface) {
+		t.Fatal("port type comparison should normalize case and whitespace")
 	}
 }
