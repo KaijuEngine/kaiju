@@ -85,8 +85,9 @@ func TestRenderGraphGeneratedShaderUsesPBRDrawInstanceData(t *testing.T) {
 	if err = pfs.WriteFile(project_file_system.StockFolder+"/pbr.shader", stockShader, os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
-	shader, err := buildRenderGraphShaderData(&pfs, "render_graph_abc", "database/src/render/shader/render_graph_abc.frag",
-		"fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"}, nil)
+	shader, err := buildRenderGraphShaderData(&pfs, "render_graph_abc",
+		"database/src/render/shader/render_graph_abc.vert", "vertex.spv", rendering.ShaderLayoutGroup{Type: "Vertex"},
+		"database/src/render/shader/render_graph_abc.frag", "fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"}, nil)
 	if err != nil {
 		t.Fatalf("buildRenderGraphShaderData error = %v", err)
 	}
@@ -131,8 +132,9 @@ func TestRenderGraphGeneratedShaderAndMaterialUseCompiledTextureSlots(t *testing
 		Filter:  "Nearest",
 	})
 	labels := renderGraphSamplerLabels(textures)
-	shader, err := buildRenderGraphShaderData(&pfs, "render_graph_abc", "database/src/render/shader/render_graph_abc.frag",
-		"fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"}, labels)
+	shader, err := buildRenderGraphShaderData(&pfs, "render_graph_abc",
+		"database/src/render/shader/render_graph_abc.vert", "vertex.spv", rendering.ShaderLayoutGroup{Type: "Vertex"},
+		"database/src/render/shader/render_graph_abc.frag", "fragment.spv", rendering.ShaderLayoutGroup{Type: "Fragment"}, labels)
 	if err != nil {
 		t.Fatalf("buildRenderGraphShaderData error = %v", err)
 	}

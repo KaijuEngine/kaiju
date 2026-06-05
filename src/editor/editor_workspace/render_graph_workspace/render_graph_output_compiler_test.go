@@ -1054,6 +1054,48 @@ func TestRenderGraphCompilerSupportsProceduralPatternNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerSupportsProceduralVertexDisplacement(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "noise",
+			Type: "noise",
+			Values: map[string]RenderGraphFieldValue{
+				"scale":     {Text: "4"},
+				"detail":    {Text: "5"},
+				"roughness": {Text: "0.6"},
+			},
+		},
+		RenderGraphNode{
+			ID:   "strength",
+			Type: "value",
+			Values: map[string]RenderGraphFieldValue{
+				"value": {Text: "0.2"},
+			},
+		},
+		RenderGraphNode{ID: "displacement", Type: "multiply"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "noise", Port: 0}, Input: RenderGraphPortRef{Node: "displacement", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "strength", Port: 0}, Input: RenderGraphPortRef{Node: "displacement", Port: 1}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "displacement", Port: 0}, Input: RenderGraphPortRef{Node: "output", Port: 1}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	for _, want := range []string{
+		"#define VERTEX_SHADER",
+		"float graphDisplacement = (graphFBM2D((graphVertexUV) * 4.0, 5.0, 0.6) * 0.2);",
+		"vec3 graphDisplacedPosition = Position + graphVertexLocalNormal * graphDisplacement;",
+	} {
+		if !strings.Contains(out.VertexSource, want) {
+			t.Fatalf("generated vertex missing %q", want)
+		}
+	}
+}
+
 func TestRenderGraphCompilerSupportsProceduralUtilityNodes(t *testing.T) {
 	rimColor := matrix.NewColor(0.125, 0.25, 1, 1)
 	doc := defaultRenderGraphCompilerDocument()

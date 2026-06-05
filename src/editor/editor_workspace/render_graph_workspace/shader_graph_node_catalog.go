@@ -1303,6 +1303,7 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 				Description: "Terminal output for the material shader.",
 				Inputs: []shaderGraphPortSpec{
 					{Name: "Surface", Type: "surface"},
+					{Name: "Displacement", Type: "float"},
 				},
 			},
 		},

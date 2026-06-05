@@ -28,6 +28,7 @@ const (
 )
 
 type renderGraphCompiledOutput struct {
+	VertexSource   string
 	FragmentSource string
 	SamplerLabels  []string
 	Textures       []rendering.MaterialTextureData
@@ -59,6 +60,7 @@ type renderGraphOutputExpression struct {
 
 type renderGraphOutputCompiler struct {
 	document     RenderGraphDocument
+	vertexStage  bool
 	nodes        map[string]RenderGraphNode
 	specs        map[string]shaderGraphNodeSpec
 	incoming     map[RenderGraphPortRef]RenderGraphPortRef
@@ -77,7 +79,17 @@ func compileRenderGraphDocumentOutput(document RenderGraphDocument) (renderGraph
 	if err != nil {
 		return renderGraphCompiledOutput{}, err
 	}
+	vertexCompiler, err := newRenderGraphOutputCompiler(document)
+	if err != nil {
+		return renderGraphCompiledOutput{}, err
+	}
+	vertexCompiler.vertexStage = true
+	displacement, err := vertexCompiler.compileMaterialDisplacement()
+	if err != nil {
+		return renderGraphCompiledOutput{}, err
+	}
 	return renderGraphCompiledOutput{
+		VertexSource:   renderGraphPBRVertexSource(displacement),
 		FragmentSource: renderGraphPBRFragmentSource(surface, len(compiler.textures)),
 		SamplerLabels:  renderGraphSamplerLabels(compiler.textures),
 		Textures:       append([]rendering.MaterialTextureData(nil), compiler.textures...),
@@ -154,6 +166,25 @@ func (c *renderGraphOutputCompiler) compileMaterialSurface() (renderGraphOutputS
 		return renderGraphOutputSurface{}, fmt.Errorf("material output surface must come from principled-bsdf")
 	}
 	return c.compilePrincipledSurface(surfaceNode)
+}
+
+func (c *renderGraphOutputCompiler) compileMaterialDisplacement() (string, error) {
+	output, err := c.materialOutputNode()
+	if err != nil {
+		return "", err
+	}
+	displacementRef, ok := c.incoming[RenderGraphPortRef{Node: output.ID, Port: 1}]
+	if !ok {
+		return "0.0", nil
+	}
+	expr, err := c.emitExpression(displacementRef, renderGraphOutputFloat)
+	if err != nil {
+		return "", err
+	}
+	if len(c.textures) > len(renderGraphDefaultTextureSlots()) {
+		return "", fmt.Errorf("render graph vertex displacement does not support texture sampling yet")
+	}
+	return expr.Value, nil
 }
 
 func (c *renderGraphOutputCompiler) materialOutputNode() (RenderGraphNode, error) {
@@ -350,11 +381,17 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "swizzle-vec4":
 		return c.emitSwizzleVector(node, port, renderGraphOutputVec4, "vec4", 4)
 	case "texture-2d":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitTexture2D(node)
 	case "sample-texture-2d":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitSampleTexture2D(node, port)
 	case "uv":
-		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: "fragTexCoords"}, nil
+		return renderGraphOutputExpression{Type: renderGraphOutputVec2, Value: c.uvExpression()}, nil
 	case "uv-transform":
 		return c.emitUVTransform(node)
 	case "split-rgba":
@@ -362,8 +399,14 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "channel-mask":
 		return c.emitChannelMask(node)
 	case "texel-size":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitTexelSize(node, port)
 	case "normal-map":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitNormalMap(node, port)
 	case "normal-strength":
 		return c.emitNormalStrength(node)
@@ -372,31 +415,51 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "orm-mra-unpack":
 		return c.emitPackedPBRMap(node, port)
 	case "height-bump":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitHeightBump(node)
 	case "parallax":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitParallax(node, port)
 	case "triplanar":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitTriplanar(node, port)
 	case "detail-texture":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitDetailTexture(node)
 	case "time":
 		return emitTime(node, port)
 	case "world-position":
-		return emitVec3Context(node, port, "fragPos")
+		return emitVec3Context(node, port, c.worldPositionExpression())
 	case "normal-vector":
-		return emitVec3Context(node, port, graphGeometricNormalExpression())
+		return emitVec3Context(node, port, c.geometricNormalExpression())
 	case "tangent-vector":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return emitVec3Context(node, port, "safeNormalize(cotangentFrame("+
 			graphGeometricNormalExpression()+", fragPos, fragTexCoords)[0], vec3(1.0, 0.0, 0.0))")
 	case "bitangent-vector":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return emitVec3Context(node, port, "safeNormalize(cotangentFrame("+
 			graphGeometricNormalExpression()+", fragPos, fragTexCoords)[1], vec3(0.0, 0.0, 1.0))")
 	case "view-direction":
-		return emitVec3Context(node, port, "safeNormalize(cameraPosition.xyz - fragPos, "+
-			graphGeometricNormalExpression()+")")
+		return emitVec3Context(node, port, c.viewDirectionExpression())
 	case "camera-position":
 		return emitVec3Context(node, port, "cameraPosition.xyz")
 	case "screen-position":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return emitScreenPosition(node, port)
 	case "vertex-color":
 		return emitVertexColor(node, port)
@@ -419,6 +482,9 @@ func (c *renderGraphOutputCompiler) emitNodeOutput(node RenderGraphNode, port in
 	case "rim-light":
 		return c.emitRimLight(node, port)
 	case "fwidth", "ddx", "ddy":
+		if c.vertexStage {
+			return renderGraphOutputExpression{}, fmt.Errorf("render graph node %q cannot be used for vertex displacement", node.Type)
+		}
 		return c.emitDerivative(node)
 	case "add", "subtract", "multiply", "divide", "minimum", "maximum", "power":
 		return c.emitFloatBinary(node)
@@ -722,7 +788,7 @@ func (c *renderGraphOutputCompiler) emitSampleTexture2D(node RenderGraphNode, po
 }
 
 func (c *renderGraphOutputCompiler) emitUVTransform(node RenderGraphNode) (renderGraphOutputExpression, error) {
-	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, c.uvExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -823,7 +889,7 @@ func (c *renderGraphOutputCompiler) emitNormalMap(node RenderGraphNode, port int
 }
 
 func (c *renderGraphOutputCompiler) emitNormalStrength(node RenderGraphNode) (renderGraphOutputExpression, error) {
-	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, c.geometricNormalExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -834,16 +900,16 @@ func (c *renderGraphOutputCompiler) emitNormalStrength(node RenderGraphNode) (re
 	return renderGraphOutputExpression{
 		Type: renderGraphOutputVec3,
 		Value: "graphApplyNormalStrength(" + normal + ", " + strength + ", " +
-			graphGeometricNormalExpression() + ")",
+			c.geometricNormalExpression() + ")",
 	}, nil
 }
 
 func (c *renderGraphOutputCompiler) emitBlendNormals(node RenderGraphNode) (renderGraphOutputExpression, error) {
-	base, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	base, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, c.geometricNormalExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
-	detail, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, graphGeometricNormalExpression())
+	detail, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, c.geometricNormalExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -854,7 +920,7 @@ func (c *renderGraphOutputCompiler) emitBlendNormals(node RenderGraphNode) (rend
 	return renderGraphOutputExpression{
 		Type: renderGraphOutputVec3,
 		Value: "graphBlendNormals(" + base + ", " + detail + ", " + strength + ", " +
-			graphGeometricNormalExpression() + ")",
+			c.geometricNormalExpression() + ")",
 	}, nil
 }
 
@@ -984,7 +1050,7 @@ func (c *renderGraphOutputCompiler) emitDetailTexture(node RenderGraphNode) (ren
 }
 
 func (c *renderGraphOutputCompiler) emitNoise(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
-	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, c.uvExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -1012,7 +1078,7 @@ func (c *renderGraphOutputCompiler) emitNoise(node RenderGraphNode, port int) (r
 }
 
 func (c *renderGraphOutputCompiler) emitVoronoi(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
-	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, c.uvExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -1040,7 +1106,7 @@ func (c *renderGraphOutputCompiler) emitVoronoi(node RenderGraphNode, port int) 
 }
 
 func (c *renderGraphOutputCompiler) emitChecker(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
-	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, c.uvExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -1062,7 +1128,7 @@ func (c *renderGraphOutputCompiler) emitChecker(node RenderGraphNode, port int) 
 }
 
 func (c *renderGraphOutputCompiler) emitGradient(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
-	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, "fragTexCoords")
+	uv, err := c.optionalInputExpression(node, 0, renderGraphOutputVec2, c.uvExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -1146,11 +1212,11 @@ func (c *renderGraphOutputCompiler) emitPosterizeColor(node RenderGraphNode) (re
 }
 
 func (c *renderGraphOutputCompiler) emitFresnel(node RenderGraphNode) (renderGraphOutputExpression, error) {
-	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, c.geometricNormalExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
-	view, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, "safeNormalize(cameraPosition.xyz - fragPos, "+graphGeometricNormalExpression()+")")
+	view, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, c.viewDirectionExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -1173,11 +1239,11 @@ func (c *renderGraphOutputCompiler) emitFresnel(node RenderGraphNode) (renderGra
 }
 
 func (c *renderGraphOutputCompiler) emitRimLight(node RenderGraphNode, port int) (renderGraphOutputExpression, error) {
-	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, graphGeometricNormalExpression())
+	normal, err := c.optionalInputExpression(node, 0, renderGraphOutputVec3, c.geometricNormalExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
-	view, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, "safeNormalize(cameraPosition.xyz - fragPos, "+graphGeometricNormalExpression()+")")
+	view, err := c.optionalInputExpression(node, 1, renderGraphOutputVec3, c.viewDirectionExpression())
 	if err != nil {
 		return renderGraphOutputExpression{}, err
 	}
@@ -1392,6 +1458,31 @@ func emitVertexColor(node RenderGraphNode, port int) (renderGraphOutputExpressio
 
 func graphGeometricNormalExpression() string {
 	return "safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))"
+}
+
+func (c *renderGraphOutputCompiler) uvExpression() string {
+	if c.vertexStage {
+		return "graphVertexUV"
+	}
+	return "fragTexCoords"
+}
+
+func (c *renderGraphOutputCompiler) worldPositionExpression() string {
+	if c.vertexStage {
+		return "graphVertexWorldPosition.xyz"
+	}
+	return "fragPos"
+}
+
+func (c *renderGraphOutputCompiler) geometricNormalExpression() string {
+	if c.vertexStage {
+		return "graphVertexWorldNormal"
+	}
+	return graphGeometricNormalExpression()
+}
+
+func (c *renderGraphOutputCompiler) viewDirectionExpression() string {
+	return "safeNormalize(cameraPosition.xyz - " + c.worldPositionExpression() + ", " + c.geometricNormalExpression() + ")"
 }
 
 func (c *renderGraphOutputCompiler) inputExpression(node RenderGraphNode, input int, wantType string) (string, error) {
@@ -1617,6 +1708,201 @@ func renderGraphSamplerLabels(textures []rendering.MaterialTextureData) []string
 		labels[i] = textures[i].Label
 	}
 	return labels
+}
+
+func renderGraphPBRVertexSource(displacement string) string {
+	displacement = strings.TrimSpace(displacement)
+	if displacement == "" {
+		displacement = "0.0"
+	}
+	return fmt.Sprintf(`#version 460
+#define VERTEX_SHADER
+
+#define LAYOUT_VERT_COLOR 0
+#define LAYOUT_VERT_METALLIC_ROUGHNESS_EMISSIVE_ALBEDO 1
+#define LAYOUT_VERT_FLAGS 2
+#define LAYOUT_VERT_LIGHT_IDS 3
+
+#define LAYOUT_FRAG_COLOR 0
+#define LAYOUT_FRAG_FLAGS 1
+#define LAYOUT_FRAG_POS 2
+#define LAYOUT_FRAG_TEX_COORDS 3
+#define LAYOUT_FRAG_NORMAL 4
+#define LAYOUT_FRAG_METALLIC 5
+#define LAYOUT_FRAG_ROUGHNESS 6
+#define LAYOUT_FRAG_EMISSIVE 7
+
+#define LAYOUT_ALL_LIGHT_REQUIREMENTS 8
+
+#include "kaiju.glsl"
+
+vec2 graphVertexUV;
+vec3 graphVertexWorldNormal;
+vec4 graphVertexWorldPosition;
+
+vec3 safeNormalize(vec3 v, vec3 fallback) {
+	float len2 = dot(v, v);
+	if (len2 <= 0.00000001) {
+		return fallback;
+	}
+	return v * inversesqrt(len2);
+}
+
+vec3 graphApplyNormalStrength(vec3 normal, float strength, vec3 geometricNormal) {
+	return safeNormalize(mix(geometricNormal, normal, max(strength, 0.0)), geometricNormal);
+}
+
+vec3 graphBlendNormals(vec3 base, vec3 detail, float strength, vec3 geometricNormal) {
+	vec3 safeBase = safeNormalize(base, geometricNormal);
+	vec3 safeDetail = safeNormalize(detail, geometricNormal);
+	return safeNormalize(safeBase + (safeDetail - geometricNormal) * max(strength, 0.0), safeBase);
+}
+
+float graphHash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+vec2 graphHash22(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.xx + p3.yz) * p3.zy);
+}
+
+float graphNoise2D(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float a = graphHash12(i + vec2(0.0, 0.0));
+	float b = graphHash12(i + vec2(1.0, 0.0));
+	float c = graphHash12(i + vec2(0.0, 1.0));
+	float d = graphHash12(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float graphFBM2D(vec2 p, float detail, float roughness) {
+	float layers = clamp(floor(detail), 1.0, 8.0);
+	float amplitude = 0.5;
+	float frequency = 1.0;
+	float sum = 0.0;
+	float weight = 0.0;
+	for (int i = 0; i < 8; ++i) {
+		if (float(i) >= layers) {
+			break;
+		}
+		sum += graphNoise2D(p * frequency) * amplitude;
+		weight += amplitude;
+		frequency *= 2.0;
+		amplitude *= clamp(roughness, 0.0, 1.0);
+	}
+	return clamp(sum / max(weight, 0.0001), 0.0, 1.0);
+}
+
+vec3 graphVoronoi2D(vec2 p, float jitter) {
+	vec2 baseCell = floor(p);
+	vec2 local = fract(p);
+	float best = 8.0;
+	float second = 8.0;
+	float cellValue = 0.0;
+	for (int y = -1; y <= 1; ++y) {
+		for (int x = -1; x <= 1; ++x) {
+			vec2 cell = vec2(float(x), float(y));
+			vec2 offset = mix(vec2(0.5), graphHash22(baseCell + cell), clamp(jitter, 0.0, 1.0));
+			vec2 delta = cell + offset - local;
+			float dist = dot(delta, delta);
+			if (dist < best) {
+				second = best;
+				best = dist;
+				cellValue = graphHash12(baseCell + cell);
+			} else if (dist < second) {
+				second = dist;
+			}
+		}
+	}
+	float nearest = sqrt(best);
+	float edge = max(sqrt(second) - nearest, 0.0);
+	return vec3(nearest, cellValue, edge);
+}
+
+float graphCheckerMask(vec2 uv, float scale) {
+	vec2 cell = floor(uv * max(abs(scale), 0.0001));
+	return mod(cell.x + cell.y, 2.0);
+}
+
+float graphGradientFactor(vec2 uv, float angle, float radialMode) {
+	vec2 centered = uv - vec2(0.5);
+	vec2 direction = vec2(cos(angle), sin(angle));
+	float linear = dot(centered, direction) + 0.5;
+	float radial = length(centered) * 2.0;
+	return clamp(mix(linear, radial, step(0.5, radialMode)), 0.0, 1.0);
+}
+
+float graphRemap(float value, float inMin, float inMax, float outMin, float outMax) {
+	float denom = inMax - inMin;
+	if (abs(denom) <= 0.00000001) {
+		return outMin;
+	}
+	float t = (value - inMin) / denom;
+	return mix(outMin, outMax, t);
+}
+
+float graphPosterize(float value, float steps) {
+	float levels = max(floor(steps), 2.0);
+	float v = clamp(value, 0.0, 1.0);
+	return floor(v * (levels - 1.0) + 0.5) / (levels - 1.0);
+}
+
+vec4 graphPosterizeColor(vec4 color, float steps) {
+	return vec4(
+		graphPosterize(color.r, steps),
+		graphPosterize(color.g, steps),
+		graphPosterize(color.b, steps),
+		graphPosterize(color.a, steps)
+	);
+}
+
+float graphFresnel(vec3 normal, vec3 viewDir, float power, float bias, float scale) {
+	vec3 n = safeNormalize(normal, vec3(0.0, 1.0, 0.0));
+	vec3 v = safeNormalize(viewDir, vec3(0.0, 0.0, 1.0));
+	float facing = max(dot(n, v), 0.0);
+	return clamp(bias + scale * pow(1.0 - facing, max(power, 0.0001)), 0.0, 1.0);
+}
+
+float graphRimFactor(vec3 normal, vec3 viewDir, float power, float intensity) {
+	return clamp(graphFresnel(normal, viewDir, power, 0.0, 1.0) * max(intensity, 0.0), 0.0, 1.0);
+}
+
+vec4 graphWorldPositionFromLocal(vec3 localPosition) {
+#ifdef SKINNING
+	return skinMatrix() * vec4(localPosition, 1.0);
+#else
+	return model * vec4(localPosition, 1.0);
+#endif
+}
+
+void main() {
+	fragMetallic = meRoEmAo.r;
+	fragRoughness = meRoEmAo.g;
+	fragEmissive = meRoEmAo.b;
+	fragFlags = flags;
+	fragTexCoords = UV0;
+	fragColor = color * Color;
+
+	graphVertexUV = UV0;
+	graphVertexWorldNormal = safeNormalize(transpose(inverse(mat3(model))) * Normal, vec3(0.0, 1.0, 0.0));
+	graphVertexWorldPosition = graphWorldPositionFromLocal(Position);
+
+	vec3 graphVertexLocalNormal = safeNormalize(Normal, vec3(0.0, 1.0, 0.0));
+	float graphDisplacement = %s;
+	vec3 graphDisplacedPosition = Position + graphVertexLocalNormal * graphDisplacement;
+	graphVertexWorldPosition = graphWorldPositionFromLocal(graphDisplacedPosition);
+
+	fragPos = graphVertexWorldPosition.xyz;
+	gl_Position = projection * view * graphVertexWorldPosition;
+	calcVertexLightInformation();
+}
+`, displacement)
 }
 
 func renderGraphPBRFragmentSource(surface renderGraphOutputSurface, samplerCount int) string {

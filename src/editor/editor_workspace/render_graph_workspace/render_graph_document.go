@@ -29,6 +29,8 @@ type RenderGraphDocument struct {
 type RenderGraphGenerated struct {
 	ShaderID           string `json:"shaderId,omitempty"`
 	MaterialID         string `json:"materialId,omitempty"`
+	VertexSpvID        string `json:"vertexSpvId,omitempty"`
+	VertexSourcePath   string `json:"vertexSourcePath,omitempty"`
 	FragmentSpvID      string `json:"fragmentSpvId,omitempty"`
 	FragmentSourcePath string `json:"fragmentSourcePath,omitempty"`
 }
@@ -36,6 +38,8 @@ type RenderGraphGenerated struct {
 func (g RenderGraphGenerated) IsZero() bool {
 	return strings.TrimSpace(g.ShaderID) == "" &&
 		strings.TrimSpace(g.MaterialID) == "" &&
+		strings.TrimSpace(g.VertexSpvID) == "" &&
+		strings.TrimSpace(g.VertexSourcePath) == "" &&
 		strings.TrimSpace(g.FragmentSpvID) == "" &&
 		strings.TrimSpace(g.FragmentSourcePath) == ""
 }

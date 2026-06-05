@@ -476,16 +476,22 @@ func TestShaderGraphPrincipledBSDFExposesExpandedPBRInputs(t *testing.T) {
 	}
 }
 
-func TestShaderGraphMaterialOutputOnlyExposesCompiledSurfaceInput(t *testing.T) {
+func TestShaderGraphMaterialOutputExposesSurfaceAndDisplacementInputs(t *testing.T) {
 	output, ok := shaderGraphNodeCatalogSpec("material-output")
 	if !ok {
 		t.Fatal("material-output node missing")
 	}
-	if len(output.Inputs) != 1 {
-		t.Fatalf("material-output inputs = %#v, want only surface", output.Inputs)
+	want := []shaderGraphPortSpec{
+		{Name: "Surface", Type: "surface"},
+		{Name: "Displacement", Type: "float"},
 	}
-	if output.Inputs[0].Name != "Surface" || output.Inputs[0].Type != "surface" {
-		t.Fatalf("material-output input = %#v, want Surface surface", output.Inputs[0])
+	if len(output.Inputs) != len(want) {
+		t.Fatalf("material-output inputs = %#v, want %#v", output.Inputs, want)
+	}
+	for i := range want {
+		if output.Inputs[i] != want[i] {
+			t.Fatalf("material-output input %d = %#v, want %#v", i, output.Inputs[i], want[i])
+		}
 	}
 }
 

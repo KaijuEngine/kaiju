@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	renderGraphGeneratedSourcePrefix = "render_graph_"
-	renderGraphGeneratedSourceSuffix = ".frag"
+	renderGraphGeneratedSourcePrefix         = "render_graph_"
+	renderGraphGeneratedVertexSourceSuffix   = ".vert"
+	renderGraphGeneratedFragmentSourceSuffix = ".frag"
 )
 
 var runRenderGraphGLSLC = func(input, output, flags string) error {
@@ -65,38 +66,68 @@ func (w *RenderGraphWorkspace) generateRenderGraphOutputs() error {
 	if err = ensureRenderGraphShaderInclude(pfs); err != nil {
 		return err
 	}
-	sourcePath := w.generated.FragmentSourcePath
-	if strings.TrimSpace(sourcePath) == "" {
-		sourcePath = renderGraphGeneratedFragmentSourcePath(w.currentGraphID)
+	vertexSourcePath := w.generated.VertexSourcePath
+	if strings.TrimSpace(vertexSourcePath) == "" {
+		vertexSourcePath = renderGraphGeneratedVertexSourcePath(w.currentGraphID)
 	}
-	staged, err := stageRenderGraphFragment(pfs, sourcePath, compiled.FragmentSource)
+	stagedVertex, err := stageRenderGraphSource(pfs, vertexSourcePath, compiled.VertexSource)
 	if err != nil {
 		return err
 	}
-	defer staged.cleanup(pfs)
+	defer stagedVertex.cleanup(pfs)
 
-	fragmentLayout, err := parseRenderGraphFragmentLayout(pfs, staged.sourcePath)
+	vertexLayout, err := parseRenderGraphShaderLayout(pfs, stagedVertex.sourcePath)
 	if err != nil {
 		return err
 	}
-	spvBytes, err := compileRenderGraphFragmentToSPV(pfs, staged.sourcePath)
+	vertexSpvBytes, err := compileRenderGraphShaderToSPV(pfs, stagedVertex.sourcePath)
+	if err != nil {
+		return err
+	}
+
+	fragmentSourcePath := w.generated.FragmentSourcePath
+	if strings.TrimSpace(fragmentSourcePath) == "" {
+		fragmentSourcePath = renderGraphGeneratedFragmentSourcePath(w.currentGraphID)
+	}
+	stagedFragment, err := stageRenderGraphSource(pfs, fragmentSourcePath, compiled.FragmentSource)
+	if err != nil {
+		return err
+	}
+	defer stagedFragment.cleanup(pfs)
+
+	fragmentLayout, err := parseRenderGraphShaderLayout(pfs, stagedFragment.sourcePath)
+	if err != nil {
+		return err
+	}
+	fragmentSpvBytes, err := compileRenderGraphShaderToSPV(pfs, stagedFragment.sourcePath)
 	if err != nil {
 		return err
 	}
 	shaderData, err := buildRenderGraphShaderData(pfs, renderGraphGeneratedShaderName(w.currentGraphID),
-		sourcePath, w.generated.FragmentSpvID, fragmentLayout, compiled.SamplerLabels)
+		vertexSourcePath, w.generated.VertexSpvID, vertexLayout,
+		fragmentSourcePath, w.generated.FragmentSpvID, fragmentLayout, compiled.SamplerLabels)
 	if err != nil {
 		return err
 	}
 	materialData := renderGraphGeneratedMaterialData(w.generated.ShaderID, compiled.Textures)
 
 	generated := w.generated
-	generated.FragmentSourcePath = sourcePath
-	if err = pfs.WriteFile(sourcePath, []byte(compiled.FragmentSource), os.ModePerm); err != nil {
+	generated.VertexSourcePath = vertexSourcePath
+	if err = pfs.WriteFile(vertexSourcePath, []byte(compiled.VertexSource), os.ModePerm); err != nil {
+		return err
+	}
+	generated.VertexSpvID, err = w.upsertRawContent(generated.VertexSpvID,
+		w.currentName+" Vertex SPV", vertexSpvBytes, content_database.Spv{})
+	if err != nil {
+		return err
+	}
+	shaderData.VertexSpv = generated.VertexSpvID
+	generated.FragmentSourcePath = fragmentSourcePath
+	if err = pfs.WriteFile(fragmentSourcePath, []byte(compiled.FragmentSource), os.ModePerm); err != nil {
 		return err
 	}
 	generated.FragmentSpvID, err = w.upsertRawContent(generated.FragmentSpvID,
-		w.currentName+" Fragment SPV", spvBytes, content_database.Spv{})
+		w.currentName+" Fragment SPV", fragmentSpvBytes, content_database.Spv{})
 	if err != nil {
 		return err
 	}
@@ -189,9 +220,9 @@ type stagedRenderGraphFragment struct {
 	sourcePath string
 }
 
-func stageRenderGraphFragment(pfs *project_file_system.FileSystem, finalPath, source string) (stagedRenderGraphFragment, error) {
+func stageRenderGraphSource(pfs *project_file_system.FileSystem, finalPath, source string) (stagedRenderGraphFragment, error) {
 	dir := filepath.ToSlash(filepath.Dir(finalPath))
-	tempPath := filepath.ToSlash(filepath.Join(dir, "."+filepath.Base(finalPath)+".tmp.frag"))
+	tempPath := filepath.ToSlash(filepath.Join(dir, "."+filepath.Base(finalPath)+".tmp"+filepath.Ext(finalPath)))
 	if err := pfs.MkdirAll(dir, os.ModePerm); err != nil {
 		return stagedRenderGraphFragment{}, err
 	}
@@ -226,7 +257,7 @@ func ensureRenderGraphShaderInclude(pfs *project_file_system.FileSystem) error {
 	return pfs.WriteFile(includePath, data, os.ModePerm)
 }
 
-func parseRenderGraphFragmentLayout(pfs *project_file_system.FileSystem, sourcePath string) (rendering.ShaderLayoutGroup, error) {
+func parseRenderGraphShaderLayout(pfs *project_file_system.FileSystem, sourcePath string) (rendering.ShaderLayoutGroup, error) {
 	source, err := glsl.Parse(pfs.FullPath(sourcePath), "")
 	if err != nil {
 		return rendering.ShaderLayoutGroup{}, err
@@ -238,8 +269,8 @@ func parseRenderGraphFragmentLayout(pfs *project_file_system.FileSystem, sourceP
 	}, nil
 }
 
-func compileRenderGraphFragmentToSPV(pfs *project_file_system.FileSystem, sourcePath string) ([]byte, error) {
-	temp, err := os.CreateTemp(os.TempDir(), "kaiju-render-graph-*.frag.spv")
+func compileRenderGraphShaderToSPV(pfs *project_file_system.FileSystem, sourcePath string) ([]byte, error) {
+	temp, err := os.CreateTemp(os.TempDir(), "kaiju-render-graph-*"+filepath.Ext(sourcePath)+".spv")
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +285,8 @@ func compileRenderGraphFragmentToSPV(pfs *project_file_system.FileSystem, source
 	return os.ReadFile(tempPath)
 }
 
-func buildRenderGraphShaderData(pfs *project_file_system.FileSystem, shaderName, fragmentSource, fragmentSpv string,
+func buildRenderGraphShaderData(pfs *project_file_system.FileSystem, shaderName, vertexSource, vertexSpv string,
+	vertexLayout rendering.ShaderLayoutGroup, fragmentSource, fragmentSpv string,
 	fragmentLayout rendering.ShaderLayoutGroup, samplerLabels []string) (rendering.ShaderData, error) {
 	stock, err := stockPBRShaderData(pfs)
 	if err != nil {
@@ -263,24 +295,26 @@ func buildRenderGraphShaderData(pfs *project_file_system.FileSystem, shaderName,
 	if len(samplerLabels) == 0 {
 		samplerLabels = renderGraphSamplerLabels(renderGraphDefaultTextureSlots())
 	}
-	layouts := make([]rendering.ShaderLayoutGroup, 0, len(stock.LayoutGroups)+1)
+	hasStockVertex := false
 	for i := range stock.LayoutGroups {
 		if stock.LayoutGroups[i].Type == "Vertex" {
-			layouts = append(layouts, stock.LayoutGroups[i])
+			hasStockVertex = true
+			break
 		}
 	}
-	if len(layouts) == 0 {
+	if !hasStockVertex {
 		return rendering.ShaderData{}, fmt.Errorf("stock pbr shader is missing vertex layout")
 	}
+	layouts := []rendering.ShaderLayoutGroup{vertexLayout}
 	layouts = append(layouts, fragmentLayout)
 	return rendering.ShaderData{
 		Name:             shaderName,
 		DrawInstanceData: "pbr",
-		Vertex:           "pbr.vert",
+		Vertex:           filepath.ToSlash(vertexSource),
 		Fragment:         filepath.ToSlash(fragmentSource),
 		LayoutGroups:     layouts,
 		SamplerLabels:    append([]string(nil), samplerLabels...),
-		VertexSpv:        "pbr.vert.spv",
+		VertexSpv:        vertexSpv,
 		FragmentSpv:      fragmentSpv,
 	}, nil
 }
@@ -314,7 +348,12 @@ func renderGraphGeneratedMaterialData(shaderID string, textures []rendering.Mate
 
 func renderGraphGeneratedFragmentSourcePath(graphID string) string {
 	return filepath.ToSlash(filepath.Join(project_file_system.SrcShaderFolder,
-		renderGraphGeneratedSourcePrefix+renderGraphGeneratedAssetKey(graphID)+renderGraphGeneratedSourceSuffix))
+		renderGraphGeneratedSourcePrefix+renderGraphGeneratedAssetKey(graphID)+renderGraphGeneratedFragmentSourceSuffix))
+}
+
+func renderGraphGeneratedVertexSourcePath(graphID string) string {
+	return filepath.ToSlash(filepath.Join(project_file_system.SrcShaderFolder,
+		renderGraphGeneratedSourcePrefix+renderGraphGeneratedAssetKey(graphID)+renderGraphGeneratedVertexSourceSuffix))
 }
 
 func renderGraphGeneratedShaderName(graphID string) string {
