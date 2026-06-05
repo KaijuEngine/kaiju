@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/editor/editor_workspace/shading_workspace"
 	"kaijuengine.com/editor/editor_workspace/stage_workspace"
 	"kaijuengine.com/editor/editor_workspace/terrain_workspace"
 	"kaijuengine.com/platform/hid"
@@ -32,6 +33,7 @@ func TestBindableVariantActionsAreRegistered(t *testing.T) {
 		{string(ActionEditorBuildRelease), true, true},
 		{string(ActionEditorBuildAndRun), false, false},
 		{string(ActionEditorRunCurrentStage), true, true},
+		{string(shading_workspace.ActionShadingCreateNode), true, false},
 	}
 	for _, check := range checks {
 		def, ok := ed.Actions().Registry().Definition(editor_action.ActionID(check.id))
@@ -80,6 +82,25 @@ func TestStageViewActionsDefaultBindings(t *testing.T) {
 			t.Fatalf("%s chord = %s, want %s", check.action,
 				editor_action.FormatKeyChord(chord), editor_action.FormatKeyChord(check.chord))
 		}
+	}
+}
+
+func TestShadingActionsDefaultBindings(t *testing.T) {
+	ed := &Editor{}
+	ed.history.Initialize(8)
+	ed.initializeActions()
+	bindings := editor_action.BindingsForAction(
+		ed.Actions().DefaultBindings(), nil,
+		shading_workspace.ActionShadingShowCreateNodeMenu, shading_workspace.ID)
+	if len(bindings) != 1 {
+		t.Fatalf("%s bindings = %d, want 1",
+			shading_workspace.ActionShadingShowCreateNodeMenu, len(bindings))
+	}
+	want := editor_action.KeyChord{Keys: []int{int(hid.KeyboardKeyC)}}
+	if !editor_action.ChordsEqual(bindings[0].Chord, want) {
+		t.Fatalf("%s chord = %s, want %s",
+			shading_workspace.ActionShadingShowCreateNodeMenu,
+			editor_action.FormatKeyChord(bindings[0].Chord), editor_action.FormatKeyChord(want))
 	}
 }
 

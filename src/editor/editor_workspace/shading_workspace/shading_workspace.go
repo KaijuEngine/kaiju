@@ -7,6 +7,7 @@
 package shading_workspace
 
 import (
+	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
@@ -32,12 +33,16 @@ type ShadingWorkspace struct {
 	stageView       *editor_stage_view.StageView
 	root            *document.Element
 	stageViewport   *document.Element
+	shaderGraphArea *document.Element
 	dimensionToggle *document.Element
 	graph           shaderGraph
+	createNodeMenu  shaderGraphCreateNodeMenu
+	createNodeCount int
 }
 
 type ShadingWorkspaceUIData struct {
-	CameraMode string
+	CameraMode  string
+	CreateNodes []shaderGraphNodeMenuData
 }
 
 func (w *ShadingWorkspace) ID() string          { return ID }
@@ -48,19 +53,27 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	defer tracing.NewRegion("ShadingWorkspace.Initialize").End()
 	w.ed = ed
 	w.stageView = ed.StageView()
-	data := ShadingWorkspaceUIData{CameraMode: w.stageView.Camera().ModeString()}
+	data := ShadingWorkspaceUIData{
+		CameraMode:  w.stageView.Camera().ModeString(),
+		CreateNodes: shaderGraphNodeCatalogMenuData(),
+	}
 	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(),
 		"editor/ui/workspace/shading_workspace.go.html", data, map[string]func(*document.Element){
-			"toggleDimension": w.toggleDimension,
+			"toggleDimension":      w.toggleDimension,
+			"filterCreateNodeMenu": w.filterCreateNodeMenu,
+			"selectCreateNode":     w.selectCreateNode,
+			"closeCreateNodeMenu":  w.closeCreateNodeMenu,
 		}); err != nil {
 		return err
 	}
 	w.root, _ = w.Doc.GetElementById("shadingWorkspace")
 	w.stageViewport, _ = w.Doc.GetElementById("stageViewport")
+	w.shaderGraphArea, _ = w.Doc.GetElementById("shaderGraphArea")
 	w.dimensionToggle, _ = w.Doc.GetElementById("dimensionToggle")
 	if w.root != nil {
 		w.root.UIPanel.AllowClickThrough()
 	}
+	w.createNodeMenu.Initialize(w)
 	w.graph.Initialize(ed.Host())
 	source := w.graph.CreateNode(shaderGraphNodeSpec{
 		Name:        "Test Node",
@@ -104,6 +117,7 @@ func (w *ShadingWorkspace) Open() {
 	if w.dimensionToggle != nil {
 		w.dimensionToggle.InnerLabel().SetText(w.stageView.Camera().ModeString())
 	}
+	w.createNodeMenu.Hide()
 	w.graph.Open()
 	w.stageView.Open()
 }
@@ -115,6 +129,7 @@ func (w *ShadingWorkspace) Close() {
 		w.stageView.Close()
 	}
 	w.graph.Close()
+	w.createNodeMenu.Hide()
 	w.CommonClose()
 }
 
@@ -130,6 +145,7 @@ func (w *ShadingWorkspace) Update(deltaTime float64) {
 	if w.IsBlurred {
 		return
 	}
+	w.createNodeMenu.Update()
 	w.graph.Update()
 	if w.UiMan.Group.HasRequests() {
 		return
@@ -148,4 +164,37 @@ func (w *ShadingWorkspace) toggleDimension(e *document.Element) {
 		lbl.SetText("3D")
 		w.stageView.SetCameraMode(editor_controls.EditorCameraMode3d)
 	}
+}
+
+func (w *ShadingWorkspace) ShowCreateNodeMenu() {
+	w.createNodeMenu.Show(w.createNodeMenuPosition())
+}
+
+func (w *ShadingWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
+	spec, ok := shaderGraphNodeCatalogSpec(args.NodeID)
+	if !ok {
+		return nil, false
+	}
+	position := args.position(w.defaultCreateNodePosition())
+	node := w.graph.CreateNode(spec, position)
+	if node == nil {
+		return nil, false
+	}
+	w.createNodeCount++
+	w.createNodeMenu.Hide()
+	return node, true
+}
+
+func (w *ShadingWorkspace) runCreateNodeAction(nodeID string) {
+	position := w.createNodeMenu.CreatePosition()
+	w.ed.Actions().Run(editor_action.Request{
+		ID: ActionShadingCreateNode,
+		Params: CreateNodeActionArgs{
+			NodeID:      nodeID,
+			X:           float32(position.X()),
+			Y:           float32(position.Y()),
+			UsePosition: true,
+		},
+		Source: editor_action.SourceMenu,
+	})
 }

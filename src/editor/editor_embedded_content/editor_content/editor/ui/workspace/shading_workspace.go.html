@@ -40,13 +40,130 @@
 				border-left: 2px solid black;
 				z-index: 1;
 			}
+			#createNodeMenu {
+				position: absolute;
+				width: 320px;
+				height: 360px;
+				padding: 8px;
+				background-color: #191b20;
+				border: 1px solid #682A2D;
+				border-radius: 6px;
+				z-index: 20;
+			}
+			.createNodeMenuHeader {
+				position: relative;
+				width: 100%;
+				height: 26px;
+				color: white;
+				font-size: 0.72em;
+			}
+			.createNodeMenuTitle {
+				position: absolute;
+				left: 0;
+				top: 0;
+				height: 24px;
+				line-height: 24px;
+			}
+			.createNodeMenuClose {
+				position: absolute;
+				right: 0;
+				top: 0;
+				width: 24px;
+				height: 24px;
+				color: white;
+				background-color: #2a2d34;
+				border: 1px solid #3a3d45;
+				border-radius: 4px;
+				font-size: 0.68em;
+			}
+			.createNodeMenuClose:hover {
+				background-color: #682A2D;
+			}
+			#createNodeSearch {
+				position: relative;
+				width: 100%;
+				height: 28px;
+				margin-top: 4px;
+				margin-bottom: 8px;
+				padding: 4px 6px;
+				color: #e4e7ec;
+				background-color: #111318;
+				border: 1px solid #343842;
+				border-radius: 4px;
+				font-size: 0.62em;
+			}
+			#createNodeList {
+				position: relative;
+				width: 100%;
+				height: 284px;
+				overflow-y: auto;
+			}
+			.createNodeMenuItem {
+				position: relative;
+				width: 100%;
+				height: 28px;
+				margin-bottom: 2px;
+				padding: 3px 5px;
+				color: #e8ebf0;
+				background-color: #20232a;
+				border: 1px solid #333843;
+				border-radius: 0;
+				text-align: left;
+			}
+			.createNodeMenuItem:hover {
+				border-color: #682A2D;
+				background-color: #272b33;
+			}
+			.createNodeMenuItemName {
+				position: absolute;
+				left: 6px;
+				top: 4px;
+				width: 104px;
+				height: 20px;
+				font-size: 0.72em;
+				color: white;
+			}
+			.createNodeMenuItemDescription {
+				position: absolute;
+				left: 118px;
+				top: 6px;
+				width: calc(100% - 124px);
+				height: 16px;
+				font-size: 0.46em;
+				color: #aeb6c4;
+			}
+			#createNodeEmpty {
+				position: relative;
+				width: 100%;
+				padding-top: 20px;
+				color: #aeb6c4;
+				font-size: 0.58em;
+				text-align: center;
+			}
 		</style>
 	</head>
 	<body>
 		<div id="shadingWorkspace" class="shadingWorkspace edPanelBg">
 			<img id="stageViewport" src="square.png" />
 			<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
-			<div id="shaderGraphArea" class="edPanelBg"></div>
+			<div id="shaderGraphArea" class="edPanelBg">
+				<div id="createNodeMenu">
+					<div class="createNodeMenuHeader">
+						<span class="createNodeMenuTitle">Create Node</span>
+						<button class="createNodeMenuClose" onclick="closeCreateNodeMenu">X</button>
+					</div>
+					<input id="createNodeSearch" type="text" placeholder="Search nodes" onchange="filterCreateNodeMenu" />
+					<div id="createNodeList">
+						{{ range .CreateNodes }}
+						<button class="createNodeMenuItem" data-node-id="{{ .ID }}" data-search="{{ .Search }}" onclick="selectCreateNode">
+							<div class="createNodeMenuItemName">{{ .Name }}</div>
+							<div class="createNodeMenuItemDescription">{{ .Description }}</div>
+						</button>
+						{{ end }}
+						<div id="createNodeEmpty">No nodes found</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	</body>
 </html>

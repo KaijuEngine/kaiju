@@ -1,0 +1,192 @@
+/******************************************************************************/
+/* shading_workspace_create_menu.go                                           */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
+package shading_workspace
+
+import (
+	"strings"
+
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+)
+
+const (
+	shaderGraphCreateMenuWidth  = matrix.Float(320)
+	shaderGraphCreateMenuHeight = matrix.Float(360)
+)
+
+type shaderGraphCreateNodeMenu struct {
+	workspace      *ShadingWorkspace
+	root           *document.Element
+	search         *document.Element
+	empty          *document.Element
+	items          []*document.Element
+	createPosition matrix.Vec2
+	open           bool
+}
+
+func (m *shaderGraphCreateNodeMenu) Initialize(workspace *ShadingWorkspace) {
+	m.workspace = workspace
+	if workspace == nil || workspace.Doc == nil {
+		return
+	}
+	m.root, _ = workspace.Doc.GetElementById("createNodeMenu")
+	m.search, _ = workspace.Doc.GetElementById("createNodeSearch")
+	m.empty, _ = workspace.Doc.GetElementById("createNodeEmpty")
+	m.items = workspace.Doc.GetElementsByClass("createNodeMenuItem")
+	for _, item := range m.items {
+		shaderGraphCreateMenuAllowChildrenClickThrough(item)
+	}
+	m.Hide()
+}
+
+func (m *shaderGraphCreateNodeMenu) Show(position matrix.Vec2) {
+	if m.root == nil {
+		return
+	}
+	m.open = true
+	m.createPosition = position
+	m.root.UI.Show()
+	m.positionRoot(position)
+	if m.search != nil && m.search.UI != nil {
+		input := m.search.UI.ToInput()
+		input.SetTextWithoutEvent("")
+		input.Focus()
+	}
+	m.Filter("")
+}
+
+func (m *shaderGraphCreateNodeMenu) Hide() {
+	m.open = false
+	if m.root != nil && m.root.UI != nil {
+		m.root.UI.Hide()
+	}
+}
+
+func (m *shaderGraphCreateNodeMenu) Update() {
+	if !m.open || m.workspace == nil || m.workspace.Host == nil || m.workspace.Host.Window == nil {
+		return
+	}
+	if m.workspace.Host.Window.Keyboard.KeyDown(hid.KeyboardKeyEscape) {
+		m.Hide()
+	}
+}
+
+func (m *shaderGraphCreateNodeMenu) CreatePosition() matrix.Vec2 {
+	return m.createPosition
+}
+
+func (m *shaderGraphCreateNodeMenu) Filter(query string) {
+	query = strings.ToLower(strings.TrimSpace(query))
+	visible := 0
+	for _, item := range m.items {
+		if item == nil || item.UI == nil {
+			continue
+		}
+		matches := query == "" || shaderGraphCreateMenuMatches(item.Attribute("data-search"), query)
+		if matches {
+			item.UI.Show()
+			visible++
+		} else {
+			item.UI.Hide()
+		}
+	}
+	if m.empty != nil && m.empty.UI != nil {
+		if visible == 0 {
+			m.empty.UI.Show()
+		} else {
+			m.empty.UI.Hide()
+		}
+	}
+}
+
+func (m *shaderGraphCreateNodeMenu) positionRoot(position matrix.Vec2) {
+	if m.workspace == nil || m.workspace.shaderGraphArea == nil {
+		return
+	}
+	areaSize := m.workspace.shaderGraphArea.UI.Layout().PixelSize()
+	x := matrix.Clamp(position.X(), 8, max(8, areaSize.X()-shaderGraphCreateMenuWidth-8))
+	y := matrix.Clamp(position.Y(), 8, max(8, areaSize.Y()-shaderGraphCreateMenuHeight-8))
+	layout := m.root.UI.Layout()
+	layout.SetPositioning(ui.PositioningAbsolute)
+	layout.SetOffset(float32(x), float32(y))
+}
+
+func shaderGraphCreateMenuMatches(search, query string) bool {
+	search = strings.ToLower(search)
+	for _, token := range strings.Fields(query) {
+		if !strings.Contains(search, token) {
+			return false
+		}
+	}
+	return true
+}
+
+func shaderGraphCreateMenuAllowChildrenClickThrough(element *document.Element) {
+	if element == nil {
+		return
+	}
+	for _, child := range element.Children {
+		if child.UI != nil && child.UI.IsType(ui.ElementTypePanel) {
+			child.UI.ToPanel().AllowClickThrough()
+		}
+		shaderGraphCreateMenuAllowChildrenClickThrough(child)
+	}
+}
+
+func (w *ShadingWorkspace) filterCreateNodeMenu(e *document.Element) {
+	if e == nil || e.UI == nil {
+		return
+	}
+	w.createNodeMenu.Filter(e.UI.ToInput().Text())
+}
+
+func (w *ShadingWorkspace) selectCreateNode(e *document.Element) {
+	if e == nil {
+		return
+	}
+	w.runCreateNodeAction(e.Attribute("data-node-id"))
+}
+
+func (w *ShadingWorkspace) closeCreateNodeMenu(*document.Element) {
+	w.createNodeMenu.Hide()
+}
+
+func (w *ShadingWorkspace) createNodeMenuPosition() matrix.Vec2 {
+	mousePosition, ok := w.graphLocalMousePosition()
+	if ok {
+		return mousePosition
+	}
+	return w.defaultCreateNodePosition()
+}
+
+func (w *ShadingWorkspace) defaultCreateNodePosition() matrix.Vec2 {
+	if w.graph.root == nil {
+		return matrix.NewVec2(48, 48)
+	}
+	size := w.graph.root.Base().Layout().PixelSize()
+	offset := matrix.Float(w.createNodeCount % 10 * 18)
+	return matrix.NewVec2(
+		matrix.Max(24, size.X()*0.5-shaderGraphNodeWidth*0.5+offset),
+		matrix.Max(24, size.Y()*0.35+offset),
+	)
+}
+
+func (w *ShadingWorkspace) graphLocalMousePosition() (matrix.Vec2, bool) {
+	if w.ed == nil || w.ed.Host() == nil || w.ed.Host().Window == nil || w.graph.root == nil {
+		return matrix.Vec2Zero(), false
+	}
+	mouse := w.ed.Host().Window.Mouse.ScreenPosition()
+	offset := w.graph.root.Base().Layout().Offset()
+	size := w.graph.root.Base().Layout().PixelSize()
+	local := mouse.Subtract(offset)
+	if local.X() < 0 || local.Y() < 0 || local.X() > size.X() || local.Y() > size.Y() {
+		return matrix.Vec2Zero(), false
+	}
+	return local, true
+}
