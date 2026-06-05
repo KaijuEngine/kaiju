@@ -49,6 +49,20 @@ func TestBindableVariantActionsAreRegistered(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCreateNodeActionIsTransactional(t *testing.T) {
+	ed := &Editor{}
+	ed.history.Initialize(8)
+	ed.initializeActions()
+
+	def, ok := ed.Actions().Registry().Definition(render_graph_workspace.ActionRenderGraphCreateNode)
+	if !ok {
+		t.Fatal("render graph create node action was not registered")
+	}
+	if def.UndoPolicy != editor_action.UndoPolicyTransaction {
+		t.Fatalf("create node undo policy = %v, want transaction", def.UndoPolicy)
+	}
+}
+
 func TestStageViewActionsDefaultBindings(t *testing.T) {
 	ed := &Editor{}
 	ed.history.Initialize(8)

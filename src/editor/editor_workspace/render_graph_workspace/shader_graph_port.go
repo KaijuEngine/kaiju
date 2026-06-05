@@ -67,7 +67,7 @@ func (p *shaderGraphPort) bindEvents() {
 		p.graph.finishConnection(p)
 	})
 	p.dot.Base().AddEvent(ui.EventTypeDragEnd, func() {
-		p.graph.finishConnection(p)
+		p.graph.finishConnection(nil)
 	})
 }
 
@@ -85,6 +85,26 @@ func shaderGraphConnectionPorts(a, b *shaderGraphPort) (output, input *shaderGra
 		return a, b, true
 	}
 	return b, a, true
+}
+
+func shaderGraphFirstCompatibleNodePort(node *shaderGraphNode, source *shaderGraphPort) *shaderGraphPort {
+	if node == nil || source == nil {
+		return nil
+	}
+	if source.output {
+		for i := range node.inputs {
+			if source.CanConnect(node.inputs[i]) {
+				return node.inputs[i]
+			}
+		}
+		return nil
+	}
+	for i := range node.outputs {
+		if source.CanConnect(node.outputs[i]) {
+			return node.outputs[i]
+		}
+	}
+	return nil
 }
 
 func shaderGraphPortTypeKey(portType string) string {

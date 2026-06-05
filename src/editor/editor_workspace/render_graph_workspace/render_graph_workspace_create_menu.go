@@ -27,7 +27,16 @@ type shaderGraphCreateNodeMenu struct {
 	empty          *document.Element
 	items          []*document.Element
 	createPosition matrix.Vec2
+	connection     shaderGraphCreateNodeConnection
 	open           bool
+}
+
+type shaderGraphCreateNodeConnection struct {
+	Active       bool
+	SourceNode   string
+	SourcePort   int
+	SourceOutput bool
+	SourceType   string
 }
 
 func (m *shaderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) {
@@ -46,6 +55,27 @@ func (m *shaderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) 
 }
 
 func (m *shaderGraphCreateNodeMenu) Show(position, createPosition matrix.Vec2) {
+	m.connection = shaderGraphCreateNodeConnection{}
+	m.show(position, createPosition)
+}
+
+func (m *shaderGraphCreateNodeMenu) ShowForConnection(position, createPosition matrix.Vec2, source *shaderGraphPort) {
+	ref, ok := shaderGraphPortRef(source)
+	if !ok || source == nil {
+		m.Show(position, createPosition)
+		return
+	}
+	m.connection = shaderGraphCreateNodeConnection{
+		Active:       true,
+		SourceNode:   ref.Node,
+		SourcePort:   ref.Port,
+		SourceOutput: source.output,
+		SourceType:   source.spec.Type,
+	}
+	m.show(position, createPosition)
+}
+
+func (m *shaderGraphCreateNodeMenu) show(position, createPosition matrix.Vec2) {
 	if m.root == nil {
 		return
 	}
@@ -63,6 +93,7 @@ func (m *shaderGraphCreateNodeMenu) Show(position, createPosition matrix.Vec2) {
 
 func (m *shaderGraphCreateNodeMenu) Hide() {
 	m.open = false
+	m.connection = shaderGraphCreateNodeConnection{}
 	if m.root != nil && m.root.UI != nil {
 		m.root.UI.Hide()
 	}
@@ -79,6 +110,10 @@ func (m *shaderGraphCreateNodeMenu) Update() {
 
 func (m *shaderGraphCreateNodeMenu) CreatePosition() matrix.Vec2 {
 	return m.createPosition
+}
+
+func (m *shaderGraphCreateNodeMenu) Connection() shaderGraphCreateNodeConnection {
+	return m.connection
 }
 
 func (m *shaderGraphCreateNodeMenu) BlocksGraphZoom(position matrix.Vec2) bool {
@@ -104,7 +139,8 @@ func (m *shaderGraphCreateNodeMenu) Filter(query string) {
 		if item == nil || item.UI == nil {
 			continue
 		}
-		matches := query == "" || shaderGraphCreateMenuMatches(item.Attribute("data-search"), query)
+		matches := m.itemCompatible(item) &&
+			(query == "" || shaderGraphCreateMenuMatches(item.Attribute("data-search"), query))
 		if matches {
 			item.UI.Show()
 			visible++
@@ -119,6 +155,23 @@ func (m *shaderGraphCreateNodeMenu) Filter(query string) {
 			m.empty.UI.Hide()
 		}
 	}
+}
+
+func (m *shaderGraphCreateNodeMenu) itemCompatible(item *document.Element) bool {
+	if item == nil || !m.connection.Active {
+		return true
+	}
+	for _, entry := range shaderGraphNodeCatalog() {
+		if entry.ID != item.Attribute("data-node-id") {
+			continue
+		}
+		return shaderGraphNodeCatalogEntryCompatible(entry, shaderGraphNodePortCompatibility{
+			Active:       true,
+			SourceOutput: m.connection.SourceOutput,
+			Type:         m.connection.SourceType,
+		})
+	}
+	return false
 }
 
 func (m *shaderGraphCreateNodeMenu) positionRoot(position matrix.Vec2) {

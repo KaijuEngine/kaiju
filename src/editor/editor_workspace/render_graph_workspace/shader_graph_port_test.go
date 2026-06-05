@@ -48,3 +48,44 @@ func TestShaderGraphPortsCanConnectRequiresMatchingTypes(t *testing.T) {
 		t.Fatal("port type comparison should normalize case and whitespace")
 	}
 }
+
+func TestShaderGraphFirstCompatibleNodePortChoosesFirstMatchingInput(t *testing.T) {
+	sourceNode := &shaderGraphNode{id: "source"}
+	source := &shaderGraphPort{
+		node:   sourceNode,
+		spec:   shaderGraphPortSpec{Type: "float"},
+		output: true,
+		index:  0,
+	}
+	sourceNode.outputs = []*shaderGraphPort{source}
+	target := &shaderGraphNode{id: "target"}
+	target.inputs = []*shaderGraphPort{
+		{node: target, spec: shaderGraphPortSpec{Type: "color"}, index: 0},
+		{node: target, spec: shaderGraphPortSpec{Type: " float "}, index: 1},
+		{node: target, spec: shaderGraphPortSpec{Type: "float"}, index: 2},
+	}
+
+	if got := shaderGraphFirstCompatibleNodePort(target, source); got != target.inputs[1] {
+		t.Fatalf("compatible input = %#v, want first float input", got)
+	}
+}
+
+func TestShaderGraphFirstCompatibleNodePortChoosesFirstMatchingOutput(t *testing.T) {
+	sourceNode := &shaderGraphNode{id: "source"}
+	source := &shaderGraphPort{
+		node:  sourceNode,
+		spec:  shaderGraphPortSpec{Type: "vec3"},
+		index: 0,
+	}
+	sourceNode.inputs = []*shaderGraphPort{source}
+	target := &shaderGraphNode{id: "target"}
+	target.outputs = []*shaderGraphPort{
+		{node: target, spec: shaderGraphPortSpec{Type: "float"}, output: true, index: 0},
+		{node: target, spec: shaderGraphPortSpec{Type: " VeC3 "}, output: true, index: 1},
+		{node: target, spec: shaderGraphPortSpec{Type: "vec3"}, output: true, index: 2},
+	}
+
+	if got := shaderGraphFirstCompatibleNodePort(target, source); got != target.outputs[1] {
+		t.Fatalf("compatible output = %#v, want first vec3 output", got)
+	}
+}

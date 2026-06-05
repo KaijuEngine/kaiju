@@ -40,7 +40,7 @@ func registerRenderGraphActions(ed *Editor, mustRegister editorActionRegistrar) 
 		Tags:              []string{"render", "graph", "node", "create"},
 		DefaultParams:     editor_action.Params(render_graph_workspace.DefaultCreateNodeActionArgs()),
 		NewParams:         func() any { return &render_graph_workspace.CreateNodeActionArgs{} },
-		UndoPolicy:        editor_action.UndoPolicyManaged,
+		UndoPolicy:        editor_action.UndoPolicyTransaction,
 		Visible:           true,
 		Unbindable:        true,
 		RequiredWorkspace: render_graph_workspace.ID,

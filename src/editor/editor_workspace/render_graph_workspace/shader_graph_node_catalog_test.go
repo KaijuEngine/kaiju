@@ -1,6 +1,9 @@
 package render_graph_workspace
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestShaderGraphNodeCatalogHasCommonMathNodes(t *testing.T) {
 	want := []string{
@@ -94,5 +97,52 @@ func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
 	}
 	if dot.Inputs[0].Type != "vec3" || dot.Inputs[1].Type != "vec3" || dot.Outputs[0].Type != "float" {
 		t.Fatalf("dot-product ports = %#v -> %#v, want vec3,vec3 -> float", dot.Inputs, dot.Outputs)
+	}
+}
+
+func TestShaderGraphNodeCatalogCompatibleIDsForOutputVec2(t *testing.T) {
+	ids := shaderGraphNodeCatalogCompatibleIDs(true, " Vec2 ")
+
+	if !slices.Contains(ids, "sample-texture-2d") {
+		t.Fatal("output vec2 should offer nodes with vec2 inputs")
+	}
+	if !slices.Contains(ids, "uv-transform") {
+		t.Fatal("output vec2 should offer uv-transform")
+	}
+	if slices.Contains(ids, "uv") {
+		t.Fatal("output vec2 should not offer nodes with only vec2 outputs")
+	}
+	if slices.Contains(ids, "texel-size") {
+		t.Fatal("output vec2 should not offer nodes whose vec2 port is output-only")
+	}
+}
+
+func TestShaderGraphNodeCatalogCompatibleIDsForInputVec3(t *testing.T) {
+	ids := shaderGraphNodeCatalogCompatibleIDs(false, " VeC3 ")
+
+	if !slices.Contains(ids, "vector") {
+		t.Fatal("input vec3 should offer nodes with vec3 outputs")
+	}
+	if !slices.Contains(ids, "sample-texture-2d") {
+		t.Fatal("input vec3 should offer sample-texture-2d RGB output")
+	}
+	if slices.Contains(ids, "dot-product") {
+		t.Fatal("input vec3 should not offer nodes with only vec3 inputs")
+	}
+	if slices.Contains(ids, "material-output") {
+		t.Fatal("input vec3 should not offer material-output")
+	}
+}
+
+func TestShaderGraphNodeSpecCompatiblePortIndexUsesSpecOrder(t *testing.T) {
+	sample, ok := shaderGraphNodeCatalogSpec("sample-texture-2d")
+	if !ok {
+		t.Fatal("sample-texture-2d node missing")
+	}
+	if index, ok := shaderGraphNodeSpecCompatiblePortIndex(sample, true, "vec2"); !ok || index != 1 {
+		t.Fatalf("output vec2 compatible input index = %d, %v; want 1, true", index, ok)
+	}
+	if index, ok := shaderGraphNodeSpecCompatiblePortIndex(sample, false, "vec3"); !ok || index != 1 {
+		t.Fatalf("input vec3 compatible output index = %d, %v; want 1, true", index, ok)
 	}
 }

@@ -19,6 +19,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -97,6 +98,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	w.graph.Initialize(ed.Host(), ed.History())
 	w.graph.zoomBlocked = w.createNodeMenu.BlocksGraphZoom
 	w.graph.inputBlocked = w.createNodeMenu.BlocksGraphInput
+	w.graph.connectionDropOnBlank = w.showCreateNodeMenuForConnection
 	w.graph.selectTexture = w.selectGraphTexture
 	w.graph.textureName = w.graphTextureName
 	w.resetGraphToDefault()
@@ -220,6 +222,14 @@ func (w *RenderGraphWorkspace) ShowCreateNodeMenu() {
 	w.createNodeMenu.Show(position, w.graph.graphPositionFromView(position))
 }
 
+func (w *RenderGraphWorkspace) showCreateNodeMenuForConnection(source *shaderGraphPort, position, createPosition matrix.Vec2) {
+	if source == nil {
+		return
+	}
+	w.applyLayout()
+	w.createNodeMenu.ShowForConnection(position, createPosition, source)
+}
+
 func (w *RenderGraphWorkspace) CenterView() {
 	w.graph.CenterView()
 }
@@ -234,8 +244,19 @@ func (w *RenderGraphWorkspace) DeleteSelectedNodes() bool {
 }
 
 func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
-	if _, ok := shaderGraphNodeCatalogSpec(args.NodeID); !ok {
+	spec, ok := shaderGraphNodeCatalogSpec(args.NodeID)
+	if !ok {
 		return nil, false
+	}
+	var source *shaderGraphPort
+	if args.UseConnection {
+		source = w.graph.portByRef(args.ConnectFromNodeID, args.ConnectFromPort, args.ConnectFromOutput)
+		if source == nil {
+			return nil, false
+		}
+		if _, ok = shaderGraphNodeSpecCompatiblePortIndex(spec, source.output, source.spec.Type); !ok {
+			return nil, false
+		}
 	}
 	position := args.position(w.defaultCreateNodePosition())
 	previousSelection := w.graph.selectionIDs()
@@ -251,6 +272,12 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 			node:              renderGraphNodeFromShaderGraphNode(node),
 			previousSelection: previousSelection,
 		})
+	}
+	if args.UseConnection {
+		target := shaderGraphFirstCompatibleNodePort(node, source)
+		if target != nil {
+			w.graph.ConnectPorts(source, target)
+		}
 	}
 	w.createNodeCount++
 	w.createNodeMenu.Hide()
@@ -293,14 +320,23 @@ func (w *RenderGraphWorkspace) DeserializeGraph(data []byte) error {
 
 func (w *RenderGraphWorkspace) runCreateNodeAction(nodeID string) {
 	position := w.createNodeMenu.CreatePosition()
+	connection := w.createNodeMenu.Connection()
+	args := CreateNodeActionArgs{
+		NodeID:      nodeID,
+		X:           float32(position.X()),
+		Y:           float32(position.Y()),
+		UsePosition: true,
+	}
+	if connection.Active {
+		args.UseConnection = true
+		args.ConnectFromNodeID = connection.SourceNode
+		args.ConnectFromPort = connection.SourcePort
+		args.ConnectFromOutput = connection.SourceOutput
+		args.ConnectFromType = connection.SourceType
+	}
 	w.ed.Actions().Run(editor_action.Request{
-		ID: ActionRenderGraphCreateNode,
-		Params: CreateNodeActionArgs{
-			NodeID:      nodeID,
-			X:           float32(position.X()),
-			Y:           float32(position.Y()),
-			UsePosition: true,
-		},
+		ID:     ActionRenderGraphCreateNode,
+		Params: args,
 		Source: editor_action.SourceMenu,
 	})
 }

@@ -28,6 +28,12 @@ type shaderGraphNodeMenuData struct {
 	Search      string
 }
 
+type shaderGraphNodePortCompatibility struct {
+	Active       bool
+	SourceOutput bool
+	Type         string
+}
+
 func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 	return []shaderGraphNodeCatalogEntry{
 		{
@@ -557,6 +563,44 @@ func shaderGraphNodeCatalogMenuData() []shaderGraphNodeMenuData {
 		})
 	}
 	return data
+}
+
+func shaderGraphNodeCatalogEntryCompatible(entry shaderGraphNodeCatalogEntry, compatibility shaderGraphNodePortCompatibility) bool {
+	if !compatibility.Active {
+		return true
+	}
+	_, ok := shaderGraphNodeSpecCompatiblePortIndex(entry.Spec, compatibility.SourceOutput, compatibility.Type)
+	return ok
+}
+
+func shaderGraphNodeSpecCompatiblePortIndex(spec shaderGraphNodeSpec, sourceOutput bool, sourceType string) (int, bool) {
+	ports := spec.Outputs
+	if sourceOutput {
+		ports = spec.Inputs
+	}
+	sourceType = shaderGraphPortTypeKey(sourceType)
+	for i := range ports {
+		if shaderGraphPortTypeKey(ports[i].Type) == sourceType {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func shaderGraphNodeCatalogCompatibleIDs(sourceOutput bool, sourceType string) []string {
+	catalog := shaderGraphNodeCatalog()
+	out := make([]string, 0, len(catalog))
+	compatibility := shaderGraphNodePortCompatibility{
+		Active:       true,
+		SourceOutput: sourceOutput,
+		Type:         sourceType,
+	}
+	for i := range catalog {
+		if shaderGraphNodeCatalogEntryCompatible(catalog[i], compatibility) {
+			out = append(out, catalog[i].ID)
+		}
+	}
+	return out
 }
 
 func shaderGraphNodeCatalogSpec(id string) (shaderGraphNodeSpec, bool) {

@@ -21,10 +21,15 @@ const (
 )
 
 type CreateNodeActionArgs struct {
-	NodeID      string  `json:"nodeId"`
-	X           float32 `json:"x,omitempty"`
-	Y           float32 `json:"y,omitempty"`
-	UsePosition bool    `json:"usePosition,omitempty"`
+	NodeID            string  `json:"nodeId"`
+	X                 float32 `json:"x,omitempty"`
+	Y                 float32 `json:"y,omitempty"`
+	UsePosition       bool    `json:"usePosition,omitempty"`
+	UseConnection     bool    `json:"useConnection,omitempty"`
+	ConnectFromNodeID string  `json:"connectFromNodeId,omitempty"`
+	ConnectFromPort   int     `json:"connectFromPort,omitempty"`
+	ConnectFromOutput bool    `json:"connectFromOutput,omitempty"`
+	ConnectFromType   string  `json:"connectFromType,omitempty"`
 }
 
 func DefaultCreateNodeActionArgs() CreateNodeActionArgs {

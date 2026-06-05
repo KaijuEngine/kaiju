@@ -26,28 +26,29 @@ const (
 )
 
 type shaderGraph struct {
-	host          *engine.Host
-	history       *memento.History
-	uiMan         ui.Manager
-	root          *ui.Panel
-	nodes         []*shaderGraphNode
-	selected      []*shaderGraphNode
-	connections   []*shaderGraphConnection
-	selectionBox  *ui.Panel
-	pendingFrom   *shaderGraphPort
-	pendingVisual *shaderGraphSpline
-	pan           matrix.Vec2
-	zoom          matrix.Float
-	zoomBlocked   func(matrix.Vec2) bool
-	inputBlocked  func(matrix.Vec2) bool
-	panning       bool
-	panMouse      matrix.Vec2
-	hasPanMouse   bool
-	boxSelecting  bool
-	boxStart      matrix.Vec2
-	viewport      shaderGraphViewport
-	selectTexture func(current string, onSelect func(string), onClose func())
-	textureName   func(id string) string
+	host                  *engine.Host
+	history               *memento.History
+	uiMan                 ui.Manager
+	root                  *ui.Panel
+	nodes                 []*shaderGraphNode
+	selected              []*shaderGraphNode
+	connections           []*shaderGraphConnection
+	selectionBox          *ui.Panel
+	pendingFrom           *shaderGraphPort
+	pendingVisual         *shaderGraphSpline
+	pan                   matrix.Vec2
+	zoom                  matrix.Float
+	zoomBlocked           func(matrix.Vec2) bool
+	inputBlocked          func(matrix.Vec2) bool
+	connectionDropOnBlank func(*shaderGraphPort, matrix.Vec2, matrix.Vec2)
+	panning               bool
+	panMouse              matrix.Vec2
+	hasPanMouse           bool
+	boxSelecting          bool
+	boxStart              matrix.Vec2
+	viewport              shaderGraphViewport
+	selectTexture         func(current string, onSelect func(string), onClose func())
+	textureName           func(id string) string
 }
 
 type shaderGraphViewport struct {
@@ -154,6 +155,14 @@ func (g *shaderGraph) CreateCatalogNode(typeID string, position matrix.Vec2) (*s
 	spec, ok := shaderGraphNodeCatalogSpec(typeID)
 	if !ok {
 		return nil, false
+	}
+	if g.root == nil || g.host == nil {
+		node := g.createNodeFromSnapshot(RenderGraphNode{
+			ID:       g.nextNodeID(),
+			Type:     typeID,
+			Position: position,
+		})
+		return node, node != nil
 	}
 	node := g.createNode(typeID, spec, position, "")
 	return node, node != nil
@@ -315,7 +324,7 @@ func (g *shaderGraph) connectionsTouchingNodes(nodeIDs map[string]struct{}) []Re
 
 func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnection {
 	output, input, ok := shaderGraphConnectionPorts(a, b)
-	if !ok || g.root == nil {
+	if !ok {
 		return nil
 	}
 	outputRef, inputRef, ok := shaderGraphConnectionRefs(output, input)
@@ -326,7 +335,12 @@ func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnec
 	}
 	g.removeConnectionsTouchingPort(input)
 	connection := &shaderGraphConnection{}
-	connection.Initialize(g.host, g.root, output, input)
+	if g.root != nil {
+		connection.Initialize(g.host, g.root, output, input)
+	} else {
+		connection.output = output
+		connection.input = input
+	}
 	g.connections = append(g.connections, connection)
 	return connection
 }
@@ -454,6 +468,20 @@ func (g *shaderGraph) createConnectionFromRefs(outputRef, inputRef RenderGraphPo
 	return g.CreateConnection(outputNode.Output(outputRef.Port), inputNode.Input(inputRef.Port))
 }
 
+func (g *shaderGraph) portByRef(nodeID string, portIndex int, output bool) *shaderGraphPort {
+	if g == nil {
+		return nil
+	}
+	node := g.nodeByID(nodeID)
+	if node == nil {
+		return nil
+	}
+	if output {
+		return node.Output(portIndex)
+	}
+	return node.Input(portIndex)
+}
+
 func (g *shaderGraph) SetViewport(x, y, width, height float32) {
 	g.viewport = shaderGraphViewport{
 		x:      x,
@@ -513,8 +541,20 @@ func (g *shaderGraph) finishConnection(port *shaderGraphPort) {
 	if g.pendingFrom == nil {
 		return
 	}
-	if port != nil && g.pendingFrom.CanConnect(port) {
-		g.ConnectPorts(g.pendingFrom, port)
+	if port != nil {
+		if g.pendingFrom.CanConnect(port) {
+			g.ConnectPorts(g.pendingFrom, port)
+		}
+		g.cancelPendingConnection()
+		return
+	}
+	if g.host != nil && g.host.Window != nil && g.screenPositionInside(g.host.Window.Mouse.ScreenPosition()) {
+		source := g.pendingFrom
+		viewPosition := g.screenToViewPosition(g.host.Window.Mouse.ScreenPosition())
+		createPosition := g.graphPositionFromView(viewPosition)
+		if g.connectionDropOnBlank != nil {
+			g.connectionDropOnBlank(source, viewPosition, createPosition)
+		}
 	}
 	g.cancelPendingConnection()
 }
@@ -531,6 +571,10 @@ func (g *shaderGraph) updatePendingConnection() {
 		return
 	}
 	mouse := &g.host.Window.Mouse
+	if mouse.Released(hid.MouseButtonLeft) {
+		g.finishConnection(nil)
+		return
+	}
 	if !mouse.Held(hid.MouseButtonLeft) && !mouse.Pressed(hid.MouseButtonLeft) {
 		g.cancelPendingConnection()
 		return
