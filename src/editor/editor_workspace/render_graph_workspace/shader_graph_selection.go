@@ -21,6 +21,7 @@ const (
 	shaderGraphSelectionReplace shaderGraphSelectionMode = iota
 	shaderGraphSelectionAppend
 	shaderGraphSelectionToggle
+	shaderGraphSelectionSubtract
 )
 
 func (g *shaderGraph) HasSelection() bool { return len(g.selected) > 0 }
@@ -43,11 +44,13 @@ func (g *shaderGraph) SelectNodeFromInput(node *shaderGraphNode) {
 	g.SelectNodes([]*shaderGraphNode{node}, shaderGraphSelectionModeFromKeyboard(&g.host.Window.Keyboard))
 }
 
-func (g *shaderGraph) clearSelectionFromInput() {
-	if g == nil || g.isPanInputHeld() {
+func (g *shaderGraph) beginBoxSelectionFromInput() {
+	if g == nil || g.host == nil || g.host.Window == nil || g.isPanInputHeld() {
 		return
 	}
-	g.SelectNodes(nil, shaderGraphSelectionReplace)
+	g.boxSelecting = true
+	g.boxStart = g.graphPositionFromView(g.screenToViewPosition(g.host.Window.Mouse.ScreenPosition()))
+	g.updateSelectionBoxVisual(g.boxStart)
 }
 
 func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSelectionMode) {
@@ -85,6 +88,12 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 				next = slices.Delete(next, index, index+1)
 			} else {
 				next = append(next, filtered[i])
+			}
+		}
+	case shaderGraphSelectionSubtract:
+		for i := range filtered {
+			if index := slices.Index(next, filtered[i]); index >= 0 {
+				next = slices.Delete(next, index, index+1)
 			}
 		}
 	default:
@@ -185,6 +194,19 @@ func shaderGraphSelectionModeFromKeyboard(kb *hid.Keyboard) shaderGraphSelection
 	}
 	if kb.HasCtrlOrMeta() {
 		return shaderGraphSelectionToggle
+	}
+	return shaderGraphSelectionReplace
+}
+
+func shaderGraphBoxSelectionModeFromKeyboard(kb *hid.Keyboard) shaderGraphSelectionMode {
+	if kb == nil {
+		return shaderGraphSelectionReplace
+	}
+	if kb.HasShift() {
+		return shaderGraphSelectionAppend
+	}
+	if kb.HasCtrlOrMeta() {
+		return shaderGraphSelectionSubtract
 	}
 	return shaderGraphSelectionReplace
 }

@@ -29,12 +29,15 @@ type shaderGraph struct {
 	nodes         []*shaderGraphNode
 	selected      []*shaderGraphNode
 	connections   []*shaderGraphConnection
+	selectionBox  *ui.Panel
 	pendingFrom   *shaderGraphPort
 	pendingVisual *shaderGraphSpline
 	pan           matrix.Vec2
 	panning       bool
 	panMouse      matrix.Vec2
 	hasPanMouse   bool
+	boxSelecting  bool
+	boxStart      matrix.Vec2
 	viewport      shaderGraphViewport
 }
 
@@ -53,7 +56,24 @@ func (g *shaderGraph) Initialize(host *engine.Host, history *memento.History) {
 	g.root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	g.root.Base().Layout().SetZ(4)
 	g.root.Base().Hide()
-	g.root.Base().AddEvent(ui.EventTypeDown, g.clearSelectionFromInput)
+	g.root.Base().AddEvent(ui.EventTypeDown, g.beginBoxSelectionFromInput)
+
+	g.selectionBox = g.uiMan.Add().ToPanel()
+	g.selectionBox.Init(nil, ui.ElementTypePanel)
+	g.selectionBox.AllowClickThrough()
+	g.selectionBox.DontFitContent()
+	g.selectionBox.SetColor(matrix.NewColor(0.95, 0.72, 0.28, 0.18))
+	g.selectionBox.SetBorderSize(1, 1, 1, 1)
+	g.selectionBox.SetBorderColor(
+		shaderGraphNodeSelectColor,
+		shaderGraphNodeSelectColor,
+		shaderGraphNodeSelectColor,
+		shaderGraphNodeSelectColor,
+	)
+	g.selectionBox.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	g.selectionBox.Base().Layout().SetZ(30)
+	g.selectionBox.Base().Hide()
+	g.root.AddChild(g.selectionBox.Base())
 }
 
 func (g *shaderGraph) Shutdown() {
@@ -63,6 +83,7 @@ func (g *shaderGraph) Shutdown() {
 	}
 	g.pendingFrom = nil
 	g.pendingVisual = nil
+	g.selectionBox = nil
 	g.root = nil
 	g.uiMan.Shutdown()
 }
@@ -89,6 +110,7 @@ func (g *shaderGraph) Close() {
 	}
 	g.panning = false
 	g.hasPanMouse = false
+	g.cancelBoxSelection()
 	for i := range g.connections {
 		g.connections[i].Hide()
 	}
@@ -101,6 +123,7 @@ func (g *shaderGraph) Update() {
 	}
 	g.applyLayout()
 	g.updatePan()
+	g.updateBoxSelection()
 	for i := range g.nodes {
 		g.nodes[i].Update()
 	}
@@ -160,6 +183,7 @@ func (g *shaderGraph) SetViewport(x, y, width, height float32) {
 
 func (g *shaderGraph) clear() {
 	g.setSelectionNodes(nil)
+	g.cancelBoxSelection()
 	for i := range g.connections {
 		g.connections[i].Destroy()
 	}

@@ -48,6 +48,7 @@ type shaderGraphNode struct {
 	outputs     []*shaderGraphPort
 	values      map[string]shaderGraphNodeFieldValue
 	position    matrix.Vec2
+	height      float32
 	selected    bool
 	dragging    bool
 	dragMouse   matrix.Vec2
@@ -79,6 +80,7 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 	parent.AddChild(n.root.Base())
 
 	height := shaderGraphNodeHeight(spec)
+	n.height = height
 	n.root.Base().Layout().Scale(shaderGraphNodeWidth, height)
 	n.applyViewOffset()
 
