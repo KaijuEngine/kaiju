@@ -9,14 +9,18 @@ package render_graph_workspace
 import "kaijuengine.com/platform/profiler/tracing"
 
 type shaderGraphNodeCreateHistory struct {
-	graph *shaderGraph
-	node  RenderGraphNode
+	graph             *shaderGraph
+	node              RenderGraphNode
+	previousSelection []string
 }
 
 func (h *shaderGraphNodeCreateHistory) Redo() {
 	defer tracing.NewRegion("shaderGraphNodeCreateHistory.Redo").End()
 	if h.graph != nil {
-		h.graph.createNodeFromSnapshot(h.node)
+		node := h.graph.createNodeFromSnapshot(h.node)
+		if node != nil {
+			h.graph.setSelectionNodes([]*shaderGraphNode{node})
+		}
 	}
 }
 
@@ -24,6 +28,7 @@ func (h *shaderGraphNodeCreateHistory) Undo() {
 	defer tracing.NewRegion("shaderGraphNodeCreateHistory.Undo").End()
 	if h.graph != nil {
 		h.graph.RemoveNode(h.node.ID)
+		h.graph.setSelectionIDs(h.previousSelection)
 	}
 }
 

@@ -96,6 +96,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	w.createNodeMenu.Initialize(w)
 	w.graph.Initialize(ed.Host(), ed.History())
 	w.graph.zoomBlocked = w.createNodeMenu.BlocksGraphZoom
+	w.graph.inputBlocked = w.createNodeMenu.BlocksGraphInput
 	w.graph.selectTexture = w.selectGraphTexture
 	w.graph.textureName = w.graphTextureName
 	w.resetGraphToDefault()
@@ -233,14 +234,18 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 		return nil, false
 	}
 	position := args.position(w.defaultCreateNodePosition())
+	previousSelection := w.graph.selectionIDs()
 	node, ok := w.graph.CreateCatalogNode(args.NodeID, position)
 	if !ok || node == nil {
 		return nil, false
 	}
+	w.graph.cancelBoxSelection()
+	w.graph.setSelectionNodes([]*shaderGraphNode{node})
 	if w.graph.history != nil {
 		w.graph.history.Add(&shaderGraphNodeCreateHistory{
-			graph: &w.graph,
-			node:  renderGraphNodeFromShaderGraphNode(node),
+			graph:             &w.graph,
+			node:              renderGraphNodeFromShaderGraphNode(node),
+			previousSelection: previousSelection,
 		})
 	}
 	w.createNodeCount++

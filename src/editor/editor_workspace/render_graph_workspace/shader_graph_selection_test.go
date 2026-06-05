@@ -103,6 +103,23 @@ func TestShaderGraphSelectionEventSkipsAltInput(t *testing.T) {
 	}
 }
 
+func TestShaderGraphBeginBoxSelectionRespectsInputBlocker(t *testing.T) {
+	mouse := hid.NewMouse()
+	mouse.SetPosition(12, 24, 100, 100)
+	graph := shaderGraph{
+		host: &engine.Host{
+			Window: &windowing.Window{Mouse: mouse},
+		},
+		inputBlocked: func(matrix.Vec2) bool { return true },
+	}
+
+	graph.beginBoxSelectionFromInput()
+
+	if graph.boxSelecting {
+		t.Fatal("blocked graph input should not start box selection")
+	}
+}
+
 func TestShaderGraphSelectedNodeDragMovesSelectionWithHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)

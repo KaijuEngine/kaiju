@@ -165,6 +165,7 @@ func (n *shaderGraphNode) setSelected(selected bool) {
 			shaderGraphNodeSelectColor,
 			shaderGraphNodeSelectColor,
 		)
+		n.root.Base().SetDirty(ui.DirtyTypeColorChange)
 		return
 	}
 	n.root.SetBorderSize(1, 1, 1, 1)
@@ -174,6 +175,7 @@ func (n *shaderGraphNode) setSelected(selected bool) {
 		shaderGraphNodeAccentColor,
 		shaderGraphNodeAccentColor,
 	)
+	n.root.Base().SetDirty(ui.DirtyTypeColorChange)
 }
 
 func (n *shaderGraphNode) stopDrag() {

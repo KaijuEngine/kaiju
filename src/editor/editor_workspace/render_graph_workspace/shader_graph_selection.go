@@ -48,8 +48,12 @@ func (g *shaderGraph) beginBoxSelectionFromInput() {
 	if g == nil || g.host == nil || g.host.Window == nil || g.isPanInputHeld() {
 		return
 	}
+	mousePosition := g.host.Window.Mouse.ScreenPosition()
+	if g.inputBlocked != nil && g.inputBlocked(mousePosition) {
+		return
+	}
 	g.boxSelecting = true
-	g.boxStart = g.graphPositionFromView(g.screenToViewPosition(g.host.Window.Mouse.ScreenPosition()))
+	g.boxStart = g.graphPositionFromView(g.screenToViewPosition(mousePosition))
 	g.updateSelectionBoxVisual(g.boxStart)
 }
 

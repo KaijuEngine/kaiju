@@ -82,6 +82,10 @@ func (m *shaderGraphCreateNodeMenu) CreatePosition() matrix.Vec2 {
 }
 
 func (m *shaderGraphCreateNodeMenu) BlocksGraphZoom(position matrix.Vec2) bool {
+	return m.BlocksGraphInput(position)
+}
+
+func (m *shaderGraphCreateNodeMenu) BlocksGraphInput(position matrix.Vec2) bool {
 	if !m.open || m.root == nil || m.root.UI == nil || !m.root.UI.IsActive() {
 		return false
 	}

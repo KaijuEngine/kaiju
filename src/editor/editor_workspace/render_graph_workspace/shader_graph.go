@@ -39,6 +39,7 @@ type shaderGraph struct {
 	pan           matrix.Vec2
 	zoom          matrix.Float
 	zoomBlocked   func(matrix.Vec2) bool
+	inputBlocked  func(matrix.Vec2) bool
 	panning       bool
 	panMouse      matrix.Vec2
 	hasPanMouse   bool
