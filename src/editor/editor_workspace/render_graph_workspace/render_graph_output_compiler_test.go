@@ -15,6 +15,8 @@ func TestRenderGraphCompilerDefaultGraphGeneratesPBRFragment(t *testing.T) {
 	source := out.FragmentSource
 	for _, want := range []string{
 		"#define HAS_GBUFFER",
+		"const float MIN_TBN_DERIVATIVE_LEN2 = 1e-20;",
+		"if (maxLen <= MIN_TBN_DERIVATIVE_LEN2)",
 		"vec4 graphBaseColor = fragColor;",
 		"float roughness = clamp(mrSample.g * max(fragRoughness, MIN_ROUGHNESS), MIN_ROUGHNESS, 1.0);",
 		"vec3 N = pbrNormal(geometricNormal);",
