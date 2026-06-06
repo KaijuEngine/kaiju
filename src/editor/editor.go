@@ -289,11 +289,11 @@ func (ed *Editor) postProjectLoad() {
 var defaultWorkspaceOrder = []string{
 	"stage",
 	"content",
+	"renderGraph",
 	"terrain",
 	"vfx",
 	"ui",
 	"vulkan",
-	"renderGraph",
 	"settings",
 }
 
