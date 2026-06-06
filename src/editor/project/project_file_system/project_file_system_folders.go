@@ -44,6 +44,7 @@ const (
 	ContentFontFolder            = "font"
 	ContentMeshFolder            = "mesh"
 	ContentRenderFolder          = "render"
+	ContentRenderGraphFolder     = ContentRenderFolder + "/graph"
 	ContentMaterialFolder        = ContentRenderFolder + "/material"
 	ContentRenderPassFolder      = ContentRenderFolder + "/renderpass"
 	ContentShaderFolder          = ContentRenderFolder + "/shader"

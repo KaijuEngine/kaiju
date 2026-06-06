@@ -1,10 +1,10 @@
 /******************************************************************************/
-/* shading_workspace.go                                                       */
+/* vulkan_workspace.go                                                        */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package shading_workspace
+package vulkan_workspace
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
-	"kaijuengine.com/editor/editor_workspace/shading_workspace/shader_designer"
+	"kaijuengine.com/editor/editor_workspace/vulkan_workspace/shader_designer"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
@@ -24,15 +24,15 @@ import (
 )
 
 const (
-	ID          = "shading"
-	DisplayName = "Shading"
+	ID          = "vulkan"
+	DisplayName = "Vulkan"
 )
 
 func init() {
-	editor_workspace_registry.Register(&ShadingWorkspace{})
+	editor_workspace_registry.Register(&VulkanWorkspace{})
 }
 
-type ShadingWorkspace struct {
+type VulkanWorkspace struct {
 	common_workspace.CommonWorkspace
 	ed                     editor_workspace.WorkspaceEditorInterface
 	stageView              *editor_stage_view.StageView
@@ -43,27 +43,27 @@ type ShadingWorkspace struct {
 	openSpecSubID          events.Id
 }
 
-type ShadingWorkspaceUIData struct {
-	Files []ShadingWorkspaceUIDataFile
+type VulkanWorkspaceUIData struct {
+	Files []VulkanWorkspaceUIDataFile
 }
 
-type ShadingWorkspaceUIDataFile struct {
+type VulkanWorkspaceUIDataFile struct {
 	Id   string
 	Type string
 	Name string
 }
 
-func (w *ShadingWorkspace) ID() string          { return ID }
-func (w *ShadingWorkspace) DisplayName() string { return DisplayName }
-func (w *ShadingWorkspace) IsRequired() bool    { return false }
+func (w *VulkanWorkspace) ID() string          { return ID }
+func (w *VulkanWorkspace) DisplayName() string { return DisplayName }
+func (w *VulkanWorkspace) IsRequired() bool    { return false }
 
-func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
+func (w *VulkanWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	host := ed.Host()
 	w.ed = ed
 	w.stageView = ed.StageView()
-	data := ShadingWorkspaceUIData{Files: w.readExisting()}
+	data := VulkanWorkspaceUIData{Files: w.readExisting()}
 	if err := w.CommonWorkspace.InitializeWithUI(host,
-		"editor/ui/workspace/shading_workspace.go.html", data, map[string]func(*document.Element){
+		"editor/ui/workspace/vulkan_workspace.go.html", data, map[string]func(*document.Element){
 			"toggleFilterSpec":   w.toggleFilterSpec,
 			"selectSpec":         w.selectSpec,
 			"clickNewRenderPass": w.clickNewRenderPass,
@@ -82,24 +82,24 @@ func (w *ShadingWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfa
 	w.ed.Events().OnContentRemoved.Add(w.contentRemoved)
 	w.ed.Events().OnContentRenamed.Add(w.contentRenamed)
 	// Subscribe to cross-workspace request to open a spec; this also
-	// switches the shading workspace active.
-	w.openSpecSubID = ed.Events().OnRequestOpenShadingSpec.Add(func(specID string) {
+	// switches the Vulkan workspace active.
+	w.openSpecSubID = ed.Events().OnRequestOpenVulkanSpec.Add(func(specID string) {
 		ed.SelectWorkspace(ID)
 		w.OpenSpec(specID)
 	})
 	return nil
 }
 
-func (w *ShadingWorkspace) Shutdown() {
-	defer tracing.NewRegion("ShadingWorkspace.Shutdown").End()
+func (w *VulkanWorkspace) Shutdown() {
+	defer tracing.NewRegion("VulkanWorkspace.Shutdown").End()
 	if w.ed != nil {
-		w.ed.Events().OnRequestOpenShadingSpec.Remove(w.openSpecSubID)
+		w.ed.Events().OnRequestOpenVulkanSpec.Remove(w.openSpecSubID)
 	}
 	w.CommonShutdown()
 }
 
-func (w *ShadingWorkspace) Open() {
-	defer tracing.NewRegion("ShadingWorkspace.Open").End()
+func (w *VulkanWorkspace) Open() {
+	defer tracing.NewRegion("VulkanWorkspace.Open").End()
 	w.CommonOpen()
 	w.stageView.Open()
 	w.renderSpecListTemplate.UI.Hide()
@@ -107,19 +107,19 @@ func (w *ShadingWorkspace) Open() {
 	w.renderSpecList.UI.Clean()
 }
 
-func (w *ShadingWorkspace) Close() {
-	defer tracing.NewRegion("ShadingWorkspace.Close").End()
+func (w *VulkanWorkspace) Close() {
+	defer tracing.NewRegion("VulkanWorkspace.Close").End()
 	w.CommonClose()
 	w.stageView.Close()
 	w.designer.Close()
 }
 
-func (w *ShadingWorkspace) Hotkeys() []common_workspace.HotKey {
+func (w *VulkanWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
 }
 
-func (w *ShadingWorkspace) OpenSpec(id string) {
-	defer tracing.NewRegion("ShadingWorkspace.OpenSpec").End()
+func (w *VulkanWorkspace) OpenSpec(id string) {
+	defer tracing.NewRegion("VulkanWorkspace.OpenSpec").End()
 	if id == "" {
 		return
 	}
@@ -174,8 +174,8 @@ func (w *ShadingWorkspace) OpenSpec(id string) {
 	w.Doc.ApplyStyles()
 }
 
-func (w *ShadingWorkspace) Update(deltaTime float64) {
-	defer tracing.NewRegion("ShadingWorkspace.update").End()
+func (w *VulkanWorkspace) Update(deltaTime float64) {
+	defer tracing.NewRegion("VulkanWorkspace.update").End()
 	if w.UiMan.IsUpdateDisabled() {
 		return
 	}
@@ -185,9 +185,9 @@ func (w *ShadingWorkspace) Update(deltaTime float64) {
 	w.stageView.Update(deltaTime, w.ed.Project())
 }
 
-func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
-	defer tracing.NewRegion("ShadingWorkspace.readExisting").End()
-	out := []ShadingWorkspaceUIDataFile{}
+func (w *VulkanWorkspace) readExisting() []VulkanWorkspaceUIDataFile {
+	defer tracing.NewRegion("VulkanWorkspace.readExisting").End()
+	out := []VulkanWorkspaceUIDataFile{}
 	fs := w.ed.ProjectFileSystem()
 	paths := map[string]string{
 		".material":       project_file_system.ContentFolder + "/" + project_file_system.ContentMaterialFolder,
@@ -209,7 +209,7 @@ func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
 			if err != nil {
 				continue
 			}
-			out = append(out, ShadingWorkspaceUIDataFile{
+			out = append(out, VulkanWorkspaceUIDataFile{
 				Id:   cc.Id(),
 				Name: cc.Config.Name,
 				Type: cc.Config.Type,
@@ -219,8 +219,8 @@ func (w *ShadingWorkspace) readExisting() []ShadingWorkspaceUIDataFile {
 	return out
 }
 
-func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.toggleFilterSpec").End()
+func (w *VulkanWorkspace) toggleFilterSpec(e *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.toggleFilterSpec").End()
 	txt := e.InnerLabel().Text()
 	typeFilter := ""
 	for _, elm := range e.Parent.Value().Children {
@@ -257,37 +257,37 @@ func (w *ShadingWorkspace) toggleFilterSpec(e *document.Element) {
 	w.renderSpecList.UI.Clean()
 }
 
-func (w *ShadingWorkspace) selectSpec(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.selectSpec").End()
+func (w *VulkanWorkspace) selectSpec(elm *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.selectSpec").End()
 	w.OpenSpec(elm.Attribute("id"))
 }
 
-func (w *ShadingWorkspace) clickNewRenderPass(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.clickNewRenderPass").End()
+func (w *VulkanWorkspace) clickNewRenderPass(elm *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.clickNewRenderPass").End()
 	w.designer.ShowRenderPassWindow("", rendering.RenderPassData{})
 }
 
-func (w *ShadingWorkspace) clickNewPipeline(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.clickNewPipeline").End()
+func (w *VulkanWorkspace) clickNewPipeline(elm *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.clickNewPipeline").End()
 	w.designer.ShowPipelineWindow("", rendering.ShaderPipelineData{})
 }
 
-func (w *ShadingWorkspace) clickNewShader(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.clickNewShader").End()
+func (w *VulkanWorkspace) clickNewShader(elm *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.clickNewShader").End()
 	w.designer.ShowShaderWindow("", rendering.ShaderData{})
 }
 
-func (w *ShadingWorkspace) clickNewMaterial(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.clickNewMaterial").End()
+func (w *VulkanWorkspace) clickNewMaterial(elm *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.clickNewMaterial").End()
 	w.designer.ShowMaterialWindow("", rendering.MaterialData{})
 }
 
-func (w *ShadingWorkspace) showTooltip(elm *document.Element) {
-	defer tracing.NewRegion("ShadingWorkspace.showTooltip").End()
+func (w *VulkanWorkspace) showTooltip(elm *document.Element) {
+	defer tracing.NewRegion("VulkanWorkspace.showTooltip").End()
 	w.toolTip.InnerLabel().SetText(elm.Attribute("data-tooltip"))
 }
 
-func (w *ShadingWorkspace) contentAdded(ids []string) {
+func (w *VulkanWorkspace) contentAdded(ids []string) {
 	targets := []content_database.CachedContent{}
 	for i := range ids {
 		cc, err := w.ed.Cache().Read(ids[i])
@@ -314,7 +314,7 @@ func (w *ShadingWorkspace) contentAdded(ids []string) {
 	w.Doc.ApplyStyles()
 }
 
-func (w *ShadingWorkspace) contentRemoved(ids []string) {
+func (w *VulkanWorkspace) contentRemoved(ids []string) {
 	elms := make([]*document.Element, 0, len(ids))
 	for i := range ids {
 		e, ok := w.Doc.GetElementById(ids[i])
@@ -328,7 +328,7 @@ func (w *ShadingWorkspace) contentRemoved(ids []string) {
 	w.Doc.ApplyStyles()
 }
 
-func (w *ShadingWorkspace) contentRenamed(id string) {
+func (w *VulkanWorkspace) contentRenamed(id string) {
 	e, ok := w.Doc.GetElementById(id)
 	if !ok {
 		return

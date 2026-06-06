@@ -304,6 +304,61 @@ func TestDrawInstanceGroupAddInstance(t *testing.T) {
 	}
 }
 
+func TestDrawInstanceGroupDetectsDescriptorLayoutChange(t *testing.T) {
+	group := NewDrawInstanceGroup(NewMesh("mesh", testVerts(), []uint32{0, 1}), 16, nil)
+	state := &DrawInstanceViewState{}
+	state.generatedSets = true
+	state.descriptorLayout = testDescriptorSetLayoutHandle(1)
+	material := &Material{
+		Shader: NewShader(ShaderDataCompiled{Name: "test"}),
+	}
+	material.Shader.RenderId.descriptorSetLayout = testDescriptorSetLayoutHandle(1)
+	if group.instanceDescriptorLayoutChanged(material, state) {
+		t.Fatalf("matching descriptor layout should not be reported as changed")
+	}
+	material.Shader.RenderId.descriptorSetLayout = testDescriptorSetLayoutHandle(2)
+	if !group.instanceDescriptorLayoutChanged(material, state) {
+		t.Fatalf("descriptor layout change was not detected")
+	}
+}
+
+func TestDestroyGroupDescriptorSetsKeepsInstanceBuffers(t *testing.T) {
+	state := &DrawInstanceViewState{}
+	state.generatedSets = true
+	state.descriptorPool = testDescriptorPoolHandle(3)
+	state.descriptorSets[0] = testDescriptorSetHandle(4)
+	state.descriptorLayout = testDescriptorSetLayoutHandle(5)
+	state.instanceBuffer.buffers[0] = testBufferHandle(6)
+	state.boundBuffers = []ShaderBuffer{{buffers: [maxFramesInFlight]GPUBuffer{testBufferHandle(7)}}}
+	state.descriptorCache.ShouldWrite(0, NewDescriptorWriteSignature())
+
+	device := &GPUDevice{}
+	device.LogicalDevice.destroyGroupDescriptorSets(state)
+
+	if state.generatedSets {
+		t.Fatalf("descriptor sets should no longer be marked generated")
+	}
+	if state.descriptorPool.IsValid() || state.descriptorSets[0].IsValid() || state.descriptorLayout.IsValid() {
+		t.Fatalf("descriptor handles were not cleared")
+	}
+	if !state.instanceBuffer.buffers[0].IsValid() || !state.boundBuffers[0].buffers[0].IsValid() {
+		t.Fatalf("instance buffers should remain owned by the state")
+	}
+	if len(device.LogicalDevice.bufferTrash.trash) != 1 {
+		t.Fatalf("descriptor trash count = %d, want 1", len(device.LogicalDevice.bufferTrash.trash))
+	}
+	trash := device.LogicalDevice.bufferTrash.trash[0]
+	if !trash.pool.IsValid() || !trash.sets[0].IsValid() {
+		t.Fatalf("descriptor trash did not capture pool/set: %+v", trash)
+	}
+	if trash.buffers[0].IsValid() {
+		t.Fatalf("descriptor-only trash should not capture instance buffers")
+	}
+	if !state.descriptorCache.ShouldWrite(0, NewDescriptorWriteSignature()) {
+		t.Fatalf("descriptor cache should be invalidated")
+	}
+}
+
 func TestDrawInstanceGroupClear(t *testing.T) {
 	group := NewDrawInstanceGroup(NewMesh("mesh", testVerts(), []uint32{0, 1}), 16, nil)
 	group.MaterialInstance = &Material{}

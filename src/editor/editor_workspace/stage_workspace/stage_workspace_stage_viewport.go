@@ -49,7 +49,6 @@ func (v *stageWorkspaceStageViewport) init(uiMan *ui.Manager, stageView *editor_
 		viewport.Base().Layout().SetZ(2)
 		viewport.Base().ToPanel().AllowClickThrough()
 		v.viewports[kind] = viewport
-		stageView.SetViewportUIForKind(kind, viewport.Base())
 
 		label := uiMan.Add().ToLabel()
 		label.Init(kind.Label())
@@ -61,6 +60,15 @@ func (v *stageWorkspaceStageViewport) init(uiMan *ui.Manager, stageView *editor_
 		label.Base().Layout().Scale(70, 16)
 		label.Base().Layout().SetZ(3)
 		v.labels[kind] = label
+	}
+	v.bind(stageView)
+}
+
+func (v *stageWorkspaceStageViewport) bind(stageView *editor_stage_view.StageView) {
+	for kind, viewport := range v.viewports {
+		if viewport != nil {
+			stageView.SetViewportUIForKind(kind, viewport.Base())
+		}
 	}
 }
 

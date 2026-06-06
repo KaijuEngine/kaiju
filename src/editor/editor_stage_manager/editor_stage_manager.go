@@ -775,7 +775,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		texs = append(texs, tex)
 	}
 	mat = mat.CreateInstance(texs)
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	e.StageData.Mesh = mesh
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
 	m.AddBVH(e)

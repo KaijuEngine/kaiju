@@ -39,7 +39,7 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 	}
 	host := p.ed.Host()
 	mesh := rendering.NewMeshSphere(host.MeshCache(), sphereRadius, sphereSegments, sphereSegments)
-	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       mesh,

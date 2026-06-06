@@ -50,6 +50,7 @@ var (
 		ContentTableFolder,
 		ContentTableOfContentsFolder,
 		ContentRenderFolder,
+		ContentRenderGraphFolder,
 		ContentMaterialFolder,
 		ContentShaderFolder,
 		ContentParticlesFolder,

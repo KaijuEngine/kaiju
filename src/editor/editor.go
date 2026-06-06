@@ -42,12 +42,13 @@ import (
 	// the side effect; files in this package that need the concrete types
 	// (e.g. editor_menu_bar_handler.go) re-import them by name.
 	_ "kaijuengine.com/editor/editor_workspace/content_workspace"
+	_ "kaijuengine.com/editor/editor_workspace/render_graph_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/settings_workspace"
-	_ "kaijuengine.com/editor/editor_workspace/shading_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/stage_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/terrain_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/ui_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/vfx_workspace"
+	_ "kaijuengine.com/editor/editor_workspace/vulkan_workspace"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the
@@ -291,7 +292,8 @@ var defaultWorkspaceOrder = []string{
 	"terrain",
 	"vfx",
 	"ui",
-	"shading",
+	"vulkan",
+	"renderGraph",
 	"settings",
 }
 

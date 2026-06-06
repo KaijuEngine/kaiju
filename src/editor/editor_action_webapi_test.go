@@ -37,7 +37,7 @@ func TestActionWebAPIListSearchAndRun(t *testing.T) {
 	}
 
 	res = httptest.NewRecorder()
-	req = jsonRequest(http.MethodPost, webapi.VersionPrefix+"/actions/search", map[string]string{"query": "save"})
+	req = jsonRequest(http.MethodPost, webapi.VersionPrefix+"/actions/search", map[string]string{"query": "undo"})
 	handler.ServeEditorWebAPI(ed, res, req)
 	if res.Code != http.StatusOK {
 		t.Fatalf("search status = %d, want %d", res.Code, http.StatusOK)

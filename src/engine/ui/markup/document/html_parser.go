@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"weak"
 
 	xhtml "golang.org/x/net/html"
@@ -110,6 +111,7 @@ type Document struct {
 	onWindowResizeId  events.Id
 	groups            map[string][]*Element
 	ids               map[string]*Element
+	idsMutex          sync.RWMutex
 	classElements     map[string][]*Element
 	tagElements       map[string][]*Element
 	style             rules.StyleSheet
@@ -148,7 +150,7 @@ func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylize
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
-	if e, ok := h.ids[id]; ok {
+	if e, ok := h.readId(id); ok {
 		return e, ok
 	} else {
 		return nil, ok
@@ -217,6 +219,8 @@ func (h *Document) recacheElementTags() {
 }
 
 func (h *Document) recacheElementIds() {
+	h.idsMutex.Lock()
+	defer h.idsMutex.Unlock()
 	clear(h.ids)
 	for i := range h.Elements {
 		e := h.Elements[i]
@@ -419,7 +423,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		id := e.Attribute("id")
 		group := e.Attribute("group")
 		if len(id) > 0 {
-			d.ids[id] = entry
+			d.setId(id, entry)
 			panel.Base().Entity().SetName(id)
 		} else {
 			panel.Base().Entity().SetName(e.Attribute("name"))
@@ -632,7 +636,7 @@ func (d *Document) Clean() {
 func (d *Document) indexElement(elm *Element) {
 	d.Elements = append(d.Elements, elm)
 	if id := elm.Attribute("id"); id != "" {
-		d.ids[id] = elm
+		d.setId(id, elm)
 	}
 	if group := elm.Attribute("group"); group != "" {
 		d.groups[group] = append(d.groups[group], elm)
@@ -659,7 +663,7 @@ func (d *Document) removeIndexedElement(elm *Element) {
 			break
 		}
 	}
-	delete(d.ids, elm.Attribute("id"))
+	d.removeId(elm.Attribute("id"))
 	if group := elm.Attribute("group"); group != "" {
 		for i := range d.groups[group] {
 			if d.groups[group][i] == elm {
@@ -1035,11 +1039,11 @@ func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
 	defer tracing.NewRegion("Document.SetElementIdWithoutApplyStyles").End()
 	currentId := elm.Attribute("id")
 	if currentId != "" {
-		delete(d.ids, currentId)
+		d.removeId(currentId)
 	}
 	elm.SetAttribute("id", id)
 	if id != "" {
-		d.ids[id] = elm
+		d.setId(id, elm)
 	}
 }
 
@@ -1164,4 +1168,23 @@ func (d *Document) insertElementAt(elm *Element, parent *Element, index int) {
 		d.appendElement(elm)
 	}
 	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func (d *Document) setId(id string, elm *Element) {
+	d.idsMutex.Lock()
+	d.ids[id] = elm
+	d.idsMutex.Unlock()
+}
+
+func (d *Document) readId(id string) (*Element, bool) {
+	d.idsMutex.RLock()
+	out, ok := d.ids[id]
+	d.idsMutex.RUnlock()
+	return out, ok
+}
+
+func (d *Document) removeId(id string) {
+	d.idsMutex.Lock()
+	delete(d.ids, id)
+	d.idsMutex.Unlock()
 }

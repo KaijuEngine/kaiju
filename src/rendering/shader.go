@@ -7,6 +7,7 @@
 package rendering
 
 import (
+	"strings"
 	"weak"
 
 	"kaijuengine.com/engine/assets"
@@ -33,6 +34,7 @@ type Shader struct {
 
 type ShaderData struct {
 	Name                        string
+	DrawInstanceData            string `label:"Draw Instance Data"`
 	EnableDebug                 bool
 	Vertex                      string              `options:""`
 	VertexFlags                 string              `tip:"CompileFlags"`
@@ -58,6 +60,7 @@ type ShaderData struct {
 
 type ShaderDataCompiled struct {
 	Name                   string
+	DrawInstanceData       string
 	Vertex                 string
 	Fragment               string
 	Geometry               string
@@ -69,6 +72,22 @@ type ShaderDataCompiled struct {
 }
 
 func (s *ShaderDataCompiled) IsCompute() bool { return s.Compute != "" }
+
+func (d ShaderData) DrawInstanceDataName() string {
+	return drawInstanceDataName(d.DrawInstanceData, d.Name)
+}
+
+func (sd ShaderDataCompiled) DrawInstanceDataName() string {
+	return drawInstanceDataName(sd.DrawInstanceData, sd.Name)
+}
+
+func drawInstanceDataName(name, fallback string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fallback
+	}
+	return name
+}
 
 func (s *ShaderDataCompiled) SelectLayout(stage string) *ShaderLayoutGroup {
 	for i := range s.LayoutGroups {
@@ -141,6 +160,7 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 	defer tracing.NewRegion("Shader.Compile").End()
 	return ShaderDataCompiled{
 		Name:                   d.Name,
+		DrawInstanceData:       d.DrawInstanceDataName(),
 		Vertex:                 d.VertexSpv,
 		Fragment:               d.FragmentSpv,
 		Geometry:               d.GeometrySpv,
@@ -153,6 +173,8 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 }
 
 func (s *Shader) ShaderDataName() string { return s.data.Name }
+
+func (s *Shader) DrawInstanceDataName() string { return s.data.DrawInstanceDataName() }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {
 	shader.pipelineInfo = s.pipelineInfo

@@ -105,7 +105,7 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 	e.StageData.SnapVertices = editor_stage_manager.SnapVerticesFromMesh(verts)
 	e.StageData.Description.Mesh = mesh.Key()
 	e.StageData.Description.Material = mat.Id
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	km := kaiju_mesh.KaijuMesh{Verts: verts, Indexes: indexes}
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
 	e.Transform.SetPosition(w.stageView.LookAtPoint())
@@ -502,7 +502,7 @@ func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km ka
 	e.StageData.Bvh = km.GenerateBVH(w.Host.Threads(), &e.Transform, e)
 	man.AddBVH(e)
 	man.RefitBVH(e)
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       e.StageData.Mesh,
@@ -603,7 +603,7 @@ func (w *StageWorkspace) setEntityMesh(e *editor_stage_manager.StageEntity, mesh
 	oldShaderData := e.StageData.ShaderData
 	newShaderData := rendering.ReflectDuplicateDrawInstance(oldShaderData)
 	if newShaderData == nil {
-		newShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+		newShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	} else {
 		newShaderData.Base().CancelDestroy()
 	}
@@ -755,7 +755,7 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 		e.StageData.ShaderData = nil
 		return true
 	}
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	if !e.IsActive() {
 		e.StageData.ShaderData.Deactivate()
 	}

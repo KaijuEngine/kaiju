@@ -178,7 +178,7 @@ func createStageViewportGizmoAxis(host *engine.Host, suffix string, from, to mat
 		stageViewportIntegrationFail(stageViewportFullScreenshotOutput,
 			"load editor transform wire material", err)
 	}
-	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = color
 	entity := engine.NewEntity(host.WorkGroup())
 	host.Drawings.AddDrawing(rendering.Drawing{

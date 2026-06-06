@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-var bufferDestroyerTestHandles [16]byte
+var bufferDestroyerTestHandles [32]byte
 
 type recordingBufferTrashReleaser struct {
 	events []string
@@ -102,6 +102,10 @@ func testDescriptorPoolHandle(index int) GPUDescriptorPool {
 
 func testDescriptorSetHandle(index int) GPUDescriptorSet {
 	return GPUDescriptorSet{GPUHandle{handle: testBufferDestroyerHandle(index)}}
+}
+
+func testDescriptorSetLayoutHandle(index int) GPUDescriptorSetLayout {
+	return GPUDescriptorSetLayout{GPUHandle{handle: testBufferDestroyerHandle(index)}}
 }
 
 func testBufferHandle(index int) GPUBuffer {
