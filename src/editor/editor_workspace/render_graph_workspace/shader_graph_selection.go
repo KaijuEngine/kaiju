@@ -24,7 +24,9 @@ const (
 	shaderGraphSelectionSubtract
 )
 
-func (g *shaderGraph) HasSelection() bool { return len(g.selected) > 0 }
+func (g *shaderGraph) HasSelection() bool {
+	return g != nil && (len(g.selected) > 0 || g.selectedComment != nil)
+}
 
 func (g *shaderGraph) Selection() []*shaderGraphNode {
 	return slices.Clone(g.selected)
@@ -42,6 +44,14 @@ func (g *shaderGraph) SelectNodeFromInput(node *shaderGraphNode) {
 		return
 	}
 	g.SelectNodes([]*shaderGraphNode{node}, shaderGraphSelectionModeFromKeyboard(&g.host.Window.Keyboard))
+}
+
+func (g *shaderGraph) SelectCommentFromInput(comment *shaderGraphComment) {
+	if g == nil || comment == nil {
+		return
+	}
+	g.setSelectionNodes(nil)
+	g.setSelectedComment(comment)
 }
 
 func (g *shaderGraph) beginBoxSelectionFromInput() {
@@ -136,6 +146,9 @@ func (g *shaderGraph) setSelectionNodes(nodes []*shaderGraphNode) {
 	if g == nil {
 		return
 	}
+	if g.selectedComment != nil {
+		g.setSelectedComment(nil)
+	}
 	previous := slices.Clone(g.selected)
 	g.selected = klib.WipeSlice(g.selected)
 	for i := range nodes {
@@ -158,6 +171,21 @@ func (g *shaderGraph) setSelectionNodes(nodes []*shaderGraphNode) {
 		g.selected[i].setSelected(true)
 	}
 	g.applySelectionZOrder()
+}
+
+func (g *shaderGraph) setSelectedComment(comment *shaderGraphComment) {
+	if g == nil || g.selectedComment == comment {
+		return
+	}
+	if g.selectedComment != nil {
+		g.selectedComment.setSelected(false)
+	}
+	g.selectedComment = nil
+	if comment == nil || !slices.Contains(g.comments, comment) {
+		return
+	}
+	g.selectedComment = comment
+	g.selectedComment.setSelected(true)
 }
 
 func (g *shaderGraph) setSelectionIDs(ids []string) {
@@ -193,6 +221,18 @@ func (g *shaderGraph) nodeByID(id string) *shaderGraphNode {
 	for i := range g.nodes {
 		if g.nodes[i] != nil && g.nodes[i].id == id {
 			return g.nodes[i]
+		}
+	}
+	return nil
+}
+
+func (g *shaderGraph) commentByID(id string) *shaderGraphComment {
+	if g == nil || id == "" {
+		return nil
+	}
+	for i := range g.comments {
+		if g.comments[i] != nil && g.comments[i].id == id {
+			return g.comments[i]
 		}
 	}
 	return nil

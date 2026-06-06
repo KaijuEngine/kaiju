@@ -31,7 +31,9 @@ type shaderGraph struct {
 	uiMan                 ui.Manager
 	root                  *ui.Panel
 	nodes                 []*shaderGraphNode
+	comments              []*shaderGraphComment
 	selected              []*shaderGraphNode
+	selectedComment       *shaderGraphComment
 	availableNodeZSlots   []int
 	connections           []*shaderGraphConnection
 	selectionBox          *ui.Panel
@@ -120,6 +122,9 @@ func (g *shaderGraph) Close() {
 	for i := range g.nodes {
 		g.nodes[i].stopDrag()
 	}
+	for i := range g.comments {
+		g.comments[i].stopInteraction()
+	}
 	g.panning = false
 	g.hasPanMouse = false
 	g.cancelBoxSelection()
@@ -145,6 +150,9 @@ func (g *shaderGraph) Update() {
 	g.updateBoxSelection()
 	for i := range g.nodes {
 		g.nodes[i].Update()
+	}
+	for i := range g.comments {
+		g.comments[i].Update()
 	}
 	for i := range g.connections {
 		g.connections[i].Update()
@@ -188,6 +196,41 @@ func (g *shaderGraph) createNode(typeID string, spec shaderGraphNodeSpec, positi
 	g.nodes = append(g.nodes, node)
 	g.applySelectionZOrder()
 	return node
+}
+
+func (g *shaderGraph) CreateComment(position matrix.Vec2, size matrix.Vec2, label string) *shaderGraphComment {
+	comment := RenderGraphComment{
+		ID:       g.nextCommentID(),
+		Label:    label,
+		Position: position,
+		Size:     shaderGraphCommentSizeOrDefault(size),
+	}
+	return g.createCommentFromSnapshot(comment)
+}
+
+func (g *shaderGraph) createCommentFromSnapshot(comment RenderGraphComment) *shaderGraphComment {
+	if g == nil || comment.ID == "" {
+		return nil
+	}
+	if existing := g.commentByID(comment.ID); existing != nil {
+		return existing
+	}
+	comment.Size = shaderGraphCommentSizeOrDefault(comment.Size)
+	var created *shaderGraphComment
+	if g.root != nil && g.host != nil {
+		created = &shaderGraphComment{}
+		created.Initialize(g, g.host, &g.uiMan, g.root, comment)
+	} else {
+		created = &shaderGraphComment{
+			graph:    g,
+			id:       comment.ID,
+			label:    comment.Label,
+			position: comment.Position,
+			size:     comment.Size,
+		}
+	}
+	g.comments = append(g.comments, created)
+	return created
 }
 
 func (g *shaderGraph) createNodeFromSnapshot(node RenderGraphNode) *shaderGraphNode {
@@ -269,9 +312,47 @@ func (g *shaderGraph) RemoveNode(id string) bool {
 	return true
 }
 
+func (g *shaderGraph) RemoveComment(id string) bool {
+	if g == nil || id == "" {
+		return false
+	}
+	commentIndex := -1
+	for i := range g.comments {
+		if g.comments[i] != nil && g.comments[i].id == id {
+			commentIndex = i
+			break
+		}
+	}
+	if commentIndex < 0 {
+		return false
+	}
+	comment := g.comments[commentIndex]
+	if g.selectedComment == comment {
+		g.setSelectedComment(nil)
+	}
+	if comment != nil && comment.root != nil && g.host != nil {
+		g.host.DestroyEntity(comment.root.Base().Entity())
+	}
+	g.comments = slices.Delete(g.comments, commentIndex, commentIndex+1)
+	return true
+}
+
 func (g *shaderGraph) DeleteSelectedNodes() bool {
 	if g == nil || len(g.selected) == 0 {
-		return false
+		if g == nil || g.selectedComment == nil {
+			return false
+		}
+		comment := renderGraphCommentFromShaderGraphComment(g.selectedComment)
+		if !g.RemoveComment(comment.ID) {
+			return false
+		}
+		if g.history != nil {
+			g.history.Add(&shaderGraphCommentDeleteHistory{
+				graph:   g,
+				comment: comment,
+			})
+		}
+		return true
 	}
 	nodes := make([]RenderGraphNode, 0, len(g.selected))
 	nodeIDs := make(map[string]struct{}, len(g.selected))
@@ -501,19 +582,52 @@ func (g *shaderGraph) SetViewport(x, y, width, height float32) {
 
 func (g *shaderGraph) clear() {
 	g.setSelectionNodes(nil)
+	g.setSelectedComment(nil)
 	g.cancelBoxSelection()
 	for i := range g.connections {
 		g.connections[i].Destroy()
+	}
+	for i := range g.comments {
+		if g.comments[i].root != nil && g.host != nil {
+			g.host.DestroyEntity(g.comments[i].root.Base().Entity())
+		}
 	}
 	for i := range g.nodes {
 		if g.nodes[i].root != nil && g.host != nil {
 			g.host.DestroyEntity(g.nodes[i].root.Base().Entity())
 		}
 	}
+	g.comments = nil
 	g.nodes = nil
 	g.availableNodeZSlots = nil
 	g.connections = nil
 	g.cancelPendingConnection()
+}
+
+func (g *shaderGraph) nextCommentID() string {
+	for i := len(g.comments) + 1; ; i++ {
+		id := "comment-" + fmt.Sprint(i)
+		if g.itemIDAvailable(id) {
+			return id
+		}
+	}
+}
+
+func (g *shaderGraph) itemIDAvailable(id string) bool {
+	if g == nil || id == "" {
+		return false
+	}
+	for i := range g.nodes {
+		if g.nodes[i] != nil && g.nodes[i].id == id {
+			return false
+		}
+	}
+	for i := range g.comments {
+		if g.comments[i] != nil && g.comments[i].id == id {
+			return false
+		}
+	}
+	return true
 }
 
 func (g *shaderGraph) nextNodeID() string {

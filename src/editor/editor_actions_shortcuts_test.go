@@ -34,6 +34,7 @@ func TestBindableVariantActionsAreRegistered(t *testing.T) {
 		{string(ActionEditorBuildAndRun), false, false},
 		{string(ActionEditorRunCurrentStage), true, true},
 		{string(render_graph_workspace.ActionRenderGraphCreateNode), true, false},
+		{string(render_graph_workspace.ActionRenderGraphCreateComment), true, false},
 	}
 	for _, check := range checks {
 		def, ok := ed.Actions().Registry().Definition(editor_action.ActionID(check.id))
@@ -60,6 +61,20 @@ func TestRenderGraphCreateNodeActionIsTransactional(t *testing.T) {
 	}
 	if def.UndoPolicy != editor_action.UndoPolicyTransaction {
 		t.Fatalf("create node undo policy = %v, want transaction", def.UndoPolicy)
+	}
+}
+
+func TestRenderGraphCreateCommentActionIsTransactional(t *testing.T) {
+	ed := &Editor{}
+	ed.history.Initialize(8)
+	ed.initializeActions()
+
+	def, ok := ed.Actions().Registry().Definition(render_graph_workspace.ActionRenderGraphCreateComment)
+	if !ok {
+		t.Fatal("render graph create comment action was not registered")
+	}
+	if def.UndoPolicy != editor_action.UndoPolicyTransaction {
+		t.Fatalf("create comment undo policy = %v, want transaction", def.UndoPolicy)
 	}
 }
 

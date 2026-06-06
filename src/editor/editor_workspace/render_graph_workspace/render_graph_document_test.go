@@ -35,6 +35,14 @@ func TestRenderGraphDocumentJSONRoundTrip(t *testing.T) {
 				},
 			},
 		},
+		Comments: []RenderGraphComment{
+			{
+				ID:       "comment-lighting",
+				Label:    "Lighting",
+				Position: matrix.NewVec2(4, 8),
+				Size:     matrix.NewVec2(320, 180),
+			},
+		},
 		Connections: []RenderGraphConnection{
 			{
 				Output: RenderGraphPortRef{Node: "node-value", Port: 0},
@@ -67,11 +75,31 @@ func TestRenderGraphDocumentJSONRoundTrip(t *testing.T) {
 	if got := loaded.Connections[0].Input.Node; got != "node-mix" {
 		t.Fatalf("loaded connection input node = %q, want node-mix", got)
 	}
+	if got := loaded.Comments[0].Label; got != "Lighting" {
+		t.Fatalf("loaded comment label = %q, want Lighting", got)
+	}
+	if got := loaded.Comments[0].Size; !matrix.Vec2Approx(got, matrix.NewVec2(320, 180)) {
+		t.Fatalf("loaded comment size = %v, want [320 180]", got)
+	}
 	if loaded.Generated == nil {
 		t.Fatal("loaded generated output metadata is nil")
 	}
 	if got := loaded.Generated.MaterialID; got != "material-id.material" {
 		t.Fatalf("loaded generated material id = %q, want material-id.material", got)
+	}
+}
+
+func TestRenderGraphDocumentRejectsTinyComment(t *testing.T) {
+	document := RenderGraphDocument{
+		Version: renderGraphDocumentVersion,
+		Nodes:   []RenderGraphNode{},
+		Comments: []RenderGraphComment{
+			{ID: "comment-a", Size: matrix.NewVec2(10, 10)},
+		},
+	}
+
+	if _, err := SerializeRenderGraphDocument(document); err == nil {
+		t.Fatal("SerializeRenderGraphDocument() should reject comment sizes below the minimum")
 	}
 }
 

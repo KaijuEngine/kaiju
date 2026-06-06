@@ -47,6 +47,19 @@ func registerRenderGraphActions(ed *Editor, mustRegister editorActionRegistrar) 
 		Variants:          render_graph_workspace.CreateNodeActionVariants(),
 	}, ed.actionRenderGraphCreateNode, ed.renderGraphCanRun)
 	mustRegister(editor_action.Definition{
+		ID:                render_graph_workspace.ActionRenderGraphCreateComment,
+		Label:             "Create Render Graph Comment",
+		Description:       "Creates a resizable comment block in the render graph.",
+		Category:          "Render Graph",
+		Tags:              []string{"render", "graph", "comment", "block", "note", "create"},
+		DefaultParams:     editor_action.Params(render_graph_workspace.DefaultCreateCommentActionArgs()),
+		NewParams:         func() any { return &render_graph_workspace.CreateCommentActionArgs{} },
+		UndoPolicy:        editor_action.UndoPolicyTransaction,
+		Visible:           true,
+		Unbindable:        true,
+		RequiredWorkspace: render_graph_workspace.ID,
+	}, ed.actionRenderGraphCreateComment, ed.renderGraphCanRun)
+	mustRegister(editor_action.Definition{
 		ID:          render_graph_workspace.ActionRenderGraphCenterView,
 		Label:       "Center Render Graph View",
 		Description: "Returns the render graph view to the center of the graph area.",
@@ -137,6 +150,21 @@ func (ed *Editor) actionRenderGraphCreateNode(_ editor_action.Context, req edito
 		return editor_action.Failure("failed to create render graph node")
 	}
 	return editor_action.Success("render graph node created")
+}
+
+func (ed *Editor) actionRenderGraphCreateComment(_ editor_action.Context, req editor_action.Request) editor_action.Result {
+	w, ok := ed.renderGraphWorkspace()
+	if !ok {
+		return editor_action.Failure("render graph workspace is not available")
+	}
+	args, ok := editor_action.Param[render_graph_workspace.CreateCommentActionArgs](req)
+	if !ok {
+		args = render_graph_workspace.DefaultCreateCommentActionArgs()
+	}
+	if _, ok = w.CreateCommentFromAction(args); !ok {
+		return editor_action.Failure("failed to create render graph comment")
+	}
+	return editor_action.Success("render graph comment created")
 }
 
 func (ed *Editor) actionRenderGraphCenterView(editor_action.Context, editor_action.Request) editor_action.Result {

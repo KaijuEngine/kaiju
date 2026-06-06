@@ -81,6 +81,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 			"toggleDimension":      w.toggleDimension,
 			"filterCreateNodeMenu": w.filterCreateNodeMenu,
 			"selectCreateNode":     w.selectCreateNode,
+			"selectCreateComment":  w.selectCreateComment,
 			"closeCreateNodeMenu":  w.closeCreateNodeMenu,
 			"renameRenderGraph":    w.renameRenderGraph,
 			"newRenderGraph":       w.newRenderGraph,
@@ -297,6 +298,28 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 	return node, true
 }
 
+func (w *RenderGraphWorkspace) CreateCommentFromAction(args CreateCommentActionArgs) (*shaderGraphComment, bool) {
+	position := args.position(w.defaultCreateNodePosition())
+	previousSelection := w.graph.selectionIDs()
+	comment := w.graph.CreateComment(position, args.size(), args.Label)
+	if comment == nil {
+		return nil, false
+	}
+	w.graph.cancelBoxSelection()
+	w.graph.setSelectionNodes(nil)
+	w.graph.setSelectedComment(comment)
+	if w.graph.history != nil {
+		w.graph.history.Add(&shaderGraphCommentCreateHistory{
+			graph:             &w.graph,
+			comment:           renderGraphCommentFromShaderGraphComment(comment),
+			previousSelection: previousSelection,
+		})
+	}
+	w.createNodeCount++
+	w.createNodeMenu.Hide()
+	return comment, true
+}
+
 func (w *RenderGraphWorkspace) GraphDocument() RenderGraphDocument {
 	document := w.graph.Document()
 	document.Name = w.currentName
@@ -349,6 +372,24 @@ func (w *RenderGraphWorkspace) runCreateNodeAction(nodeID string) {
 	}
 	w.ed.Actions().Run(editor_action.Request{
 		ID:     ActionRenderGraphCreateNode,
+		Params: args,
+		Source: editor_action.SourceMenu,
+	})
+}
+
+func (w *RenderGraphWorkspace) runCreateCommentAction() {
+	position := w.createNodeMenu.CreatePosition()
+	args := CreateCommentActionArgs{
+		Label:       "Comment",
+		X:           float32(position.X()),
+		Y:           float32(position.Y()),
+		Width:       shaderGraphCommentDefaultWidth,
+		Height:      shaderGraphCommentDefaultHeight,
+		UsePosition: true,
+		UseSize:     true,
+	}
+	w.ed.Actions().Run(editor_action.Request{
+		ID:     ActionRenderGraphCreateComment,
 		Params: args,
 		Source: editor_action.SourceMenu,
 	})

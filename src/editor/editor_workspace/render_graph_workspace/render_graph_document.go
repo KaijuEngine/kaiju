@@ -23,6 +23,7 @@ type RenderGraphDocument struct {
 	Zoom        matrix.Float            `json:"zoom,omitempty"`
 	Generated   *RenderGraphGenerated   `json:"generated,omitempty"`
 	Nodes       []RenderGraphNode       `json:"nodes"`
+	Comments    []RenderGraphComment    `json:"comments,omitempty"`
 	Connections []RenderGraphConnection `json:"connections,omitempty"`
 }
 
@@ -49,6 +50,13 @@ type RenderGraphNode struct {
 	Type     string                           `json:"type"`
 	Position matrix.Vec2                      `json:"position"`
 	Values   map[string]RenderGraphFieldValue `json:"values,omitempty"`
+}
+
+type RenderGraphComment struct {
+	ID       string      `json:"id"`
+	Label    string      `json:"label,omitempty"`
+	Position matrix.Vec2 `json:"position"`
+	Size     matrix.Vec2 `json:"size"`
 }
 
 type RenderGraphFieldValue struct {
@@ -78,6 +86,18 @@ func renderGraphNodeFromShaderGraphNode(node *shaderGraphNode) RenderGraphNode {
 		Type:     node.typeID,
 		Position: node.position,
 		Values:   renderGraphFieldValuesFromNode(node),
+	}
+}
+
+func renderGraphCommentFromShaderGraphComment(comment *shaderGraphComment) RenderGraphComment {
+	if comment == nil {
+		return RenderGraphComment{}
+	}
+	return RenderGraphComment{
+		ID:       comment.id,
+		Label:    comment.label,
+		Position: comment.position,
+		Size:     shaderGraphCommentSizeOrDefault(comment.size),
 	}
 }
 
@@ -126,6 +146,22 @@ func validateRenderGraphDocument(document RenderGraphDocument) error {
 		}
 		ids[node.ID] = struct{}{}
 	}
+	for i := range document.Comments {
+		comment := document.Comments[i]
+		if strings.TrimSpace(comment.ID) == "" {
+			return fmt.Errorf("render graph comment %d has an empty id", i)
+		}
+		if _, exists := ids[comment.ID]; exists {
+			return fmt.Errorf("duplicate render graph item id %q", comment.ID)
+		}
+		if comment.Size.X() > 0 && comment.Size.X() < shaderGraphCommentMinWidth {
+			return fmt.Errorf("render graph comment %q width is below the minimum", comment.ID)
+		}
+		if comment.Size.Y() > 0 && comment.Size.Y() < shaderGraphCommentMinHeight {
+			return fmt.Errorf("render graph comment %q height is below the minimum", comment.ID)
+		}
+		ids[comment.ID] = struct{}{}
+	}
 	for i := range document.Connections {
 		connection := document.Connections[i]
 		if _, ok := ids[connection.Output.Node]; !ok {
@@ -172,6 +208,16 @@ func (g *shaderGraph) Document() RenderGraphDocument {
 		renderNode.ID = id
 		document.Nodes = append(document.Nodes, renderNode)
 	}
+	for i := range g.comments {
+		comment := g.comments[i]
+		id := comment.id
+		if strings.TrimSpace(id) == "" {
+			id = fmt.Sprintf("comment-%d", i+1)
+		}
+		renderComment := renderGraphCommentFromShaderGraphComment(comment)
+		renderComment.ID = id
+		document.Comments = append(document.Comments, renderComment)
+	}
 	for i := range g.connections {
 		connection := g.connections[i]
 		if connection.output == nil || connection.input == nil ||
@@ -206,6 +252,12 @@ func (g *shaderGraph) LoadDocument(document RenderGraphDocument) error {
 	}
 	g.zoom = matrix.Clamp(g.zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
 	nodes := make(map[string]*shaderGraphNode, len(document.Nodes))
+	for i := range document.Comments {
+		src := document.Comments[i]
+		if g.createCommentFromSnapshot(src) == nil {
+			return fmt.Errorf("failed to create render graph comment %q", src.ID)
+		}
+	}
 	for i := range document.Nodes {
 		src := document.Nodes[i]
 		node, ok := g.CreateCatalogNode(src.Type, src.Position)

@@ -34,6 +34,7 @@ const (
 	renderGraphCreateMenuScreenshotOutput   = "integration_test_render_graph_create_menu.png"
 	renderGraphNodeFieldsScreenshotOutput   = "integration_test_render_graph_node_fields.png"
 	renderGraphGradientNodeScreenshotOutput = "integration_test_render_graph_gradient_node.png"
+	renderGraphCommentBlockScreenshotOutput = "integration_test_render_graph_comment_block.png"
 )
 
 func init() {
@@ -41,6 +42,7 @@ func init() {
 	tests["render-graph-create-menu"] = IntegrationTestRenderGraphCreateMenu
 	tests["render-graph-node-fields"] = IntegrationTestRenderGraphNodeFields
 	tests["render-graph-gradient-node"] = IntegrationTestRenderGraphGradientNode
+	tests["render-graph-comment-block"] = IntegrationTestRenderGraphCommentBlock
 }
 
 func IntegrationTestRenderGraphSpline(host *engine.Host) {
@@ -186,6 +188,51 @@ func IntegrationTestRenderGraphGradientNode(host *engine.Host) {
 		host.Updater.RemoveUpdate(&updateId)
 		ed.cleanup()
 		slog.Info("Screenshot captured", "path", renderGraphGradientNodeScreenshotOutput)
+		os.Exit(0)
+	})
+}
+
+func IntegrationTestRenderGraphCommentBlock(host *engine.Host) {
+	ed, err := newRenderGraphWorkspaceTestEditor(host)
+	if err != nil {
+		failRenderGraphCommentBlockIntegration("create test editor", err)
+	}
+	workspace := &render_graph_workspace.RenderGraphWorkspace{}
+	if err = workspace.Initialize(ed); err != nil {
+		failRenderGraphCommentBlockIntegration("initialize render graph workspace", err)
+	}
+	workspace.Open()
+	updateId := host.Updater.AddUpdate(workspace.Update)
+
+	host.RunAfterFrames(8, func() {
+		workspace.CreateCommentFromAction(render_graph_workspace.CreateCommentActionArgs{
+			Label:       "Lighting Group",
+			X:           300,
+			Y:           60,
+			Width:       420,
+			Height:      240,
+			UsePosition: true,
+			UseSize:     true,
+		})
+		workspace.CreateNodeFromAction(render_graph_workspace.CreateNodeActionArgs{
+			NodeID: "gradient", X: 390, Y: 120, UsePosition: true,
+		})
+	})
+	host.RunAfterFrames(32, func() {
+		img, err := captureScreenshotImage(host)
+		if err != nil {
+			failRenderGraphCommentBlockIntegration("capture screenshot", err)
+		}
+		if err = assertRenderGraphCommentBlockScreenshot(host, workspace, img); err != nil {
+			_ = writeScreenshotImage(img, renderGraphCommentBlockScreenshotOutput)
+			failRenderGraphCommentBlockIntegration("screenshot smoke check", err)
+		}
+		if err = writeScreenshotImage(img, renderGraphCommentBlockScreenshotOutput); err != nil {
+			failRenderGraphCommentBlockIntegration("write screenshot", err)
+		}
+		host.Updater.RemoveUpdate(&updateId)
+		ed.cleanup()
+		slog.Info("Screenshot captured", "path", renderGraphCommentBlockScreenshotOutput)
 		os.Exit(0)
 	})
 }
@@ -366,6 +413,71 @@ func assertRenderGraphGradientNodeScreenshot(host *engine.Host, workspace *rende
 	return nil
 }
 
+func assertRenderGraphCommentBlockScreenshot(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, img *image.RGBA) error {
+	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
+	}
+	graphRect := renderGraphWorkspaceGraphRect(host, workspace, bounds)
+	commentRect := image.Rect(
+		graphRect.Min.X+300,
+		graphRect.Min.Y+60,
+		graphRect.Min.X+720,
+		graphRect.Min.Y+300,
+	).Intersect(bounds)
+	nodeRect := image.Rect(
+		graphRect.Min.X+388,
+		graphRect.Min.Y+118,
+		graphRect.Min.X+606,
+		graphRect.Min.Y+354,
+	).Intersect(bounds)
+	commentPixels := 0
+	headerPixels := 0
+	nodeBodyPixels := 0
+	selectedPixels := 0
+	for y := commentRect.Min.Y; y < commentRect.Max.Y; y++ {
+		for x := commentRect.Min.X; x < commentRect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r >= 32 && r <= 48 && g >= 34 && g <= 52 && b >= 38 && b <= 58 {
+				commentPixels++
+			}
+			if r >= 40 && r <= 58 && g >= 42 && g <= 60 && b >= 48 && b <= 68 {
+				headerPixels++
+			}
+		}
+	}
+	for y := nodeRect.Min.Y; y < nodeRect.Max.Y; y++ {
+		for x := nodeRect.Min.X; x < nodeRect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r >= 20 && r <= 45 && g >= 22 && g <= 48 && b >= 25 && b <= 58 {
+				nodeBodyPixels++
+			}
+			if r > 180 && g > 130 && r-g > 20 && b < 110 {
+				selectedPixels++
+			}
+		}
+	}
+	if commentPixels < 8000 {
+		return fmt.Errorf("expected visible comment body pixels, found %d", commentPixels)
+	}
+	if headerPixels < 800 {
+		return fmt.Errorf("expected visible comment header pixels, found %d", headerPixels)
+	}
+	if nodeBodyPixels < 3000 {
+		return fmt.Errorf("expected node to render above comment block, found %d node pixels", nodeBodyPixels)
+	}
+	if selectedPixels < 150 {
+		return fmt.Errorf("expected selected node outline above comment block, found %d pixels", selectedPixels)
+	}
+	return nil
+}
+
 func renderGraphWorkspaceGraphRect(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, bounds image.Rectangle) image.Rectangle {
 	if workspace != nil && workspace.Doc != nil {
 		if graphArea, ok := workspace.Doc.GetElementById("shaderGraphArea"); ok && graphArea != nil && graphArea.UI != nil {
@@ -531,6 +643,19 @@ func failRenderGraphGradientNodeIntegration(message string, err error) {
 	} else {
 		slog.Error("render graph gradient node integration test failed",
 			"path", renderGraphGradientNodeScreenshotOutput,
+			"message", message)
+	}
+	os.Exit(1)
+}
+
+func failRenderGraphCommentBlockIntegration(message string, err error) {
+	if err != nil {
+		slog.Error("render graph comment block integration test failed",
+			"path", renderGraphCommentBlockScreenshotOutput,
+			"message", message, "error", err)
+	} else {
+		slog.Error("render graph comment block integration test failed",
+			"path", renderGraphCommentBlockScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)

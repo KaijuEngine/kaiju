@@ -227,6 +227,10 @@
 				</div>
 				<input id="createNodeSearch" type="text" placeholder="Search nodes" onchange="filterCreateNodeMenu" />
 				<div id="createNodeList">
+					<button class="createNodeMenuItem" data-comment="true" data-search="comment block note group frame area label" onclick="selectCreateComment">
+						<div class="createNodeMenuItemName">Comment Block</div>
+						<div class="createNodeMenuItemDescription">Resizable labeled graph area</div>
+					</button>
 					{{ range .CreateNodes }}
 					<button class="createNodeMenuItem" data-node-id="{{ .ID }}" data-search="{{ .Search }}" onclick="selectCreateNode">
 						<div class="createNodeMenuItemName">{{ .Name }}</div>

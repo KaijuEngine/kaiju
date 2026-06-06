@@ -104,9 +104,15 @@ func (g *shaderGraph) stopNodeDrags() {
 	for i := range g.nodes {
 		g.nodes[i].stopDrag()
 	}
+	for i := range g.comments {
+		g.comments[i].stopInteraction()
+	}
 }
 
 func (g *shaderGraph) applyViewOffsets() {
+	for i := range g.comments {
+		g.comments[i].applyViewOffset()
+	}
 	for i := range g.nodes {
 		g.nodes[i].applyViewOffset()
 	}
@@ -126,6 +132,10 @@ func (g *shaderGraph) FocusSelection() bool {
 		return false
 	}
 	bounds, ok := shaderGraphNodesBounds(g.selected)
+	if !ok && g.selectedComment != nil {
+		bounds = g.selectedComment.bounds()
+		ok = true
+	}
 	if !ok {
 		return false
 	}

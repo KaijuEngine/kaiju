@@ -161,6 +161,9 @@ func (m *shaderGraphCreateNodeMenu) itemCompatible(item *document.Element) bool 
 	if item == nil || !m.connection.Active {
 		return true
 	}
+	if item.Attribute("data-comment") == "true" {
+		return false
+	}
 	for _, entry := range shaderGraphNodeCatalog() {
 		if entry.ID != item.Attribute("data-node-id") {
 			continue
@@ -223,6 +226,10 @@ func (w *RenderGraphWorkspace) selectCreateNode(e *document.Element) {
 		return
 	}
 	w.runCreateNodeAction(e.Attribute("data-node-id"))
+}
+
+func (w *RenderGraphWorkspace) selectCreateComment(e *document.Element) {
+	w.runCreateCommentAction()
 }
 
 func (w *RenderGraphWorkspace) closeCreateNodeMenu(*document.Element) {
