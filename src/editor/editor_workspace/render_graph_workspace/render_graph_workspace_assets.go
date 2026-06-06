@@ -141,6 +141,7 @@ func (w *RenderGraphWorkspace) SaveCurrentGraph() {
 	if w.ed == nil {
 		return
 	}
+	w.graph.flushPendingFieldValueEdits()
 	w.currentName = w.renderGraphNameFromInput()
 	w.updateGraphNameInput()
 	data, err := w.SerializeGraph()

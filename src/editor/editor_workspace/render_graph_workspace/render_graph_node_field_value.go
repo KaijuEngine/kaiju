@@ -6,7 +6,11 @@
 
 package render_graph_workspace
 
-import "kaijuengine.com/matrix"
+import (
+	"slices"
+
+	"kaijuengine.com/matrix"
+)
 
 type renderGraphNodeFieldValue struct {
 	Text   string
@@ -14,6 +18,19 @@ type renderGraphNodeFieldValue struct {
 	Bool   bool
 	Color  matrix.Color
 	Option string
+}
+
+func (v renderGraphNodeFieldValue) Clone() renderGraphNodeFieldValue {
+	v.Parts = append([]string(nil), v.Parts...)
+	return v
+}
+
+func (v renderGraphNodeFieldValue) Equals(other renderGraphNodeFieldValue) bool {
+	return v.Text == other.Text &&
+		slices.Equal(v.Parts, other.Parts) &&
+		v.Bool == other.Bool &&
+		matrix.Vec4Approx(matrix.Vec4(v.Color), matrix.Vec4(other.Color)) &&
+		v.Option == other.Option
 }
 
 func renderGraphDefaultFieldValue(spec renderGraphNodeFieldSpec) renderGraphNodeFieldValue {

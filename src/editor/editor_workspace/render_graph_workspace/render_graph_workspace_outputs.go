@@ -50,6 +50,7 @@ func (w *RenderGraphWorkspace) generateRenderGraphOutputs() error {
 	if w.ed == nil || w.Host == nil {
 		return fmt.Errorf("render graph workspace is not initialized")
 	}
+	w.graph.flushPendingFieldValueEdits()
 	if strings.TrimSpace(w.currentGraphID) == "" {
 		return fmt.Errorf("render graph must be saved before generating outputs")
 	}

@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/editor/editor_overlay/color_picker"
+	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
@@ -45,6 +46,9 @@ type renderGraphNodeField struct {
 	textureRoot    *ui.Panel
 	textureText    *ui.Label
 	texturePreview *ui.Image
+	editActive     bool
+	editStart      renderGraphNodeFieldValue
+	deferredCommit bool
 }
 
 func (n *renderGraphNode) createFields(uiMan *ui.Manager, fields []renderGraphNodeFieldSpec) {
@@ -173,7 +177,7 @@ func (f *renderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
 	cb.Base().AddEvent(ui.EventTypeChange, func() {
 		value := f.node.FieldValue(f.spec.ID)
 		value.Bool = cb.IsChecked()
-		f.node.setFieldValue(f.spec.ID, value)
+		f.commitDiscreteFieldValue(value)
 	})
 	f.node.bindSelectionEvent(cb.Base())
 	f.checkbox = cb
@@ -292,7 +296,7 @@ func (f *renderGraphNodeField) hideSelectList() {
 func (f *renderGraphNodeField) pickSelectOption(option renderGraphNodeFieldOption) {
 	value := f.node.FieldValue(f.spec.ID)
 	value.Option = option.Value
-	f.node.setFieldValue(f.spec.ID, value)
+	f.commitDiscreteFieldValue(value)
 	if f.selectLabel != nil {
 		f.selectLabel.SetText(option.Label)
 	}
@@ -333,11 +337,12 @@ func (f *renderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
 	inputWidth := f.controlWidth() - swatchSize - 4
 	input := f.createInput(uiMan, inputX, y+1, inputWidth, value.Color.Hex(), false)
 	input.Base().AddEvent(ui.EventTypeChange, func() {
+		f.beginFieldValueEdit()
 		color, err := matrix.ColorFromHexString(input.Text())
 		if err != nil {
 			return
 		}
-		f.setColor(color)
+		f.setColor(color, false)
 	})
 	f.inputs = append(f.inputs, input)
 }
@@ -366,6 +371,7 @@ func (f *renderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, 
 			input.SetPlaceholder(labels[i])
 		}
 		input.Base().AddEvent(ui.EventTypeChange, func() {
+			f.beginFieldValueEdit()
 			value := f.node.FieldValue(f.spec.ID)
 			value.Parts = renderGraphFieldParts(value.Parts, count)
 			value.Parts[index] = input.Text()
@@ -378,6 +384,7 @@ func (f *renderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, 
 func (f *renderGraphNodeField) createTextInput(uiMan *ui.Manager, y float32, text string, number bool, onChange func(string)) {
 	input := f.createInput(uiMan, renderGraphFieldControlX, y+1, f.controlWidth(), text, number)
 	input.Base().AddEvent(ui.EventTypeChange, func() {
+		f.beginFieldValueEdit()
 		onChange(input.Text())
 	})
 	f.inputs = append(f.inputs, input)
@@ -401,6 +408,11 @@ func (f *renderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float3
 	input.Base().Layout().SetZ(0.2)
 	input.Base().Layout().Scale(width, renderGraphFieldControlH)
 	input.Base().Layout().SetOffset(x, y)
+	input.Base().AddEvent(ui.EventTypeFocus, f.beginFieldValueEdit)
+	input.Base().AddEvent(ui.EventTypeSubmit, func() {
+		f.finishInputFieldValueEdit(input)
+	})
+	input.Base().AddEvent(ui.EventTypeBlur, f.scheduleDeferredFieldValueCommit)
 	f.node.bindSelectionEvent(input.Base())
 	f.node.root.AddChild(input.Base())
 	return input
@@ -410,6 +422,130 @@ func (f *renderGraphNodeField) controlWidth() float32 {
 	return renderGraphNodeWidth - renderGraphFieldControlX - renderGraphNodePadding
 }
 
+func (f *renderGraphNodeField) beginFieldValueEdit() {
+	if f == nil || f.editActive || f.node == nil {
+		return
+	}
+	f.editActive = true
+	f.editStart = f.node.FieldValue(f.spec.ID)
+}
+
+func (f *renderGraphNodeField) finishInputFieldValueEdit(input *ui.Input) {
+	if input != nil && input.IsFocused() {
+		f.commitFieldValueEdit()
+		return
+	}
+	f.scheduleDeferredFieldValueCommit()
+}
+
+func (f *renderGraphNodeField) scheduleDeferredFieldValueCommit() {
+	if f == nil || !f.editActive || f.deferredCommit {
+		return
+	}
+	var host *engine.Host
+	if f.node != nil {
+		host = f.node.host
+	}
+	if host == nil {
+		f.commitFieldValueEdit()
+		return
+	}
+	f.deferredCommit = true
+	host.RunAfterFrames(1, func() {
+		f.deferredCommit = false
+		if f.anyInputFocused() {
+			return
+		}
+		f.commitFieldValueEdit()
+	})
+}
+
+func (f *renderGraphNodeField) forceCommitFieldValueEdit() bool {
+	if f == nil {
+		return false
+	}
+	f.deferredCommit = false
+	return f.commitFieldValueEdit()
+}
+
+func (f *renderGraphNodeField) commitFieldValueEdit() bool {
+	if f == nil || !f.editActive {
+		return false
+	}
+	f.syncFieldValueFromInputs()
+	from := f.editStart
+	to := renderGraphNodeFieldValue{}
+	if f.node != nil {
+		to = f.node.FieldValue(f.spec.ID)
+	}
+	f.editActive = false
+	return f.addFieldValueHistory(from, to)
+}
+
+func (f *renderGraphNodeField) commitDiscreteFieldValue(value renderGraphNodeFieldValue) bool {
+	if f == nil || f.node == nil {
+		return false
+	}
+	f.forceCommitFieldValueEdit()
+	from := f.node.FieldValue(f.spec.ID)
+	f.node.setFieldValue(f.spec.ID, value)
+	return f.addFieldValueHistory(from, value)
+}
+
+func (f *renderGraphNodeField) addFieldValueHistory(from, to renderGraphNodeFieldValue) bool {
+	if f == nil || f.node == nil || f.node.graph == nil || f.node.graph.history == nil ||
+		f.node.id == "" || f.spec.ID == "" || from.Equals(to) {
+		return false
+	}
+	f.node.graph.history.Add(&renderGraphNodeFieldValueHistory{
+		graph:   f.node.graph,
+		nodeID:  f.node.id,
+		fieldID: f.spec.ID,
+		from:    from.Clone(),
+		to:      to.Clone(),
+	})
+	return true
+}
+
+func (f *renderGraphNodeField) syncFieldValueFromInputs() {
+	if f == nil || f.node == nil || len(f.inputs) == 0 {
+		return
+	}
+	value := f.node.FieldValue(f.spec.ID)
+	switch f.spec.Type {
+	case renderGraphNodeFieldColor:
+		color, err := matrix.ColorFromHexString(f.inputs[0].Text())
+		if err != nil {
+			f.node.applyFieldValues()
+			return
+		}
+		f.setColor(color, false)
+	case renderGraphNodeFieldVector2, renderGraphNodeFieldVector3, renderGraphNodeFieldVector4:
+		value.Parts = renderGraphFieldParts(value.Parts, len(f.inputs))
+		for i := range f.inputs {
+			if f.inputs[i] != nil {
+				value.Parts[i] = f.inputs[i].Text()
+			}
+		}
+		f.node.setFieldValue(f.spec.ID, value)
+	default:
+		value.Text = f.inputs[0].Text()
+		f.node.setFieldValue(f.spec.ID, value)
+	}
+}
+
+func (f *renderGraphNodeField) anyInputFocused() bool {
+	if f == nil {
+		return false
+	}
+	for i := range f.inputs {
+		if f.inputs[i] != nil && f.inputs[i].IsFocused() {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *renderGraphNodeField) openColorPicker() {
 	if f.node == nil || f.node.host == nil {
 		return
@@ -417,7 +553,7 @@ func (f *renderGraphNodeField) openColorPicker() {
 	_, err := color_picker.Show(f.node.host, color_picker.Config{
 		Color: f.node.FieldValue(f.spec.ID).Color,
 		OnAccept: func(color matrix.Color) {
-			f.setColor(color)
+			f.setColor(color, true)
 		},
 	})
 	if err != nil {
@@ -425,10 +561,14 @@ func (f *renderGraphNodeField) openColorPicker() {
 	}
 }
 
-func (f *renderGraphNodeField) setColor(color matrix.Color) {
+func (f *renderGraphNodeField) setColor(color matrix.Color, history bool) {
 	value := f.node.FieldValue(f.spec.ID)
 	value.Color = color
-	f.node.setFieldValue(f.spec.ID, value)
+	if history {
+		f.commitDiscreteFieldValue(value)
+	} else {
+		f.node.setFieldValue(f.spec.ID, value)
+	}
 	if f.swatch != nil {
 		f.swatch.SetColor(color)
 	}
@@ -445,7 +585,7 @@ func (f *renderGraphNodeField) openTextureSelector() {
 	f.node.graph.selectTexture(current, func(id string) {
 		value := f.node.FieldValue(f.spec.ID)
 		value.Text = id
-		f.node.setFieldValue(f.spec.ID, value)
+		f.commitDiscreteFieldValue(value)
 		f.updateTextureText()
 	}, nil)
 }
@@ -531,6 +671,17 @@ func (n *renderGraphNode) applyFieldValues() {
 			if len(field.inputs) > 0 {
 				field.inputs[0].SetTextWithoutEvent(value.Text)
 			}
+		}
+	}
+}
+
+func (n *renderGraphNode) flushPendingFieldValueEdits() {
+	if n == nil {
+		return
+	}
+	for i := range n.fields {
+		if n.fields[i] != nil {
+			n.fields[i].forceCommitFieldValueEdit()
 		}
 	}
 }

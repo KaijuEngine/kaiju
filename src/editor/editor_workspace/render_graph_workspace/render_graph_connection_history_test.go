@@ -10,7 +10,7 @@ import (
 func TestRenderGraphConnectPortsAddsUndoableHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := TestRenderGraphWithConnectablePorts()
+	graph, output, input := renderGraphWithConnectablePorts()
 	graph.history = history
 
 	if connection := graph.ConnectPorts(output, input); connection == nil {
@@ -34,7 +34,7 @@ func TestRenderGraphConnectPortsAddsUndoableHistory(t *testing.T) {
 func TestRenderGraphConnectPortsSkipsHistoryForExistingConnection(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := TestRenderGraphWithConnectablePorts()
+	graph, output, input := renderGraphWithConnectablePorts()
 	graph.history = history
 
 	graph.ConnectPorts(output, input)
@@ -60,8 +60,8 @@ func TestRenderGraphConnectPortsSkipsHistoryForExistingConnection(t *testing.T) 
 func TestRenderGraphConnectPortsReplacesExistingInputConnectionWithHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := TestRenderGraphWithConnectablePorts()
-	replacementOutput := TestRenderGraphOutputPort(graph, "replacement-output-node", 0)
+	graph, output, input := renderGraphWithConnectablePorts()
+	replacementOutput := renderGraphOutputPort(graph, "replacement-output-node", 0)
 	graph.CreateConnection(output, input)
 	graph.history = history
 
@@ -93,8 +93,8 @@ func TestRenderGraphConnectPortsReplacesExistingInputConnectionWithHistory(t *te
 }
 
 func TestRenderGraphCreateConnectionAllowsOnlyOneInputConnection(t *testing.T) {
-	graph, output, input := TestRenderGraphWithConnectablePorts()
-	replacementOutput := TestRenderGraphOutputPort(graph, "replacement-output-node", 0)
+	graph, output, input := renderGraphWithConnectablePorts()
+	replacementOutput := renderGraphOutputPort(graph, "replacement-output-node", 0)
 
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(replacementOutput, input)
@@ -110,8 +110,8 @@ func TestRenderGraphCreateConnectionAllowsOnlyOneInputConnection(t *testing.T) {
 func TestRenderGraphDisconnectPortAddsUndoableHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := TestRenderGraphWithConnectablePorts()
-	secondInput := TestRenderGraphInputPort(graph, "second-input-node", 0)
+	graph, output, input := renderGraphWithConnectablePorts()
+	secondInput := renderGraphInputPort(graph, "second-input-node", 0)
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(output, secondInput)
 	graph.history = history
@@ -137,7 +137,7 @@ func TestRenderGraphDisconnectPortAddsUndoableHistory(t *testing.T) {
 func TestRenderGraphDisconnectPortSkipsHistoryWhenNothingRemoved(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, _ := TestRenderGraphWithConnectablePorts()
+	graph, output, _ := renderGraphWithConnectablePorts()
 	graph.history = history
 
 	if graph.DisconnectPort(output) {
@@ -149,7 +149,7 @@ func TestRenderGraphDisconnectPortSkipsHistoryWhenNothingRemoved(t *testing.T) {
 }
 
 func TestRenderGraphDisconnectPortHonorsSocketDirection(t *testing.T) {
-	graph, output, input := TestRenderGraphWithConnectablePorts()
+	graph, output, input := renderGraphWithConnectablePorts()
 	sameNodeOutput := &renderGraphPort{
 		graph:  graph,
 		node:   input.node,
@@ -158,7 +158,7 @@ func TestRenderGraphDisconnectPortHonorsSocketDirection(t *testing.T) {
 		index:  input.index,
 	}
 	input.node.outputs = []*renderGraphPort{sameNodeOutput}
-	otherInput := TestRenderGraphInputPort(graph, "other-input-node", 0)
+	otherInput := renderGraphInputPort(graph, "other-input-node", 0)
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(sameNodeOutput, otherInput)
 
@@ -173,7 +173,7 @@ func TestRenderGraphDisconnectPortHonorsSocketDirection(t *testing.T) {
 	}
 }
 
-func TestRenderGraphWithConnectablePorts() (*renderGraph, *renderGraphPort, *renderGraphPort) {
+func renderGraphWithConnectablePorts() (*renderGraph, *renderGraphPort, *renderGraphPort) {
 	graph := &renderGraph{root: &ui.Panel{}}
 	outputNode := &renderGraphNode{id: "output-node", typeID: "value"}
 	inputNode := &renderGraphNode{id: "input-node", typeID: "mix-color"}
@@ -196,7 +196,7 @@ func TestRenderGraphWithConnectablePorts() (*renderGraph, *renderGraphPort, *ren
 	return graph, output, input
 }
 
-func TestRenderGraphInputPort(graph *renderGraph, nodeID string, index int) *renderGraphPort {
+func renderGraphInputPort(graph *renderGraph, nodeID string, index int) *renderGraphPort {
 	node := &renderGraphNode{id: nodeID, typeID: "mix-color", graph: graph}
 	port := &renderGraphPort{
 		graph: graph,
@@ -209,7 +209,7 @@ func TestRenderGraphInputPort(graph *renderGraph, nodeID string, index int) *ren
 	return port
 }
 
-func TestRenderGraphOutputPort(graph *renderGraph, nodeID string, index int) *renderGraphPort {
+func renderGraphOutputPort(graph *renderGraph, nodeID string, index int) *renderGraphPort {
 	node := &renderGraphNode{id: nodeID, typeID: "value", graph: graph}
 	port := &renderGraphPort{
 		graph:  graph,

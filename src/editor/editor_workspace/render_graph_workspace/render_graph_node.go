@@ -115,14 +115,14 @@ func (n *renderGraphNode) FieldValue(id string) renderGraphNodeFieldValue {
 	if n == nil || n.values == nil {
 		return renderGraphNodeFieldValue{}
 	}
-	return n.values[id]
+	return n.values[id].Clone()
 }
 
 func (n *renderGraphNode) setFieldValue(id string, value renderGraphNodeFieldValue) {
 	if n == nil || n.values == nil || id == "" {
 		return
 	}
-	n.values[id] = value
+	n.values[id] = value.Clone()
 }
 
 func (n *renderGraphNode) Update() {

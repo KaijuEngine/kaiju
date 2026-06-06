@@ -116,6 +116,7 @@ func (g *renderGraph) Open() {
 }
 
 func (g *renderGraph) Close() {
+	g.flushPendingFieldValueEdits()
 	if g.root != nil {
 		g.root.Base().Hide()
 	}
@@ -132,6 +133,17 @@ func (g *renderGraph) Close() {
 		g.connections[i].Hide()
 	}
 	g.cancelPendingConnection()
+}
+
+func (g *renderGraph) flushPendingFieldValueEdits() {
+	if g == nil {
+		return
+	}
+	for i := range g.nodes {
+		if g.nodes[i] != nil {
+			g.nodes[i].flushPendingFieldValueEdits()
+		}
+	}
 }
 
 func (g *renderGraph) IsFocusedOnInput() bool {

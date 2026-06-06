@@ -48,7 +48,7 @@ func TestRenderGraphNodeCreateHistoryUndoRedo(t *testing.T) {
 }
 
 func TestRenderGraphRemoveNodeRemovesTouchedConnections(t *testing.T) {
-	graph, output, input := TestRenderGraphWithConnectablePorts()
+	graph, output, input := renderGraphWithConnectablePorts()
 	graph.ConnectPorts(output, input)
 
 	if !graph.RemoveNode("output-node") {
