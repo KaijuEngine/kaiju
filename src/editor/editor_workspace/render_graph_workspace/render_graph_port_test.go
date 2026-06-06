@@ -8,84 +8,84 @@ package render_graph_workspace
 
 import "testing"
 
-func TestShaderGraphPortsCanConnectOnlyOppositeDirections(t *testing.T) {
-	inputA := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: "float"}}
-	inputB := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: "float"}}
-	outputA := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "float"}}
-	outputB := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "float"}}
+func TestRenderGraphPortsCanConnectOnlyOppositeDirections(t *testing.T) {
+	inputA := &renderGraphPort{output: false, spec: renderGraphPortSpec{Type: "float"}}
+	inputB := &renderGraphPort{output: false, spec: renderGraphPortSpec{Type: "float"}}
+	outputA := &renderGraphPort{output: true, spec: renderGraphPortSpec{Type: "float"}}
+	outputB := &renderGraphPort{output: true, spec: renderGraphPortSpec{Type: "float"}}
 
-	if shaderGraphPortsCanConnect(inputA, inputB) {
+	if renderGraphPortsCanConnect(inputA, inputB) {
 		t.Fatal("input ports should not connect to other input ports")
 	}
-	if shaderGraphPortsCanConnect(outputA, outputB) {
+	if renderGraphPortsCanConnect(outputA, outputB) {
 		t.Fatal("output ports should not connect to other output ports")
 	}
-	if !shaderGraphPortsCanConnect(inputA, outputA) {
+	if !renderGraphPortsCanConnect(inputA, outputA) {
 		t.Fatal("input and output ports should connect")
 	}
-	if !shaderGraphPortsCanConnect(outputA, inputA) {
+	if !renderGraphPortsCanConnect(outputA, inputA) {
 		t.Fatal("output and input ports should connect")
 	}
-	if shaderGraphPortsCanConnect(inputA, nil) {
+	if renderGraphPortsCanConnect(inputA, nil) {
 		t.Fatal("nil ports should not connect")
 	}
 }
 
-func TestShaderGraphPortsCanConnectRequiresMatchingTypes(t *testing.T) {
-	inputFloat := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: "float"}}
-	outputFloat := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "float"}}
-	outputColor := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "color"}}
-	inputSurface := &shaderGraphPort{output: false, spec: shaderGraphPortSpec{Type: " Surface "}}
-	outputSurface := &shaderGraphPort{output: true, spec: shaderGraphPortSpec{Type: "surface"}}
+func TestRenderGraphPortsCanConnectRequiresMatchingTypes(t *testing.T) {
+	inputFloat := &renderGraphPort{output: false, spec: renderGraphPortSpec{Type: "float"}}
+	outputFloat := &renderGraphPort{output: true, spec: renderGraphPortSpec{Type: "float"}}
+	outputColor := &renderGraphPort{output: true, spec: renderGraphPortSpec{Type: "color"}}
+	inputSurface := &renderGraphPort{output: false, spec: renderGraphPortSpec{Type: " Surface "}}
+	outputSurface := &renderGraphPort{output: true, spec: renderGraphPortSpec{Type: "surface"}}
 
-	if !shaderGraphPortsCanConnect(inputFloat, outputFloat) {
+	if !renderGraphPortsCanConnect(inputFloat, outputFloat) {
 		t.Fatal("matching input and output port types should connect")
 	}
-	if shaderGraphPortsCanConnect(inputFloat, outputColor) {
+	if renderGraphPortsCanConnect(inputFloat, outputColor) {
 		t.Fatal("mismatched input and output port types should not connect")
 	}
-	if !shaderGraphPortsCanConnect(inputSurface, outputSurface) {
+	if !renderGraphPortsCanConnect(inputSurface, outputSurface) {
 		t.Fatal("port type comparison should normalize case and whitespace")
 	}
 }
 
-func TestShaderGraphFirstCompatibleNodePortChoosesFirstMatchingInput(t *testing.T) {
-	sourceNode := &shaderGraphNode{id: "source"}
-	source := &shaderGraphPort{
+func TestRenderGraphFirstCompatibleNodePortChoosesFirstMatchingInput(t *testing.T) {
+	sourceNode := &renderGraphNode{id: "source"}
+	source := &renderGraphPort{
 		node:   sourceNode,
-		spec:   shaderGraphPortSpec{Type: "float"},
+		spec:   renderGraphPortSpec{Type: "float"},
 		output: true,
 		index:  0,
 	}
-	sourceNode.outputs = []*shaderGraphPort{source}
-	target := &shaderGraphNode{id: "target"}
-	target.inputs = []*shaderGraphPort{
-		{node: target, spec: shaderGraphPortSpec{Type: "color"}, index: 0},
-		{node: target, spec: shaderGraphPortSpec{Type: " float "}, index: 1},
-		{node: target, spec: shaderGraphPortSpec{Type: "float"}, index: 2},
+	sourceNode.outputs = []*renderGraphPort{source}
+	target := &renderGraphNode{id: "target"}
+	target.inputs = []*renderGraphPort{
+		{node: target, spec: renderGraphPortSpec{Type: "color"}, index: 0},
+		{node: target, spec: renderGraphPortSpec{Type: " float "}, index: 1},
+		{node: target, spec: renderGraphPortSpec{Type: "float"}, index: 2},
 	}
 
-	if got := shaderGraphFirstCompatibleNodePort(target, source); got != target.inputs[1] {
+	if got := renderGraphFirstCompatibleNodePort(target, source); got != target.inputs[1] {
 		t.Fatalf("compatible input = %#v, want first float input", got)
 	}
 }
 
-func TestShaderGraphFirstCompatibleNodePortChoosesFirstMatchingOutput(t *testing.T) {
-	sourceNode := &shaderGraphNode{id: "source"}
-	source := &shaderGraphPort{
+func TestRenderGraphFirstCompatibleNodePortChoosesFirstMatchingOutput(t *testing.T) {
+	sourceNode := &renderGraphNode{id: "source"}
+	source := &renderGraphPort{
 		node:  sourceNode,
-		spec:  shaderGraphPortSpec{Type: "vec3"},
+		spec:  renderGraphPortSpec{Type: "vec3"},
 		index: 0,
 	}
-	sourceNode.inputs = []*shaderGraphPort{source}
-	target := &shaderGraphNode{id: "target"}
-	target.outputs = []*shaderGraphPort{
-		{node: target, spec: shaderGraphPortSpec{Type: "float"}, output: true, index: 0},
-		{node: target, spec: shaderGraphPortSpec{Type: " VeC3 "}, output: true, index: 1},
-		{node: target, spec: shaderGraphPortSpec{Type: "vec3"}, output: true, index: 2},
+	sourceNode.inputs = []*renderGraphPort{source}
+	target := &renderGraphNode{id: "target"}
+	target.outputs = []*renderGraphPort{
+		{node: target, spec: renderGraphPortSpec{Type: "float"}, output: true, index: 0},
+		{node: target, spec: renderGraphPortSpec{Type: " VeC3 "}, output: true, index: 1},
+		{node: target, spec: renderGraphPortSpec{Type: "vec3"}, output: true, index: 2},
 	}
 
-	if got := shaderGraphFirstCompatibleNodePort(target, source); got != target.outputs[1] {
+	if got := renderGraphFirstCompatibleNodePort(target, source); got != target.outputs[1] {
 		t.Fatalf("compatible output = %#v, want first vec3 output", got)
 	}
 }

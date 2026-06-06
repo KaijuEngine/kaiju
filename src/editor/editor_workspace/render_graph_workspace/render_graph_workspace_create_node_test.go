@@ -13,16 +13,16 @@ func TestRenderGraphCreateNodeFromConnectionArgsCreatesUndoableTransaction(t *te
 	workspace := &RenderGraphWorkspace{}
 	workspace.graph.history = history
 
-	sourceNode := &shaderGraphNode{id: "source", typeID: "uv", graph: &workspace.graph}
-	sourcePort := &shaderGraphPort{
+	sourceNode := &renderGraphNode{id: "source", typeID: "uv", graph: &workspace.graph}
+	sourcePort := &renderGraphPort{
 		graph:  &workspace.graph,
 		node:   sourceNode,
-		spec:   shaderGraphPortSpec{Type: "vec2"},
+		spec:   renderGraphPortSpec{Type: "vec2"},
 		output: true,
 		index:  0,
 	}
-	sourceNode.outputs = []*shaderGraphPort{sourcePort}
-	workspace.graph.nodes = []*shaderGraphNode{sourceNode}
+	sourceNode.outputs = []*renderGraphPort{sourcePort}
+	workspace.graph.nodes = []*renderGraphNode{sourceNode}
 
 	history.BeginTransaction()
 	node, ok := workspace.CreateNodeFromAction(CreateNodeActionArgs{

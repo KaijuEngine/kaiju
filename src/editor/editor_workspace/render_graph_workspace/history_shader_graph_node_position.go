@@ -11,24 +11,24 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-type shaderGraphNodePositionHistory struct {
-	graph *shaderGraph
+type renderGraphNodePositionHistory struct {
+	graph *renderGraph
 	ids   []string
 	from  []matrix.Vec2
 	to    []matrix.Vec2
 }
 
-func (h *shaderGraphNodePositionHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphNodePositionHistory.Redo").End()
+func (h *renderGraphNodePositionHistory) Redo() {
+	defer tracing.NewRegion("renderGraphNodePositionHistory.Redo").End()
 	h.apply(h.to)
 }
 
-func (h *shaderGraphNodePositionHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphNodePositionHistory.Undo").End()
+func (h *renderGraphNodePositionHistory) Undo() {
+	defer tracing.NewRegion("renderGraphNodePositionHistory.Undo").End()
 	h.apply(h.from)
 }
 
-func (h *shaderGraphNodePositionHistory) apply(positions []matrix.Vec2) {
+func (h *renderGraphNodePositionHistory) apply(positions []matrix.Vec2) {
 	if h.graph == nil {
 		return
 	}
@@ -45,5 +45,5 @@ func (h *shaderGraphNodePositionHistory) apply(positions []matrix.Vec2) {
 	}
 }
 
-func (h *shaderGraphNodePositionHistory) Delete() {}
-func (h *shaderGraphNodePositionHistory) Exit()   {}
+func (h *renderGraphNodePositionHistory) Delete() {}
+func (h *renderGraphNodePositionHistory) Exit()   {}

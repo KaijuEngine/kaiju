@@ -16,22 +16,22 @@ import (
 )
 
 const (
-	shaderGraphCreateMenuWidth  = matrix.Float(320)
-	shaderGraphCreateMenuHeight = matrix.Float(360)
+	renderGraphCreateMenuWidth  = matrix.Float(320)
+	renderGraphCreateMenuHeight = matrix.Float(360)
 )
 
-type shaderGraphCreateNodeMenu struct {
+type renderGraphCreateNodeMenu struct {
 	workspace      *RenderGraphWorkspace
 	root           *document.Element
 	search         *document.Element
 	empty          *document.Element
 	items          []*document.Element
 	createPosition matrix.Vec2
-	connection     shaderGraphCreateNodeConnection
+	connection     renderGraphCreateNodeConnection
 	open           bool
 }
 
-type shaderGraphCreateNodeConnection struct {
+type renderGraphCreateNodeConnection struct {
 	Active       bool
 	SourceNode   string
 	SourcePort   int
@@ -39,7 +39,7 @@ type shaderGraphCreateNodeConnection struct {
 	SourceType   string
 }
 
-func (m *shaderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) {
+func (m *renderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) {
 	m.workspace = workspace
 	if workspace == nil || workspace.Doc == nil {
 		return
@@ -49,23 +49,23 @@ func (m *shaderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) 
 	m.empty, _ = workspace.Doc.GetElementById("createNodeEmpty")
 	m.items = workspace.Doc.GetElementsByClass("createNodeMenuItem")
 	for _, item := range m.items {
-		shaderGraphCreateMenuAllowChildrenClickThrough(item)
+		renderGraphCreateMenuAllowChildrenClickThrough(item)
 	}
 	m.Hide()
 }
 
-func (m *shaderGraphCreateNodeMenu) Show(position, createPosition matrix.Vec2) {
-	m.connection = shaderGraphCreateNodeConnection{}
+func (m *renderGraphCreateNodeMenu) Show(position, createPosition matrix.Vec2) {
+	m.connection = renderGraphCreateNodeConnection{}
 	m.show(position, createPosition)
 }
 
-func (m *shaderGraphCreateNodeMenu) ShowForConnection(position, createPosition matrix.Vec2, source *shaderGraphPort) {
-	ref, ok := shaderGraphPortRef(source)
+func (m *renderGraphCreateNodeMenu) ShowForConnection(position, createPosition matrix.Vec2, source *renderGraphPort) {
+	ref, ok := renderGraphPortRef(source)
 	if !ok || source == nil {
 		m.Show(position, createPosition)
 		return
 	}
-	m.connection = shaderGraphCreateNodeConnection{
+	m.connection = renderGraphCreateNodeConnection{
 		Active:       true,
 		SourceNode:   ref.Node,
 		SourcePort:   ref.Port,
@@ -75,7 +75,7 @@ func (m *shaderGraphCreateNodeMenu) ShowForConnection(position, createPosition m
 	m.show(position, createPosition)
 }
 
-func (m *shaderGraphCreateNodeMenu) show(position, createPosition matrix.Vec2) {
+func (m *renderGraphCreateNodeMenu) show(position, createPosition matrix.Vec2) {
 	if m.root == nil {
 		return
 	}
@@ -91,15 +91,15 @@ func (m *shaderGraphCreateNodeMenu) show(position, createPosition matrix.Vec2) {
 	m.Filter("")
 }
 
-func (m *shaderGraphCreateNodeMenu) Hide() {
+func (m *renderGraphCreateNodeMenu) Hide() {
 	m.open = false
-	m.connection = shaderGraphCreateNodeConnection{}
+	m.connection = renderGraphCreateNodeConnection{}
 	if m.root != nil && m.root.UI != nil {
 		m.root.UI.Hide()
 	}
 }
 
-func (m *shaderGraphCreateNodeMenu) Update() {
+func (m *renderGraphCreateNodeMenu) Update() {
 	if !m.open || m.workspace == nil || m.workspace.Host == nil || m.workspace.Host.Window == nil {
 		return
 	}
@@ -108,19 +108,19 @@ func (m *shaderGraphCreateNodeMenu) Update() {
 	}
 }
 
-func (m *shaderGraphCreateNodeMenu) CreatePosition() matrix.Vec2 {
+func (m *renderGraphCreateNodeMenu) CreatePosition() matrix.Vec2 {
 	return m.createPosition
 }
 
-func (m *shaderGraphCreateNodeMenu) Connection() shaderGraphCreateNodeConnection {
+func (m *renderGraphCreateNodeMenu) Connection() renderGraphCreateNodeConnection {
 	return m.connection
 }
 
-func (m *shaderGraphCreateNodeMenu) BlocksGraphZoom(position matrix.Vec2) bool {
+func (m *renderGraphCreateNodeMenu) BlocksGraphZoom(position matrix.Vec2) bool {
 	return m.BlocksGraphInput(position)
 }
 
-func (m *shaderGraphCreateNodeMenu) BlocksGraphInput(position matrix.Vec2) bool {
+func (m *renderGraphCreateNodeMenu) BlocksGraphInput(position matrix.Vec2) bool {
 	if !m.open || m.root == nil || m.root.UI == nil || !m.root.UI.IsActive() {
 		return false
 	}
@@ -132,7 +132,7 @@ func (m *shaderGraphCreateNodeMenu) BlocksGraphInput(position matrix.Vec2) bool 
 		position.Y() <= offset.Y()+size.Y()
 }
 
-func (m *shaderGraphCreateNodeMenu) Filter(query string) {
+func (m *renderGraphCreateNodeMenu) Filter(query string) {
 	query = strings.ToLower(strings.TrimSpace(query))
 	visible := 0
 	for _, item := range m.items {
@@ -140,7 +140,7 @@ func (m *shaderGraphCreateNodeMenu) Filter(query string) {
 			continue
 		}
 		matches := m.itemCompatible(item) &&
-			(query == "" || shaderGraphCreateMenuMatches(item.Attribute("data-search"), query))
+			(query == "" || renderGraphCreateMenuMatches(item.Attribute("data-search"), query))
 		if matches {
 			item.UI.Show()
 			visible++
@@ -157,18 +157,18 @@ func (m *shaderGraphCreateNodeMenu) Filter(query string) {
 	}
 }
 
-func (m *shaderGraphCreateNodeMenu) itemCompatible(item *document.Element) bool {
+func (m *renderGraphCreateNodeMenu) itemCompatible(item *document.Element) bool {
 	if item == nil || !m.connection.Active {
 		return true
 	}
 	if item.Attribute("data-comment") == "true" {
 		return false
 	}
-	for _, entry := range shaderGraphNodeCatalog() {
+	for _, entry := range renderGraphNodeCatalog() {
 		if entry.ID != item.Attribute("data-node-id") {
 			continue
 		}
-		return shaderGraphNodeCatalogEntryCompatible(entry, shaderGraphNodePortCompatibility{
+		return renderGraphNodeCatalogEntryCompatible(entry, renderGraphNodePortCompatibility{
 			Active:       true,
 			SourceOutput: m.connection.SourceOutput,
 			Type:         m.connection.SourceType,
@@ -177,22 +177,22 @@ func (m *shaderGraphCreateNodeMenu) itemCompatible(item *document.Element) bool 
 	return false
 }
 
-func (m *shaderGraphCreateNodeMenu) positionRoot(position matrix.Vec2) {
-	if m.workspace == nil || m.workspace.shaderGraphArea == nil {
+func (m *renderGraphCreateNodeMenu) positionRoot(position matrix.Vec2) {
+	if m.workspace == nil || m.workspace.renderGraphArea == nil {
 		return
 	}
-	areaLayout := m.workspace.shaderGraphArea.UI.Layout()
+	areaLayout := m.workspace.renderGraphArea.UI.Layout()
 	areaSize := areaLayout.PixelSize()
 	areaOffset := areaLayout.Offset()
-	x := matrix.Clamp(position.X(), 8, max(8, areaSize.X()-shaderGraphCreateMenuWidth-8))
-	y := matrix.Clamp(position.Y(), 8, max(8, areaSize.Y()-shaderGraphCreateMenuHeight-8))
+	x := matrix.Clamp(position.X(), 8, max(8, areaSize.X()-renderGraphCreateMenuWidth-8))
+	y := matrix.Clamp(position.Y(), 8, max(8, areaSize.Y()-renderGraphCreateMenuHeight-8))
 	layout := m.root.UI.Layout()
 	layout.SetPositioning(ui.PositioningAbsolute)
 	layout.SetOffset(float32(areaOffset.X()+x), float32(areaOffset.Y()+y))
 	layout.SetZ(40)
 }
 
-func shaderGraphCreateMenuMatches(search, query string) bool {
+func renderGraphCreateMenuMatches(search, query string) bool {
 	search = strings.ToLower(search)
 	for _, token := range strings.Fields(query) {
 		if !strings.Contains(search, token) {
@@ -202,7 +202,7 @@ func shaderGraphCreateMenuMatches(search, query string) bool {
 	return true
 }
 
-func shaderGraphCreateMenuAllowChildrenClickThrough(element *document.Element) {
+func renderGraphCreateMenuAllowChildrenClickThrough(element *document.Element) {
 	if element == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func shaderGraphCreateMenuAllowChildrenClickThrough(element *document.Element) {
 		if child.UI != nil && child.UI.IsType(ui.ElementTypePanel) {
 			child.UI.ToPanel().AllowClickThrough()
 		}
-		shaderGraphCreateMenuAllowChildrenClickThrough(child)
+		renderGraphCreateMenuAllowChildrenClickThrough(child)
 	}
 }
 
@@ -255,7 +255,7 @@ func (w *RenderGraphWorkspace) defaultCreateNodeViewPosition() matrix.Vec2 {
 	size := w.graph.root.Base().Layout().PixelSize()
 	offset := matrix.Float(w.createNodeCount % 10 * 18)
 	return matrix.NewVec2(
-		matrix.Max(24, size.X()*0.5-shaderGraphNodeWidth*0.5+offset),
+		matrix.Max(24, size.X()*0.5-renderGraphNodeWidth*0.5+offset),
 		matrix.Max(24, size.Y()*0.35+offset),
 	)
 }

@@ -6,9 +6,9 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func TestShaderGraphDefaultVector3FieldValuePadsComponents(t *testing.T) {
-	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
-		Type:          shaderGraphNodeFieldVector3,
+func TestRenderGraphDefaultVector3FieldValuePadsComponents(t *testing.T) {
+	value := renderGraphDefaultFieldValue(renderGraphNodeFieldSpec{
+		Type:          renderGraphNodeFieldVector3,
 		DefaultValues: []string{"1", "2"},
 	})
 
@@ -20,9 +20,9 @@ func TestShaderGraphDefaultVector3FieldValuePadsComponents(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDefaultVector2FieldValuePadsComponents(t *testing.T) {
-	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
-		Type:          shaderGraphNodeFieldVector2,
+func TestRenderGraphDefaultVector2FieldValuePadsComponents(t *testing.T) {
+	value := renderGraphDefaultFieldValue(renderGraphNodeFieldSpec{
+		Type:          renderGraphNodeFieldVector2,
 		DefaultValues: []string{"1"},
 	})
 
@@ -34,9 +34,9 @@ func TestShaderGraphDefaultVector2FieldValuePadsComponents(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDefaultVector4FieldValuePadsComponents(t *testing.T) {
-	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
-		Type:          shaderGraphNodeFieldVector4,
+func TestRenderGraphDefaultVector4FieldValuePadsComponents(t *testing.T) {
+	value := renderGraphDefaultFieldValue(renderGraphNodeFieldSpec{
+		Type:          renderGraphNodeFieldVector4,
 		DefaultValues: []string{"1", "2"},
 	})
 
@@ -48,9 +48,9 @@ func TestShaderGraphDefaultVector4FieldValuePadsComponents(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDefaultTextureFieldValueUsesDefaultAsset(t *testing.T) {
-	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
-		Type:    shaderGraphNodeFieldTexture,
+func TestRenderGraphDefaultTextureFieldValueUsesDefaultAsset(t *testing.T) {
+	value := renderGraphDefaultFieldValue(renderGraphNodeFieldSpec{
+		Type:    renderGraphNodeFieldTexture,
 		Default: "albedo.png",
 	})
 
@@ -59,10 +59,10 @@ func TestShaderGraphDefaultTextureFieldValueUsesDefaultAsset(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDefaultFieldValueUsesFirstSelectOption(t *testing.T) {
-	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{
-		Type: shaderGraphNodeFieldSelect,
-		Options: []shaderGraphNodeFieldOption{
+func TestRenderGraphDefaultFieldValueUsesFirstSelectOption(t *testing.T) {
+	value := renderGraphDefaultFieldValue(renderGraphNodeFieldSpec{
+		Type: renderGraphNodeFieldSelect,
+		Options: []renderGraphNodeFieldOption{
 			{Label: "Mix", Value: "mix"},
 			{Label: "Add", Value: "add"},
 		},
@@ -73,8 +73,8 @@ func TestShaderGraphDefaultFieldValueUsesFirstSelectOption(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDefaultColorFieldValueFallsBackToWhite(t *testing.T) {
-	value := shaderGraphDefaultFieldValue(shaderGraphNodeFieldSpec{Type: shaderGraphNodeFieldColor})
+func TestRenderGraphDefaultColorFieldValueFallsBackToWhite(t *testing.T) {
+	value := renderGraphDefaultFieldValue(renderGraphNodeFieldSpec{Type: renderGraphNodeFieldColor})
 
 	if !matrix.Vec4Approx(matrix.Vec4(value.Color), matrix.Vec4(matrix.ColorWhite())) {
 		t.Fatalf("Color = %v, want white", value.Color)

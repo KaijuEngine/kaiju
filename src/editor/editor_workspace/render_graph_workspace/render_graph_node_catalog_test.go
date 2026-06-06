@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestShaderGraphNodeCatalogHasCommonMathNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasCommonMathNodes(t *testing.T) {
 	want := []string{
 		"add",
 		"subtract",
@@ -23,13 +23,13 @@ func TestShaderGraphNodeCatalogHasCommonMathNodes(t *testing.T) {
 		"length",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogHasTextureNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasTextureNodes(t *testing.T) {
 	want := []string{
 		"texture-2d",
 		"sample-texture-2d",
@@ -40,13 +40,13 @@ func TestShaderGraphNodeCatalogHasTextureNodes(t *testing.T) {
 		"texel-size",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogHasMaterialTextureHelperNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasMaterialTextureHelperNodes(t *testing.T) {
 	want := []string{
 		"normal-map",
 		"normal-strength",
@@ -58,13 +58,13 @@ func TestShaderGraphNodeCatalogHasMaterialTextureHelperNodes(t *testing.T) {
 		"detail-texture",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasContextNodes(t *testing.T) {
 	want := []string{
 		"time",
 		"world-position",
@@ -77,13 +77,13 @@ func TestShaderGraphNodeCatalogHasContextNodes(t *testing.T) {
 		"vertex-color",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogHasProceduralNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasProceduralNodes(t *testing.T) {
 	want := []string{
 		"noise",
 		"voronoi",
@@ -99,13 +99,13 @@ func TestShaderGraphNodeCatalogHasProceduralNodes(t *testing.T) {
 		"ddy",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 	want := []string{
 		"vector2",
 		"vector4",
@@ -120,13 +120,13 @@ func TestShaderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 		"swizzle-vec4",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogHasVectorArithmeticNodes(t *testing.T) {
+func TestRenderGraphNodeCatalogHasVectorArithmeticNodes(t *testing.T) {
 	want := []string{
 		"add-vec2",
 		"subtract-vec2",
@@ -142,15 +142,15 @@ func TestShaderGraphNodeCatalogHasVectorArithmeticNodes(t *testing.T) {
 		"divide-vec4",
 	}
 	for _, id := range want {
-		if _, ok := shaderGraphNodeCatalogSpec(id); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(id); !ok {
 			t.Fatalf("expected catalog node %q to be registered", id)
 		}
 	}
 }
 
-func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
+func TestRenderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 	seen := map[string]bool{}
-	for _, entry := range shaderGraphNodeCatalog() {
+	for _, entry := range renderGraphNodeCatalog() {
 		if seen[entry.ID] {
 			t.Fatalf("duplicate shader graph node catalog id %q", entry.ID)
 		}
@@ -158,23 +158,23 @@ func TestShaderGraphNodeCatalogIDsAreUnique(t *testing.T) {
 	}
 }
 
-func TestShaderGraphTextureNodePortTypes(t *testing.T) {
-	texture, ok := shaderGraphNodeCatalogSpec("texture-2d")
+func TestRenderGraphTextureNodePortTypes(t *testing.T) {
+	texture, ok := renderGraphNodeCatalogSpec("texture-2d")
 	if !ok {
 		t.Fatal("texture-2d node missing")
 	}
 	if len(texture.Outputs) != 1 || texture.Outputs[0].Type != "texture2D" {
 		t.Fatalf("texture-2d outputs = %#v, want texture2D", texture.Outputs)
 	}
-	if len(texture.Fields) == 0 || texture.Fields[0].Type != shaderGraphNodeFieldTexture ||
+	if len(texture.Fields) == 0 || texture.Fields[0].Type != renderGraphNodeFieldTexture ||
 		!texture.Fields[0].Preview {
 		t.Fatalf("texture-2d first field = %#v, want texture field with preview", texture.Fields)
 	}
-	if got, want := shaderGraphNodeFieldHeight(texture.Fields[0]), shaderGraphFieldHeight; got <= want {
+	if got, want := renderGraphNodeFieldHeight(texture.Fields[0]), renderGraphFieldHeight; got <= want {
 		t.Fatalf("texture preview field height = %v, want greater than %v", got, want)
 	}
 
-	sample, ok := shaderGraphNodeCatalogSpec("sample-texture-2d")
+	sample, ok := renderGraphNodeCatalogSpec("sample-texture-2d")
 	if !ok {
 		t.Fatal("sample-texture-2d node missing")
 	}
@@ -186,8 +186,8 @@ func TestShaderGraphTextureNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
-	normalMap, ok := shaderGraphNodeCatalogSpec("normal-map")
+func TestRenderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
+	normalMap, ok := renderGraphNodeCatalogSpec("normal-map")
 	if !ok {
 		t.Fatal("normal-map node missing")
 	}
@@ -199,7 +199,7 @@ func TestShaderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
 			normalMap.Inputs, normalMap.Outputs)
 	}
 
-	packed, ok := shaderGraphNodeCatalogSpec("orm-mra-unpack")
+	packed, ok := renderGraphNodeCatalogSpec("orm-mra-unpack")
 	if !ok {
 		t.Fatal("orm-mra-unpack node missing")
 	}
@@ -210,7 +210,7 @@ func TestShaderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
 			packed.Inputs, packed.Outputs)
 	}
 
-	parallax, ok := shaderGraphNodeCatalogSpec("parallax")
+	parallax, ok := renderGraphNodeCatalogSpec("parallax")
 	if !ok {
 		t.Fatal("parallax node missing")
 	}
@@ -222,7 +222,7 @@ func TestShaderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
 			parallax.Inputs, parallax.Outputs)
 	}
 
-	triplanar, ok := shaderGraphNodeCatalogSpec("triplanar")
+	triplanar, ok := renderGraphNodeCatalogSpec("triplanar")
 	if !ok {
 		t.Fatal("triplanar node missing")
 	}
@@ -235,8 +235,8 @@ func TestShaderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphContextNodePortTypes(t *testing.T) {
-	timeNode, ok := shaderGraphNodeCatalogSpec("time")
+func TestRenderGraphContextNodePortTypes(t *testing.T) {
+	timeNode, ok := renderGraphNodeCatalogSpec("time")
 	if !ok {
 		t.Fatal("time node missing")
 	}
@@ -244,7 +244,7 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 		t.Fatalf("time outputs = %#v, want single Time float", timeNode.Outputs)
 	}
 
-	world, ok := shaderGraphNodeCatalogSpec("world-position")
+	world, ok := renderGraphNodeCatalogSpec("world-position")
 	if !ok {
 		t.Fatal("world-position node missing")
 	}
@@ -252,7 +252,7 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 		t.Fatalf("world-position outputs = %#v, want vec3 plus float components", world.Outputs)
 	}
 
-	screen, ok := shaderGraphNodeCatalogSpec("screen-position")
+	screen, ok := renderGraphNodeCatalogSpec("screen-position")
 	if !ok {
 		t.Fatal("screen-position node missing")
 	}
@@ -260,7 +260,7 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 		t.Fatalf("screen-position outputs = %#v, want vec2, vec2, float components", screen.Outputs)
 	}
 
-	vertexColor, ok := shaderGraphNodeCatalogSpec("vertex-color")
+	vertexColor, ok := renderGraphNodeCatalogSpec("vertex-color")
 	if !ok {
 		t.Fatal("vertex-color node missing")
 	}
@@ -270,8 +270,8 @@ func TestShaderGraphContextNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
-	noise, ok := shaderGraphNodeCatalogSpec("noise")
+func TestRenderGraphProceduralNodePortTypes(t *testing.T) {
+	noise, ok := renderGraphNodeCatalogSpec("noise")
 	if !ok {
 		t.Fatal("noise node missing")
 	}
@@ -282,7 +282,7 @@ func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
 			noise.Inputs, noise.Outputs)
 	}
 
-	voronoi, ok := shaderGraphNodeCatalogSpec("voronoi")
+	voronoi, ok := renderGraphNodeCatalogSpec("voronoi")
 	if !ok {
 		t.Fatal("voronoi node missing")
 	}
@@ -293,7 +293,7 @@ func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
 			voronoi.Inputs, voronoi.Outputs)
 	}
 
-	checker, ok := shaderGraphNodeCatalogSpec("checker")
+	checker, ok := renderGraphNodeCatalogSpec("checker")
 	if !ok {
 		t.Fatal("checker node missing")
 	}
@@ -304,7 +304,7 @@ func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
 			checker.Inputs, checker.Outputs)
 	}
 
-	remap, ok := shaderGraphNodeCatalogSpec("remap")
+	remap, ok := renderGraphNodeCatalogSpec("remap")
 	if !ok {
 		t.Fatal("remap node missing")
 	}
@@ -312,7 +312,7 @@ func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
 		t.Fatalf("remap ports = %#v -> %#v, want five float inputs -> float", remap.Inputs, remap.Outputs)
 	}
 
-	rim, ok := shaderGraphNodeCatalogSpec("rim-light")
+	rim, ok := renderGraphNodeCatalogSpec("rim-light")
 	if !ok {
 		t.Fatal("rim-light node missing")
 	}
@@ -324,8 +324,8 @@ func TestShaderGraphProceduralNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
-	vector2, ok := shaderGraphNodeCatalogSpec("vector2")
+func TestRenderGraphVectorCompositionNodePortTypes(t *testing.T) {
+	vector2, ok := renderGraphNodeCatalogSpec("vector2")
 	if !ok {
 		t.Fatal("vector2 node missing")
 	}
@@ -333,7 +333,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("vector2 outputs = %#v, want vec2", vector2.Outputs)
 	}
 
-	vector4, ok := shaderGraphNodeCatalogSpec("vector4")
+	vector4, ok := renderGraphNodeCatalogSpec("vector4")
 	if !ok {
 		t.Fatal("vector4 node missing")
 	}
@@ -341,7 +341,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("vector4 outputs = %#v, want vec4 and color", vector4.Outputs)
 	}
 
-	combine2, ok := shaderGraphNodeCatalogSpec("combine-vec2")
+	combine2, ok := renderGraphNodeCatalogSpec("combine-vec2")
 	if !ok {
 		t.Fatal("combine-vec2 node missing")
 	}
@@ -350,7 +350,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("combine-vec2 ports = %#v -> %#v, want float,float -> vec2", combine2.Inputs, combine2.Outputs)
 	}
 
-	combine4, ok := shaderGraphNodeCatalogSpec("combine-vec4")
+	combine4, ok := renderGraphNodeCatalogSpec("combine-vec4")
 	if !ok {
 		t.Fatal("combine-vec4 node missing")
 	}
@@ -359,7 +359,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("combine-vec4 ports = %#v -> %#v, want four floats -> vec4 and color", combine4.Inputs, combine4.Outputs)
 	}
 
-	split3, ok := shaderGraphNodeCatalogSpec("split-vec3")
+	split3, ok := renderGraphNodeCatalogSpec("split-vec3")
 	if !ok {
 		t.Fatal("split-vec3 node missing")
 	}
@@ -368,7 +368,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("split-vec3 ports = %#v -> %#v, want vec3 -> three floats", split3.Inputs, split3.Outputs)
 	}
 
-	split4, ok := shaderGraphNodeCatalogSpec("split-vec4")
+	split4, ok := renderGraphNodeCatalogSpec("split-vec4")
 	if !ok {
 		t.Fatal("split-vec4 node missing")
 	}
@@ -377,7 +377,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("split-vec4 ports = %#v -> %#v, want vec4 -> four floats", split4.Inputs, split4.Outputs)
 	}
 
-	swizzle3, ok := shaderGraphNodeCatalogSpec("swizzle-vec3")
+	swizzle3, ok := renderGraphNodeCatalogSpec("swizzle-vec3")
 	if !ok {
 		t.Fatal("swizzle-vec3 node missing")
 	}
@@ -386,7 +386,7 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 		t.Fatalf("swizzle-vec3 ports = %#v -> %#v, want vec3 -> vec3", swizzle3.Inputs, swizzle3.Outputs)
 	}
 
-	swizzle4, ok := shaderGraphNodeCatalogSpec("swizzle-vec4")
+	swizzle4, ok := renderGraphNodeCatalogSpec("swizzle-vec4")
 	if !ok {
 		t.Fatal("swizzle-vec4 node missing")
 	}
@@ -396,8 +396,8 @@ func TestShaderGraphVectorCompositionNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
-	minimum, ok := shaderGraphNodeCatalogSpec("minimum")
+func TestRenderGraphCommonMathNodePortTypes(t *testing.T) {
+	minimum, ok := renderGraphNodeCatalogSpec("minimum")
 	if !ok {
 		t.Fatal("minimum node missing")
 	}
@@ -410,7 +410,7 @@ func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
 		}
 	}
 
-	dot, ok := shaderGraphNodeCatalogSpec("dot-product")
+	dot, ok := renderGraphNodeCatalogSpec("dot-product")
 	if !ok {
 		t.Fatal("dot-product node missing")
 	}
@@ -419,7 +419,7 @@ func TestShaderGraphCommonMathNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphVectorArithmeticNodePortTypes(t *testing.T) {
+func TestRenderGraphVectorArithmeticNodePortTypes(t *testing.T) {
 	tests := []struct {
 		id         string
 		vectorType string
@@ -440,7 +440,7 @@ func TestShaderGraphVectorArithmeticNodePortTypes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
-			spec, ok := shaderGraphNodeCatalogSpec(tt.id)
+			spec, ok := renderGraphNodeCatalogSpec(tt.id)
 			if !ok {
 				t.Fatalf("%s node missing", tt.id)
 			}
@@ -457,12 +457,12 @@ func TestShaderGraphVectorArithmeticNodePortTypes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphPrincipledBSDFExposesExpandedPBRInputs(t *testing.T) {
-	bsdf, ok := shaderGraphNodeCatalogSpec("principled-bsdf")
+func TestRenderGraphPrincipledBSDFExposesExpandedPBRInputs(t *testing.T) {
+	bsdf, ok := renderGraphNodeCatalogSpec("principled-bsdf")
 	if !ok {
 		t.Fatal("principled-bsdf node missing")
 	}
-	want := []shaderGraphPortSpec{
+	want := []renderGraphPortSpec{
 		{Name: "Base Color", Type: "color"},
 		{Name: "Roughness", Type: "float"},
 		{Name: "Normal", Type: "vec3"},
@@ -483,12 +483,12 @@ func TestShaderGraphPrincipledBSDFExposesExpandedPBRInputs(t *testing.T) {
 	}
 }
 
-func TestShaderGraphMaterialOutputExposesSurfaceAndDisplacementInputs(t *testing.T) {
-	output, ok := shaderGraphNodeCatalogSpec("material-output")
+func TestRenderGraphMaterialOutputExposesSurfaceAndDisplacementInputs(t *testing.T) {
+	output, ok := renderGraphNodeCatalogSpec("material-output")
 	if !ok {
 		t.Fatal("material-output node missing")
 	}
-	want := []shaderGraphPortSpec{
+	want := []renderGraphPortSpec{
 		{Name: "Surface", Type: "surface"},
 		{Name: "Displacement", Type: "float"},
 	}
@@ -502,8 +502,8 @@ func TestShaderGraphMaterialOutputExposesSurfaceAndDisplacementInputs(t *testing
 	}
 }
 
-func TestShaderGraphNodeCatalogCompatibleIDsForOutputVec2(t *testing.T) {
-	ids := shaderGraphNodeCatalogCompatibleIDs(true, " Vec2 ")
+func TestRenderGraphNodeCatalogCompatibleIDsForOutputVec2(t *testing.T) {
+	ids := renderGraphNodeCatalogCompatibleIDs(true, " Vec2 ")
 
 	if !slices.Contains(ids, "sample-texture-2d") {
 		t.Fatal("output vec2 should offer nodes with vec2 inputs")
@@ -519,8 +519,8 @@ func TestShaderGraphNodeCatalogCompatibleIDsForOutputVec2(t *testing.T) {
 	}
 }
 
-func TestShaderGraphNodeCatalogCompatibleIDsForInputVec3(t *testing.T) {
-	ids := shaderGraphNodeCatalogCompatibleIDs(false, " VeC3 ")
+func TestRenderGraphNodeCatalogCompatibleIDsForInputVec3(t *testing.T) {
+	ids := renderGraphNodeCatalogCompatibleIDs(false, " VeC3 ")
 
 	if !slices.Contains(ids, "vector") {
 		t.Fatal("input vec3 should offer nodes with vec3 outputs")
@@ -536,15 +536,15 @@ func TestShaderGraphNodeCatalogCompatibleIDsForInputVec3(t *testing.T) {
 	}
 }
 
-func TestShaderGraphNodeSpecCompatiblePortIndexUsesSpecOrder(t *testing.T) {
-	sample, ok := shaderGraphNodeCatalogSpec("sample-texture-2d")
+func TestRenderGraphNodeSpecCompatiblePortIndexUsesSpecOrder(t *testing.T) {
+	sample, ok := renderGraphNodeCatalogSpec("sample-texture-2d")
 	if !ok {
 		t.Fatal("sample-texture-2d node missing")
 	}
-	if index, ok := shaderGraphNodeSpecCompatiblePortIndex(sample, true, "vec2"); !ok || index != 1 {
+	if index, ok := renderGraphNodeSpecCompatiblePortIndex(sample, true, "vec2"); !ok || index != 1 {
 		t.Fatalf("output vec2 compatible input index = %d, %v; want 1, true", index, ok)
 	}
-	if index, ok := shaderGraphNodeSpecCompatiblePortIndex(sample, false, "vec3"); !ok || index != 1 {
+	if index, ok := renderGraphNodeSpecCompatiblePortIndex(sample, false, "vec3"); !ok || index != 1 {
 		t.Fatalf("input vec3 compatible output index = %d, %v; want 1, true", index, ok)
 	}
 }

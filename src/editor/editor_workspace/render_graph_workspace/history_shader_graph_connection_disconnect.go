@@ -8,13 +8,13 @@ package render_graph_workspace
 
 import "kaijuengine.com/platform/profiler/tracing"
 
-type shaderGraphConnectionDisconnectHistory struct {
-	graph       *shaderGraph
+type renderGraphConnectionDisconnectHistory struct {
+	graph       *renderGraph
 	connections []RenderGraphConnection
 }
 
-func (h *shaderGraphConnectionDisconnectHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphConnectionDisconnectHistory.Redo").End()
+func (h *renderGraphConnectionDisconnectHistory) Redo() {
+	defer tracing.NewRegion("renderGraphConnectionDisconnectHistory.Redo").End()
 	if h.graph == nil {
 		return
 	}
@@ -23,8 +23,8 @@ func (h *shaderGraphConnectionDisconnectHistory) Redo() {
 	}
 }
 
-func (h *shaderGraphConnectionDisconnectHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphConnectionDisconnectHistory.Undo").End()
+func (h *renderGraphConnectionDisconnectHistory) Undo() {
+	defer tracing.NewRegion("renderGraphConnectionDisconnectHistory.Undo").End()
 	if h.graph == nil {
 		return
 	}
@@ -33,5 +33,5 @@ func (h *shaderGraphConnectionDisconnectHistory) Undo() {
 	}
 }
 
-func (h *shaderGraphConnectionDisconnectHistory) Delete() {}
-func (h *shaderGraphConnectionDisconnectHistory) Exit()   {}
+func (h *renderGraphConnectionDisconnectHistory) Delete() {}
+func (h *renderGraphConnectionDisconnectHistory) Exit()   {}

@@ -15,38 +15,38 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-type shaderGraphSelectionMode int
+type renderGraphSelectionMode int
 
 const (
-	shaderGraphSelectionReplace shaderGraphSelectionMode = iota
-	shaderGraphSelectionAppend
-	shaderGraphSelectionToggle
-	shaderGraphSelectionSubtract
+	renderGraphSelectionReplace renderGraphSelectionMode = iota
+	renderGraphSelectionAppend
+	renderGraphSelectionToggle
+	renderGraphSelectionSubtract
 )
 
-func (g *shaderGraph) HasSelection() bool {
+func (g *renderGraph) HasSelection() bool {
 	return g != nil && (len(g.selected) > 0 || g.selectedComment != nil)
 }
 
-func (g *shaderGraph) Selection() []*shaderGraphNode {
+func (g *renderGraph) Selection() []*renderGraphNode {
 	return slices.Clone(g.selected)
 }
 
-func (g *shaderGraph) IsSelected(node *shaderGraphNode) bool {
+func (g *renderGraph) IsSelected(node *renderGraphNode) bool {
 	if g == nil || node == nil {
 		return false
 	}
 	return slices.Contains(g.selected, node)
 }
 
-func (g *shaderGraph) SelectNodeFromInput(node *shaderGraphNode) {
+func (g *renderGraph) SelectNodeFromInput(node *renderGraphNode) {
 	if g == nil || node == nil || g.host == nil || g.host.Window == nil {
 		return
 	}
-	g.SelectNodes([]*shaderGraphNode{node}, shaderGraphSelectionModeFromKeyboard(&g.host.Window.Keyboard))
+	g.SelectNodes([]*renderGraphNode{node}, renderGraphSelectionModeFromKeyboard(&g.host.Window.Keyboard))
 }
 
-func (g *shaderGraph) SelectCommentFromInput(comment *shaderGraphComment) {
+func (g *renderGraph) SelectCommentFromInput(comment *renderGraphComment) {
 	if g == nil || comment == nil {
 		return
 	}
@@ -54,7 +54,7 @@ func (g *shaderGraph) SelectCommentFromInput(comment *shaderGraphComment) {
 	g.setSelectedComment(comment)
 }
 
-func (g *shaderGraph) beginBoxSelectionFromInput() {
+func (g *renderGraph) beginBoxSelectionFromInput() {
 	if g == nil || g.host == nil || g.host.Window == nil || g.isPanInputHeld() {
 		return
 	}
@@ -67,12 +67,12 @@ func (g *shaderGraph) beginBoxSelectionFromInput() {
 	g.updateSelectionBoxVisual(g.boxStart)
 }
 
-func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSelectionMode) {
-	defer tracing.NewRegion("shaderGraph.SelectNodes").End()
+func (g *renderGraph) SelectNodes(nodes []*renderGraphNode, mode renderGraphSelectionMode) {
+	defer tracing.NewRegion("renderGraph.SelectNodes").End()
 	if g == nil {
 		return
 	}
-	filtered := make([]*shaderGraphNode, 0, len(nodes))
+	filtered := make([]*renderGraphNode, 0, len(nodes))
 	for i := range nodes {
 		node := nodes[i]
 		if node == nil || !slices.Contains(g.nodes, node) || slices.Contains(filtered, node) {
@@ -80,20 +80,20 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 		}
 		filtered = append(filtered, node)
 	}
-	if len(filtered) == 0 && mode != shaderGraphSelectionReplace {
+	if len(filtered) == 0 && mode != renderGraphSelectionReplace {
 		return
 	}
 	from := g.selectionIDs()
 	next := slices.Clone(g.selected)
-	if mode == shaderGraphSelectionReplace && len(filtered) == 1 && g.IsSelected(filtered[0]) {
-		next = shaderGraphSelectionMoveToTop(next, filtered[0])
+	if mode == renderGraphSelectionReplace && len(filtered) == 1 && g.IsSelected(filtered[0]) {
+		next = renderGraphSelectionMoveToTop(next, filtered[0])
 		g.setSelectionNodes(next)
 		to := g.selectionIDs()
 		if slices.Equal(from, to) {
 			return
 		}
 		if g.history != nil {
-			g.history.Add(&shaderGraphSelectionHistory{
+			g.history.Add(&renderGraphSelectionHistory{
 				graph: g,
 				from:  from,
 				to:    to,
@@ -102,7 +102,7 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 		return
 	}
 	switch mode {
-	case shaderGraphSelectionAppend:
+	case renderGraphSelectionAppend:
 		for i := range filtered {
 			if index := slices.Index(next, filtered[i]); index >= 0 {
 				next = slices.Delete(next, index, index+1)
@@ -111,7 +111,7 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 				next = append(next, filtered[i])
 			}
 		}
-	case shaderGraphSelectionToggle:
+	case renderGraphSelectionToggle:
 		for i := range filtered {
 			if index := slices.Index(next, filtered[i]); index >= 0 {
 				next = slices.Delete(next, index, index+1)
@@ -119,7 +119,7 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 				next = append(next, filtered[i])
 			}
 		}
-	case shaderGraphSelectionSubtract:
+	case renderGraphSelectionSubtract:
 		for i := range filtered {
 			if index := slices.Index(next, filtered[i]); index >= 0 {
 				next = slices.Delete(next, index, index+1)
@@ -134,7 +134,7 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 		return
 	}
 	if g.history != nil {
-		g.history.Add(&shaderGraphSelectionHistory{
+		g.history.Add(&renderGraphSelectionHistory{
 			graph: g,
 			from:  from,
 			to:    to,
@@ -142,7 +142,7 @@ func (g *shaderGraph) SelectNodes(nodes []*shaderGraphNode, mode shaderGraphSele
 	}
 }
 
-func (g *shaderGraph) setSelectionNodes(nodes []*shaderGraphNode) {
+func (g *renderGraph) setSelectionNodes(nodes []*renderGraphNode) {
 	if g == nil {
 		return
 	}
@@ -173,7 +173,7 @@ func (g *shaderGraph) setSelectionNodes(nodes []*shaderGraphNode) {
 	g.applySelectionZOrder()
 }
 
-func (g *shaderGraph) setSelectedComment(comment *shaderGraphComment) {
+func (g *renderGraph) setSelectedComment(comment *renderGraphComment) {
 	if g == nil || g.selectedComment == comment {
 		return
 	}
@@ -188,11 +188,11 @@ func (g *shaderGraph) setSelectedComment(comment *shaderGraphComment) {
 	g.selectedComment.setSelected(true)
 }
 
-func (g *shaderGraph) setSelectionIDs(ids []string) {
+func (g *renderGraph) setSelectionIDs(ids []string) {
 	if g == nil {
 		return
 	}
-	nodes := make([]*shaderGraphNode, 0, len(ids))
+	nodes := make([]*renderGraphNode, 0, len(ids))
 	for i := range ids {
 		if node := g.nodeByID(ids[i]); node != nil {
 			nodes = append(nodes, node)
@@ -201,7 +201,7 @@ func (g *shaderGraph) setSelectionIDs(ids []string) {
 	g.setSelectionNodes(nodes)
 }
 
-func (g *shaderGraph) selectionIDs() []string {
+func (g *renderGraph) selectionIDs() []string {
 	if g == nil || len(g.selected) == 0 {
 		return nil
 	}
@@ -214,7 +214,7 @@ func (g *shaderGraph) selectionIDs() []string {
 	return ids
 }
 
-func (g *shaderGraph) nodeByID(id string) *shaderGraphNode {
+func (g *renderGraph) nodeByID(id string) *renderGraphNode {
 	if g == nil || id == "" {
 		return nil
 	}
@@ -226,7 +226,7 @@ func (g *shaderGraph) nodeByID(id string) *shaderGraphNode {
 	return nil
 }
 
-func (g *shaderGraph) commentByID(id string) *shaderGraphComment {
+func (g *renderGraph) commentByID(id string) *renderGraphComment {
 	if g == nil || id == "" {
 		return nil
 	}
@@ -238,7 +238,7 @@ func (g *shaderGraph) commentByID(id string) *shaderGraphComment {
 	return nil
 }
 
-func (n *shaderGraphNode) bindSelectionEvent(target *ui.UI) {
+func (n *renderGraphNode) bindSelectionEvent(target *ui.UI) {
 	if n == nil || target == nil {
 		return
 	}
@@ -252,7 +252,7 @@ func (n *shaderGraphNode) bindSelectionEvent(target *ui.UI) {
 	})
 }
 
-func shaderGraphSelectionMoveToTop(nodes []*shaderGraphNode, node *shaderGraphNode) []*shaderGraphNode {
+func renderGraphSelectionMoveToTop(nodes []*renderGraphNode, node *renderGraphNode) []*renderGraphNode {
 	if node == nil {
 		return nodes
 	}
@@ -262,28 +262,28 @@ func shaderGraphSelectionMoveToTop(nodes []*shaderGraphNode, node *shaderGraphNo
 	return append(nodes, node)
 }
 
-func shaderGraphSelectionModeFromKeyboard(kb *hid.Keyboard) shaderGraphSelectionMode {
+func renderGraphSelectionModeFromKeyboard(kb *hid.Keyboard) renderGraphSelectionMode {
 	if kb == nil {
-		return shaderGraphSelectionReplace
+		return renderGraphSelectionReplace
 	}
 	if kb.HasShift() {
-		return shaderGraphSelectionAppend
+		return renderGraphSelectionAppend
 	}
 	if kb.HasCtrlOrMeta() {
-		return shaderGraphSelectionToggle
+		return renderGraphSelectionToggle
 	}
-	return shaderGraphSelectionReplace
+	return renderGraphSelectionReplace
 }
 
-func shaderGraphBoxSelectionModeFromKeyboard(kb *hid.Keyboard) shaderGraphSelectionMode {
+func renderGraphBoxSelectionModeFromKeyboard(kb *hid.Keyboard) renderGraphSelectionMode {
 	if kb == nil {
-		return shaderGraphSelectionReplace
+		return renderGraphSelectionReplace
 	}
 	if kb.HasShift() {
-		return shaderGraphSelectionAppend
+		return renderGraphSelectionAppend
 	}
 	if kb.HasCtrlOrMeta() {
-		return shaderGraphSelectionSubtract
+		return renderGraphSelectionSubtract
 	}
-	return shaderGraphSelectionReplace
+	return renderGraphSelectionReplace
 }

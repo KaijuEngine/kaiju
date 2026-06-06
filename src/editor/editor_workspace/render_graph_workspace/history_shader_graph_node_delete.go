@@ -8,14 +8,14 @@ package render_graph_workspace
 
 import "kaijuengine.com/platform/profiler/tracing"
 
-type shaderGraphNodeDeleteHistory struct {
-	graph       *shaderGraph
+type renderGraphNodeDeleteHistory struct {
+	graph       *renderGraph
 	nodes       []RenderGraphNode
 	connections []RenderGraphConnection
 }
 
-func (h *shaderGraphNodeDeleteHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphNodeDeleteHistory.Redo").End()
+func (h *renderGraphNodeDeleteHistory) Redo() {
+	defer tracing.NewRegion("renderGraphNodeDeleteHistory.Redo").End()
 	if h.graph == nil {
 		return
 	}
@@ -25,8 +25,8 @@ func (h *shaderGraphNodeDeleteHistory) Redo() {
 	h.graph.setSelectionNodes(nil)
 }
 
-func (h *shaderGraphNodeDeleteHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphNodeDeleteHistory.Undo").End()
+func (h *renderGraphNodeDeleteHistory) Undo() {
+	defer tracing.NewRegion("renderGraphNodeDeleteHistory.Undo").End()
 	if h.graph == nil {
 		return
 	}
@@ -39,7 +39,7 @@ func (h *shaderGraphNodeDeleteHistory) Undo() {
 	h.graph.setSelectionIDs(h.nodeIDs())
 }
 
-func (h *shaderGraphNodeDeleteHistory) nodeIDs() []string {
+func (h *renderGraphNodeDeleteHistory) nodeIDs() []string {
 	ids := make([]string, 0, len(h.nodes))
 	for i := range h.nodes {
 		if h.nodes[i].ID != "" {
@@ -49,5 +49,5 @@ func (h *shaderGraphNodeDeleteHistory) nodeIDs() []string {
 	return ids
 }
 
-func (h *shaderGraphNodeDeleteHistory) Delete() {}
-func (h *shaderGraphNodeDeleteHistory) Exit()   {}
+func (h *renderGraphNodeDeleteHistory) Delete() {}
+func (h *renderGraphNodeDeleteHistory) Exit()   {}

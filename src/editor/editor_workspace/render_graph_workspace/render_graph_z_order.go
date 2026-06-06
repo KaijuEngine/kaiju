@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	shaderGraphNodeZBase = float32(5)
-	shaderGraphNodeZStep = float32(0.5)
+	renderGraphNodeZBase = float32(5)
+	renderGraphNodeZStep = float32(0.5)
 )
 
-func (g *shaderGraph) assignNodeZSlot(node *shaderGraphNode) {
+func (g *renderGraph) assignNodeZSlot(node *renderGraphNode) {
 	if g == nil || node == nil || node.zSlotAssigned {
 		return
 	}
@@ -47,7 +47,7 @@ func (g *shaderGraph) assignNodeZSlot(node *shaderGraphNode) {
 	node.setZDepth(g.nodeZDepthForSlot(slot))
 }
 
-func (g *shaderGraph) releaseNodeZSlot(node *shaderGraphNode) {
+func (g *renderGraph) releaseNodeZSlot(node *renderGraphNode) {
 	if g == nil || node == nil || !node.zSlotAssigned {
 		return
 	}
@@ -59,7 +59,7 @@ func (g *shaderGraph) releaseNodeZSlot(node *shaderGraphNode) {
 	}
 }
 
-func (g *shaderGraph) applySelectionZOrder() {
+func (g *renderGraph) applySelectionZOrder() {
 	if g == nil {
 		return
 	}
@@ -79,14 +79,14 @@ func (g *shaderGraph) applySelectionZOrder() {
 	}
 }
 
-func (g *shaderGraph) nodeZDepthForSlot(slot int) float32 {
+func (g *renderGraph) nodeZDepthForSlot(slot int) float32 {
 	if slot < 0 {
 		slot = 0
 	}
-	return shaderGraphNodeZBase + float32(slot)*shaderGraphNodeZStep
+	return renderGraphNodeZBase + float32(slot)*renderGraphNodeZStep
 }
 
-func (n *shaderGraphNode) setZDepth(z float32) {
+func (n *renderGraphNode) setZDepth(z float32) {
 	if n == nil || matrix.Approx(n.zDepth, z) {
 		return
 	}

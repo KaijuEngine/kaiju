@@ -480,7 +480,7 @@ func assertRenderGraphCommentBlockScreenshot(host *engine.Host, workspace *rende
 
 func renderGraphWorkspaceGraphRect(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, bounds image.Rectangle) image.Rectangle {
 	if workspace != nil && workspace.Doc != nil {
-		if graphArea, ok := workspace.Doc.GetElementById("shaderGraphArea"); ok && graphArea != nil && graphArea.UI != nil {
+		if graphArea, ok := workspace.Doc.GetElementById("renderGraphArea"); ok && graphArea != nil && graphArea.UI != nil {
 			rect := elementBoundsRectangle(host, bounds, graphArea.UI)
 			if rect.Dx() > 0 && rect.Dy() > 0 {
 				return rect

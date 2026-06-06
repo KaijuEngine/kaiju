@@ -8,29 +8,29 @@ package render_graph_workspace
 
 import "kaijuengine.com/platform/profiler/tracing"
 
-type shaderGraphNodeCreateHistory struct {
-	graph             *shaderGraph
+type renderGraphNodeCreateHistory struct {
+	graph             *renderGraph
 	node              RenderGraphNode
 	previousSelection []string
 }
 
-func (h *shaderGraphNodeCreateHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphNodeCreateHistory.Redo").End()
+func (h *renderGraphNodeCreateHistory) Redo() {
+	defer tracing.NewRegion("renderGraphNodeCreateHistory.Redo").End()
 	if h.graph != nil {
 		node := h.graph.createNodeFromSnapshot(h.node)
 		if node != nil {
-			h.graph.setSelectionNodes([]*shaderGraphNode{node})
+			h.graph.setSelectionNodes([]*renderGraphNode{node})
 		}
 	}
 }
 
-func (h *shaderGraphNodeCreateHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphNodeCreateHistory.Undo").End()
+func (h *renderGraphNodeCreateHistory) Undo() {
+	defer tracing.NewRegion("renderGraphNodeCreateHistory.Undo").End()
 	if h.graph != nil {
 		h.graph.RemoveNode(h.node.ID)
 		h.graph.setSelectionIDs(h.previousSelection)
 	}
 }
 
-func (h *shaderGraphNodeCreateHistory) Delete() {}
-func (h *shaderGraphNodeCreateHistory) Exit()   {}
+func (h *renderGraphNodeCreateHistory) Delete() {}
+func (h *renderGraphNodeCreateHistory) Exit()   {}

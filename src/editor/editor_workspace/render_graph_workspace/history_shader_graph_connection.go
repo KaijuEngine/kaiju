@@ -8,14 +8,14 @@ package render_graph_workspace
 
 import "kaijuengine.com/platform/profiler/tracing"
 
-type shaderGraphConnectionHistory struct {
-	graph         *shaderGraph
+type renderGraphConnectionHistory struct {
+	graph         *renderGraph
 	output, input RenderGraphPortRef
 	replaced      []RenderGraphConnection
 }
 
-func (h *shaderGraphConnectionHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphConnectionHistory.Redo").End()
+func (h *renderGraphConnectionHistory) Redo() {
+	defer tracing.NewRegion("renderGraphConnectionHistory.Redo").End()
 	if h.graph != nil {
 		for i := range h.replaced {
 			h.graph.removeConnectionRef(h.replaced[i])
@@ -24,8 +24,8 @@ func (h *shaderGraphConnectionHistory) Redo() {
 	}
 }
 
-func (h *shaderGraphConnectionHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphConnectionHistory.Undo").End()
+func (h *renderGraphConnectionHistory) Undo() {
+	defer tracing.NewRegion("renderGraphConnectionHistory.Undo").End()
 	if h.graph != nil {
 		h.graph.RemoveConnection(h.output, h.input)
 		for i := range h.replaced {
@@ -34,5 +34,5 @@ func (h *shaderGraphConnectionHistory) Undo() {
 	}
 }
 
-func (h *shaderGraphConnectionHistory) Delete() {}
-func (h *shaderGraphConnectionHistory) Exit()   {}
+func (h *renderGraphConnectionHistory) Delete() {}
+func (h *renderGraphConnectionHistory) Exit()   {}

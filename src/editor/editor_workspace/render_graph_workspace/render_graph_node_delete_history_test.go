@@ -6,15 +6,15 @@ import (
 	"kaijuengine.com/editor/memento"
 )
 
-func TestShaderGraphDeleteSelectedNodesAddsUndoableHistory(t *testing.T) {
+func TestRenderGraphDeleteSelectedNodesAddsUndoableHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := testShaderGraphWithConnectablePorts()
-	externalInput := testShaderGraphInputPort(graph, "external-input-node", 0)
+	graph, output, input := TestRenderGraphWithConnectablePorts()
+	externalInput := TestRenderGraphInputPort(graph, "external-input-node", 0)
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(output, externalInput)
 	graph.history = history
-	graph.setSelectionNodes([]*shaderGraphNode{output.node})
+	graph.setSelectionNodes([]*renderGraphNode{output.node})
 
 	if !graph.DeleteSelectedNodes() {
 		t.Fatal("DeleteSelectedNodes() should delete selected nodes")
@@ -49,13 +49,13 @@ func TestShaderGraphDeleteSelectedNodesAddsUndoableHistory(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDeleteSelectedNodesRestoresInternalConnections(t *testing.T) {
+func TestRenderGraphDeleteSelectedNodesRestoresInternalConnections(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := testShaderGraphWithConnectablePorts()
+	graph, output, input := TestRenderGraphWithConnectablePorts()
 	graph.CreateConnection(output, input)
 	graph.history = history
-	graph.setSelectionNodes([]*shaderGraphNode{output.node, input.node})
+	graph.setSelectionNodes([]*renderGraphNode{output.node, input.node})
 
 	if !graph.DeleteSelectedNodes() {
 		t.Fatal("DeleteSelectedNodes() should delete selected nodes")
@@ -73,10 +73,10 @@ func TestShaderGraphDeleteSelectedNodesRestoresInternalConnections(t *testing.T)
 	}
 }
 
-func TestShaderGraphDeleteSelectedNodesSkipsHistoryWhenNothingSelected(t *testing.T) {
+func TestRenderGraphDeleteSelectedNodesSkipsHistoryWhenNothingSelected(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, _, _ := testShaderGraphWithConnectablePorts()
+	graph, _, _ := TestRenderGraphWithConnectablePorts()
 	graph.history = history
 
 	if graph.DeleteSelectedNodes() {

@@ -13,46 +13,46 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-type shaderGraphNodeCatalogEntry struct {
+type renderGraphNodeCatalogEntry struct {
 	ID          string
 	Name        string
 	Description string
 	Tags        []string
-	Spec        shaderGraphNodeSpec
+	Spec        renderGraphNodeSpec
 }
 
-type shaderGraphNodeMenuData struct {
+type renderGraphNodeMenuData struct {
 	ID          string
 	Name        string
 	Description string
 	Search      string
 }
 
-type shaderGraphNodePortCompatibility struct {
+type renderGraphNodePortCompatibility struct {
 	Active       bool
 	SourceOutput bool
 	Type         string
 }
 
-func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
-	return []shaderGraphNodeCatalogEntry{
+func renderGraphNodeCatalog() []renderGraphNodeCatalogEntry {
+	return []renderGraphNodeCatalogEntry{
 		{
 			ID:          "value",
 			Name:        "Value",
 			Description: "Single float value.",
 			Tags:        []string{"float", "number", "constant"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Value",
 				Description: "Single float value.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "value",
 						Label:   "Value",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -62,18 +62,18 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Color",
 			Description: "Single color value.",
 			Tags:        []string{"color", "constant", "albedo"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Color",
 				Description: "Single color value.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:           "color",
 						Label:        "Color",
-						Type:         shaderGraphNodeFieldColor,
+						Type:         renderGraphNodeFieldColor,
 						DefaultColor: matrix.ColorWhite(),
 					},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
 			},
@@ -83,18 +83,18 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Vector",
 			Description: "Single vec3 value.",
 			Tags:        []string{"vector", "vec3", "constant"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Vector",
 				Description: "Single vec3 value.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:            "vector",
 						Label:         "Vector",
-						Type:          shaderGraphNodeFieldVector3,
+						Type:          renderGraphNodeFieldVector3,
 						DefaultValues: []string{"0", "0", "0"},
 					},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
 				},
 			},
@@ -104,18 +104,18 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Vector 2",
 			Description: "Single vec2 value.",
 			Tags:        []string{"vector", "vec2", "constant"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Vector 2",
 				Description: "Single vec2 value.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:            "vector",
 						Label:         "Vector",
-						Type:          shaderGraphNodeFieldVector2,
+						Type:          renderGraphNodeFieldVector2,
 						DefaultValues: []string{"0", "0"},
 					},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec2"},
 				},
 			},
@@ -125,69 +125,69 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Vector 4",
 			Description: "Single vec4 value.",
 			Tags:        []string{"vector", "vec4", "constant", "color", "rgba"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Vector 4",
 				Description: "Single vec4 value.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:            "vector",
 						Label:         "Vector",
-						Type:          shaderGraphNodeFieldVector4,
+						Type:          renderGraphNodeFieldVector4,
 						DefaultValues: []string{"0", "0", "0", "0"},
 					},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec4"},
 					{Name: "Color", Type: "color"},
 				},
 			},
 		},
-		shaderGraphCombineVectorNode("combine-vec2", "Combine Vec2", "Constructs a vec2 from scalar components.",
+		renderGraphCombineVectorNode("combine-vec2", "Combine Vec2", "Constructs a vec2 from scalar components.",
 			[]string{"vector", "vec2", "compose", "combine", "construct"}, []string{"X", "Y"}, "vec2"),
-		shaderGraphCombineVectorNode("combine-vec3", "Combine Vec3", "Constructs a vec3 from scalar components.",
+		renderGraphCombineVectorNode("combine-vec3", "Combine Vec3", "Constructs a vec3 from scalar components.",
 			[]string{"vector", "vec3", "compose", "combine", "construct"}, []string{"X", "Y", "Z"}, "vec3"),
-		shaderGraphCombineVectorNode("combine-vec4", "Combine Vec4", "Constructs a vec4 from scalar components.",
+		renderGraphCombineVectorNode("combine-vec4", "Combine Vec4", "Constructs a vec4 from scalar components.",
 			[]string{"vector", "vec4", "compose", "combine", "construct", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
-		shaderGraphSplitVectorNode("split-vec2", "Split Vec2", "Splits a vec2 into scalar components.",
+		renderGraphSplitVectorNode("split-vec2", "Split Vec2", "Splits a vec2 into scalar components.",
 			[]string{"vector", "vec2", "split", "components", "xy"}, []string{"X", "Y"}, "vec2"),
-		shaderGraphSplitVectorNode("split-vec3", "Split Vec3", "Splits a vec3 into scalar components.",
+		renderGraphSplitVectorNode("split-vec3", "Split Vec3", "Splits a vec3 into scalar components.",
 			[]string{"vector", "vec3", "split", "components", "xyz"}, []string{"X", "Y", "Z"}, "vec3"),
-		shaderGraphSplitVectorNode("split-vec4", "Split Vec4", "Splits a vec4 into scalar components.",
+		renderGraphSplitVectorNode("split-vec4", "Split Vec4", "Splits a vec4 into scalar components.",
 			[]string{"vector", "vec4", "split", "components", "xyzw", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
-		shaderGraphSwizzleVectorNode("swizzle-vec2", "Swizzle Vec2", "Reorders vec2 components.",
+		renderGraphSwizzleVectorNode("swizzle-vec2", "Swizzle Vec2", "Reorders vec2 components.",
 			[]string{"vector", "vec2", "swizzle", "reorder", "xy"}, []string{"X", "Y"}, "vec2"),
-		shaderGraphSwizzleVectorNode("swizzle-vec3", "Swizzle Vec3", "Reorders vec3 components.",
+		renderGraphSwizzleVectorNode("swizzle-vec3", "Swizzle Vec3", "Reorders vec3 components.",
 			[]string{"vector", "vec3", "swizzle", "reorder", "xyz"}, []string{"X", "Y", "Z"}, "vec3"),
-		shaderGraphSwizzleVectorNode("swizzle-vec4", "Swizzle Vec4", "Reorders vec4/color components.",
+		renderGraphSwizzleVectorNode("swizzle-vec4", "Swizzle Vec4", "Reorders vec4/color components.",
 			[]string{"vector", "vec4", "color", "swizzle", "reorder", "xyzw", "rgba"}, []string{"X", "Y", "Z", "W"}, "vec4"),
 		{
 			ID:          "texture-2d",
 			Name:        "Texture 2D",
 			Description: "Texture asset used by texture sample nodes.",
 			Tags:        []string{"texture", "image", "sampler", "asset"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Texture 2D",
 				Description: "Texture asset used by texture sample nodes.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "texture",
 						Label:   "Texture",
-						Type:    shaderGraphNodeFieldTexture,
+						Type:    renderGraphNodeFieldTexture,
 						Default: assets.TextureSquare,
 						Preview: true,
 					},
 					{
 						ID:      "label",
 						Label:   "Label",
-						Type:    shaderGraphNodeFieldText,
+						Type:    renderGraphNodeFieldText,
 						Default: "Texture",
 					},
 					{
 						ID:      "filter",
 						Label:   "Filter",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "Linear",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "Linear", Value: "Linear"},
 							{Label: "Nearest", Value: "Nearest"},
 						},
@@ -195,15 +195,15 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 					{
 						ID:      "color-space",
 						Label:   "Space",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "srgb",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "sRGB", Value: "srgb"},
 							{Label: "Linear", Value: "linear"},
 						},
 					},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Texture", Type: "texture2D"},
 				},
 			},
@@ -213,14 +213,14 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Sample Texture 2D",
 			Description: "Samples a Texture 2D at UV coordinates.",
 			Tags:        []string{"texture", "sample", "image", "sampler", "uv"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Sample Texture 2D",
 				Description: "Samples a Texture 2D at UV coordinates.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Texture", Type: "texture2D"},
 					{Name: "UV", Type: "vec2"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 					{Name: "RGB", Type: "vec3"},
 					{Name: "R", Type: "float"},
@@ -235,10 +235,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "UV",
 			Description: "Primary mesh UV coordinates.",
 			Tags:        []string{"texture", "uv", "coordinates", "texcoord"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "UV",
 				Description: "Primary mesh UV coordinates.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 				},
 			},
@@ -248,27 +248,27 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "UV Transform",
 			Description: "Applies tiling and offset to UV coordinates.",
 			Tags:        []string{"texture", "uv", "tiling", "offset", "coordinates"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "UV Transform",
 				Description: "Applies tiling and offset to UV coordinates.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:            "tiling",
 						Label:         "Tiling",
-						Type:          shaderGraphNodeFieldVector2,
+						Type:          renderGraphNodeFieldVector2,
 						DefaultValues: []string{"1", "1"},
 					},
 					{
 						ID:            "offset",
 						Label:         "Offset",
-						Type:          shaderGraphNodeFieldVector2,
+						Type:          renderGraphNodeFieldVector2,
 						DefaultValues: []string{"0", "0"},
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 				},
 			},
@@ -278,13 +278,13 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Split RGBA",
 			Description: "Splits a color into scalar channels.",
 			Tags:        []string{"texture", "color", "channel", "rgba", "split"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Split RGBA",
 				Description: "Splits a color into scalar channels.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "R", Type: "float"},
 					{Name: "G", Type: "float"},
 					{Name: "B", Type: "float"},
@@ -297,16 +297,16 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Channel Mask",
 			Description: "Extracts one scalar channel from a texture or color sample.",
 			Tags:        []string{"texture", "color", "channel", "mask", "rgba", "luminance"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Channel Mask",
 				Description: "Extracts one scalar channel from a texture or color sample.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "channel",
 						Label:   "Channel",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "r",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "R", Value: "r"},
 							{Label: "G", Value: "g"},
 							{Label: "B", Value: "b"},
@@ -315,10 +315,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 						},
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -328,13 +328,13 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Texel Size",
 			Description: "Returns inverse texture dimensions for a Texture 2D.",
 			Tags:        []string{"texture", "texel", "size", "dimensions", "pixel"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Texel Size",
 				Description: "Returns inverse texture dimensions for a Texture 2D.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Texture", Type: "texture2D"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Size", Type: "vec2"},
 					{Name: "Width", Type: "float"},
 					{Name: "Height", Type: "float"},
@@ -346,33 +346,33 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Normal Map",
 			Description: "Unpacks a tangent-space normal map sample into a world-space normal.",
 			Tags:        []string{"material", "texture", "normal", "map", "tangent", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Normal Map",
 				Description: "Unpacks a tangent-space normal map sample into a world-space normal.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "strength",
 						Label:   "Strength",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 					{
 						ID:      "y",
 						Label:   "Y",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "opengl",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "OpenGL +Y", Value: "opengl"},
 							{Label: "DirectX -Y", Value: "directx"},
 						},
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "RGB", Type: "vec3"},
 					{Name: "UV", Type: "vec2"},
 					{Name: "Strength", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 					{Name: "Tangent", Type: "vec3"},
 				},
@@ -383,22 +383,22 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Normal Strength",
 			Description: "Adjusts a normal's influence relative to the geometric normal.",
 			Tags:        []string{"material", "normal", "strength", "blend", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Normal Strength",
 				Description: "Adjusts a normal's influence relative to the geometric normal.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "strength",
 						Label:   "Strength",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 					{Name: "Strength", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 				},
 			},
@@ -408,23 +408,23 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Blend Normals",
 			Description: "Layers a detail normal over a base normal.",
 			Tags:        []string{"material", "normal", "blend", "detail", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Blend Normals",
 				Description: "Layers a detail normal over a base normal.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "strength",
 						Label:   "Strength",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Base", Type: "vec3"},
 					{Name: "Detail", Type: "vec3"},
 					{Name: "Strength", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 				},
 			},
@@ -434,25 +434,25 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "ORM/MRA Unpack",
 			Description: "Extracts occlusion, roughness, and metallic channels from a packed PBR map.",
 			Tags:        []string{"material", "texture", "orm", "mra", "packed", "roughness", "metallic", "occlusion"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "ORM/MRA Unpack",
 				Description: "Extracts occlusion, roughness, and metallic channels from a packed PBR map.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "layout",
 						Label:   "Layout",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "orm",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "ORM", Value: "orm"},
 							{Label: "MRA", Value: "mra"},
 						},
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Map", Type: "color"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Occlusion", Type: "float"},
 					{Name: "Roughness", Type: "float"},
 					{Name: "Metallic", Type: "float"},
@@ -464,22 +464,22 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Height/Bump",
 			Description: "Derives a perturbed normal from a scalar height map.",
 			Tags:        []string{"material", "texture", "height", "bump", "normal", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Height/Bump",
 				Description: "Derives a perturbed normal from a scalar height map.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "strength",
 						Label:   "Strength",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "0.050",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Height", Type: "float"},
 					{Name: "Strength", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 				},
 			},
@@ -489,23 +489,23 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Parallax",
 			Description: "Offsets UV coordinates using a height map and view direction.",
 			Tags:        []string{"material", "texture", "height", "parallax", "uv", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Parallax",
 				Description: "Offsets UV coordinates using a height map and view direction.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "scale",
 						Label:   "Scale",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "0.050",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Height", Type: "float"},
 					{Name: "Scale", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Offset", Type: "vec2"},
 				},
@@ -516,31 +516,31 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Triplanar",
 			Description: "Samples a Texture 2D from world-space projection axes.",
 			Tags:        []string{"material", "texture", "triplanar", "projection", "world", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Triplanar",
 				Description: "Samples a Texture 2D from world-space projection axes.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "scale",
 						Label:   "Scale",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 					{
 						ID:      "blend",
 						Label:   "Blend",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "4.000",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Texture", Type: "texture2D"},
 					{Name: "Position", Type: "vec3"},
 					{Name: "Normal", Type: "vec3"},
 					{Name: "Scale", Type: "float"},
 					{Name: "Blend", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 					{Name: "RGB", Type: "vec3"},
 					{Name: "R", Type: "float"},
@@ -555,16 +555,16 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Detail Texture",
 			Description: "Blends a detail texture sample into a base color.",
 			Tags:        []string{"material", "texture", "detail", "blend", "color", "pbr"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Detail Texture",
 				Description: "Blends a detail texture sample into a base color.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "mode",
 						Label:   "Mode",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "multiply",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "Multiply", Value: "multiply"},
 							{Label: "Add", Value: "add"},
 							{Label: "Overlay", Value: "overlay"},
@@ -573,23 +573,23 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 					{
 						ID:      "strength",
 						Label:   "Strength",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 					{
 						ID:          "clamp",
 						Label:       "Clamp",
-						Type:        shaderGraphNodeFieldBool,
+						Type:        renderGraphNodeFieldBool,
 						DefaultBool: true,
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Base", Type: "color"},
 					{Name: "Detail", Type: "color"},
 					{Name: "Mask", Type: "float"},
 					{Name: "Strength", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
 			},
@@ -599,10 +599,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Time",
 			Description: "Runtime shader time values.",
 			Tags:        []string{"context", "time", "animation", "runtime", "clock"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Time",
 				Description: "Runtime shader time values.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Time", Type: "float"},
 				},
 			},
@@ -612,10 +612,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "World Position",
 			Description: "Fragment position in world space.",
 			Tags:        []string{"context", "position", "world", "fragment", "space"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "World Position",
 				Description: "Fragment position in world space.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Position", Type: "vec3"},
 					{Name: "X", Type: "float"},
 					{Name: "Y", Type: "float"},
@@ -628,10 +628,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Normal Vector",
 			Description: "World-space geometric normal.",
 			Tags:        []string{"context", "normal", "vector", "world", "surface"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Normal Vector",
 				Description: "World-space geometric normal.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 					{Name: "X", Type: "float"},
 					{Name: "Y", Type: "float"},
@@ -644,10 +644,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Tangent Vector",
 			Description: "Derived world-space tangent vector.",
 			Tags:        []string{"context", "tangent", "vector", "world", "surface"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Tangent Vector",
 				Description: "Derived world-space tangent vector.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Tangent", Type: "vec3"},
 					{Name: "X", Type: "float"},
 					{Name: "Y", Type: "float"},
@@ -660,10 +660,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Bitangent Vector",
 			Description: "Derived world-space bitangent vector.",
 			Tags:        []string{"context", "bitangent", "binormal", "vector", "world", "surface"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Bitangent Vector",
 				Description: "Derived world-space bitangent vector.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Bitangent", Type: "vec3"},
 					{Name: "X", Type: "float"},
 					{Name: "Y", Type: "float"},
@@ -676,10 +676,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "View Direction",
 			Description: "Direction from the fragment toward the camera.",
 			Tags:        []string{"context", "view", "camera", "direction", "vector"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "View Direction",
 				Description: "Direction from the fragment toward the camera.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Direction", Type: "vec3"},
 					{Name: "X", Type: "float"},
 					{Name: "Y", Type: "float"},
@@ -692,10 +692,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Camera Position",
 			Description: "Camera position in world space.",
 			Tags:        []string{"context", "camera", "position", "world", "view"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Camera Position",
 				Description: "Camera position in world space.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Position", Type: "vec3"},
 					{Name: "X", Type: "float"},
 					{Name: "Y", Type: "float"},
@@ -708,10 +708,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Screen Position",
 			Description: "Fragment coordinates on the screen.",
 			Tags:        []string{"context", "screen", "position", "fragment", "pixel", "depth"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Screen Position",
 				Description: "Fragment coordinates on the screen.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Pixel", Type: "vec2"},
 					{Name: "X", Type: "float"},
@@ -725,10 +725,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Vertex Color",
 			Description: "Interpolated vertex and instance color.",
 			Tags:        []string{"context", "vertex", "color", "instance", "tint"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Vertex Color",
 				Description: "Interpolated vertex and instance color.",
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 					{Name: "RGB", Type: "vec3"},
 					{Name: "Alpha", Type: "float"},
@@ -740,36 +740,36 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Noise",
 			Description: "Layered value noise for procedural masks and color variation.",
 			Tags:        []string{"procedural", "noise", "fbm", "random", "mask", "texture"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Noise",
 				Description: "Layered value noise for procedural masks and color variation.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "scale",
 						Label:   "Scale",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "8.000",
 					},
 					{
 						ID:      "detail",
 						Label:   "Detail",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "4.000",
 					},
 					{
 						ID:      "roughness",
 						Label:   "Rough",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "0.500",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Scale", Type: "float"},
 					{Name: "Detail", Type: "float"},
 					{Name: "Roughness", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 					{Name: "Color", Type: "color"},
 				},
@@ -780,29 +780,29 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Voronoi",
 			Description: "Cellular procedural pattern with distance, cell, and edge outputs.",
 			Tags:        []string{"procedural", "voronoi", "cellular", "cells", "random", "mask"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Voronoi",
 				Description: "Cellular procedural pattern with distance, cell, and edge outputs.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "scale",
 						Label:   "Scale",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "8.000",
 					},
 					{
 						ID:      "jitter",
 						Label:   "Jitter",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "1.000",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Scale", Type: "float"},
 					{Name: "Jitter", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Distance", Type: "float"},
 					{Name: "Cell", Type: "float"},
 					{Name: "Edge", Type: "float"},
@@ -815,34 +815,34 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Checker",
 			Description: "Procedural checkerboard pattern with mask and color outputs.",
 			Tags:        []string{"procedural", "checker", "grid", "pattern", "mask", "texture"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Checker",
 				Description: "Procedural checkerboard pattern with mask and color outputs.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "scale",
 						Label:   "Scale",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "8.000",
 					},
 					{
 						ID:           "color-a",
 						Label:        "A",
-						Type:         shaderGraphNodeFieldColor,
+						Type:         renderGraphNodeFieldColor,
 						DefaultColor: matrix.ColorWhite(),
 					},
 					{
 						ID:           "color-b",
 						Label:        "B",
-						Type:         shaderGraphNodeFieldColor,
+						Type:         renderGraphNodeFieldColor,
 						DefaultColor: matrix.ColorBlack(),
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Scale", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 					{Name: "Mask", Type: "float"},
 				},
@@ -853,16 +853,16 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Gradient",
 			Description: "Linear or radial procedural gradient.",
 			Tags:        []string{"procedural", "gradient", "ramp", "linear", "radial", "mask"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Gradient",
 				Description: "Linear or radial procedural gradient.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "mode",
 						Label:   "Mode",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "linear",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "Linear", Value: "linear"},
 							{Label: "Radial", Value: "radial"},
 						},
@@ -870,27 +870,27 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 					{
 						ID:      "angle",
 						Label:   "Angle",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "0.000",
 					},
 					{
 						ID:           "color-a",
 						Label:        "A",
-						Type:         shaderGraphNodeFieldColor,
+						Type:         renderGraphNodeFieldColor,
 						DefaultColor: matrix.ColorBlack(),
 					},
 					{
 						ID:           "color-b",
 						Label:        "B",
-						Type:         shaderGraphNodeFieldColor,
+						Type:         renderGraphNodeFieldColor,
 						DefaultColor: matrix.ColorWhite(),
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "UV", Type: "vec2"},
 					{Name: "Angle", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 					{Name: "Factor", Type: "float"},
 				},
@@ -901,24 +901,24 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Remap",
 			Description: "Maps a value from one range to another.",
 			Tags:        []string{"procedural", "remap", "map", "range", "normalize", "mask"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Remap",
 				Description: "Maps a value from one range to another.",
-				Fields: []shaderGraphNodeFieldSpec{
-					{ID: "in-min", Label: "In Min", Type: shaderGraphNodeFieldNumber, Default: "0.000"},
-					{ID: "in-max", Label: "In Max", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
-					{ID: "out-min", Label: "Out Min", Type: shaderGraphNodeFieldNumber, Default: "0.000"},
-					{ID: "out-max", Label: "Out Max", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
-					{ID: "clamp", Label: "Clamp", Type: shaderGraphNodeFieldBool, DefaultBool: false},
+				Fields: []renderGraphNodeFieldSpec{
+					{ID: "in-min", Label: "In Min", Type: renderGraphNodeFieldNumber, Default: "0.000"},
+					{ID: "in-max", Label: "In Max", Type: renderGraphNodeFieldNumber, Default: "1.000"},
+					{ID: "out-min", Label: "Out Min", Type: renderGraphNodeFieldNumber, Default: "0.000"},
+					{ID: "out-max", Label: "Out Max", Type: renderGraphNodeFieldNumber, Default: "1.000"},
+					{ID: "clamp", Label: "Clamp", Type: renderGraphNodeFieldBool, DefaultBool: false},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 					{Name: "In Min", Type: "float"},
 					{Name: "In Max", Type: "float"},
 					{Name: "Out Min", Type: "float"},
 					{Name: "Out Max", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -928,22 +928,22 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Posterize",
 			Description: "Quantizes a scalar value into a limited number of steps.",
 			Tags:        []string{"procedural", "posterize", "quantize", "steps", "toon", "mask"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Posterize",
 				Description: "Quantizes a scalar value into a limited number of steps.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "steps",
 						Label:   "Steps",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "4.000",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 					{Name: "Steps", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -953,22 +953,22 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Posterize Color",
 			Description: "Quantizes each color channel into a limited number of steps.",
 			Tags:        []string{"procedural", "posterize", "color", "quantize", "steps", "toon"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Posterize Color",
 				Description: "Quantizes each color channel into a limited number of steps.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:      "steps",
 						Label:   "Steps",
-						Type:    shaderGraphNodeFieldNumber,
+						Type:    renderGraphNodeFieldNumber,
 						Default: "4.000",
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 					{Name: "Steps", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
 			},
@@ -978,22 +978,22 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Fresnel",
 			Description: "View-angle mask for edge highlights and falloff effects.",
 			Tags:        []string{"procedural", "fresnel", "rim", "view", "normal", "falloff"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Fresnel",
 				Description: "View-angle mask for edge highlights and falloff effects.",
-				Fields: []shaderGraphNodeFieldSpec{
-					{ID: "power", Label: "Power", Type: shaderGraphNodeFieldNumber, Default: "5.000"},
-					{ID: "bias", Label: "Bias", Type: shaderGraphNodeFieldNumber, Default: "0.000"},
-					{ID: "scale", Label: "Scale", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
+				Fields: []renderGraphNodeFieldSpec{
+					{ID: "power", Label: "Power", Type: renderGraphNodeFieldNumber, Default: "5.000"},
+					{ID: "bias", Label: "Bias", Type: renderGraphNodeFieldNumber, Default: "0.000"},
+					{ID: "scale", Label: "Scale", Type: renderGraphNodeFieldNumber, Default: "1.000"},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 					{Name: "View", Type: "vec3"},
 					{Name: "Power", Type: "float"},
 					{Name: "Bias", Type: "float"},
 					{Name: "Scale", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Factor", Type: "float"},
 				},
 			},
@@ -1003,22 +1003,22 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Rim Light",
 			Description: "Generates a colored rim-light mask from normal and view direction.",
 			Tags:        []string{"procedural", "rim", "light", "fresnel", "edge", "view"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Rim Light",
 				Description: "Generates a colored rim-light mask from normal and view direction.",
-				Fields: []shaderGraphNodeFieldSpec{
-					{ID: "power", Label: "Power", Type: shaderGraphNodeFieldNumber, Default: "3.000"},
-					{ID: "intensity", Label: "Intens", Type: shaderGraphNodeFieldNumber, Default: "1.000"},
-					{ID: "color", Label: "Color", Type: shaderGraphNodeFieldColor, DefaultColor: matrix.ColorWhite()},
+				Fields: []renderGraphNodeFieldSpec{
+					{ID: "power", Label: "Power", Type: renderGraphNodeFieldNumber, Default: "3.000"},
+					{ID: "intensity", Label: "Intens", Type: renderGraphNodeFieldNumber, Default: "1.000"},
+					{ID: "color", Label: "Color", Type: renderGraphNodeFieldColor, DefaultColor: matrix.ColorWhite()},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Normal", Type: "vec3"},
 					{Name: "View", Type: "vec3"},
 					{Name: "Power", Type: "float"},
 					{Name: "Intensity", Type: "float"},
 					{Name: "Color", Type: "color"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Factor", Type: "float"},
 					{Name: "Color", Type: "color"},
 				},
@@ -1029,13 +1029,13 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "FWidth",
 			Description: "Returns the approximate screen-space width of a scalar expression.",
 			Tags:        []string{"procedural", "derivative", "fwidth", "antialias", "screen"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "FWidth",
 				Description: "Returns the approximate screen-space width of a scalar expression.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -1045,13 +1045,13 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "DDX",
 			Description: "Returns the screen-space derivative of a scalar value along X.",
 			Tags:        []string{"procedural", "derivative", "ddx", "dfdx", "screen"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "DDX",
 				Description: "Returns the screen-space derivative of a scalar value along X.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -1061,90 +1061,90 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "DDY",
 			Description: "Returns the screen-space derivative of a scalar value along Y.",
 			Tags:        []string{"procedural", "derivative", "ddy", "dfdy", "screen"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "DDY",
 				Description: "Returns the screen-space derivative of a scalar value along Y.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
 		},
-		shaderGraphFloatBinaryNode("add", "Add", "Adds two float values.",
+		renderGraphFloatBinaryNode("add", "Add", "Adds two float values.",
 			[]string{"math", "float", "plus", "sum"}, "A", "B", "Value"),
-		shaderGraphFloatBinaryNode("subtract", "Subtract", "Subtracts B from A.",
+		renderGraphFloatBinaryNode("subtract", "Subtract", "Subtracts B from A.",
 			[]string{"math", "float", "minus", "difference"}, "A", "B", "Value"),
-		shaderGraphFloatBinaryNode("multiply", "Multiply", "Multiplies two float values.",
+		renderGraphFloatBinaryNode("multiply", "Multiply", "Multiplies two float values.",
 			[]string{"math", "float", "product"}, "A", "B", "Value"),
-		shaderGraphFloatBinaryNode("divide", "Divide", "Divides A by B.",
+		renderGraphFloatBinaryNode("divide", "Divide", "Divides A by B.",
 			[]string{"math", "float", "quotient"}, "A", "B", "Value"),
-		shaderGraphVectorBinaryNode("add-vec2", "Add Vec2", "Adds two vec2 values component-wise.",
+		renderGraphVectorBinaryNode("add-vec2", "Add Vec2", "Adds two vec2 values component-wise.",
 			[]string{"math", "vector", "vec2", "add", "plus", "sum"}, "vec2"),
-		shaderGraphVectorBinaryNode("subtract-vec2", "Subtract Vec2", "Subtracts B from A component-wise.",
+		renderGraphVectorBinaryNode("subtract-vec2", "Subtract Vec2", "Subtracts B from A component-wise.",
 			[]string{"math", "vector", "vec2", "subtract", "minus", "difference"}, "vec2"),
-		shaderGraphVectorBinaryNode("multiply-vec2", "Multiply Vec2", "Multiplies two vec2 values component-wise.",
+		renderGraphVectorBinaryNode("multiply-vec2", "Multiply Vec2", "Multiplies two vec2 values component-wise.",
 			[]string{"math", "vector", "vec2", "multiply", "product"}, "vec2"),
-		shaderGraphVectorBinaryNode("divide-vec2", "Divide Vec2", "Divides A by B component-wise.",
+		renderGraphVectorBinaryNode("divide-vec2", "Divide Vec2", "Divides A by B component-wise.",
 			[]string{"math", "vector", "vec2", "divide", "quotient"}, "vec2"),
-		shaderGraphVectorBinaryNode("add-vec3", "Add Vec3", "Adds two vec3 values component-wise.",
+		renderGraphVectorBinaryNode("add-vec3", "Add Vec3", "Adds two vec3 values component-wise.",
 			[]string{"math", "vector", "vec3", "add", "plus", "sum"}, "vec3"),
-		shaderGraphVectorBinaryNode("subtract-vec3", "Subtract Vec3", "Subtracts B from A component-wise.",
+		renderGraphVectorBinaryNode("subtract-vec3", "Subtract Vec3", "Subtracts B from A component-wise.",
 			[]string{"math", "vector", "vec3", "subtract", "minus", "difference"}, "vec3"),
-		shaderGraphVectorBinaryNode("multiply-vec3", "Multiply Vec3", "Multiplies two vec3 values component-wise.",
+		renderGraphVectorBinaryNode("multiply-vec3", "Multiply Vec3", "Multiplies two vec3 values component-wise.",
 			[]string{"math", "vector", "vec3", "multiply", "product"}, "vec3"),
-		shaderGraphVectorBinaryNode("divide-vec3", "Divide Vec3", "Divides A by B component-wise.",
+		renderGraphVectorBinaryNode("divide-vec3", "Divide Vec3", "Divides A by B component-wise.",
 			[]string{"math", "vector", "vec3", "divide", "quotient"}, "vec3"),
-		shaderGraphVectorBinaryNode("add-vec4", "Add Vec4", "Adds two vec4 values component-wise.",
+		renderGraphVectorBinaryNode("add-vec4", "Add Vec4", "Adds two vec4 values component-wise.",
 			[]string{"math", "vector", "vec4", "add", "plus", "sum", "color"}, "vec4"),
-		shaderGraphVectorBinaryNode("subtract-vec4", "Subtract Vec4", "Subtracts B from A component-wise.",
+		renderGraphVectorBinaryNode("subtract-vec4", "Subtract Vec4", "Subtracts B from A component-wise.",
 			[]string{"math", "vector", "vec4", "subtract", "minus", "difference", "color"}, "vec4"),
-		shaderGraphVectorBinaryNode("multiply-vec4", "Multiply Vec4", "Multiplies two vec4 values component-wise.",
+		renderGraphVectorBinaryNode("multiply-vec4", "Multiply Vec4", "Multiplies two vec4 values component-wise.",
 			[]string{"math", "vector", "vec4", "multiply", "product", "color"}, "vec4"),
-		shaderGraphVectorBinaryNode("divide-vec4", "Divide Vec4", "Divides A by B component-wise.",
+		renderGraphVectorBinaryNode("divide-vec4", "Divide Vec4", "Divides A by B component-wise.",
 			[]string{"math", "vector", "vec4", "divide", "quotient", "color"}, "vec4"),
-		shaderGraphFloatBinaryNode("minimum", "Minimum", "Returns the smaller of two float values.",
+		renderGraphFloatBinaryNode("minimum", "Minimum", "Returns the smaller of two float values.",
 			[]string{"math", "float", "min", "minimum"}, "A", "B", "Value"),
-		shaderGraphFloatBinaryNode("maximum", "Maximum", "Returns the larger of two float values.",
+		renderGraphFloatBinaryNode("maximum", "Maximum", "Returns the larger of two float values.",
 			[]string{"math", "float", "max", "maximum"}, "A", "B", "Value"),
-		shaderGraphFloatBinaryNode("power", "Power", "Raises Base to the Exponent.",
+		renderGraphFloatBinaryNode("power", "Power", "Raises Base to the Exponent.",
 			[]string{"math", "float", "pow", "exponent"}, "Base", "Exponent", "Value"),
-		shaderGraphFloatUnaryNode("absolute", "Absolute", "Returns the absolute value.",
+		renderGraphFloatUnaryNode("absolute", "Absolute", "Returns the absolute value.",
 			[]string{"math", "float", "abs"}, "Value"),
-		shaderGraphFloatUnaryNode("one-minus", "One Minus", "Returns one minus the input value.",
+		renderGraphFloatUnaryNode("one-minus", "One Minus", "Returns one minus the input value.",
 			[]string{"math", "float", "invert", "complement"}, "Value"),
-		shaderGraphFloatUnaryNode("floor", "Floor", "Rounds a float down to the nearest integer.",
+		renderGraphFloatUnaryNode("floor", "Floor", "Rounds a float down to the nearest integer.",
 			[]string{"math", "float", "round"}, "Value"),
-		shaderGraphFloatUnaryNode("ceiling", "Ceiling", "Rounds a float up to the nearest integer.",
+		renderGraphFloatUnaryNode("ceiling", "Ceiling", "Rounds a float up to the nearest integer.",
 			[]string{"math", "float", "ceil", "round"}, "Value"),
-		shaderGraphFloatUnaryNode("fraction", "Fraction", "Returns the fractional part of a float.",
+		renderGraphFloatUnaryNode("fraction", "Fraction", "Returns the fractional part of a float.",
 			[]string{"math", "float", "frac", "fract"}, "Value"),
-		shaderGraphFloatUnaryNode("sine", "Sine", "Returns the sine of the input angle.",
+		renderGraphFloatUnaryNode("sine", "Sine", "Returns the sine of the input angle.",
 			[]string{"math", "float", "sin", "trig"}, "Angle"),
-		shaderGraphFloatUnaryNode("cosine", "Cosine", "Returns the cosine of the input angle.",
+		renderGraphFloatUnaryNode("cosine", "Cosine", "Returns the cosine of the input angle.",
 			[]string{"math", "float", "cos", "trig"}, "Angle"),
-		shaderGraphFloatUnaryNode("tangent", "Tangent", "Returns the tangent of the input angle.",
+		renderGraphFloatUnaryNode("tangent", "Tangent", "Returns the tangent of the input angle.",
 			[]string{"math", "float", "tan", "trig"}, "Angle"),
-		shaderGraphFloatUnaryNode("square-root", "Square Root", "Returns the square root of a float.",
+		renderGraphFloatUnaryNode("square-root", "Square Root", "Returns the square root of a float.",
 			[]string{"math", "float", "sqrt"}, "Value"),
-		shaderGraphFloatTernaryNode("clamp", "Clamp", "Clamps a float between Min and Max.",
+		renderGraphFloatTernaryNode("clamp", "Clamp", "Clamps a float between Min and Max.",
 			[]string{"math", "float", "saturate", "limit"}, "Value", "Min", "Max", "Value"),
-		shaderGraphFloatTernaryNode("lerp", "Lerp", "Linearly interpolates between A and B by T.",
+		renderGraphFloatTernaryNode("lerp", "Lerp", "Linearly interpolates between A and B by T.",
 			[]string{"math", "float", "mix", "interpolate"}, "A", "B", "T", "Value"),
 		{
 			ID:          "step",
 			Name:        "Step",
 			Description: "Returns 0 or 1 by comparing Value against Edge.",
 			Tags:        []string{"math", "float", "threshold", "compare"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Step",
 				Description: "Returns 0 or 1 by comparing Value against Edge.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Edge", Type: "float"},
 					{Name: "Value", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Result", Type: "float"},
 				},
 			},
@@ -1154,15 +1154,15 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Smoothstep",
 			Description: "Smoothly interpolates from 0 to 1 between two edges.",
 			Tags:        []string{"math", "float", "smooth", "threshold"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Smoothstep",
 				Description: "Smoothly interpolates from 0 to 1 between two edges.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Edge Min", Type: "float"},
 					{Name: "Edge Max", Type: "float"},
 					{Name: "Value", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Result", Type: "float"},
 				},
 			},
@@ -1172,14 +1172,14 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Dot Product",
 			Description: "Returns the scalar dot product of two vectors.",
 			Tags:        []string{"math", "vector", "vec3", "dot"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Dot Product",
 				Description: "Returns the scalar dot product of two vectors.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "A", Type: "vec3"},
 					{Name: "B", Type: "vec3"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -1189,14 +1189,14 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Cross Product",
 			Description: "Returns the perpendicular cross product of two vectors.",
 			Tags:        []string{"math", "vector", "vec3", "cross"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Cross Product",
 				Description: "Returns the perpendicular cross product of two vectors.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "A", Type: "vec3"},
 					{Name: "B", Type: "vec3"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
 				},
 			},
@@ -1206,13 +1206,13 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Normalize",
 			Description: "Returns a vector with the same direction and unit length.",
 			Tags:        []string{"math", "vector", "vec3", "normal"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Normalize",
 				Description: "Returns a vector with the same direction and unit length.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
 				},
 			},
@@ -1222,13 +1222,13 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Length",
 			Description: "Returns the length of a vector.",
 			Tags:        []string{"math", "vector", "vec3", "magnitude"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Length",
 				Description: "Returns the length of a vector.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Vector", Type: "vec3"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Value", Type: "float"},
 				},
 			},
@@ -1238,34 +1238,34 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Mix Color",
 			Description: "Blends two colors with a factor.",
 			Tags:        []string{"mix", "blend", "color", "factor"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Mix Color",
 				Description: "Blends two colors with a factor.",
-				Fields: []shaderGraphNodeFieldSpec{
+				Fields: []renderGraphNodeFieldSpec{
 					{
 						ID:          "clamp",
 						Label:       "Clamp",
-						Type:        shaderGraphNodeFieldBool,
+						Type:        renderGraphNodeFieldBool,
 						DefaultBool: true,
 					},
 					{
 						ID:      "mode",
 						Label:   "Mode",
-						Type:    shaderGraphNodeFieldSelect,
+						Type:    renderGraphNodeFieldSelect,
 						Default: "mix",
-						Options: []shaderGraphNodeFieldOption{
+						Options: []renderGraphNodeFieldOption{
 							{Label: "Mix", Value: "mix"},
 							{Label: "Add", Value: "add"},
 							{Label: "Multiply", Value: "multiply"},
 						},
 					},
 				},
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Factor", Type: "float"},
 					{Name: "A", Type: "color"},
 					{Name: "B", Type: "color"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "Color", Type: "color"},
 				},
 			},
@@ -1275,10 +1275,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Principled BSDF",
 			Description: "Surface shader with common material inputs.",
 			Tags:        []string{"bsdf", "surface", "material", "shader"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Principled BSDF",
 				Description: "Surface shader with common material inputs.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Base Color", Type: "color"},
 					{Name: "Roughness", Type: "float"},
 					{Name: "Normal", Type: "vec3"},
@@ -1289,7 +1289,7 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 					{Name: "Alpha", Type: "float"},
 					{Name: "Specular", Type: "float"},
 				},
-				Outputs: []shaderGraphPortSpec{
+				Outputs: []renderGraphPortSpec{
 					{Name: "BSDF", Type: "surface"},
 				},
 			},
@@ -1299,10 +1299,10 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 			Name:        "Material Output",
 			Description: "Terminal output for the material shader.",
 			Tags:        []string{"output", "surface", "volume", "material"},
-			Spec: shaderGraphNodeSpec{
+			Spec: renderGraphNodeSpec{
 				Name:        "Material Output",
 				Description: "Terminal output for the material shader.",
-				Inputs: []shaderGraphPortSpec{
+				Inputs: []renderGraphPortSpec{
 					{Name: "Surface", Type: "surface"},
 					{Name: "Displacement", Type: "float"},
 				},
@@ -1311,80 +1311,80 @@ func shaderGraphNodeCatalog() []shaderGraphNodeCatalogEntry {
 	}
 }
 
-func shaderGraphFloatUnaryNode(id, name, description string, tags []string, input string) shaderGraphNodeCatalogEntry {
-	return shaderGraphNodeCatalogEntry{
+func renderGraphFloatUnaryNode(id, name, description string, tags []string, input string) renderGraphNodeCatalogEntry {
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
-			Inputs: []shaderGraphPortSpec{
+			Inputs: []renderGraphPortSpec{
 				{Name: input, Type: "float"},
 			},
-			Outputs: []shaderGraphPortSpec{
+			Outputs: []renderGraphPortSpec{
 				{Name: "Value", Type: "float"},
 			},
 		},
 	}
 }
 
-func shaderGraphFloatBinaryNode(id, name, description string, tags []string, a, b, output string) shaderGraphNodeCatalogEntry {
-	return shaderGraphNodeCatalogEntry{
+func renderGraphFloatBinaryNode(id, name, description string, tags []string, a, b, output string) renderGraphNodeCatalogEntry {
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
-			Inputs: []shaderGraphPortSpec{
+			Inputs: []renderGraphPortSpec{
 				{Name: a, Type: "float"},
 				{Name: b, Type: "float"},
 			},
-			Outputs: []shaderGraphPortSpec{
+			Outputs: []renderGraphPortSpec{
 				{Name: output, Type: "float"},
 			},
 		},
 	}
 }
 
-func shaderGraphFloatTernaryNode(id, name, description string, tags []string, a, b, c, output string) shaderGraphNodeCatalogEntry {
-	return shaderGraphNodeCatalogEntry{
+func renderGraphFloatTernaryNode(id, name, description string, tags []string, a, b, c, output string) renderGraphNodeCatalogEntry {
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
-			Inputs: []shaderGraphPortSpec{
+			Inputs: []renderGraphPortSpec{
 				{Name: a, Type: "float"},
 				{Name: b, Type: "float"},
 				{Name: c, Type: "float"},
 			},
-			Outputs: []shaderGraphPortSpec{
+			Outputs: []renderGraphPortSpec{
 				{Name: output, Type: "float"},
 			},
 		},
 	}
 }
 
-func shaderGraphVectorBinaryNode(id, name, description string, tags []string, vectorType string) shaderGraphNodeCatalogEntry {
-	outputs := []shaderGraphPortSpec{{Name: "Vector", Type: vectorType}}
+func renderGraphVectorBinaryNode(id, name, description string, tags []string, vectorType string) renderGraphNodeCatalogEntry {
+	outputs := []renderGraphPortSpec{{Name: "Vector", Type: vectorType}}
 	if vectorType == "vec4" {
-		outputs = append(outputs, shaderGraphPortSpec{Name: "Color", Type: "color"})
+		outputs = append(outputs, renderGraphPortSpec{Name: "Color", Type: "color"})
 	}
-	return shaderGraphNodeCatalogEntry{
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
-			Inputs: []shaderGraphPortSpec{
+			Inputs: []renderGraphPortSpec{
 				{Name: "A", Type: vectorType},
 				{Name: "B", Type: vectorType},
 			},
@@ -1393,21 +1393,21 @@ func shaderGraphVectorBinaryNode(id, name, description string, tags []string, ve
 	}
 }
 
-func shaderGraphCombineVectorNode(id, name, description string, tags, components []string, outputType string) shaderGraphNodeCatalogEntry {
-	inputs := make([]shaderGraphPortSpec, len(components))
+func renderGraphCombineVectorNode(id, name, description string, tags, components []string, outputType string) renderGraphNodeCatalogEntry {
+	inputs := make([]renderGraphPortSpec, len(components))
 	for i := range components {
-		inputs[i] = shaderGraphPortSpec{Name: components[i], Type: "float"}
+		inputs[i] = renderGraphPortSpec{Name: components[i], Type: "float"}
 	}
-	outputs := []shaderGraphPortSpec{{Name: "Vector", Type: outputType}}
+	outputs := []renderGraphPortSpec{{Name: "Vector", Type: outputType}}
 	if outputType == "vec4" {
-		outputs = append(outputs, shaderGraphPortSpec{Name: "Color", Type: "color"})
+		outputs = append(outputs, renderGraphPortSpec{Name: "Color", Type: "color"})
 	}
-	return shaderGraphNodeCatalogEntry{
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
 			Inputs:      inputs,
@@ -1416,20 +1416,20 @@ func shaderGraphCombineVectorNode(id, name, description string, tags, components
 	}
 }
 
-func shaderGraphSplitVectorNode(id, name, description string, tags, components []string, inputType string) shaderGraphNodeCatalogEntry {
-	outputs := make([]shaderGraphPortSpec, len(components))
+func renderGraphSplitVectorNode(id, name, description string, tags, components []string, inputType string) renderGraphNodeCatalogEntry {
+	outputs := make([]renderGraphPortSpec, len(components))
 	for i := range components {
-		outputs[i] = shaderGraphPortSpec{Name: components[i], Type: "float"}
+		outputs[i] = renderGraphPortSpec{Name: components[i], Type: "float"}
 	}
-	return shaderGraphNodeCatalogEntry{
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
-			Inputs: []shaderGraphPortSpec{
+			Inputs: []renderGraphPortSpec{
 				{Name: "Vector", Type: inputType},
 			},
 			Outputs: outputs,
@@ -1437,32 +1437,32 @@ func shaderGraphSplitVectorNode(id, name, description string, tags, components [
 	}
 }
 
-func shaderGraphSwizzleVectorNode(id, name, description string, tags, components []string, vectorType string) shaderGraphNodeCatalogEntry {
-	fields := make([]shaderGraphNodeFieldSpec, len(components))
-	options := shaderGraphSwizzleFieldOptions(components)
+func renderGraphSwizzleVectorNode(id, name, description string, tags, components []string, vectorType string) renderGraphNodeCatalogEntry {
+	fields := make([]renderGraphNodeFieldSpec, len(components))
+	options := renderGraphSwizzleFieldOptions(components)
 	for i := range components {
-		fields[i] = shaderGraphNodeFieldSpec{
+		fields[i] = renderGraphNodeFieldSpec{
 			ID:      strings.ToLower(components[i]),
 			Label:   components[i],
-			Type:    shaderGraphNodeFieldSelect,
+			Type:    renderGraphNodeFieldSelect,
 			Default: strings.ToLower(components[i]),
 			Options: options,
 		}
 	}
-	outputs := []shaderGraphPortSpec{{Name: "Vector", Type: vectorType}}
+	outputs := []renderGraphPortSpec{{Name: "Vector", Type: vectorType}}
 	if vectorType == "vec4" {
-		outputs = append(outputs, shaderGraphPortSpec{Name: "Color", Type: "color"})
+		outputs = append(outputs, renderGraphPortSpec{Name: "Color", Type: "color"})
 	}
-	return shaderGraphNodeCatalogEntry{
+	return renderGraphNodeCatalogEntry{
 		ID:          id,
 		Name:        name,
 		Description: description,
 		Tags:        tags,
-		Spec: shaderGraphNodeSpec{
+		Spec: renderGraphNodeSpec{
 			Name:        name,
 			Description: description,
 			Fields:      fields,
-			Inputs: []shaderGraphPortSpec{
+			Inputs: []renderGraphPortSpec{
 				{Name: "Vector", Type: vectorType},
 			},
 			Outputs: outputs,
@@ -1470,30 +1470,30 @@ func shaderGraphSwizzleVectorNode(id, name, description string, tags, components
 	}
 }
 
-func shaderGraphSwizzleFieldOptions(components []string) []shaderGraphNodeFieldOption {
-	options := make([]shaderGraphNodeFieldOption, 0, len(components)+2)
+func renderGraphSwizzleFieldOptions(components []string) []renderGraphNodeFieldOption {
+	options := make([]renderGraphNodeFieldOption, 0, len(components)+2)
 	for i := range components {
 		component := strings.ToLower(components[i])
 		label := components[i]
 		if len(components) == 4 {
 			label += " / " + []string{"R", "G", "B", "A"}[i]
 		}
-		options = append(options, shaderGraphNodeFieldOption{Label: label, Value: component})
+		options = append(options, renderGraphNodeFieldOption{Label: label, Value: component})
 	}
 	options = append(options,
-		shaderGraphNodeFieldOption{Label: "0", Value: "0"},
-		shaderGraphNodeFieldOption{Label: "1", Value: "1"},
+		renderGraphNodeFieldOption{Label: "0", Value: "0"},
+		renderGraphNodeFieldOption{Label: "1", Value: "1"},
 	)
 	return options
 }
 
-func shaderGraphNodeCatalogMenuData() []shaderGraphNodeMenuData {
-	catalog := shaderGraphNodeCatalog()
-	data := make([]shaderGraphNodeMenuData, 0, len(catalog))
+func renderGraphNodeCatalogMenuData() []renderGraphNodeMenuData {
+	catalog := renderGraphNodeCatalog()
+	data := make([]renderGraphNodeMenuData, 0, len(catalog))
 	for i := range catalog {
 		entry := catalog[i]
 		search := strings.Join(append([]string{entry.ID, entry.Name, entry.Description}, entry.Tags...), " ")
-		data = append(data, shaderGraphNodeMenuData{
+		data = append(data, renderGraphNodeMenuData{
 			ID:          entry.ID,
 			Name:        entry.Name,
 			Description: entry.Description,
@@ -1503,50 +1503,50 @@ func shaderGraphNodeCatalogMenuData() []shaderGraphNodeMenuData {
 	return data
 }
 
-func shaderGraphNodeCatalogEntryCompatible(entry shaderGraphNodeCatalogEntry, compatibility shaderGraphNodePortCompatibility) bool {
+func renderGraphNodeCatalogEntryCompatible(entry renderGraphNodeCatalogEntry, compatibility renderGraphNodePortCompatibility) bool {
 	if !compatibility.Active {
 		return true
 	}
-	_, ok := shaderGraphNodeSpecCompatiblePortIndex(entry.Spec, compatibility.SourceOutput, compatibility.Type)
+	_, ok := renderGraphNodeSpecCompatiblePortIndex(entry.Spec, compatibility.SourceOutput, compatibility.Type)
 	return ok
 }
 
-func shaderGraphNodeSpecCompatiblePortIndex(spec shaderGraphNodeSpec, sourceOutput bool, sourceType string) (int, bool) {
+func renderGraphNodeSpecCompatiblePortIndex(spec renderGraphNodeSpec, sourceOutput bool, sourceType string) (int, bool) {
 	ports := spec.Outputs
 	if sourceOutput {
 		ports = spec.Inputs
 	}
-	sourceType = shaderGraphPortTypeKey(sourceType)
+	sourceType = renderGraphPortTypeKey(sourceType)
 	for i := range ports {
-		if shaderGraphPortTypeKey(ports[i].Type) == sourceType {
+		if renderGraphPortTypeKey(ports[i].Type) == sourceType {
 			return i, true
 		}
 	}
 	return -1, false
 }
 
-func shaderGraphNodeCatalogCompatibleIDs(sourceOutput bool, sourceType string) []string {
-	catalog := shaderGraphNodeCatalog()
+func renderGraphNodeCatalogCompatibleIDs(sourceOutput bool, sourceType string) []string {
+	catalog := renderGraphNodeCatalog()
 	out := make([]string, 0, len(catalog))
-	compatibility := shaderGraphNodePortCompatibility{
+	compatibility := renderGraphNodePortCompatibility{
 		Active:       true,
 		SourceOutput: sourceOutput,
 		Type:         sourceType,
 	}
 	for i := range catalog {
-		if shaderGraphNodeCatalogEntryCompatible(catalog[i], compatibility) {
+		if renderGraphNodeCatalogEntryCompatible(catalog[i], compatibility) {
 			out = append(out, catalog[i].ID)
 		}
 	}
 	return out
 }
 
-func shaderGraphNodeCatalogSpec(id string) (shaderGraphNodeSpec, bool) {
+func renderGraphNodeCatalogSpec(id string) (renderGraphNodeSpec, bool) {
 	id = strings.ToLower(strings.TrimSpace(id))
-	for _, entry := range shaderGraphNodeCatalog() {
+	for _, entry := range renderGraphNodeCatalog() {
 		if entry.ID == id {
 			return entry.Spec, true
 		}
 	}
-	return shaderGraphNodeSpec{}, false
+	return renderGraphNodeSpec{}, false
 }

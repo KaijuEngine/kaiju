@@ -62,7 +62,7 @@ type renderGraphOutputCompiler struct {
 	document     RenderGraphDocument
 	vertexStage  bool
 	nodes        map[string]RenderGraphNode
-	specs        map[string]shaderGraphNodeSpec
+	specs        map[string]renderGraphNodeSpec
 	incoming     map[RenderGraphPortRef]RenderGraphPortRef
 	cache        map[RenderGraphPortRef]renderGraphOutputExpression
 	visiting     map[RenderGraphPortRef]bool
@@ -103,7 +103,7 @@ func newRenderGraphOutputCompiler(document RenderGraphDocument) (*renderGraphOut
 	compiler := &renderGraphOutputCompiler{
 		document:     document,
 		nodes:        make(map[string]RenderGraphNode, len(document.Nodes)),
-		specs:        make(map[string]shaderGraphNodeSpec, len(document.Nodes)),
+		specs:        make(map[string]renderGraphNodeSpec, len(document.Nodes)),
 		incoming:     make(map[RenderGraphPortRef]RenderGraphPortRef, len(document.Connections)),
 		cache:        map[RenderGraphPortRef]renderGraphOutputExpression{},
 		visiting:     map[RenderGraphPortRef]bool{},
@@ -112,7 +112,7 @@ func newRenderGraphOutputCompiler(document RenderGraphDocument) (*renderGraphOut
 	}
 	for i := range document.Nodes {
 		node := document.Nodes[i]
-		spec, _ := shaderGraphNodeCatalogSpec(node.Type)
+		spec, _ := renderGraphNodeCatalogSpec(node.Type)
 		compiler.nodes[node.ID] = node
 		compiler.specs[node.ID] = spec
 	}
@@ -135,7 +135,7 @@ func newRenderGraphOutputCompiler(document RenderGraphDocument) (*renderGraphOut
 		}
 		outputPort := outputSpec.Outputs[connection.Output.Port]
 		inputPort := inputSpec.Inputs[connection.Input.Port]
-		if shaderGraphPortTypeKey(outputPort.Type) != shaderGraphPortTypeKey(inputPort.Type) {
+		if renderGraphPortTypeKey(outputPort.Type) != renderGraphPortTypeKey(inputPort.Type) {
 			return nil, fmt.Errorf("render graph connection %d links %q output to %q input",
 				i, outputPort.Type, inputPort.Type)
 		}
@@ -328,7 +328,7 @@ func (c *renderGraphOutputCompiler) emitOutput(ref RenderGraphPortRef) (renderGr
 	if err != nil {
 		return expr, err
 	}
-	wantType := shaderGraphPortTypeKey(spec.Outputs[ref.Port].Type)
+	wantType := renderGraphPortTypeKey(spec.Outputs[ref.Port].Type)
 	if expr.Type != wantType {
 		return expr, fmt.Errorf("render graph node %q emitted %q for %q output", node.ID, expr.Type, wantType)
 	}
@@ -1364,7 +1364,7 @@ func (c *renderGraphOutputCompiler) emitSwizzleVectorValue(node RenderGraphNode,
 		if selection == "" {
 			selection = fields[i]
 		}
-		component, err := shaderGraphSwizzleComponentExpression(value, selection, count)
+		component, err := renderGraphSwizzleComponentExpression(value, selection, count)
 		if err != nil {
 			return "", fmt.Errorf("render graph swizzle node %q component %q: %w", node.ID, fields[i], err)
 		}
@@ -1373,7 +1373,7 @@ func (c *renderGraphOutputCompiler) emitSwizzleVectorValue(node RenderGraphNode,
 	return constructor + "(" + strings.Join(components, ", ") + ")", nil
 }
 
-func shaderGraphSwizzleComponentExpression(value, selection string, count int) (string, error) {
+func renderGraphSwizzleComponentExpression(value, selection string, count int) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(selection)) {
 	case "x", "r":
 		return "(" + value + ").x", nil
@@ -1570,9 +1570,9 @@ func (c *renderGraphOutputCompiler) textureColorSpace(node RenderGraphNode) stri
 	return "srgb"
 }
 
-func (c *renderGraphOutputCompiler) fieldValue(node RenderGraphNode, id string) shaderGraphNodeFieldValue {
+func (c *renderGraphOutputCompiler) fieldValue(node RenderGraphNode, id string) renderGraphNodeFieldValue {
 	if value, ok := node.Values[id]; ok {
-		out := shaderGraphNodeFieldValue{
+		out := renderGraphNodeFieldValue{
 			Text:   value.Text,
 			Parts:  append([]string(nil), value.Parts...),
 			Option: value.Option,
@@ -1588,10 +1588,10 @@ func (c *renderGraphOutputCompiler) fieldValue(node RenderGraphNode, id string) 
 	spec := c.specs[node.ID]
 	for i := range spec.Fields {
 		if spec.Fields[i].ID == id {
-			return shaderGraphDefaultFieldValue(spec.Fields[i])
+			return renderGraphDefaultFieldValue(spec.Fields[i])
 		}
 	}
-	return shaderGraphNodeFieldValue{}
+	return renderGraphNodeFieldValue{}
 }
 
 func (c *renderGraphOutputCompiler) floatField(node RenderGraphNode, id string) (string, error) {
@@ -1601,7 +1601,7 @@ func (c *renderGraphOutputCompiler) floatField(node RenderGraphNode, id string) 
 func (c *renderGraphOutputCompiler) vectorField(node RenderGraphNode, id string) (string, error) {
 	parts := c.fieldValue(node, id).Parts
 	if len(parts) < 3 {
-		parts = shaderGraphFieldParts(parts, 3)
+		parts = renderGraphFieldParts(parts, 3)
 	}
 	x, err := glslFloatFromText(parts[0])
 	if err != nil {
@@ -1621,7 +1621,7 @@ func (c *renderGraphOutputCompiler) vectorField(node RenderGraphNode, id string)
 func (c *renderGraphOutputCompiler) vector2Field(node RenderGraphNode, id string) (string, error) {
 	parts := c.fieldValue(node, id).Parts
 	if len(parts) < 2 {
-		parts = shaderGraphFieldParts(parts, 2)
+		parts = renderGraphFieldParts(parts, 2)
 	}
 	x, err := glslFloatFromText(parts[0])
 	if err != nil {
@@ -1637,7 +1637,7 @@ func (c *renderGraphOutputCompiler) vector2Field(node RenderGraphNode, id string
 func (c *renderGraphOutputCompiler) vector4Field(node RenderGraphNode, id string) (string, error) {
 	parts := c.fieldValue(node, id).Parts
 	if len(parts) < 4 {
-		parts = shaderGraphFieldParts(parts, 4)
+		parts = renderGraphFieldParts(parts, 4)
 	}
 	x, err := glslFloatFromText(parts[0])
 	if err != nil {

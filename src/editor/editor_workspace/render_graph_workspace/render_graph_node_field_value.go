@@ -8,7 +8,7 @@ package render_graph_workspace
 
 import "kaijuengine.com/matrix"
 
-type shaderGraphNodeFieldValue struct {
+type renderGraphNodeFieldValue struct {
 	Text   string
 	Parts  []string
 	Bool   bool
@@ -16,36 +16,36 @@ type shaderGraphNodeFieldValue struct {
 	Option string
 }
 
-func shaderGraphDefaultFieldValue(spec shaderGraphNodeFieldSpec) shaderGraphNodeFieldValue {
+func renderGraphDefaultFieldValue(spec renderGraphNodeFieldSpec) renderGraphNodeFieldValue {
 	switch spec.Type {
-	case shaderGraphNodeFieldBool:
-		return shaderGraphNodeFieldValue{Bool: spec.DefaultBool}
-	case shaderGraphNodeFieldColor:
+	case renderGraphNodeFieldBool:
+		return renderGraphNodeFieldValue{Bool: spec.DefaultBool}
+	case renderGraphNodeFieldColor:
 		color := spec.DefaultColor
 		if matrix.Vec4Approx(matrix.Vec4(color), matrix.Vec4(matrix.ColorClear())) {
 			color = matrix.ColorWhite()
 		}
-		return shaderGraphNodeFieldValue{Color: color}
-	case shaderGraphNodeFieldTexture:
-		return shaderGraphNodeFieldValue{Text: spec.Default}
-	case shaderGraphNodeFieldVector2:
-		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 2)}
-	case shaderGraphNodeFieldVector3:
-		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 3)}
-	case shaderGraphNodeFieldVector4:
-		return shaderGraphNodeFieldValue{Parts: shaderGraphFieldParts(spec.DefaultValues, 4)}
-	case shaderGraphNodeFieldSelect:
+		return renderGraphNodeFieldValue{Color: color}
+	case renderGraphNodeFieldTexture:
+		return renderGraphNodeFieldValue{Text: spec.Default}
+	case renderGraphNodeFieldVector2:
+		return renderGraphNodeFieldValue{Parts: renderGraphFieldParts(spec.DefaultValues, 2)}
+	case renderGraphNodeFieldVector3:
+		return renderGraphNodeFieldValue{Parts: renderGraphFieldParts(spec.DefaultValues, 3)}
+	case renderGraphNodeFieldVector4:
+		return renderGraphNodeFieldValue{Parts: renderGraphFieldParts(spec.DefaultValues, 4)}
+	case renderGraphNodeFieldSelect:
 		value := spec.Default
 		if value == "" && len(spec.Options) > 0 {
 			value = spec.Options[0].Value
 		}
-		return shaderGraphNodeFieldValue{Option: value}
+		return renderGraphNodeFieldValue{Option: value}
 	default:
-		return shaderGraphNodeFieldValue{Text: spec.Default}
+		return renderGraphNodeFieldValue{Text: spec.Default}
 	}
 }
 
-func shaderGraphFieldParts(values []string, count int) []string {
+func renderGraphFieldParts(values []string, count int) []string {
 	parts := make([]string, count)
 	for i := range parts {
 		if i < len(values) {

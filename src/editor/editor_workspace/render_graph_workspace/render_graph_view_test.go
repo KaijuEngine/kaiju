@@ -6,8 +6,8 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func TestShaderGraphViewPositionUsesPan(t *testing.T) {
-	graph := shaderGraph{pan: matrix.NewVec2(24, -16)}
+func TestRenderGraphViewPositionUsesPan(t *testing.T) {
+	graph := renderGraph{pan: matrix.NewVec2(24, -16)}
 	position := matrix.NewVec2(100, 80)
 	want := matrix.NewVec2(124, 64)
 
@@ -16,8 +16,8 @@ func TestShaderGraphViewPositionUsesPan(t *testing.T) {
 	}
 }
 
-func TestShaderGraphGraphPositionFromViewRemovesPan(t *testing.T) {
-	graph := shaderGraph{pan: matrix.NewVec2(24, -16)}
+func TestRenderGraphGraphPositionFromViewRemovesPan(t *testing.T) {
+	graph := renderGraph{pan: matrix.NewVec2(24, -16)}
 	position := matrix.NewVec2(124, 64)
 	want := matrix.NewVec2(100, 80)
 
@@ -26,8 +26,8 @@ func TestShaderGraphGraphPositionFromViewRemovesPan(t *testing.T) {
 	}
 }
 
-func TestShaderGraphViewPositionUsesZoom(t *testing.T) {
-	graph := shaderGraph{
+func TestRenderGraphViewPositionUsesZoom(t *testing.T) {
+	graph := renderGraph{
 		pan:  matrix.NewVec2(24, -16),
 		zoom: 0.5,
 	}
@@ -39,8 +39,8 @@ func TestShaderGraphViewPositionUsesZoom(t *testing.T) {
 	}
 }
 
-func TestShaderGraphGraphPositionFromViewRemovesZoom(t *testing.T) {
-	graph := shaderGraph{
+func TestRenderGraphGraphPositionFromViewRemovesZoom(t *testing.T) {
+	graph := renderGraph{
 		pan:  matrix.NewVec2(24, -16),
 		zoom: 0.5,
 	}
@@ -52,8 +52,8 @@ func TestShaderGraphGraphPositionFromViewRemovesZoom(t *testing.T) {
 	}
 }
 
-func TestShaderGraphSetZoomAroundViewPositionKeepsAnchorStable(t *testing.T) {
-	graph := shaderGraph{
+func TestRenderGraphSetZoomAroundViewPositionKeepsAnchorStable(t *testing.T) {
+	graph := renderGraph{
 		pan:  matrix.NewVec2(24, -16),
 		zoom: 0.5,
 	}
@@ -68,8 +68,8 @@ func TestShaderGraphSetZoomAroundViewPositionKeepsAnchorStable(t *testing.T) {
 	}
 }
 
-func TestShaderGraphSetZoomClampsToDefaultZoom(t *testing.T) {
-	graph := shaderGraph{
+func TestRenderGraphSetZoomClampsToDefaultZoom(t *testing.T) {
+	graph := renderGraph{
 		pan:  matrix.NewVec2(24, -16),
 		zoom: 0.75,
 	}
@@ -81,14 +81,14 @@ func TestShaderGraphSetZoomClampsToDefaultZoom(t *testing.T) {
 	}
 }
 
-func TestShaderGraphNodesBoundsUnionsSelectedNodes(t *testing.T) {
-	a := &shaderGraphNode{position: matrix.NewVec2(10, 20), height: 80}
-	b := &shaderGraphNode{position: matrix.NewVec2(260, 120), height: 140}
+func TestRenderGraphNodesBoundsUnionsSelectedNodes(t *testing.T) {
+	a := &renderGraphNode{position: matrix.NewVec2(10, 20), height: 80}
+	b := &renderGraphNode{position: matrix.NewVec2(260, 120), height: 140}
 
-	bounds, ok := shaderGraphNodesBounds([]*shaderGraphNode{nil, a, b})
+	bounds, ok := renderGraphNodesBounds([]*renderGraphNode{nil, a, b})
 
 	if !ok {
-		t.Fatal("shaderGraphNodesBounds() should find bounds")
+		t.Fatal("renderGraphNodesBounds() should find bounds")
 	}
 	want := matrix.NewVec4(10, 20, 470, 260)
 	if !matrix.Vec4Approx(bounds, want) {
@@ -96,8 +96,8 @@ func TestShaderGraphNodesBoundsUnionsSelectedNodes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphFocusBoundsCentersBoundsAtCurrentZoom(t *testing.T) {
-	graph := shaderGraph{zoom: 0.5}
+func TestRenderGraphFocusBoundsCentersBoundsAtCurrentZoom(t *testing.T) {
+	graph := renderGraph{zoom: 0.5}
 	bounds := matrix.NewVec4(50, 100, 250, 200)
 
 	graph.focusBounds(bounds, matrix.NewVec2(400, 300))
@@ -108,8 +108,8 @@ func TestShaderGraphFocusBoundsCentersBoundsAtCurrentZoom(t *testing.T) {
 	}
 }
 
-func TestShaderGraphCenterViewResetsPanAndZoom(t *testing.T) {
-	graph := shaderGraph{
+func TestRenderGraphCenterViewResetsPanAndZoom(t *testing.T) {
+	graph := renderGraph{
 		pan:  matrix.NewVec2(24, -16),
 		zoom: 0.5,
 	}

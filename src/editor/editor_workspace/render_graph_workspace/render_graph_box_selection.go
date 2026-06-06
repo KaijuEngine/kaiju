@@ -12,10 +12,10 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-const shaderGraphBoxSelectThreshold = matrix.Float(5)
+const renderGraphBoxSelectThreshold = matrix.Float(5)
 
-func (g *shaderGraph) updateBoxSelection() {
-	defer tracing.NewRegion("shaderGraph.updateBoxSelection").End()
+func (g *renderGraph) updateBoxSelection() {
+	defer tracing.NewRegion("renderGraph.updateBoxSelection").End()
 	if g == nil || !g.boxSelecting || g.host == nil || g.host.Window == nil {
 		return
 	}
@@ -32,25 +32,25 @@ func (g *shaderGraph) updateBoxSelection() {
 	g.updateSelectionBoxVisual(current)
 }
 
-func (g *shaderGraph) finishBoxSelection(current matrix.Vec2) {
+func (g *renderGraph) finishBoxSelection(current matrix.Vec2) {
 	if g == nil {
 		return
 	}
-	if g.boxStart.Distance(current) <= shaderGraphBoxSelectThreshold/g.zoomValue() {
-		g.SelectNodes(nil, shaderGraphSelectionReplace)
+	if g.boxStart.Distance(current) <= renderGraphBoxSelectThreshold/g.zoomValue() {
+		g.SelectNodes(nil, renderGraphSelectionReplace)
 		g.cancelBoxSelection()
 		return
 	}
 	box := matrix.Vec4Area(g.boxStart.X(), g.boxStart.Y(), current.X(), current.Y())
-	mode := shaderGraphBoxSelectionModeFromKeyboard(nil)
+	mode := renderGraphBoxSelectionModeFromKeyboard(nil)
 	if g.host != nil && g.host.Window != nil {
-		mode = shaderGraphBoxSelectionModeFromKeyboard(&g.host.Window.Keyboard)
+		mode = renderGraphBoxSelectionModeFromKeyboard(&g.host.Window.Keyboard)
 	}
 	g.SelectNodes(g.nodesTouchedByBox(box), mode)
 	g.cancelBoxSelection()
 }
 
-func (g *shaderGraph) cancelBoxSelection() {
+func (g *renderGraph) cancelBoxSelection() {
 	if g == nil {
 		return
 	}
@@ -60,7 +60,7 @@ func (g *shaderGraph) cancelBoxSelection() {
 	}
 }
 
-func (g *shaderGraph) updateSelectionBoxVisual(current matrix.Vec2) {
+func (g *renderGraph) updateSelectionBoxVisual(current matrix.Vec2) {
 	if g == nil || g.selectionBox == nil {
 		return
 	}
@@ -76,40 +76,40 @@ func (g *shaderGraph) updateSelectionBoxVisual(current matrix.Vec2) {
 	base.Clean()
 }
 
-func (g *shaderGraph) nodesTouchedByBox(box matrix.Vec4) []*shaderGraphNode {
+func (g *renderGraph) nodesTouchedByBox(box matrix.Vec4) []*renderGraphNode {
 	if g == nil {
 		return nil
 	}
-	nodes := make([]*shaderGraphNode, 0)
+	nodes := make([]*renderGraphNode, 0)
 	for i := range g.nodes {
 		node := g.nodes[i]
 		if node == nil {
 			continue
 		}
-		if shaderGraphRectsIntersect(box, node.bounds()) {
+		if renderGraphRectsIntersect(box, node.bounds()) {
 			nodes = append(nodes, node)
 		}
 	}
 	return nodes
 }
 
-func (n *shaderGraphNode) bounds() matrix.Vec4 {
+func (n *renderGraphNode) bounds() matrix.Vec4 {
 	if n == nil {
 		return matrix.Vec4Zero()
 	}
 	height := matrix.Float(n.height)
 	if height <= 0 {
-		height = matrix.Float(shaderGraphNodeBaseHeight)
+		height = matrix.Float(renderGraphNodeBaseHeight)
 	}
 	return matrix.NewVec4(
 		n.position.X(),
 		n.position.Y(),
-		n.position.X()+matrix.Float(shaderGraphNodeWidth),
+		n.position.X()+matrix.Float(renderGraphNodeWidth),
 		n.position.Y()+height,
 	)
 }
 
-func shaderGraphRectsIntersect(a, b matrix.Vec4) bool {
+func renderGraphRectsIntersect(a, b matrix.Vec4) bool {
 	return a.Left() <= b.Right() &&
 		a.Right() >= b.Left() &&
 		a.Top() <= b.Bottom() &&

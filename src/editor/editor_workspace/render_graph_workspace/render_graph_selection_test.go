@@ -11,50 +11,50 @@ import (
 	"kaijuengine.com/platform/windowing"
 )
 
-func TestShaderGraphSelectNodesReplaceAppendToggle(t *testing.T) {
-	graph := shaderGraph{}
-	a := &shaderGraphNode{id: "a"}
-	b := &shaderGraphNode{id: "b"}
-	graph.nodes = []*shaderGraphNode{a, b}
+func TestRenderGraphSelectNodesReplaceAppendToggle(t *testing.T) {
+	graph := renderGraph{}
+	a := &renderGraphNode{id: "a"}
+	b := &renderGraphNode{id: "b"}
+	graph.nodes = []*renderGraphNode{a, b}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionReplace)
 	if !graph.IsSelected(a) || graph.IsSelected(b) {
 		t.Fatalf("replace selection should select only a")
 	}
 
-	graph.SelectNodes([]*shaderGraphNode{b}, shaderGraphSelectionAppend)
+	graph.SelectNodes([]*renderGraphNode{b}, renderGraphSelectionAppend)
 	if !graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("append selection should keep a and add b")
 	}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionToggle)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionToggle)
 	if graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("toggle selection should remove a and keep b")
 	}
 }
 
-func TestShaderGraphSelectNodesEmptyReplaceClearsSelection(t *testing.T) {
-	graph := shaderGraph{}
-	node := &shaderGraphNode{id: "node"}
-	graph.nodes = []*shaderGraphNode{node}
-	graph.SelectNodes([]*shaderGraphNode{node}, shaderGraphSelectionReplace)
+func TestRenderGraphSelectNodesEmptyReplaceClearsSelection(t *testing.T) {
+	graph := renderGraph{}
+	node := &renderGraphNode{id: "node"}
+	graph.nodes = []*renderGraphNode{node}
+	graph.SelectNodes([]*renderGraphNode{node}, renderGraphSelectionReplace)
 
-	graph.SelectNodes(nil, shaderGraphSelectionReplace)
+	graph.SelectNodes(nil, renderGraphSelectionReplace)
 
 	if graph.HasSelection() {
 		t.Fatalf("empty replace selection should clear selection")
 	}
 }
 
-func TestShaderGraphSelectNodesReplaceAlreadySelectedPreservesSelection(t *testing.T) {
-	graph := shaderGraph{}
-	a := &shaderGraphNode{id: "a"}
-	b := &shaderGraphNode{id: "b"}
-	graph.nodes = []*shaderGraphNode{a, b}
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
-	graph.SelectNodes([]*shaderGraphNode{b}, shaderGraphSelectionAppend)
+func TestRenderGraphSelectNodesReplaceAlreadySelectedPreservesSelection(t *testing.T) {
+	graph := renderGraph{}
+	a := &renderGraphNode{id: "a"}
+	b := &renderGraphNode{id: "b"}
+	graph.nodes = []*renderGraphNode{a, b}
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{b}, renderGraphSelectionAppend)
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionReplace)
 
 	if !graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("replace on an already selected node should preserve selection")
@@ -64,12 +64,12 @@ func TestShaderGraphSelectNodesReplaceAlreadySelectedPreservesSelection(t *testi
 	}
 }
 
-func TestShaderGraphSelectionReusesZSlotsAndNewestSelectionIsHighest(t *testing.T) {
-	graph := shaderGraph{}
-	a := &shaderGraphNode{id: "a"}
-	b := &shaderGraphNode{id: "b"}
-	c := &shaderGraphNode{id: "c"}
-	graph.nodes = []*shaderGraphNode{a, b, c}
+func TestRenderGraphSelectionReusesZSlotsAndNewestSelectionIsHighest(t *testing.T) {
+	graph := renderGraph{}
+	a := &renderGraphNode{id: "a"}
+	b := &renderGraphNode{id: "b"}
+	c := &renderGraphNode{id: "c"}
+	graph.nodes = []*renderGraphNode{a, b, c}
 	graph.assignNodeZSlot(a)
 	graph.assignNodeZSlot(b)
 	graph.assignNodeZSlot(c)
@@ -78,8 +78,8 @@ func TestShaderGraphSelectionReusesZSlotsAndNewestSelectionIsHighest(t *testing.
 		t.Fatalf("created nodes should each have a unique z-depth")
 	}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
-	graph.SelectNodes([]*shaderGraphNode{b}, shaderGraphSelectionAppend)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{b}, renderGraphSelectionAppend)
 
 	if a.zSlotAssigned || b.zSlotAssigned {
 		t.Fatalf("selected nodes should use temporary selection z-depths")
@@ -88,7 +88,7 @@ func TestShaderGraphSelectionReusesZSlotsAndNewestSelectionIsHighest(t *testing.
 		t.Fatalf("newest selected node should be highest: a=%v b=%v c=%v", a.zDepth, b.zDepth, c.zDepth)
 	}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionToggle)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionToggle)
 
 	if !a.zSlotAssigned {
 		t.Fatalf("node removed from selection should return to an available z-depth")
@@ -98,16 +98,16 @@ func TestShaderGraphSelectionReusesZSlotsAndNewestSelectionIsHighest(t *testing.
 	}
 }
 
-func TestShaderGraphSelectionHistoryUndoRedo(t *testing.T) {
+func TestRenderGraphSelectionHistoryUndoRedo(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph := shaderGraph{history: history}
-	a := &shaderGraphNode{id: "a"}
-	b := &shaderGraphNode{id: "b"}
-	graph.nodes = []*shaderGraphNode{a, b}
+	graph := renderGraph{history: history}
+	a := &renderGraphNode{id: "a"}
+	b := &renderGraphNode{id: "b"}
+	graph.nodes = []*renderGraphNode{a, b}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
-	graph.SelectNodes([]*shaderGraphNode{b}, shaderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{b}, renderGraphSelectionReplace)
 
 	history.Undo()
 	if !graph.IsSelected(a) || graph.IsSelected(b) {
@@ -120,16 +120,16 @@ func TestShaderGraphSelectionHistoryUndoRedo(t *testing.T) {
 	}
 }
 
-func TestShaderGraphSelectionEventSkipsAltInput(t *testing.T) {
+func TestRenderGraphSelectionEventSkipsAltInput(t *testing.T) {
 	keyboard := hid.NewKeyboard()
 	keyboard.SetKeyDown(hid.KeyboardKeyLeftAlt)
-	graph := shaderGraph{
+	graph := renderGraph{
 		host: &engine.Host{
 			Window: &windowing.Window{Keyboard: keyboard},
 		},
 	}
-	node := &shaderGraphNode{id: "node", graph: &graph}
-	graph.nodes = []*shaderGraphNode{node}
+	node := &renderGraphNode{id: "node", graph: &graph}
+	graph.nodes = []*renderGraphNode{node}
 	target := &ui.UI{}
 	node.bindSelectionEvent(target)
 
@@ -140,10 +140,10 @@ func TestShaderGraphSelectionEventSkipsAltInput(t *testing.T) {
 	}
 }
 
-func TestShaderGraphBeginBoxSelectionRespectsInputBlocker(t *testing.T) {
+func TestRenderGraphBeginBoxSelectionRespectsInputBlocker(t *testing.T) {
 	mouse := hid.NewMouse()
 	mouse.SetPosition(12, 24, 100, 100)
-	graph := shaderGraph{
+	graph := renderGraph{
 		host: &engine.Host{
 			Window: &windowing.Window{Mouse: mouse},
 		},
@@ -157,14 +157,14 @@ func TestShaderGraphBeginBoxSelectionRespectsInputBlocker(t *testing.T) {
 	}
 }
 
-func TestShaderGraphSelectedNodeDragMovesSelectionWithHistory(t *testing.T) {
+func TestRenderGraphSelectedNodeDragMovesSelectionWithHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph := shaderGraph{history: history}
-	a := &shaderGraphNode{id: "a", graph: &graph, position: matrix.NewVec2(4, 6)}
-	b := &shaderGraphNode{id: "b", graph: &graph, position: matrix.NewVec2(12, 18)}
-	graph.nodes = []*shaderGraphNode{a, b}
-	graph.setSelectionNodes([]*shaderGraphNode{a, b})
+	graph := renderGraph{history: history}
+	a := &renderGraphNode{id: "a", graph: &graph, position: matrix.NewVec2(4, 6)}
+	b := &renderGraphNode{id: "b", graph: &graph, position: matrix.NewVec2(12, 18)}
+	graph.nodes = []*renderGraphNode{a, b}
+	graph.setSelectionNodes([]*renderGraphNode{a, b})
 
 	a.captureDragNodes()
 	a.applyDragDelta(matrix.NewVec2(10, -5))

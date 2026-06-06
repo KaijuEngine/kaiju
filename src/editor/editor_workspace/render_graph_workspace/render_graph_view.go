@@ -11,7 +11,7 @@ import (
 	"kaijuengine.com/platform/hid"
 )
 
-func (g *shaderGraph) updatePan() {
+func (g *renderGraph) updatePan() {
 	if g.host == nil || g.host.Window == nil || g.root == nil {
 		return
 	}
@@ -52,7 +52,7 @@ func (g *shaderGraph) updatePan() {
 	}
 }
 
-func (g *shaderGraph) updateZoom() {
+func (g *renderGraph) updateZoom() {
 	if g == nil || g.host == nil || g.host.Window == nil || g.root == nil {
 		return
 	}
@@ -74,7 +74,7 @@ func (g *shaderGraph) updateZoom() {
 	if matrix.Approx(scroll, 0) {
 		return
 	}
-	factor := matrix.Float(1) + matrix.Abs(scroll)*shaderGraphZoomStep
+	factor := matrix.Float(1) + matrix.Abs(scroll)*renderGraphZoomStep
 	next := g.zoomValue()
 	if scroll > 0 {
 		next *= factor
@@ -84,7 +84,7 @@ func (g *shaderGraph) updateZoom() {
 	g.setZoomAroundViewPosition(next, g.screenToViewPosition(mousePosition))
 }
 
-func (g *shaderGraph) isPanInputHeld() bool {
+func (g *renderGraph) isPanInputHeld() bool {
 	if g == nil || g.host == nil || g.host.Window == nil {
 		return false
 	}
@@ -95,12 +95,12 @@ func (g *shaderGraph) isPanInputHeld() bool {
 		keyboard.KeyHeld(hid.KeyboardKeySpace)
 }
 
-func (g *shaderGraph) isAltInputHeld() bool {
+func (g *renderGraph) isAltInputHeld() bool {
 	return g != nil && g.host != nil && g.host.Window != nil &&
 		g.host.Window.Keyboard.HasAlt()
 }
 
-func (g *shaderGraph) stopNodeDrags() {
+func (g *renderGraph) stopNodeDrags() {
 	for i := range g.nodes {
 		g.nodes[i].stopDrag()
 	}
@@ -109,7 +109,7 @@ func (g *shaderGraph) stopNodeDrags() {
 	}
 }
 
-func (g *shaderGraph) applyViewOffsets() {
+func (g *renderGraph) applyViewOffsets() {
 	for i := range g.comments {
 		g.comments[i].applyViewOffset()
 	}
@@ -118,7 +118,7 @@ func (g *shaderGraph) applyViewOffsets() {
 	}
 }
 
-func (g *shaderGraph) CenterView() {
+func (g *renderGraph) CenterView() {
 	if g == nil {
 		return
 	}
@@ -127,11 +127,11 @@ func (g *shaderGraph) CenterView() {
 	g.applyViewOffsets()
 }
 
-func (g *shaderGraph) FocusSelection() bool {
+func (g *renderGraph) FocusSelection() bool {
 	if g == nil || g.root == nil {
 		return false
 	}
-	bounds, ok := shaderGraphNodesBounds(g.selected)
+	bounds, ok := renderGraphNodesBounds(g.selected)
 	if !ok && g.selectedComment != nil {
 		bounds = g.selectedComment.bounds()
 		ok = true
@@ -143,7 +143,7 @@ func (g *shaderGraph) FocusSelection() bool {
 	return true
 }
 
-func (g *shaderGraph) focusBounds(bounds matrix.Vec4, viewportSize matrix.Vec2) {
+func (g *renderGraph) focusBounds(bounds matrix.Vec4, viewportSize matrix.Vec2) {
 	if g == nil {
 		return
 	}
@@ -156,7 +156,7 @@ func (g *shaderGraph) focusBounds(bounds matrix.Vec4, viewportSize matrix.Vec2) 
 	g.applyViewOffsets()
 }
 
-func shaderGraphNodesBounds(nodes []*shaderGraphNode) (matrix.Vec4, bool) {
+func renderGraphNodesBounds(nodes []*renderGraphNode) (matrix.Vec4, bool) {
 	var bounds matrix.Vec4
 	hasBounds := false
 	for i := range nodes {
@@ -178,18 +178,18 @@ func shaderGraphNodesBounds(nodes []*shaderGraphNode) (matrix.Vec4, bool) {
 	return bounds, hasBounds
 }
 
-func (g *shaderGraph) zoomValue() matrix.Float {
+func (g *renderGraph) zoomValue() matrix.Float {
 	if g == nil || g.zoom <= 0 {
 		return 1
 	}
-	return matrix.Clamp(g.zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
+	return matrix.Clamp(g.zoom, renderGraphMinZoom, renderGraphMaxZoom)
 }
 
-func (g *shaderGraph) setZoomAroundViewPosition(zoom matrix.Float, anchor matrix.Vec2) {
+func (g *renderGraph) setZoomAroundViewPosition(zoom matrix.Float, anchor matrix.Vec2) {
 	if g == nil {
 		return
 	}
-	next := matrix.Clamp(zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
+	next := matrix.Clamp(zoom, renderGraphMinZoom, renderGraphMaxZoom)
 	if matrix.Approx(next, g.zoomValue()) {
 		g.zoom = next
 		return
@@ -200,22 +200,22 @@ func (g *shaderGraph) setZoomAroundViewPosition(zoom matrix.Float, anchor matrix
 	g.applyViewOffsets()
 }
 
-func (g *shaderGraph) viewPosition(position matrix.Vec2) matrix.Vec2 {
+func (g *renderGraph) viewPosition(position matrix.Vec2) matrix.Vec2 {
 	return position.Scale(g.zoomValue()).Add(g.pan)
 }
 
-func (g *shaderGraph) graphPositionFromView(position matrix.Vec2) matrix.Vec2 {
+func (g *renderGraph) graphPositionFromView(position matrix.Vec2) matrix.Vec2 {
 	return position.Subtract(g.pan).Scale(1 / g.zoomValue())
 }
 
-func (g *shaderGraph) screenToViewPosition(position matrix.Vec2) matrix.Vec2 {
+func (g *renderGraph) screenToViewPosition(position matrix.Vec2) matrix.Vec2 {
 	if g == nil || g.root == nil {
 		return position
 	}
 	return position.Subtract(g.root.Base().Layout().Offset())
 }
 
-func (g *shaderGraph) screenPositionInside(position matrix.Vec2) bool {
+func (g *renderGraph) screenPositionInside(position matrix.Vec2) bool {
 	if g == nil || g.root == nil {
 		return false
 	}

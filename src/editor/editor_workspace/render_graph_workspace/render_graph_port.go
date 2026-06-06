@@ -13,10 +13,10 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-type shaderGraphPort struct {
-	graph       *shaderGraph
-	node        *shaderGraphNode
-	spec        shaderGraphPortSpec
+type renderGraphPort struct {
+	graph       *renderGraph
+	node        *renderGraphNode
+	spec        renderGraphPortSpec
 	output      bool
 	index       int
 	hit         *ui.Panel
@@ -25,32 +25,32 @@ type shaderGraphPort struct {
 	localAnchor matrix.Vec2
 }
 
-func (p *shaderGraphPort) Anchor() matrix.Vec2 {
+func (p *renderGraphPort) Anchor() matrix.Vec2 {
 	if p == nil || p.node == nil {
 		return matrix.Vec2Zero()
 	}
 	return p.node.position.Add(p.localAnchor)
 }
 
-func (p *shaderGraphPort) CanConnect(other *shaderGraphPort) bool {
-	return shaderGraphPortsCanConnect(p, other)
+func (p *renderGraphPort) CanConnect(other *renderGraphPort) bool {
+	return renderGraphPortsCanConnect(p, other)
 }
 
-func (p *shaderGraphPort) Color() matrix.Color {
+func (p *renderGraphPort) Color() matrix.Color {
 	if p == nil {
 		return matrix.ColorWhite()
 	}
-	return shaderGraphPortColor(p.spec.Type, p.output)
+	return renderGraphPortColor(p.spec.Type, p.output)
 }
 
-func shaderGraphPortRef(port *shaderGraphPort) (RenderGraphPortRef, bool) {
+func renderGraphPortRef(port *renderGraphPort) (RenderGraphPortRef, bool) {
 	if port == nil || port.node == nil || port.node.id == "" {
 		return RenderGraphPortRef{}, false
 	}
 	return RenderGraphPortRef{Node: port.node.id, Port: port.index}, true
 }
 
-func (p *shaderGraphPort) bindEvents() {
+func (p *renderGraphPort) bindEvents() {
 	if p == nil || p.graph == nil {
 		return
 	}
@@ -66,7 +66,7 @@ func (p *shaderGraphPort) bindEvents() {
 	}
 }
 
-func (p *shaderGraphPort) bindTargetEvents(target *ui.UI) {
+func (p *renderGraphPort) bindTargetEvents(target *ui.UI) {
 	if target == nil || p == nil || p.graph == nil {
 		return
 	}
@@ -88,14 +88,14 @@ func (p *shaderGraphPort) bindTargetEvents(target *ui.UI) {
 	})
 }
 
-func shaderGraphPortsCanConnect(a, b *shaderGraphPort) bool {
+func renderGraphPortsCanConnect(a, b *renderGraphPort) bool {
 	return a != nil && b != nil &&
 		a.output != b.output &&
-		shaderGraphPortTypeKey(a.spec.Type) == shaderGraphPortTypeKey(b.spec.Type)
+		renderGraphPortTypeKey(a.spec.Type) == renderGraphPortTypeKey(b.spec.Type)
 }
 
-func shaderGraphConnectionPorts(a, b *shaderGraphPort) (output, input *shaderGraphPort, ok bool) {
-	if !shaderGraphPortsCanConnect(a, b) {
+func renderGraphConnectionPorts(a, b *renderGraphPort) (output, input *renderGraphPort, ok bool) {
+	if !renderGraphPortsCanConnect(a, b) {
 		return nil, nil, false
 	}
 	if a.output {
@@ -104,7 +104,7 @@ func shaderGraphConnectionPorts(a, b *shaderGraphPort) (output, input *shaderGra
 	return b, a, true
 }
 
-func shaderGraphFirstCompatibleNodePort(node *shaderGraphNode, source *shaderGraphPort) *shaderGraphPort {
+func renderGraphFirstCompatibleNodePort(node *renderGraphNode, source *renderGraphPort) *renderGraphPort {
 	if node == nil || source == nil {
 		return nil
 	}
@@ -124,6 +124,6 @@ func shaderGraphFirstCompatibleNodePort(node *shaderGraphNode, source *shaderGra
 	return nil
 }
 
-func shaderGraphPortTypeKey(portType string) string {
+func renderGraphPortTypeKey(portType string) string {
 	return strings.ToLower(strings.TrimSpace(portType))
 }

@@ -10,18 +10,18 @@ import (
 	"kaijuengine.com/rendering"
 )
 
-func TestShaderGraphSplineUpdateMarksTransformDirty(t *testing.T) {
+func TestRenderGraphSplineUpdateMarksTransformDirty(t *testing.T) {
 	host := engine.NewHost("test", nil, assets.Database(nil))
 	*host.MeshCache() = rendering.NewMeshCache(nil, nil)
 
-	verts := make([]rendering.Vertex, (shaderGraphSplineSegments+1)*2)
+	verts := make([]rendering.Vertex, (renderGraphSplineSegments+1)*2)
 	mesh := host.MeshCache().DynamicMesh("test-spline", verts, []uint32{0, 1, 2})
-	spline := shaderGraphSpline{
+	spline := renderGraphSpline{
 		host:   host,
 		mesh:   mesh,
 		shader: &ui.ShaderData{ShaderDataBase: rendering.NewShaderDataBase()},
 		verts:  verts,
-		points: make([]matrix.Vec2, shaderGraphSplineSegments+1),
+		points: make([]matrix.Vec2, renderGraphSplineSegments+1),
 	}
 	spline.transform.SetupRawTransform()
 	spline.transform.ResetDirty()

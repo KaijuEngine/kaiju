@@ -40,12 +40,12 @@ type RenderGraphWorkspace struct {
 	root            *document.Element
 	sidePanel       *document.Element
 	stageViewport   *document.Element
-	shaderGraphArea *document.Element
+	renderGraphArea *document.Element
 	dimensionToggle *document.Element
 	nameInput       *document.Element
 	status          *document.Element
-	graph           shaderGraph
-	createNodeMenu  shaderGraphCreateNodeMenu
+	graph           renderGraph
+	createNodeMenu  renderGraphCreateNodeMenu
 	createNodeCount int
 	currentGraphID  string
 	currentName     string
@@ -54,7 +54,7 @@ type RenderGraphWorkspace struct {
 
 type RenderGraphWorkspaceUIData struct {
 	CameraMode  string
-	CreateNodes []shaderGraphNodeMenuData
+	CreateNodes []renderGraphNodeMenuData
 	GraphName   string
 }
 
@@ -73,7 +73,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	w.currentName = defaultRenderGraphName
 	data := RenderGraphWorkspaceUIData{
 		CameraMode:  w.stageView.Camera().ModeString(),
-		CreateNodes: shaderGraphNodeCatalogMenuData(),
+		CreateNodes: renderGraphNodeCatalogMenuData(),
 		GraphName:   w.currentName,
 	}
 	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(),
@@ -93,7 +93,7 @@ func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInt
 	w.root, _ = w.Doc.GetElementById("renderGraphWorkspace")
 	w.sidePanel, _ = w.Doc.GetElementById("renderGraphPanel")
 	w.stageViewport, _ = w.Doc.GetElementById("stageViewport")
-	w.shaderGraphArea, _ = w.Doc.GetElementById("shaderGraphArea")
+	w.renderGraphArea, _ = w.Doc.GetElementById("renderGraphArea")
 	w.dimensionToggle, _ = w.Doc.GetElementById("dimensionToggle")
 	w.nameInput, _ = w.Doc.GetElementById("renderGraphName")
 	w.status, _ = w.Doc.GetElementById("renderGraphStatus")
@@ -236,7 +236,7 @@ func (w *RenderGraphWorkspace) showCreateNodeMenuFromRightClick() {
 	})
 }
 
-func (w *RenderGraphWorkspace) showCreateNodeMenuForConnection(source *shaderGraphPort, position, createPosition matrix.Vec2) {
+func (w *RenderGraphWorkspace) showCreateNodeMenuForConnection(source *renderGraphPort, position, createPosition matrix.Vec2) {
 	if source == nil {
 		return
 	}
@@ -257,18 +257,18 @@ func (w *RenderGraphWorkspace) DeleteSelectedNodes() bool {
 	return w.graph.DeleteSelectedNodes()
 }
 
-func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*shaderGraphNode, bool) {
-	spec, ok := shaderGraphNodeCatalogSpec(args.NodeID)
+func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*renderGraphNode, bool) {
+	spec, ok := renderGraphNodeCatalogSpec(args.NodeID)
 	if !ok {
 		return nil, false
 	}
-	var source *shaderGraphPort
+	var source *renderGraphPort
 	if args.UseConnection {
 		source = w.graph.portByRef(args.ConnectFromNodeID, args.ConnectFromPort, args.ConnectFromOutput)
 		if source == nil {
 			return nil, false
 		}
-		if _, ok = shaderGraphNodeSpecCompatiblePortIndex(spec, source.output, source.spec.Type); !ok {
+		if _, ok = renderGraphNodeSpecCompatiblePortIndex(spec, source.output, source.spec.Type); !ok {
 			return nil, false
 		}
 	}
@@ -279,16 +279,16 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 		return nil, false
 	}
 	w.graph.cancelBoxSelection()
-	w.graph.setSelectionNodes([]*shaderGraphNode{node})
+	w.graph.setSelectionNodes([]*renderGraphNode{node})
 	if w.graph.history != nil {
-		w.graph.history.Add(&shaderGraphNodeCreateHistory{
+		w.graph.history.Add(&renderGraphNodeCreateHistory{
 			graph:             &w.graph,
-			node:              renderGraphNodeFromShaderGraphNode(node),
+			node:              renderGraphNodeFromRenderGraphNode(node),
 			previousSelection: previousSelection,
 		})
 	}
 	if args.UseConnection {
-		target := shaderGraphFirstCompatibleNodePort(node, source)
+		target := renderGraphFirstCompatibleNodePort(node, source)
 		if target != nil {
 			w.graph.ConnectPorts(source, target)
 		}
@@ -298,7 +298,7 @@ func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (
 	return node, true
 }
 
-func (w *RenderGraphWorkspace) CreateCommentFromAction(args CreateCommentActionArgs) (*shaderGraphComment, bool) {
+func (w *RenderGraphWorkspace) CreateCommentFromAction(args CreateCommentActionArgs) (*renderGraphComment, bool) {
 	position := args.position(w.defaultCreateNodePosition())
 	previousSelection := w.graph.selectionIDs()
 	comment := w.graph.CreateComment(position, args.size(), args.Label)
@@ -309,9 +309,9 @@ func (w *RenderGraphWorkspace) CreateCommentFromAction(args CreateCommentActionA
 	w.graph.setSelectionNodes(nil)
 	w.graph.setSelectedComment(comment)
 	if w.graph.history != nil {
-		w.graph.history.Add(&shaderGraphCommentCreateHistory{
+		w.graph.history.Add(&renderGraphCommentCreateHistory{
 			graph:             &w.graph,
-			comment:           renderGraphCommentFromShaderGraphComment(comment),
+			comment:           renderGraphCommentFromRenderGraphComment(comment),
 			previousSelection: previousSelection,
 		})
 	}
@@ -383,8 +383,8 @@ func (w *RenderGraphWorkspace) runCreateCommentAction() {
 		Label:       "Comment",
 		X:           float32(position.X()),
 		Y:           float32(position.Y()),
-		Width:       shaderGraphCommentDefaultWidth,
-		Height:      shaderGraphCommentDefaultHeight,
+		Width:       renderGraphCommentDefaultWidth,
+		Height:      renderGraphCommentDefaultHeight,
 		UsePosition: true,
 		UseSize:     true,
 	}

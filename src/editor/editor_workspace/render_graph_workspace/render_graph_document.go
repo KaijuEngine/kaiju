@@ -77,7 +77,7 @@ type RenderGraphPortRef struct {
 	Port int    `json:"port"`
 }
 
-func renderGraphNodeFromShaderGraphNode(node *shaderGraphNode) RenderGraphNode {
+func renderGraphNodeFromRenderGraphNode(node *renderGraphNode) RenderGraphNode {
 	if node == nil {
 		return RenderGraphNode{}
 	}
@@ -89,7 +89,7 @@ func renderGraphNodeFromShaderGraphNode(node *shaderGraphNode) RenderGraphNode {
 	}
 }
 
-func renderGraphCommentFromShaderGraphComment(comment *shaderGraphComment) RenderGraphComment {
+func renderGraphCommentFromRenderGraphComment(comment *renderGraphComment) RenderGraphComment {
 	if comment == nil {
 		return RenderGraphComment{}
 	}
@@ -97,7 +97,7 @@ func renderGraphCommentFromShaderGraphComment(comment *shaderGraphComment) Rende
 		ID:       comment.id,
 		Label:    comment.label,
 		Position: comment.position,
-		Size:     shaderGraphCommentSizeOrDefault(comment.size),
+		Size:     renderGraphCommentSizeOrDefault(comment.size),
 	}
 }
 
@@ -141,7 +141,7 @@ func validateRenderGraphDocument(document RenderGraphDocument) error {
 		if strings.TrimSpace(node.Type) == "" {
 			return fmt.Errorf("render graph node %q has an empty type", node.ID)
 		}
-		if _, ok := shaderGraphNodeCatalogSpec(node.Type); !ok {
+		if _, ok := renderGraphNodeCatalogSpec(node.Type); !ok {
 			return fmt.Errorf("render graph node %q has unknown type %q", node.ID, node.Type)
 		}
 		ids[node.ID] = struct{}{}
@@ -154,10 +154,10 @@ func validateRenderGraphDocument(document RenderGraphDocument) error {
 		if _, exists := ids[comment.ID]; exists {
 			return fmt.Errorf("duplicate render graph item id %q", comment.ID)
 		}
-		if comment.Size.X() > 0 && comment.Size.X() < shaderGraphCommentMinWidth {
+		if comment.Size.X() > 0 && comment.Size.X() < renderGraphCommentMinWidth {
 			return fmt.Errorf("render graph comment %q width is below the minimum", comment.ID)
 		}
-		if comment.Size.Y() > 0 && comment.Size.Y() < shaderGraphCommentMinHeight {
+		if comment.Size.Y() > 0 && comment.Size.Y() < renderGraphCommentMinHeight {
 			return fmt.Errorf("render graph comment %q height is below the minimum", comment.ID)
 		}
 		ids[comment.ID] = struct{}{}
@@ -177,11 +177,11 @@ func validateRenderGraphDocument(document RenderGraphDocument) error {
 	return nil
 }
 
-func (g *shaderGraph) Serialize() ([]byte, error) {
+func (g *renderGraph) Serialize() ([]byte, error) {
 	return SerializeRenderGraphDocument(g.Document())
 }
 
-func (g *shaderGraph) Deserialize(data []byte) error {
+func (g *renderGraph) Deserialize(data []byte) error {
 	document, err := DeserializeRenderGraphDocument(data)
 	if err != nil {
 		return err
@@ -189,14 +189,14 @@ func (g *shaderGraph) Deserialize(data []byte) error {
 	return g.LoadDocument(document)
 }
 
-func (g *shaderGraph) Document() RenderGraphDocument {
+func (g *renderGraph) Document() RenderGraphDocument {
 	document := RenderGraphDocument{
 		Version: renderGraphDocumentVersion,
 		Pan:     g.pan,
 		Zoom:    g.zoomValue(),
 		Nodes:   make([]RenderGraphNode, 0, len(g.nodes)),
 	}
-	nodeIDs := make(map[*shaderGraphNode]string, len(g.nodes))
+	nodeIDs := make(map[*renderGraphNode]string, len(g.nodes))
 	for i := range g.nodes {
 		node := g.nodes[i]
 		id := node.id
@@ -204,7 +204,7 @@ func (g *shaderGraph) Document() RenderGraphDocument {
 			id = fmt.Sprintf("node-%d", i+1)
 		}
 		nodeIDs[node] = id
-		renderNode := renderGraphNodeFromShaderGraphNode(node)
+		renderNode := renderGraphNodeFromRenderGraphNode(node)
 		renderNode.ID = id
 		document.Nodes = append(document.Nodes, renderNode)
 	}
@@ -214,7 +214,7 @@ func (g *shaderGraph) Document() RenderGraphDocument {
 		if strings.TrimSpace(id) == "" {
 			id = fmt.Sprintf("comment-%d", i+1)
 		}
-		renderComment := renderGraphCommentFromShaderGraphComment(comment)
+		renderComment := renderGraphCommentFromRenderGraphComment(comment)
 		renderComment.ID = id
 		document.Comments = append(document.Comments, renderComment)
 	}
@@ -237,7 +237,7 @@ func (g *shaderGraph) Document() RenderGraphDocument {
 	return document
 }
 
-func (g *shaderGraph) LoadDocument(document RenderGraphDocument) error {
+func (g *renderGraph) LoadDocument(document RenderGraphDocument) error {
 	if err := validateRenderGraphDocument(document); err != nil {
 		return err
 	}
@@ -250,8 +250,8 @@ func (g *shaderGraph) LoadDocument(document RenderGraphDocument) error {
 	if g.zoom <= 0 {
 		g.zoom = 1
 	}
-	g.zoom = matrix.Clamp(g.zoom, shaderGraphMinZoom, shaderGraphMaxZoom)
-	nodes := make(map[string]*shaderGraphNode, len(document.Nodes))
+	g.zoom = matrix.Clamp(g.zoom, renderGraphMinZoom, renderGraphMaxZoom)
+	nodes := make(map[string]*renderGraphNode, len(document.Nodes))
 	for i := range document.Comments {
 		src := document.Comments[i]
 		if g.createCommentFromSnapshot(src) == nil {
@@ -283,7 +283,7 @@ func (g *shaderGraph) LoadDocument(document RenderGraphDocument) error {
 	return nil
 }
 
-func renderGraphFieldValuesFromNode(node *shaderGraphNode) map[string]RenderGraphFieldValue {
+func renderGraphFieldValuesFromNode(node *renderGraphNode) map[string]RenderGraphFieldValue {
 	if node == nil || len(node.fields) == 0 {
 		return nil
 	}
@@ -292,19 +292,19 @@ func renderGraphFieldValuesFromNode(node *shaderGraphNode) map[string]RenderGrap
 		field := node.fields[i]
 		value := node.FieldValue(field.spec.ID)
 		switch field.spec.Type {
-		case shaderGraphNodeFieldBool:
+		case renderGraphNodeFieldBool:
 			boolValue := value.Bool
 			out[field.spec.ID] = RenderGraphFieldValue{Bool: &boolValue}
-		case shaderGraphNodeFieldColor:
+		case renderGraphNodeFieldColor:
 			color := value.Color
 			out[field.spec.ID] = RenderGraphFieldValue{Color: &color}
-		case shaderGraphNodeFieldVector2:
+		case renderGraphNodeFieldVector2:
 			out[field.spec.ID] = RenderGraphFieldValue{Parts: append([]string(nil), value.Parts...)}
-		case shaderGraphNodeFieldVector3:
+		case renderGraphNodeFieldVector3:
 			out[field.spec.ID] = RenderGraphFieldValue{Parts: append([]string(nil), value.Parts...)}
-		case shaderGraphNodeFieldVector4:
+		case renderGraphNodeFieldVector4:
 			out[field.spec.ID] = RenderGraphFieldValue{Parts: append([]string(nil), value.Parts...)}
-		case shaderGraphNodeFieldSelect:
+		case renderGraphNodeFieldSelect:
 			out[field.spec.ID] = RenderGraphFieldValue{Option: value.Option}
 		default:
 			out[field.spec.ID] = RenderGraphFieldValue{Text: value.Text}
@@ -313,13 +313,13 @@ func renderGraphFieldValuesFromNode(node *shaderGraphNode) map[string]RenderGrap
 	return out
 }
 
-func renderGraphFieldValuesToNode(values map[string]RenderGraphFieldValue) map[string]shaderGraphNodeFieldValue {
+func renderGraphFieldValuesToNode(values map[string]RenderGraphFieldValue) map[string]renderGraphNodeFieldValue {
 	if len(values) == 0 {
 		return nil
 	}
-	out := make(map[string]shaderGraphNodeFieldValue, len(values))
+	out := make(map[string]renderGraphNodeFieldValue, len(values))
 	for key, value := range values {
-		fieldValue := shaderGraphNodeFieldValue{
+		fieldValue := renderGraphNodeFieldValue{
 			Text:   value.Text,
 			Parts:  append([]string(nil), value.Parts...),
 			Option: value.Option,

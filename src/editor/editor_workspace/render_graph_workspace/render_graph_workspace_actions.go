@@ -44,7 +44,7 @@ type CreateCommentActionArgs struct {
 }
 
 func DefaultCreateNodeActionArgs() CreateNodeActionArgs {
-	catalog := shaderGraphNodeCatalog()
+	catalog := renderGraphNodeCatalog()
 	if len(catalog) == 0 {
 		return CreateNodeActionArgs{}
 	}
@@ -54,13 +54,13 @@ func DefaultCreateNodeActionArgs() CreateNodeActionArgs {
 func DefaultCreateCommentActionArgs() CreateCommentActionArgs {
 	return CreateCommentActionArgs{
 		Label:  "Comment",
-		Width:  shaderGraphCommentDefaultWidth,
-		Height: shaderGraphCommentDefaultHeight,
+		Width:  renderGraphCommentDefaultWidth,
+		Height: renderGraphCommentDefaultHeight,
 	}
 }
 
 func CreateNodeActionVariants() []editor_action.Variant {
-	catalog := shaderGraphNodeCatalog()
+	catalog := renderGraphNodeCatalog()
 	variants := make([]editor_action.Variant, 0, len(catalog))
 	for i := range catalog {
 		entry := catalog[i]
@@ -91,9 +91,9 @@ func (a CreateCommentActionArgs) position(fallback matrix.Vec2) matrix.Vec2 {
 func (a CreateCommentActionArgs) size() matrix.Vec2 {
 	if !a.UseSize {
 		return matrix.NewVec2(
-			matrix.Float(shaderGraphCommentDefaultWidth),
-			matrix.Float(shaderGraphCommentDefaultHeight),
+			matrix.Float(renderGraphCommentDefaultWidth),
+			matrix.Float(renderGraphCommentDefaultHeight),
 		)
 	}
-	return shaderGraphCommentSizeOrDefault(matrix.NewVec2(matrix.Float(a.Width), matrix.Float(a.Height)))
+	return renderGraphCommentSizeOrDefault(matrix.NewVec2(matrix.Float(a.Width), matrix.Float(a.Height)))
 }

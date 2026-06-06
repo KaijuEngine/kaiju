@@ -18,47 +18,47 @@ import (
 )
 
 const (
-	shadingGraphMenuBarHeight   = float32(24.0)
-	shadingGraphStatusBarHeight = float32(20.8)
-	shaderGraphMinZoom          = matrix.Float(0.35)
-	shaderGraphMaxZoom          = matrix.Float(1.0)
-	shaderGraphZoomStep         = matrix.Float(0.1)
+	renderGraphMenuBarHeight   = float32(24.0)
+	renderGraphStatusBarHeight = float32(20.8)
+	renderGraphMinZoom         = matrix.Float(0.35)
+	renderGraphMaxZoom         = matrix.Float(1.0)
+	renderGraphZoomStep        = matrix.Float(0.1)
 )
 
-type shaderGraph struct {
+type renderGraph struct {
 	host                  *engine.Host
 	history               *memento.History
 	uiMan                 ui.Manager
 	root                  *ui.Panel
-	nodes                 []*shaderGraphNode
-	comments              []*shaderGraphComment
-	selected              []*shaderGraphNode
-	selectedComment       *shaderGraphComment
+	nodes                 []*renderGraphNode
+	comments              []*renderGraphComment
+	selected              []*renderGraphNode
+	selectedComment       *renderGraphComment
 	availableNodeZSlots   []int
-	connections           []*shaderGraphConnection
+	connections           []*renderGraphConnection
 	selectionBox          *ui.Panel
-	pendingFrom           *shaderGraphPort
-	pendingVisual         *shaderGraphSpline
+	pendingFrom           *renderGraphPort
+	pendingVisual         *renderGraphSpline
 	pan                   matrix.Vec2
 	zoom                  matrix.Float
 	zoomBlocked           func(matrix.Vec2) bool
 	inputBlocked          func(matrix.Vec2) bool
-	connectionDropOnBlank func(*shaderGraphPort, matrix.Vec2, matrix.Vec2)
+	connectionDropOnBlank func(*renderGraphPort, matrix.Vec2, matrix.Vec2)
 	panning               bool
 	panMouse              matrix.Vec2
 	hasPanMouse           bool
 	boxSelecting          bool
 	boxStart              matrix.Vec2
-	viewport              shaderGraphViewport
+	viewport              renderGraphViewport
 	selectTexture         func(current string, onSelect func(string), onClose func())
 	textureName           func(id string) string
 }
 
-type shaderGraphViewport struct {
+type renderGraphViewport struct {
 	x, y, width, height float32
 }
 
-func (g *shaderGraph) Initialize(host *engine.Host, history *memento.History) {
+func (g *renderGraph) Initialize(host *engine.Host, history *memento.History) {
 	g.host = host
 	g.history = history
 	g.zoom = 1
@@ -79,10 +79,10 @@ func (g *shaderGraph) Initialize(host *engine.Host, history *memento.History) {
 	g.selectionBox.SetColor(matrix.NewColor(0.95, 0.72, 0.28, 0.18))
 	g.selectionBox.SetBorderSize(1, 1, 1, 1)
 	g.selectionBox.SetBorderColor(
-		shaderGraphNodeSelectColor,
-		shaderGraphNodeSelectColor,
-		shaderGraphNodeSelectColor,
-		shaderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
 	)
 	g.selectionBox.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	g.selectionBox.Base().Layout().SetZ(30)
@@ -90,7 +90,7 @@ func (g *shaderGraph) Initialize(host *engine.Host, history *memento.History) {
 	g.root.AddChild(g.selectionBox.Base())
 }
 
-func (g *shaderGraph) Shutdown() {
+func (g *renderGraph) Shutdown() {
 	g.clear()
 	if g.pendingVisual != nil {
 		g.pendingVisual.Destroy()
@@ -102,7 +102,7 @@ func (g *shaderGraph) Shutdown() {
 	g.uiMan.Shutdown()
 }
 
-func (g *shaderGraph) Open() {
+func (g *renderGraph) Open() {
 	if g.root == nil {
 		return
 	}
@@ -115,7 +115,7 @@ func (g *shaderGraph) Open() {
 	}
 }
 
-func (g *shaderGraph) Close() {
+func (g *renderGraph) Close() {
 	if g.root != nil {
 		g.root.Base().Hide()
 	}
@@ -134,11 +134,11 @@ func (g *shaderGraph) Close() {
 	g.cancelPendingConnection()
 }
 
-func (g *shaderGraph) IsFocusedOnInput() bool {
+func (g *renderGraph) IsFocusedOnInput() bool {
 	return g != nil && g.uiMan.Group.IsFocusedOnInput()
 }
 
-func (g *shaderGraph) Update() {
+func (g *renderGraph) Update() {
 	if g.root == nil || !g.root.Base().IsActive() {
 		return
 	}
@@ -160,12 +160,12 @@ func (g *shaderGraph) Update() {
 	g.updatePendingConnection()
 }
 
-func (g *shaderGraph) CreateNode(spec shaderGraphNodeSpec, position matrix.Vec2) *shaderGraphNode {
+func (g *renderGraph) CreateNode(spec renderGraphNodeSpec, position matrix.Vec2) *renderGraphNode {
 	return g.createNode("", spec, position, "")
 }
 
-func (g *shaderGraph) CreateCatalogNode(typeID string, position matrix.Vec2) (*shaderGraphNode, bool) {
-	spec, ok := shaderGraphNodeCatalogSpec(typeID)
+func (g *renderGraph) CreateCatalogNode(typeID string, position matrix.Vec2) (*renderGraphNode, bool) {
+	spec, ok := renderGraphNodeCatalogSpec(typeID)
 	if !ok {
 		return nil, false
 	}
@@ -181,11 +181,11 @@ func (g *shaderGraph) CreateCatalogNode(typeID string, position matrix.Vec2) (*s
 	return node, node != nil
 }
 
-func (g *shaderGraph) createNode(typeID string, spec shaderGraphNodeSpec, position matrix.Vec2, id string) *shaderGraphNode {
+func (g *renderGraph) createNode(typeID string, spec renderGraphNodeSpec, position matrix.Vec2, id string) *renderGraphNode {
 	if g.root == nil {
 		return nil
 	}
-	node := &shaderGraphNode{}
+	node := &renderGraphNode{}
 	node.id = id
 	if node.id == "" {
 		node.id = g.nextNodeID()
@@ -198,30 +198,30 @@ func (g *shaderGraph) createNode(typeID string, spec shaderGraphNodeSpec, positi
 	return node
 }
 
-func (g *shaderGraph) CreateComment(position matrix.Vec2, size matrix.Vec2, label string) *shaderGraphComment {
+func (g *renderGraph) CreateComment(position matrix.Vec2, size matrix.Vec2, label string) *renderGraphComment {
 	comment := RenderGraphComment{
 		ID:       g.nextCommentID(),
 		Label:    label,
 		Position: position,
-		Size:     shaderGraphCommentSizeOrDefault(size),
+		Size:     renderGraphCommentSizeOrDefault(size),
 	}
 	return g.createCommentFromSnapshot(comment)
 }
 
-func (g *shaderGraph) createCommentFromSnapshot(comment RenderGraphComment) *shaderGraphComment {
+func (g *renderGraph) createCommentFromSnapshot(comment RenderGraphComment) *renderGraphComment {
 	if g == nil || comment.ID == "" {
 		return nil
 	}
 	if existing := g.commentByID(comment.ID); existing != nil {
 		return existing
 	}
-	comment.Size = shaderGraphCommentSizeOrDefault(comment.Size)
-	var created *shaderGraphComment
+	comment.Size = renderGraphCommentSizeOrDefault(comment.Size)
+	var created *renderGraphComment
 	if g.root != nil && g.host != nil {
-		created = &shaderGraphComment{}
+		created = &renderGraphComment{}
 		created.Initialize(g, g.host, &g.uiMan, g.root, comment)
 	} else {
-		created = &shaderGraphComment{
+		created = &renderGraphComment{
 			graph:    g,
 			id:       comment.ID,
 			label:    comment.Label,
@@ -233,30 +233,30 @@ func (g *shaderGraph) createCommentFromSnapshot(comment RenderGraphComment) *sha
 	return created
 }
 
-func (g *shaderGraph) createNodeFromSnapshot(node RenderGraphNode) *shaderGraphNode {
+func (g *renderGraph) createNodeFromSnapshot(node RenderGraphNode) *renderGraphNode {
 	if g == nil || node.ID == "" {
 		return nil
 	}
 	if existing := g.nodeByID(node.ID); existing != nil {
 		return existing
 	}
-	spec, ok := shaderGraphNodeCatalogSpec(node.Type)
+	spec, ok := renderGraphNodeCatalogSpec(node.Type)
 	if !ok {
 		return nil
 	}
-	var created *shaderGraphNode
+	var created *renderGraphNode
 	if g.root != nil && g.host != nil {
 		created = g.createNode(node.Type, spec, node.Position, node.ID)
 	} else {
-		created = &shaderGraphNode{
+		created = &renderGraphNode{
 			graph:    g,
 			id:       node.ID,
 			typeID:   node.Type,
 			position: node.Position,
-			values:   make(map[string]shaderGraphNodeFieldValue, len(spec.Fields)),
+			values:   make(map[string]renderGraphNodeFieldValue, len(spec.Fields)),
 		}
 		for i := range spec.Inputs {
-			created.inputs = append(created.inputs, &shaderGraphPort{
+			created.inputs = append(created.inputs, &renderGraphPort{
 				graph: g,
 				node:  created,
 				spec:  spec.Inputs[i],
@@ -264,7 +264,7 @@ func (g *shaderGraph) createNodeFromSnapshot(node RenderGraphNode) *shaderGraphN
 			})
 		}
 		for i := range spec.Outputs {
-			created.outputs = append(created.outputs, &shaderGraphPort{
+			created.outputs = append(created.outputs, &renderGraphPort{
 				graph:  g,
 				node:   created,
 				spec:   spec.Outputs[i],
@@ -281,7 +281,7 @@ func (g *shaderGraph) createNodeFromSnapshot(node RenderGraphNode) *shaderGraphN
 	return created
 }
 
-func (g *shaderGraph) RemoveNode(id string) bool {
+func (g *renderGraph) RemoveNode(id string) bool {
 	if g == nil || id == "" {
 		return false
 	}
@@ -312,7 +312,7 @@ func (g *shaderGraph) RemoveNode(id string) bool {
 	return true
 }
 
-func (g *shaderGraph) RemoveComment(id string) bool {
+func (g *renderGraph) RemoveComment(id string) bool {
 	if g == nil || id == "" {
 		return false
 	}
@@ -337,17 +337,17 @@ func (g *shaderGraph) RemoveComment(id string) bool {
 	return true
 }
 
-func (g *shaderGraph) DeleteSelectedNodes() bool {
+func (g *renderGraph) DeleteSelectedNodes() bool {
 	if g == nil || len(g.selected) == 0 {
 		if g == nil || g.selectedComment == nil {
 			return false
 		}
-		comment := renderGraphCommentFromShaderGraphComment(g.selectedComment)
+		comment := renderGraphCommentFromRenderGraphComment(g.selectedComment)
 		if !g.RemoveComment(comment.ID) {
 			return false
 		}
 		if g.history != nil {
-			g.history.Add(&shaderGraphCommentDeleteHistory{
+			g.history.Add(&renderGraphCommentDeleteHistory{
 				graph:   g,
 				comment: comment,
 			})
@@ -361,7 +361,7 @@ func (g *shaderGraph) DeleteSelectedNodes() bool {
 		if node == nil || node.id == "" {
 			continue
 		}
-		nodes = append(nodes, renderGraphNodeFromShaderGraphNode(node))
+		nodes = append(nodes, renderGraphNodeFromRenderGraphNode(node))
 		nodeIDs[node.id] = struct{}{}
 	}
 	if len(nodes) == 0 {
@@ -373,7 +373,7 @@ func (g *shaderGraph) DeleteSelectedNodes() bool {
 	}
 	g.setSelectionNodes(nil)
 	if g.history != nil {
-		g.history.Add(&shaderGraphNodeDeleteHistory{
+		g.history.Add(&renderGraphNodeDeleteHistory{
 			graph:       g,
 			nodes:       nodes,
 			connections: connections,
@@ -382,7 +382,7 @@ func (g *shaderGraph) DeleteSelectedNodes() bool {
 	return true
 }
 
-func (g *shaderGraph) connectionsTouchingNodes(nodeIDs map[string]struct{}) []RenderGraphConnection {
+func (g *renderGraph) connectionsTouchingNodes(nodeIDs map[string]struct{}) []RenderGraphConnection {
 	if g == nil || len(nodeIDs) == 0 {
 		return nil
 	}
@@ -411,19 +411,19 @@ func (g *shaderGraph) connectionsTouchingNodes(nodeIDs map[string]struct{}) []Re
 	return connections
 }
 
-func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnection {
-	output, input, ok := shaderGraphConnectionPorts(a, b)
+func (g *renderGraph) CreateConnection(a, b *renderGraphPort) *renderGraphConnection {
+	output, input, ok := renderGraphConnectionPorts(a, b)
 	if !ok {
 		return nil
 	}
-	outputRef, inputRef, ok := shaderGraphConnectionRefs(output, input)
+	outputRef, inputRef, ok := renderGraphConnectionRefs(output, input)
 	if ok {
 		if existing := g.connectionByRefs(outputRef, inputRef); existing != nil {
 			return existing
 		}
 	}
 	g.removeConnectionsTouchingPort(input)
-	connection := &shaderGraphConnection{}
+	connection := &renderGraphConnection{}
 	if g.root != nil {
 		connection.Initialize(g.host, g.root, output, input)
 	} else {
@@ -434,12 +434,12 @@ func (g *shaderGraph) CreateConnection(a, b *shaderGraphPort) *shaderGraphConnec
 	return connection
 }
 
-func (g *shaderGraph) ConnectPorts(a, b *shaderGraphPort) *shaderGraphConnection {
-	output, input, ok := shaderGraphConnectionPorts(a, b)
+func (g *renderGraph) ConnectPorts(a, b *renderGraphPort) *renderGraphConnection {
+	output, input, ok := renderGraphConnectionPorts(a, b)
 	if !ok {
 		return nil
 	}
-	outputRef, inputRef, ok := shaderGraphConnectionRefs(output, input)
+	outputRef, inputRef, ok := renderGraphConnectionRefs(output, input)
 	if !ok {
 		return nil
 	}
@@ -455,7 +455,7 @@ func (g *shaderGraph) ConnectPorts(a, b *shaderGraphPort) *shaderGraphConnection
 		return nil
 	}
 	if g.history != nil {
-		g.history.Add(&shaderGraphConnectionHistory{
+		g.history.Add(&renderGraphConnectionHistory{
 			graph:    g,
 			output:   outputRef,
 			input:    inputRef,
@@ -465,7 +465,7 @@ func (g *shaderGraph) ConnectPorts(a, b *shaderGraphPort) *shaderGraphConnection
 	return connection
 }
 
-func (g *shaderGraph) RemoveConnection(outputRef, inputRef RenderGraphPortRef) bool {
+func (g *renderGraph) RemoveConnection(outputRef, inputRef RenderGraphPortRef) bool {
 	if g == nil {
 		return false
 	}
@@ -481,7 +481,7 @@ func (g *shaderGraph) RemoveConnection(outputRef, inputRef RenderGraphPortRef) b
 	return false
 }
 
-func (g *shaderGraph) DisconnectPort(port *shaderGraphPort) bool {
+func (g *renderGraph) DisconnectPort(port *renderGraphPort) bool {
 	if port == nil {
 		return false
 	}
@@ -490,7 +490,7 @@ func (g *shaderGraph) DisconnectPort(port *shaderGraphPort) bool {
 		return false
 	}
 	if g.history != nil {
-		g.history.Add(&shaderGraphConnectionDisconnectHistory{
+		g.history.Add(&renderGraphConnectionDisconnectHistory{
 			graph:       g,
 			connections: removed,
 		})
@@ -498,7 +498,7 @@ func (g *shaderGraph) DisconnectPort(port *shaderGraphPort) bool {
 	return true
 }
 
-func (g *shaderGraph) removeConnectionsTouchingPort(port *shaderGraphPort) []RenderGraphConnection {
+func (g *renderGraph) removeConnectionsTouchingPort(port *renderGraphPort) []RenderGraphConnection {
 	if g == nil {
 		return nil
 	}
@@ -518,21 +518,21 @@ func (g *shaderGraph) removeConnectionsTouchingPort(port *shaderGraphPort) []Ren
 	return removed
 }
 
-func (g *shaderGraph) removeConnectionRef(connection RenderGraphConnection) bool {
+func (g *renderGraph) removeConnectionRef(connection RenderGraphConnection) bool {
 	if g == nil {
 		return false
 	}
 	return g.RemoveConnection(connection.Output, connection.Input)
 }
 
-func (g *shaderGraph) createConnectionRef(connection RenderGraphConnection) *shaderGraphConnection {
+func (g *renderGraph) createConnectionRef(connection RenderGraphConnection) *renderGraphConnection {
 	if g == nil {
 		return nil
 	}
 	return g.createConnectionFromRefs(connection.Output, connection.Input)
 }
 
-func (g *shaderGraph) connectionByRefs(outputRef, inputRef RenderGraphPortRef) *shaderGraphConnection {
+func (g *renderGraph) connectionByRefs(outputRef, inputRef RenderGraphPortRef) *renderGraphConnection {
 	if g == nil {
 		return nil
 	}
@@ -545,7 +545,7 @@ func (g *shaderGraph) connectionByRefs(outputRef, inputRef RenderGraphPortRef) *
 	return nil
 }
 
-func (g *shaderGraph) createConnectionFromRefs(outputRef, inputRef RenderGraphPortRef) *shaderGraphConnection {
+func (g *renderGraph) createConnectionFromRefs(outputRef, inputRef RenderGraphPortRef) *renderGraphConnection {
 	if g == nil {
 		return nil
 	}
@@ -557,7 +557,7 @@ func (g *shaderGraph) createConnectionFromRefs(outputRef, inputRef RenderGraphPo
 	return g.CreateConnection(outputNode.Output(outputRef.Port), inputNode.Input(inputRef.Port))
 }
 
-func (g *shaderGraph) portByRef(nodeID string, portIndex int, output bool) *shaderGraphPort {
+func (g *renderGraph) portByRef(nodeID string, portIndex int, output bool) *renderGraphPort {
 	if g == nil {
 		return nil
 	}
@@ -571,8 +571,8 @@ func (g *shaderGraph) portByRef(nodeID string, portIndex int, output bool) *shad
 	return node.Input(portIndex)
 }
 
-func (g *shaderGraph) SetViewport(x, y, width, height float32) {
-	g.viewport = shaderGraphViewport{
+func (g *renderGraph) SetViewport(x, y, width, height float32) {
+	g.viewport = renderGraphViewport{
 		x:      x,
 		y:      y,
 		width:  width,
@@ -580,7 +580,7 @@ func (g *shaderGraph) SetViewport(x, y, width, height float32) {
 	}
 }
 
-func (g *shaderGraph) clear() {
+func (g *renderGraph) clear() {
 	g.setSelectionNodes(nil)
 	g.setSelectedComment(nil)
 	g.cancelBoxSelection()
@@ -604,7 +604,7 @@ func (g *shaderGraph) clear() {
 	g.cancelPendingConnection()
 }
 
-func (g *shaderGraph) nextCommentID() string {
+func (g *renderGraph) nextCommentID() string {
 	for i := len(g.comments) + 1; ; i++ {
 		id := "comment-" + fmt.Sprint(i)
 		if g.itemIDAvailable(id) {
@@ -613,7 +613,7 @@ func (g *shaderGraph) nextCommentID() string {
 	}
 }
 
-func (g *shaderGraph) itemIDAvailable(id string) bool {
+func (g *renderGraph) itemIDAvailable(id string) bool {
 	if g == nil || id == "" {
 		return false
 	}
@@ -630,7 +630,7 @@ func (g *shaderGraph) itemIDAvailable(id string) bool {
 	return true
 }
 
-func (g *shaderGraph) nextNodeID() string {
+func (g *renderGraph) nextNodeID() string {
 	for i := len(g.nodes) + 1; ; i++ {
 		id := "node-" + fmt.Sprint(i)
 		found := false
@@ -646,13 +646,13 @@ func (g *shaderGraph) nextNodeID() string {
 	}
 }
 
-func (g *shaderGraph) beginConnection(port *shaderGraphPort) {
+func (g *renderGraph) beginConnection(port *renderGraphPort) {
 	if port == nil || g.root == nil {
 		return
 	}
 	g.pendingFrom = port
 	if g.pendingVisual == nil {
-		g.pendingVisual = &shaderGraphSpline{}
+		g.pendingVisual = &renderGraphSpline{}
 		g.pendingVisual.Initialize(g.host, g.root)
 	}
 	g.pendingVisual.Show()
@@ -660,7 +660,7 @@ func (g *shaderGraph) beginConnection(port *shaderGraphPort) {
 	g.updatePendingConnection()
 }
 
-func (g *shaderGraph) finishConnection(port *shaderGraphPort) {
+func (g *renderGraph) finishConnection(port *renderGraphPort) {
 	if g.pendingFrom == nil {
 		return
 	}
@@ -682,14 +682,14 @@ func (g *shaderGraph) finishConnection(port *shaderGraphPort) {
 	g.cancelPendingConnection()
 }
 
-func (g *shaderGraph) cancelPendingConnection() {
+func (g *renderGraph) cancelPendingConnection() {
 	g.pendingFrom = nil
 	if g.pendingVisual != nil {
 		g.pendingVisual.Hide()
 	}
 }
 
-func (g *shaderGraph) updatePendingConnection() {
+func (g *renderGraph) updatePendingConnection() {
 	if g.pendingFrom == nil || g.host == nil || g.host.Window == nil || g.pendingVisual == nil {
 		return
 	}
@@ -711,7 +711,7 @@ func (g *shaderGraph) updatePendingConnection() {
 	}
 }
 
-func (g *shaderGraph) applyLayout() bool {
+func (g *renderGraph) applyLayout() bool {
 	if g.host == nil || g.host.Window == nil || g.root == nil {
 		return false
 	}
@@ -719,11 +719,11 @@ func (g *shaderGraph) applyLayout() bool {
 	if viewport.width <= 0 || viewport.height <= 0 {
 		windowWidth := float32(g.host.Window.Width())
 		windowHeight := float32(g.host.Window.Height())
-		contentHeight := max(1, windowHeight-shadingGraphMenuBarHeight-shadingGraphStatusBarHeight)
+		contentHeight := max(1, windowHeight-renderGraphMenuBarHeight-renderGraphStatusBarHeight)
 		stageHeight := max(1, contentHeight*0.5)
-		viewport = shaderGraphViewport{
+		viewport = renderGraphViewport{
 			x:      0,
-			y:      shadingGraphMenuBarHeight + stageHeight,
+			y:      renderGraphMenuBarHeight + stageHeight,
 			width:  max(1, windowWidth),
 			height: max(1, contentHeight-stageHeight),
 		}

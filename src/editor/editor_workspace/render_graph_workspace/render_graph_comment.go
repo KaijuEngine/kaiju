@@ -14,24 +14,24 @@ import (
 )
 
 const (
-	shaderGraphCommentDefaultWidth  = float32(360)
-	shaderGraphCommentDefaultHeight = float32(220)
-	shaderGraphCommentMinWidth      = matrix.Float(180)
-	shaderGraphCommentMinHeight     = matrix.Float(96)
-	shaderGraphCommentHeaderHeight  = float32(28)
-	shaderGraphCommentGripSize      = float32(18)
-	shaderGraphCommentZDepth        = float32(2)
+	renderGraphCommentDefaultWidth  = float32(360)
+	renderGraphCommentDefaultHeight = float32(220)
+	renderGraphCommentMinWidth      = matrix.Float(180)
+	renderGraphCommentMinHeight     = matrix.Float(96)
+	renderGraphCommentHeaderHeight  = float32(28)
+	renderGraphCommentGripSize      = float32(18)
+	renderGraphCommentZDepth        = float32(2)
 )
 
 var (
-	shaderGraphCommentBodyColor   = matrix.NewColor(0.15, 0.16, 0.18, 1)
-	shaderGraphCommentHeaderColor = matrix.NewColor(0.18, 0.19, 0.22, 1)
-	shaderGraphCommentBorderColor = matrix.NewColor(0.25, 0.27, 0.31, 1)
-	shaderGraphCommentGripColor   = matrix.NewColor(0.36, 0.38, 0.43, 1)
+	renderGraphCommentBodyColor   = matrix.NewColor(0.15, 0.16, 0.18, 1)
+	renderGraphCommentHeaderColor = matrix.NewColor(0.18, 0.19, 0.22, 1)
+	renderGraphCommentBorderColor = matrix.NewColor(0.25, 0.27, 0.31, 1)
+	renderGraphCommentGripColor   = matrix.NewColor(0.36, 0.38, 0.43, 1)
 )
 
-type shaderGraphComment struct {
-	graph          *shaderGraph
+type renderGraphComment struct {
+	graph          *renderGraph
 	host           *engine.Host
 	root           *ui.Panel
 	header         *ui.Panel
@@ -51,7 +51,7 @@ type shaderGraphComment struct {
 	sizeOrigin     matrix.Vec2
 }
 
-func (c *shaderGraphComment) Initialize(graph *shaderGraph, host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, comment RenderGraphComment) {
+func (c *renderGraphComment) Initialize(graph *renderGraph, host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, comment RenderGraphComment) {
 	c.graph = graph
 	c.host = host
 	c.id = comment.ID
@@ -60,22 +60,22 @@ func (c *shaderGraphComment) Initialize(graph *shaderGraph, host *engine.Host, u
 		c.label = "Comment"
 	}
 	c.position = comment.Position
-	c.size = shaderGraphCommentSizeOrDefault(comment.Size)
+	c.size = renderGraphCommentSizeOrDefault(comment.Size)
 
 	c.root = uiMan.Add().ToPanel()
 	c.root.Init(nil, ui.ElementTypePanel)
 	c.root.DontFitContent()
-	c.root.SetColor(shaderGraphCommentBodyColor)
+	c.root.SetColor(renderGraphCommentBodyColor)
 	c.root.SetBorderRadius(5, 5, 5, 5)
 	c.root.SetBorderSize(1, 1, 1, 1)
 	c.root.SetBorderColor(
-		shaderGraphCommentBorderColor,
-		shaderGraphCommentBorderColor,
-		shaderGraphCommentBorderColor,
-		shaderGraphCommentBorderColor,
+		renderGraphCommentBorderColor,
+		renderGraphCommentBorderColor,
+		renderGraphCommentBorderColor,
+		renderGraphCommentBorderColor,
 	)
 	c.root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	c.root.Base().Layout().SetZ(shaderGraphCommentZDepth)
+	c.root.Base().Layout().SetZ(renderGraphCommentZDepth)
 	c.bindDragEvents(c.root.Base())
 	parent.AddChild(c.root.Base())
 
@@ -87,7 +87,7 @@ func (c *shaderGraphComment) Initialize(graph *shaderGraph, host *engine.Host, u
 	c.applyViewOffset()
 }
 
-func (c *shaderGraphComment) Update() {
+func (c *renderGraphComment) Update() {
 	if c == nil || (!c.dragging && !c.resizing) || c.host == nil || c.host.Window == nil {
 		return
 	}
@@ -111,7 +111,7 @@ func (c *shaderGraphComment) Update() {
 	}
 }
 
-func (c *shaderGraphComment) setSelected(selected bool) {
+func (c *renderGraphComment) setSelected(selected bool) {
 	if c == nil || c.selected == selected {
 		return
 	}
@@ -126,7 +126,7 @@ func (c *shaderGraphComment) setSelected(selected bool) {
 	}
 }
 
-func (c *shaderGraphComment) applyViewOffset() {
+func (c *renderGraphComment) applyViewOffset() {
 	if c == nil || c.root == nil {
 		return
 	}
@@ -151,11 +151,11 @@ func (c *shaderGraphComment) applyViewOffset() {
 	c.root.Base().Layout().SetOffset(position.X(), position.Y())
 }
 
-func (c *shaderGraphComment) bounds() matrix.Vec4 {
+func (c *renderGraphComment) bounds() matrix.Vec4 {
 	if c == nil {
 		return matrix.Vec4Zero()
 	}
-	size := shaderGraphCommentSizeOrDefault(c.size)
+	size := renderGraphCommentSizeOrDefault(c.size)
 	return matrix.NewVec4(
 		c.position.X(),
 		c.position.Y(),
@@ -164,7 +164,7 @@ func (c *shaderGraphComment) bounds() matrix.Vec4 {
 	)
 }
 
-func (c *shaderGraphComment) stopInteraction() {
+func (c *renderGraphComment) stopInteraction() {
 	if c == nil || (!c.dragging && !c.resizing) {
 		return
 	}
@@ -176,7 +176,7 @@ func (c *shaderGraphComment) stopInteraction() {
 		return
 	}
 	if wasDragging && !matrix.Vec2Approx(c.position, c.dragOrigin) {
-		c.graph.history.Add(&shaderGraphCommentPositionHistory{
+		c.graph.history.Add(&renderGraphCommentPositionHistory{
 			graph: c.graph,
 			id:    c.id,
 			from:  c.dragOrigin,
@@ -184,7 +184,7 @@ func (c *shaderGraphComment) stopInteraction() {
 		})
 	}
 	if wasResizing && !matrix.Vec2Approx(c.size, c.sizeOrigin) {
-		c.graph.history.Add(&shaderGraphCommentSizeHistory{
+		c.graph.history.Add(&renderGraphCommentSizeHistory{
 			graph: c.graph,
 			id:    c.id,
 			from:  c.sizeOrigin,
@@ -193,7 +193,7 @@ func (c *shaderGraphComment) stopInteraction() {
 	}
 }
 
-func (c *shaderGraphComment) beginDrag() {
+func (c *renderGraphComment) beginDrag() {
 	if c == nil || c.host == nil || c.host.Window == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func (c *shaderGraphComment) beginDrag() {
 	c.sizeOrigin = c.size
 }
 
-func (c *shaderGraphComment) beginResize() {
+func (c *renderGraphComment) beginResize() {
 	if c == nil || c.host == nil || c.host.Window == nil {
 		return
 	}
@@ -227,11 +227,11 @@ func (c *shaderGraphComment) beginResize() {
 	c.sizeOrigin = c.size
 }
 
-func (c *shaderGraphComment) setSize(size matrix.Vec2) {
+func (c *renderGraphComment) setSize(size matrix.Vec2) {
 	if c == nil {
 		return
 	}
-	size = shaderGraphCommentClampSize(size)
+	size = renderGraphCommentClampSize(size)
 	if matrix.Vec2Approx(c.size, size) {
 		return
 	}
@@ -240,7 +240,7 @@ func (c *shaderGraphComment) setSize(size matrix.Vec2) {
 	c.applyViewOffset()
 }
 
-func (c *shaderGraphComment) applySize() {
+func (c *renderGraphComment) applySize() {
 	if c == nil || c.root == nil {
 		return
 	}
@@ -248,23 +248,23 @@ func (c *shaderGraphComment) applySize() {
 	height := float32(c.size.Y())
 	c.root.Base().Layout().Scale(width, height)
 	if c.labelInput != nil {
-		c.labelInput.Base().Layout().Scale(max(1, width-16), shaderGraphCommentHeaderHeight)
+		c.labelInput.Base().Layout().Scale(max(1, width-16), renderGraphCommentHeaderHeight)
 	}
 	if c.header != nil {
-		c.header.Base().Layout().Scale(width, shaderGraphCommentHeaderHeight)
+		c.header.Base().Layout().Scale(width, renderGraphCommentHeaderHeight)
 	}
 	if c.bodyDrag != nil {
-		c.bodyDrag.Base().Layout().Scale(width, max(1, height-shaderGraphCommentHeaderHeight))
+		c.bodyDrag.Base().Layout().Scale(width, max(1, height-renderGraphCommentHeaderHeight))
 	}
 	if c.resizeGrip != nil {
-		c.resizeGrip.Base().Layout().SetOffset(width-shaderGraphCommentGripSize, height-shaderGraphCommentGripSize)
+		c.resizeGrip.Base().Layout().SetOffset(width-renderGraphCommentGripSize, height-renderGraphCommentGripSize)
 	}
 	if c.selectionFrame != nil {
 		c.selectionFrame.Base().Layout().Scale(width, height)
 	}
 }
 
-func (c *shaderGraphComment) bindDragEvents(target *ui.UI) {
+func (c *renderGraphComment) bindDragEvents(target *ui.UI) {
 	if c == nil || target == nil {
 		return
 	}
@@ -273,14 +273,14 @@ func (c *shaderGraphComment) bindDragEvents(target *ui.UI) {
 	target.AddEvent(ui.EventTypeDragEnd, c.stopInteraction)
 }
 
-func (c *shaderGraphComment) createHeader(uiMan *ui.Manager) {
+func (c *renderGraphComment) createHeader(uiMan *ui.Manager) {
 	c.header = uiMan.Add().ToPanel()
 	c.header.Init(nil, ui.ElementTypePanel)
 	c.header.DontFitContent()
-	c.header.SetColor(shaderGraphCommentHeaderColor)
+	c.header.SetColor(renderGraphCommentHeaderColor)
 	c.header.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	c.header.Base().Layout().SetZ(0.1)
-	c.header.Base().Layout().Scale(float32(c.size.X()), shaderGraphCommentHeaderHeight)
+	c.header.Base().Layout().Scale(float32(c.size.X()), renderGraphCommentHeaderHeight)
 	c.header.Base().Layout().SetOffset(0, 0)
 	c.bindDragEvents(c.header.Base())
 	c.root.AddChild(c.header.Base())
@@ -291,7 +291,7 @@ func (c *shaderGraphComment) createHeader(uiMan *ui.Manager) {
 	c.labelInput.SetFontSize(12)
 	c.labelInput.SetWrap(false)
 	c.labelInput.SetFGColor(matrix.NewColor(0.88, 0.90, 0.94, 1))
-	c.labelInput.SetBGColor(shaderGraphCommentHeaderColor)
+	c.labelInput.SetBGColor(renderGraphCommentHeaderColor)
 	c.labelInput.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	c.labelInput.Base().Layout().SetZ(0.2)
 	c.labelInput.Base().Layout().SetOffset(6, 0)
@@ -301,34 +301,34 @@ func (c *shaderGraphComment) createHeader(uiMan *ui.Manager) {
 	c.header.AddChild(c.labelInput.Base())
 }
 
-func (c *shaderGraphComment) createBodyDragSurface(uiMan *ui.Manager) {
+func (c *renderGraphComment) createBodyDragSurface(uiMan *ui.Manager) {
 	c.bodyDrag = uiMan.Add().ToPanel()
 	c.bodyDrag.Init(nil, ui.ElementTypePanel)
 	c.bodyDrag.DontFitContent()
 	c.bodyDrag.SetColor(matrix.ColorTransparent())
 	c.bodyDrag.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	c.bodyDrag.Base().Layout().SetZ(0.05)
-	c.bodyDrag.Base().Layout().SetOffset(0, shaderGraphCommentHeaderHeight)
+	c.bodyDrag.Base().Layout().SetOffset(0, renderGraphCommentHeaderHeight)
 	c.bindDragEvents(c.bodyDrag.Base())
 	c.root.AddChild(c.bodyDrag.Base())
 }
 
-func (c *shaderGraphComment) createResizeGrip(uiMan *ui.Manager) {
+func (c *renderGraphComment) createResizeGrip(uiMan *ui.Manager) {
 	c.resizeGrip = uiMan.Add().ToPanel()
 	c.resizeGrip.Init(nil, ui.ElementTypePanel)
 	c.resizeGrip.DontFitContent()
-	c.resizeGrip.SetColor(shaderGraphCommentGripColor)
+	c.resizeGrip.SetColor(renderGraphCommentGripColor)
 	c.resizeGrip.SetBorderRadius(3, 3, 3, 3)
 	c.resizeGrip.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	c.resizeGrip.Base().Layout().SetZ(0.4)
-	c.resizeGrip.Base().Layout().Scale(shaderGraphCommentGripSize, shaderGraphCommentGripSize)
+	c.resizeGrip.Base().Layout().Scale(renderGraphCommentGripSize, renderGraphCommentGripSize)
 	c.resizeGrip.Base().AddEvent(ui.EventTypeDown, c.beginResize)
 	c.resizeGrip.Base().AddEvent(ui.EventTypeUp, c.stopInteraction)
 	c.resizeGrip.Base().AddEvent(ui.EventTypeDragEnd, c.stopInteraction)
 	c.root.AddChild(c.resizeGrip.Base())
 }
 
-func (c *shaderGraphComment) createSelectionFrame(uiMan *ui.Manager) {
+func (c *renderGraphComment) createSelectionFrame(uiMan *ui.Manager) {
 	c.selectionFrame = uiMan.Add().ToPanel()
 	c.selectionFrame.Init(nil, ui.ElementTypePanel)
 	c.selectionFrame.AllowClickThrough()
@@ -337,10 +337,10 @@ func (c *shaderGraphComment) createSelectionFrame(uiMan *ui.Manager) {
 	c.selectionFrame.SetBorderRadius(5, 5, 5, 5)
 	c.selectionFrame.SetBorderSize(2, 2, 2, 2)
 	c.selectionFrame.SetBorderColor(
-		shaderGraphNodeSelectColor,
-		shaderGraphNodeSelectColor,
-		shaderGraphNodeSelectColor,
-		shaderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
+		renderGraphNodeSelectColor,
 	)
 	c.selectionFrame.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	c.selectionFrame.Base().Layout().SetZ(0.8)
@@ -349,22 +349,22 @@ func (c *shaderGraphComment) createSelectionFrame(uiMan *ui.Manager) {
 	c.root.AddChild(c.selectionFrame.Base())
 }
 
-func shaderGraphCommentSizeOrDefault(size matrix.Vec2) matrix.Vec2 {
+func renderGraphCommentSizeOrDefault(size matrix.Vec2) matrix.Vec2 {
 	if size.X() <= 0 {
-		size.SetX(matrix.Float(shaderGraphCommentDefaultWidth))
+		size.SetX(matrix.Float(renderGraphCommentDefaultWidth))
 	}
 	if size.Y() <= 0 {
-		size.SetY(matrix.Float(shaderGraphCommentDefaultHeight))
+		size.SetY(matrix.Float(renderGraphCommentDefaultHeight))
 	}
-	return shaderGraphCommentClampSize(size)
+	return renderGraphCommentClampSize(size)
 }
 
-func shaderGraphCommentClampSize(size matrix.Vec2) matrix.Vec2 {
-	if size.X() < shaderGraphCommentMinWidth {
-		size.SetX(shaderGraphCommentMinWidth)
+func renderGraphCommentClampSize(size matrix.Vec2) matrix.Vec2 {
+	if size.X() < renderGraphCommentMinWidth {
+		size.SetX(renderGraphCommentMinWidth)
 	}
-	if size.Y() < shaderGraphCommentMinHeight {
-		size.SetY(shaderGraphCommentMinHeight)
+	if size.Y() < renderGraphCommentMinHeight {
+		size.SetY(renderGraphCommentMinHeight)
 	}
 	return size
 }

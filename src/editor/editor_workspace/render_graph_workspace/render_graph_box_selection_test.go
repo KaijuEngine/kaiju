@@ -6,11 +6,11 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func TestShaderGraphNodesTouchedByBoxIncludesIntersectingNodes(t *testing.T) {
-	graph := shaderGraph{}
-	a := &shaderGraphNode{id: "a", position: matrix.NewVec2(10, 10), height: 80}
-	b := &shaderGraphNode{id: "b", position: matrix.NewVec2(260, 10), height: 80}
-	graph.nodes = []*shaderGraphNode{a, b}
+func TestRenderGraphNodesTouchedByBoxIncludesIntersectingNodes(t *testing.T) {
+	graph := renderGraph{}
+	a := &renderGraphNode{id: "a", position: matrix.NewVec2(10, 10), height: 80}
+	b := &renderGraphNode{id: "b", position: matrix.NewVec2(260, 10), height: 80}
+	graph.nodes = []*renderGraphNode{a, b}
 
 	touched := graph.nodesTouchedByBox(matrix.NewVec4(0, 0, 20, 20))
 
@@ -19,10 +19,10 @@ func TestShaderGraphNodesTouchedByBoxIncludesIntersectingNodes(t *testing.T) {
 	}
 }
 
-func TestShaderGraphNodesTouchedByBoxIncludesEdgeTouches(t *testing.T) {
-	graph := shaderGraph{}
-	node := &shaderGraphNode{id: "node", position: matrix.NewVec2(10, 10), height: 80}
-	graph.nodes = []*shaderGraphNode{node}
+func TestRenderGraphNodesTouchedByBoxIncludesEdgeTouches(t *testing.T) {
+	graph := renderGraph{}
+	node := &renderGraphNode{id: "node", position: matrix.NewVec2(10, 10), height: 80}
+	graph.nodes = []*renderGraphNode{node}
 
 	touched := graph.nodesTouchedByBox(matrix.NewVec4(220, 90, 240, 120))
 
@@ -31,25 +31,25 @@ func TestShaderGraphNodesTouchedByBoxIncludesEdgeTouches(t *testing.T) {
 	}
 }
 
-func TestShaderGraphBoxSelectionModes(t *testing.T) {
-	graph := shaderGraph{}
-	a := &shaderGraphNode{id: "a"}
-	b := &shaderGraphNode{id: "b"}
-	c := &shaderGraphNode{id: "c"}
-	graph.nodes = []*shaderGraphNode{a, b, c}
+func TestRenderGraphBoxSelectionModes(t *testing.T) {
+	graph := renderGraph{}
+	a := &renderGraphNode{id: "a"}
+	b := &renderGraphNode{id: "b"}
+	c := &renderGraphNode{id: "c"}
+	graph.nodes = []*renderGraphNode{a, b, c}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionReplace)
-	graph.SelectNodes([]*shaderGraphNode{b}, shaderGraphSelectionAppend)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{b}, renderGraphSelectionAppend)
 	if !graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("append box selection should add touched nodes")
 	}
 
-	graph.SelectNodes([]*shaderGraphNode{a}, shaderGraphSelectionSubtract)
+	graph.SelectNodes([]*renderGraphNode{a}, renderGraphSelectionSubtract)
 	if graph.IsSelected(a) || !graph.IsSelected(b) {
 		t.Fatalf("subtract box selection should remove touched nodes")
 	}
 
-	graph.SelectNodes([]*shaderGraphNode{c}, shaderGraphSelectionReplace)
+	graph.SelectNodes([]*renderGraphNode{c}, renderGraphSelectionReplace)
 	if graph.IsSelected(a) || graph.IsSelected(b) || !graph.IsSelected(c) {
 		t.Fatalf("replace box selection should select only touched nodes")
 	}

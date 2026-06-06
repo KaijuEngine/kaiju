@@ -7,10 +7,10 @@ import (
 	"kaijuengine.com/engine/ui"
 )
 
-func TestShaderGraphConnectPortsAddsUndoableHistory(t *testing.T) {
+func TestRenderGraphConnectPortsAddsUndoableHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := testShaderGraphWithConnectablePorts()
+	graph, output, input := TestRenderGraphWithConnectablePorts()
 	graph.history = history
 
 	if connection := graph.ConnectPorts(output, input); connection == nil {
@@ -31,10 +31,10 @@ func TestShaderGraphConnectPortsAddsUndoableHistory(t *testing.T) {
 	}
 }
 
-func TestShaderGraphConnectPortsSkipsHistoryForExistingConnection(t *testing.T) {
+func TestRenderGraphConnectPortsSkipsHistoryForExistingConnection(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := testShaderGraphWithConnectablePorts()
+	graph, output, input := TestRenderGraphWithConnectablePorts()
 	graph.history = history
 
 	graph.ConnectPorts(output, input)
@@ -57,11 +57,11 @@ func TestShaderGraphConnectPortsSkipsHistoryForExistingConnection(t *testing.T) 
 	}
 }
 
-func TestShaderGraphConnectPortsReplacesExistingInputConnectionWithHistory(t *testing.T) {
+func TestRenderGraphConnectPortsReplacesExistingInputConnectionWithHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := testShaderGraphWithConnectablePorts()
-	replacementOutput := testShaderGraphOutputPort(graph, "replacement-output-node", 0)
+	graph, output, input := TestRenderGraphWithConnectablePorts()
+	replacementOutput := TestRenderGraphOutputPort(graph, "replacement-output-node", 0)
 	graph.CreateConnection(output, input)
 	graph.history = history
 
@@ -92,9 +92,9 @@ func TestShaderGraphConnectPortsReplacesExistingInputConnectionWithHistory(t *te
 	}
 }
 
-func TestShaderGraphCreateConnectionAllowsOnlyOneInputConnection(t *testing.T) {
-	graph, output, input := testShaderGraphWithConnectablePorts()
-	replacementOutput := testShaderGraphOutputPort(graph, "replacement-output-node", 0)
+func TestRenderGraphCreateConnectionAllowsOnlyOneInputConnection(t *testing.T) {
+	graph, output, input := TestRenderGraphWithConnectablePorts()
+	replacementOutput := TestRenderGraphOutputPort(graph, "replacement-output-node", 0)
 
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(replacementOutput, input)
@@ -107,11 +107,11 @@ func TestShaderGraphCreateConnectionAllowsOnlyOneInputConnection(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDisconnectPortAddsUndoableHistory(t *testing.T) {
+func TestRenderGraphDisconnectPortAddsUndoableHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, input := testShaderGraphWithConnectablePorts()
-	secondInput := testShaderGraphInputPort(graph, "second-input-node", 0)
+	graph, output, input := TestRenderGraphWithConnectablePorts()
+	secondInput := TestRenderGraphInputPort(graph, "second-input-node", 0)
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(output, secondInput)
 	graph.history = history
@@ -134,10 +134,10 @@ func TestShaderGraphDisconnectPortAddsUndoableHistory(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDisconnectPortSkipsHistoryWhenNothingRemoved(t *testing.T) {
+func TestRenderGraphDisconnectPortSkipsHistoryWhenNothingRemoved(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph, output, _ := testShaderGraphWithConnectablePorts()
+	graph, output, _ := TestRenderGraphWithConnectablePorts()
 	graph.history = history
 
 	if graph.DisconnectPort(output) {
@@ -148,17 +148,17 @@ func TestShaderGraphDisconnectPortSkipsHistoryWhenNothingRemoved(t *testing.T) {
 	}
 }
 
-func TestShaderGraphDisconnectPortHonorsSocketDirection(t *testing.T) {
-	graph, output, input := testShaderGraphWithConnectablePorts()
-	sameNodeOutput := &shaderGraphPort{
+func TestRenderGraphDisconnectPortHonorsSocketDirection(t *testing.T) {
+	graph, output, input := TestRenderGraphWithConnectablePorts()
+	sameNodeOutput := &renderGraphPort{
 		graph:  graph,
 		node:   input.node,
-		spec:   shaderGraphPortSpec{Type: "float"},
+		spec:   renderGraphPortSpec{Type: "float"},
 		output: true,
 		index:  input.index,
 	}
-	input.node.outputs = []*shaderGraphPort{sameNodeOutput}
-	otherInput := testShaderGraphInputPort(graph, "other-input-node", 0)
+	input.node.outputs = []*renderGraphPort{sameNodeOutput}
+	otherInput := TestRenderGraphInputPort(graph, "other-input-node", 0)
 	graph.CreateConnection(output, input)
 	graph.CreateConnection(sameNodeOutput, otherInput)
 
@@ -173,52 +173,52 @@ func TestShaderGraphDisconnectPortHonorsSocketDirection(t *testing.T) {
 	}
 }
 
-func testShaderGraphWithConnectablePorts() (*shaderGraph, *shaderGraphPort, *shaderGraphPort) {
-	graph := &shaderGraph{root: &ui.Panel{}}
-	outputNode := &shaderGraphNode{id: "output-node", typeID: "value"}
-	inputNode := &shaderGraphNode{id: "input-node", typeID: "mix-color"}
-	output := &shaderGraphPort{
+func TestRenderGraphWithConnectablePorts() (*renderGraph, *renderGraphPort, *renderGraphPort) {
+	graph := &renderGraph{root: &ui.Panel{}}
+	outputNode := &renderGraphNode{id: "output-node", typeID: "value"}
+	inputNode := &renderGraphNode{id: "input-node", typeID: "mix-color"}
+	output := &renderGraphPort{
 		graph:  graph,
 		node:   outputNode,
-		spec:   shaderGraphPortSpec{Type: "float"},
+		spec:   renderGraphPortSpec{Type: "float"},
 		output: true,
 		index:  0,
 	}
-	input := &shaderGraphPort{
+	input := &renderGraphPort{
 		graph: graph,
 		node:  inputNode,
-		spec:  shaderGraphPortSpec{Type: "float"},
+		spec:  renderGraphPortSpec{Type: "float"},
 		index: 0,
 	}
-	outputNode.outputs = []*shaderGraphPort{output}
-	inputNode.inputs = []*shaderGraphPort{input}
-	graph.nodes = []*shaderGraphNode{outputNode, inputNode}
+	outputNode.outputs = []*renderGraphPort{output}
+	inputNode.inputs = []*renderGraphPort{input}
+	graph.nodes = []*renderGraphNode{outputNode, inputNode}
 	return graph, output, input
 }
 
-func testShaderGraphInputPort(graph *shaderGraph, nodeID string, index int) *shaderGraphPort {
-	node := &shaderGraphNode{id: nodeID, typeID: "mix-color", graph: graph}
-	port := &shaderGraphPort{
+func TestRenderGraphInputPort(graph *renderGraph, nodeID string, index int) *renderGraphPort {
+	node := &renderGraphNode{id: nodeID, typeID: "mix-color", graph: graph}
+	port := &renderGraphPort{
 		graph: graph,
 		node:  node,
-		spec:  shaderGraphPortSpec{Type: "float"},
+		spec:  renderGraphPortSpec{Type: "float"},
 		index: index,
 	}
-	node.inputs = []*shaderGraphPort{port}
+	node.inputs = []*renderGraphPort{port}
 	graph.nodes = append(graph.nodes, node)
 	return port
 }
 
-func testShaderGraphOutputPort(graph *shaderGraph, nodeID string, index int) *shaderGraphPort {
-	node := &shaderGraphNode{id: nodeID, typeID: "value", graph: graph}
-	port := &shaderGraphPort{
+func TestRenderGraphOutputPort(graph *renderGraph, nodeID string, index int) *renderGraphPort {
+	node := &renderGraphNode{id: nodeID, typeID: "value", graph: graph}
+	port := &renderGraphPort{
 		graph:  graph,
 		node:   node,
-		spec:   shaderGraphPortSpec{Type: "float"},
+		spec:   renderGraphPortSpec{Type: "float"},
 		output: true,
 		index:  index,
 	}
-	node.outputs = []*shaderGraphPort{port}
+	node.outputs = []*renderGraphPort{port}
 	graph.nodes = append(graph.nodes, node)
 	return port
 }

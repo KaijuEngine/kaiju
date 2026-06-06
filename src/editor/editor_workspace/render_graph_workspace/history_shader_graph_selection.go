@@ -8,25 +8,25 @@ package render_graph_workspace
 
 import "kaijuengine.com/platform/profiler/tracing"
 
-type shaderGraphSelectionHistory struct {
-	graph *shaderGraph
+type renderGraphSelectionHistory struct {
+	graph *renderGraph
 	from  []string
 	to    []string
 }
 
-func (h *shaderGraphSelectionHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphSelectionHistory.Redo").End()
+func (h *renderGraphSelectionHistory) Redo() {
+	defer tracing.NewRegion("renderGraphSelectionHistory.Redo").End()
 	if h.graph != nil {
 		h.graph.setSelectionIDs(h.to)
 	}
 }
 
-func (h *shaderGraphSelectionHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphSelectionHistory.Undo").End()
+func (h *renderGraphSelectionHistory) Undo() {
+	defer tracing.NewRegion("renderGraphSelectionHistory.Undo").End()
 	if h.graph != nil {
 		h.graph.setSelectionIDs(h.from)
 	}
 }
 
-func (h *shaderGraphSelectionHistory) Delete() {}
-func (h *shaderGraphSelectionHistory) Exit()   {}
+func (h *renderGraphSelectionHistory) Delete() {}
+func (h *renderGraphSelectionHistory) Exit()   {}

@@ -6,17 +6,17 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func TestShaderGraphNodeCreateHistoryUndoRedo(t *testing.T) {
-	graph := &shaderGraph{}
-	previous := &shaderGraphNode{id: "previous-node"}
-	graph.nodes = []*shaderGraphNode{previous}
-	graph.setSelectionNodes([]*shaderGraphNode{previous})
+func TestRenderGraphNodeCreateHistoryUndoRedo(t *testing.T) {
+	graph := &renderGraph{}
+	previous := &renderGraphNode{id: "previous-node"}
+	graph.nodes = []*renderGraphNode{previous}
+	graph.setSelectionNodes([]*renderGraphNode{previous})
 	node := RenderGraphNode{
 		ID:       "created-node",
 		Type:     "value",
 		Position: matrix.NewVec2(12, 34),
 	}
-	history := &shaderGraphNodeCreateHistory{
+	history := &renderGraphNodeCreateHistory{
 		graph:             graph,
 		node:              node,
 		previousSelection: graph.selectionIDs(),
@@ -47,8 +47,8 @@ func TestShaderGraphNodeCreateHistoryUndoRedo(t *testing.T) {
 	}
 }
 
-func TestShaderGraphRemoveNodeRemovesTouchedConnections(t *testing.T) {
-	graph, output, input := testShaderGraphWithConnectablePorts()
+func TestRenderGraphRemoveNodeRemovesTouchedConnections(t *testing.T) {
+	graph, output, input := TestRenderGraphWithConnectablePorts()
 	graph.ConnectPorts(output, input)
 
 	if !graph.RemoveNode("output-node") {

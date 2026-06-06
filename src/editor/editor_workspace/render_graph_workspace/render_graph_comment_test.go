@@ -56,10 +56,10 @@ func TestRenderGraphCreateCommentFromActionCreatesUndoableComment(t *testing.T) 
 	}
 }
 
-func TestShaderGraphDeleteSelectedCommentAddsUndoableHistory(t *testing.T) {
+func TestRenderGraphDeleteSelectedCommentAddsUndoableHistory(t *testing.T) {
 	history := &memento.History{}
 	history.Initialize(8)
-	graph := shaderGraph{history: history}
+	graph := renderGraph{history: history}
 	comment := graph.createCommentFromSnapshot(RenderGraphComment{
 		ID:       "comment-a",
 		Label:    "Group",
@@ -85,10 +85,10 @@ func TestShaderGraphDeleteSelectedCommentAddsUndoableHistory(t *testing.T) {
 	}
 }
 
-func TestShaderGraphCommentSizeClampsToMinimum(t *testing.T) {
-	got := shaderGraphCommentSizeOrDefault(matrix.NewVec2(1, 2))
+func TestRenderGraphCommentSizeClampsToMinimum(t *testing.T) {
+	got := renderGraphCommentSizeOrDefault(matrix.NewVec2(1, 2))
 
-	if got.X() != shaderGraphCommentMinWidth || got.Y() != shaderGraphCommentMinHeight {
-		t.Fatalf("clamped size = %v, want min %v x %v", got, shaderGraphCommentMinWidth, shaderGraphCommentMinHeight)
+	if got.X() != renderGraphCommentMinWidth || got.Y() != renderGraphCommentMinHeight {
+		t.Fatalf("clamped size = %v, want min %v x %v", got, renderGraphCommentMinWidth, renderGraphCommentMinHeight)
 	}
 }

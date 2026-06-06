@@ -17,24 +17,24 @@ import (
 )
 
 const (
-	shaderGraphFieldHeight     = float32(21)
-	shaderGraphFieldGap        = float32(4)
-	shaderGraphFieldLabelWidth = float32(54)
-	shaderGraphFieldControlH   = float32(20)
-	shaderGraphFieldControlX   = shaderGraphNodePadding + shaderGraphFieldLabelWidth + 5
-	shaderGraphTexturePreview  = float32(52)
+	renderGraphFieldHeight     = float32(21)
+	renderGraphFieldGap        = float32(4)
+	renderGraphFieldLabelWidth = float32(54)
+	renderGraphFieldControlH   = float32(20)
+	renderGraphFieldControlX   = renderGraphNodePadding + renderGraphFieldLabelWidth + 5
+	renderGraphTexturePreview  = float32(52)
 )
 
 var (
-	shaderGraphFieldLabelColor   = matrix.NewColor(0.74, 0.78, 0.84, 1)
-	shaderGraphFieldControlColor = matrix.NewColor(0.085, 0.095, 0.115, 1)
-	shaderGraphFieldBorderColor  = matrix.NewColor(0.22, 0.24, 0.29, 1)
-	shaderGraphFieldTextColor    = matrix.NewColor(0.88, 0.90, 0.94, 1)
+	renderGraphFieldLabelColor   = matrix.NewColor(0.74, 0.78, 0.84, 1)
+	renderGraphFieldControlColor = matrix.NewColor(0.085, 0.095, 0.115, 1)
+	renderGraphFieldBorderColor  = matrix.NewColor(0.22, 0.24, 0.29, 1)
+	renderGraphFieldTextColor    = matrix.NewColor(0.88, 0.90, 0.94, 1)
 )
 
-type shaderGraphNodeField struct {
-	node           *shaderGraphNode
-	spec           shaderGraphNodeFieldSpec
+type renderGraphNodeField struct {
+	node           *renderGraphNode
+	spec           renderGraphNodeFieldSpec
 	label          *ui.Label
 	inputs         []*ui.Input
 	checkbox       *ui.Checkbox
@@ -47,49 +47,49 @@ type shaderGraphNodeField struct {
 	texturePreview *ui.Image
 }
 
-func (n *shaderGraphNode) createFields(uiMan *ui.Manager, fields []shaderGraphNodeFieldSpec) {
+func (n *renderGraphNode) createFields(uiMan *ui.Manager, fields []renderGraphNodeFieldSpec) {
 	if len(fields) == 0 {
 		return
 	}
-	y := shaderGraphNodeFieldStartY
+	y := renderGraphNodeFieldStartY
 	for i := range fields {
-		field := &shaderGraphNodeField{
+		field := &renderGraphNodeField{
 			node: n,
 			spec: fields[i],
 		}
 		n.fields = append(n.fields, field)
-		n.setFieldValue(fields[i].ID, shaderGraphDefaultFieldValue(fields[i]))
+		n.setFieldValue(fields[i].ID, renderGraphDefaultFieldValue(fields[i]))
 		field.create(uiMan, y)
-		y += shaderGraphNodeFieldHeight(fields[i]) + shaderGraphFieldGap
+		y += renderGraphNodeFieldHeight(fields[i]) + renderGraphFieldGap
 	}
 }
 
-func shaderGraphNodeFieldHeight(field shaderGraphNodeFieldSpec) float32 {
-	if field.Type == shaderGraphNodeFieldTexture && field.Preview {
-		return shaderGraphFieldControlH + 4 + shaderGraphTexturePreview
+func renderGraphNodeFieldHeight(field renderGraphNodeFieldSpec) float32 {
+	if field.Type == renderGraphNodeFieldTexture && field.Preview {
+		return renderGraphFieldControlH + 4 + renderGraphTexturePreview
 	}
-	return shaderGraphFieldHeight
+	return renderGraphFieldHeight
 }
 
-func (f *shaderGraphNodeField) create(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) create(uiMan *ui.Manager, y float32) {
 	f.createLabel(uiMan, y)
 	switch f.spec.Type {
-	case shaderGraphNodeFieldBool:
+	case renderGraphNodeFieldBool:
 		f.createCheckbox(uiMan, y)
-	case shaderGraphNodeFieldSelect:
+	case renderGraphNodeFieldSelect:
 		f.createSelect(uiMan, y)
-	case shaderGraphNodeFieldColor:
+	case renderGraphNodeFieldColor:
 		f.createColor(uiMan, y)
-	case shaderGraphNodeFieldTexture:
+	case renderGraphNodeFieldTexture:
 		f.createTexture(uiMan, y)
-	case shaderGraphNodeFieldVector2:
+	case renderGraphNodeFieldVector2:
 		f.createVector2(uiMan, y)
-	case shaderGraphNodeFieldVector3:
+	case renderGraphNodeFieldVector3:
 		f.createVector3(uiMan, y)
-	case shaderGraphNodeFieldVector4:
+	case renderGraphNodeFieldVector4:
 		f.createVector4(uiMan, y)
 	default:
-		f.createTextInput(uiMan, y, f.spec.Default, f.spec.Type == shaderGraphNodeFieldNumber, func(text string) {
+		f.createTextInput(uiMan, y, f.spec.Default, f.spec.Type == renderGraphNodeFieldNumber, func(text string) {
 			value := f.node.FieldValue(f.spec.ID)
 			value.Text = text
 			f.node.setFieldValue(f.spec.ID, value)
@@ -97,17 +97,17 @@ func (f *shaderGraphNodeField) create(uiMan *ui.Manager, y float32) {
 	}
 }
 
-func (f *shaderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
 	f.textureRoot = uiMan.Add().ToPanel()
 	f.textureRoot.Init(nil, ui.ElementTypePanel)
 	f.textureRoot.DontFitContent()
-	f.textureRoot.SetColor(shaderGraphFieldControlColor)
+	f.textureRoot.SetColor(renderGraphFieldControlColor)
 	f.textureRoot.SetBorderSize(1, 1, 1, 1)
-	f.textureRoot.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	f.textureRoot.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	f.textureRoot.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.textureRoot.Base().Layout().SetZ(0.2)
-	f.textureRoot.Base().Layout().Scale(f.controlWidth(), shaderGraphFieldControlH)
-	f.textureRoot.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
+	f.textureRoot.Base().Layout().Scale(f.controlWidth(), renderGraphFieldControlH)
+	f.textureRoot.Base().Layout().SetOffset(renderGraphFieldControlX, y+1)
 	f.textureRoot.Base().AddEvent(ui.EventTypeClick, f.openTextureSelector)
 	f.node.bindSelectionEvent(f.textureRoot.Base())
 	f.node.root.AddChild(f.textureRoot.Base())
@@ -116,11 +116,11 @@ func (f *shaderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
 	f.textureText.Init(f.textureDisplayText())
 	f.textureText.SetFontSize(9)
 	f.textureText.SetWrap(false)
-	f.textureText.SetColor(shaderGraphFieldTextColor)
+	f.textureText.SetColor(renderGraphFieldTextColor)
 	f.textureText.SetBaseline(rendering.FontBaselineCenter)
 	f.textureText.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.textureText.Base().Layout().SetZ(0.1)
-	f.textureText.Base().Layout().Scale(f.controlWidth()-8, shaderGraphFieldControlH)
+	f.textureText.Base().Layout().Scale(f.controlWidth()-8, renderGraphFieldControlH)
 	f.textureText.Base().Layout().SetOffset(4, 0)
 	f.textureRoot.AddChild(f.textureText.Base())
 
@@ -129,46 +129,46 @@ func (f *shaderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
 	}
 }
 
-func (f *shaderGraphNodeField) createTexturePreview(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createTexturePreview(uiMan *ui.Manager, y float32) {
 	f.texturePreview = uiMan.Add().ToImage()
 	f.texturePreview.Init(nil)
 	preview := f.texturePreview.Base().ToPanel()
 	preview.DontFitContent()
 	preview.SetColor(matrix.ColorWhite())
 	preview.SetBorderSize(1, 1, 1, 1)
-	preview.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	preview.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	f.texturePreview.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.texturePreview.Base().Layout().SetZ(0.2)
-	f.texturePreview.Base().Layout().Scale(shaderGraphTexturePreview, shaderGraphTexturePreview)
-	f.texturePreview.Base().Layout().SetOffset(shaderGraphFieldControlX, y+shaderGraphFieldControlH+4)
+	f.texturePreview.Base().Layout().Scale(renderGraphTexturePreview, renderGraphTexturePreview)
+	f.texturePreview.Base().Layout().SetOffset(renderGraphFieldControlX, y+renderGraphFieldControlH+4)
 	f.texturePreview.Base().AddEvent(ui.EventTypeClick, f.openTextureSelector)
 	f.node.bindSelectionEvent(f.texturePreview.Base())
 	f.node.root.AddChild(f.texturePreview.Base())
 	f.updateTexturePreview()
 }
 
-func (f *shaderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
 	f.label = uiMan.Add().ToLabel()
 	f.label.Init(f.spec.Label)
 	f.label.SetFontSize(9)
 	f.label.SetWrap(false)
-	f.label.SetColor(shaderGraphFieldLabelColor)
+	f.label.SetColor(renderGraphFieldLabelColor)
 	f.label.SetBaseline(rendering.FontBaselineCenter)
 	f.label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.label.Base().Layout().SetZ(0.2)
-	f.label.Base().Layout().Scale(shaderGraphFieldLabelWidth, shaderGraphFieldHeight)
-	f.label.Base().Layout().SetOffset(shaderGraphNodePadding, y)
+	f.label.Base().Layout().Scale(renderGraphFieldLabelWidth, renderGraphFieldHeight)
+	f.label.Base().Layout().SetOffset(renderGraphNodePadding, y)
 	f.node.bindSelectionEvent(f.label.Base())
 	f.node.root.AddChild(f.label.Base())
 }
 
-func (f *shaderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
 	cb := uiMan.Add().ToCheckbox()
 	cb.Init()
 	cb.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	cb.Base().Layout().SetZ(0.2)
-	cb.Base().Layout().Scale(shaderGraphFieldControlH, shaderGraphFieldControlH)
-	cb.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
+	cb.Base().Layout().Scale(renderGraphFieldControlH, renderGraphFieldControlH)
+	cb.Base().Layout().SetOffset(renderGraphFieldControlX, y+1)
 	cb.SetCheckedWithoutEvent(f.spec.DefaultBool)
 	cb.Base().AddEvent(ui.EventTypeChange, func() {
 		value := f.node.FieldValue(f.spec.ID)
@@ -180,17 +180,17 @@ func (f *shaderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
 	f.node.root.AddChild(cb.Base())
 }
 
-func (f *shaderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
 	f.selectRoot = uiMan.Add().ToPanel()
 	f.selectRoot.Init(nil, ui.ElementTypePanel)
 	f.selectRoot.DontFitContent()
-	f.selectRoot.SetColor(shaderGraphFieldControlColor)
+	f.selectRoot.SetColor(renderGraphFieldControlColor)
 	f.selectRoot.SetBorderSize(1, 1, 1, 1)
-	f.selectRoot.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	f.selectRoot.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	f.selectRoot.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.selectRoot.Base().Layout().SetZ(0.2)
-	f.selectRoot.Base().Layout().Scale(f.controlWidth(), shaderGraphFieldControlH)
-	f.selectRoot.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
+	f.selectRoot.Base().Layout().Scale(f.controlWidth(), renderGraphFieldControlH)
+	f.selectRoot.Base().Layout().SetOffset(renderGraphFieldControlX, y+1)
 	f.selectRoot.Base().AddEvent(ui.EventTypeClick, f.toggleSelectList)
 	f.node.bindSelectionEvent(f.selectRoot.Base())
 	f.node.root.AddChild(f.selectRoot.Base())
@@ -199,11 +199,11 @@ func (f *shaderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
 	f.selectLabel.Init(f.selectLabelText())
 	f.selectLabel.SetFontSize(9)
 	f.selectLabel.SetWrap(false)
-	f.selectLabel.SetColor(shaderGraphFieldTextColor)
+	f.selectLabel.SetColor(renderGraphFieldTextColor)
 	f.selectLabel.SetBaseline(rendering.FontBaselineCenter)
 	f.selectLabel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.selectLabel.Base().Layout().SetZ(0.1)
-	f.selectLabel.Base().Layout().Scale(f.controlWidth()-18, shaderGraphFieldControlH)
+	f.selectLabel.Base().Layout().Scale(f.controlWidth()-18, renderGraphFieldControlH)
 	f.selectLabel.Base().Layout().SetOffset(5, 0)
 	f.selectRoot.AddChild(f.selectLabel.Base())
 
@@ -211,19 +211,19 @@ func (f *shaderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
 	arrow.Init("v")
 	arrow.SetFontSize(8)
 	arrow.SetWrap(false)
-	arrow.SetColor(shaderGraphFieldTextColor)
+	arrow.SetColor(renderGraphFieldTextColor)
 	arrow.SetJustify(rendering.FontJustifyCenter)
 	arrow.SetBaseline(rendering.FontBaselineCenter)
 	arrow.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	arrow.Base().Layout().SetZ(0.1)
-	arrow.Base().Layout().Scale(14, shaderGraphFieldControlH)
+	arrow.Base().Layout().Scale(14, renderGraphFieldControlH)
 	arrow.Base().Layout().SetOffset(f.controlWidth()-15, 0)
 	f.selectRoot.AddChild(arrow.Base())
 
 	f.createSelectList(uiMan, y)
 }
 
-func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 	if len(f.spec.Options) == 0 {
 		return
 	}
@@ -231,13 +231,13 @@ func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 	f.selectList = uiMan.Add().ToPanel()
 	f.selectList.Init(nil, ui.ElementTypePanel)
 	f.selectList.DontFitContent()
-	f.selectList.SetColor(shaderGraphNodeBodyColor)
+	f.selectList.SetColor(renderGraphNodeBodyColor)
 	f.selectList.SetBorderSize(1, 1, 1, 1)
-	f.selectList.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	f.selectList.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	f.selectList.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.selectList.Base().Layout().SetZ(0.7)
 	f.selectList.Base().Layout().Scale(f.controlWidth(), optionHeight*float32(len(f.spec.Options)))
-	f.selectList.Base().Layout().SetOffset(shaderGraphFieldControlX, y+shaderGraphFieldControlH+2)
+	f.selectList.Base().Layout().SetOffset(renderGraphFieldControlX, y+renderGraphFieldControlH+2)
 	f.selectList.Base().AddEvent(ui.EventTypeMiss, f.hideSelectList)
 	f.selectList.Base().Hide()
 	f.node.root.AddChild(f.selectList.Base())
@@ -247,7 +247,7 @@ func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 		row := uiMan.Add().ToPanel()
 		row.Init(nil, ui.ElementTypePanel)
 		row.DontFitContent()
-		row.SetColor(shaderGraphFieldControlColor)
+		row.SetColor(renderGraphFieldControlColor)
 		row.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 		row.Base().Layout().SetZ(0.05)
 		row.Base().Layout().Scale(f.controlWidth(), optionHeight)
@@ -262,7 +262,7 @@ func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 		label.Init(option.Label)
 		label.SetFontSize(9)
 		label.SetWrap(false)
-		label.SetColor(shaderGraphFieldTextColor)
+		label.SetColor(renderGraphFieldTextColor)
 		label.SetBaseline(rendering.FontBaselineCenter)
 		label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 		label.Base().Layout().SetZ(0.05)
@@ -272,7 +272,7 @@ func (f *shaderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 	}
 }
 
-func (f *shaderGraphNodeField) toggleSelectList() {
+func (f *renderGraphNodeField) toggleSelectList() {
 	if f.selectList == nil {
 		return
 	}
@@ -283,13 +283,13 @@ func (f *shaderGraphNodeField) toggleSelectList() {
 	}
 }
 
-func (f *shaderGraphNodeField) hideSelectList() {
+func (f *renderGraphNodeField) hideSelectList() {
 	if f.selectList != nil {
 		f.selectList.Base().Hide()
 	}
 }
 
-func (f *shaderGraphNodeField) pickSelectOption(option shaderGraphNodeFieldOption) {
+func (f *renderGraphNodeField) pickSelectOption(option renderGraphNodeFieldOption) {
 	value := f.node.FieldValue(f.spec.ID)
 	value.Option = option.Value
 	f.node.setFieldValue(f.spec.ID, value)
@@ -299,7 +299,7 @@ func (f *shaderGraphNodeField) pickSelectOption(option shaderGraphNodeFieldOptio
 	f.hideSelectList()
 }
 
-func (f *shaderGraphNodeField) selectLabelText() string {
+func (f *renderGraphNodeField) selectLabelText() string {
 	value := f.node.FieldValue(f.spec.ID).Option
 	for _, option := range f.spec.Options {
 		if option.Value == value || option.Label == value {
@@ -312,24 +312,24 @@ func (f *shaderGraphNodeField) selectLabelText() string {
 	return ""
 }
 
-func (f *shaderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
 	value := f.node.FieldValue(f.spec.ID)
-	swatchSize := shaderGraphFieldControlH
+	swatchSize := renderGraphFieldControlH
 	f.swatch = uiMan.Add().ToPanel()
 	f.swatch.Init(nil, ui.ElementTypePanel)
 	f.swatch.DontFitContent()
 	f.swatch.SetColor(value.Color)
 	f.swatch.SetBorderSize(1, 1, 1, 1)
-	f.swatch.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	f.swatch.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	f.swatch.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.swatch.Base().Layout().SetZ(0.2)
 	f.swatch.Base().Layout().Scale(swatchSize, swatchSize)
-	f.swatch.Base().Layout().SetOffset(shaderGraphFieldControlX, y+1)
+	f.swatch.Base().Layout().SetOffset(renderGraphFieldControlX, y+1)
 	f.swatch.Base().AddEvent(ui.EventTypeClick, f.openColorPicker)
 	f.node.bindSelectionEvent(f.swatch.Base())
 	f.node.root.AddChild(f.swatch.Base())
 
-	inputX := shaderGraphFieldControlX + swatchSize + 4
+	inputX := renderGraphFieldControlX + swatchSize + 4
 	inputWidth := f.controlWidth() - swatchSize - 4
 	input := f.createInput(uiMan, inputX, y+1, inputWidth, value.Color.Hex(), false)
 	input.Base().AddEvent(ui.EventTypeChange, func() {
@@ -342,24 +342,24 @@ func (f *shaderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
 	f.inputs = append(f.inputs, input)
 }
 
-func (f *shaderGraphNodeField) createVector3(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createVector3(uiMan *ui.Manager, y float32) {
 	f.createVectorInputs(uiMan, y, 3, []string{"X", "Y", "Z"})
 }
 
-func (f *shaderGraphNodeField) createVector4(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createVector4(uiMan *ui.Manager, y float32) {
 	f.createVectorInputs(uiMan, y, 4, []string{"X", "Y", "Z", "W"})
 }
 
-func (f *shaderGraphNodeField) createVector2(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createVector2(uiMan *ui.Manager, y float32) {
 	f.createVectorInputs(uiMan, y, 2, []string{"X", "Y"})
 }
 
-func (f *shaderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, count int, labels []string) {
-	parts := shaderGraphFieldParts(f.node.FieldValue(f.spec.ID).Parts, count)
+func (f *renderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, count int, labels []string) {
+	parts := renderGraphFieldParts(f.node.FieldValue(f.spec.ID).Parts, count)
 	gap := float32(3)
 	width := (f.controlWidth() - gap*float32(count-1)) / float32(count)
 	for i := 0; i < count; i++ {
-		x := shaderGraphFieldControlX + float32(i)*(width+gap)
+		x := renderGraphFieldControlX + float32(i)*(width+gap)
 		input := f.createInput(uiMan, x, y+1, width, parts[i], true)
 		index := i
 		if i < len(labels) {
@@ -367,7 +367,7 @@ func (f *shaderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, 
 		}
 		input.Base().AddEvent(ui.EventTypeChange, func() {
 			value := f.node.FieldValue(f.spec.ID)
-			value.Parts = shaderGraphFieldParts(value.Parts, count)
+			value.Parts = renderGraphFieldParts(value.Parts, count)
 			value.Parts[index] = input.Text()
 			f.node.setFieldValue(f.spec.ID, value)
 		})
@@ -375,20 +375,20 @@ func (f *shaderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, 
 	}
 }
 
-func (f *shaderGraphNodeField) createTextInput(uiMan *ui.Manager, y float32, text string, number bool, onChange func(string)) {
-	input := f.createInput(uiMan, shaderGraphFieldControlX, y+1, f.controlWidth(), text, number)
+func (f *renderGraphNodeField) createTextInput(uiMan *ui.Manager, y float32, text string, number bool, onChange func(string)) {
+	input := f.createInput(uiMan, renderGraphFieldControlX, y+1, f.controlWidth(), text, number)
 	input.Base().AddEvent(ui.EventTypeChange, func() {
 		onChange(input.Text())
 	})
 	f.inputs = append(f.inputs, input)
 }
 
-func (f *shaderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float32, text string, number bool) *ui.Input {
+func (f *renderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float32, text string, number bool) *ui.Input {
 	input := uiMan.Add().ToInput()
 	input.Init("")
 	input.SetFontSize(9)
-	input.SetFGColor(shaderGraphFieldTextColor)
-	input.SetBGColor(shaderGraphFieldControlColor)
+	input.SetFGColor(renderGraphFieldTextColor)
+	input.SetBGColor(renderGraphFieldControlColor)
 	input.SetCursorColor(matrix.ColorWhite())
 	input.SetTextWithoutEvent(text)
 	if number {
@@ -396,21 +396,21 @@ func (f *shaderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float3
 	}
 	panel := input.Base().ToPanel()
 	panel.SetBorderSize(1, 1, 1, 1)
-	panel.SetBorderColor(shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor, shaderGraphFieldBorderColor)
+	panel.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	input.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	input.Base().Layout().SetZ(0.2)
-	input.Base().Layout().Scale(width, shaderGraphFieldControlH)
+	input.Base().Layout().Scale(width, renderGraphFieldControlH)
 	input.Base().Layout().SetOffset(x, y)
 	f.node.bindSelectionEvent(input.Base())
 	f.node.root.AddChild(input.Base())
 	return input
 }
 
-func (f *shaderGraphNodeField) controlWidth() float32 {
-	return shaderGraphNodeWidth - shaderGraphFieldControlX - shaderGraphNodePadding
+func (f *renderGraphNodeField) controlWidth() float32 {
+	return renderGraphNodeWidth - renderGraphFieldControlX - renderGraphNodePadding
 }
 
-func (f *shaderGraphNodeField) openColorPicker() {
+func (f *renderGraphNodeField) openColorPicker() {
 	if f.node == nil || f.node.host == nil {
 		return
 	}
@@ -425,7 +425,7 @@ func (f *shaderGraphNodeField) openColorPicker() {
 	}
 }
 
-func (f *shaderGraphNodeField) setColor(color matrix.Color) {
+func (f *renderGraphNodeField) setColor(color matrix.Color) {
 	value := f.node.FieldValue(f.spec.ID)
 	value.Color = color
 	f.node.setFieldValue(f.spec.ID, value)
@@ -437,7 +437,7 @@ func (f *shaderGraphNodeField) setColor(color matrix.Color) {
 	}
 }
 
-func (f *shaderGraphNodeField) openTextureSelector() {
+func (f *renderGraphNodeField) openTextureSelector() {
 	if f.node == nil || f.node.graph == nil || f.node.graph.selectTexture == nil {
 		return
 	}
@@ -450,14 +450,14 @@ func (f *shaderGraphNodeField) openTextureSelector() {
 	}, nil)
 }
 
-func (f *shaderGraphNodeField) updateTextureText() {
+func (f *renderGraphNodeField) updateTextureText() {
 	if f.textureText != nil {
 		f.textureText.SetText(f.textureDisplayText())
 	}
 	f.updateTexturePreview()
 }
 
-func (f *shaderGraphNodeField) updateTexturePreview() {
+func (f *renderGraphNodeField) updateTexturePreview() {
 	if f.texturePreview == nil || f.node == nil || f.node.host == nil {
 		return
 	}
@@ -476,7 +476,7 @@ func (f *shaderGraphNodeField) updateTexturePreview() {
 	f.texturePreview.SetTexture(tex)
 }
 
-func (f *shaderGraphNodeField) textureDisplayText() string {
+func (f *renderGraphNodeField) textureDisplayText() string {
 	id := f.node.FieldValue(f.spec.ID).Text
 	if id == "" {
 		return "None"
@@ -487,7 +487,7 @@ func (f *shaderGraphNodeField) textureDisplayText() string {
 	return id
 }
 
-func (n *shaderGraphNode) applyFieldValues() {
+func (n *renderGraphNode) applyFieldValues() {
 	if n == nil {
 		return
 	}
@@ -495,35 +495,35 @@ func (n *shaderGraphNode) applyFieldValues() {
 		field := n.fields[i]
 		value := n.FieldValue(field.spec.ID)
 		switch field.spec.Type {
-		case shaderGraphNodeFieldBool:
+		case renderGraphNodeFieldBool:
 			if field.checkbox != nil {
 				field.checkbox.SetCheckedWithoutEvent(value.Bool)
 			}
-		case shaderGraphNodeFieldSelect:
+		case renderGraphNodeFieldSelect:
 			if field.selectLabel != nil {
 				field.selectLabel.SetText(field.selectLabelText())
 			}
-		case shaderGraphNodeFieldColor:
+		case renderGraphNodeFieldColor:
 			if field.swatch != nil {
 				field.swatch.SetColor(value.Color)
 			}
 			if len(field.inputs) > 0 {
 				field.inputs[0].SetTextWithoutEvent(value.Color.Hex())
 			}
-		case shaderGraphNodeFieldTexture:
+		case renderGraphNodeFieldTexture:
 			field.updateTextureText()
-		case shaderGraphNodeFieldVector2:
-			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
+		case renderGraphNodeFieldVector2:
+			parts := renderGraphFieldParts(value.Parts, len(field.inputs))
 			for j := range field.inputs {
 				field.inputs[j].SetTextWithoutEvent(parts[j])
 			}
-		case shaderGraphNodeFieldVector3:
-			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
+		case renderGraphNodeFieldVector3:
+			parts := renderGraphFieldParts(value.Parts, len(field.inputs))
 			for j := range field.inputs {
 				field.inputs[j].SetTextWithoutEvent(parts[j])
 			}
-		case shaderGraphNodeFieldVector4:
-			parts := shaderGraphFieldParts(value.Parts, len(field.inputs))
+		case renderGraphNodeFieldVector4:
+			parts := renderGraphFieldParts(value.Parts, len(field.inputs))
 			for j := range field.inputs {
 				field.inputs[j].SetTextWithoutEvent(parts[j])
 			}

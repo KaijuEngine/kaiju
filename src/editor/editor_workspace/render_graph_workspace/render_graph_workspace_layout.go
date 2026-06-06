@@ -21,14 +21,14 @@ func (w *RenderGraphWorkspace) applyLayout() {
 	windowHeight := float32(w.Host.Window.Height())
 	viewX := renderGraphSidePanelWidth
 	viewWidth := max(1, windowWidth-viewX)
-	contentHeight := max(1, windowHeight-shadingGraphMenuBarHeight-shadingGraphStatusBarHeight)
+	contentHeight := max(1, windowHeight-renderGraphMenuBarHeight-renderGraphStatusBarHeight)
 	stageHeight := max(1, contentHeight*0.5)
 	graphHeight := max(1, contentHeight-stageHeight)
-	graphTop := shadingGraphMenuBarHeight + stageHeight
+	graphTop := renderGraphMenuBarHeight + stageHeight
 
 	w.applyPanelLayout(w.sidePanel, 0, 0, renderGraphSidePanelWidth, windowHeight, 5)
-	w.applyStageViewportLayout(w.stageViewport, viewX, shadingGraphMenuBarHeight, viewWidth, stageHeight, 2)
-	w.applyPanelLayout(w.shaderGraphArea, viewX, graphTop, viewWidth, graphHeight, 1)
+	w.applyStageViewportLayout(w.stageViewport, viewX, renderGraphMenuBarHeight, viewWidth, stageHeight, 2)
+	w.applyPanelLayout(w.renderGraphArea, viewX, graphTop, viewWidth, graphHeight, 1)
 	w.graph.SetViewport(viewX, graphTop, viewWidth, graphHeight)
 }
 

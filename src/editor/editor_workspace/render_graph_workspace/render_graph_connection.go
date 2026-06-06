@@ -19,27 +19,27 @@ import (
 )
 
 const (
-	shaderGraphSplineSegments = 48
-	shaderGraphSplineStroke   = matrix.Float(2.0)
-	shaderGraphSplineDepth    = matrix.Float(4.35)
+	renderGraphSplineSegments = 48
+	renderGraphSplineStroke   = matrix.Float(2.0)
+	renderGraphSplineDepth    = matrix.Float(4.35)
 )
 
-var shaderGraphSplineID atomic.Uint64
+var renderGraphSplineID atomic.Uint64
 
-type shaderGraphConnection struct {
-	output *shaderGraphPort
-	input  *shaderGraphPort
-	visual shaderGraphSpline
+type renderGraphConnection struct {
+	output *renderGraphPort
+	input  *renderGraphPort
+	visual renderGraphSpline
 }
 
-func (c *shaderGraphConnection) Initialize(host *engine.Host, parent *ui.Panel, output, input *shaderGraphPort) {
+func (c *renderGraphConnection) Initialize(host *engine.Host, parent *ui.Panel, output, input *renderGraphPort) {
 	c.output = output
 	c.input = input
 	c.visual.Initialize(host, parent)
 	c.Update()
 }
 
-func (c *shaderGraphConnection) Update() {
+func (c *renderGraphConnection) Update() {
 	if c.output == nil || c.input == nil {
 		c.visual.Hide()
 		return
@@ -59,39 +59,39 @@ func (c *shaderGraphConnection) Update() {
 	c.visual.Update(start, end)
 }
 
-func (c *shaderGraphConnection) Hide() {
+func (c *renderGraphConnection) Hide() {
 	c.visual.Hide()
 }
 
-func (c *shaderGraphConnection) Destroy() {
+func (c *renderGraphConnection) Destroy() {
 	c.visual.Destroy()
 }
 
-func (c *shaderGraphConnection) matches(outputRef, inputRef RenderGraphPortRef) bool {
+func (c *renderGraphConnection) matches(outputRef, inputRef RenderGraphPortRef) bool {
 	if c == nil {
 		return false
 	}
-	currentOutput, currentInput, ok := shaderGraphConnectionRefs(c.output, c.input)
+	currentOutput, currentInput, ok := renderGraphConnectionRefs(c.output, c.input)
 	return ok && currentOutput == outputRef && currentInput == inputRef
 }
 
-func (c *shaderGraphConnection) renderConnection() (RenderGraphConnection, bool) {
+func (c *renderGraphConnection) renderConnection() (RenderGraphConnection, bool) {
 	if c == nil {
 		return RenderGraphConnection{}, false
 	}
-	outputRef, inputRef, ok := shaderGraphConnectionRefs(c.output, c.input)
+	outputRef, inputRef, ok := renderGraphConnectionRefs(c.output, c.input)
 	if !ok {
 		return RenderGraphConnection{}, false
 	}
 	return RenderGraphConnection{Output: outputRef, Input: inputRef}, true
 }
 
-func (c *shaderGraphConnection) touchesPort(port *shaderGraphPort) bool {
-	portRef, ok := shaderGraphPortRef(port)
+func (c *renderGraphConnection) touchesPort(port *renderGraphPort) bool {
+	portRef, ok := renderGraphPortRef(port)
 	if c == nil || !ok {
 		return false
 	}
-	outputRef, inputRef, ok := shaderGraphConnectionRefs(c.output, c.input)
+	outputRef, inputRef, ok := renderGraphConnectionRefs(c.output, c.input)
 	if !ok {
 		return false
 	}
@@ -101,15 +101,15 @@ func (c *shaderGraphConnection) touchesPort(port *shaderGraphPort) bool {
 	return inputRef == portRef
 }
 
-func (c *shaderGraphConnection) touchesNode(id string) bool {
+func (c *renderGraphConnection) touchesNode(id string) bool {
 	if c == nil || id == "" {
 		return false
 	}
-	outputRef, inputRef, ok := shaderGraphConnectionRefs(c.output, c.input)
+	outputRef, inputRef, ok := renderGraphConnectionRefs(c.output, c.input)
 	return ok && (outputRef.Node == id || inputRef.Node == id)
 }
 
-func shaderGraphConnectionRefs(output, input *shaderGraphPort) (RenderGraphPortRef, RenderGraphPortRef, bool) {
+func renderGraphConnectionRefs(output, input *renderGraphPort) (RenderGraphPortRef, RenderGraphPortRef, bool) {
 	if output == nil || input == nil ||
 		output.node == nil || input.node == nil ||
 		output.node.id == "" || input.node.id == "" {
@@ -124,7 +124,7 @@ func shaderGraphConnectionRefs(output, input *shaderGraphPort) (RenderGraphPortR
 		}, true
 }
 
-type shaderGraphSpline struct {
+type renderGraphSpline struct {
 	host      *engine.Host
 	root      *ui.Panel
 	mesh      *rendering.Mesh
@@ -136,18 +136,18 @@ type shaderGraphSpline struct {
 	color     matrix.Color
 }
 
-func (s *shaderGraphSpline) Initialize(host *engine.Host, parent *ui.Panel) {
+func (s *renderGraphSpline) Initialize(host *engine.Host, parent *ui.Panel) {
 	if host == nil || parent == nil {
 		return
 	}
 	s.host = host
 	s.root = parent
 	s.color = matrix.ColorWhite()
-	s.key = fmt.Sprintf("editor_shading_graph_spline_%d", shaderGraphSplineID.Add(1))
-	s.verts = make([]rendering.Vertex, (shaderGraphSplineSegments+1)*2)
-	s.points = make([]matrix.Vec2, shaderGraphSplineSegments+1)
-	indexes := make([]uint32, shaderGraphSplineSegments*6)
-	for i := 0; i < shaderGraphSplineSegments; i++ {
+	s.key = fmt.Sprintf("editor_shading_graph_spline_%d", renderGraphSplineID.Add(1))
+	s.verts = make([]rendering.Vertex, (renderGraphSplineSegments+1)*2)
+	s.points = make([]matrix.Vec2, renderGraphSplineSegments+1)
+	indexes := make([]uint32, renderGraphSplineSegments*6)
+	for i := 0; i < renderGraphSplineSegments; i++ {
 		startBottom := uint32(i * 2)
 		startTop := startBottom + 1
 		endBottom := uint32((i + 1) * 2)
@@ -163,13 +163,13 @@ func (s *shaderGraphSpline) Initialize(host *engine.Host, parent *ui.Panel) {
 	s.hideVertices()
 	s.mesh = host.MeshCache().DynamicMesh(s.key, s.verts, indexes)
 	s.transform.Initialize(host.WorkGroup())
-	s.transform.SetPosition(matrix.NewVec3(0, 0, shaderGraphSplineDepth))
+	s.transform.SetPosition(matrix.NewVec3(0, 0, renderGraphSplineDepth))
 	s.shader = s.newShaderData()
 	s.addDrawing()
 	s.Hide()
 }
 
-func (s *shaderGraphSpline) newShaderData() *ui.ShaderData {
+func (s *renderGraphSpline) newShaderData() *ui.ShaderData {
 	shader := &ui.ShaderData{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 		UVs:            matrix.Vec4{0, 0, 1, 1},
@@ -182,7 +182,7 @@ func (s *shaderGraphSpline) newShaderData() *ui.ShaderData {
 	return shader
 }
 
-func (s *shaderGraphSpline) addDrawing() {
+func (s *renderGraphSpline) addDrawing() {
 	material, err := s.host.MaterialCache().Material(assets.MaterialDefinitionUITransparent)
 	if err != nil {
 		slog.Error("failed to load shader graph spline material",
@@ -206,7 +206,7 @@ func (s *shaderGraphSpline) addDrawing() {
 	})
 }
 
-func (s *shaderGraphSpline) SetColor(color matrix.Color) {
+func (s *renderGraphSpline) SetColor(color matrix.Color) {
 	if matrix.Vec4Approx(matrix.Vec4(s.color), matrix.Vec4(color)) {
 		return
 	}
@@ -216,20 +216,20 @@ func (s *shaderGraphSpline) SetColor(color matrix.Color) {
 	}
 }
 
-func (s *shaderGraphSpline) Show() {
+func (s *renderGraphSpline) Show() {
 	if s.shader == nil {
 		return
 	}
 	s.shader.Activate()
 }
 
-func (s *shaderGraphSpline) Hide() {
+func (s *renderGraphSpline) Hide() {
 	if s.shader != nil {
 		s.shader.Deactivate()
 	}
 }
 
-func (s *shaderGraphSpline) Update(start, end matrix.Vec2) {
+func (s *renderGraphSpline) Update(start, end matrix.Vec2) {
 	if s.host == nil || s.mesh == nil || s.shader == nil {
 		return
 	}
@@ -244,7 +244,7 @@ func (s *shaderGraphSpline) Update(start, end matrix.Vec2) {
 	s.host.MeshCache().UpdateMeshVertices(s.mesh.Key(), s.verts)
 }
 
-func (s *shaderGraphSpline) Destroy() {
+func (s *renderGraphSpline) Destroy() {
 	if s.shader != nil {
 		s.shader.Destroy()
 	}
@@ -254,22 +254,22 @@ func (s *shaderGraphSpline) Destroy() {
 	s.points = nil
 }
 
-func (s *shaderGraphSpline) updateMesh(p0, p1, p2, p3 matrix.Vec2) {
+func (s *renderGraphSpline) updateMesh(p0, p1, p2, p3 matrix.Vec2) {
 	for i := range s.points {
-		t := matrix.Float(i) / matrix.Float(shaderGraphSplineSegments)
-		s.points[i] = s.localToUIWorld(shaderGraphBezierPoint(p0, p1, p2, p3, t))
+		t := matrix.Float(i) / matrix.Float(renderGraphSplineSegments)
+		s.points[i] = s.localToUIWorld(renderGraphBezierPoint(p0, p1, p2, p3, t))
 	}
 	for i, point := range s.points {
 		tangent := s.splineTangent(i)
-		normal := matrix.NewVec2(-tangent.Y(), tangent.X()).Normal().Scale(shaderGraphSplineStroke * 0.5)
-		t := matrix.Float(i) / matrix.Float(shaderGraphSplineSegments)
+		normal := matrix.NewVec2(-tangent.Y(), tangent.X()).Normal().Scale(renderGraphSplineStroke * 0.5)
+		t := matrix.Float(i) / matrix.Float(renderGraphSplineSegments)
 		base := i * 2
-		s.verts[base+0] = shaderGraphSplineVertex(point.Subtract(normal), matrix.NewVec2(t, 1))
-		s.verts[base+1] = shaderGraphSplineVertex(point.Add(normal), matrix.NewVec2(t, 0))
+		s.verts[base+0] = renderGraphSplineVertex(point.Subtract(normal), matrix.NewVec2(t, 1))
+		s.verts[base+1] = renderGraphSplineVertex(point.Add(normal), matrix.NewVec2(t, 0))
 	}
 }
 
-func (s *shaderGraphSpline) splineTangent(index int) matrix.Vec2 {
+func (s *renderGraphSpline) splineTangent(index int) matrix.Vec2 {
 	last := len(s.points) - 1
 	if last <= 0 {
 		return matrix.NewVec2(1, 0)
@@ -289,7 +289,7 @@ func (s *shaderGraphSpline) splineTangent(index int) matrix.Vec2 {
 	return tangent
 }
 
-func (s *shaderGraphSpline) hideVertices() {
+func (s *renderGraphSpline) hideVertices() {
 	for i := range s.verts {
 		s.verts[i] = rendering.Vertex{
 			Position: matrix.NewVec3(-matrix.FloatMax, -matrix.FloatMax, 0),
@@ -299,7 +299,7 @@ func (s *shaderGraphSpline) hideVertices() {
 	}
 }
 
-func (s *shaderGraphSpline) localToUIWorld(point matrix.Vec2) matrix.Vec2 {
+func (s *renderGraphSpline) localToUIWorld(point matrix.Vec2) matrix.Vec2 {
 	if s.host == nil || s.host.Window == nil || s.root == nil {
 		return point
 	}
@@ -312,7 +312,7 @@ func (s *shaderGraphSpline) localToUIWorld(point matrix.Vec2) matrix.Vec2 {
 	)
 }
 
-func (s *shaderGraphSpline) panelScissor() matrix.Vec4 {
+func (s *renderGraphSpline) panelScissor() matrix.Vec4 {
 	if s.host == nil || s.host.Window == nil || s.root == nil {
 		return matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	}
@@ -328,7 +328,7 @@ func (s *shaderGraphSpline) panelScissor() matrix.Vec4 {
 	return matrix.Vec4{minX, minY, maxX, maxY}
 }
 
-func shaderGraphBezierPoint(p0, p1, p2, p3 matrix.Vec2, t matrix.Float) matrix.Vec2 {
+func renderGraphBezierPoint(p0, p1, p2, p3 matrix.Vec2, t matrix.Float) matrix.Vec2 {
 	mt := 1 - t
 	return p0.Scale(mt * mt * mt).
 		Add(p1.Scale(3 * mt * mt * t)).
@@ -336,7 +336,7 @@ func shaderGraphBezierPoint(p0, p1, p2, p3 matrix.Vec2, t matrix.Float) matrix.V
 		Add(p3.Scale(t * t * t))
 }
 
-func shaderGraphSplineVertex(position matrix.Vec2, uv matrix.Vec2) rendering.Vertex {
+func renderGraphSplineVertex(position matrix.Vec2, uv matrix.Vec2) rendering.Vertex {
 	return rendering.Vertex{
 		Position: matrix.NewVec3(position.X(), position.Y(), 0),
 		UV0:      uv,

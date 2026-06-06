@@ -8,46 +8,46 @@ package render_graph_workspace
 
 import "kaijuengine.com/matrix"
 
-type shaderGraphNodeFieldType string
+type renderGraphNodeFieldType string
 
 const (
-	shaderGraphNodeFieldText    shaderGraphNodeFieldType = "text"
-	shaderGraphNodeFieldNumber  shaderGraphNodeFieldType = "number"
-	shaderGraphNodeFieldBool    shaderGraphNodeFieldType = "bool"
-	shaderGraphNodeFieldSelect  shaderGraphNodeFieldType = "select"
-	shaderGraphNodeFieldColor   shaderGraphNodeFieldType = "color"
-	shaderGraphNodeFieldTexture shaderGraphNodeFieldType = "texture"
-	shaderGraphNodeFieldVector2 shaderGraphNodeFieldType = "vector2"
-	shaderGraphNodeFieldVector3 shaderGraphNodeFieldType = "vector3"
-	shaderGraphNodeFieldVector4 shaderGraphNodeFieldType = "vector4"
+	renderGraphNodeFieldText    renderGraphNodeFieldType = "text"
+	renderGraphNodeFieldNumber  renderGraphNodeFieldType = "number"
+	renderGraphNodeFieldBool    renderGraphNodeFieldType = "bool"
+	renderGraphNodeFieldSelect  renderGraphNodeFieldType = "select"
+	renderGraphNodeFieldColor   renderGraphNodeFieldType = "color"
+	renderGraphNodeFieldTexture renderGraphNodeFieldType = "texture"
+	renderGraphNodeFieldVector2 renderGraphNodeFieldType = "vector2"
+	renderGraphNodeFieldVector3 renderGraphNodeFieldType = "vector3"
+	renderGraphNodeFieldVector4 renderGraphNodeFieldType = "vector4"
 )
 
-type shaderGraphNodeSpec struct {
+type renderGraphNodeSpec struct {
 	Name        string
 	Description string
-	Fields      []shaderGraphNodeFieldSpec
-	Inputs      []shaderGraphPortSpec
-	Outputs     []shaderGraphPortSpec
+	Fields      []renderGraphNodeFieldSpec
+	Inputs      []renderGraphPortSpec
+	Outputs     []renderGraphPortSpec
 }
 
-type shaderGraphPortSpec struct {
+type renderGraphPortSpec struct {
 	Name string
 	Type string
 }
 
-type shaderGraphNodeFieldSpec struct {
+type renderGraphNodeFieldSpec struct {
 	ID            string
 	Label         string
-	Type          shaderGraphNodeFieldType
+	Type          renderGraphNodeFieldType
 	Default       string
 	DefaultValues []string
 	DefaultBool   bool
 	DefaultColor  matrix.Color
 	Preview       bool
-	Options       []shaderGraphNodeFieldOption
+	Options       []renderGraphNodeFieldOption
 }
 
-type shaderGraphNodeFieldOption struct {
+type renderGraphNodeFieldOption struct {
 	Label string
 	Value string
 }

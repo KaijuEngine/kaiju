@@ -11,14 +11,14 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-type shaderGraphCommentCreateHistory struct {
-	graph             *shaderGraph
+type renderGraphCommentCreateHistory struct {
+	graph             *renderGraph
 	comment           RenderGraphComment
 	previousSelection []string
 }
 
-func (h *shaderGraphCommentCreateHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphCommentCreateHistory.Redo").End()
+func (h *renderGraphCommentCreateHistory) Redo() {
+	defer tracing.NewRegion("renderGraphCommentCreateHistory.Redo").End()
 	if h.graph == nil {
 		return
 	}
@@ -29,8 +29,8 @@ func (h *shaderGraphCommentCreateHistory) Redo() {
 	}
 }
 
-func (h *shaderGraphCommentCreateHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphCommentCreateHistory.Undo").End()
+func (h *renderGraphCommentCreateHistory) Undo() {
+	defer tracing.NewRegion("renderGraphCommentCreateHistory.Undo").End()
 	if h.graph == nil {
 		return
 	}
@@ -38,23 +38,23 @@ func (h *shaderGraphCommentCreateHistory) Undo() {
 	h.graph.setSelectionIDs(h.previousSelection)
 }
 
-func (h *shaderGraphCommentCreateHistory) Delete() {}
-func (h *shaderGraphCommentCreateHistory) Exit()   {}
+func (h *renderGraphCommentCreateHistory) Delete() {}
+func (h *renderGraphCommentCreateHistory) Exit()   {}
 
-type shaderGraphCommentDeleteHistory struct {
-	graph   *shaderGraph
+type renderGraphCommentDeleteHistory struct {
+	graph   *renderGraph
 	comment RenderGraphComment
 }
 
-func (h *shaderGraphCommentDeleteHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphCommentDeleteHistory.Redo").End()
+func (h *renderGraphCommentDeleteHistory) Redo() {
+	defer tracing.NewRegion("renderGraphCommentDeleteHistory.Redo").End()
 	if h.graph != nil {
 		h.graph.RemoveComment(h.comment.ID)
 	}
 }
 
-func (h *shaderGraphCommentDeleteHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphCommentDeleteHistory.Undo").End()
+func (h *renderGraphCommentDeleteHistory) Undo() {
+	defer tracing.NewRegion("renderGraphCommentDeleteHistory.Undo").End()
 	if h.graph == nil {
 		return
 	}
@@ -65,27 +65,27 @@ func (h *shaderGraphCommentDeleteHistory) Undo() {
 	}
 }
 
-func (h *shaderGraphCommentDeleteHistory) Delete() {}
-func (h *shaderGraphCommentDeleteHistory) Exit()   {}
+func (h *renderGraphCommentDeleteHistory) Delete() {}
+func (h *renderGraphCommentDeleteHistory) Exit()   {}
 
-type shaderGraphCommentPositionHistory struct {
-	graph *shaderGraph
+type renderGraphCommentPositionHistory struct {
+	graph *renderGraph
 	id    string
 	from  matrix.Vec2
 	to    matrix.Vec2
 }
 
-func (h *shaderGraphCommentPositionHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphCommentPositionHistory.Redo").End()
+func (h *renderGraphCommentPositionHistory) Redo() {
+	defer tracing.NewRegion("renderGraphCommentPositionHistory.Redo").End()
 	h.apply(h.to)
 }
 
-func (h *shaderGraphCommentPositionHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphCommentPositionHistory.Undo").End()
+func (h *renderGraphCommentPositionHistory) Undo() {
+	defer tracing.NewRegion("renderGraphCommentPositionHistory.Undo").End()
 	h.apply(h.from)
 }
 
-func (h *shaderGraphCommentPositionHistory) apply(position matrix.Vec2) {
+func (h *renderGraphCommentPositionHistory) apply(position matrix.Vec2) {
 	if h.graph == nil {
 		return
 	}
@@ -97,27 +97,27 @@ func (h *shaderGraphCommentPositionHistory) apply(position matrix.Vec2) {
 	comment.applyViewOffset()
 }
 
-func (h *shaderGraphCommentPositionHistory) Delete() {}
-func (h *shaderGraphCommentPositionHistory) Exit()   {}
+func (h *renderGraphCommentPositionHistory) Delete() {}
+func (h *renderGraphCommentPositionHistory) Exit()   {}
 
-type shaderGraphCommentSizeHistory struct {
-	graph *shaderGraph
+type renderGraphCommentSizeHistory struct {
+	graph *renderGraph
 	id    string
 	from  matrix.Vec2
 	to    matrix.Vec2
 }
 
-func (h *shaderGraphCommentSizeHistory) Redo() {
-	defer tracing.NewRegion("shaderGraphCommentSizeHistory.Redo").End()
+func (h *renderGraphCommentSizeHistory) Redo() {
+	defer tracing.NewRegion("renderGraphCommentSizeHistory.Redo").End()
 	h.apply(h.to)
 }
 
-func (h *shaderGraphCommentSizeHistory) Undo() {
-	defer tracing.NewRegion("shaderGraphCommentSizeHistory.Undo").End()
+func (h *renderGraphCommentSizeHistory) Undo() {
+	defer tracing.NewRegion("renderGraphCommentSizeHistory.Undo").End()
 	h.apply(h.from)
 }
 
-func (h *shaderGraphCommentSizeHistory) apply(size matrix.Vec2) {
+func (h *renderGraphCommentSizeHistory) apply(size matrix.Vec2) {
 	if h.graph == nil {
 		return
 	}
@@ -128,5 +128,5 @@ func (h *shaderGraphCommentSizeHistory) apply(size matrix.Vec2) {
 	comment.setSize(size)
 }
 
-func (h *shaderGraphCommentSizeHistory) Delete() {}
-func (h *shaderGraphCommentSizeHistory) Exit()   {}
+func (h *renderGraphCommentSizeHistory) Delete() {}
+func (h *renderGraphCommentSizeHistory) Exit()   {}
