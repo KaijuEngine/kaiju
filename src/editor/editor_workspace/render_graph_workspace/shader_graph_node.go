@@ -18,10 +18,10 @@ import (
 
 const (
 	shaderGraphNodeWidth        = float32(210)
-	shaderGraphNodeBaseHeight   = float32(74)
+	shaderGraphNodeBaseHeight   = float32(82)
 	shaderGraphNodePortHeight   = float32(20)
 	shaderGraphNodeHeaderH      = float32(24)
-	shaderGraphNodePadding      = float32(8)
+	shaderGraphNodePadding      = float32(12)
 	shaderGraphNodePortLabelGap = float32(8)
 	shaderGraphNodeFieldStartY  = shaderGraphNodeHeaderH + 38
 	shaderGraphNodePortStartY   = shaderGraphNodeHeaderH + 42
@@ -36,29 +36,30 @@ var (
 )
 
 type shaderGraphNode struct {
-	graph         *shaderGraph
-	host          *engine.Host
-	root          *ui.Panel
-	bodyDrag      *ui.Panel
-	id            string
-	typeID        string
-	title         *ui.Label
-	description   *ui.Label
-	fields        []*shaderGraphNodeField
-	inputs        []*shaderGraphPort
-	outputs       []*shaderGraphPort
-	values        map[string]shaderGraphNodeFieldValue
-	position      matrix.Vec2
-	height        float32
-	zDepth        float32
-	zSlot         int
-	zSlotAssigned bool
-	selected      bool
-	dragging      bool
-	dragMouse     matrix.Vec2
-	dragOrigin    matrix.Vec2
-	dragNodes     []*shaderGraphNode
-	dragOrigins   []matrix.Vec2
+	graph          *shaderGraph
+	host           *engine.Host
+	root           *ui.Panel
+	bodyDrag       *ui.Panel
+	selectionFrame *ui.Panel
+	id             string
+	typeID         string
+	title          *ui.Label
+	description    *ui.Label
+	fields         []*shaderGraphNodeField
+	inputs         []*shaderGraphPort
+	outputs        []*shaderGraphPort
+	values         map[string]shaderGraphNodeFieldValue
+	position       matrix.Vec2
+	height         float32
+	zDepth         float32
+	zSlot          int
+	zSlotAssigned  bool
+	selected       bool
+	dragging       bool
+	dragMouse      matrix.Vec2
+	dragOrigin     matrix.Vec2
+	dragNodes      []*shaderGraphNode
+	dragOrigins    []matrix.Vec2
 }
 
 func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMan *ui.Manager, parent *ui.Panel, spec shaderGraphNodeSpec, position matrix.Vec2) {
@@ -93,6 +94,7 @@ func (n *shaderGraphNode) Initialize(graph *shaderGraph, host *engine.Host, uiMa
 	n.createDescription(uiMan, spec.Description)
 	n.createFields(uiMan, spec.Fields)
 	n.createPorts(uiMan, spec)
+	n.createSelectionFrame(uiMan, height)
 }
 
 func (n *shaderGraphNode) Input(index int) *shaderGraphPort {
@@ -162,24 +164,14 @@ func (n *shaderGraphNode) setSelected(selected bool) {
 		return
 	}
 	if selected {
-		n.root.SetBorderSize(2, 2, 2, 2)
-		n.root.SetBorderColor(
-			shaderGraphNodeSelectColor,
-			shaderGraphNodeSelectColor,
-			shaderGraphNodeSelectColor,
-			shaderGraphNodeSelectColor,
-		)
-		n.root.Base().SetDirty(ui.DirtyTypeColorChange)
+		if n.selectionFrame != nil {
+			n.selectionFrame.Base().Show()
+		}
 		return
 	}
-	n.root.SetBorderSize(1, 1, 1, 1)
-	n.root.SetBorderColor(
-		shaderGraphNodeAccentColor,
-		shaderGraphNodeAccentColor,
-		shaderGraphNodeAccentColor,
-		shaderGraphNodeAccentColor,
-	)
-	n.root.Base().SetDirty(ui.DirtyTypeColorChange)
+	if n.selectionFrame != nil {
+		n.selectionFrame.Base().Hide()
+	}
 }
 
 func (n *shaderGraphNode) stopDrag() {
@@ -324,6 +316,28 @@ func (n *shaderGraphNode) createHeader(uiMan *ui.Manager, name string) {
 	n.title.Base().Layout().Scale(shaderGraphNodeWidth-shaderGraphNodePadding*2, shaderGraphNodeHeaderH)
 	n.title.Base().Layout().SetOffset(shaderGraphNodePadding, 0)
 	header.AddChild(n.title.Base())
+}
+
+func (n *shaderGraphNode) createSelectionFrame(uiMan *ui.Manager, height float32) {
+	n.selectionFrame = uiMan.Add().ToPanel()
+	n.selectionFrame.Init(nil, ui.ElementTypePanel)
+	n.selectionFrame.AllowClickThrough()
+	n.selectionFrame.DontFitContent()
+	n.selectionFrame.SetColor(matrix.ColorTransparent())
+	n.selectionFrame.SetBorderRadius(6, 6, 6, 6)
+	n.selectionFrame.SetBorderSize(2, 2, 2, 2)
+	n.selectionFrame.SetBorderColor(
+		shaderGraphNodeSelectColor,
+		shaderGraphNodeSelectColor,
+		shaderGraphNodeSelectColor,
+		shaderGraphNodeSelectColor,
+	)
+	n.selectionFrame.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	n.selectionFrame.Base().Layout().SetZ(1)
+	n.selectionFrame.Base().Layout().Scale(shaderGraphNodeWidth, height)
+	n.selectionFrame.Base().Layout().SetOffset(0, 0)
+	n.selectionFrame.Base().Hide()
+	n.root.AddChild(n.selectionFrame.Base())
 }
 
 func (n *shaderGraphNode) createDescription(uiMan *ui.Manager, description string) {

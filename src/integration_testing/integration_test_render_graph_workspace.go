@@ -30,15 +30,17 @@ import (
 )
 
 const (
-	renderGraphSplineScreenshotOutput     = "integration_test_render_graph_spline.png"
-	renderGraphCreateMenuScreenshotOutput = "integration_test_render_graph_create_menu.png"
-	renderGraphNodeFieldsScreenshotOutput = "integration_test_render_graph_node_fields.png"
+	renderGraphSplineScreenshotOutput       = "integration_test_render_graph_spline.png"
+	renderGraphCreateMenuScreenshotOutput   = "integration_test_render_graph_create_menu.png"
+	renderGraphNodeFieldsScreenshotOutput   = "integration_test_render_graph_node_fields.png"
+	renderGraphGradientNodeScreenshotOutput = "integration_test_render_graph_gradient_node.png"
 )
 
 func init() {
 	tests["render-graph-spline"] = IntegrationTestRenderGraphSpline
 	tests["render-graph-create-menu"] = IntegrationTestRenderGraphCreateMenu
 	tests["render-graph-node-fields"] = IntegrationTestRenderGraphNodeFields
+	tests["render-graph-gradient-node"] = IntegrationTestRenderGraphGradientNode
 }
 
 func IntegrationTestRenderGraphSpline(host *engine.Host) {
@@ -148,6 +150,42 @@ func IntegrationTestRenderGraphNodeFields(host *engine.Host) {
 		host.Updater.RemoveUpdate(&updateId)
 		ed.cleanup()
 		slog.Info("Screenshot captured", "path", renderGraphNodeFieldsScreenshotOutput)
+		os.Exit(0)
+	})
+}
+
+func IntegrationTestRenderGraphGradientNode(host *engine.Host) {
+	ed, err := newRenderGraphWorkspaceTestEditor(host)
+	if err != nil {
+		failRenderGraphGradientNodeIntegration("create test editor", err)
+	}
+	workspace := &render_graph_workspace.RenderGraphWorkspace{}
+	if err = workspace.Initialize(ed); err != nil {
+		failRenderGraphGradientNodeIntegration("initialize render graph workspace", err)
+	}
+	workspace.Open()
+	updateId := host.Updater.AddUpdate(workspace.Update)
+
+	host.RunAfterFrames(8, func() {
+		workspace.CreateNodeFromAction(render_graph_workspace.CreateNodeActionArgs{
+			NodeID: "gradient", X: 500, Y: 48, UsePosition: true,
+		})
+	})
+	host.RunAfterFrames(32, func() {
+		img, err := captureScreenshotImage(host)
+		if err != nil {
+			failRenderGraphGradientNodeIntegration("capture screenshot", err)
+		}
+		if err = assertRenderGraphGradientNodeScreenshot(host, workspace, img); err != nil {
+			_ = writeScreenshotImage(img, renderGraphGradientNodeScreenshotOutput)
+			failRenderGraphGradientNodeIntegration("screenshot smoke check", err)
+		}
+		if err = writeScreenshotImage(img, renderGraphGradientNodeScreenshotOutput); err != nil {
+			failRenderGraphGradientNodeIntegration("write screenshot", err)
+		}
+		host.Updater.RemoveUpdate(&updateId)
+		ed.cleanup()
+		slog.Info("Screenshot captured", "path", renderGraphGradientNodeScreenshotOutput)
 		os.Exit(0)
 	})
 }
@@ -267,6 +305,63 @@ func assertRenderGraphNodeFieldsScreenshot(host *engine.Host, workspace *render_
 	}
 	if fieldBorderPixels < 180 {
 		return fmt.Errorf("expected visible field control border pixels, found %d", fieldBorderPixels)
+	}
+	return nil
+}
+
+func assertRenderGraphGradientNodeScreenshot(host *engine.Host, workspace *render_graph_workspace.RenderGraphWorkspace, img *image.RGBA) error {
+	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
+	}
+	graphRect := renderGraphWorkspaceGraphRect(host, workspace, bounds)
+	nodeRect := image.Rect(
+		graphRect.Min.X+498,
+		graphRect.Min.Y+46,
+		graphRect.Min.X+714,
+		graphRect.Min.Y+280,
+	).Intersect(bounds)
+	cornerRect := image.Rect(
+		nodeRect.Min.X,
+		nodeRect.Min.Y,
+		nodeRect.Min.X+24,
+		nodeRect.Min.Y+32,
+	).Intersect(bounds)
+	selectedPixels := 0
+	selectedCornerPixels := 0
+	darkPanelPixels := 0
+	lightTextPixels := 0
+	for y := nodeRect.Min.Y; y < nodeRect.Max.Y; y++ {
+		for x := nodeRect.Min.X; x < nodeRect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r > 180 && g > 130 && r-g > 20 && b < 110 {
+				selectedPixels++
+				if image.Pt(x, y).In(cornerRect) {
+					selectedCornerPixels++
+				}
+			}
+			if r >= 20 && r <= 45 && g >= 22 && g <= 48 && b >= 25 && b <= 58 {
+				darkPanelPixels++
+			}
+			if r > 150 && g > 150 && b > 150 {
+				lightTextPixels++
+			}
+		}
+	}
+	if selectedPixels < 150 {
+		return fmt.Errorf("expected selected gradient node outline pixels, found %d", selectedPixels)
+	}
+	if selectedCornerPixels < 12 {
+		return fmt.Errorf("expected selected node corner border to remain visible above header, found %d pixels", selectedCornerPixels)
+	}
+	if darkPanelPixels < 3000 {
+		return fmt.Errorf("expected visible gradient node body pixels, found %d", darkPanelPixels)
+	}
+	if lightTextPixels < 50 {
+		return fmt.Errorf("expected visible gradient node text pixels, found %d", lightTextPixels)
 	}
 	return nil
 }
@@ -423,6 +518,19 @@ func failRenderGraphNodeFieldsIntegration(message string, err error) {
 	} else {
 		slog.Error("render graph node fields integration test failed",
 			"path", renderGraphNodeFieldsScreenshotOutput,
+			"message", message)
+	}
+	os.Exit(1)
+}
+
+func failRenderGraphGradientNodeIntegration(message string, err error) {
+	if err != nil {
+		slog.Error("render graph gradient node integration test failed",
+			"path", renderGraphGradientNodeScreenshotOutput,
+			"message", message, "error", err)
+	} else {
+		slog.Error("render graph gradient node integration test failed",
+			"path", renderGraphGradientNodeScreenshotOutput,
 			"message", message)
 	}
 	os.Exit(1)
