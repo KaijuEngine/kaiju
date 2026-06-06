@@ -1,50 +1,24 @@
 /******************************************************************************/
 /* numbers.go                                                                 */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package helpers
 
 import (
 	"fmt"
-	"kaiju/rendering"
+	"math"
 	"strconv"
 	"strings"
+
+	"kaijuengine.com/rendering"
 )
 
 type WindowDimensions interface {
 	DotsPerMillimeter() float64
+	Width() int
+	Height() int
 }
 
 var arithmeticMap = map[string]func(int, int) int{
@@ -93,49 +67,91 @@ func ArithmeticString(args []string) (int, error) {
 
 func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32) float32 {
 	dpmm := window.DotsPerMillimeter()
-	var suffix string
-	if str[len(str)-1] == '%' {
-		suffix = "%"
-		str = str[:len(str)-1]
-	} else if len(str) > 2 {
-		validSuffixes := []string{"px", "em", "ex", "cm", "mm", "in", "pt", "pc"}
-		valid := false
-		for i := range validSuffixes {
-			valid = valid || strings.HasSuffix(str, validSuffixes[i])
+	parse := func(raw string, cut int) float32 {
+		// strconv.ParseFloat is orders of magnitude faster than fmt.Sscanf("%f"),
+		// which dominated CPU: this runs for every CSS length on every layout
+		// pass. Preserve fmt's leniency (take the longest leading numeric prefix,
+		// tolerating trailing garbage) by trimming trailing chars until it parses;
+		// valid input parses on the first try so the common path stays fast.
+		s := strings.TrimSpace(raw[:len(raw)-cut])
+		for len(s) > 0 {
+			if f, err := strconv.ParseFloat(s, 32); err == nil {
+				if math.IsNaN(f) || math.IsInf(f, 0) {
+					return 0
+				}
+				return float32(f)
+			}
+			s = s[:len(s)-1]
 		}
-		if valid {
-			suffix = str[len(str)-2:]
-			str = str[:len(str)-2]
+		return 0
+	}
+	switch {
+	case strings.HasSuffix(str, "vmin"):
+		size := parse(str, 4)
+		w := float32(window.Width())
+		h := float32(window.Height())
+		if h < w {
+			w = h
 		}
+		return w * (size / 100)
+	case strings.HasSuffix(str, "vmax"):
+		size := parse(str, 4)
+		w := float32(window.Width())
+		h := float32(window.Height())
+		if h > w {
+			w = h
+		}
+		return w * (size / 100)
+	case strings.HasSuffix(str, "rem"):
+		size := parse(str, 3)
+		// Root font size support is not yet wired through style inheritance.
+		// For now rem is based on the engine default root em size.
+		return size * rendering.DefaultFontEMSize
+	case strings.HasSuffix(str, "vw"):
+		size := parse(str, 2)
+		return float32(window.Width()) * (size / 100)
+	case strings.HasSuffix(str, "vh"):
+		size := parse(str, 2)
+		return float32(window.Height()) * (size / 100)
+	case strings.HasSuffix(str, "ch"):
+		size := parse(str, 2)
+		// Approximation until font metric support is available:
+		// 1ch ~= 0.5em
+		return size * fontSize * 0.5
+	case strings.HasSuffix(str, "px"),
+		strings.HasSuffix(str, "em"),
+		strings.HasSuffix(str, "ex"),
+		strings.HasSuffix(str, "cm"),
+		strings.HasSuffix(str, "mm"),
+		strings.HasSuffix(str, "in"),
+		strings.HasSuffix(str, "pt"),
+		strings.HasSuffix(str, "pc"):
+		size := parse(str, 2)
+		switch str[len(str)-2:] {
+		case "px":
+			return size
+		case "em", "ex":
+			return size * fontSize
+		case "cm":
+			return float32(dpmm) * float32(size*10)
+		case "mm":
+			return float32(dpmm) * size
+		case "in":
+			return float32(dpmm) * float32(size*25.4)
+		case "pt":
+			return float32(dpmm) * float32(size*25.4/72)
+		case "pc":
+			return float32(dpmm) * float32(size*25.4/6)
+		}
+	case strings.HasSuffix(str, "%"):
+		size := parse(str, 1)
+		return size / 100
 	}
-	var size float32
-	fmt.Sscanf(str, "%f", &size)
-	switch suffix {
-	case "%":
-		size = size / 100
-	case "px":
-		// Read value is the size
-	case "ex":
-		// Relative to the font size of a lowercase letter like a, c, m, or o
-		fallthrough
-	case "em":
-		size = size * fontSize
-	case "cm":
-		size = float32(dpmm) * float32(size*10)
-	case "mm":
-		size = float32(dpmm) * float32(size)
-	case "in":
-		size = float32(dpmm) * float32(size*25.4)
-	case "pt":
-		size = float32(dpmm) * float32(size*25.4/72)
-	case "pc":
-		size = float32(dpmm) * float32(size*25.4/6)
-	default:
-		size = 0
-	}
-	return size
+	return 0
 }
 
+// NumFromLength resolves CSS lengths with the default font size context.
+// For properties that depend on the current element font, use NumFromLengthWithFont.
 func NumFromLength(str string, window WindowDimensions) float32 {
 	return NumFromLengthWithFont(str, window, rendering.DefaultFontEMSize)
 }

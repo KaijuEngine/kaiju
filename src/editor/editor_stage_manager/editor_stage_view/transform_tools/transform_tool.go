@@ -1,58 +1,29 @@
 /******************************************************************************/
 /* transform_tool.go                                                          */
 /******************************************************************************/
-/*                           This file is part of:                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com                           */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package transform_tools
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
 	"slices"
 	"weak"
+
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 type TransformTool struct {
@@ -94,6 +65,10 @@ func (t *TransformTool) Initialize(host *engine.Host, stage StageInterface, hist
 		}
 	}
 	t.wireTransform.ResetDirty()
+}
+
+func (t *TransformTool) IsActive() bool {
+	return t.state != ToolStateNone
 }
 
 func (t *TransformTool) Update() (busy bool) {
@@ -184,7 +159,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 		slog.Error("failed to load transform wire material", "error", err)
 		return rendering.Drawing{}, err
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	sd.(*shader_data_registry.ShaderDataEdTransformWire).Color = color
 	sd.Deactivate()
 	return rendering.Drawing{
@@ -192,6 +167,7 @@ func (t *TransformTool) createWire(nameSuffix string, host *engine.Host, from, t
 		Mesh:       grid,
 		ShaderData: sd,
 		Transform:  t.wireTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}, nil
 }
@@ -301,7 +277,7 @@ func (t *TransformTool) checkKeyboard(kb *hid.Keyboard) {
 	}
 }
 
-func (t *TransformTool) findPlaneHitPoint(r collision.Ray, center matrix.Vec3) matrix.Vec3 {
+func (t *TransformTool) findPlaneHitPoint(r graviton.Ray, center matrix.Vec3) matrix.Vec3 {
 	defer tracing.NewRegion("TransformTool.findPlaneHitPoint").End()
 	nml := matrix.Vec3Forward()
 	var df, db, dl, dr, du, dd matrix.Float = -1.0, -1.0, -1.0, -1.0, -1.0, -1.0
@@ -363,7 +339,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 		return
 	}
 	m := &host.Window.Mouse
-	mp := m.Position()
+	mp := t.stage.ViewportMousePosition(m)
 	var delta, point matrix.Vec3
 	switch t.stage.Camera().Mode() {
 	case editor_controls.EditorCameraMode3d:
@@ -403,8 +379,9 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 			t.firstHitUpdate = false
 		}
 		oc := host.PrimaryCamera().(*cameras.StandardCamera)
-		cw := oc.Width() / float32(host.Window.Width())
-		ch := oc.Height() / float32(host.Window.Height())
+		viewportSize := t.stage.ViewportSize()
+		cw := oc.Width() / viewportSize.X()
+		ch := oc.Height() / viewportSize.Y()
 		delta = t.lastHit.Subtract(point).Multiply(matrix.NewVec3(-cw, -ch, 0))
 		switch t.state {
 		case ToolStateMove:
@@ -434,7 +411,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 		t.lastHit = point.Add(delta)
 	}
 	if !t.lastHit.Equals(point) {
-		t.transform(delta, host.Window.Keyboard.HasCtrl())
+		t.transform(delta, host.Window.Keyboard.HasCtrlOrMeta())
 		t.lastHit = point
 		for _, e := range sel {
 			for _, db := range e.DataBindings() {

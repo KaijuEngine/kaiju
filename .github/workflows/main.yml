@@ -27,6 +27,9 @@ jobs:
         working-directory: ./src
         run: go run ./generators/api/main.go
 
+      - name: Build blog post index
+        run: python tools/mkdocs/generate_blog_posts_json.py
+
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
         env:

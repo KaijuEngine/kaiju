@@ -47,7 +47,7 @@
 /*
 ** By default, Lua on Windows use (some) specific Windows features
 */
-#if !defined(LUA_USE_C89) && defined(_WIN32) && !defined(_WIN32_WCE)
+#if !defined(LUA_USE_C89) && defined(_WIN32) && !defined(_WIN32_WCE) && !defined(LUA_USE_WINDOWS)
 #define LUA_USE_WINDOWS  /* enable goodies for regular Windows */
 #endif
 

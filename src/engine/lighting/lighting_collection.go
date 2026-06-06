@@ -1,49 +1,20 @@
 /******************************************************************************/
 /* lighting_collection.go                                                     */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package lighting
 
 import (
-	"kaiju/debug"
-	"kaiju/engine/pooling"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"sort"
+
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine/pooling"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 type LightEntry struct {
@@ -89,12 +60,29 @@ func (c *LightCollection) setHasChanges() {
 
 func (c *LightCollection) Clear() {
 	c.pools.Clear()
+	c.setHasChanges()
 }
 
 func (c *LightCollection) HasChanges() bool {
 	changes := c.hasChanges
 	c.hasChanges = false
 	return changes
+}
+
+func (c *LightCollection) HasFrameDirty() bool {
+	dirty := false
+	c.pools.Each(func(elm *LightEntry) {
+		dirty = dirty || elm.Light.FrameDirty()
+	})
+	return dirty
+}
+
+func (c *LightCollection) ConsumeFrameDirty() bool {
+	dirty := false
+	c.pools.Each(func(elm *LightEntry) {
+		dirty = elm.Light.ResetFrameDirty() || dirty
+	})
+	return dirty
 }
 
 func (c *LightCollection) UpdateCache(point matrix.Vec3) []rendering.Light {
@@ -109,11 +97,11 @@ func (c *LightCollection) findLocalLights(point matrix.Vec3, writeTo []rendering
 	defer tracing.NewRegion("LightCollection.FindClosest").End()
 	const moveDistanceToRecalculate = 1
 	debug.Assert(len(writeTo) > 0, "you can not use an empty slice for LightCollection.FindClosest")
-	if !matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
+	if c.hasChanges || c.HasFrameDirty() || !matrix.Vec3ApproxTo(c.lastPoint, point, moveDistanceToRecalculate) {
 		c.itrDists = klib.WipeSlice(c.itrDists)
 		c.pools.Each(func(elm *LightEntry) {
 			if elm.Type() != rendering.LightTypeDirectional {
-				elm.lastDist = point.Subtract(elm.Transform.Position()).Length()
+				elm.lastDist = point.Subtract(elm.Transform.WorldPosition()).Length()
 			}
 			c.itrDists = append(c.itrDists, elm)
 		})

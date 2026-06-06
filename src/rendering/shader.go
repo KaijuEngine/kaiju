@@ -1,46 +1,17 @@
 /******************************************************************************/
 /* shader.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
+	"strings"
 	"weak"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type ShaderType int
@@ -63,6 +34,7 @@ type Shader struct {
 
 type ShaderData struct {
 	Name                        string
+	DrawInstanceData            string `label:"Draw Instance Data"`
 	EnableDebug                 bool
 	Vertex                      string              `options:""`
 	VertexFlags                 string              `tip:"CompileFlags"`
@@ -88,6 +60,7 @@ type ShaderData struct {
 
 type ShaderDataCompiled struct {
 	Name                   string
+	DrawInstanceData       string
 	Vertex                 string
 	Fragment               string
 	Geometry               string
@@ -99,6 +72,22 @@ type ShaderDataCompiled struct {
 }
 
 func (s *ShaderDataCompiled) IsCompute() bool { return s.Compute != "" }
+
+func (d ShaderData) DrawInstanceDataName() string {
+	return drawInstanceDataName(d.DrawInstanceData, d.Name)
+}
+
+func (sd ShaderDataCompiled) DrawInstanceDataName() string {
+	return drawInstanceDataName(sd.DrawInstanceData, sd.Name)
+}
+
+func drawInstanceDataName(name, fallback string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fallback
+	}
+	return name
+}
 
 func (s *ShaderDataCompiled) SelectLayout(stage string) *ShaderLayoutGroup {
 	for i := range s.LayoutGroups {
@@ -121,6 +110,9 @@ func (sd *ShaderDataCompiled) Stride() uint32 {
 	stride := uint32(0)
 	if !sd.IsCompute() {
 		g := sd.SelectLayout("Vertex")
+		if g == nil {
+			return 0
+		}
 		for i := range g.Layouts {
 			l := &g.Layouts[i]
 			if l.Source == "in" && l.Location >= 8 {
@@ -129,32 +121,6 @@ func (sd *ShaderDataCompiled) Stride() uint32 {
 		}
 	}
 	return stride
-}
-
-func (sd *ShaderDataCompiled) ToAttributeDescription(locationStart uint32) []vk.VertexInputAttributeDescription {
-	defer tracing.NewRegion("Shader.ToAttributeDescription").End()
-	attrs := make([]vk.VertexInputAttributeDescription, 0)
-	offset := uint32(0)
-	if !sd.IsCompute() {
-		g := sd.SelectLayout("Vertex")
-		for i := range g.Layouts {
-			l := &g.Layouts[i]
-			if l.Source == "in" && uint32(l.Location) >= locationStart {
-				dt := defTypes[l.Type]
-				dt.repeat *= max(1, l.Count)
-				for r := range dt.repeat {
-					attrs = append(attrs, vk.VertexInputAttributeDescription{
-						Location: uint32(l.Location + r),
-						Binding:  1,
-						Format:   dt.format,
-						Offset:   offset,
-					})
-					offset += dt.size
-				}
-			}
-		}
-	}
-	return attrs
 }
 
 func (sd *ShaderDataCompiled) ToDescriptorSetLayoutStructure() DescriptorSetLayoutStructure {
@@ -194,6 +160,7 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 	defer tracing.NewRegion("Shader.Compile").End()
 	return ShaderDataCompiled{
 		Name:                   d.Name,
+		DrawInstanceData:       d.DrawInstanceDataName(),
 		Vertex:                 d.VertexSpv,
 		Fragment:               d.FragmentSpv,
 		Geometry:               d.GeometrySpv,
@@ -206,6 +173,8 @@ func (d *ShaderData) Compile() ShaderDataCompiled {
 }
 
 func (s *Shader) ShaderDataName() string { return s.data.Name }
+
+func (s *Shader) DrawInstanceDataName() string { return s.data.DrawInstanceDataName() }
 
 func (s *Shader) AddSubShader(key string, shader *Shader) {
 	shader.pipelineInfo = s.pipelineInfo
@@ -240,9 +209,9 @@ func (s *Shader) Reload(shaderData ShaderDataCompiled) {
 	s.DriverData = NewShaderDriverData()
 }
 
-func (s *Shader) DelayedCreate(renderer Renderer, assetDatabase assets.Database) {
-	renderer.CreateShader(s, assetDatabase)
+func (s *Shader) DelayedCreate(device *GPUDevice, assetDatabase assets.Database) {
+	device.CreateShader(s, assetDatabase)
 	for _, ss := range s.subShaders {
-		renderer.CreateShader(ss, assetDatabase)
+		device.CreateShader(ss, assetDatabase)
 	}
 }

@@ -12,7 +12,7 @@ First, you'll need to install the Gotraceui application. This may mean that you 
 ## Launch with tracing
 If you are using VSCode, you can select the `Trace Editor` option from the debug options drop down list.
 
-<img width="235" height="228" alt="image" src="https://github.com/KaijuEngine/kaiju_media_files/blob/master/docs/engine/performance_profiling/vscode.png" />
+<img width="235" height="228" alt="image" src="https://github.com/KaijuEngine/kaiju_media_files/blob/master/docs/engine/performance_profiling/vscode.png?raw=true" />
 
 Otherwise, you will need to use the `-trace` command line arg in a `debug` build. To get a `debug` build, you need to compile the editor/game using `-tags="debug,..."` command line arg in your call to `go build`.
 
@@ -26,10 +26,10 @@ _Note that `"..."` is typically in the format `package_name.FunctionName` if it 
 ## Gotraceui basics
 Gotraceui's website has pretty good [documentation](https://gotraceui.dev/manual/latest/) on how to use the tool and that might be a good place to start. However, the bare minimum gist is to scroll down until you see the pink blocks in the timeline area.
 
-<img width="438" height="443" alt="image" src="https://github.com/KaijuEngine/kaiju_media_files/blob/master/docs/engine/performance_profiling/gotraceui.png" />
+<img width="438" height="443" alt="image" src="https://github.com/KaijuEngine/kaiju_media_files/blob/master/docs/engine/performance_profiling/gotraceui.png?raw=true" />
 
 Here you can zoom in and see the stacks of function calls that the engine is doing. This will allow you to review any performance bottlenecks or unexpected calls.
 
 _Note that you can scroll further down and see other pink boxes for the work being done on other threads._
 
-<img width="787" height="698" alt="image" src="https://github.com/KaijuEngine/kaiju_media_files/blob/master/docs/engine/performance_profiling/gotraceui_pink_boxes.png" />
+<img width="787" height="698" alt="image" src="https://github.com/KaijuEngine/kaiju_media_files/blob/master/docs/engine/performance_profiling/gotraceui_pink_boxes.png?raw=true" />

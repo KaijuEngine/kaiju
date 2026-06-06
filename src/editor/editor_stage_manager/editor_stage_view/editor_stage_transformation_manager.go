@@ -1,51 +1,24 @@
 /******************************************************************************/
 /* editor_stage_transformation_manager.go                                     */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_settings"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"weak"
+
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_settings"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type ToolState = uint8
@@ -68,18 +41,20 @@ type TransformationManager struct {
 	history        *memento.History
 	memento        *transformHistory
 	snapSettings   *editor_settings.SnapSettings
+	project        *project.Project
 	currentTool    ToolState
 	isBusy         bool
+	translateDupTx bool
 }
 
 func (t *TransformationManager) IsBusy() bool { return t.isBusy }
 
-func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, snapSettings *editor_settings.SnapSettings) {
+func (t *TransformationManager) Initialize(stageView *StageView, history *memento.History, settings *editor_settings.Settings) {
 	t.view = weak.Make(stageView)
-	t.snapSettings = snapSettings
-	t.translateTool.Initialize(stageView.host)
-	t.rotationTool.Initialize(stageView.host)
-	t.scalingTool.Initialize(stageView.host)
+	t.snapSettings = &settings.Snapping
+	t.translateTool.Initialize(stageView.host, stageView)
+	t.rotationTool.Initialize(stageView.host, stageView)
+	t.scalingTool.Initialize(stageView.host, stageView)
 	t.manager = &stageView.manager
 	t.history = history
 	t.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -102,34 +77,64 @@ func (t *TransformationManager) Initialize(stageView *StageView, history *mement
 	t.scalingTool.OnDragStart.Add(t.scaleStart)
 	t.scalingTool.OnDragScale.Add(t.scaleScale)
 	t.scalingTool.OnDragEnd.Add(t.scaleEnd)
+	stageView.camera.OnModeChange.Add(t.cameraModeChanged)
 }
 
-func (t *TransformationManager) Update(host *engine.Host) {
-	kb := &host.Window.Keyboard
-	if !t.isBusy {
-		pos := matrix.Vec3NaN()
-		if t.manager.HasSelection() {
-			pos = t.manager.LastSelected().Transform.Position()
-		}
-		if kb.KeyDown(hid.KeyboardKey1) {
-			t.setToolState(ToolStateMove, pos)
-		} else if kb.KeyDown(hid.KeyboardKey2) {
-			t.setToolState(ToolStateRotate, pos)
-		} else if kb.KeyDown(hid.KeyboardKey3) {
-			t.setToolState(ToolStateScale, pos)
-		}
+func (t *TransformationManager) cameraModeChanged(mode editor_controls.EditorCameraMode) {
+	t.translateTool.SetDimensions(mode)
+	t.rotationTool.SetDimensions(mode)
+	t.scalingTool.SetDimensions(mode)
+}
+
+func (t *TransformationManager) RefreshToolVisibility() {
+	pos := matrix.Vec3NaN()
+	hasSelection := t.manager != nil && t.manager.HasSelection()
+	if hasSelection {
+		pos = t.manager.LastSelected().Transform.Position()
 	}
+	t.refreshToolVisibilityAt(hasSelection, pos)
+}
+
+func (t *TransformationManager) refreshToolVisibilityAt(hasSelection bool, pos matrix.Vec3) {
+	if !hasSelection {
+		pos = matrix.Vec3NaN()
+	}
+	t.showToolState(t.currentTool, pos)
+}
+
+func (t *TransformationManager) Update(host *engine.Host, proj *project.Project) {
+	t.project = proj
+	kb := &host.Window.Keyboard
 	ss := t.snapSettings
-	snap := kb.HasCtrl()
+	snap := kb.HasCtrlOrMeta()
 	t.isBusy = t.translateTool.Update(host, snap, ss.TranslateIncrement) ||
 		t.rotationTool.Update(host, snap, ss.RotateIncrement) ||
 		t.scalingTool.Update(host, snap, ss.ScaleIncrement)
+}
+
+func (t *TransformationManager) EnableTranslationTool() {
+	if !t.manager.HasSelection() {
+		return
+	}
+	t.showToolState(ToolStateMove, t.manager.LastSelected().Transform.Position())
+}
+
+func (t *TransformationManager) EnableToolState(state ToolState) bool {
+	if !t.manager.HasSelection() {
+		return false
+	}
+	t.setToolState(state, t.manager.LastSelected().Transform.Position())
+	return true
 }
 
 func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 	if t.currentTool == state {
 		state = ToolStateNone
 	}
+	t.showToolState(state, pos)
+}
+
+func (t *TransformationManager) showToolState(state ToolState, pos matrix.Vec3) {
 	t.translateTool.Hide()
 	t.rotationTool.Hide()
 	t.scalingTool.Hide()
@@ -150,6 +155,7 @@ func (t *TransformationManager) setToolState(state ToolState, pos matrix.Vec3) {
 func (t *TransformationManager) translateStart(pos matrix.Vec3) {
 	defer tracing.NewRegion("TransformationManager.translateStart").End()
 	t.transformStart = pos
+	t.beginTranslateDuplicateTransaction()
 	t.setupMemento()
 }
 
@@ -161,12 +167,32 @@ func (t *TransformationManager) translateMove(pos matrix.Vec3) {
 		t.memento.to[i].position = t.memento.from[i].position.Add(delta)
 		sel[i].Transform.SetWorldPosition(t.memento.to[i].position)
 	}
+	t.updateDataBindings(sel)
 }
 
 func (t *TransformationManager) translateEnd(pos matrix.Vec3) {
 	defer tracing.NewRegion("TransformationManager.translateEnd").End()
 	t.translateMove(pos)
 	t.history.Add(t.memento)
+	t.manager.RefitBVH(t.manager.Selection()[0])
+	if t.translateDupTx {
+		t.history.CommitTransaction()
+		t.translateDupTx = false
+	}
+}
+
+func (t *TransformationManager) beginTranslateDuplicateTransaction() {
+	t.translateDupTx = false
+	view := t.view.Value()
+	if view == nil || t.project == nil || !t.manager.HasSelection() {
+		return
+	}
+	if !view.host.Window.Keyboard.HasShift() {
+		return
+	}
+	t.history.BeginTransaction()
+	t.translateDupTx = true
+	t.manager.DuplicateSelectionInPlace(t.project)
 }
 
 func (t *TransformationManager) rotateStart(rot matrix.Vec4) {
@@ -198,12 +224,14 @@ func (t *TransformationManager) rotateSpin(rot matrix.Vec4) {
 		t.memento.to[i].rotation = newRot
 		sel[i].Transform.SetWorldRotation(newRot)
 	}
+	t.updateDataBindings(sel)
 }
 
 func (t *TransformationManager) rotateEnd(rot matrix.Vec4) {
 	defer tracing.NewRegion("TransformationManager.rotateEnd").End()
 	t.rotateSpin(rot)
 	t.history.Add(t.memento)
+	t.manager.RefitBVH(t.manager.Selection()[0])
 }
 
 func (t *TransformationManager) scaleStart(scale matrix.Vec3) {
@@ -241,12 +269,14 @@ func (t *TransformationManager) scaleScale(scale matrix.Vec3) {
 			sel[i].Transform.SetWorldScale(t.memento.to[i].scale)
 		}
 	}
+	t.updateDataBindings(sel)
 }
 
 func (t *TransformationManager) scaleEnd(scale matrix.Vec3) {
 	defer tracing.NewRegion("TransformationManager.scaleEnd").End()
 	t.scaleScale(scale)
 	t.history.Add(t.memento)
+	t.manager.RefitBVH(t.manager.Selection()[0])
 }
 
 func (t *TransformationManager) setupMemento() {
@@ -267,5 +297,18 @@ func (t *TransformationManager) setupMemento() {
 		t.memento.to[i].rotation = t.memento.from[i].rotation
 		t.memento.from[i].scale = sel[i].Transform.WorldScale()
 		t.memento.to[i].scale = t.memento.from[i].scale
+	}
+}
+
+func (t *TransformationManager) updateDataBindings(entities []*editor_stage_manager.StageEntity) {
+	view := t.view.Value()
+	if view == nil {
+		return
+	}
+	host := weak.Make(view.host)
+	for _, entity := range entities {
+		for _, db := range entity.DataBindings() {
+			data_binding_renderer.Updated(db, host, entity)
+		}
 	}
 }

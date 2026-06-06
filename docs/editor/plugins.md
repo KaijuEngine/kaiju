@@ -47,8 +47,8 @@ When a new plugin project is created via **Create Plugin Project** (see below) a
 package rename_me
 
 import (
-		"kaiju/editor"
-		"kaiju/editor/editor_plugin"
+	"kaijuengine.com/editor"
+	"kaijuengine.com/editor/editor_plugin"
 )
 
 // A unique key for the plugin – you can use a URL or any string that will not clash with other plugins.
@@ -97,7 +97,7 @@ The editor UI provides a **Create plugin project** command (found under the *Kai
 You can also invoke the function programmatically:
 
 ```go
-import "kaiju/editor/editor_plugin"
+import "kaijuengine.com/editor/editor_plugin"
 
 err := editor_plugin.CreatePluginProject("C:/path/to/your/plugin")
 ```
@@ -125,8 +125,8 @@ package hello
 
 import (
 		"fmt"
-		"kaiju/editor"
-		"kaiju/editor/editor_plugin"
+		"kaijuengine.com/editor"
+		"kaijuengine.com/editor/editor_plugin"
 )
 
 const pluginKey = "github.com/yourname/kaiju-hello"
@@ -157,6 +157,23 @@ Corresponding `plugin.json`:
 ```
 
 Place both files in a folder under the editor’s `plugins` directory, enable it in the UI, and recompile the editor.
+
+---
+
+## Working with a locally built editor (or debugging)
+The standard plugin directory is meant for a pre-built and distributed editor, which requires you to enable the plugin in-editor and click the compile button. If you are building/debugging the editor locally, the `src/editor/editor_plugin` folder is where you can place your plugins to be compiled into the editor.
+
+Since plugins are actual Go code, that means that the editor needs to be compiled with the plugin code embedded into it. Thus, if you build locally (like a debug build), it will not have the plugin code built in from the external folder.
+
+Once you place your plugin into `src/editor/editor_plugin`, you'll want to add an import somewhere (like main) to call the `init()` of your plugin.
+
+```go
+import (
+	_ "kaijuengine.com/editor/editor_plugin/developer_plugins/my_plugin"
+)
+```
+
+**WARNING**: *The `/editor/editor_plugin/developer_plugins/` folder has a `.gitignore` that will exclude everything. Modify this as needed.*
 
 ---
 

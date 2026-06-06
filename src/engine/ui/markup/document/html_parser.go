@@ -1,60 +1,34 @@
 /******************************************************************************/
 /* html_parser.go                                                             */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package document
 
 import (
 	"html/template"
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/elements"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
 	"runtime"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"weak"
+
+	xhtml "golang.org/x/net/html"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/elements"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 type TemplateIndexedAny struct {
@@ -84,26 +58,67 @@ var funcMap = template.FuncMap{
 	},
 }
 
-//var Debug = struct {
-//	ReloadStylesEvent events.Event
-//}{}
+type htmlInputType int
+
+const (
+	htmlInputTypeText htmlInputType = iota
+	htmlInputTypeCheckbox
+	htmlInputTypeEmail
+	htmlInputTypeSlider
+	htmlInputTypeNumber
+	htmlInputTypePassword
+	htmlInputTypePhone
+	htmlInputTypeDatetime
+)
+
+func classifyHTMLInputType(rawType string) htmlInputType {
+	switch strings.ToLower(strings.TrimSpace(rawType)) {
+	case "checkbox":
+		return htmlInputTypeCheckbox
+	case "email":
+		return htmlInputTypeEmail
+	case "slider", "range":
+		return htmlInputTypeSlider
+	case "number":
+		return htmlInputTypeNumber
+	case "password":
+		return htmlInputTypePassword
+	case "tel":
+		return htmlInputTypePhone
+	case "datetime", "datetime-local", "date", "time":
+		return htmlInputTypeDatetime
+	default:
+		// unknown input types default to text
+		return htmlInputTypeText
+	}
+}
 
 type Document struct {
-	host             weak.Pointer[engine.Host]
-	Elements         []*Element
-	TopElements      []*Element
-	HeadElements     []*Element
-	onWindowResizeId events.Id
-	groups           map[string][]*Element
-	ids              map[string]*Element
-	classElements    map[string][]*Element
-	tagElements      map[string][]*Element
-	style            rules.StyleSheet
-	stylizer         Stylizer
-	// TODO:  Should this be here?
-	firstInput *ui.Input
-	lastInput  *ui.Input
-	funcMap    map[string]func(*Element)
+	host weak.Pointer[engine.Host]
+	// uiMan is a STRONG reference to the manager that owns this document's UI
+	// elements. The manager's update is registered with only a weak self-ref and
+	// is torn down by runtime.AddCleanup when the manager is GC'd, and elements
+	// hold the manager weakly too. A dedicated manager (e.g. a floating overlay's
+	// NewContext manager) therefore has no strong owner once its builder returns
+	// and would be collected mid-use — its update stops (the overlay never
+	// renders) and element.man goes nil (nil-deref on input). Keeping it alive as
+	// long as the document lives ties the manager's lifetime to the widget; it is
+	// released on Destroy (doc cleared) so the manager is then cleaned up.
+	uiMan             *ui.Manager
+	Elements          []*Element
+	TopElements       []*Element
+	HeadElements      []*Element
+	onWindowResizeId  events.Id
+	groups            map[string][]*Element
+	ids               map[string]*Element
+	idsMutex          sync.RWMutex
+	classElements     map[string][]*Element
+	tagElements       map[string][]*Element
+	style             rules.StyleSheet
+	stylizer          Stylizer
+	firstFocusElement *ui.UI
+	lastFocusElement  *ui.UI
+	funcMap           map[string]func(*Element)
 	//Debug      struct {
 	//	ReloadEventId events.Id
 	//}
@@ -135,7 +150,7 @@ func (d *Document) SetupStyle(style rules.StyleSheet, host *engine.Host, stylize
 }
 
 func (h *Document) GetElementById(id string) (*Element, bool) {
-	if e, ok := h.ids[id]; ok {
+	if e, ok := h.readId(id); ok {
 		return e, ok
 	} else {
 		return nil, ok
@@ -204,6 +219,8 @@ func (h *Document) recacheElementTags() {
 }
 
 func (h *Document) recacheElementIds() {
+	h.idsMutex.Lock()
+	defer h.idsMutex.Unlock()
 	clear(h.ids)
 	for i := range h.Elements {
 		e := h.Elements[i]
@@ -263,6 +280,13 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		label.SetJustify(rendering.FontJustifyLeft)
 		label.SetBaseline(rendering.FontBaselineTop)
 		label.SetBGColor(matrix.ColorTransparent())
+		if parent := e.Parent.Value(); parent != nil && parent.IsButton() && parent.UI != nil {
+			label.Base().Layout().Stylizer = ui.StretchCenterStylizer{
+				BasicStylizer: ui.BasicStylizer{Parent: weak.Make(parent.UI)},
+			}
+			label.SetJustify(rendering.FontJustifyCenter)
+			label.SetBaseline(rendering.FontBaselineCenter)
+		}
 		appendElement(label.Base(), nil)
 	} else if tag, ok := elements.ElementMap[strings.ToLower(e.Data)]; ok {
 		panel := uiMan.Add().ToPanel()
@@ -293,9 +317,10 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 			} else {
 				tex, err = host.TextureCache().Texture(src, rendering.TextureFilterLinear)
 			}
+			missing := err != nil
 			if err != nil {
 				slog.Error(err.Error())
-				return
+				tex, _ = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 			}
 			img := panel.Base().ToImage()
 			if strings.HasSuffix(src, ".gif") {
@@ -305,16 +330,27 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				img.Init(tex)
 			}
 			panel = (*ui.Panel)(img)
+			if missing {
+				panel.SetColor(matrix.ColorMagenta())
+			}
 		} else if e.IsInput() {
-			inputType := e.Attribute("type")
-			switch inputType {
-			case "checkbox":
+			initTextInput := func(inputType ui.InputType) {
+				input := panel.Base().ToInput()
+				input.Init(e.Attribute("placeholder"))
+				input.SetType(inputType)
+				input.SetRequired(e.HasAttribute("required"))
+				input.SetTextWithoutEvent(e.Attribute("value"))
+				d.linkFocusableElement(input.Base())
+			}
+			switch classifyHTMLInputType(e.Attribute("type")) {
+			case htmlInputTypeCheckbox:
 				cb := panel.Base().ToCheckbox()
 				cb.Init()
 				if e.Attribute("checked") != "" {
 					cb.SetCheckedWithoutEvent(true)
 				}
-			case "slider":
+				cb.SetDisabled(e.HasAttribute("disabled"))
+			case htmlInputTypeSlider:
 				slider := panel.Base().ToSlider()
 				slider.Init()
 				panel.DontFitContent()
@@ -323,20 +359,29 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 						slider.SetValueWithoutEvent(float32(f))
 					}
 				}
-			case "text", "number":
-				input := panel.Base().ToInput()
-				input.Init(e.Attribute("placeholder"))
-				input.SetTextWithoutEvent(e.Attribute("value"))
-				if d.firstInput == nil {
-					d.firstInput = input
-				}
-				if d.lastInput != nil {
-					d.lastInput.SetNextFocusedInput(input)
-				}
-				d.lastInput = input
-				input.SetNextFocusedInput(d.firstInput)
+				slider.SetDisabled(e.HasAttribute("disabled"))
+			case htmlInputTypeNumber:
+				initTextInput(ui.InputTypeNumber)
+			case htmlInputTypeEmail:
+				initTextInput(ui.InputTypeEmail)
+			case htmlInputTypePassword:
+				initTextInput(ui.InputTypePassword)
+			case htmlInputTypePhone:
+				initTextInput(ui.InputTypePhone)
+			case htmlInputTypeDatetime:
+				initTextInput(ui.InputTypeDatetime)
+			default:
+				initTextInput(ui.InputTypeText)
 			}
 			panel.SetOverflow(ui.OverflowVisible)
+		} else if e.IsTextArea() {
+			textarea := panel.Base().ToTextArea()
+			textarea.Init(e.Attribute("placeholder"))
+			textarea.SetRequired(e.HasAttribute("required"))
+			textarea.SetTextWithoutEvent(e.textAreaInitialValue())
+			textarea.SetDisabled(e.HasAttribute("disabled"))
+			e.Children = nil
+			d.linkFocusableElement(textarea.Base())
 		} else if e.IsSelect() {
 			sel := panel.Base().ToSelect()
 			sel.Init("", []ui.SelectOption{})
@@ -363,18 +408,22 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					}
 				}
 			}
+			sel.SetDisabled(e.HasAttribute("disabled"))
 		} else {
 			panel.Init(nil, ui.ElementTypePanel)
 			panel.SetOverflow(ui.OverflowVisible)
 		}
 		entry := appendElement(panel.Base(), panel)
-		for i := range e.Children {
-			d.createUIElement(uiMan, e.Children[i], panel)
+		syncElementDisabledState(entry)
+		if !e.IsTextArea() {
+			for i := range e.Children {
+				d.createUIElement(uiMan, e.Children[i], panel)
+			}
 		}
 		id := e.Attribute("id")
 		group := e.Attribute("group")
 		if len(id) > 0 {
-			d.ids[id] = entry
+			d.setId(id, entry)
 			panel.Base().Entity().SetName(id)
 		} else {
 			panel.Base().Entity().SetName(e.Attribute("name"))
@@ -395,6 +444,66 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 		}
 		d.tagElement(entry, tag.Key())
 	}
+}
+
+func (e *Element) textAreaInitialValue() string {
+	if e.HasAttribute("value") {
+		return e.Attribute("value")
+	}
+	return strings.ReplaceAll(e.textContent(), "\r", "")
+}
+
+func (e *Element) textContent() string {
+	sb := strings.Builder{}
+	var collect func(target *Element)
+	collect = func(target *Element) {
+		if target.Type == xhtml.TextNode {
+			sb.WriteString(target.Data)
+			return
+		}
+		for i := range target.Children {
+			collect(target.Children[i])
+		}
+	}
+	collect(e)
+	return sb.String()
+}
+
+func (d *Document) linkFocusableElement(next *ui.UI) {
+	if next == nil {
+		return
+	}
+	if d.firstFocusElement == nil {
+		d.firstFocusElement = next
+	}
+	if d.lastFocusElement != nil {
+		setNextFocusableElement(d.lastFocusElement, next)
+	}
+	d.lastFocusElement = next
+	setNextFocusableElement(d.lastFocusElement, d.firstFocusElement)
+}
+
+func setNextFocusableElement(current, next *ui.UI) {
+	if current == nil || next == nil {
+		return
+	}
+	switch current.Type() {
+	case ui.ElementTypeInput:
+		current.ToInput().SetNextFocusedElement(next)
+	case ui.ElementTypeTextArea:
+		current.ToTextArea().SetNextFocusedElement(next)
+	}
+}
+
+func elementSupportsDisabled(elm *Element) bool {
+	return elm != nil && (elm.IsInput() || elm.IsButton() || elm.IsSelect() || elm.IsTextArea())
+}
+
+func syncElementDisabledState(elm *Element) {
+	if !elementSupportsDisabled(elm) || elm.UI == nil {
+		return
+	}
+	elm.UI.SetDisabled(elm.HasAttribute("disabled"))
 }
 
 func (d *Document) tagElement(elm *Element, tag string) {
@@ -432,6 +541,7 @@ func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 
 func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
 	parsed := &Document{
+		uiMan:         uiMan,
 		Elements:      make([]*Element, 0),
 		groups:        map[string][]*Element{},
 		ids:           map[string]*Element{},
@@ -509,9 +619,6 @@ func (d *Document) Destroy() {
 	}
 	clear(d.funcMap)
 	*d = Document{}
-	//if build.Debug {
-	//	Debug.ReloadStylesEvent.Remove(d.Debug.ReloadEventId)
-	//}
 }
 
 func (d *Document) MarkDirty() {
@@ -529,7 +636,7 @@ func (d *Document) Clean() {
 func (d *Document) indexElement(elm *Element) {
 	d.Elements = append(d.Elements, elm)
 	if id := elm.Attribute("id"); id != "" {
-		d.ids[id] = elm
+		d.setId(id, elm)
 	}
 	if group := elm.Attribute("group"); group != "" {
 		d.groups[group] = append(d.groups[group], elm)
@@ -556,7 +663,7 @@ func (d *Document) removeIndexedElement(elm *Element) {
 			break
 		}
 	}
-	delete(d.ids, elm.Attribute("id"))
+	d.removeId(elm.Attribute("id"))
 	if group := elm.Attribute("group"); group != "" {
 		for i := range d.groups[group] {
 			if d.groups[group][i] == elm {
@@ -695,6 +802,154 @@ func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
+// SetElementStylePropertyWithoutApply adds or overwrites a single inline CSS
+// property on the given element without applying styles. This is useful when
+// changing several runtime style values before calling ApplyStyles once.
+func (d *Document) SetElementStylePropertyWithoutApply(elm *Element, property, value string) {
+	property = strings.TrimSpace(property)
+	value = strings.TrimSpace(value)
+	value = strings.TrimSuffix(value, ";")
+	value = strings.TrimSpace(value)
+	if property == "" {
+		return
+	}
+	next := setInlineStyleProperty(elm.Attribute("style"), property, value)
+	if next == elm.Attribute("style") {
+		return
+	}
+	elm.SetAttribute("style", next)
+	if elm.UI != nil {
+		elm.UI.SetDirty(ui.DirtyTypeGenerated)
+	}
+}
+
+// SetElementStyleProperty adds or overwrites a single inline CSS property on
+// the given element and reapplies document styles.
+func (d *Document) SetElementStyleProperty(elm *Element, property, value string) {
+	d.SetElementStylePropertyWithoutApply(elm, property, value)
+	if elm.UI != nil {
+		elm.UI.Layout().ClearStyles()
+	}
+	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func (d *Document) SetElementDisabled(elm *Element, disabled bool) {
+	if elm == nil || !elementSupportsDisabled(elm) {
+		return
+	}
+	if disabled {
+		elm.SetAttribute("disabled", "")
+	} else {
+		elm.RemoveAttribute("disabled")
+	}
+	syncElementDisabledState(elm)
+	if elm.UI != nil {
+		elm.UI.Layout().ClearStyles()
+		elm.UI.SetDirty(ui.DirtyTypeGenerated)
+	}
+	if d.stylizer != nil {
+		d.stylizer.ApplyStyles(d.style, d)
+	}
+}
+
+func setInlineStyleProperty(style, property, value string) string {
+	declarations := splitInlineStyleDeclarations(style)
+	out := make([]string, 0, len(declarations)+1)
+	replaced := false
+	for _, declaration := range declarations {
+		declaration = strings.TrimSpace(declaration)
+		if declaration == "" {
+			continue
+		}
+		name, ok := inlineStyleDeclarationName(declaration)
+		if !ok || !strings.EqualFold(name, property) {
+			out = append(out, declaration)
+			continue
+		}
+		if !replaced {
+			out = append(out, property+": "+value)
+			replaced = true
+		}
+	}
+	if !replaced {
+		out = append(out, property+": "+value)
+	}
+	return strings.Join(out, "; ") + ";"
+}
+
+func splitInlineStyleDeclarations(style string) []string {
+	declarations := make([]string, 0)
+	start := 0
+	depth := 0
+	escaped := false
+	var quote rune
+	for i, r := range style {
+		if escaped {
+			escaped = false
+			continue
+		}
+		if quote != 0 {
+			if r == '\\' {
+				escaped = true
+			} else if r == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch r {
+		case '\'', '"':
+			quote = r
+		case '(':
+			depth++
+		case ')':
+			depth = max(0, depth-1)
+		case ';':
+			if depth == 0 {
+				declarations = append(declarations, style[start:i])
+				start = i + 1
+			}
+		}
+	}
+	if start < len(style) {
+		declarations = append(declarations, style[start:])
+	}
+	return declarations
+}
+
+func inlineStyleDeclarationName(declaration string) (string, bool) {
+	depth := 0
+	escaped := false
+	var quote rune
+	for i, r := range declaration {
+		if escaped {
+			escaped = false
+			continue
+		}
+		if quote != 0 {
+			if r == '\\' {
+				escaped = true
+			} else if r == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch r {
+		case '\'', '"':
+			quote = r
+		case '(':
+			depth++
+		case ')':
+			depth = max(0, depth-1)
+		case ':':
+			if depth == 0 {
+				name := strings.TrimSpace(declaration[:i])
+				return name, name != ""
+			}
+		}
+	}
+	return "", false
+}
+
 // ApplyStyles will go through and apply styles to all elements within the
 // document. This is typically used after [SetElementClassesWithoutApply]. The
 // typical flow is to call [SetElementClassesWithoutApply] in a loop to change
@@ -721,18 +976,21 @@ func (d *Document) DuplicateElementWithoutApplyStyles(elm *Element) *Element {
 }
 
 func (d *Document) SetupInputTabIndexs() {
-	var lastInput *ui.Input
+	var firstInput *ui.UI
+	var lastInput *ui.UI
 	var setupTabs func(e *Element)
 	setupTabs = func(e *Element) {
 		if e.UI == nil || e.IsText() {
 			return
 		}
-		if e.UI.IsType(ui.ElementTypeInput) {
-			input := e.UI.ToInput()
-			if lastInput != nil {
-				lastInput.SetNextFocusedInput(input)
+		if e.UI.IsType(ui.ElementTypeInput) || e.UI.IsType(ui.ElementTypeTextArea) {
+			if firstInput == nil {
+				firstInput = e.UI
 			}
-			lastInput = input
+			if lastInput != nil {
+				setNextFocusableElement(lastInput, e.UI)
+			}
+			lastInput = e.UI
 		} else {
 			for _, c := range e.Children {
 				setupTabs(c)
@@ -741,6 +999,9 @@ func (d *Document) SetupInputTabIndexs() {
 	}
 	for _, h := range d.TopElements {
 		setupTabs(h)
+	}
+	if lastInput != nil {
+		setNextFocusableElement(lastInput, firstInput)
 	}
 }
 
@@ -771,7 +1032,6 @@ func (d *Document) DuplicateElementRepeatWithoutApplyStyles(elm *Element, count 
 		elms[i] = elm.Clone(elm.Parent.Value())
 		d.appendElement(elms[i])
 	}
-	d.stylizer.ApplyStyles(d.style, d)
 	return elms
 }
 
@@ -779,11 +1039,11 @@ func (d *Document) SetElementIdWithoutApplyStyles(elm *Element, id string) {
 	defer tracing.NewRegion("Document.SetElementIdWithoutApplyStyles").End()
 	currentId := elm.Attribute("id")
 	if currentId != "" {
-		delete(d.ids, currentId)
+		d.removeId(currentId)
 	}
 	elm.SetAttribute("id", id)
 	if id != "" {
-		d.ids[id] = elm
+		d.setId(id, elm)
 	}
 }
 
@@ -902,10 +1162,29 @@ func (d *Document) insertElementAt(elm *Element, parent *Element, index int) {
 	if parent != nil {
 		parent.Children = slices.Insert(parent.Children, index, elm)
 		elm.Parent = weak.Make(parent)
-		parent.UI.ToPanel().AddChild(elm.UI)
+		parent.UI.ToPanel().InsertChild(elm.UI, index)
 	}
 	if !d.isElementInDocument(elm) {
 		d.appendElement(elm)
 	}
 	d.stylizer.ApplyStyles(d.style, d)
+}
+
+func (d *Document) setId(id string, elm *Element) {
+	d.idsMutex.Lock()
+	d.ids[id] = elm
+	d.idsMutex.Unlock()
+}
+
+func (d *Document) readId(id string) (*Element, bool) {
+	d.idsMutex.RLock()
+	out, ok := d.ids[id]
+	d.idsMutex.RUnlock()
+	return out, ok
+}
+
+func (d *Document) removeId(id string) {
+	d.idsMutex.Lock()
+	delete(d.ids, id)
+	d.idsMutex.Unlock()
 }

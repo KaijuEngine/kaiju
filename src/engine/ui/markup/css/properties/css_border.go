@@ -1,50 +1,31 @@
 /******************************************************************************/
 /* css_border.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package properties
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/windowing"
+	"slices"
 	"strings"
+
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/windowing"
+)
+
+const mergedBorderSidesSentinel = "__kaiju_merged_border_sides__"
+
+const (
+	borderSideLeft = iota
+	borderSideTop
+	borderSideRight
+	borderSideBottom
 )
 
 var borderSizes = map[string]float32{
@@ -89,45 +70,99 @@ func borderStyleFromStr(str string, lrtb int, elm *document.Element) (ui.BorderS
 	}
 }
 
-func (Border) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
-	// TODO:  The border args contain things like width, style, color
-	//switch len(values) {
-	//case 1:
-	//	for i := range 3 {
-	//		values = append(values, values[i])
-	//	}
-	//case 2:
-	//	values = append(values, values[0])
-	//	values = append(values, values[1])
-	//case 3:
-	//	values = append(values, values[1])
-	//}
-	//for i := 1; i < len(rules); i++ {
-	//	removeRule := false
-	//	switch rules[i].Property {
-	//	case "border-top":
-	//		values[0] = rules[i].Values[0]
-	//		removeRule = true
-	//	case "border-right":
-	//		values[1] = rules[i].Values[0]
-	//		removeRule = true
-	//	case "border-bottom":
-	//		values[2] = rules[i].Values[0]
-	//		removeRule = true
-	//	case "border-left":
-	//		values[3] = rules[i].Values[0]
-	//		removeRule = true
-	//	}
-	//	if removeRule {
-	//		rules = slices.Delete(rules, i, i+1)
-	//		i--
-	//	}
-	//}
-	return values, rules
+func (Border) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	sides := [4][]rules.PropertyValue{
+		cloneBorderValues(values),
+		cloneBorderValues(values),
+		cloneBorderValues(values),
+		cloneBorderValues(values),
+	}
+	merged := false
+	for i := 1; i < len(ruleList); i++ {
+		sideIdx := -1
+		switch ruleList[i].Property {
+		case "border":
+			return values, ruleList[1:]
+		case "border-left":
+			sideIdx = borderSideLeft
+		case "border-top":
+			sideIdx = borderSideTop
+		case "border-right":
+			sideIdx = borderSideRight
+		case "border-bottom":
+			sideIdx = borderSideBottom
+		case "border-width":
+			for side := range sides {
+				if width, ok := borderWidthValueForSide(ruleList[i].Values, side); ok {
+					sides[side] = setBorderSideWidth(sides[side], width)
+					merged = true
+				}
+			}
+			ruleList = slices.Delete(ruleList, i, i+1)
+			i--
+			continue
+		case "border-left-width":
+			sideIdx = borderSideLeft
+		case "border-top-width":
+			sideIdx = borderSideTop
+		case "border-right-width":
+			sideIdx = borderSideRight
+		case "border-bottom-width":
+			sideIdx = borderSideBottom
+		}
+		if sideIdx >= 0 {
+			if isBorderWidthRule(ruleList[i].Property) {
+				if width, ok := firstBorderValue(ruleList[i].Values); ok {
+					sides[sideIdx] = setBorderSideWidth(sides[sideIdx], width)
+				}
+			} else {
+				sides[sideIdx] = mergeBorderValues(sides[sideIdx], ruleList[i].Values)
+			}
+			ruleList = slices.Delete(ruleList, i, i+1)
+			merged = true
+			i--
+		}
+	}
+	if merged {
+		values = []rules.PropertyValue{{Str: mergedBorderSidesSentinel}}
+		for i := range sides {
+			values = append(values, rules.PropertyValue{Num: float32(len(sides[i]))})
+			values = append(values, sides[i]...)
+		}
+		ruleList[0].Values = values
+	}
+	return values, ruleList
 }
 
 // border-width border-style border-color|initial|inherit
 func (Border) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+	if len(values) > 0 && values[0].Str == mergedBorderSidesSentinel {
+		i := 1
+		sideRules := []struct {
+			name    string
+			process func(*ui.Panel, *document.Element, []rules.PropertyValue, *engine.Host) error
+		}{
+			{"border-left", BorderLeft{}.Process},
+			{"border-top", BorderTop{}.Process},
+			{"border-right", BorderRight{}.Process},
+			{"border-bottom", BorderBottom{}.Process},
+		}
+		for _, side := range sideRules {
+			if i >= len(values) {
+				return errors.New("merged border data is missing side values")
+			}
+			count := int(values[i].Num)
+			i++
+			if count <= 0 || i+count > len(values) {
+				return errors.New("merged border data has invalid side values")
+			}
+			if err := side.process(panel, elm, values[i:i+count], host); err != nil {
+				return err
+			}
+			i += count
+		}
+		return nil
+	}
 	if len(values) == 0 || len(values) > 3 {
 		return errors.New("Border requires 1-3 values")
 	}
@@ -138,4 +173,99 @@ func (Border) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		BorderBottom{}.Process(panel, elm, values, host)
 	}
 	return nil
+}
+
+func cloneBorderValues(values []rules.PropertyValue) []rules.PropertyValue {
+	out := make([]rules.PropertyValue, len(values))
+	for i := range values {
+		out[i] = values[i].Clone()
+	}
+	return out
+}
+
+func mergeBorderValues(base, override []rules.PropertyValue) []rules.PropertyValue {
+	out := cloneBorderValues(base)
+	for i := range override {
+		if i < len(out) {
+			out[i] = override[i].Clone()
+		} else {
+			out = append(out, override[i].Clone())
+		}
+	}
+	return out
+}
+
+func isBorderWidthRule(property string) bool {
+	switch property {
+	case "border-left-width", "border-top-width", "border-right-width", "border-bottom-width":
+		return true
+	default:
+		return false
+	}
+}
+
+func borderWidthValueForSide(values []rules.PropertyValue, side int) (rules.PropertyValue, bool) {
+	values = expandFourSideValues(values)
+	if len(values) != 4 {
+		return rules.PropertyValue{}, false
+	}
+	switch side {
+	case borderSideLeft:
+		return values[3], true
+	case borderSideTop:
+		return values[0], true
+	case borderSideRight:
+		return values[1], true
+	case borderSideBottom:
+		return values[2], true
+	default:
+		return rules.PropertyValue{}, false
+	}
+}
+
+func setBorderSideWidth(values []rules.PropertyValue, width rules.PropertyValue) []rules.PropertyValue {
+	out := cloneBorderValues(values)
+	if len(out) == 0 {
+		return []rules.PropertyValue{width.Clone()}
+	}
+	out[0] = width.Clone()
+	return out
+}
+
+func mergeFutureBorderSideWidths(values []rules.PropertyValue, ruleList []rules.Rule, side int, sideProperty string) ([]rules.PropertyValue, []rules.Rule) {
+	for i := 1; i < len(ruleList); i++ {
+		switch ruleList[i].Property {
+		case "border", sideProperty:
+			return values, ruleList[1:]
+		case "border-width":
+			if width, ok := borderWidthValueForSide(ruleList[i].Values, side); ok {
+				values = setBorderSideWidth(values, width)
+			}
+		case sideProperty + "-width":
+			if width, ok := firstBorderValue(ruleList[i].Values); ok {
+				values = setBorderSideWidth(values, width)
+				ruleList = slices.Delete(ruleList, i, i+1)
+				i--
+			}
+		}
+	}
+	ruleList[0].Values = values
+	return values, ruleList
+}
+
+func preprocBorderSideWidth(values []rules.PropertyValue, ruleList []rules.Rule, sideProperty string) ([]rules.PropertyValue, []rules.Rule) {
+	for i := 1; i < len(ruleList); i++ {
+		switch ruleList[i].Property {
+		case "border", "border-width", sideProperty, sideProperty + "-width":
+			return values, ruleList[1:]
+		}
+	}
+	return values, ruleList
+}
+
+func firstBorderValue(values []rules.PropertyValue) (rules.PropertyValue, bool) {
+	if len(values) == 0 {
+		return rules.PropertyValue{}, false
+	}
+	return values[0], true
 }

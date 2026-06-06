@@ -1,62 +1,81 @@
 /******************************************************************************/
 /* editor_embedded_content.go                                                 */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_embedded_content
 
 import (
 	"io/fs"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/assets"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
-const absoluteFilePrefix = ':'
-
 type EditorContent struct {
-	Pfs *project_file_system.FileSystem
+	Pfs          *project_file_system.FileSystem
+	contentIndex map[string]string
+	indexMutex   sync.RWMutex
 }
 
-func (EditorContent) Cache(key string, data []byte) { /* No caching planned*/ }
-func (EditorContent) CacheRemove(key string)        { /* No caching planned*/ }
-func (EditorContent) CacheClear()                   { /* No caching planned*/ }
-func (EditorContent) Close()                        {}
+func (*EditorContent) Cache(key string, data []byte) { /* No caching planned*/ }
+func (*EditorContent) CacheRemove(key string)        { /* No caching planned*/ }
+func (*EditorContent) CacheClear()                   { /* No caching planned*/ }
+func (*EditorContent) Close()                        {}
+
+func (e *EditorContent) SetProjectContentIndex(contents []content_database.CachedContent) {
+	defer tracing.NewRegion("EditorContent.SetProjectContentIndex").End()
+	index := make(map[string]string, len(contents))
+	for i := range contents {
+		index[contents[i].Id()] = filepath.ToSlash(contents[i].ContentPath())
+	}
+	e.indexMutex.Lock()
+	e.contentIndex = index
+	e.indexMutex.Unlock()
+}
+
+func (e *EditorContent) IndexProjectContent(content content_database.CachedContent) {
+	defer tracing.NewRegion("EditorContent.IndexProjectContent").End()
+	e.indexMutex.Lock()
+	defer e.indexMutex.Unlock()
+	if e.contentIndex == nil {
+		e.contentIndex = make(map[string]string)
+	}
+	e.contentIndex[content.Id()] = filepath.ToSlash(content.ContentPath())
+}
+
+func (e *EditorContent) IndexProjectContentIDs(cache *content_database.Cache, ids []string) {
+	defer tracing.NewRegion("EditorContent.IndexProjectContentIDs").End()
+	if cache == nil || len(ids) == 0 {
+		return
+	}
+	for i := range ids {
+		content, err := cache.Read(ids[i])
+		if err == nil {
+			e.IndexProjectContent(content)
+		}
+	}
+}
+
+func (e *EditorContent) RemoveProjectContentIDs(ids []string) {
+	defer tracing.NewRegion("EditorContent.RemoveProjectContentIDs").End()
+	if len(ids) == 0 {
+		return
+	}
+	e.indexMutex.Lock()
+	defer e.indexMutex.Unlock()
+	for i := range ids {
+		delete(e.contentIndex, ids[i])
+	}
+}
 
 func toEmbedPath(key string) string {
 	const prefix = "editor/editor_embedded_content/editor_content"
@@ -67,16 +86,19 @@ func toEmbedPath(key string) string {
 	switch filepath.Ext(key) {
 	case ".bin":
 		return filepath.ToSlash(filepath.Join(prefix, "fonts", key))
+	case ".fbx":
+		fallthrough
 	case ".gltf":
 		return filepath.ToSlash(filepath.Join(prefix, "meshes", key))
 	case ".png":
-		target := filepath.ToSlash(filepath.Join(prefix, "textures", key))
-		if f, err := project_file_system.EngineFS.Open(target); err != nil {
-			target = filepath.ToSlash(filepath.Join(prefix, "fonts", key))
-		} else {
-			f.Close()
+		for _, folder := range []string{"textures", "fonts", "meshes"} {
+			target := filepath.ToSlash(filepath.Join(prefix, folder, key))
+			if f, err := project_file_system.EngineFS.Open(target); err == nil {
+				f.Close()
+				return target
+			}
 		}
-		return target
+		return filepath.ToSlash(filepath.Join(prefix, "textures", key))
 	case ".css":
 		fallthrough
 	case ".html":
@@ -96,7 +118,14 @@ func toEmbedPath(key string) string {
 	}
 }
 
-func (e EditorContent) findFile(key string) string {
+func (e *EditorContent) indexedProjectContentPath(key string) (string, bool) {
+	e.indexMutex.RLock()
+	defer e.indexMutex.RUnlock()
+	path, ok := e.contentIndex[key]
+	return path, ok
+}
+
+func (e *EditorContent) findFile(key string) string {
 	finalPath := ""
 	filepath.Walk(e.Pfs.FullPath(project_file_system.ContentFolder), func(path string, info fs.FileInfo, err error) error {
 		if finalPath != "" {
@@ -110,10 +139,15 @@ func (e EditorContent) findFile(key string) string {
 	return finalPath
 }
 
-func (e EditorContent) Read(key string) ([]byte, error) {
+func (e *EditorContent) Read(key string) ([]byte, error) {
 	defer tracing.NewRegion("EditorContent.Read: " + key).End()
-	if key[0] == absoluteFilePrefix {
-		return filesystem.ReadFile(key[1:])
+	if filepath.IsAbs(key) {
+		return filesystem.ReadFile(key)
+	}
+	if e.Pfs != nil {
+		if path, ok := e.indexedProjectContentPath(key); ok {
+			return e.Pfs.ReadFile(path)
+		}
 	}
 	b, err := project_file_system.EngineFS.ReadFile(toEmbedPath(key))
 	if err != nil && e.Pfs != nil {
@@ -124,19 +158,24 @@ func (e EditorContent) Read(key string) ([]byte, error) {
 	return b, err
 }
 
-func (e EditorContent) ReadText(key string) (string, error) {
+func (e *EditorContent) ReadText(key string) (string, error) {
 	defer tracing.NewRegion("EditorContent.ReadText: " + key).End()
 	b, err := e.Read(key)
 	return string(b), err
 }
 
-func (e EditorContent) Exists(key string) bool {
+func (e *EditorContent) Exists(key string) bool {
 	defer tracing.NewRegion("EditorContent.Exists: " + key).End()
 	if strings.TrimSpace(key) == "" {
 		return false
 	}
-	if key[0] == absoluteFilePrefix {
-		return filesystem.FileExists(key[1:])
+	if filepath.IsAbs(key) {
+		return filesystem.FileExists(key)
+	}
+	if e.Pfs != nil {
+		if path, ok := e.indexedProjectContentPath(key); ok {
+			return e.Pfs.FileExists(path)
+		}
 	}
 	f, err := project_file_system.EngineFS.Open(toEmbedPath(key))
 	if err != nil {

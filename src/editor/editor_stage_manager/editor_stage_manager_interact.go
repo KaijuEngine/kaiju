@@ -1,48 +1,27 @@
 /******************************************************************************/
 /* editor_stage_manager_interact.go                                           */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_manager
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
 	"slices"
+
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+)
+
+type SelectionMode int
+
+const (
+	SelectionModeReplace SelectionMode = iota
+	SelectionModeAppend
+	SelectionModeToggle
 )
 
 func (m *StageManager) HasSelection() bool { return len(m.selected) > 0 }
@@ -74,10 +53,12 @@ func (m *StageManager) ClearSelection() {
 	}
 	cpy := slices.Clone(m.selected)
 	m.selected = klib.WipeSlice(m.selected)
-	m.history.Add(&selectHistory{
-		manager: m,
-		from:    cpy,
-	})
+	if m.history != nil {
+		m.history.Add(&selectHistory{
+			manager: m,
+			from:    cpy,
+		})
+	}
 	for i := range cpy {
 		m.clearShaderDataFlag(cpy[i])
 		m.OnEntityDeselected.Execute(cpy[i])
@@ -86,6 +67,9 @@ func (m *StageManager) ClearSelection() {
 
 func (m *StageManager) SelectEntity(e *StageEntity) {
 	defer tracing.NewRegion("StageManager.SelectEntity").End()
+	if e == nil || e.IsDeleted() || e.IsLocked() {
+		return
+	}
 	for i := range m.selected {
 		if m.selected[i] == e {
 			return
@@ -97,7 +81,9 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 	}
 	m.selected = append(m.selected, e)
 	history.to = slices.Clone(m.selected)
-	m.history.Add(history)
+	if m.history != nil {
+		m.history.Add(history)
+	}
 	m.setShaderDataFlag(e)
 	m.OnEntitySelected.Execute(e)
 }
@@ -105,6 +91,23 @@ func (m *StageManager) SelectEntity(e *StageEntity) {
 func (m *StageManager) SelectEntityById(id string) {
 	m.ClearSelection()
 	m.SelectAppendEntityById(id)
+}
+
+func (m *StageManager) SelectWithChildrenOrSingleEntityById(id string) {
+	if entity, ok := m.EntityById(id); ok {
+		m.selectWithChildrenOrSingleEntityById(entity)
+	}
+}
+
+func (m *StageManager) selectWithChildrenOrSingleEntityById(entity *StageEntity) {
+	if entity.HasChildren() {
+		for _, child := range entity.Children {
+			m.selectWithChildrenOrSingleEntityById(EntityToStageEntity(child))
+			m.SelectEntity(entity)
+		}
+	} else {
+		m.SelectEntity(entity)
+	}
 }
 
 func (m *StageManager) SelectAppendEntityById(id string) {
@@ -140,30 +143,32 @@ func (m *StageManager) DeselectEntity(e *StageEntity) {
 	}
 }
 
-func (m *StageManager) TryHitEntity(ray collision.Ray) (*StageEntity, matrix.Vec3, bool) {
+func (m *StageManager) TryHitEntity(ray graviton.Ray) (*StageEntity, matrix.Vec3, bool) {
 	if target, pt, ok := m.worldBVH.RayIntersect(ray, 1000); ok {
 		return target.(*StageEntity), pt, ok
 	}
 	return nil, matrix.Vec3{}, false
 }
 
-func (m *StageManager) TrySelect(ray collision.Ray) (*StageEntity, bool) {
+func (m *StageManager) TrySelect(ray graviton.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TrySelect").End()
 	m.ClearSelection()
 	return m.TryAppendSelect(ray)
 }
 
 func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
+	m.TryBoxSelectWithMode(screenBox, SelectionModeReplace)
+}
+
+func (m *StageManager) TryBoxSelectWithMode(screenBox matrix.Vec4, mode SelectionMode) {
 	defer tracing.NewRegion("StageManager.TryBoxSelect").End()
-	m.history.BeginTransaction()
-	defer m.history.CommitTransaction()
-	m.ClearSelection()
 	cam := m.host.PrimaryCamera()
 	f := cam.Frustum()
 	v, p := cam.View(), cam.Projection()
 	viewport := cam.Viewport()
+	entities := make([]*StageEntity, 0)
 	for _, e := range m.entities {
-		if e.StageData.Bvh == nil || e.isDeleted {
+		if e.StageData.Bvh == nil || e.isDeleted || e.IsLocked() {
 			continue
 		}
 		b := e.StageData.Bvh.Bounds()
@@ -175,23 +180,62 @@ func (m *StageManager) TryBoxSelect(screenBox matrix.Vec4) {
 			continue
 		}
 		if screenBox.AreaContains(ss.X(), ss.Y()) {
-			m.SelectEntity(e)
+			entities = append(entities, e)
+		}
+	}
+	m.SelectEntities(entities, mode)
+}
+
+func (m *StageManager) SelectEntities(entities []*StageEntity, mode SelectionMode) {
+	defer tracing.NewRegion("StageManager.SelectEntities").End()
+	filtered := make([]*StageEntity, 0, len(entities))
+	for i := range entities {
+		e := entities[i]
+		if e == nil || e.IsDeleted() || e.IsLocked() || slices.Contains(filtered, e) {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	if len(filtered) == 0 && mode != SelectionModeReplace {
+		return
+	}
+	if m.history != nil {
+		m.history.BeginTransaction()
+		defer m.history.CommitTransaction()
+	}
+	switch mode {
+	case SelectionModeAppend:
+		for i := range filtered {
+			m.SelectEntity(filtered[i])
+		}
+	case SelectionModeToggle:
+		for i := range filtered {
+			if m.IsSelected(filtered[i]) {
+				m.DeselectEntity(filtered[i])
+			} else {
+				m.SelectEntity(filtered[i])
+			}
+		}
+	default:
+		m.ClearSelection()
+		for i := range filtered {
+			m.SelectEntity(filtered[i])
 		}
 	}
 }
 
-func (m *StageManager) TryAppendSelect(ray collision.Ray) (*StageEntity, bool) {
+func (m *StageManager) TryAppendSelect(ray graviton.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryAppendSelect").End()
-	if e, _, ok := m.TryHitEntity(ray); ok {
+	if e, _, ok := m.TryHitEntity(ray); ok && !e.IsLocked() {
 		m.SelectEntity(e)
 		return e, true
 	}
 	return nil, false
 }
 
-func (m *StageManager) TryToggleSelect(ray collision.Ray) (*StageEntity, bool) {
+func (m *StageManager) TryToggleSelect(ray graviton.Ray) (*StageEntity, bool) {
 	defer tracing.NewRegion("StageManager.TryToggleSelect").End()
-	if e, _, ok := m.TryHitEntity(ray); ok {
+	if e, _, ok := m.TryHitEntity(ray); ok && !e.IsLocked() {
 		if m.IsSelected(e) {
 			m.DeselectEntity(e)
 		} else {
@@ -221,30 +265,32 @@ func (m *StageManager) SelectionPivotCenter() matrix.Vec3 {
 	return center
 }
 
-func (m *StageManager) SelectionBounds() collision.AABB {
+func (m *StageManager) SelectionBounds() graviton.AABB {
 	defer tracing.NewRegion("StageManager.SelectionBounds").End()
-	low := matrix.Vec3Inf(1)
-	high := matrix.Vec3Inf(-1)
-	center := matrix.Vec3Zero()
+	var bounds graviton.AABB
+	hasBounds := false
 	for _, e := range m.selected {
-		p := e.Transform.Position()
-		var b collision.AABB
-		if e.StageData.Bvh != nil {
-			b = e.StageData.Bvh.Bounds()
-			b.Center.AddAssign(p)
-		} else {
-			b = collision.AABBFromTransform(&e.Transform)
+		if e == nil || e.IsDeleted() {
+			continue
 		}
-		center.AddAssign(b.Center)
-		ex := matrix.Vec3Max(matrix.Vec3Zero(), b.Extent)
-		low = matrix.Vec3Min(low, p.Subtract(ex))
-		high = matrix.Vec3Max(high, p.Add(ex))
+		var b graviton.AABB
+		if e.StageData.Bvh != nil {
+			e.StageData.Bvh.Refit()
+			b = e.StageData.Bvh.Bounds()
+		} else {
+			b = graviton.AABBFromTransform(&e.Transform)
+		}
+		if !hasBounds {
+			bounds = b
+			hasBounds = true
+		} else {
+			bounds = graviton.AABBUnion(bounds, b)
+		}
 	}
-	center.ShrinkAssign(float32(len(m.selected)))
-	return collision.AABB{
-		Center: center,
-		Extent: high.Subtract(low).Scale(0.5),
+	if !hasBounds {
+		return graviton.NullAABB
 	}
+	return bounds
 }
 
 func (m *StageManager) setShaderDataFlag(root *StageEntity) {

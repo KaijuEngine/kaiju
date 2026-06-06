@@ -11,9 +11,19 @@
 #include "cocoa_window.h"
 #include "window_event.h"
 
+#pragma mark - File drop bridge (defined in window_darwin_filedrop.go)
+
+#if KAIJU_ENABLE_FILEDROP
+extern void goProcessFileDropDarwin(uint64_t goWindow, int32_t x, int32_t y, void* paths, uint32_t pathCount);
+static inline SharedMem* getSharedMem(NSWindow* window);
+#endif
+
 #pragma mark - Metal View
 
 @interface MetalView : NSView
+#if KAIJU_ENABLE_FILEDROP
+<NSDraggingDestination>
+#endif
 @end
 
 @implementation MetalView
@@ -32,6 +42,60 @@
 }
 - (CALayer*)makeBackingLayer { return [[CAMetalLayer alloc] init]; }
 - (BOOL)wantsUpdateLayer { return YES; }
+
+#if KAIJU_ENABLE_FILEDROP
+- (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
+	NSPasteboard* pb = [sender draggingPasteboard];
+	if ([[pb types] containsObject:NSPasteboardTypeFileURL]) {
+		return NSDragOperationCopy;
+	}
+	return NSDragOperationNone;
+}
+
+- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
+	return [self draggingEntered:sender];
+}
+
+- (BOOL)prepareForDragOperation:(id<NSDraggingInfo>)sender {
+	return YES;
+}
+
+- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
+	NSWindow* win = self.window;
+	if (!win) return NO;
+	SharedMem* sm = getSharedMem(win);
+	if (!sm) return NO;
+
+	NSArray<NSURL*>* urls = [[sender draggingPasteboard]
+		readObjectsForClasses:@[[NSURL class]] options:nil];
+	if (urls.count == 0) return NO;
+
+	uint32_t pathCount = (uint32_t)urls.count;
+	char** paths = (char**)calloc(pathCount, sizeof(char*));
+	if (!paths) return NO;
+
+	uint32_t actual = 0;
+	for (NSURL* u in urls) {
+		const char* utf8 = [[u path] UTF8String];
+		if (!utf8) continue;
+		paths[actual++] = strdup(utf8);
+	}
+
+	NSPoint loc = [self convertPoint:[sender draggingLocation] fromView:nil];
+	int32_t x = (int32_t)loc.x;
+	int32_t y = sm->windowHeight - (int32_t)loc.y;
+
+	if (actual > 0) {
+		goProcessFileDropDarwin((uint64_t)(uintptr_t)sm->goWindow, x, y, paths, actual);
+	}
+
+	for (uint32_t i = 0; i < actual; ++i) {
+		free(paths[i]);
+	}
+	free(paths);
+	return actual > 0;
+}
+#endif
 @end
 
 #pragma mark - App Delegate
@@ -141,14 +205,23 @@ static NSEvent* handleEvent(NSEvent* e) {
 			NSPoint p = e.locationInWindow;
 			int32_t x = (int32_t)p.x;
 			int32_t y = sm->windowHeight - (int32_t)p.y;
-			shared_mem_add_event(sm, (WindowEvent){
-				.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
-				.mouseMove = { x, y }
-			});
 			if (sm->lockCursor.active) {
-				NSRect r = NSMakeRect(sm->lockCursor.x, sm->lockCursor.y, 0, 0);
-				NSRect sr = [w convertRectToScreen:r];
-				CGWarpMouseCursorPosition(sr.origin);
+				if (x != sm->lockCursor.x || y != sm->lockCursor.y) {
+					shared_mem_add_event(sm, (WindowEvent){
+						.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+						.mouseMove = { x, y }
+					});
+				}
+				if (sm->lockCursor.active) {
+					NSRect r = NSMakeRect(sm->lockCursor.x, sm->lockCursor.y, 0, 0);
+					NSRect sr = [w convertRectToScreen:r];
+					CGWarpMouseCursorPosition(sr.origin);
+				}
+			} else {
+				shared_mem_add_event(sm, (WindowEvent){
+					.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+					.mouseMove = { x, y }
+				});
 			}
 		} break;
 
@@ -207,14 +280,15 @@ static NSEvent* handleEvent(NSEvent* e) {
 		case NSEventTypeKeyDown:
 		case NSEventTypeKeyUp:
 			// Skip auto‑repeat key‑down events
-			if (e.type == NSEventTypeKeyDown && e.isARepeat) {
+			if (e.type == NSEventTypeKeyDown && e.isARepeat && e.keyCode != 0x7B && e.keyCode != 0x7C) {
 				break;
 			}
 			shared_mem_add_event(sm, (WindowEvent){
 				.type = WINDOW_EVENT_TYPE_KEYBOARD_BUTTON,
 				.keyboardButton = { e.keyCode, e.type==NSEventTypeKeyDown?WINDOW_EVENT_BUTTON_TYPE_DOWN:WINDOW_EVENT_BUTTON_TYPE_UP }
 			});
-			break;
+			shared_mem_flush_events(sm);
+			return nil;
 		default: break;
 	}
 
@@ -291,6 +365,10 @@ void* cocoa_create_window(const char* title,
 							  defer:NO];
 
 			win.title = [NSString stringWithUTF8String:title];
+
+			if (x < 0 || y < 0) {
+				[win center];
+			}
 
 			// Window delegate (retained via associated object)
 			WindowDelegate* winDelegate = [WindowDelegate new];
@@ -445,7 +523,6 @@ double cocoa_get_backing_scale_factor(void* nsWindow) {
 	if (!nsWindow) {
 		return result;
 	}
-/*
 	dispatch_sync(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
 			NSWindow* window = (__bridge NSWindow*)nsWindow;
@@ -460,8 +537,12 @@ double cocoa_get_backing_scale_factor(void* nsWindow) {
 			}
 		}
 	});
-*/
 	return result;
+}
+
+int cocoa_screen_count(void* nsWindow) {
+	(void)nsWindow;
+	return 1; // TODO
 }
 
 void cocoa_get_position(void* nsWindow, int* x, int* y) {
@@ -613,14 +694,14 @@ void cocoa_get_bundle_resource_path(const char* resourceName, void** outPath) {
 	@autoreleasepool {
 		NSString* name = [NSString stringWithUTF8String:resourceName];
 		NSString* path = [[NSBundle mainBundle] pathForResource:name ofType:nil];
-		
+
 		if (path == nil) {
 			// Try with extension separated
 			NSString* extension = [name pathExtension];
 			NSString* basename = [name stringByDeletingPathExtension];
 			path = [[NSBundle mainBundle] pathForResource:basename ofType:extension];
 		}
-		
+
 		if (path != nil) {
 			*outPath = (void*)strdup([path UTF8String]);
 		} else {
@@ -637,7 +718,7 @@ void cocoa_remove_border(void* nsWindow) {
 			NSWindow* window = (__bridge NSWindow*)(nsWindow);
 			NSWindowStyleMask styleMask = [window styleMask];
 			// Remove title bar and border decorations
-			styleMask &= ~(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | 
+			styleMask &= ~(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
 						   NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable);
 			styleMask |= NSWindowStyleMaskBorderless;
 			[window setStyleMask:styleMask];
@@ -654,7 +735,7 @@ void cocoa_add_border(void* nsWindow) {
 			NSWindowStyleMask styleMask = [window styleMask];
 			// Add title bar and border decorations
 			styleMask &= ~NSWindowStyleMaskBorderless;
-			styleMask |= (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | 
+			styleMask |= (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
 						  NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable);
 			[window setStyleMask:styleMask];
 		}
@@ -765,6 +846,23 @@ bool cocoa_get_caps_lock_toggle_key_state(void) {
         return (flags & NSEventModifierFlagCapsLock) != 0;
     }
 }
+
+#if KAIJU_ENABLE_FILEDROP
+void cocoa_set_file_drop_enabled(void* nsView, bool enabled) {
+	if (!nsView) return;
+
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+			NSView* view = (__bridge NSView*)nsView;
+			if (enabled) {
+				[view registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
+			} else {
+				[view unregisterDraggedTypes];
+			}
+		}
+	});
+}
+#endif
 
 void cocoa_set_icon(void* nsWindow, int width, int height, const uint8_t* pixelData) {
 	if (!pixelData || width <= 0 || height <= 0) {

@@ -4,10 +4,14 @@ site_author: 'Brent Farris'
 docs_dir: docs/
 repo_name: 'KaijuEngine/kaiju'
 repo_url: 'https://github.com/KaijuEngine/kaiju'
+hooks:
+  - tools/mkdocs/generate_blog_posts_json.py
 nav:
   - Home: index.md
   - Blog: blog/index.md
-  - Getting started: getting_started/index.md
+  - Getting started:
+    - With editor: getting_started/start_with_editor.md
+    - Without editor: getting_started/start_without_editor.md
   - Kaiju Editor:
     - Stage: editor/stage.md
     - Content:
@@ -25,6 +29,9 @@ nav:
     - Design goals: engine/design_goals.md
     - Build from source: engine/build_from_source.md
     - Build tags: engine/build_tags.md
+    - Render targets and views: engine/render_targets.md
+    - FBX importer: engine/fbx_importer.md
+    - Physics constraints: engine/physics_constraints.md
     - Performance profiling: engine/performance_profiling.md
     - Building new fonts: engine/fonts/building_fonts.md
     - UI:
@@ -45,8 +52,8 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
-    - navigation.tabs
-    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.instant
     - toc.integrate
   palette:
     - media: "(prefers-color-scheme)"

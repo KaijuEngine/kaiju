@@ -1,50 +1,22 @@
 /******************************************************************************/
 /* sprite.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package sprite
 
 import (
-	"kaiju/debug"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"log/slog"
 	"weak"
+
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 const (
@@ -57,7 +29,7 @@ var (
 )
 
 type Sprite struct {
-	Entity          *engine.Entity
+	Entity          engine.Entity
 	host            weak.Pointer[engine.Host]
 	currentClipName string
 	currentClip     SpriteSheetClip
@@ -77,6 +49,8 @@ type Sprite struct {
 	flipHorizontal  bool
 }
 
+func (s *Sprite) IsValid() bool { return len(s.drawings) > 0 }
+
 func (s *Sprite) Init(x, y, width, height float32, host *engine.Host, texture string, color matrix.Color) {
 	tex, err := host.TextureCache().Texture(texture, sFilter)
 	if err != nil {
@@ -84,6 +58,11 @@ func (s *Sprite) Init(x, y, width, height float32, host *engine.Host, texture st
 		tex, _ = host.TextureCache().Texture(assets.TextureSquare, sFilter)
 	}
 	s.InitFromTexture(x, y, width, height, host, tex, color)
+	s.Entity.OnDestroy.Add(func() {
+		for i := range s.drawings {
+			s.drawings[i].ShaderData.Destroy()
+		}
+	})
 }
 
 func (s *Sprite) InitFromTexture(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, color matrix.Color) {
@@ -254,7 +233,7 @@ func (s *Sprite) SetFlipBookAnimation(inFPS float32, textures []*rendering.Textu
 
 func (s *Sprite) SetColor(color matrix.Color) {
 	for i := range s.drawings {
-		s.drawings[i].ShaderData.(*ShaderData).FgColor = color
+		s.drawings[i].ShaderData.(*shader_data_registry.ShaderDataUnlit).Color = color
 	}
 	s.setBlendingInternal(s.enforcedBlended || color.A() < 1)
 }
@@ -316,8 +295,8 @@ func (s *Sprite) SetUVs(drawing int, inUVs matrix.Vec4) {
 	s.ShaderData(drawing).UVs = inUVs
 }
 
-func (s *Sprite) ShaderData(drawing int) *ShaderData {
-	return s.drawings[drawing].ShaderData.(*ShaderData)
+func (s *Sprite) ShaderData(drawing int) *shader_data_registry.ShaderDataUnlit {
+	return s.drawings[drawing].ShaderData.(*shader_data_registry.ShaderDataUnlit)
 }
 
 func (s *Sprite) isFlipBook() bool    { return len(s.drawings) > 1 }
@@ -329,13 +308,13 @@ func (s *Sprite) recreateDrawing(drawingIndex int, blended bool) {
 	sd := s.ShaderData(drawingIndex)
 	proxy := *sd
 	sd.Destroy()
-	sd = &ShaderData{}
+	sd = &shader_data_registry.ShaderDataUnlit{}
 	*sd = proxy
 	d.ShaderData = sd
 	if d.Material.HasTransparentSuffix() != blended {
 		host := s.host.Value()
 		debug.EnsureNotNil(host)
-		mat, err := host.MaterialCache().Material(assets.MaterialDefinitionSpriteTransparent)
+		mat, err := host.MaterialCache().Material(assets.MaterialDefinitionUnlitTransparent)
 		if err == nil {
 			d.Material = mat.CreateInstance(d.Material.Textures)
 		} else {
@@ -404,15 +383,15 @@ func (s *Sprite) baseInit(x, y, width, height float32, host *engine.Host) {
 		host:      weak.Make(host),
 		baseScale: matrix.NewVec3(width, height, 1.0),
 	}
-	s.Entity = engine.NewEntity(host.WorkGroup())
+	s.Entity.Init(host.WorkGroup())
 	s.Entity.Transform.SetPosition(matrix.NewVec3(x, y, 0))
 	s.Entity.Transform.SetScale(matrix.NewVec3(width, height, 1))
 }
 
 func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *rendering.Texture) (rendering.Drawing, error) {
-	matDef := assets.MaterialDefinitionSprite
+	matDef := assets.MaterialDefinitionUnlit
 	if s.enforcedBlended || color.A() < 1 {
-		matDef = assets.MaterialDefinitionSpriteTransparent
+		matDef = assets.MaterialDefinitionUnlitTransparent
 	}
 	mat, err := host.MaterialCache().Material(matDef)
 	if err != nil {
@@ -421,14 +400,12 @@ func (s *Sprite) buildDrawing(host *engine.Host, color matrix.Color, texture *re
 	}
 	mat = mat.CreateInstance([]*rendering.Texture{texture})
 	mesh := rendering.NewMeshQuad(host.MeshCache())
+	sd := shader_data_registry.Create(mat.Shader.DrawInstanceDataName()).(*shader_data_registry.ShaderDataUnlit)
+	sd.Color = color
 	d := rendering.Drawing{
-		Material: mat,
-		Mesh:     mesh,
-		ShaderData: &ShaderData{
-			ShaderDataBase: rendering.NewShaderDataBase(),
-			FgColor:        color,
-			UVs:            matrix.NewVec4(0, 0, 1, 1),
-		},
+		Material:   mat,
+		Mesh:       mesh,
+		ShaderData: sd,
 		Transform:  &s.Entity.Transform,
 		ViewCuller: &host.Cameras.Primary,
 	}

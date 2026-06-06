@@ -72,6 +72,7 @@
 <html>
 	<head>
 		<style>
+			div { width: 100%; }
 			.content {
 				top: var(--ed-menu-bar-height);
 				width: 100%;
@@ -90,6 +91,7 @@
 			.rightPanel {
 				color: white;
 				width: calc(100% - 10.25em);
+				padding: 0.5em;
 			}
 			.settingsBox {
 				width: 100%;
@@ -162,12 +164,173 @@
 			.pluginEntry {
 				width: 100%;
 				border: 2px solid #CCC;
+				padding: 10px;
+				margin: 5px 5px 5px 5px;
+				border-radius: 5px;
 			}
 			.pluginWebsite {
 				color: #63b361;
 			}
 			#pluginSettingsBox button {
 				margin-right: 1em;
+			}
+			.workspaceHelp {
+				margin-bottom: 1em;
+			}
+			.workspaceRow {
+				width: 100%;
+				padding: 8px;
+				margin: 4px 0;
+				border-radius: 4px;
+			}
+			.workspaceName { margin-right: 0.5em; }
+			.workspaceId { color: #888; font-size: 11px; margin-right: 1em; }
+			.workspaceRequired { color: #cc6; margin-right: 1em; }
+			.workspaceToggle { margin-right: 0.5em; }
+			.workspaceMoveBtn { margin-left: 0.25em; }
+			.shortcutToolbar {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				width: 100%;
+				height: 24px;
+				margin-bottom: 0.75em;
+			}
+			.shortcutSearch {
+				width: calc(100% - 22em);
+				height: 22px;
+				margin-right: 0.5em;
+				padding: 0 6px;
+			}
+			.shortcutToolbar button {
+				width: 6.5em;
+				height: 22px;
+				margin-right: 0.5em;
+			}
+			.shortcutNoResults {
+				color: #AAA;
+				margin-top: 1em;
+			}
+			.shortcutSection {
+				width: 100%;
+				margin-bottom: 1em;
+			}
+			.shortcutSection h2 {
+				font-size: 18px;
+				margin-top: 0.75em;
+				margin-bottom: 0.25em;
+			}
+			.shortcutList {
+				width: 100%;
+			}
+			.shortcutRow {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				width: 100%;
+				height: 28px;
+				padding: 2px 6px;
+				margin: 1px 0;
+				border-radius: 3px;
+			}
+			.shortcutAction {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				width: calc(100% - 28em);
+				height: 100%;
+				overflow: hidden;
+			}
+			.shortcutTitle {
+				width: 42%;
+				font-size: 13px;
+				font-weight: normal;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+			.shortcutId {
+				width: 56%;
+				color: #888;
+				font-size: 10px;
+				margin-left: 0.75em;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+			.shortcutBindings {
+				display: flex;
+				flex-direction: row;
+				justify-content: flex-end;
+				align-items: center;
+				width: 28em;
+				height: 100%;
+			}
+			.shortcutKeyButton {
+				width: 10em;
+				height: 22px;
+				margin-left: 0.35em;
+				padding: 0 5px 2px 5px;
+				font-size: 12px;
+				border-radius: 4px;
+			}
+			.shortcutKeyButton:active {
+				padding: 0 5px 2px 5px;
+			}
+			.shortcutUnset {
+				color: #888;
+			}
+			.shortcutIconButton {
+				width: 24px;
+				height: 22px;
+				margin-left: 0.35em;
+				padding: 0 5px 2px 5px;
+				font-size: 12px;
+				border-radius: 4px;
+			}
+			.shortcutIconButton:active {
+				padding: 0 5px 2px 5px;
+			}
+			.shortcutCaptureActive,
+			.shortcutCaptureActive:hover,
+			.shortcutCaptureActive:active {
+				background-color: var(--ed-row-selected);
+				border: 2px solid #881E1E;
+				color: #FFF;
+				padding: 0 5px 2px 5px;
+			}
+			.webAPISettings {
+				margin-top: 1em;
+				margin-bottom: 1em;
+			}
+			.webAPIKeyInput {
+				width: 54%;
+				height: 100%;
+				margin-right: 0.5em;
+			}
+			.webAPIKeyButton {
+				width: 14%;
+				height: 100%;
+			}
+		
+			
+			.gitDownloadRow {
+				width: 100%;
+				height: 18px;
+				margin-top: 5px;
+			}
+			
+			.gitUrlInput {
+				width: 70%;
+				height: 30px;
+				padding: 6px 8px;
+				margin-right: 10px;
+			}
+			
+			.downloadStatus {
+				margin-top: 12px;
+				font-size: 12px;
+				color: #AAA;
 			}
 		</style>
 	</head>
@@ -176,6 +339,8 @@
 			<div class="leftPanel edPanelBg">
 				<div class="edPanelBgHoverable" onclick="showProjectSettings">Project Settings</div>
 				<div class="edPanelBgHoverable" onclick="showEditorSettings">Editor Settings</div>
+				<div class="edPanelBgHoverable" onclick="showWorkspaceSettings">Workspaces</div>
+				<div class="edPanelBgHoverable" onclick="showKeyboardSettings">Keyboard Shortcuts</div>
 				<div class="edPanelBgHoverable" onclick="showPluginSettings">Plugin Settings</div>
 			</div>
 			<div class="rightPanel edPanelBg">
@@ -186,11 +351,93 @@
 				<div id="editorSettingsBox" class="settingsBox">
 					<h1>Editor Settings</h1>
 					{{template "section" .Editor}}
+					<div class="webAPISettings">
+						<h2>Web API</h2>
+						<div class="inputItem">
+							<div class="inputLabel">Enabled:</div>
+							<input id="webAPIEnabled" data-path="WebAPI.Enabled" class="inputCheck" type="checkbox" {{if .WebAPI.Enabled}}checked="checked"{{end}} onchange="webAPIValueChanged" />
+						</div>
+						<div class="inputItem">
+							<div class="inputLabel">Port:</div>
+							<input id="webAPIPort" data-path="WebAPI.Port" class="input" type="number" value="{{.WebAPI.Port}}" onchange="webAPIValueChanged" />
+						</div>
+						<div class="inputItem">
+							<div class="inputLabel">API Key:</div>
+							<input id="webAPIKey" data-path="WebAPI.APIKey" class="input webAPIKeyInput" type="text" value="{{.WebAPI.APIKey}}" onchange="webAPIValueChanged" />
+							<button class="webAPIKeyButton" onclick="rotateWebAPIKey">Rotate</button>
+						</div>
+					</div>
+				</div>
+				<div id="workspaceSettingsBox" class="settingsBox">
+					<h1>Workspaces</h1>
+					<div class="workspaceHelp">Enable, disable, and reorder workspaces. Required workspaces always stay enabled. Disabled workspaces are not initialized and their tab is hidden. Changes apply immediately.</div>
+					{{range $i, $w := .Workspaces}}
+					<div class="workspaceRow edPanelBgDark">
+						<span class="workspaceName"><strong>{{$w.DisplayName}}</strong></span>
+						<span class="workspaceId">({{$w.ID}})</span>
+						{{if $w.IsRequired}}
+							<span class="workspaceRequired">Required</span>
+						{{else}}
+							<input type="checkbox" class="inputCheck workspaceToggle" data-idx="{{$i}}" {{if $w.Enabled}}checked="checked"{{end}} onchange="toggleWorkspaceEnabled" />
+							<span class="inputCheckLabel">Enabled</span>
+						{{end}}
+						<button class="workspaceMoveBtn" data-idx="{{$i}}" onclick="moveWorkspaceUp">^</button>
+						<button class="workspaceMoveBtn" data-idx="{{$i}}" onclick="moveWorkspaceDown">v</button>
+					</div>
+					{{end}}
+				</div>
+				<div id="keyboardSettingsBox" class="settingsBox">
+					<h1>Keyboard Shortcuts</h1>
+					<div class="shortcutToolbar">
+						<input id="shortcutSearch" class="input shortcutSearch" type="text" placeholder="Filter shortcuts" onchange="filterShortcuts" />
+						<button onclick="resetShortcuts">Reset</button>
+						<button onclick="exportShortcuts">Export</button>
+						<button onclick="importShortcuts">Import</button>
+					</div>
+					{{range $s := .Shortcuts}}
+					<div class="shortcutSection">
+						<h2>{{$s.Name}}</h2>
+						<div class="shortcutList">
+						{{range $r := $s.Rows}}
+						<div class="shortcutRow edPanelBgDark" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-search="{{$s.Name}} {{$r.Workspace}} {{$r.Label}} {{$r.Action}} {{$r.Description}}">
+							<div class="shortcutAction">
+								<div class="shortcutTitle">{{$r.Label}}</div>
+								<div class="shortcutId">{{$r.Action}}</div>
+							</div>
+							<div class="shortcutBindings">
+								{{range $b := $r.Bindings}}
+									<button class="shortcutKeyButton shortcutBindingButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="{{$b.Index}}" onclick="captureShortcut">{{$b.Chord}}</button>
+								{{else}}
+									<button class="shortcutKeyButton shortcutBindingButton shortcutUnset" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">No shortcut</button>
+								{{end}}
+								<button class="shortcutIconButton shortcutAddButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" data-index="-1" onclick="captureShortcut">+</button>
+								<button class="shortcutIconButton shortcutClearButton" data-action="{{$r.Action}}" data-workspace="{{$r.Workspace}}" onclick="clearShortcut">X</button>
+							</div>
+						</div>
+						{{end}}
+						</div>
+					</div>
+					{{end}}
+					<div id="shortcutNoResults" class="shortcutNoResults">No shortcuts match the filter.</div>
 				</div>
 				<div id="pluginSettingsBox" class="settingsBox">
 					<h1>Plugin Settings</h1>
 					<button onclick="clickOpenPlugins">Open plugins folder</button>
 					<button onclick="recompileEditor">Recompile Editor</button>
+					<div class="pluginEntry edPanelBgDark">
+						<h1>Add Plugin from Git Repository</h1>
+					<div class="gitDownloadRow">
+						<input id="gitPluginUrl" class="gitUrlInput" type="text" 
+							   placeholder="https://github.com/username/plugin-name" />
+						<button onclick="addPluginFromGit">Add Plugin</button>
+						</div>
+						<label id="pluginDownloadStatus" class="downloadStatus">
+							Plugin will be added to go.mod during recompilation.
+						</label>
+						<div style="margin-top: px; font-size: 12px; color: #AAA;">
+							Make sure the repo is public.
+						</div>
+					</div>
 					{{range $i, $p := .Plugins}}
 					<div class="pluginEntry edPanelBgDark">
 						<h1>{{$p.Config.Name}}</h1>

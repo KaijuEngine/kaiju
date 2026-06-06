@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* content_database.go                                                        */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package content_database
@@ -39,13 +9,14 @@ package content_database
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/debug"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"kaijuengine.com/debug"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func ImportRaw(name string, data []byte, cat ContentCategory, fs *project_file_system.FileSystem, cache *Cache) []string {
@@ -114,7 +85,11 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 	dependencyMap := map[string][]ImportResult{}
 	for i := range proc.Variants {
 		res[i].Category = cat
-		res[i].generateUniqueFileId(fs)
+		storedExt := filepath.Ext(path)
+		if ext, ok := cat.(storedExtensionNamer); ok {
+			storedExt = ext.StoredExtName(path)
+		}
+		res[i].generateUniqueFileId(fs, storedExt)
 		if useLinkedId && linkedId == "" {
 			linkedId = res[i].Id
 		}
@@ -124,7 +99,6 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 		if err != nil {
 			return res, err
 		}
-		defer f.Close()
 		defer func() {
 			if err != nil {
 				res[i].failureCleanup(fs)
@@ -138,11 +112,10 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			LinkedId: linkedId,
 		}
 		if err = json.NewEncoder(f).Encode(cfg); err != nil {
+			f.Close()
 			return res, err
 		}
-		contentPath := res[i].ContentPath()
-		fs.MkdirAll(filepath.Dir(contentPath.String()), os.ModePerm)
-		if err = fs.WriteFile(contentPath.String(), proc.Variants[i].Data, os.ModePerm); err != nil {
+		if err = f.Close(); err != nil {
 			return res, err
 		}
 		res[i].Dependencies = make([]ImportResult, 0, len(proc.Dependencies))
@@ -152,19 +125,45 @@ func Import(path string, fs *project_file_system.FileSystem, cache *Cache, linke
 			} else {
 				var deps []ImportResult
 				deps, err = Import(proc.Dependencies[j], fs, cache, linkedId)
-				res[i].Dependencies = append(res[i].Dependencies, deps...)
-				dependencyMap[proc.Dependencies[j]] = res[i].Dependencies
 				if err != nil {
 					break
 				}
+				res[i].Dependencies = append(res[i].Dependencies, deps...)
+				dependencyMap[proc.Dependencies[j]] = deps
 			}
 		}
+		if err != nil {
+			return res, err
+		}
 		cache.Index(res[i].ConfigPath().String(), fs)
-		if err = cat.PostImportProcessing(proc, &res[i], fs, cache, linkedId); err != nil {
+		preWriteHandled := false
+		if preWrite, ok := cat.(preWriteImportProcessor); ok {
+			preWriteHandled, err = preWrite.PreWriteImportProcessing(proc, &res[i], fs, cache, linkedId)
+			if err != nil {
+				return res, err
+			}
+		}
+		contentPath := res[i].ContentPath()
+		fs.MkdirAll(filepath.Dir(contentPath.String()), os.ModePerm)
+		if err = fs.WriteFile(contentPath.String(), proc.Variants[i].Data, os.ModePerm); err != nil {
+			return res, err
+		}
+		if !preWriteHandled {
+			err = cat.PostImportProcessing(proc, &res[i], fs, cache, linkedId)
+		}
+		if err != nil {
 			return res, err
 		}
 	}
 	return res, err
+}
+
+type preWriteImportProcessor interface {
+	PreWriteImportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache, linkedId string) (bool, error)
+}
+
+type postReimportProcessor interface {
+	PostReimportProcessing(proc ProcessedImport, res *ImportResult, fs *project_file_system.FileSystem, cache *Cache) error
 }
 
 func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (ImportResult, error) {
@@ -199,6 +198,9 @@ func Reimport(id string, fs *project_file_system.FileSystem, cache *Cache) (Impo
 	}
 	if err = fs.WriteFile(res.ContentPath().String(), proc.Variants[0].Data, os.ModePerm); err != nil {
 		return res, err
+	}
+	if post, ok := cat.(postReimportProcessor); ok {
+		err = post.PostReimportProcessing(proc, &res, fs, cache)
 	}
 	return res, nil
 }

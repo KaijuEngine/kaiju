@@ -57,6 +57,7 @@ void window_cursor_size_we(void* hwnd);
 float window_dpi(void* hwnd);
 int screen_width_mm(void* hwnd);
 int screen_height_mm(void* hwnd);
+int screen_count(void* hwnd);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void window_set_position(void* hwnd, int x, int y);
@@ -72,7 +73,11 @@ void window_set_windowed(void* hwnd, int width, int height);
 void window_enable_raw_mouse(void* hwnd);
 void window_disable_raw_mouse(void* hwnd);
 void window_set_title(void* hwnd, const wchar_t* windowTitle);
+void window_set_title_bar_mode(void* hwnd, int mode);
 void window_set_cursor_position(void* hwnd, int x, int y);
 void window_set_icon(void* hwnd, int width, int height, const uint8_t* pixelData);
+#if KAIJU_ENABLE_FILEDROP
+void window_set_file_drop_enabled(void* hwnd, bool enabled);
+#endif
 
 #endif

@@ -1,50 +1,21 @@
 /******************************************************************************/
 /* light.go                                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/rendering/vulkan_const"
 	"log/slog"
 	"unsafe"
 	"weak"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 const (
@@ -106,7 +77,7 @@ type LightsForRender struct {
 }
 
 type Light struct {
-	renderer         *Vulkan
+	device           *GPUDevice
 	texture          *Texture
 	camera           cameras.Camera
 	renderPass       *RenderPass
@@ -165,7 +136,7 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 	return nil
 }
 
-func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
+func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
 	light := Light{
 		ambient:     matrix.NewVec3(0.1, 0.1, 0.1),
 		diffuse:     matrix.Vec3One(),
@@ -179,7 +150,7 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 		cutoff:      matrix.Cos(matrix.Deg2Rad(32.5)),
 		outerCutoff: matrix.Cos(matrix.Deg2Rad(50.5)),
 		reset:       true,
-		renderer:    vr,
+		device:      device,
 	}
 	for i := range cubeMapSides {
 		light.lightSpaceMatrix[i].Reset()
@@ -209,10 +180,10 @@ func NewLight(vr *Vulkan, assetDb assets.Database, materialCache *MaterialCache,
 	return light
 }
 
-func (l *Light) FrameDirty() bool { return l.reset }
+func (l *Light) FrameDirty() bool { return l.frameDirty || l.reset }
 
 func (l *Light) Type() LightType { return l.lightType }
-func (l *Light) IsValid() bool   { return l.renderer != nil }
+func (l *Light) IsValid() bool   { return l.device != nil }
 
 func lightTransformDrawingToDepth(drawing *Drawing, cascades uint8) Drawing {
 	copy := *drawing
@@ -243,7 +214,7 @@ func (l *Light) recalculate(camera cameras.Camera) {
 		for i := range csmProjections {
 			// TODO:  This shouldn't happen all the time, when the view changes,
 			// might be best to store it along side the camera frustum?
-			corners := collision.FrustumExtractCorners(camView, csmProjections[i])
+			corners := graviton.FrustumExtractCorners(camView, csmProjections[i])
 			center := corners.Center()
 			lightView.Reset()
 			lightEye := center.Add(l.direction)
@@ -261,7 +232,7 @@ func (l *Light) recalculate(camera cameras.Camera) {
 	l.reset = false
 }
 
-func (l *Light) minMaxFromCorners(view matrix.Mat4, corners collision.FrustumCorners) matrix.Vec3MinMax {
+func (l *Light) minMaxFromCorners(view matrix.Mat4, corners graviton.FrustumCorners) matrix.Vec3MinMax {
 	mm := matrix.NewVec3MinMax()
 	for i := range corners {
 		trf := matrix.Mat4MultiplyVec4(view, corners[i])
@@ -306,16 +277,16 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 }
 
 func (l *Light) setupRenderPass(assets assets.Database) {
-	vr := l.renderer
 	rp := RenderPassData{}
 	if err := unmarshallJsonFile(assets, "light_depth.renderpass", &rp); err != nil {
 		slog.Error("failed to load light_depth.renderpass")
 		return
 	}
-	if pass, ok := vr.renderPassCache[rp.Name]; !ok {
-		rpc := rp.Compile(vr)
-		if p, ok := rpc.ConstructRenderPass(vr); ok {
-			vr.renderPassCache[rp.Name] = p
+	lp := l.device.LogicalDevice
+	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
+		rpc := rp.Compile(l.device)
+		if p, err := rpc.ConstructRenderPass(l.device); err == nil {
+			lp.renderPassCache[rp.Name] = p
 			l.renderPass = p
 		} else {
 			slog.Error("failed to load the render pass for the light", "renderPass", rp.Name)
@@ -436,8 +407,9 @@ func (l *Light) SetCastsShadows(castsShadows bool) {
 }
 
 func (l *Light) ResetFrameDirty() bool {
-	wasReset := l.frameDirty
+	wasReset := l.frameDirty || l.reset
 	l.frameDirty = false
+	l.reset = false
 	return wasReset
 }
 

@@ -1,47 +1,18 @@
 /******************************************************************************/
 /* transform.go                                                               */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package matrix
 
 import (
-	"kaiju/klib"
-	"kaiju/platform/concurrent"
-	"kaiju/platform/profiler/tracing"
 	"slices"
 	"sync"
+
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 const (
@@ -58,9 +29,6 @@ type Transform struct {
 	workGroup                 *concurrent.WorkGroup
 	position, rotation, scale Vec3
 	relativePosition          Vec3
-	framePosition             Vec3
-	frameRotation             Vec3
-	frameScale                Vec3
 	isDirty                   bool
 	frameDirty                bool
 	orderedChildren           bool
@@ -95,12 +63,7 @@ func (t *Transform) Parent() *Transform  { return t.parent }
 func (t *Transform) Position() Vec3      { return t.relativePosition }
 
 func (t *Transform) IsDirty() bool {
-	if !t.frameDirty {
-		return false
-	}
-	return !t.framePosition.Equals(t.position) ||
-		!t.frameRotation.Equals(t.rotation) ||
-		!t.frameScale.Equals(t.scale)
+	return t.frameDirty
 }
 
 func (t *Transform) Right() Vec3 {
@@ -172,11 +135,6 @@ func (t *Transform) ResetDirty() {
 
 func (t *Transform) SetLocalPosition(position Vec3) {
 	if !t.position.Equals(position) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.position = position
 		if t.parent != nil {
 			wm := t.parent.WorldMatrix()
@@ -198,11 +156,6 @@ func (t *Transform) SetPosition(position Vec3) {
 	desiredWorld := t.parent.WorldPosition().Add(position)
 	localPos := t.parent.InverseWorldMatrix().TransformPoint(desiredWorld)
 	if !t.position.Equals(localPos) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.position = localPos
 		t.relativePosition = position
 		t.SetDirty()
@@ -211,11 +164,6 @@ func (t *Transform) SetPosition(position Vec3) {
 
 func (t *Transform) SetRotation(rotation Vec3) {
 	if !t.rotation.Equals(rotation) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.rotation = rotation
 		t.SetDirty()
 	}
@@ -223,11 +171,6 @@ func (t *Transform) SetRotation(rotation Vec3) {
 
 func (t *Transform) SetScale(scale Vec3) {
 	if !t.scale.Equals(scale) {
-		if !t.frameDirty {
-			t.framePosition = t.position
-			t.frameRotation = t.rotation
-			t.frameScale = t.scale
-		}
 		t.scale = scale
 		t.SetDirty()
 	}
@@ -368,6 +311,7 @@ func (t *Transform) SetWorldScale(scale Vec3) {
 	t.SetScale(localScale)
 }
 
+// uses centered coordinates
 func (t *Transform) ContainsPoint2D(point Vec2) bool {
 	p, _, s := t.WorldTransform()
 	l := p.X() - (s.X() * 0.5)

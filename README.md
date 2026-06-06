@@ -16,14 +16,16 @@ Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal o
 - 🔥 Better performance than other game engines
 - ⚠️🚧🏗️👷‍♂️ Work in progress, under heavy development
 
+Check out our [project board](https://github.com/orgs/KaijuEngine/projects/1) for things we're workin' on.
+
 ## Sponsor the project
 If you like the project, and would like to support it, please consider [becomming a sponsor on GitHub](https://github.com/sponsors/BrentFarris).
 
 ## Join the community
 - [GitHub repository](https://github.com/KaijuEngine/kaiju)
-- [Mailing list](https://www.freelists.org/list/kaijuengine) <- Recommended for detailed updates
 - [Discord server](https://discord.gg/8rFPEu8U52)
 - [Brent Farris on X/Twitter](https://twitter.com/ShieldCrush)
+- [Mailing list](https://www.freelists.org/list/kaijuengine)
 
 ## ⚠️ WORK IN PROGRESS ⚠️
 Though the engine is production ready, the editor **_is not_**, feel free to join and contribute to its development.
@@ -35,6 +37,8 @@ Please review the Ad-Hoc [editor readme](https://github.com/KaijuEngine/kaiju/bl
 ## Getting started building the engine/editor
 You can choose to get running quickly by recursively cloning the repository. This will also download the [src/libs submodule](https://github.com/KaijuEngine/kaiju_prebuilts) that includes all the pre-built library files needed to compile. Or, you can build the dependency libraries yourself.
 
+**NOTE:** On Windows, If you get an error with something like `libstdc++-6.dll` missing when you try to run, you may need to install mingw to get those libraries. We'll be looking at adding these to the prebuilts with [this issue](https://github.com/KaijuEngine/kaiju/issues/669).
+
 ### Clone the Repository with pre-built libraries
 ```sh
 git clone --recurse-submodules https://github.com/KaijuEngine/kaiju.git
@@ -42,8 +46,9 @@ git clone --recurse-submodules https://github.com/KaijuEngine/kaiju.git
 
 If you have Go, C build tools, platform libs, and Vulkan setup, you can start by running:
 ```sh
+mkdir bin/
 cd src
-go build -tags="debug,editor" -o ../ ./
+go build -tags="debug,editor,filedrop" -o ../bin/ ./
 ```
 
 *Or just open the repository in VSCode (or other IDE) and begin debugging it.*

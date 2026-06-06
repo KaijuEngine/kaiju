@@ -1,44 +1,14 @@
 /******************************************************************************/
 /* keyboard.go                                                                */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package hid
 
 import (
 	"log/slog"
-	"strings"
+	"runtime"
 	"time"
 )
 
@@ -63,6 +33,8 @@ const (
 	KeyboardKeyRightCtrl
 	KeyboardKeyLeftShift
 	KeyboardKeyRightShift
+	KeyboardKeyLeftMeta
+	KeyboardKeyRightMeta
 	KeyboardKeyA
 	KeyboardKeyB
 	KeyboardKeyC
@@ -225,6 +197,16 @@ func (k Keyboard) HasCtrl() bool {
 	return k.KeyHeld(KeyboardKeyLeftCtrl) || k.KeyHeld(KeyboardKeyRightCtrl)
 }
 
+// HasCtrlOrMeta checks if the meta key is pressed on Darwin, or the ctrl key on
+// Windows and Linux.
+func (k Keyboard) HasCtrlOrMeta() bool {
+	if runtime.GOOS == "darwin" {
+		return k.HasMeta()
+	}
+
+	return k.HasCtrl()
+}
+
 func (k Keyboard) HasShift() bool {
 	return k.KeyHeld(KeyboardKeyLeftShift) || k.KeyHeld(KeyboardKeyRightShift)
 }
@@ -233,8 +215,12 @@ func (k Keyboard) HasAlt() bool {
 	return k.KeyHeld(KeyboardKeyLeftAlt) || k.KeyHeld(KeyboardKeyRightAlt)
 }
 
+func (k Keyboard) HasMeta() bool {
+	return k.KeyHeld(KeyboardKeyLeftMeta) || k.KeyHeld(KeyboardKeyRightMeta)
+}
+
 func (k Keyboard) HasModifier() bool {
-	return k.HasCtrl() || k.HasShift() || k.HasAlt()
+	return k.HasCtrl() || k.HasMeta() || k.HasShift() || k.HasAlt()
 }
 
 func (k Keyboard) IsToggleKey(key KeyboardKey) bool {
@@ -308,197 +294,6 @@ func (k *Keyboard) SetToggleKeyState(key KeyboardKey, state KeyState) {
 	if key != KeyBoardKeyInvalid && k.IsToggleKey(key) {
 		k.keyStates[key] = state
 	}
-}
-
-func (k *Keyboard) KeyToRune(key KeyboardKey) rune {
-	c := ""
-	switch key {
-	case KeyboardKeyA:
-		c = "a"
-	case KeyboardKeyB:
-		c = "b"
-	case KeyboardKeyC:
-		c = "c"
-	case KeyboardKeyD:
-		c = "d"
-	case KeyboardKeyE:
-		c = "e"
-	case KeyboardKeyF:
-		c = "f"
-	case KeyboardKeyG:
-		c = "g"
-	case KeyboardKeyH:
-		c = "h"
-	case KeyboardKeyI:
-		c = "i"
-	case KeyboardKeyJ:
-		c = "j"
-	case KeyboardKeyK:
-		c = "k"
-	case KeyboardKeyL:
-		c = "l"
-	case KeyboardKeyM:
-		c = "m"
-	case KeyboardKeyN:
-		c = "n"
-	case KeyboardKeyO:
-		c = "o"
-	case KeyboardKeyP:
-		c = "p"
-	case KeyboardKeyQ:
-		c = "q"
-	case KeyboardKeyR:
-		c = "r"
-	case KeyboardKeyS:
-		c = "s"
-	case KeyboardKeyT:
-		c = "t"
-	case KeyboardKeyU:
-		c = "u"
-	case KeyboardKeyV:
-		c = "v"
-	case KeyboardKeyW:
-		c = "w"
-	case KeyboardKeyX:
-		c = "x"
-	case KeyboardKeyY:
-		c = "y"
-	case KeyboardKeyZ:
-		c = "z"
-	//case KEYBOARD_KEY_TAB:			c = "\t"; break;
-	case KeyboardKeySpace:
-		c = " "
-	case KeyboardKeyBackQuote:
-		c = "`"
-	case KeyboardKeyComma:
-		c = ","
-	case KeyboardKeyPeriod:
-		c = "."
-	case KeyboardKeyBackSlash:
-		c = "\\"
-	case KeyboardKeyForwardSlash:
-		c = "/"
-	case KeyboardKeyOpenBracket:
-		c = "["
-	case KeyboardKeyCloseBracket:
-		c = "]"
-	case KeyboardKeySemicolon:
-		c = ";"
-	case KeyboardKeyQuote:
-		c = "'"
-	case KeyboardKeyEqual:
-		c = "="
-	case KeyboardKeyMinus:
-		c = "-"
-	case KeyboardKey0:
-		c = "0"
-	case KeyboardKey1:
-		c = "1"
-	case KeyboardKey2:
-		c = "2"
-	case KeyboardKey3:
-		c = "3"
-	case KeyboardKey4:
-		c = "4"
-	case KeyboardKey5:
-		c = "5"
-	case KeyboardKey6:
-		c = "6"
-	case KeyboardKey7:
-		c = "7"
-	case KeyboardKey8:
-		c = "8"
-	case KeyboardKey9:
-		c = "9"
-	case KeyboardNumKey0:
-		c = "0"
-	case KeyboardNumKey1:
-		c = "1"
-	case KeyboardNumKey2:
-		c = "2"
-	case KeyboardNumKey3:
-		c = "3"
-	case KeyboardNumKey4:
-		c = "4"
-	case KeyboardNumKey5:
-		c = "5"
-	case KeyboardNumKey6:
-		c = "6"
-	case KeyboardNumKey7:
-		c = "7"
-	case KeyboardNumKey8:
-		c = "8"
-	case KeyboardNumKey9:
-		c = "9"
-	case KeyboardNumKeyMultiply:
-		c = "*"
-	case KeyboardNumKeyAdd:
-		c = "+"
-	case KeyboardNumKeySubtract:
-		c = "-"
-	case KeyboardNumKeyPeriod:
-		c = "."
-	case KeyboardNumKeyDivide:
-		c = "/"
-	default:
-		c = ""
-	}
-	f := '\000'
-	if c != "" {
-		f = rune(c[0])
-		if k.HasShift() {
-			switch f {
-			case '1':
-				f = '!'
-			case '2':
-				f = '@'
-			case '3':
-				f = '#'
-			case '4':
-				f = '$'
-			case '5':
-				f = '%'
-			case '6':
-				f = '^'
-			case '7':
-				f = '&'
-			case '8':
-				f = '*'
-			case '9':
-				f = '('
-			case '0':
-				f = ')'
-			case '-':
-				f = '_'
-			case '=':
-				f = '+'
-			case '`':
-				f = '~'
-			case '[':
-				f = '{'
-			case ']':
-				f = '}'
-			case '\\':
-				f = '|'
-			case ';':
-				f = ':'
-			case '\'':
-				f = '"'
-			case ',':
-				f = '<'
-			case '.':
-				f = '>'
-			case '/':
-				f = '?'
-			default:
-				f = []rune(strings.ToUpper(c))[0]
-				if f >= 'a' && f <= 'z' {
-					f -= 32
-				}
-			}
-		}
-	}
-	return f
 }
 
 func (k *Keyboard) Reset() {

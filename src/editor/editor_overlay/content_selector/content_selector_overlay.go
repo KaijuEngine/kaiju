@@ -1,52 +1,24 @@
 /******************************************************************************/
 /* content_selector_overlay.go                                                */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package content_selector
 
 import (
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"strings"
+
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 type ContentSelector struct {
@@ -75,15 +47,28 @@ func Show(host *engine.Host, typeName string, cache *content_database.Cache, onS
 	var err error
 	all := cache.ListByType(typeName)
 	data := contentSelectorData{
-		Options: make([]contentSelectorEntry, len(all), len(all)+2),
+		Options: make([]contentSelectorEntry, 0, len(all)+2),
 	}
 	for i := range all {
-		data.Options[i].Id = all[i].Id()
-		data.Options[i].Name = all[i].Config.Name
-		if all[i].Config.Type == (content_database.Texture{}).TypeName() {
-			data.Options[i].Texture = data.Options[i].Id
+		if typeName == (content_database.Mesh{}).TypeName() && len(contentSelectorMeshSubmeshes(all[i].Config.Mesh)) > 1 {
+			for _, submesh := range contentSelectorMeshSubmeshes(all[i].Config.Mesh) {
+				data.Options = append(data.Options, contentSelectorEntry{
+					Id:      kaiju_mesh.MeshRefString(all[i].Id(), submesh.Key),
+					Name:    all[i].Config.Name + " / " + contentSelectorMeshName(submesh.Name, submesh.Key),
+					Texture: "editor/textures/icons/file.png",
+				})
+			}
 		} else {
-			data.Options[i].Texture = "editor/textures/icons/file.png"
+			entry := contentSelectorEntry{
+				Id:   all[i].Id(),
+				Name: all[i].Config.Name,
+			}
+			if all[i].Config.Type == (content_database.Texture{}).TypeName() {
+				entry.Texture = entry.Id
+			} else {
+				entry.Texture = "editor/textures/icons/file.png"
+			}
+			data.Options = append(data.Options, entry)
 		}
 	}
 	if typeName == (content_database.Texture{}).TypeName() {
@@ -112,6 +97,33 @@ func Show(host *engine.Host, typeName string, cache *content_database.Cache, onS
 	})
 	o.list, _ = o.doc.GetElementById("list")
 	return o, err
+}
+
+func contentSelectorMeshSubmeshes(cfg *content_database.MeshConfig) []content_database.MeshSubmeshConfig {
+	if cfg == nil || len(cfg.Submeshes) <= 1 {
+		return nil
+	}
+	out := make([]content_database.MeshSubmeshConfig, 0, len(cfg.Submeshes))
+	for i := range cfg.Submeshes {
+		if !cfg.Submeshes[i].Missing {
+			out = append(out, cfg.Submeshes[i])
+		}
+	}
+	if len(out) <= 1 {
+		return nil
+	}
+	return out
+}
+
+func contentSelectorMeshName(name, key string) string {
+	if strings.TrimSpace(name) != "" {
+		parts := strings.Split(name, "/")
+		return parts[len(parts)-1]
+	}
+	if strings.TrimSpace(key) != "" {
+		return key
+	}
+	return "Mesh"
 }
 
 func (o *ContentSelector) Close() {

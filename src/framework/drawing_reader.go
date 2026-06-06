@@ -1,56 +1,30 @@
 /******************************************************************************/
 /* drawing_reader.go                                                          */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package framework
 
 import (
 	"fmt"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/load_result"
+	"sort"
+
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/load_result"
 )
 
 const pbrMaterialKey = assets.MaterialDefinitionPBR
 const basicMaterialKey = assets.MaterialDefinitionBasic
 const unlitMaterialKey = assets.MaterialDefinitionUnlit
 const unlitTransparentMaterialKey = assets.MaterialDefinitionUnlitTransparent
+
+var pbrTextureSlots = []string{"baseColor", "normal", "metallicRoughness", "emissive"}
 
 type ModelDrawing struct {
 	Node     *load_result.Node
@@ -79,7 +53,7 @@ func (s ModelDrawingSlice) AllDrawings() []rendering.Drawing {
 	return drawings
 }
 
-func createDrawings(host *engine.Host, res load_result.Result, materialKey string, minimumTextures int, shaderData func() rendering.DrawInstance) (ModelDrawingSlice, error) {
+func createDrawings(host *engine.Host, res load_result.Result, materialKey string, minimumTextures int, textureSlots []string, shaderData func(*load_result.Mesh) rendering.DrawInstance) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.createDrawings").End()
 	drawings := ModelDrawingSlice{}
 	for i := range res.Meshes {
@@ -101,12 +75,19 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 			host.MeshCache().AddMesh(mesh)
 		}
 		textures := []*rendering.Texture{}
-		for i := range m.Textures {
-			tex, _ := host.TextureCache().Texture(m.Textures[i], rendering.TextureFilterLinear)
+		textureKeys := textureKeysForSlots(m.Textures, textureSlots)
+		for i := range textureKeys {
+			tex, err := host.TextureCache().Texture(textureKeys[i], rendering.TextureFilterLinear)
+			if err != nil {
+				return drawings, fmt.Errorf("failed to load mesh texture %q: %w", textureKeys[i], err)
+			}
 			textures = append(textures, tex)
 		}
 		for i := len(textures); i < minimumTextures; i++ {
-			tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+			tex, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+			if err != nil {
+				return drawings, fmt.Errorf("failed to load fallback texture %q: %w", assets.TextureSquare, err)
+			}
 			textures = append(textures, tex)
 		}
 		mat, err := host.MaterialCache().Material(matKey)
@@ -122,7 +103,7 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 				Mesh:       mesh,
 				Transform:  &tForm,
 				ViewCuller: &host.Cameras.Primary,
-				ShaderData: shaderData(),
+				ShaderData: shaderData(&m),
 			},
 		})
 	}
@@ -132,9 +113,51 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 	return drawings, nil
 }
 
+func textureKeysForSlots(textures map[string]string, textureSlots []string) []string {
+	if len(textures) == 0 && len(textureSlots) == 0 {
+		return nil
+	}
+	if len(textureSlots) > 0 {
+		keys := make([]string, 0, len(textureSlots))
+		for i := range textureSlots {
+			if key, ok := textures[textureSlots[i]]; ok && key != "" {
+				keys = append(keys, key)
+			} else {
+				keys = append(keys, textureFallbackForSlot(textureSlots[i]))
+			}
+		}
+		return keys
+	}
+	keys := make([]string, 0, len(textures))
+	slots := make([]string, 0, len(textures))
+	for slot := range textures {
+		slots = append(slots, slot)
+	}
+	sort.Strings(slots)
+	for i := range slots {
+		if textures[slots[i]] != "" {
+			keys = append(keys, textures[slots[i]])
+		}
+	}
+	return keys
+}
+
+func textureFallbackForSlot(slot string) string {
+	switch slot {
+	case "normal":
+		return assets.TexturePBRDefaultNormal
+	case "metallicRoughness":
+		return assets.TexturePBRDefaultMetallicRough
+	case "emissive":
+		return assets.TextureBlankSquare
+	default:
+		return assets.TextureSquare
+	}
+}
+
 func CreateDrawingsUnlit(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsUnlit").End()
-	return createDrawings(host, res, unlitMaterialKey, 1, func() rendering.DrawInstance {
+	return createDrawings(host, res, unlitMaterialKey, 1, nil, func(*load_result.Mesh) rendering.DrawInstance {
 		return &shader_data_registry.ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -145,7 +168,7 @@ func CreateDrawingsUnlit(host *engine.Host, res load_result.Result) (ModelDrawin
 
 func CreateDrawingsUnlitTransparent(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsUnlitTransparent").End()
-	return createDrawings(host, res, unlitTransparentMaterialKey, 1, func() rendering.DrawInstance {
+	return createDrawings(host, res, unlitTransparentMaterialKey, 1, nil, func(*load_result.Mesh) rendering.DrawInstance {
 		return &shader_data_registry.ShaderDataUnlit{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -156,7 +179,7 @@ func CreateDrawingsUnlitTransparent(host *engine.Host, res load_result.Result) (
 
 func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsBasic").End()
-	return createDrawings(host, res, basicMaterialKey, 1, func() rendering.DrawInstance {
+	return createDrawings(host, res, basicMaterialKey, 1, nil, func(*load_result.Mesh) rendering.DrawInstance {
 		return &shader_data_registry.ShaderDataStandard{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			Color:          matrix.ColorWhite(),
@@ -166,12 +189,12 @@ func CreateDrawingsBasic(host *engine.Host, res load_result.Result) (ModelDrawin
 
 func CreateDrawingsPBR(host *engine.Host, res load_result.Result) (ModelDrawingSlice, error) {
 	defer tracing.NewRegion("framework.CreateDrawingsPBR").End()
-	drawings, err := createDrawings(host, res, pbrMaterialKey, 4, func() rendering.DrawInstance {
+	drawings, err := createDrawings(host, res, pbrMaterialKey, 4, pbrTextureSlots, func(mesh *load_result.Mesh) rendering.DrawInstance {
 		return &shader_data_registry.ShaderDataPBR{
 			ShaderDataBase: rendering.NewShaderDataBase(),
 			VertColors:     matrix.ColorWhite(),
-			MeRoEmAo:       matrix.NewVec4(0, 1, 0, 0),
-			LightIds:       [...]int32{0, 0, 0, 0},
+			MeRoEmAo:       matrix.NewVec4(1, 1, 0, 1),
+			LightIds:       [...]int32{-1, -1, -1, -1},
 		}
 	})
 	for i := range drawings {

@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_project_setup.go                                                    */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor
@@ -39,13 +9,37 @@ package editor
 import (
 	"errors"
 	"fmt"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/editor_overlay/new_project"
-	"kaiju/editor/project"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
+
+	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
+	"kaijuengine.com/editor/editor_overlay/new_project"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
+
+func CreateNewProjectFromCLI(path string) {
+	if build.Editor {
+		proj := project.Project{}
+		templatePath := engine.LaunchParams.ProjectTemplate
+		if err := proj.Initialize(path, templatePath, EditorVersion); err != nil {
+			slog.Error("failed to create the project", "error", err, "path", path)
+			return
+		}
+		if name := engine.LaunchParams.ProjectName; name != "" {
+			proj.SetName(name)
+		}
+		if err := proj.Close(); err != nil {
+			slog.Error("failed to save the project configuration", "error", err)
+			return
+		}
+		slog.Info("successfully created blank project", "path", path)
+	} else {
+		slog.Error("the -newproject flag is only available in editor builds")
+	}
+}
 
 func (ed *Editor) setProjectName(name string) {
 	ed.host.RunOnMainThread(func() {
@@ -108,7 +102,7 @@ func (ed *Editor) openProject(path string) {
 	// to force updating engine code in projects. This makes it easier than
 	// bumping the engine version to do the same thing (or deleting kaiju src)
 	kb := &ed.host.Window.Keyboard
-	forceReplace := kb.HasShift() || kb.HasCtrl()
+	forceReplace := kb.HasShift() || kb.HasCtrlOrMeta()
 	if projectVersion != EditorVersion || !hasEngineSource || forceReplace {
 		title := "Upgrade project"
 		description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."

@@ -1,42 +1,12 @@
 /******************************************************************************/
 /* editor_events.go                                                           */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_events
 
-import "kaiju/engine/systems/events"
+import "kaijuengine.com/engine/systems/events"
 
 type EditorEvents struct {
 	// OnContentAdded sends the id of the content that was renamed
@@ -58,6 +28,10 @@ type EditorEvents struct {
 	// other parts of the system to update in order to reflect those changes.
 	OnContentChangesSaved events.EventWithArg[string]
 
+	// OnFileSaved fires with the absolute file path whenever a code editor
+	// (or other text-content editor) completes a save to disk.
+	OnFileSaved events.EventWithArg[string]
+
 	// OnContentPreviewGenerated is called whenever a content preview image has
 	// been generated. This is primarily used in the background of the editor
 	// for updating any content preview images.
@@ -72,6 +46,27 @@ type EditorEvents struct {
 	OnTagRemoved events.EventWithArg[TagEvent]
 
 	OnTagAdded events.EventWithArg[TagEvent]
+
+	// OnRequestOpenStage asks the stage workspace to open the stage with the
+	// given content id and switch itself active. Used for cross-workspace
+	// requests instead of a hard-coded method on the editor.
+	OnRequestOpenStage events.EventWithArg[string]
+
+	// OnRequestViewHtmlUi asks the UI workspace to load the given HTML
+	// content id and switch itself active.
+	OnRequestViewHtmlUi events.EventWithArg[string]
+
+	// OnRequestOpenParticleSystem asks the VFX workspace to open the given
+	// particle system content id and switch itself active.
+	OnRequestOpenParticleSystem events.EventWithArg[string]
+
+	// OnRequestOpenVulkanSpec asks the Vulkan workspace to open the given
+	// shader / material / render pass content id and switch itself active.
+	OnRequestOpenVulkanSpec events.EventWithArg[string]
+
+	// OnRequestOpenTerrain asks the terrain workspace to open the given
+	// terrain content id and switch itself active.
+	OnRequestOpenTerrain events.EventWithArg[string]
 }
 
 type TagEvent struct {

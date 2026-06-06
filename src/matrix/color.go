@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* color.go                                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package matrix
@@ -39,6 +9,7 @@ package matrix
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -79,6 +50,44 @@ func NewColor(r, g, b, a Float) Color {
 
 func NewColor8(r, g, b, a uint8) Color8 {
 	return Color8{r, g, b, a}
+}
+
+// https://bottosson.github.io/posts/oklab/#the-oklab-color-space
+// h (hue) is in degrees
+func OklchToColor(l, c, h, alpha Float) Color {
+	a := c * Cos(Float(h)*((2*math.Pi)/360.0))
+	b := c * Sin(Float(h)*((2*math.Pi)/360.0))
+	return OklabToColor(l, a, b, alpha)
+}
+
+// https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab
+func OklabToColor(l, a, b, alpha Float) Color {
+	var l_ Float = l + 0.3963377774*a + 0.2158037573*b
+	var m_ Float = l - 0.1055613458*a - 0.0638541728*b
+	var s_ Float = l - 0.0894841775*a - 1.2914855480*b
+
+	l__ := l_ * l_ * l_
+	a__ := m_ * m_ * m_
+	b__ := s_ * s_ * s_
+
+	c := Color{
+		+4.0767416621*l__ - 3.3077115913*a__ + 0.2309699292*b__,
+		-1.2684380046*l__ + 2.6097574011*a__ - 0.3413193965*b__,
+		-0.0041960863*l__ - 0.7034186147*a__ + 1.7076147010*b__,
+		alpha,
+	}
+
+	// https://bottosson.github.io/posts/colorwrong/#what-can-we-do%3F
+	// Oklab uses linear sRGB, convert to display sRGB
+	for i := range c[:3] {
+		if c[i] >= 0.0031308 {
+			c[i] = (1.055)*Pow(c[i], (1.0/2.4)) - 0.055
+		} else {
+			c[i] = 12.92 * c[i]
+		}
+		c[i] = Max(Min(c[i], 1), 0) // Naive clamping, could instead reduce chroma until no overflow
+	}
+	return c
 }
 
 func ColorFromColor8(c Color8) Color {
@@ -132,6 +141,32 @@ func ColorMix(lhs, rhs Color, amount Float) Color {
 		lhs[G] + (rhs[G]-lhs[G])*amount,
 		lhs[B] + (rhs[B]-lhs[B])*amount,
 		lhs[A] + (rhs[A]-lhs[A])*amount,
+	}
+}
+
+// ColorOver alpha-composites src "over" dst using straight (non-premultiplied)
+// alpha and returns the result as a straight-alpha color. This is the standard
+// Porter-Duff "over" operator:
+//
+//	A_out   = src.A + dst.A*(1-src.A)
+//	RGB_out = (src.RGB*src.A + dst.RGB*dst.A*(1-src.A)) / A_out
+//
+// When dst is opaque (the common case for calculated/"used" UI colors) the
+// result is opaque and is exactly what src looks like painted on top of dst.
+// If both src and dst are effectively transparent the result is transparent
+// (RGB carried from src so a sensible hue remains for later compositing).
+func ColorOver(src, dst Color) Color {
+	sa := src[A]
+	outA := sa + dst[A]*(1-sa)
+	if outA <= 0.00001 {
+		return Color{src[R], src[G], src[B], 0}
+	}
+	dContrib := dst[A] * (1 - sa)
+	return Color{
+		(src[R]*sa + dst[R]*dContrib) / outA,
+		(src[G]*sa + dst[G]*dContrib) / outA,
+		(src[B]*sa + dst[B]*dContrib) / outA,
+		outA,
 	}
 }
 

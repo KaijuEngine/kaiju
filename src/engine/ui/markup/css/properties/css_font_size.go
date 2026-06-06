@@ -1,49 +1,24 @@
 /******************************************************************************/
 /* css_font_size.go                                                           */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package properties
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 )
+
+func fontSizeFromStr(size string, host *engine.Host, emSize float32) float32 {
+	return helpers.NumFromLengthWithFont(size, host.Window, emSize)
+}
 
 func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) {
 	if elm.Stylizer.HasRule("font-size") {
@@ -51,9 +26,13 @@ func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) 
 	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		size := helpers.NumFromLengthWithFont(size, host.Window,
-			host.FontCache().EMSize(lbl.FontFace()))
-		lbl.SetFontSize(size)
+		lbl.SetFontSize(fontSizeFromStr(size, host, host.FontCache().EMSize(lbl.FontFace())))
+	} else if elm.UI.IsType(ui.ElementTypeInput) {
+		input := elm.UI.ToInput()
+		input.SetFontSize(fontSizeFromStr(size, host, host.FontCache().EMSize(input.FontFace())))
+	} else if elm.UI.IsType(ui.ElementTypeTextArea) {
+		textarea := elm.UI.ToTextArea()
+		textarea.SetFontSize(fontSizeFromStr(size, host, host.FontCache().EMSize(textarea.FontFace())))
 	} else {
 		for _, child := range elm.Children {
 			setChildrenFontSize(child, size, host)
@@ -64,6 +43,16 @@ func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) 
 func (p FontSize) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("FontSize requires exactly 1 value")
+	}
+	if elm.UI.IsType(ui.ElementTypeInput) {
+		input := elm.UI.ToInput()
+		input.SetFontSize(fontSizeFromStr(values[0].Str, host, host.FontCache().EMSize(input.FontFace())))
+		return nil
+	}
+	if elm.UI.IsType(ui.ElementTypeTextArea) {
+		textarea := elm.UI.ToTextArea()
+		textarea.SetFontSize(fontSizeFromStr(values[0].Str, host, host.FontCache().EMSize(textarea.FontFace())))
+		return nil
 	}
 	for _, child := range elm.Children {
 		setChildrenFontSize(child, values[0].Str, host)

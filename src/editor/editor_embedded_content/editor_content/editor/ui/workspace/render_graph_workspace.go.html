@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			.renderGraphWorkspace {
+				position: absolute;
+				top: 0;
+				width: 100%;
+				height: 100%;
+			}
+			#renderGraphPanel {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 260px;
+				height: 100%;
+				padding: 10px;
+				color: #e4e7ec;
+				background-color: #17191d;
+				border-right: 2px solid black;
+				z-index: 5;
+				overflow-y: auto;
+			}
+			#renderGraphPanel h2 {
+				height: 24px;
+				margin-bottom: 10px;
+				font-size: 1.05em;
+				color: white;
+			}
+			.renderGraphFieldLabel {
+				width: 100%;
+				height: 20px;
+				margin-bottom: 4px;
+				font-size: 0.72em;
+				color: #aeb6c4;
+			}
+			#renderGraphName {
+				width: 100%;
+				height: 32px;
+				margin-bottom: 8px;
+				padding: 4px 6px;
+				color: #e4e7ec;
+				background-color: #111318;
+				border: 1px solid #343842;
+				border-radius: 4px;
+				font-size: 0.76em;
+			}
+			.renderGraphActionRow {
+				width: 100%;
+				height: 32px;
+				margin-bottom: 8px;
+			}
+			.renderGraphActionRow button {
+				width: 74px;
+				height: 30px;
+				margin-right: 5px;
+				color: #e8ebf0;
+				background-color: #242832;
+				border: 1px solid #3a3f4b;
+				border-radius: 4px;
+				font-size: 0.72em;
+			}
+			.renderGraphActionRow button:hover {
+				background-color: #303542;
+				border-color: #682A2D;
+			}
+			#renderGraphStatus {
+				width: 100%;
+				min-height: 24px;
+				margin-bottom: 10px;
+				padding: 5px 6px;
+				color: #aeb6c4;
+				background-color: #111318;
+				border: 1px solid #2c3039;
+				font-size: 0.7em;
+			}
+			#stageViewport {
+				position: absolute;
+				left: 0;
+				width: 100%;
+				z-index: 2;
+			}
+			#dimensionToggle {
+				position: absolute;
+				font-size: 0.72em;
+				top: 2.5em;
+				left: 50%;
+				padding: 0.25em;
+				transform: translateX(-50%);
+				color: white;
+				background-color: #282828;
+				border: 2px solid #AAA;
+				z-index: 3;
+			}
+			#dimensionToggle:hover {
+				background-color: #AAA;
+			}
+			#renderGraphArea {
+				position: absolute;
+				left: 0;
+				width: 100%;
+				border-top: 2px solid black;
+				z-index: 1;
+			}
+			#createNodeMenu {
+				position: absolute;
+				width: 320px;
+				height: 360px;
+				padding: 8px;
+				background-color: #191b20;
+				border: 1px solid #682A2D;
+				border-radius: 6px;
+				z-index: 20;
+			}
+			.createNodeMenuHeader {
+				position: relative;
+				width: 100%;
+				height: 26px;
+				color: white;
+				font-size: 0.84em;
+			}
+			.createNodeMenuTitle {
+				position: absolute;
+				left: 0;
+				top: 0;
+				height: 24px;
+				line-height: 24px;
+			}
+			.createNodeMenuClose {
+				position: absolute;
+				right: 0;
+				top: 0;
+				width: 24px;
+				height: 24px;
+				color: white;
+				background-color: #2a2d34;
+				border: 1px solid #3a3d45;
+				border-radius: 4px;
+				font-size: 0.78em;
+			}
+			.createNodeMenuClose:hover {
+				background-color: #682A2D;
+			}
+			#createNodeSearch {
+				position: relative;
+				width: 100%;
+				height: 28px;
+				margin-top: 4px;
+				margin-bottom: 8px;
+				padding: 4px 6px;
+				color: #e4e7ec;
+				background-color: #111318;
+				border: 1px solid #343842;
+				border-radius: 4px;
+				font-size: 0.76em;
+			}
+			#createNodeList {
+				position: relative;
+				width: 100%;
+				height: 284px;
+				overflow-y: auto;
+			}
+			.createNodeMenuItem {
+				position: relative;
+				width: 100%;
+				height: 28px;
+				margin-bottom: 2px;
+				padding: 3px 5px;
+				color: #e8ebf0;
+				background-color: #20232a;
+				border: 1px solid #333843;
+				border-radius: 0;
+				text-align: left;
+			}
+			.createNodeMenuItem:hover {
+				border-color: #682A2D;
+				background-color: #272b33;
+			}
+			.createNodeMenuItemName {
+				position: absolute;
+				left: 6px;
+				top: 4px;
+				width: 104px;
+				height: 20px;
+				font-size: 0.82em;
+				color: white;
+			}
+			.createNodeMenuItemDescription {
+				position: absolute;
+				left: 118px;
+				top: 6px;
+				width: calc(100% - 124px);
+				height: 16px;
+				font-size: 0.58em;
+				color: #aeb6c4;
+			}
+			#createNodeEmpty {
+				position: relative;
+				width: 100%;
+				padding-top: 20px;
+				color: #aeb6c4;
+				font-size: 0.72em;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="renderGraphWorkspace" class="renderGraphWorkspace edPanelBg">
+			<div id="renderGraphPanel">
+				<h2>Render Graph</h2>
+				<div class="renderGraphFieldLabel">Name</div>
+				<input id="renderGraphName" type="text" value="{{ .GraphName }}" placeholder="Render graph name" onchange="renameRenderGraph" onsubmit="renameRenderGraph" />
+				<div class="renderGraphActionRow">
+					<button onclick="newRenderGraph">New</button>
+					<button onclick="loadRenderGraph">Load</button>
+					<button onclick="saveRenderGraph">Save</button>
+				</div>
+				<div id="renderGraphStatus">Unsaved render graph</div>
+			</div>
+			<img id="stageViewport" src="square.png" />
+			<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
+			<div id="renderGraphArea" class="edPanelBg"></div>
+			<div id="createNodeMenu">
+				<div class="createNodeMenuHeader">
+					<span class="createNodeMenuTitle">Create Node</span>
+					<button class="createNodeMenuClose" onclick="closeCreateNodeMenu">X</button>
+				</div>
+				<input id="createNodeSearch" type="text" placeholder="Search nodes" onchange="filterCreateNodeMenu" />
+				<div id="createNodeList">
+					<button class="createNodeMenuItem" data-comment="true" data-search="comment block note group frame area label" onclick="selectCreateComment">
+						<div class="createNodeMenuItemName">Comment Block</div>
+						<div class="createNodeMenuItemDescription">Resizable labeled graph area</div>
+					</button>
+					{{ range .CreateNodes }}
+					<button class="createNodeMenuItem" data-node-id="{{ .ID }}" data-search="{{ .Search }}" onclick="selectCreateNode">
+						<div class="createNodeMenuItemName">{{ .Name }}</div>
+						<div class="createNodeMenuItemDescription">{{ .Description }}</div>
+					</button>
+					{{ end }}
+					<div id="createNodeEmpty">No nodes found</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -19,7 +19,7 @@
 			"args": [
 				"-C",
 				"${workspaceFolder}/src",
-				"-tags=editor",
+				"-tags=editor,filedrop",
 				"-o=../kaiju.exe",
 				"main.go"
 			],

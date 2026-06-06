@@ -1,82 +1,58 @@
 /******************************************************************************/
 /* css_border_top_color.go                                                    */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package properties
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
+
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 // color|transparent|initial|inherit
+func (p BorderTopColor) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
+	return preprocLeftTopRightBottom(values, ruleList, "border-color")
+}
+
 func (p BorderTopColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("BorderLeftColor requires 1 value")
-	} else {
-		if values[0].Str == "transparent" {
-			colors := panel.BorderColor()
-			panel.SetBorderColor(colors[0], matrix.ColorTransparent(), colors[2], colors[3])
-			return nil
-		} else if values[0].Str == "initial" {
-			colors := panel.BorderColor()
-			panel.SetBorderColor(colors[0], matrix.ColorWhite(), colors[2], colors[3])
-			return nil
-		} else if values[0].Str == "inherit" {
-			if elm.Parent.Value() != nil {
-				colors := elm.Parent.Value().UI.ToPanel().BorderColor()
-				panel.SetBorderColor(colors[0], colors[1], colors[2], colors[3])
-			}
-			return nil
-		} else {
-			hex := values[0].Str
-			if newHex, ok := helpers.ColorMap[hex]; ok {
-				hex = newHex
-			}
-			color, err := matrix.ColorFromHexString(hex)
-			if err != nil {
-				return err
-			}
-			colors := panel.BorderColor()
-			panel.SetBorderColor(colors[0], color, colors[2], colors[3])
-			return nil
-		}
 	}
+
+	value := values[0].Str
+	switch value {
+	case "transparent":
+		colors := panel.BorderColor()
+		panel.SetBorderColor(colors[0], matrix.ColorTransparent(), colors[2], colors[3])
+		return nil
+	case "initial":
+		colors := panel.BorderColor()
+		panel.SetBorderColor(colors[0], matrix.ColorWhite(), colors[2], colors[3])
+		return nil
+	case "inherit":
+		if elm.Parent.Value() != nil {
+			colors := elm.Parent.Value().UI.ToPanel().BorderColor()
+			panel.SetBorderColor(colors[0], colors[1], colors[2], colors[3])
+		}
+		return nil
+	}
+
+	if newHex, ok := helpers.ColorMap[value]; ok {
+		value = newHex
+	}
+	color, err := matrix.ColorFromHexString(value)
+	if err != nil {
+		return err
+	}
+	colors := panel.BorderColor()
+	panel.SetBorderColor(colors[0], color, colors[2], colors[3])
+	return nil
 }

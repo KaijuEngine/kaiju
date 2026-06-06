@@ -1,14 +1,21 @@
+/******************************************************************************/
+/* material_content_preview.go                                                */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package content_previews
 
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
+
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 func (p *ContentPreviewer) updateSphereTransform() *matrix.Transform {
@@ -32,7 +39,7 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 	}
 	host := p.ed.Host()
 	mesh := rendering.NewMeshSphere(host.MeshCache(), sphereRadius, sphereSegments, sphereSegments)
-	sd := shader_data_registry.Create(mat.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       mesh,
@@ -42,10 +49,8 @@ func (p *ContentPreviewer) renderMaterial(id string) {
 	}
 	host.Drawings.AddDrawing(draw)
 	host.RunBeforeRender(func() {
-		mat.Shader.DelayedCreate(host.Window.Renderer, host.AssetDatabase())
-		host.RunAfterFrames(1, func() {
-			p.readRenderPass(host, sd, id)
-		})
+		mat.Shader.DelayedCreate(host.Window.GpuInstance.PrimaryDevice(), host.AssetDatabase())
+		p.readRenderPassAfterNextRender(host, id, sd)
 	})
 }
 
@@ -91,7 +96,10 @@ func readMaterial(id string, ed EditorInterface) (*rendering.Material, error) {
 	materialData.RenderPass = "ed_thumb_preview_mesh.renderpass"
 	materialData.ShaderPipeline = "ed_thumb_preview_mesh.shaderpipeline"
 	host := ed.Host()
-	mat, err := materialData.CompileExt(host.AssetDatabase(), host.Window.Renderer, true)
+	var mat *rendering.Material
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		mat, err = materialData.CompileExt(host.AssetDatabase(), device, true)
+	})
 	if err != nil {
 		return nil, err
 	}

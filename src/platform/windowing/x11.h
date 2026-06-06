@@ -39,7 +39,44 @@
 #define WINDOWING_X11_H
 
 #include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+#include <linux/joystick.h>
+#include <linux/input.h>
+#include <stdbool.h>
 #include "shared_mem.h"
+
+#ifndef MAX_CONTROLLERS
+#define MAX_CONTROLLERS 4
+#endif
+
+#ifndef EVIOCGABS
+#define EVIOCGABS(axis) _IOR('E', 0x20 + (axis), struct input_absinfo)
+#endif
+
+#ifndef EVIOCGKEY
+#define EVIOCGKEY(len) _IOR('E', 0x2f, unsigned char[len])
+#endif
+
+typedef struct {
+	int fd;
+	bool connected;
+	char name[128];
+	uint8_t numAxes;
+	uint8_t numButtons;
+	uint16_t buttonState;
+	int16_t axisState[8];
+} ControllerInfo;
+
+typedef struct {
+	float dpmm;
+	int mm_width;
+	int mm_height;
+	int px_width;
+	int px_height;
+	int x;
+	int y;
+	int found;
+} MonitorInfo;
 
 typedef struct {
 	SharedMem sm;
@@ -50,6 +87,9 @@ typedef struct {
 	Atom TEXT;
 	Atom UTF8_STRING;
 	Atom CLIPBOARD;
+	MonitorInfo monitorCache;
+	int monitorCacheDirty;
+	ControllerInfo controllers[MAX_CONTROLLERS];
 } X11State;
 
 unsigned int get_toggle_key_state();
@@ -67,6 +107,8 @@ void window_set_position(void* state, int x, int y);
 void window_set_size(void* state, int width, int height);
 int window_width_mm(void* state);
 int window_height_mm(void* state);
+int screen_count(void* state);
+void window_invalidate_monitor_cache(void* state);
 void window_cursor_standard(void* state);
 void window_cursor_ibeam(void* state);
 void window_cursor_size_all(void* state);

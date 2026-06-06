@@ -1,52 +1,23 @@
 /******************************************************************************/
 /* cache_database.go                                                          */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package content_database
 
 import (
 	"io/fs"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
+
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 // Cache is an in-memory cache of all of the content in the project. It
@@ -61,6 +32,7 @@ type Cache struct {
 	lookup          map[string]int
 	isBuilding      atomic.Bool
 	OnBuildFinished events.Event
+	mutex           sync.RWMutex
 }
 
 // CachedContent is the content entry in the cache that is returned from lookups
@@ -103,6 +75,8 @@ func (c *Cache) Read(id string) (CachedContent, error) {
 	if c.isBuilding.Load() {
 		return CachedContent{}, ReadDuringBuildError{}
 	}
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	if idx, ok := c.lookup[id]; !ok {
 		return CachedContent{}, NotInCacheError{Id: id}
 	} else {
@@ -166,7 +140,7 @@ func (c *Cache) TagFilter(tags []string) []CachedContent {
 	out := []CachedContent{}
 	for i := range c.cache {
 		for j := range tags {
-			if slices.Contains(c.cache[i].Config.Tags, tags[j]) {
+			if c.cache[i].Config.Tags.Contains(tags[j]) {
 				out = append(out, c.cache[i])
 			}
 		}
@@ -230,6 +204,7 @@ func (c *Cache) SearchSources(typeName, src string) []CachedContent {
 func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("Cache.Build").End()
 	c.isBuilding.Store(true)
+	c.mutex.Lock()
 	if cap(c.cache) == 0 {
 		c.cache = make([]CachedContent, 0, 1024)
 		c.lookup = make(map[string]int, 1024)
@@ -237,16 +212,43 @@ func (c *Cache) Build(pfs *project_file_system.FileSystem) error {
 		klib.WipeSlice(c.cache)
 		clear(c.lookup)
 	}
+	c.mutex.Unlock()
 	root := pfs.FullPath(project_file_system.ContentConfigFolder)
 	err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
+		if err != nil {
 			return err
 		}
-		if filepath.Base(info.Name()) == ".gitignore" {
-			return err
+		if info.IsDir() {
+			return nil
+		}
+		base := filepath.Base(info.Name())
+		// Skip hidden / OS-droppings files (.DS_Store, ._*, .Trashes,
+		// .Spotlight-V100, .gitignore, ...). They are never content
+		// configs and the upgrade-rename in ReadConfig would otherwise
+		// permanently append ".json" to them and trap the project on
+		// every subsequent open (recovered from 2026-05-26 .DS_Store
+		// lockout).
+		if strings.HasPrefix(base, ".") {
+			return nil
+		}
+		// Only .json files are content configs. Stray scratch / backup
+		// files ("notes.txt", "scratch.bak") are silently ignored so a
+		// single dropped file can not abort the entire project open.
+		if filepath.Ext(base) != ".json" {
+			return nil
 		}
 		p := filepath.Join(project_file_system.ContentConfigFolder, strings.TrimPrefix(path, root))
-		return c.Index(p, pfs)
+		if err := c.Index(p, pfs); err != nil {
+			// Per-file decode errors warn + continue so a single
+			// corrupt config can not lock the user out of the
+			// project. The path surfaces in the log so the next
+			// "blocked at startup" mystery is a one-line diagnosis.
+			slog.Warn("cache build: skipping unreadable config",
+				"path", p,
+				"error", err)
+			return nil
+		}
+		return nil
 	})
 	c.isBuilding.Store(false)
 	c.OnBuildFinished.Execute()
@@ -273,6 +275,8 @@ func (c *Cache) Index(path string, pfs *project_file_system.FileSystem) error {
 }
 
 func (c *Cache) IndexCachedContent(cc CachedContent) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if idx, ok := c.lookup[cc.Id()]; ok {
 		c.cache[idx] = cc
 	} else {
@@ -289,6 +293,8 @@ func (c *Cache) IndexCachedContent(cc CachedContent) {
 // entry and it's lookup will be updated.
 func (c *Cache) Remove(id string) {
 	defer tracing.NewRegion("Cache.Remove").End()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if idx, ok := c.lookup[id]; ok {
 		lastCacheIdx := len(c.cache) - 1
 		delete(c.lookup, id)
@@ -305,26 +311,34 @@ func (c *Cache) Remove(id string) {
 
 func (c *Cache) ChangeGuid(from, to string, pfs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("Cache.ChangeGuid").End()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	// Check if the new id already exists in the cache
 	if _, ok := c.lookup[to]; ok {
 		return DuplicateIdError{Id: to}
 	}
-	// Read the current cached content
-	cc, err := c.Read(from)
-	if err != nil {
+
+	// Read the current cached content without calling Read (re-locks)
+	idx, ok := c.lookup[from]
+	if !ok {
+		err := NotInCacheError{Id: from}
 		slog.Error("failed to read cached content for guid change", "from", from, "to", to, "error", err)
 		return err
 	}
+	cc := c.cache[idx]
+
 	// Build new paths with the new id
 	dir := filepath.Dir(cc.Path)
 	newConfigPath := filepath.Join(dir, to) + filepath.Ext(cc.Path)
 	oldContentPath := cc.ContentPath()
 	newContentPath := ToContentPath(newConfigPath)
+
 	// Rename the config file
 	if err := pfs.Rename(cc.Path, newConfigPath); err != nil {
 		slog.Error("failed to rename config file", "from", cc.Path, "to", newConfigPath, "error", err)
 		return err
 	}
+
 	// Rename the content file
 	if err := pfs.Rename(oldContentPath, newContentPath); err != nil {
 		slog.Error("failed to rename content file", "from", oldContentPath, "to", newContentPath, "error", err)
@@ -334,9 +348,11 @@ func (c *Cache) ChangeGuid(from, to string, pfs *project_file_system.FileSystem)
 		}
 		return err
 	}
-	// Update the cache, remove old and add new
-	c.Remove(from)
+
+	// Update the cache inline without methods that re-lock
+	delete(c.lookup, from)
 	cc.Path = newConfigPath
-	c.IndexCachedContent(cc)
+	c.cache[idx] = cc
+	c.lookup[to] = idx
 	return nil
 }

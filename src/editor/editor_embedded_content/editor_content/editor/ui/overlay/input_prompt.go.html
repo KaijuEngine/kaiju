@@ -10,7 +10,6 @@
 				top: 50%;
 				transform: translate(-50% -50%);
 				color: white;
-				background-color: #121212;
 				border: 5px solid #575757;
 				border-radius: 5px;
 			}
@@ -30,18 +29,18 @@
 				position: absolute;
 				margin-left: 1em;
 			}
-			.confirm { left: 2em; }
-			.cancel { right: 2em; }
+			.confirm { right: 2em; }
+			.cancel { left: 2em; }
 		</style>
 	</head>
 	<body>
-		<div class="overlay">
+		<div class="overlay edPanelBg">
 			<h1>{{.Title}}</h1>
 			<p>{{.Description}}</p>
 			<input id="input" type="text" placeholder="{{.Placeholder}}" value="{{.Value}}" onsubmit="confirm" />
 			<div class="btns">
-				<button class="confirm" onclick="confirm">{{.ConfirmText}}</button>
 				<button class="cancel" onclick="cancel">{{.CancelText}}</button>
+				<button class="confirm primary" onclick="confirm">{{.ConfirmText}}</button>
 			</div>
 		</div>
 	</body>

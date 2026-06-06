@@ -1,11 +1,18 @@
+/******************************************************************************/
+/* pod.go                                                                     */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package pod
 
 import (
 	"fmt"
-	"kaiju/engine/collision"
-	"kaiju/matrix"
 	"reflect"
 	"sync"
+
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/matrix"
 )
 
 const (
@@ -44,11 +51,11 @@ func init() {
 	Register(matrix.Quaternion{})
 	Register(matrix.Mat3{})
 	Register(matrix.Mat4{})
-	Register(collision.AABB{})
-	Register(collision.Ray{})
-	Register(collision.Frustum{})
-	Register(collision.Plane{})
-	Register(collision.Triangle{})
+	Register(graviton.AABB{})
+	Register(graviton.Ray{})
+	Register(graviton.Frustum{})
+	Register(graviton.Plane{})
+	Register(graviton.Triangle{})
 }
 
 func Unregister(layout any) {

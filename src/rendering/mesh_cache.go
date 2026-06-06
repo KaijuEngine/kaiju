@@ -1,59 +1,30 @@
 /******************************************************************************/
 /* mesh_cache.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"sync"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type MeshCache struct {
-	renderer      Renderer
+	device        *GPUDevice
 	assetDatabase assets.Database
 	meshes        map[string]*Mesh
 	pendingMeshes []*Mesh
 	mutex         sync.Mutex
 }
 
-func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache {
+func NewMeshCache(device *GPUDevice, assetDatabase assets.Database) MeshCache {
 	return MeshCache{
-		renderer:      renderer,
+		device:        device,
 		assetDatabase: assetDatabase,
 		meshes:        make(map[string]*Mesh),
 		pendingMeshes: make([]*Mesh, 0),
@@ -64,6 +35,8 @@ func NewMeshCache(renderer Renderer, assetDatabase assets.Database) MeshCache {
 // Try to add the mesh to the cache, if it already exists,
 // return the existing mesh
 func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if found, ok := m.meshes[mesh.key]; !ok {
 		m.pendingMeshes = append(m.pendingMeshes, mesh)
 		m.meshes[mesh.key] = mesh
@@ -74,6 +47,8 @@ func (m *MeshCache) AddMesh(mesh *Mesh) *Mesh {
 }
 
 func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if mesh, ok := m.meshes[key]; ok {
 		return mesh, true
 	} else {
@@ -101,17 +76,51 @@ func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	}
 }
 
+// DynamicMesh creates or retrieves a mesh backed by a HOST_VISIBLE vertex
+// buffer, suitable for frequent CPU updates without GPU synchronization.
+func (m *MeshCache) DynamicMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
+	defer tracing.NewRegion("MeshCache.DynamicMesh").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if mesh, ok := m.meshes[key]; ok {
+		return mesh
+	}
+	mesh := NewDynamicMesh(key, verts, indexes)
+	m.pendingMeshes = append(m.pendingMeshes, mesh)
+	m.meshes[key] = mesh
+	return mesh
+}
+
+// UpdateMeshVertices queues a vertex data re-upload for an existing mesh.
+// The vertex count must match the original. The update is processed in
+// the next CreatePending call alongside new mesh creations.
+func (m *MeshCache) UpdateMeshVertices(key string, verts []Vertex) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if mesh, ok := m.meshes[key]; ok {
+		mesh.SetPendingVertices(verts)
+		if mesh.IsReady() {
+			m.pendingMeshes = append(m.pendingMeshes, mesh)
+		}
+	}
+}
+
 func (m *MeshCache) CreatePending() {
 	defer tracing.NewRegion("MeshCache.CreatePending").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for _, mesh := range m.pendingMeshes {
-		mesh.DelayedCreate(m.renderer)
+		mesh.DelayedCreate(m.device)
 	}
 	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
 }
 
 func (m *MeshCache) Destroy() {
 	m.pendingMeshes = klib.WipeSlice(m.pendingMeshes)
+	for _, mesh := range m.meshes {
+		if mesh.MeshId.IsValid() {
+			m.device.destroyMeshHandle(mesh.MeshId)
+		}
+	}
 	m.meshes = make(map[string]*Mesh)
 }

@@ -1,9 +1,16 @@
+/******************************************************************************/
+/* pod_test.go                                                                */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package pod
 
 import (
 	"bytes"
-	"kaiju/matrix"
 	"testing"
+
+	"kaijuengine.com/matrix"
 )
 
 // SimpleTypes tests encoding and decoding of basic primitive types
@@ -27,6 +34,31 @@ func TestSimpleTypes(t *testing.T) {
 		t.Fatalf("encoding failed: %v", err)
 	}
 	var decoded SimpleStruct
+	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
+	if err := decoder.Decode(&decoded); err != nil {
+		t.Fatalf("decoding failed: %v", err)
+	}
+	if decoded != original {
+		t.Errorf("decoded value mismatch: got %v, want %v", decoded, original)
+	}
+}
+
+func TestNamedIntType(t *testing.T) {
+	type NamedInt int
+	type NamedIntStruct struct {
+		Value NamedInt
+	}
+	Register(NamedInt(0))
+	Register(NamedIntStruct{})
+	defer Unregister(NamedInt(0))
+	defer Unregister(NamedIntStruct{})
+	original := NamedIntStruct{Value: NamedInt(7)}
+	buf := bytes.Buffer{}
+	encoder := NewEncoder(&buf)
+	if err := encoder.Encode(original); err != nil {
+		t.Fatalf("encoding failed: %v", err)
+	}
+	var decoded NamedIntStruct
 	decoder := NewDecoder(bytes.NewReader(buf.Bytes()))
 	if err := decoder.Decode(&decoded); err != nil {
 		t.Fatalf("decoding failed: %v", err)

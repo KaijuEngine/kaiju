@@ -11,10 +11,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=debug,editor,rawsrc",
+			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Trace Editor",
@@ -24,10 +23,9 @@
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
 			"args": ["-trace"],
-			"buildFlags": "-tags=debug,editor,rawsrc",
+			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Editor Release",
@@ -36,10 +34,19 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"buildFlags": "-tags=editor",
+			"buildFlags": "-tags=editor,filedrop",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
+			}
+		}, {
+			"name": "Raw Game",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}/src",
+			"env": {
+				"CGO_ENABLED": "1",
 			}
 		}, {
 			"name": "Documentation Generator",
@@ -48,9 +55,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src/generators/api",
 			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags=generator",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Copy Headers",
@@ -59,9 +66,9 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src/generators/copy_header",
 			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags=generator",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
 			}
 		}, {
 			"name": "Debug Build Android",
@@ -73,7 +80,6 @@
 			"buildFlags": "-tags=debug,generator",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
 			}
 		},
 		{
@@ -83,9 +89,23 @@
 			"mode": "auto",
 			"program": "${workspaceFolder}/src/generators/spirv/main.go",
 			"cwd": "${workspaceFolder}/src",
+			"buildFlags": "-tags=generator",
 			"env": {
 				"CGO_ENABLED": "1",
-				// "GOEXPERIMENT": "greenteagc"
+			}
+		}, {
+			"name": "Integration Test",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src",
+			"cwd": "${workspaceFolder}",
+			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
+			"args": [
+				"-integrationtest=screenshot"
+			],
+			"env": {
+				"CGO_ENABLED": "1",
 			}
 		}
 	]

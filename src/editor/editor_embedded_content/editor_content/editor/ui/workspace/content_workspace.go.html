@@ -2,13 +2,16 @@
 <html>
 	<head>
 		<style>
+			div {
+				width: 100%;
+			}
 			#ftdePrompt {
 				position: absolute;
 				width: 400px;
 				left: 15em;
 				top: 3.5em;
 				color: white;
-				background-color: #682A2D;
+				background-color: var(--ed-row-selected);
 				border: 5px solid #575757;
 				border-radius: 5px;
 				text-align: center;
@@ -65,13 +68,19 @@
 				background-color: #282828;
 				color: #AAA;
 			}
-			.entry .wide {
+			.entry.wide {
 				width: 100%;
 				height: 2em;
 				margin-right: 0;
 				margin-bottom: 0;
 			}
-			.entryLabel .wide {
+			.entryLabel {
+				width: 100%;
+				height: 2em;
+				overflow: hidden;
+				word-wrap: unset;
+			}
+			.entryLabel.wide {
 				width: 100%;
 				padding-left: 20px;
 			}
@@ -79,7 +88,7 @@
 				background-color: #575757;
 				color: white;
 			}
-			.entry .selected {
+			.entry.selected {
 				background-color: #575757;
 				color: white;
 			}
@@ -87,7 +96,7 @@
 				width: 10em;
 				height: 10em;
 			}
-			.preview .wide {
+			.preview.wide {
 				display: none;
 			}
 			.entryTag {
@@ -129,18 +138,42 @@
 				left: 0;
 				z-index: 1;
 			}
-			#tooltip {
+			.meshExpand {
 				position: absolute;
-				padding: 5px;
-				background-color: #282828;
-				border: 2px solid white;
-				color: #AAA;
+				width: 16px;
+				height: 16px;
 				top: 0;
-				left: 0;
-				z-index: 20;
+				right: 0;
+				z-index: 2;
+				background-color: #121212;
+				color: #AAA;
+				text-align: center;
+			}
+			.meshExpand:hover {
+				background-color: #575757;
+				color: white;
+			}
+			.entry.meshChild {
+				margin-left: 12px;
+				width: 9em;
+			}
+			.entry.meshChild.wide {
+				width: calc(100% - 12px);
+			}
+			.entry.meshChild .preview {
+				width: 9em;
+				height: 9em;
 			}
 			#multiSelectNote {
 				text-align: center;
+			}
+			#contentActionButtons {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 4px;
+			}
+			#contentActionButtons button {
+				height: 2em;
 			}
 		</style>
 	</head>
@@ -158,9 +191,9 @@
 				{{end}}
 				<input type="text" placeholder="Tag search..." onchange="tagFilter" />
 				<div id="tagFilterList">
-					<span id="tagFilterTemplate" class="filterBtn" group="tag" data-tag="" onclick="clickFilter">Tag...</span>
+					<span id="tagFilterTemplate" class="filterBtn" group="tag" data-tag="" onclick="clickFilter" onrightclick="rightClickTag">Tag...</span>
 					{{range $tag , $count := .Tags}}
-					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter">{{$tag}} {{$count}}</span>
+					<span class="filterBtn" group="tag" data-tag="{{$tag}}" onclick="clickFilter" onrightclick="rightClickTag">{{$tag}} {{$count}}</span>
 					{{end}}
 				</div>
 			</div>
@@ -169,6 +202,7 @@
 					<img class="preview" src="editor/textures/icons/file.png" />
 					<div class="entryLabel">Name...</div>
 					<img class="typeThumb" src="editor/textures/icons/file.png" />
+					<span class="meshExpand" onclick="toggleMeshEntry">+</span>
 				</span>
 			</div>
 			<div class="right edPanelBg">
@@ -192,9 +226,11 @@
 						<span>000:00:00 - 000:00:00</span>
 						<input type="slider" onchange="changeAudioPosition" />
 					</div>
-					<button onclick="clickOpenInEditor">Open in editor</button>
-					<button onclick="clickReimport">Reload</button>
-					<button onclick="clickDelete">Delete</button>
+					<div id="contentActionButtons">
+						<button onclick="clickOpenInEditor">Open in editor</button>
+						<button onclick="clickReimport">Reload</button>
+						<button onclick="clickDelete">Delete</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -206,6 +242,5 @@
 				This is the content workspace, you can import content here by clicking on the "Import content..." button on the left.
 			</p>
 		</div>
-		<span id="tooltip">Tooltip...</span>
 	</body>
 </html>

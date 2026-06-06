@@ -1,74 +1,46 @@
 /******************************************************************************/
 /* css_background_color.go                                                    */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package properties
 
 import (
 	"fmt"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/functions"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/matrix"
-)
 
-func setChildTextBackgroundColor(elm *document.Element, color matrix.Color) {
-	for _, c := range elm.Children {
-		if c.IsText() {
-			c.UI.ToLabel().SetBGColor(color)
-		} else if c.UI.ToPanel().Background() == nil { // Only continue if transparent
-			setChildTextBackgroundColor(c, color)
-		}
-	}
-}
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/functions"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
+)
 
 func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return fmt.Errorf("Expected exactly 1 value but got %d", len(values))
 	}
+
+	isLabel := elm.UI.IsType(ui.ElementTypeLabel)
 	// Images used for background are not colored
-	bg := elm.UI.ToPanel().Background()
-	applyPanelColor := bg == nil || bg.Key == assets.TextureSquare
-	var err error
-	var color matrix.Color
+	applyPanelColor := false
+	if !isLabel {
+		bg := elm.UI.ToPanel().Background()
+		applyPanelColor = bg == nil || bg.Key == assets.TextureSquare
+	}
+
 	hex := values[0].Str
 	if hex == "inherit" {
+		if isLabel {
+			// A label's font now blends against its calculated surface (the
+			// real opaque color behind it, resolved by walking up the panel
+			// tree), so "inherit" needs no work: leaving the label background
+			// transparent makes the text track whatever the parent renders.
+			return nil
+		}
 		if applyPanelColor {
 			pBase := panel.Base()
 			pBase.AddEvent(ui.EventTypeRender, func() {
@@ -79,28 +51,38 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 			})
 		}
 		return nil
-	} else {
-		switch values[0].Str {
-		case "rgb":
-			hex, _ = functions.Rgb{}.Process(panel, elm, values[0])
-		case "rgba":
-			hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
-		}
-		if newHex, ok := helpers.ColorMap[hex]; ok {
-			hex = newHex
-		}
-		if color, err = matrix.ColorFromHexString(hex); err == nil {
-			if applyPanelColor || panel.Base().Type() == ui.ElementTypeImage {
-				panel.SetColor(color)
-			}
-			if panel.Base().IsType(ui.ElementTypeInput) {
-				panel.Base().ToInput().SetBGColor(color)
-			} else if !panel.HasEnforcedColor() {
-				setChildTextBackgroundColor(elm, color)
-			}
-			return nil
-		} else {
-			return err
-		}
 	}
+
+	switch values[0].Str {
+	case "rgb":
+		hex, _ = functions.Rgb{}.Process(panel, elm, values[0])
+	case "rgba":
+		hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
+	}
+
+	if newHex, ok := helpers.ColorMap[hex]; ok {
+		hex = newHex
+	}
+
+	color, err := matrix.ColorFromHexString(hex)
+	if err != nil {
+		return err
+	}
+
+	if isLabel {
+		elm.UI.ToLabel().SetBGColor(color)
+		return nil
+	}
+	if applyPanelColor || panel.Base().Type() == ui.ElementTypeImage {
+		panel.SetColor(color)
+	}
+	if panel.Base().IsType(ui.ElementTypeInput) {
+		panel.Base().ToInput().SetBGColor(color)
+	} else if panel.Base().IsType(ui.ElementTypeTextArea) {
+		panel.Base().ToTextArea().SetBGColor(color)
+	}
+	// Child text no longer needs its background pushed down: each label resolves
+	// its own opaque surface by walking up the panel tree (CalculatedBGColor),
+	// which composites partial transparency correctly at every level.
+	return nil
 }

@@ -45,10 +45,15 @@
 #include <string.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 #include <X11/Xlib.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/Xrandr.h>
+#include <linux/joystick.h>
 
 // Cursor docs
 // https://tronche.com/gui/x/xlib/appendix/b/
@@ -115,11 +120,12 @@ void window_main(const char* windowTitle,
 		free(x11State);
 		return;
 	}
-	if (x < 0) {
-		x = 10;
-	}
-	if (y < 0) {
-		y = 10;
+	if (x < 0 || y < 0) {
+		int screen = DefaultScreen(d);               // primary screen
+		int screenWidth = DisplayWidth(d, screen);   // primary screen
+		int screenHeight = DisplayHeight(d, screen); // primary screen
+		x = (screenWidth - width) / 2;
+		y = (screenHeight - height) / 2;
 	}
 	Window w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), x, y,
 		width, height, 1, BlackPixel(d, DefaultScreen(d)), WhitePixel(d, DefaultScreen(d)));
@@ -147,6 +153,35 @@ void window_main(const char* windowTitle,
 	}
 	x11State->CLIPBOARD = XInternAtom(d, "CLIPBOARD", 0);
 	XSetWMProtocols(d, w, &x11State->WM_DELETE_WINDOW, 1);
+	// Initialize controller states
+	for (int i = 0; i < MAX_CONTROLLERS; i++) {
+		x11State->controllers[i].fd = -1;
+		x11State->controllers[i].connected = false;
+	}
+	// Scan for available game controllers
+	for (int i = 0; i < MAX_CONTROLLERS; i++) {
+		char devicePath[64];
+		snprintf(devicePath, sizeof(devicePath), "/dev/input/js%d", i);
+		int fd = open(devicePath, O_RDONLY | O_NONBLOCK);
+		if (fd >= 0) {
+			x11State->controllers[i].fd = fd;
+			x11State->controllers[i].connected = true;
+			x11State->controllers[i].buttonState = 0;
+			for (int axis = 0; axis < 8; axis++) {
+				x11State->controllers[i].axisState[axis] = 0;
+			}
+			// Get controller name via ioctl
+			if (ioctl(fd, JSIOCGNAME(sizeof(x11State->controllers[i].name)), x11State->controllers[i].name) < 0) {
+				strncpy(x11State->controllers[i].name, "Unknown Controller", sizeof(x11State->controllers[i].name) - 1);
+			}
+			// Get number of axes and buttons
+			uint8_t numAxes = 0, numButtons = 0;
+			ioctl(fd, JSIOCGAXES, &numAxes);
+			ioctl(fd, JSIOCGBUTTONS, &numButtons);
+			x11State->controllers[i].numAxes = numAxes;
+			x11State->controllers[i].numButtons = numButtons;
+		}
+	}
 	shared_mem_add_event(&x11State->sm, (WindowEvent) {
 		.type = WINDOW_EVENT_TYPE_SET_HANDLE,
 		.setHandle = {
@@ -175,8 +210,159 @@ static inline void lock_cursor_position(X11State* s) {
 	set_cursor_position_relative_to_window(s, s->sm.lockCursor.x, s->sm.lockCursor.y);
 }
 
+// Linux joystick deadzone values (matching XInput)
+#define JOYSTICK_DEADZONE_AXIS 7849  // ~24% of 32768
+#define JOYSTICK_DEADZONE_TRIGGER 30  // ~12% of 255
+#define JOYSTICK_HAT_DEADZONE 16384   // half of full hat axis range
+
+static inline int16_t apply_axis_deadzone(int16_t value, int16_t deadzone) {
+	if (value < 0) {
+		if (-value < deadzone) return 0;
+		return value;
+	}
+	if (value < deadzone) return 0;
+	return value;
+}
+
+static inline uint8_t apply_trigger_deadzone(uint8_t value, uint8_t deadzone) {
+	if (value < deadzone) return 0;
+	return value;
+}
+
 void window_poll_controller(void* x11State) {
-	// TODO:  Implement for controllers
+	X11State* s = x11State;
+	struct js_event evt;
+	for (int i = 0; i < MAX_CONTROLLERS; i++) {
+		if (!s->controllers[i].connected || s->controllers[i].fd < 0) {
+			// Try to reconnect
+			char devicePath[64];
+			snprintf(devicePath, sizeof(devicePath), "/dev/input/js%d", i);
+			int fd = open(devicePath, O_RDONLY | O_NONBLOCK);
+			if (fd >= 0) {
+				s->controllers[i].fd = fd;
+				s->controllers[i].connected = true;
+				uint8_t numAxes = 0, numButtons = 0;
+				ioctl(fd, JSIOCGAXES, &numAxes);
+				ioctl(fd, JSIOCGBUTTONS, &numButtons);
+				s->controllers[i].numAxes = numAxes;
+				s->controllers[i].numButtons = numButtons;
+				// Initialize state (this was the missing piece — analogs were garbage/old memory,
+				// deadzone turned everything to 0; triggers start released at -32768)
+				s->controllers[i].buttonState = 0;
+				if (numAxes >= 1) {
+					s->controllers[i].axisState[0] = 0;
+				}
+				if (numAxes >= 2) {
+					s->controllers[i].axisState[1] = 0;
+				}
+				if (numAxes >= 3) {
+					s->controllers[i].axisState[2] = 0;
+				}
+				if (numAxes >= 4) {
+					s->controllers[i].axisState[3] = 0;
+				}
+				if (numAxes >= 5) {
+					s->controllers[i].axisState[4] = -32768; // left trigger released
+				}
+				if (numAxes >= 6) {
+					s->controllers[i].axisState[5] = -32768; // right trigger released
+				}
+				if (numAxes >= 7) {
+					s->controllers[i].axisState[6] = 0;     // hat X
+				}
+				if (numAxes >= 8) {
+					s->controllers[i].axisState[7] = 0;     // hat Y
+				}
+				// Flush any initialization events from the device
+				while (read(fd, &evt, sizeof(evt)) > 0) { /* flush */ }
+				shared_mem_add_event(&s->sm, (WindowEvent) {
+					.type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
+					.controllerState = {
+						.controllerId = i,
+						.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED,
+					}
+				});
+			}
+			continue;
+		}
+		// Read all available events for this controller to keep state current
+		fd_set fdset;
+		struct timeval tv;
+		int16_t thumbLX = 0, thumbLY = 0, thumbRX = 0, thumbRY = 0;
+		uint8_t leftTrigger = 0, rightTrigger = 0;
+		uint16_t buttons = s->controllers[i].buttonState;
+		while (true) {
+			FD_ZERO(&fdset);
+			FD_SET(s->controllers[i].fd, &fdset);
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
+			int ready = select(s->controllers[i].fd + 1, &fdset, NULL, NULL, &tv);
+			if (ready <= 0) break;
+			int bytesRead = read(s->controllers[i].fd, &evt, sizeof(evt));
+			if (bytesRead != sizeof(evt)) break;
+			unsigned char type = evt.type & ~JS_EVENT_INIT;
+			if (type == JS_EVENT_BUTTON && evt.number < 16) {
+				if (evt.value) {
+					s->controllers[i].buttonState |= (1u << evt.number);
+				} else {
+					s->controllers[i].buttonState &= ~(1u << evt.number);
+				}
+				buttons = s->controllers[i].buttonState;
+			} else if (type == JS_EVENT_AXIS && evt.number < 8) {
+				s->controllers[i].axisState[evt.number] = (int16_t)evt.value;
+			}
+		}
+		if (s->controllers[i].numAxes > 0) {
+			thumbLX = apply_axis_deadzone(s->controllers[i].axisState[0], JOYSTICK_DEADZONE_AXIS);
+			if (s->controllers[i].numAxes > 1) {
+				thumbLY = -apply_axis_deadzone(s->controllers[i].axisState[1], JOYSTICK_DEADZONE_AXIS);
+			}
+			if (s->controllers[i].numAxes > 2) {
+				leftTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[2] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			}
+			if (s->controllers[i].numAxes > 3) {
+				thumbRX = apply_axis_deadzone(s->controllers[i].axisState[3], JOYSTICK_DEADZONE_AXIS);
+			}
+			if (s->controllers[i].numAxes > 4) {
+				thumbRY = -apply_axis_deadzone(s->controllers[i].axisState[4], JOYSTICK_DEADZONE_AXIS);
+			}
+			if (s->controllers[i].numAxes > 5) {
+				rightTrigger = apply_trigger_deadzone((uint8_t)((s->controllers[i].axisState[5] + 32768) >> 8), JOYSTICK_DEADZONE_TRIGGER);
+			}
+			if (s->controllers[i].numAxes > 6) {
+				int16_t hatX = s->controllers[i].axisState[6];
+				if (hatX < -JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 14); // D-Pad Left
+				}
+				if (hatX > JOYSTICK_HAT_DEADZONE)  {
+					buttons |= (1u << 15); // D-Pad Right
+				}
+			}
+			if (s->controllers[i].numAxes > 7) {
+				int16_t hatY = s->controllers[i].axisState[7];
+				if (hatY < -JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 12); // D-Pad Up
+				}
+				if (hatY > JOYSTICK_HAT_DEADZONE) {
+					buttons |= (1u << 13); // D-Pad Down
+				}
+			}
+		}
+		shared_mem_add_event(&s->sm, (WindowEvent) {
+			.type = WINDOW_EVENT_TYPE_CONTROLLER_STATE,
+			.controllerState = {
+				.controllerId = i,
+				.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED,
+				.buttons = buttons,
+				.thumbLX = thumbLX,
+				.thumbLY = thumbLY,
+				.thumbRX = thumbRX,
+				.thumbRY = thumbRY,
+				.leftTrigger = leftTrigger,
+				.rightTrigger = rightTrigger,
+			}
+		});
+	}
 }
 
 void window_poll(void* x11State) {
@@ -318,22 +504,31 @@ void window_poll(void* x11State) {
 				break;
 			}
 			case MotionNotify:
-				shared_mem_add_event(&s->sm, (WindowEvent) {
-					.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
-					.mouseMove = {
-						.x = e.xmotion.x,
-						.y = e.xmotion.y,
-					}
-				});
 				if (s->sm.lockCursor.active) {
+					if (e.xmotion.x != s->sm.lockCursor.x || e.xmotion.y != s->sm.lockCursor.y) {
+						shared_mem_add_event(&s->sm, (WindowEvent) {
+							.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+							.mouseMove = {
+								.x = e.xmotion.x,
+								.y = e.xmotion.y,
+							}
+						});
+					}
 					lock_cursor_position(s);
+				} else {
+					shared_mem_add_event(&s->sm, (WindowEvent) {
+						.type = WINDOW_EVENT_TYPE_MOUSE_MOVE,
+						.mouseMove = {
+							.x = e.xmotion.x,
+							.y = e.xmotion.y,
+						}
+					});
 				}
 				break;
 			case ClientMessage:
 				if (!filtered) {
 					const Atom protocol = e.xclient.data.l[0];
 					if (protocol == s->WM_DELETE_WINDOW) {
-						XDestroyWindow(s->d, s->w);
 						shared_mem_add_event(&s->sm, (WindowEvent) {
 							.type = WINDOW_EVENT_TYPE_ACTIVITY,
 							.windowActivity = {
@@ -351,7 +546,17 @@ void window_poll(void* x11State) {
 
 void window_destroy(void* x11State) {
 	X11State* s = x11State;
-	XDestroyWindow(s->d, s->w);
+	// Close any open controller file descriptors
+	for (int i = 0; i < MAX_CONTROLLERS; i++) {
+		if (s->controllers[i].fd >= 0) {
+			close(s->controllers[i].fd);
+			s->controllers[i].fd = -1;
+			s->controllers[i].connected = false;
+		}
+	}
+	if (s->w) {
+		XDestroyWindow(s->d, s->w);
+	}
 	XCloseDisplay(s->d);
 	free(s);
 }
@@ -365,16 +570,79 @@ void window_focus(void* state) {
 	XSetInputFocus(s->d, s->w, RevertToParent, CurrentTime);
 }
 
+static MonitorInfo query_monitor_info(Display* d, Window w) {
+	MonitorInfo info = {0};
+	XWindowAttributes attrs;
+	XGetWindowAttributes(d, w, &attrs);
+	int wx = 0, wy = 0;
+	Window child;
+	XTranslateCoordinates(d, w, DefaultRootWindow(d), 0, 0, &wx, &wy, &child);
+	int wcx = wx + attrs.width / 2;
+	int wcy = wy + attrs.height / 2;
+	XRRScreenResources* sr = XRRGetScreenResourcesCurrent(d, DefaultRootWindow(d));
+	if (!sr) return info;
+	for (int i = 0; i < sr->ncrtc; i++) {
+		XRRCrtcInfo* ci = XRRGetCrtcInfo(d, sr, sr->crtcs[i]);
+		if (!ci || ci->width == 0 || ci->noutput == 0) {
+			if (ci) XRRFreeCrtcInfo(ci);
+			continue;
+		}
+		if (wcx >= ci->x && wcx < ci->x + (int)ci->width &&
+		    wcy >= ci->y && wcy < ci->y + (int)ci->height) {
+			XRROutputInfo* oi = XRRGetOutputInfo(d, sr, ci->outputs[0]);
+			if (oi && oi->mm_width > 0 && oi->mm_height > 0) {
+				info.dpmm = (float)ci->width / (float)oi->mm_width;
+				info.mm_width = (int)oi->mm_width;
+				info.mm_height = (int)oi->mm_height;
+				info.px_width = (int)ci->width;
+				info.px_height = (int)ci->height;
+				info.x = ci->x;
+				info.y = ci->y;
+				info.found = 1;
+			}
+			if (oi) XRRFreeOutputInfo(oi);
+			XRRFreeCrtcInfo(ci);
+			break;
+		}
+		XRRFreeCrtcInfo(ci);
+	}
+	XRRFreeScreenResources(sr);
+	return info;
+}
+
+static MonitorInfo find_monitor_info(X11State* s) {
+	if (!s->monitorCacheDirty && s->monitorCache.found) {
+		return s->monitorCache;
+	}
+	s->monitorCache = query_monitor_info(s->d, s->w);
+	s->monitorCacheDirty = 0;
+	return s->monitorCache;
+}
+
+void window_invalidate_monitor_cache(void* state) {
+	X11State* s = state;
+	s->monitorCacheDirty = 1;
+}
+
 int window_width_mm(void* state) {
 	X11State* s = state;
+	MonitorInfo mi = find_monitor_info(s);
+	if (mi.found) return mi.mm_width;
 	int sid = DefaultScreen(s->d);
 	return XDisplayWidthMM(s->d, sid);
 }
 
 int window_height_mm(void* state) {
 	X11State* s = state;
+	MonitorInfo mi = find_monitor_info(s);
+	if (mi.found) return mi.mm_height;
 	int sid = DefaultScreen(s->d);
 	return XDisplayHeightMM(s->d, sid);
+}
+
+int screen_count(void* state) {
+	(void)state;
+	return 1; // TODO
 }
 
 void window_cursor_standard(void* state) {
@@ -444,10 +712,10 @@ void window_set_cursor_position(void* state, int x, int y) {
 
 float window_dpi(void* state) {
 	X11State* s = state;
+	MonitorInfo mi = find_monitor_info(s);
+	if (mi.found) return mi.dpmm;
 	int screen = XDefaultScreen(s->d);
-	int pixelWidth = DisplayWidth(s->d, screen);
-	int mmWidth = DisplayWidthMM(s->d, screen);
-	return pixelWidth / mmWidth;
+	return (float)DisplayWidth(s->d, screen) / (float)DisplayWidthMM(s->d, screen);
 }
 
 void window_set_title(void* state, const char* windowTitle) {
@@ -457,7 +725,6 @@ void window_set_title(void* state, const char* windowTitle) {
 
 void window_set_full_screen(void* state) {
 	X11State* s = state;
-	int screen = DefaultScreen(s->d);
 	XWindowAttributes attrs;
 	XGetWindowAttributes(s->d, s->w, &attrs);
 	s->sm.savedState.rect.left = attrs.x;
@@ -467,16 +734,39 @@ void window_set_full_screen(void* state) {
 	// TODO:  Save the border state
 	s->sm.savedState.borderWidth = attrs.border_width;
 	s->sm.savedState.overrideRedirect = attrs.override_redirect;
-	int screenWidth = DisplayWidth(s->d, screen);
-	int screenHeight = DisplayHeight(s->d, screen);
+	int fx, fy, fw, fh;
+	MonitorInfo mi = find_monitor_info(s);
+	if (mi.found) {
+		fx = mi.x;
+		fy = mi.y;
+		fw = mi.px_width;
+		fh = mi.px_height;
+	} else {
+		int screen = DefaultScreen(s->d);
+		fx = 0;
+		fy = 0;
+		fw = DisplayWidth(s->d, screen);
+		fh = DisplayHeight(s->d, screen);
+	}
+	XClientMessageEvent ev = { 0 };
+	ev.type = ClientMessage;
+	ev.window = s->w;
+	ev.message_type = XInternAtom(s->d, "_NET_WM_STATE", False);
+	ev.format = 32;
+	ev.data.l[0] = 1;
+	ev.data.l[1] = XInternAtom(s->d, "_NET_WM_STATE_FULLSCREEN", False);
+	ev.data.l[2] = 0;
+	ev.data.l[3] = 1;
+	XSendEvent(s->d, DefaultRootWindow(s->d), False,
+	           SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev);
 	XSetWindowAttributes attr = { 0 };
 	XChangeWindowAttributes(s->d, s->w, CWOverrideRedirect, &attr);
 	XSetWindowBorderWidth(s->d, s->w, 0);
 	XWindowChanges changes;
-	changes.x = 0;
-	changes.y = 0;
-	changes.width = screenWidth;
-	changes.height = screenHeight;
+	changes.x = fx;
+	changes.y = fy;
+	changes.width = fw;
+	changes.height = fh;
 	changes.border_width = 0;
 	unsigned int value_mask = CWX | CWY | CWWidth | CWHeight | CWBorderWidth;
 	XConfigureWindow(s->d, s->w, value_mask, &changes);
@@ -498,7 +788,7 @@ void window_set_windowed(void* state, int width, int height) {
     ev.data.l[1] = XInternAtom(s->d, "_NET_WM_STATE_FULLSCREEN", False);
     ev.data.l[2] = 0;
     ev.data.l[3] = 1;
-    XSendEvent(s->d, DefaultRootWindow(s->d), False, 
+    XSendEvent(s->d, DefaultRootWindow(s->d), False,
                SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev);
     XWindowChanges changes;
     changes.x = s->sm.savedState.rect.left;
@@ -550,7 +840,7 @@ void window_set_icon(void* state, int width, int height, const unsigned char* rg
 		unsigned char a = rgba[i * 4 + 3];
 		iconData[2 + i] = ((unsigned long)a << 24) | ((unsigned long)b << 16) | ((unsigned long)g << 8) | r;
 	}
-	XChangeProperty(s->d, s->w, netWmIcon, XA_CARDINAL, 32, PropModeReplace, 
+	XChangeProperty(s->d, s->w, netWmIcon, XA_CARDINAL, 32, PropModeReplace,
 		(unsigned char*)iconData, dataLen);
 	XFlush(s->d);
 	free(iconData);

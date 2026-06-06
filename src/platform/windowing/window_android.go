@@ -3,37 +3,7 @@
 /******************************************************************************/
 /* window_android.go                                                          */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package windowing
@@ -41,10 +11,11 @@ package windowing
 import (
 	"fmt"
 	"image"
-	"kaiju/klib"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
 	"unsafe"
+
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 /*
@@ -110,6 +81,12 @@ func (w *Window) clipboardContents() string {
 	return ""
 }
 
+func (w *Window) invalidateMonitorCache() {}
+
+func (w *Window) monitorCount() int {
+	return 1
+}
+
 func (w *Window) dotsPerMillimeter() float64 {
 	wmm, hmm, err := w.screenSizeMM()
 	if err != nil || wmm == 0 || hmm == 0 {
@@ -157,26 +134,29 @@ func (w *Window) readApplicationAsset(path string) ([]byte, error) {
 func (w *Window) cHandle() unsafe.Pointer   { return w.handle }
 func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
-func (w *Window) showWindow()                   {}
-func (w *Window) cursorStandard()               {}
-func (w *Window) cursorIbeam()                  {}
-func (w *Window) cursorSizeAll()                {}
-func (w *Window) cursorSizeNS()                 {}
-func (w *Window) cursorSizeWE()                 {}
-func (w *Window) focus()                        {}
-func (w *Window) position() (x, y int)          { return 0, 0 }
-func (w *Window) setPosition(x, y int)          {}
-func (w *Window) setSize(width, height int)     {}
-func (w *Window) removeBorder()                 {}
-func (w *Window) addBorder()                    {}
-func (w *Window) showCursor()                   {}
-func (w *Window) hideCursor()                   {}
-func (w *Window) lockCursor(x, y int)           {}
-func (w *Window) unlockCursor()                 {}
-func (w *Window) setFullscreen()                {}
-func (w *Window) setWindowed(width, height int) {}
-func (w *Window) enableRawMouse()               {}
-func (w *Window) disableRawMouse()              {}
-func (w Window) setTitle(newTitle string)       {}
-func (w *Window) setCursorPosition(x, y int)    {}
-func (w *Window) setIcon(img image.Image)       {}
+func (w *Window) showWindow()                       {}
+func (w *Window) cursorStandard()                   {}
+func (w *Window) cursorIbeam()                      {}
+func (w *Window) cursorSizeAll()                    {}
+func (w *Window) cursorSizeNS()                     {}
+func (w *Window) cursorSizeWE()                     {}
+func (w *Window) focus()                            {}
+func (w *Window) position() (x, y int)              { return 0, 0 }
+func (w *Window) setPosition(x, y int)              {}
+func (w *Window) setSize(width, height int)         {}
+func (w *Window) removeBorder()                     {}
+func (w *Window) addBorder()                        {}
+func (w *Window) showCursor()                       {}
+func (w *Window) hideCursor()                       {}
+func (w *Window) lockCursor(x, y int)               {}
+func (w *Window) unlockCursor()                     {}
+func (w *Window) setFullscreen()                    {}
+func (w *Window) setWindowed(width, height int)     {}
+func (w *Window) enableRawMouse()                   {}
+func (w *Window) disableRawMouse()                  {}
+func (w Window) setTitle(newTitle string)           {}
+func (w *Window) setTitleBarMode(mode TitleBarMode) {}
+func (w *Window) getTitleBarMode() TitleBarMode     { return w.titleBarMode }
+func (w *Window) setCursorPosition(x, y int)        {}
+func (w *Window) setIcon(img image.Image)           {}
+func (w *Window) setFileDropEnabled(enabled bool)   {}

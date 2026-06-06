@@ -1,50 +1,22 @@
 /******************************************************************************/
 /* scaling_tool.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package transform_tools
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision"
-	"kaiju/engine/systems/events"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 const (
@@ -53,38 +25,38 @@ const (
 )
 
 type ScalingTool struct {
-	root        matrix.Transform
+	TransformGizmo
 	boxes       [3]ScalingToolBox
-	lastCamPos  matrix.Vec3
 	startScale  matrix.Vec3
 	OnDragStart events.EventWithArg[matrix.Vec3]
 	OnDragScale events.EventWithArg[matrix.Vec3]
 	OnDragEnd   events.EventWithArg[matrix.Vec3]
-	currentAxis int
-	dragging    bool
-	visible     bool
 }
 
 type ScalingToolBox struct {
 	shaftShaderData rendering.DrawInstance
 	boxShaderData   rendering.DrawInstance
+	shaftPickData   rendering.DrawInstance
+	boxPickData     rendering.DrawInstance
 	shaftTransform  matrix.Transform
 	boxTransform    matrix.Transform
-	hitBox          collision.AABB
+	hitBox          graviton.AABB
 }
 
-func (t *ScalingTool) Initialize(host *engine.Host) {
+func (t *ScalingTool) Initialize(host *engine.Host, stage StageInterface) {
+	t.stage = stage
 	t.root.Initialize(host.WorkGroup())
 	t.currentAxis = -1
+	pickMat, _ := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	for i := range t.boxes {
-		t.boxes[i].Initialize(host, i)
+		t.boxes[i].Initialize(host, pickMat, i)
 		t.boxes[i].shaftTransform.SetParent(&t.root)
 		t.boxes[i].boxTransform.SetParent(&t.root)
 	}
 	t.Hide()
 }
 
-func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
+func (a *ScalingToolBox) Initialize(host *engine.Host, pickMat *rendering.Material, vec int) {
 	a.shaftTransform.Initialize(host.WorkGroup())
 	a.boxTransform.Initialize(host.WorkGroup())
 	sm := rendering.NewMeshCylinder(host.MeshCache(),
@@ -119,6 +91,7 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 		Mesh:       sm,
 		ShaderData: a.shaftShaderData,
 		Transform:  &a.shaftTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	boxDraw := rendering.Drawing{
@@ -126,18 +99,24 @@ func (a *ScalingToolBox) Initialize(host *engine.Host, vec int) {
 		Mesh:       bm,
 		ShaderData: a.boxShaderData,
 		Transform:  &a.boxTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	}
 	host.Drawings.AddDrawing(shaftDraw)
 	host.Drawings.AddDrawing(boxDraw)
+	pickID := scalePickID(vec)
+	a.shaftPickData = addGizmoPickDrawing(host, pickMat, sm, &a.shaftTransform, a.shaftShaderData, pickID)
+	a.boxPickData = addGizmoPickDrawing(host, pickMat, bm, &a.boxTransform, a.boxShaderData, pickID)
 }
 
 func (t *ScalingTool) Show(pos matrix.Vec3) {
 	t.visible = true
 	t.root.SetPosition(pos)
 	for i := range t.boxes {
-		t.boxes[i].shaftShaderData.Activate()
-		t.boxes[i].boxShaderData.Activate()
+		if t.axisVisible(i) {
+			t.boxes[i].shaftShaderData.Activate()
+			t.boxes[i].boxShaderData.Activate()
+		}
 	}
 	t.updateHitBoxes()
 }
@@ -163,30 +142,28 @@ func (t *ScalingTool) Update(host *engine.Host, snap bool, snapScale float32) bo
 	return t.dragging
 }
 
+func (t *ScalingTool) SetDimensions(mode editor_controls.EditorCameraMode) {
+	if t.cameraMode == mode {
+		return
+	}
+	t.cameraMode = mode
+	if t.visible {
+		t.Hide()
+		t.Show(t.root.Position())
+	}
+}
+
 func (t *ScalingTool) resize(cam cameras.Camera) {
-	camPos := cam.Position()
-	if camPos.Equals(t.lastCamPos) {
-		return
-	}
-	t.lastCamPos = camPos
-	viewMat := cam.View()
-	gizmoPos := t.root.Position().AsVec4()
-	viewPos := matrix.Mat4MultiplyVec4(viewMat, gizmoPos)
-	dist := matrix.Abs(viewPos.Z())
-	if dist <= matrix.FloatSmallestNonzero {
-		return
-	}
-	gizmoScale := dist * translationGizmoScale
-	t.root.SetScale(matrix.NewVec3(gizmoScale, gizmoScale, gizmoScale))
+	t.TransformGizmo.resize(cam)
 	t.updateHitBoxes()
 }
 
 func (t *ScalingTool) updateHitBoxes() {
 	scale := t.root.Scale().LargestAxis()
 	arrowLen := translationGizmoTotalHeight * scale * 0.5
-	r := matrix.Float(translationGizmoTotalRadius)
+	r := matrix.Float(translationGizmoTotalRadius) * scale
 	for i := range t.boxes {
-		t.boxes[i].hitBox = collision.AABB{
+		t.boxes[i].hitBox = graviton.AABB{
 			Center: t.root.Position(),
 			Extent: matrix.NewVec3(r, r, r),
 		}
@@ -204,19 +181,32 @@ func (t *ScalingTool) updateHitBoxes() {
 	}
 }
 
+func (t *ScalingTool) mousePosition(c *hid.Cursor) matrix.Vec2 {
+	return t.cameraCursorPosition(c)
+}
+
 func (t *ScalingTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	if t.dragging {
 		return
 	}
-	ray := cam.RayCast(host.Window.Cursor.Position())
 	dist := matrix.FloatMax
 	target := -1
-	for i := range t.boxes {
-		if hit, ok := t.boxes[i].hitBox.RayHit(ray); ok {
-			d := ray.Origin.Distance(hit)
-			if d < dist {
-				target = i
-				dist = d
+	if pickID, ok := t.pickIDAtCursor(&host.Window.Cursor); ok {
+		if axis, hit := scalePickAxis(pickID); hit && t.axisVisible(axis) {
+			target = axis
+		}
+	} else if !t.isFixedPanelView() {
+		ray := cam.RayCast(t.mousePosition(&host.Window.Cursor))
+		for i := range t.boxes {
+			if !t.axisVisible(i) {
+				continue
+			}
+			if hit, ok := t.boxes[i].hitBox.RayHit(ray); ok {
+				d := ray.Origin.Distance(hit)
+				if d < dist {
+					target = i
+					dist = d
+				}
 			}
 		}
 	}
@@ -282,10 +272,7 @@ func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera, snap bo
 			}
 			t.OnDragEnd.Execute(scale)
 			t.setVisuals(boxPos)
-			for i := range t.boxes {
-				t.boxes[i].shaftShaderData.Activate()
-				t.boxes[i].boxShaderData.Activate()
-			}
+			t.Show(t.root.Position())
 		} else {
 			t.OnDragScale.Execute(scale)
 		}
@@ -304,7 +291,7 @@ func (t *ScalingTool) procRayOnAxis(c *hid.Cursor, cam cameras.Camera, snap bool
 		cp.SetZ(dragPos.Z())
 	}
 	nml := cp.Subtract(dragPos)
-	if hit, ok := cam.TryPlaneHit(c.Position(), dragPos, nml); ok {
+	if hit, ok := cam.TryPlaneHit(t.mousePosition(c), dragPos, nml); ok {
 		scale := matrix.Vec3Zero()
 		if snap {
 			hit.SetX(matrix.Floor(hit.X()/snapScale) * snapScale)

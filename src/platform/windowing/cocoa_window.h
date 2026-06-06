@@ -27,6 +27,8 @@ int cocoa_get_screen_pixel_height(void* nsWindow);
 // Get backing scale factor
 double cocoa_get_backing_scale_factor(void* nsWindow);
 
+int cocoa_screen_count(void* nsWindow);
+
 // Window position and size
 void cocoa_get_position(void* nsWindow, int* x, int* y);
 void cocoa_set_position(void* nsWindow, int x, int y);
@@ -77,5 +79,10 @@ void cocoa_disable_raw_mouse(void* nsWindow);
 bool cocoa_get_caps_lock_toggle_key_state(void);
 
 void cocoa_run_app(void);
+
+// File drop (drag-and-drop from Finder)
+#if KAIJU_ENABLE_FILEDROP
+void cocoa_set_file_drop_enabled(void* nsView, bool enabled);
+#endif
 
 #endif // COCOA_WINDOW_H

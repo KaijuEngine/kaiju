@@ -1,49 +1,39 @@
 /******************************************************************************/
 /* css_line_height.go                                                         */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package properties
 
 import (
 	"errors"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/css/helpers"
-	"kaiju/engine/ui/markup/css/rules"
-	"kaiju/engine/ui/markup/document"
+	"strconv"
+	"strings"
+
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/helpers"
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
 )
+
+func (LineHeight) Sort() int { return 1 }
+
+func lineHeightFromStr(str string, fontSize float32, host *engine.Host) float32 {
+	str = strings.TrimSpace(str)
+	if str == "normal" {
+		return 0
+	}
+	if v, err := strconv.ParseFloat(str, 32); err == nil {
+		return fontSize * float32(v)
+	}
+	height := helpers.NumFromLengthWithFont(str, host.Window, fontSize)
+	if strings.HasSuffix(str, "%") {
+		height *= fontSize
+	}
+	return height
+}
 
 func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host) {
 	if elm.Stylizer.HasRule("line-height") {
@@ -51,10 +41,13 @@ func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host
 	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
-		height := helpers.NumFromLengthWithFont(size, host.Window,
-			host.FontCache().EMSize(lbl.FontFace()))
-		height = elm.Parent.Value().UI.Layout().PixelSize().Y() * height
-		lbl.SetLineHeight(height)
+		lbl.SetLineHeight(lineHeightFromStr(size, lbl.FontSize(), host))
+	} else if elm.UI.IsType(ui.ElementTypeInput) {
+		input := elm.UI.ToInput()
+		input.SetLineHeight(lineHeightFromStr(size, input.FontSize(), host))
+	} else if elm.UI.IsType(ui.ElementTypeTextArea) {
+		textarea := elm.UI.ToTextArea()
+		textarea.SetLineHeight(lineHeightFromStr(size, textarea.FontSize(), host))
 	} else {
 		for _, child := range elm.Children {
 			setChildrenLineHeight(child, size, host)
@@ -65,6 +58,16 @@ func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host
 func (p LineHeight) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("LineHeight requires exactly 1 value")
+	}
+	if elm.UI.IsType(ui.ElementTypeInput) {
+		input := elm.UI.ToInput()
+		input.SetLineHeight(lineHeightFromStr(values[0].Str, input.FontSize(), host))
+		return nil
+	}
+	if elm.UI.IsType(ui.ElementTypeTextArea) {
+		textarea := elm.UI.ToTextArea()
+		textarea.SetLineHeight(lineHeightFromStr(values[0].Str, textarea.FontSize(), host))
+		return nil
 	}
 	for _, child := range elm.Children {
 		setChildrenLineHeight(child, values[0].Str, host)

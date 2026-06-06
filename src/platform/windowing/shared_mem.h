@@ -36,6 +36,9 @@
 #endif
 
 extern void goProcessEvents(uint64_t goWindow, void* events, uint32_t eventCount);
+#if KAIJU_ENABLE_FILEDROP
+extern void goProcessFileDrop(uint64_t goWindow, int32_t x, int32_t y, void* paths, uint32_t pathCount);
+#endif
 
 #if __linux__ || defined(__APPLE__)
 typedef long LONG;
@@ -60,6 +63,7 @@ typedef struct {
 	RECT clientRect;
 	int mouseX;
 	int mouseY;
+	int titleBarMode; /* last requested mode - used to reapply title bar styling when OS theme changes */
 	bool rawInputFailed;
 	bool rawInputRequested;
 	struct {
@@ -70,9 +74,12 @@ typedef struct {
 		int overrideRedirect;
 	} savedState;
 	uint32_t eventCount;
+	bool cursorHidden;
 	struct {
 		int x;
 		int y;
+		int dx;
+		int dy;
 		bool active;
 	} lockCursor;
 	WindowEvent events[WINDOW_EVENT_BUFFER_SIZE];
@@ -81,7 +88,7 @@ typedef struct {
 	ASensorManager* sensorManager;
 	ASensorEventQueue* sensorQueue;
 #else
-	size_t _0[3]; // Keep structure size consistant between platforms
+	size_t _0[3]; // Keep struct size consistent across platforms
 #endif
 } SharedMem;
 

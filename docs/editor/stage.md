@@ -1,5 +1,7 @@
 ---
 title: Stage Workspace | Kaiju Engine Editor
+description: The Stage Workspace is the primary editing environment in the Kaiju Engine Editor, offering tools for creating, manipulating, and organizing 3D and 2D scenes.
+keywords: stage, workspace, kaiju, editor, 3D, 2D, scene, game development
 ---
 
 # Stage Workspace

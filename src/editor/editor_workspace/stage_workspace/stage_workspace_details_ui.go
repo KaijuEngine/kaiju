@@ -1,66 +1,44 @@
 /******************************************************************************/
 /* stage_workspace_details_ui.go                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package stage_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/codegen"
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_overlay/content_selector"
-	"kaiju/editor/editor_overlay/context_menu"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
-	"kaiju/editor/memento"
-	"kaiju/engine"
-	"kaiju/engine/ui"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/engine_entity_data/content_id"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
-	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 	"weak"
+
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_overlay/color_picker"
+	"kaijuengine.com/editor/editor_overlay/content_selector"
+	"kaijuengine.com/editor/editor_overlay/context_menu"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/terrain"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/engine_entity_data/content_id"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 type transformKind int
@@ -98,6 +76,7 @@ var fieldMap = map[copyPasteKind]reflect.Kind{
 
 type WorkspaceDetailsUI struct {
 	workspace                  weak.Pointer[StageWorkspace]
+	doc                        *document.Document
 	detailsArea                *document.Element
 	detailsName                *document.Element
 	detailsPosX                *document.Element
@@ -110,10 +89,16 @@ type WorkspaceDetailsUI struct {
 	detailsScaleY              *document.Element
 	detailsScaleZ              *document.Element
 	detailsMultiSelect         *document.Element
+	detailsMeshBlock           *document.Element
+	detailsMesh                *document.Element
+	detailsMaterialBlock       *document.Element
+	detailsMaterial            *document.Element
 	shaderInstanceData         *document.Element
 	detailsEntityDataTable     *document.Element
 	shaderInstanceDataList     *document.Element
 	boundEntityDataList        *document.Element
+	entityDataSelectorOverlay  *document.Element
+	entityDataSearch           *document.Element
 	entityDataList             *document.Element
 	entityDataListTemplate     *document.Element
 	boundEntityDataTemplate    *document.Element
@@ -129,84 +114,99 @@ type WorkspaceDetailsUI struct {
 func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setupFuncs").End()
 	return map[string]func(*document.Element){
-		"submitDetailsName":    dui.submitDetailsName,
-		"setPosX":              dui.setPosX,
-		"setPosY":              dui.setPosY,
-		"setPosZ":              dui.setPosZ,
-		"copyAttribute":        dui.copyAttribute,
-		"pasteAttribute":       dui.pasteAttribute,
-		"setRotX":              dui.setRotX,
-		"setRotY":              dui.setRotY,
-		"setRotZ":              dui.setRotZ,
-		"setScaleX":            dui.setScaleX,
-		"setScaleY":            dui.setScaleY,
-		"setScaleZ":            dui.setScaleZ,
-		"searchEntityData":     dui.searchEntityData,
-		"addEntityData":        dui.addEntityData,
-		"changeData":           dui.changeData,
-		"pasteEntityDataAsNew": dui.pasteEntityDataAsNew,
-		"pasteEntityData":      dui.pasteEntityData,
-		"copyEntityData":       dui.copyEntityData,
-		"removeEntityData":     dui.removeEntityData,
-		"changeShaderData":     dui.changeShaderData,
-		"clickSelectContentId": dui.clickSelectContentId,
-		"contentIdDrop":        dui.contentIdDrop,
-		"contentIdDragEnter":   dui.contentIdDragEnter,
-		"contentIdDragExit":    dui.contentIdDragExit,
-		"onRightClick":         dui.onRightClick,
+		"submitDetailsName":       dui.submitDetailsName,
+		"setPosX":                 dui.setPosX,
+		"setPosY":                 dui.setPosY,
+		"setPosZ":                 dui.setPosZ,
+		"copyAttribute":           dui.copyAttribute,
+		"pasteAttribute":          dui.pasteAttribute,
+		"setRotX":                 dui.setRotX,
+		"setRotY":                 dui.setRotY,
+		"setRotZ":                 dui.setRotZ,
+		"setScaleX":               dui.setScaleX,
+		"setScaleY":               dui.setScaleY,
+		"setScaleZ":               dui.setScaleZ,
+		"showEntityDataSelector":  dui.showEntityDataSelector,
+		"closeEntityDataSelector": dui.closeEntityDataSelector,
+		"searchEntityData":        dui.searchEntityData,
+		"addEntityData":           dui.addEntityData,
+		"changeData":              dui.changeData,
+		"pasteEntityDataAsNew":    dui.pasteEntityDataAsNew,
+		"pasteEntityData":         dui.pasteEntityData,
+		"copyEntityData":          dui.copyEntityData,
+		"removeEntityData":        dui.removeEntityData,
+		"showColorPicker":         dui.showColorPicker,
+		"changeShaderData":        dui.changeShaderData,
+		"clickSelectMesh":         dui.clickSelectMesh,
+		"meshIdDrop":              dui.meshIdDrop,
+		"meshIdDragEnter":         dui.meshIdDragEnter,
+		"meshIdDragExit":          dui.meshIdDragExit,
+		"clickSelectMaterial":     dui.clickSelectMaterial,
+		"materialIdDrop":          dui.materialIdDrop,
+		"materialIdDragEnter":     dui.materialIdDragEnter,
+		"materialIdDragExit":      dui.materialIdDragExit,
+		"clickSelectContentId":    dui.clickSelectContentId,
+		"contentIdDrop":           dui.contentIdDrop,
+		"contentIdDragEnter":      dui.contentIdDragEnter,
+		"contentIdDragExit":       dui.contentIdDragExit,
+		"clickSelectEntityId":     dui.clickSelectEntityId,
+		"clearEntityId":           dui.clearEntityId,
+		"entityIdDrop":            dui.entityIdDrop,
+		"entityIdDragEnter":       dui.entityIdDragEnter,
+		"entityIdDragExit":        dui.entityIdDragExit,
+		"onRightClick":            dui.onRightClick,
 	}
 }
 
 func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setup").End()
 	dui.workspace = weak.Make(w)
+	dui.doc = w.detailsDoc
 	dui.TargetedElementValueReload = make(map[reflect.Value]func())
-	dui.detailsArea, _ = w.Doc.GetElementById("detailsArea")
-	dui.detailsName, _ = w.Doc.GetElementById("detailsName")
-	dui.detailsPosX, _ = w.Doc.GetElementById("detailsPosX")
-	dui.detailsPosY, _ = w.Doc.GetElementById("detailsPosY")
-	dui.detailsPosZ, _ = w.Doc.GetElementById("detailsPosZ")
-	dui.detailsRotX, _ = w.Doc.GetElementById("detailsRotX")
-	dui.detailsRotY, _ = w.Doc.GetElementById("detailsRotY")
-	dui.detailsRotZ, _ = w.Doc.GetElementById("detailsRotZ")
-	dui.detailsScaleX, _ = w.Doc.GetElementById("detailsScaleX")
-	dui.detailsScaleY, _ = w.Doc.GetElementById("detailsScaleY")
-	dui.detailsScaleZ, _ = w.Doc.GetElementById("detailsScaleZ")
-	dui.detailsMultiSelect, _ = w.Doc.GetElementById("detailsMultiSelect")
-	dui.shaderInstanceData, _ = w.Doc.GetElementById("shaderInstanceData")
-	dui.detailsEntityDataTable, _ = w.Doc.GetElementById("detailsEntityDataTable")
-	dui.shaderInstanceDataList, _ = w.Doc.GetElementById("shaderInstanceDataList")
-	dui.boundEntityDataList, _ = w.Doc.GetElementById("boundEntityDataList")
-	dui.entityDataList, _ = w.Doc.GetElementById("entityDataList")
-	dui.entityDataListTemplate, _ = w.Doc.GetElementById("entityDataListTemplate")
-	dui.boundEntityDataTemplate, _ = w.Doc.GetElementById("boundEntityDataTemplate")
-	dui.shaderInstanceDataTemplate, _ = w.Doc.GetElementById("shaderInstanceDataTemplate")
+	dui.detailsArea, _ = dui.doc.GetElementById("detailsArea")
+	dui.detailsName, _ = dui.doc.GetElementById("detailsName")
+	dui.detailsPosX, _ = dui.doc.GetElementById("detailsPosX")
+	dui.detailsPosY, _ = dui.doc.GetElementById("detailsPosY")
+	dui.detailsPosZ, _ = dui.doc.GetElementById("detailsPosZ")
+	dui.detailsRotX, _ = dui.doc.GetElementById("detailsRotX")
+	dui.detailsRotY, _ = dui.doc.GetElementById("detailsRotY")
+	dui.detailsRotZ, _ = dui.doc.GetElementById("detailsRotZ")
+	dui.detailsScaleX, _ = dui.doc.GetElementById("detailsScaleX")
+	dui.detailsScaleY, _ = dui.doc.GetElementById("detailsScaleY")
+	dui.detailsScaleZ, _ = dui.doc.GetElementById("detailsScaleZ")
+	dui.detailsMultiSelect, _ = dui.doc.GetElementById("detailsMultiSelect")
+	dui.detailsMeshBlock, _ = dui.doc.GetElementById("detailsMeshBlock")
+	dui.detailsMesh, _ = dui.doc.GetElementById("detailsMesh")
+	dui.detailsMaterialBlock, _ = dui.doc.GetElementById("detailsMaterialBlock")
+	dui.detailsMaterial, _ = dui.doc.GetElementById("detailsMaterial")
+	dui.shaderInstanceData, _ = dui.doc.GetElementById("shaderInstanceData")
+	dui.detailsEntityDataTable, _ = dui.doc.GetElementById("detailsEntityDataTable")
+	dui.shaderInstanceDataList, _ = dui.doc.GetElementById("shaderInstanceDataList")
+	dui.boundEntityDataList, _ = dui.doc.GetElementById("boundEntityDataList")
+	dui.entityDataSelectorOverlay, _ = dui.doc.GetElementById("entityDataSelectorOverlay")
+	dui.entityDataSearch, _ = dui.doc.GetElementById("entityDataSearch")
+	dui.entityDataList, _ = dui.doc.GetElementById("entityDataList")
+	dui.entityDataListTemplate, _ = dui.doc.GetElementById("entityDataListTemplate")
+	dui.boundEntityDataTemplate, _ = dui.doc.GetElementById("boundEntityDataTemplate")
+	dui.shaderInstanceDataTemplate, _ = dui.doc.GetElementById("shaderInstanceDataTemplate")
 	man := w.stageView.Manager()
 	man.OnEntitySelected.Add(dui.entitySelected)
 	man.OnEntityDeselected.Add(dui.entityDeselected)
+	man.OnEntitySpawn.Add(func(*editor_stage_manager.StageEntity) { dui.reloadTargetedValues() })
+	man.OnEntityDestroy.Add(func(*editor_stage_manager.StageEntity) { dui.reloadTargetedValues() })
 	w.ed.Project().OnEntityDataUpdated.Add(dui.reloadDataList)
+	dui.reloadDataList(w.ed.Project().EntityData())
 }
 
 func (dui *WorkspaceDetailsUI) open() {
 	defer tracing.NewRegion("WorkspaceDetailsUI.open").End()
 	dui.detailsArea.UI.Show()
-	dui.entityDataList.UI.Hide()
+	dui.entityDataSelectorOverlay.UI.Hide()
 	dui.entityDataListTemplate.UI.Hide()
 	dui.boundEntityDataTemplate.UI.Hide()
 	dui.shaderInstanceDataTemplate.UI.Hide()
 	dui.hideIfNothingSelected()
 	dui.reload()
-}
-
-func (dui *WorkspaceDetailsUI) processHotkeys(host *engine.Host) {
-	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
-	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyD) {
-		if dui.detailsArea.UI.Entity().IsActive() {
-			dui.detailsArea.UI.Hide()
-		} else {
-			dui.detailsArea.UI.Show()
-		}
-	}
 }
 
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
@@ -288,9 +288,7 @@ func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v fl
 			s.Transform.SetScale(cur)
 		}
 		tformHistory.nextValues = append(tformHistory.nextValues, cur)
-		// TODO:  Should be refitting the BVH of each, but since the current
-		// refit just does the world anyway, we're skipping for now to do the
-		// world at the end.
+		man.RefitBVH(s)
 		for _, db := range s.DataBindings() {
 			data_binding_renderer.Updated(db, weak.Make(dui.workspace.Value().Host), s)
 		}
@@ -301,7 +299,6 @@ func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v fl
 			tformHistory.prevValues = t.prevValues
 		}
 	}
-	man.RefitWorldBVH()
 	history.AddOrReplaceLast(tformHistory)
 }
 
@@ -359,19 +356,40 @@ func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
 	dui.applyTransform(transformScale, 2, float32(v))
 }
 
-func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
-	defer tracing.NewRegion("WorkspaceDetailsUI.searchEntityData").End()
+func (dui *WorkspaceDetailsUI) showEntityDataSelector(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.showEntityDataSelector").End()
+	if len(dui.workspace.Value().stageView.Manager().Selection()) == 0 {
+		return
+	}
+	dui.entityDataSelectorOverlay.UI.Show()
 	dui.entityDataList.UI.Show()
 	dui.entityDataListTemplate.UI.Hide()
-	q := strings.ToLower(e.UI.ToInput().Text())
+	dui.entityDataSearch.UI.ToInput().SetTextWithoutEvent("")
+	dui.filterEntityDataList("")
+	dui.entityDataSearch.UI.ToInput().Focus()
+}
+
+func (dui *WorkspaceDetailsUI) closeEntityDataSelector(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.closeEntityDataSelector").End()
+	dui.entityDataSelectorOverlay.UI.Hide()
+}
+
+func (dui *WorkspaceDetailsUI) searchEntityData(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.searchEntityData").End()
+	dui.filterEntityDataList(e.UI.ToInput().Text())
+}
+
+func (dui *WorkspaceDetailsUI) filterEntityDataList(query string) {
+	q := strings.ToLower(query)
 	for _, c := range dui.entityDataList.Children[1:] {
 		name := strings.ToLower(c.InnerLabel().Text())
-		if q != "" && strings.Contains(name, q) {
+		if q == "" || strings.Contains(name, q) {
 			c.UI.Show()
 		} else {
 			c.UI.Hide()
 		}
 	}
+	dui.entityDataList.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
 func (dui *WorkspaceDetailsUI) addEntityData(e *document.Element) {
@@ -393,7 +411,7 @@ func (dui *WorkspaceDetailsUI) addEntityDataBykey(key string) (*entity_data_bind
 	de := w.attachEntityData(target, g)
 	dui.createDataBindingEntry(de, dui.boundEntityDataTemplate)
 	data_binding_renderer.ShowSpecific(de, weak.Make(w.Host), target)
-	dui.entityDataList.UI.Hide()
+	dui.entityDataSelectorOverlay.UI.Hide()
 	w.ed.History().Add(&EntityDataAttachHistory{
 		DetailsWorkspace: dui,
 		Entity:           target,
@@ -404,33 +422,47 @@ func (dui *WorkspaceDetailsUI) addEntityDataBykey(key string) (*entity_data_bind
 
 func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.EntityDataEntry, tpl *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.createDataBindingEntry").End()
-	w := dui.workspace.Value()
 	bindIdx := len(tpl.Parent.Value().Children) - 1
-	cpy := w.Doc.DuplicateElementWithoutApplyStyles(tpl)
-	nameSpan := cpy.Children[0]
-	fieldDiv := cpy.Children[1]
-	if len(cpy.Children) == 3 {
-		nameSpan = cpy.Children[1]
-		fieldDiv = cpy.Children[2]
-		for _, c := range cpy.Children[0].Children {
+	cpy := dui.doc.DuplicateElementWithoutApplyStyles(tpl)
+	var nameSpan *document.Element
+	var fieldDiv *document.Element
+	for _, c := range cpy.Children {
+		switch {
+		case c.HasClass("dataControls"):
+			for _, control := range c.Children {
+				control.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+			}
+		case c.HasClass("entityDataField") && fieldDiv == nil:
+			fieldDiv = c
+		case c.HasClass("entityDataValidation"):
 			c.SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
+			c.UI.Hide()
+		case nameSpan == nil:
+			nameSpan = c
 		}
+	}
+	if nameSpan == nil || fieldDiv == nil {
+		return
 	}
 	nameSpan.InnerLabel().SetText(g.Name)
 	fields := []*document.Element{fieldDiv}
 	if len(g.Fields) == 0 {
 		fieldDiv.UI.Hide()
 	} else if len(g.Fields) > 1 {
-		fields = append(fields, w.Doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
+		fields = append(fields, dui.doc.DuplicateElementRepeatWithoutApplyStyles(fieldDiv, len(g.Fields)-1)...)
 	}
 	t := reflect.ValueOf(g.BoundData).Elem().Type()
 	for i := range g.Fields {
 		for _, c := range fields[i].Children {
 			c.UI.Hide()
 		}
+		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
+		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		optionsSelect := []string{}
 		if f, ok := t.FieldByName(g.Fields[i].Name); ok {
 			if f.Tag.Get("visible") == "false" {
+				fields[i].SetAttribute("data-visible", "false")
+				fields[i].UI.Hide()
 				continue
 			} else if ops := f.Tag.Get("options"); ops != "" {
 				switch ops {
@@ -441,8 +473,6 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				}
 			}
 		}
-		fields[i].SetAttribute("data-fieldidx", strconv.Itoa(i))
-		fields[i].SetAttribute("data-bindidx", strconv.Itoa(bindIdx))
 		nameSpan := fields[i].Children[0]
 		nameSpan.UI.Show()
 		textInput := fields[i].Children[1]
@@ -455,6 +485,10 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		var contentIdInput *document.Element
 		if len(fields[i].Children) > 8 {
 			contentIdInput = fields[i].Children[8]
+		}
+		var entityIdInput *document.Element
+		if len(fields[i].Children) > 9 {
+			entityIdInput = fields[i].Children[9]
 		}
 		nameSpan.InnerLabel().SetText(g.Fields[i].Name)
 		fg := &g.Gen.FieldGens[i]
@@ -472,7 +506,7 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 					}
 				} else {
 					for k, v := range fg.EnumValues {
-						opts = append(opts, ui.SelectOption{Name: k, Value: fmt.Sprintf("%v", v)})
+						opts = append(opts, ui.SelectOption{Name: enumOptionName(g.Fields[i].Name, k), Value: fmt.Sprintf("%v", v)})
 					}
 				}
 				slices.SortStableFunc(opts, func(a, b ui.SelectOption) int {
@@ -495,8 +529,19 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				str := g.FieldString(i)
 				if str == "" {
 					str = fmt.Sprintf("empty (%s)", g.Fields[i].Type)
+				} else {
+					cc, err := dui.workspace.Value().ed.Cache().Read(str)
+					if err == nil {
+						str = cc.Config.Name
+					}
 				}
 				child.InnerLabel().SetText(str)
+			}
+		} else if g.Fields[i].IsEntityId() && entityIdInput != nil {
+			entityIdInput.UI.Show()
+			child := entityIdInput.Children[0]
+			valReload = func() {
+				dui.setEntityIdInputValue(child, engine.EntityId(g.FieldString(i)))
 			}
 		} else if g.Fields[i].IsInput() {
 			textInput.UI.Show()
@@ -508,13 +553,13 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 				} else {
 					u.SetTextWithoutEvent(g.FieldString(i))
 				}
-				w.Doc.RemoveElement(checkInput)
+				dui.doc.RemoveElementWithoutApplyStyles(checkInput)
 			}
 		} else if g.Fields[i].IsCheckbox() {
 			checkInput.UI.Show()
 			valReload = func() {
 				checkInput.Children[0].UI.ToCheckbox().SetCheckedWithoutEvent(g.FieldBool(i))
-				w.Doc.RemoveElement(textInput)
+				dui.doc.RemoveElementWithoutApplyStyles(textInput)
 			}
 		} else if g.Fields[i].IsVec2() {
 			vec2Input.UI.Show()
@@ -546,11 +591,11 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 		} else if g.Fields[i].IsColor() {
 			colorInput.UI.Show()
 			valReload = func() {
+				color := matrix.Color{}
 				for j := range 4 {
-					c := colorInput.Children[j].UI.ToInput()
-					c.SetTextWithoutEvent(g.FieldVectorComponentAsString(i, j))
-					colorInput.Children[j].SetAttribute("data-inneridx", strconv.Itoa(j))
+					color[j] = g.FieldVectorComponent(i, j)
 				}
+				colorInput.Children[0].UI.ToPanel().SetColor(color)
 			}
 		}
 		if valReload != nil {
@@ -558,10 +603,255 @@ func (dui *WorkspaceDetailsUI) createDataBindingEntry(g *entity_data_binding.Ent
 			valReload()
 		}
 	}
+	dui.refreshShapeSpecificFieldVisibility(g, cpy)
 	if len(g.Fields) == 0 {
-		w.Doc.ApplyStyles()
+		dui.doc.ApplyStyles()
 	}
-	w.Doc.SetupInputTabIndexs()
+	dui.doc.SetupInputTabIndexs()
+}
+
+func (dui *WorkspaceDetailsUI) refreshShapeSpecificFieldVisibility(g *entity_data_binding.EntityDataEntry, bindingElement *document.Element, entities ...*editor_stage_manager.StageEntity) {
+	if g == nil || bindingElement == nil {
+		return
+	}
+	var entity *editor_stage_manager.StageEntity
+	if len(entities) > 0 {
+		entity = entities[0]
+	}
+	if entity == nil {
+		entity = dui.selectedEntity()
+	}
+	terrainTextureMessage, terrainTextureWarning := dui.terrainMissingTextureWarning(g)
+	isRigidBody := isRigidBodyBinding(g)
+	shape := engine_entity_data_physics.ShapeBox
+	if isRigidBody {
+		shape, _ = rigidBodyShape(g)
+	}
+	hasTerrain := entityHasTerrainData(entity)
+	for _, row := range bindingElement.Children {
+		if row.HasClass("entityDataValidation") {
+			switch row.Attribute("data-validation") {
+			case "terrain-missing":
+				if isRigidBody && rigidBodyTerrainWarningVisible(shape, hasTerrain) {
+					row.UI.Show()
+				} else {
+					row.UI.Hide()
+				}
+			case "terrain-texture-missing":
+				if terrainTextureWarning {
+					if len(row.Children) > 0 && row.Children[0].InnerLabel() != nil {
+						row.Children[0].InnerLabel().SetText(terrainTextureMessage)
+					}
+					row.UI.Show()
+				} else {
+					row.UI.Hide()
+				}
+			default:
+				row.UI.Hide()
+			}
+			continue
+		}
+		if !isRigidBody {
+			continue
+		}
+		idx, err := strconv.Atoi(row.Attribute("data-fieldidx"))
+		if err != nil || idx < 0 || idx >= len(g.Fields) {
+			continue
+		}
+		if row.Attribute("data-visible") == "false" {
+			row.UI.Hide()
+			continue
+		}
+		if rigidBodyFieldVisibleForShape(g.Fields[idx].Name, shape) {
+			row.UI.Show()
+		} else {
+			row.UI.Hide()
+		}
+	}
+	bindingElement.UI.SetDirty(ui.DirtyTypeLayout)
+	if parent := bindingElement.Parent.Value(); parent != nil {
+		parent.UI.SetDirty(ui.DirtyTypeLayout)
+	}
+}
+
+func (dui *WorkspaceDetailsUI) terrainMissingTextureWarning(g *entity_data_binding.EntityDataEntry) (string, bool) {
+	if !isTerrainBinding(g) {
+		return "", false
+	}
+	id, ok := terrainBindingContentID(g)
+	if !ok || id == "" {
+		return "", false
+	}
+	w := dui.workspace.Value()
+	if w == nil || w.ed == nil {
+		return "", false
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return "Terrain asset is missing from content cache: " + id, true
+	}
+	data, err := w.ed.ProjectFileSystem().ReadFile(cc.ContentPath())
+	if err != nil {
+		return "Terrain asset file is missing: " + id, true
+	}
+	asset, err := terrain.DeserializeAsset(data)
+	if err != nil {
+		return "Terrain asset could not be read: " + id, true
+	}
+	missing := terrain.MissingTerrainLayerTextures(asset.Layers, func(textureID string) bool {
+		return stageTerrainTextureExists(w, textureID)
+	})
+	if len(missing) == 0 {
+		return "", false
+	}
+	if len(missing) == 1 {
+		return "Missing terrain texture L" + strconv.Itoa(missing[0].Layer+1) + ": " +
+			missing[0].TextureContentID + " (using fallback)", true
+	}
+	return strconv.Itoa(len(missing)) + " terrain layer textures are missing (using fallbacks)", true
+}
+
+func (dui *WorkspaceDetailsUI) selectedEntity() *editor_stage_manager.StageEntity {
+	w := dui.workspace.Value()
+	if w == nil {
+		return nil
+	}
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return nil
+	}
+	return sel[len(sel)-1]
+}
+
+func entityHasTerrainData(entity *editor_stage_manager.StageEntity) bool {
+	if entity == nil {
+		return false
+	}
+	for _, binding := range entity.DataBindings() {
+		if binding.Gen.RegisterKey == engine_entity_data_terrain.BindingKey() {
+			return true
+		}
+		t := reflect.TypeOf(binding.BoundData)
+		for t != nil && t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		if t != nil &&
+			t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_terrain" &&
+			t.Name() == "TerrainEntityData" {
+			return true
+		}
+	}
+	return false
+}
+
+func isRigidBodyBinding(g *entity_data_binding.EntityDataEntry) bool {
+	if g.Gen.RegisterKey == engine_entity_data_physics.BindingKey() {
+		return true
+	}
+	t := reflect.TypeOf(g.BoundData)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t != nil &&
+		t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_physics" &&
+		t.Name() == "RigidBodyEntityData"
+}
+
+func isTerrainBinding(g *entity_data_binding.EntityDataEntry) bool {
+	if g == nil {
+		return false
+	}
+	if g.Gen.RegisterKey == engine_entity_data_terrain.BindingKey() {
+		return true
+	}
+	t := reflect.TypeOf(g.BoundData)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t != nil &&
+		t.PkgPath() == "kaijuengine.com/engine_entity_data/engine_entity_data_terrain" &&
+		t.Name() == "TerrainEntityData"
+}
+
+func terrainBindingContentID(g *entity_data_binding.EntityDataEntry) (string, bool) {
+	v := g.FieldValueByName("Id")
+	switch id := v.(type) {
+	case content_id.Terrain:
+		return string(id), string(id) != ""
+	case string:
+		return id, id != ""
+	default:
+		rv := reflect.ValueOf(v)
+		if !rv.IsValid() {
+			return "", false
+		}
+		if rv.Kind() == reflect.String {
+			id := rv.String()
+			return id, id != ""
+		}
+		return "", false
+	}
+}
+
+func stageTerrainTextureExists(w *StageWorkspace, id string) bool {
+	if id == "" {
+		return false
+	}
+	if id == assets.TextureSquare {
+		return true
+	}
+	if w == nil || w.ed == nil || w.ed.Cache() == nil {
+		return true
+	}
+	cc, err := w.ed.Cache().Read(id)
+	if err != nil {
+		return false
+	}
+	return cc.Config.Type == (content_database.Texture{}).TypeName()
+}
+
+func rigidBodyShape(g *entity_data_binding.EntityDataEntry) (engine_entity_data_physics.Shape, bool) {
+	v := g.FieldValueByName("Shape")
+	switch shape := v.(type) {
+	case engine_entity_data_physics.Shape:
+		return shape, true
+	case int:
+		return engine_entity_data_physics.Shape(shape), true
+	case int8:
+		return engine_entity_data_physics.Shape(shape), true
+	case int16:
+		return engine_entity_data_physics.Shape(shape), true
+	case int32:
+		return engine_entity_data_physics.Shape(shape), true
+	case int64:
+		return engine_entity_data_physics.Shape(shape), true
+	}
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() {
+		return 0, false
+	}
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return engine_entity_data_physics.Shape(rv.Int()), true
+	default:
+		return 0, false
+	}
+}
+
+func rigidBodyTerrainWarningVisible(shape engine_entity_data_physics.Shape, hasTerrainData bool) bool {
+	return shape == engine_entity_data_physics.ShapeTerrain && !hasTerrainData
+}
+
+func rigidBodyFieldVisibleForShape(fieldName string, shape engine_entity_data_physics.Shape) bool {
+	if shape != engine_entity_data_physics.ShapeTerrain {
+		return true
+	}
+	switch fieldName {
+	case "AssetKey", "Extent", "Mass", "Radius", "Height", "IsStatic":
+		return false
+	default:
+		return true
+	}
 }
 
 func (dui *WorkspaceDetailsUI) changeShaderData(e *document.Element) {
@@ -572,6 +862,21 @@ func (dui *WorkspaceDetailsUI) changeShaderData(e *document.Element) {
 func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.changeData").End()
 	dui.commonChangeData(e, false)
+}
+
+func (dui *WorkspaceDetailsUI) showColorPicker(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.showColorPicker").End()
+	w := dui.workspace.Value()
+	w.ed.BlurInterface()
+	color_picker.Show(w.Host, color_picker.Config{
+		Color: e.UI.ToPanel().Color(),
+		OnAccept: func(color matrix.Color) {
+			w.ed.FocusInterface()
+			e.UI.ToPanel().SetColor(color)
+			dui.commonChangeData(e, e.Attribute("data-shader") == "true")
+		},
+		OnCancel: w.ed.FocusInterface,
+	})
 }
 
 func (dui *WorkspaceDetailsUI) clickSelectContentId(e *document.Element) {
@@ -586,10 +891,202 @@ func (dui *WorkspaceDetailsUI) clickSelectContentId(e *document.Element) {
 		}, w.ed.FocusInterface)
 }
 
+func (dui *WorkspaceDetailsUI) clickSelectMesh(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.clickSelectMesh").End()
+	w := dui.workspace.Value()
+	w.ed.BlurInterface()
+	content_selector.Show(w.Host, (content_database.Mesh{}).TypeName(),
+		w.ed.Cache(), func(id string) {
+			w.ed.FocusInterface()
+			dui.changeMesh(id)
+		}, w.ed.FocusInterface)
+}
+
+func (dui *WorkspaceDetailsUI) clickSelectMaterial(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.clickSelectMaterial").End()
+	w := dui.workspace.Value()
+	w.ed.BlurInterface()
+	content_selector.Show(w.Host, (content_database.Material{}).TypeName(),
+		w.ed.Cache(), func(id string) {
+			w.ed.FocusInterface()
+			dui.changeMaterial(id)
+		}, w.ed.FocusInterface)
+}
+
+func (dui *WorkspaceDetailsUI) clickSelectEntityId(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.selectEntityId").End()
+	w := dui.workspace.Value()
+	w.ed.BlurInterface()
+	options := []context_menu.ContextMenuOption{{
+		Label: "None",
+		Call: func() {
+			dui.setEntityIdInputValue(e, "")
+			dui.commonChangeData(e, false)
+		},
+	}}
+	for _, entity := range w.stageView.Manager().Entities() {
+		if entity == nil || entity.IsDeleted() {
+			continue
+		}
+		id := engine.EntityId(entity.StageData.Description.Id)
+		label := fmt.Sprintf("%s%s", strings.Repeat("  ", entity.Depth()), entityIdDisplayName(entity.Name(), id))
+		options = append(options, context_menu.ContextMenuOption{
+			Label: label,
+			Call: func() {
+				dui.setEntityIdInputValue(e, id)
+				dui.commonChangeData(e, false)
+			},
+		})
+	}
+	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)
+}
+
+func (dui *WorkspaceDetailsUI) clearEntityId(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.clearEntityId").End()
+	target := entityIdInputElement(e)
+	if target == nil {
+		return
+	}
+	dui.setEntityIdInputValue(target, "")
+	dui.commonChangeData(target, false)
+}
+
+func (dui *WorkspaceDetailsUI) entityIdDrop(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.entityIdDrop").End()
+	dui.doc.SetElementClasses(e, "dataEntityId")
+	id, ok := dui.firstDraggedEntityId()
+	if !ok {
+		return
+	}
+	dui.setEntityIdInputValue(e, id)
+	dui.commonChangeData(e, false)
+}
+
+func (dui *WorkspaceDetailsUI) entityIdDragEnter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.entityIdDragEnter").End()
+	if _, ok := dui.firstDraggedEntityId(); !ok {
+		return
+	}
+	dui.doc.SetElementClasses(e, "dataEntityId", "dragHover")
+}
+
+func (dui *WorkspaceDetailsUI) entityIdDragExit(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.entityIdDragExit").End()
+	w := dui.workspace.Value()
+	if id := engine.EntityId(e.Attribute("data-entityid")); id != "" {
+		if entity, ok := w.stageView.Manager().EntityById(string(id)); !ok || entity.IsDeleted() {
+			dui.doc.SetElementClasses(e, "dataEntityId", "dataEntityIdInvalid")
+			return
+		}
+	}
+	dui.doc.SetElementClasses(e, "dataEntityId")
+}
+
+func (dui *WorkspaceDetailsUI) firstDraggedEntityId() (engine.EntityId, bool) {
+	dd, ok := windowing.DragData().(HierarchyEntityDragData)
+	if !ok {
+		return "", false
+	}
+	man := dui.workspace.Value().stageView.Manager()
+	for _, id := range dd.ids {
+		entity, ok := man.EntityById(id)
+		if ok && !entity.IsDeleted() {
+			return engine.EntityId(id), true
+		}
+	}
+	return "", false
+}
+
+func (dui *WorkspaceDetailsUI) setEntityIdInputValue(e *document.Element, id engine.EntityId) {
+	e.SetAttribute("data-entityid", string(id))
+	label, valid := dui.entityIdLabel(id)
+	e.InnerLabel().SetText(label)
+	if valid {
+		dui.doc.SetElementClasses(e, "dataEntityId")
+	} else {
+		dui.doc.SetElementClasses(e, "dataEntityId", "dataEntityIdInvalid")
+	}
+}
+
+func (dui *WorkspaceDetailsUI) setMeshInputValue(meshId string) {
+	if meshId == "" {
+		dui.detailsMesh.InnerLabel().SetText("empty (Mesh)")
+		return
+	}
+	str := meshId
+	ref := kaiju_mesh.ParseMeshRef(meshId)
+	cc, err := dui.workspace.Value().ed.Cache().Read(ref.Asset)
+	if err == nil {
+		str = cc.Config.Name
+		if ref.Key != "" {
+			if submesh, ok := meshConfigSubmesh(cc.Config.Mesh, ref.Key); ok {
+				str = fmt.Sprintf("%s / %s", cc.Config.Name, meshStageName(submesh.Name, submesh.Key))
+			} else {
+				str = fmt.Sprintf("%s / %s", cc.Config.Name, ref.Key)
+			}
+		}
+	}
+	dui.detailsMesh.InnerLabel().SetText(str)
+}
+
+func meshDragAccepted(cc content_database.CachedContent, key string) bool {
+	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return true
+	}
+	return key != "" || len(meshSubmeshes(cc.Config.Mesh)) == 0
+}
+
+func (dui *WorkspaceDetailsUI) setMaterialInputValue(materialId string) {
+	if materialId == "" {
+		dui.detailsMaterial.InnerLabel().SetText("empty (Material)")
+		return
+	}
+	str := materialId
+	cc, err := dui.workspace.Value().ed.Cache().Read(str)
+	if err == nil {
+		str = cc.Config.Name
+	}
+	dui.detailsMaterial.InnerLabel().SetText(str)
+}
+
+func (dui *WorkspaceDetailsUI) entityIdLabel(id engine.EntityId) (string, bool) {
+	if id == "" {
+		return "empty (Entity)", true
+	}
+	entity, ok := dui.workspace.Value().stageView.Manager().EntityById(string(id))
+	if !ok || entity.IsDeleted() {
+		return fmt.Sprintf("missing (%s)", id), false
+	}
+	return entityIdDisplayName(entity.Name(), id), true
+}
+
+func entityIdDisplayName(name string, id engine.EntityId) string {
+	return fmt.Sprintf("%s (%s)", name, id)
+}
+
+func entityIdInputElement(e *document.Element) *document.Element {
+	if e == nil {
+		return nil
+	}
+	if e.HasClass("dataEntityId") {
+		return e
+	}
+	parent := e.Parent.Value()
+	if parent == nil {
+		return nil
+	}
+	for _, child := range parent.Children {
+		if child.HasClass("dataEntityId") {
+			return child
+		}
+	}
+	return nil
+}
+
 func (dui *WorkspaceDetailsUI) contentIdDrop(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDrop").End()
 	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
 	dd, ok := windowing.DragData().(StageDragContent)
 	if !ok {
 		return
@@ -601,7 +1098,14 @@ func (dui *WorkspaceDetailsUI) contentIdDrop(e *document.Element) {
 	if cc.Config.Type != e.Attribute("data-type") {
 		return
 	}
-	e.InnerLabel().SetText(cc.Id())
+	value := cc.Id()
+	if cc.Config.Type == (content_database.Mesh{}).TypeName() {
+		if !meshDragAccepted(cc, dd.key) {
+			return
+		}
+		value = dd.MeshRef()
+	}
+	e.InnerLabel().SetText(value)
 	dui.commonChangeData(e, false)
 }
 
@@ -619,13 +1123,160 @@ func (dui *WorkspaceDetailsUI) contentIdDragEnter(e *document.Element) {
 	if cc.Config.Type != e.Attribute("data-type") {
 		return
 	}
-	w.Doc.SetElementClasses(e, "dataContentId", "dragHover")
+	if cc.Config.Type == (content_database.Mesh{}).TypeName() && !meshDragAccepted(cc, dd.key) {
+		return
+	}
+	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
 }
 
 func (dui *WorkspaceDetailsUI) contentIdDragExit(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.contentIdDragExit").End()
+	dui.doc.SetElementClasses(e, "dataContentId")
+}
+
+func (dui *WorkspaceDetailsUI) meshIdDrop(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.meshIdDrop").End()
 	w := dui.workspace.Value()
-	w.Doc.SetElementClasses(e, "dataContentId")
+	dui.doc.SetElementClasses(e, "dataContentId")
+	dd, ok := windowing.DragData().(StageDragContent)
+	if !ok {
+		return
+	}
+	cc, err := w.ed.Cache().Read(dd.id)
+	if err != nil {
+		return
+	}
+	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return
+	}
+	if !meshDragAccepted(cc, dd.key) {
+		return
+	}
+	dui.changeMesh(dd.MeshRef())
+}
+
+func (dui *WorkspaceDetailsUI) meshIdDragEnter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.meshIdDragEnter").End()
+	dd, ok := windowing.DragData().(StageDragContent)
+	if !ok {
+		return
+	}
+	w := dui.workspace.Value()
+	cc, err := w.ed.Cache().Read(dd.id)
+	if err != nil {
+		return
+	}
+	if cc.Config.Type != (content_database.Mesh{}).TypeName() {
+		return
+	}
+	if !meshDragAccepted(cc, dd.key) {
+		return
+	}
+	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
+}
+
+func (dui *WorkspaceDetailsUI) meshIdDragExit(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.meshIdDragExit").End()
+	dui.doc.SetElementClasses(e, "dataContentId")
+}
+
+func (dui *WorkspaceDetailsUI) materialIdDrop(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.materialIdDrop").End()
+	w := dui.workspace.Value()
+	dui.doc.SetElementClasses(e, "dataContentId")
+	dd, ok := windowing.DragData().(StageDragContent)
+	if !ok {
+		return
+	}
+	cc, err := w.ed.Cache().Read(dd.id)
+	if err != nil {
+		return
+	}
+	if cc.Config.Type != (content_database.Material{}).TypeName() {
+		return
+	}
+	dui.changeMaterial(cc.Id())
+}
+
+func (dui *WorkspaceDetailsUI) materialIdDragEnter(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.materialIdDragEnter").End()
+	dd, ok := windowing.DragData().(StageDragContent)
+	if !ok {
+		return
+	}
+	w := dui.workspace.Value()
+	cc, err := w.ed.Cache().Read(dd.id)
+	if err != nil {
+		return
+	}
+	if cc.Config.Type != (content_database.Material{}).TypeName() {
+		return
+	}
+	dui.doc.SetElementClasses(e, "dataContentId", "dragHover")
+}
+
+func (dui *WorkspaceDetailsUI) materialIdDragExit(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.materialIdDragExit").End()
+	dui.doc.SetElementClasses(e, "dataContentId")
+}
+
+func (dui *WorkspaceDetailsUI) changeMesh(meshId string) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.changeMesh").End()
+	w := dui.workspace.Value()
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return
+	}
+	entity := sel[0]
+	if entity.StageData.Description.Mesh == meshId {
+		return
+	}
+	h := &detailsMeshChangeHistory{
+		workspace:  w,
+		detailsUI:  dui,
+		entity:     entity,
+		fromMeshId: entity.StageData.Description.Mesh,
+		toMeshId:   meshId,
+		fromMatId:  entity.StageData.Description.Material,
+		fromTexIds: cloneTextureIDs(entity.StageData.Description.Textures),
+	}
+	if h.apply(meshId) {
+		h.toMatId = entity.StageData.Description.Material
+		h.toTexIds = cloneTextureIDs(entity.StageData.Description.Textures)
+		h.toStateSet = true
+		w.ed.History().Add(h)
+	}
+}
+
+func (dui *WorkspaceDetailsUI) changeMaterial(materialId string) {
+	defer tracing.NewRegion("WorkspaceDetailsUI.changeMaterial").End()
+	w := dui.workspace.Value()
+	sel := w.stageView.Manager().Selection()
+	if len(sel) == 0 {
+		return
+	}
+	entity := sel[0]
+	if entity.StageData.Description.Material == materialId {
+		return
+	}
+	h := &detailsMaterialChangeHistory{
+		workspace:      w,
+		detailsUI:      dui,
+		entity:         entity,
+		fromMaterialId: entity.StageData.Description.Material,
+		toMaterialId:   materialId,
+		fromTextureIds: cloneTextureIDs(entity.StageData.Description.Textures),
+	}
+	if h.apply(materialId, nil) {
+		h.toTextureIds = cloneTextureIDs(entity.StageData.Description.Textures)
+		w.ed.History().Add(h)
+	}
+}
+
+func (dui *WorkspaceDetailsUI) reloadTargetedValues() {
+	for _, reload := range dui.TargetedElementValueReload {
+		reload()
+	}
 }
 
 func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderData bool) bool {
@@ -661,24 +1312,29 @@ func (dui *WorkspaceDetailsUI) commonChangeData(e *document.Element, isShaderDat
 		if err == nil {
 			target := entity.DataBindings()[pIdx]
 			v := reflect.ValueOf(target.BoundData).Elem().Field(idx)
+			bindingElement := root.Parent.Value()
 			h.ValueChangeProcedure = func(newVal reflect.Value) {
 				v.Set(newVal)
+				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
 				if reload, ok := dui.TargetedElementValueReload[v]; ok {
 					reload()
 				} else {
 					dui.reload()
+					return
 				}
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 			}
 			h.From = v.Interface()
 			if ok := reflectAssignChanges(e, v); ok {
 				data_binding_renderer.Updated(target, weak.Make(w.Host), entity)
+				dui.refreshShapeSpecificFieldVisibility(target, bindingElement, entity)
 				success = true
 				h.To = v.Interface()
 			}
 		}
 	}
 	if success {
-		if h.From != h.To {
+		if !reflect.DeepEqual(h.From, h.To) {
 			w.ed.History().Add(h)
 		}
 	}
@@ -703,6 +1359,8 @@ func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 	case ui.ElementTypePanel:
 		if e.HasClass("dataContentId") {
 			inputText = e.InnerLabel().Text()
+		} else if e.HasClass("dataEntityId") {
+			inputText = e.Attribute("data-entityid")
 		}
 	}
 	switch v.Kind() {
@@ -716,8 +1374,30 @@ func reflectAssignChanges(e *document.Element, v reflect.Value) bool {
 		v.SetString(inputText)
 	case reflect.Bool:
 		v.SetBool(e.UI.ToCheckbox().IsChecked())
+	case reflect.Array, reflect.Slice:
+		if e.HasClass("edColorPickInput") {
+			color := e.UI.ToPanel().Color()
+			for j := 0; j < len(color) && j < v.Len(); j++ {
+				v.Index(j).SetFloat(float64(color[j]))
+			}
+		}
 	}
 	return true
+}
+
+func enumOptionName(fieldName, enumName string) string {
+	if !strings.HasPrefix(enumName, fieldName) {
+		return enumName
+	}
+	trimmed := strings.TrimPrefix(enumName, fieldName)
+	if trimmed == "" {
+		return enumName
+	}
+	r, _ := utf8.DecodeRuneInString(trimmed)
+	if !unicode.IsUpper(r) {
+		return enumName
+	}
+	return trimmed
 }
 
 func (dui *WorkspaceDetailsUI) reload() {
@@ -731,6 +1411,8 @@ func (dui *WorkspaceDetailsUI) reload() {
 	if len(sel) > 1 {
 		// TODO:  Support multiple objects being selected here
 		dui.detailsMultiSelect.UI.Show()
+		dui.detailsMeshBlock.UI.Hide()
+		dui.detailsMaterialBlock.UI.Hide()
 		dui.shaderInstanceData.UI.Hide()
 		dui.detailsEntityDataTable.UI.Hide()
 		return
@@ -741,18 +1423,21 @@ func (dui *WorkspaceDetailsUI) reload() {
 	}
 	e := sel[len(sel)-1]
 	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
+	dui.detailsMeshBlock.UI.Show()
+	dui.detailsMaterialBlock.UI.Show()
+	dui.setMeshInputValue(e.StageData.Description.Mesh)
+	dui.setMaterialInputValue(e.StageData.Description.Material)
 	dui.previousPosition = matrix.Vec3Inf(1)
 	dui.previousRotation = matrix.Vec3Inf(1)
 	dui.previousScale = matrix.Vec3Inf(1)
 	dui.update()
-	w := dui.workspace.Value()
 	// > 0, don't delete template
 	for i := len(dui.boundEntityDataList.Children) - 1; i > 0; i-- {
-		w.Doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
+		dui.doc.RemoveElementWithoutApplyStyles(dui.boundEntityDataList.Children[i])
 	}
 	// > 0, don't delete template
 	for i := len(dui.shaderInstanceDataList.Children) - 1; i > 0; i-- {
-		w.Doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
+		dui.doc.RemoveElementWithoutApplyStyles(dui.shaderInstanceDataList.Children[i])
 	}
 	clear(dui.TargetedElementValueReload)
 	if e.StageData.ShaderData != nil {
@@ -769,7 +1454,6 @@ func (dui *WorkspaceDetailsUI) reload() {
 		dui.detailsArea.UI.Show()
 		dui.detailsArea.UI.Hide()
 	}
-	dui.detailsArea.UI.Clean()
 }
 
 func (dui *WorkspaceDetailsUI) pasteEntityDataAsNew(e *document.Element) {
@@ -886,11 +1570,11 @@ func (dui *WorkspaceDetailsUI) reloadDataList(all []codegen.GeneratedType) {
 		}
 	}
 	for i := len(removed) - 1; i >= 0; i-- {
-		w.Doc.RemoveElement(removed[i])
+		dui.doc.RemoveElementWithoutApplyStyles(removed[i])
 	}
 	if len(missing) > 0 {
 		w.Host.RunOnMainThread(func() {
-			cpys := w.Doc.DuplicateElementRepeat(dui.entityDataListTemplate, len(missing))
+			cpys := dui.doc.DuplicateElementRepeat(dui.entityDataListTemplate, len(missing))
 			for i := range missing {
 				a := &all[missing[i]]
 				cpys[i].InnerLabel().SetText(a.RegisterKey)
@@ -985,12 +1669,12 @@ func (dui *WorkspaceDetailsUI) selectAnimationNames(g *entity_data_binding.Entit
 
 func (dui *WorkspaceDetailsUI) extendHeight() {
 	defer tracing.NewRegion("WorkspaceDetailsUI.extendHeight").End()
-	dui.workspace.Value().Doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarTall")
+	dui.doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarTall")
 }
 
 func (dui *WorkspaceDetailsUI) standardHeight() {
 	defer tracing.NewRegion("WorkspaceDetailsUI.standardHeight").End()
-	dui.workspace.Value().Doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarStandard")
+	dui.doc.SetElementClasses(dui.detailsArea, "edPanelBg", "sideBarStandard")
 }
 
 func toInt(str string) int64 {

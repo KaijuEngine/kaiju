@@ -1,49 +1,22 @@
 /******************************************************************************/
 /* entity.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package engine
 
 import (
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/concurrent"
-	"kaiju/rendering"
 	"log/slog"
 	"slices"
+	"sync"
+	"weak"
+
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/rendering"
 )
 
 // EntityId is a string that represents a unique identifier for an entity. The
@@ -58,14 +31,15 @@ type EntityId string
 // to access data that is specific to the entity.
 //
 // Child entities are unordered by default, you'll need to call
-// #Entity.SetChildrenOrdered to make them ordered. It is recommended to leave
+// [Entity.SetChildrenOrdered] to make them ordered. It is recommended to leave
 // children unordered unless you have a specific reason to order them.
 type Entity struct {
 	id                    EntityId
+	idHost                weak.Pointer[Host]
 	Transform             matrix.Transform
 	Parent                *Entity
 	Children              []*Entity
-	namedData             map[string][]any
+	namedData             sync.Map
 	OnDestroy             events.Event
 	OnDestroyRequested    events.Event
 	OnActivate            events.Event
@@ -77,7 +51,7 @@ type Entity struct {
 	orderedChildren       bool
 }
 
-// NewEntity creates a new #Entity struct and returns it
+// NewEntity creates a new [Entity] struct and returns it
 func NewEntity(workGroup *concurrent.WorkGroup) *Entity {
 	e := &Entity{}
 	e.Init(workGroup)
@@ -88,7 +62,6 @@ func (e *Entity) Init(workGroup *concurrent.WorkGroup) {
 	e.isActive = true
 	e.Children = make([]*Entity, 0)
 	e.Transform.Initialize(workGroup)
-	e.namedData = make(map[string][]interface{})
 	e.name = "Entity"
 }
 
@@ -135,7 +108,7 @@ func (e *Entity) SetChildrenUnordered() {
 }
 
 // Activate will set an active flag on the entity that can be queried with
-// #Entity.IsActive. It will also set the active flag on all children of the
+// [Entity.IsActive]. It will also set the active flag on all children of the
 // entity. If the entity is already active, this function will do nothing.
 func (e *Entity) Activate() {
 	if e.isActive {
@@ -150,7 +123,7 @@ func (e *Entity) Activate() {
 }
 
 // Deactivate will set an active flag on the entity that can be queried with
-// #Entity.IsActive. It will also set the active flag on all children of the
+// [Entity.IsActive]. It will also set the active flag on all children of the
 // entity. If the entity is already inactive, this function will do nothing.
 func (e *Entity) Deactivate() {
 	if !e.isActive {
@@ -165,7 +138,7 @@ func (e *Entity) Deactivate() {
 }
 
 // SetActive will set the active flag on the entity that can be queried with
-// #Entity.IsActive. It will also set the active flag on all children of the
+// [Entity.IsActive]. It will also set the active flag on all children of the
 // entity. If the entity is already active, this function will do nothing.
 func (e *Entity) SetActive(isActive bool) {
 	if e.isActive != isActive {
@@ -265,6 +238,10 @@ func (e *Entity) FindByName(name string) *Entity {
 // be called in very specific scenarios and not directly in game code. Unless
 // there is a good reason (like this entity no longer bein gin the host).
 func (e *Entity) ForceCleanup() {
+	host := e.idHost.Value()
+	if host != nil {
+		host.unregisterEntityId(e)
+	}
 	e.OnDestroy.Execute()
 	*e = Entity{}
 }
@@ -286,10 +263,10 @@ func (e *Entity) Root() *Entity {
 // data to the same key. It is recommended to compile the data into a single
 // structure so the slice length is 1, but sometimes that's not reasonable.
 func (e *Entity) AddNamedData(key string, data any) {
-	if _, ok := e.namedData[key]; !ok {
-		e.namedData[key] = make([]any, 0)
-	}
-	e.namedData[key] = append(e.namedData[key], data)
+	current, _ := e.namedData.LoadOrStore(key, []any{})
+	v := current.([]any)
+	v = append(v, data)
+	e.namedData.Store(key, v)
 }
 
 // RemoveNamedData will remove the specified data from the entity's named data
@@ -297,10 +274,12 @@ func (e *Entity) AddNamedData(key string, data any) {
 //
 // *This will remove the entire slice and all of it's data*
 func (e *Entity) RemoveNamedData(key string, data any) {
-	if _, ok := e.namedData[key]; ok {
-		for i := range e.namedData[key] {
-			if e.namedData[key][i] == data {
-				e.namedData[key] = slices.Delete(e.namedData[key], i, i+1)
+	if current, ok := e.namedData.Load(key); ok {
+		v := current.([]any)
+		for i := range v {
+			if v[i] == data {
+				v = slices.Delete(v, i, i+1)
+				e.namedData.Store(key, v)
 				break
 			}
 		}
@@ -310,14 +289,14 @@ func (e *Entity) RemoveNamedData(key string, data any) {
 // RemoveNamedDataByName will remove all of the stored named data
 // that matches the given key on the entity
 func (e *Entity) RemoveNamedDataByName(key string) {
-	delete(e.namedData, key)
+	e.namedData.Delete(key)
 }
 
 // NamedData will return the data associated with the specified key. If the key
 // does not exist, nil will be returned.
 func (e *Entity) NamedData(key string) []any {
-	if _, ok := e.namedData[key]; ok {
-		return e.namedData[key]
+	if current, ok := e.namedData.Load(key); ok {
+		return current.([]any)
 	}
 	return nil
 }
@@ -417,6 +396,7 @@ func (e *Entity) destroy(host *Host) {
 func (e *Entity) innerDestroy(host *Host) {
 	if !e.isDestroyed {
 		e.isDestroyed = true
+		host.unregisterEntityId(e)
 		for i := range e.Children {
 			host.destroyedEntities = append(host.destroyedEntities, e.Children[i])
 			e.Children[i].innerDestroy(host)

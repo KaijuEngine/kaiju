@@ -1,54 +1,26 @@
 /******************************************************************************/
 /* input.go                                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package ui
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 	"weak"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 type InputType = int32
@@ -59,14 +31,17 @@ const (
 	InputTypeNumber
 	InputTypePhone
 	InputTypeDatetime
+	InputTypeEmail
+	InputTypePassword
 )
 
 const (
-	horizontalPadding float32 = 5.0
-	cursorWidth       float32 = 2.0
-	cursorBlinkRate   float32 = 0.75
-	verticalPadding   float32 = 3.0
-	cursorY           float32 = 2
+	horizontalPadding      float32 = 5.0
+	cursorWidth            float32 = 2.0
+	cursorBlinkRate        float32 = 0.75
+	verticalPadding        float32 = 3.0
+	cursorY                float32 = 2
+	holdKeyPressedDuration int64   = 500
 )
 
 type inputData struct {
@@ -75,6 +50,7 @@ type inputData struct {
 	placeholder                       *Label
 	highlight                         *Panel
 	cursor                            *Panel
+	text                              string
 	title                             string
 	description                       string
 	onUpDown                          events.Event
@@ -82,11 +58,16 @@ type inputData struct {
 	dragStartClick, cursorBlink       float32
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
+	required                          bool
 	isActive                          bool
 	prevFocusInput                    weak.Pointer[Input]
 	nextFocusInput                    weak.Pointer[Input]
+	prevFocusElement                  weak.Pointer[UI]
+	nextFocusElement                  weak.Pointer[UI]
 	labelShift                        float32
 	textOnFocus                       string
+	lastClickTime                     time.Time
+	lastDownTime                      time.Time
 }
 
 func (i *inputData) innerPanelData() *panelData { return &i.panelData }
@@ -101,8 +82,23 @@ func (input *Input) InputData() *inputData {
 }
 
 func (input *Input) SetNextFocusedInput(next *Input) {
+	input.SetNextFocusedElement(next.Base())
 	next.InputData().prevFocusInput = weak.Make(input)
 	input.InputData().nextFocusInput = weak.Make(next)
+}
+
+func (input *Input) SetNextFocusedElement(next *UI) {
+	if next == nil {
+		return
+	}
+	data := input.InputData()
+	data.nextFocusElement = weak.Make(next)
+	switch next.Type() {
+	case ElementTypeInput:
+		next.ToInput().InputData().prevFocusElement = weak.Make(input.Base())
+	case ElementTypeTextArea:
+		next.ToTextArea().Data().prevFocusElement = weak.Make(input.Base())
+	}
 }
 
 func (input *Input) Init(placeholderText string) {
@@ -159,6 +155,7 @@ func (input *Input) Init(placeholderText string) {
 	base.AddEvent(EventTypeExit, input.onExit)
 	base.AddEvent(EventTypeDown, input.onDown)
 	base.AddEvent(EventTypeClick, input.onClick)
+	base.AddEvent(EventTypeDoubleClick, input.onDoubleClick)
 	base.AddEvent(EventTypeMiss, input.onMiss)
 	base.AddEvent(EventTypeRebuild, input.onRebuild)
 	input.SetFGColor(matrix.ColorBlack())
@@ -200,13 +197,13 @@ func (input *Input) onLayoutUpdating() {
 	ll := &data.label.layout
 	ll.SetOffset(horizontalPadding+data.labelShift, 0)
 	pLayout := FirstOnEntity(ll.Ui().Entity().Parent).Layout()
-	ps := pLayout.PixelSize()
-	ll.ScaleWidth(ps.Width())
+	contentSize := pLayout.ContentSize()
+	ll.ScaleWidth(max(0.001, contentSize.Width()))
 
 	// Placeholder
 	pl := &data.placeholder.layout
 	pl.SetOffset(horizontalPadding, 0)
-	pl.ScaleWidth(ps.Width())
+	pl.ScaleWidth(max(0.001, contentSize.Width()))
 
 	if data.highlight.entity.IsActive() {
 		startX := input.charX(data.selectStart)
@@ -265,7 +262,7 @@ func (input *Input) updatePlaceholderVisibility() {
 	if !input.entity.IsActive() {
 		return
 	}
-	if data.label.Text() == "" {
+	if data.text == "" {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
@@ -274,7 +271,7 @@ func (input *Input) updatePlaceholderVisibility() {
 
 func (input *Input) moveCursor(newPos int) {
 	data := input.InputData()
-	data.cursorOffset = klib.Clamp(newPos, 0, utf8.RuneCountInString(data.label.Text()))
+	data.cursorOffset = editableTextClampOffset(data.text, newPos)
 	if data.isActive {
 		input.updateCursorPosition()
 	}
@@ -289,7 +286,7 @@ func (input *Input) charX(index int) float32 {
 	data := input.InputData()
 	left := horizontalPadding
 	strWidth := float32(0)
-	tmp := data.label.LabelData().text[:index]
+	tmp := editableTextSlice(data.label.LabelData().text, 0, index)
 	if len(tmp) == 0 {
 		strWidth = 0
 	} else {
@@ -315,11 +312,7 @@ func (input *Input) setBgColors() {
 
 func (input *Input) setSelect(start, end int) {
 	data := input.InputData()
-	if end < start {
-		start, end = end, start
-	}
-	start = klib.Clamp(start, 0, utf8.RuneCountInString(data.label.Text()))
-	end = klib.Clamp(end, 0, utf8.RuneCountInString(data.label.Text()))
+	start, end = editableTextNormalizeSelection(data.text, start, end)
 	if data.selectStart != start || data.selectEnd != end {
 		data.selectStart = start
 		data.selectEnd = end
@@ -341,7 +334,9 @@ func (input *Input) setSelect(start, end int) {
 
 func (input *Input) setText(text string, skipEvent bool) {
 	data := input.InputData()
-	data.label.SetText(text)
+	wasValid := input.IsValid()
+	data.text = input.sanitizeText(text)
+	data.label.SetText(input.displayText(data.text))
 	// Setting the select here fixes a delayed mem stomping bug with colors and text
 	data.selectStart = 0
 	data.selectEnd = 0
@@ -349,7 +344,44 @@ func (input *Input) setText(text string, skipEvent bool) {
 	if !skipEvent {
 		input.change()
 	}
+	if wasValid != input.IsValid() {
+		input.Base().SetDirty(DirtyTypeGenerated)
+	}
 	input.hideHighlight()
+}
+
+func (input *Input) displayText(text string) string {
+	if input.InputData().inputType == InputTypePassword {
+		return strings.Repeat("*", utf8.RuneCountInString(text))
+	}
+	return text
+}
+
+func (input *Input) sanitizeText(text string) string {
+	if input.InputData().inputType == InputTypeDefault {
+		return text
+	}
+	out := strings.Builder{}
+	for _, r := range text {
+		if input.acceptsRune(r) {
+			out.WriteRune(r)
+		}
+	}
+	return out.String()
+}
+
+func (input *Input) acceptsRune(r rune) bool {
+	switch input.InputData().inputType {
+	case InputTypeNumber:
+		return unicode.IsDigit(r) || r == '-' || r == '+' || r == '.' || r == 'e' || r == 'E'
+	case InputTypeEmail:
+		return r > 32 && !unicode.IsSpace(r)
+	case InputTypePhone:
+		return unicode.IsDigit(r) || r == '+' || r == '-' || r == '(' || r == ')' ||
+			r == '.' || r == ' ' || r == '\t'
+	default:
+		return true
+	}
 }
 
 func (input *Input) resetSelect() {
@@ -357,40 +389,20 @@ func (input *Input) resetSelect() {
 }
 
 func (input *Input) findNextBreak(start, dir int) int {
-	data := input.InputData()
-	ld := data.label.LabelData()
-	// TODO:  This is a mess, simplify it
-	if start < 0 {
-		return 0
-	} else if start > utf8.RuneCountInString(data.label.Text()) {
-		return utf8.RuneCountInString(data.label.Text())
-	}
-	i := start
-	runes := []rune(ld.text)
-	for dir < 0 && i > 0 && unicode.IsSpace(runes[i]) {
-		i += dir
-	}
-	if dir > 0 && unicode.IsSpace(runes[i-1]) {
-		for i < ld.textLength && unicode.IsSpace(runes[i]) {
-			i += dir
-		}
-	}
-	for i > 0 && i < ld.textLength && !unicode.IsSpace(runes[i]) {
-		i += dir
-	}
-	if i < 0 {
-		i = 0
-	} else if dir < 0 && unicode.IsSpace(runes[i]) {
-		i++
-	}
-	return i
+	return editableTextWordBoundary(input.InputData().text, start, dir)
 }
 
 func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 	data := input.InputData()
 	currentPos := data.cursorOffset
 	newPos := data.cursorOffset + dir
-	if kb.HasCtrl() {
+	if kb.HasMeta() {
+		if dir < 0 {
+			newPos = 0
+		} else {
+			newPos = editableTextRuneCount(data.text)
+		}
+	} else if kb.HasCtrl() || kb.HasAlt() {
 		newPos = input.findNextBreak(newPos, dir)
 	}
 	input.moveCursor(newPos)
@@ -414,23 +426,23 @@ func (input *Input) arrowMoveCursor(kb *hid.Keyboard, dir int) {
 	} else {
 		input.resetSelect()
 	}
+	input.showCursor()
 }
 
 func (input *Input) textRightOf(pos int, outLen *int) string {
-	l := input.InputData().label
-	right := l.Text()[pos:]
-	*outLen = utf8.RuneCountInString(l.Text()) - pos
-	return right
+	text := input.InputData().text
+	count := editableTextRuneCount(text)
+	pos = editableTextClamp(pos, 0, count)
+	*outLen = count - pos
+	return editableTextSlice(text, pos, count)
 }
 
 func (input *Input) InsertText(text string) {
 	data := input.InputData()
+	text = input.sanitizeText(text)
 	if len(text) > 0 {
 		input.deleteSelection(true)
-		ld := data.label.LabelData()
-		lhs := ld.text[:data.cursorOffset]
-		rhs := ld.text[data.cursorOffset:]
-		str := lhs + text + rhs
+		str := editableTextInsert(data.text, data.cursorOffset, text)
 		input.setText(str, false)
 		data.cursorOffset += utf8.RuneCountInString(text)
 		input.showCursor()
@@ -454,13 +466,13 @@ func (input *Input) pasteFromClipboard() {
 func (input *Input) SelectAll() {
 	data := input.InputData()
 	data.label.Base().Clean()
-	input.setSelect(0, utf8.RuneCountInString(data.label.LabelData().text))
+	input.setSelect(0, editableTextRuneCount(data.text))
 }
 
 func (input *Input) pointerPosWithin() int {
 	data := input.InputData()
 	ld := data.label.LabelData()
-	if len(ld.text) == 0 {
+	if len(data.text) == 0 {
 		return 0
 	} else {
 		host := input.man.Value().Host
@@ -556,6 +568,9 @@ func (input *Input) onRebuild() {
 }
 
 func (input *Input) onEnter() {
+	if input.IsDisabled() {
+		return
+	}
 	input.man.Value().Host.Window.CursorIbeam()
 }
 
@@ -564,6 +579,9 @@ func (input *Input) onExit() {
 }
 
 func (input *Input) onDown() {
+	if input.IsDisabled() {
+		return
+	}
 	input.Focus()
 	input.resetSelect()
 	offset := input.pointerPosWithin()
@@ -571,7 +589,44 @@ func (input *Input) onDown() {
 }
 
 func (input *Input) onClick() {
+	if input.IsDisabled() {
+		return
+	}
+	if input.detectDoubleClick() {
+		input.onDoubleClick()
+		return
+	}
 	input.Focus()
+}
+
+func (input *Input) onDoubleClick() {
+	if input.IsDisabled() {
+		return
+	}
+	input.Focus()
+	input.SelectAll()
+}
+
+func (input *Input) detectDoubleClick() bool {
+	data := input.InputData()
+	now := time.Now()
+
+	clickDuration := now.Sub(data.lastDownTime)
+	if clickDuration > 200*time.Millisecond {
+		data.lastClickTime = time.Time{}
+		return false
+	}
+
+	if !data.lastClickTime.IsZero() {
+		delta := now.Sub(data.lastClickTime)
+		if delta > 0 && delta <= 300*time.Millisecond {
+			data.lastClickTime = time.Time{}
+			return true
+		}
+	}
+
+	data.lastClickTime = now
+	return false
 }
 
 func (input *Input) onMiss() {
@@ -586,7 +641,7 @@ func (input *Input) deactivated() {
 func (input *Input) activated() {
 	data := input.InputData()
 	input.hideCursor()
-	if len(data.label.LabelData().text) == 0 {
+	if len(data.text) == 0 {
 		data.placeholder.Show()
 	} else {
 		data.placeholder.Hide()
@@ -595,20 +650,73 @@ func (input *Input) activated() {
 	input.hideHighlight()
 }
 
-func (input *Input) changeFocusToAnother(target *Input) {
-	if target == nil || !target.entity.IsActive() {
+func focusEditableElement(target *UI) {
+	if target == nil || !target.entity.IsActive() || target.IsDisabled() {
 		return
 	}
+	switch target.Type() {
+	case ElementTypeInput:
+		input := target.ToInput()
+		input.Focus()
+		input.SelectAll()
+	case ElementTypeTextArea:
+		textarea := target.ToTextArea()
+		textarea.Focus()
+		textarea.SelectAll()
+	}
+}
+
+func nextEnabledFocusable(start, target *UI, forward bool) *UI {
+	for target != nil && target != start {
+		if target.entity.IsActive() && !target.IsDisabled() {
+			return target
+		}
+		switch target.Type() {
+		case ElementTypeInput:
+			data := target.ToInput().InputData()
+			if forward {
+				target = data.nextFocusElement.Value()
+			} else {
+				target = data.prevFocusElement.Value()
+			}
+		case ElementTypeTextArea:
+			data := target.ToTextArea().Data()
+			if forward {
+				target = data.nextFocusElement.Value()
+			} else {
+				target = data.prevFocusElement.Value()
+			}
+		default:
+			return nil
+		}
+	}
+	return nil
+}
+
+func (input *Input) changeFocusToAnotherElement(target *UI) {
 	data := input.InputData()
 	if !data.isActive {
 		return
 	}
+	if target == nil || !target.entity.IsActive() || target.IsDisabled() {
+		return
+	}
 	input.RemoveFocus()
-	target.Focus()
-	target.SelectAll()
+	focusEditableElement(target)
+}
+
+func (input *Input) changeFocusToAnother(target *Input) {
+	if target == nil {
+		return
+	}
+	input.changeFocusToAnotherElement(target.Base())
 }
 
 func (input *Input) focusNext() {
+	if n := input.InputData().nextFocusElement.Value(); n != nil {
+		input.changeFocusToAnotherElement(nextEnabledFocusable(input.Base(), n, true))
+		return
+	}
 	n := input.InputData().nextFocusInput.Value()
 	if n != nil {
 		input.changeFocusToAnother(n)
@@ -616,6 +724,10 @@ func (input *Input) focusNext() {
 }
 
 func (input *Input) focusPrevious() {
+	if p := input.InputData().prevFocusElement.Value(); p != nil {
+		input.changeFocusToAnotherElement(nextEnabledFocusable(input.Base(), p, false))
+		return
+	}
 	p := input.InputData().prevFocusInput.Value()
 	if p != nil {
 		input.changeFocusToAnother(p)
@@ -623,7 +735,7 @@ func (input *Input) focusPrevious() {
 }
 
 func (input *Input) Text() string {
-	return input.InputData().label.LabelData().text
+	return input.InputData().text
 }
 
 func (input *Input) SetText(text string) {
@@ -656,7 +768,78 @@ func (input *Input) SetDescription(text string) {
 }
 
 func (input *Input) SetType(inputType InputType) {
-	input.InputData().inputType = inputType
+	data := input.InputData()
+	if data.inputType != inputType {
+		wasValid := input.IsValid()
+		data.inputType = inputType
+		data.text = input.sanitizeText(data.text)
+		data.label.SetText(input.displayText(data.text))
+		input.updatePlaceholderVisibility()
+		input.moveCursor(data.cursorOffset)
+		if wasValid != input.IsValid() {
+			input.Base().SetDirty(DirtyTypeGenerated)
+		}
+	}
+}
+
+func (input *Input) IsRequired() bool {
+	return input.InputData().required
+}
+
+func (input *Input) SetRequired(required bool) {
+	data := input.InputData()
+	if data.required != required {
+		data.required = required
+		input.Base().SetDirty(DirtyTypeGenerated)
+	}
+}
+
+func (input *Input) IsValid() bool {
+	text := input.Text()
+	if input.IsRequired() && text == "" {
+		return false
+	}
+	if text == "" {
+		return true
+	}
+	switch input.InputData().inputType {
+	case InputTypeEmail:
+		return inputTextIsEmail(text)
+	case InputTypeNumber:
+		return inputTextIsNumber(text)
+	case InputTypePhone:
+		return inputTextIsPhone(text)
+	default:
+		return true
+	}
+}
+
+func inputTextIsEmail(text string) bool {
+	if strings.ContainsAny(text, " \t\r\n") {
+		return false
+	}
+	at := strings.IndexRune(text, '@')
+	return at > 0 && at == strings.LastIndex(text, "@") && at < len(text)-1
+}
+
+func inputTextIsNumber(text string) bool {
+	if strings.TrimSpace(text) != text {
+		return false
+	}
+	v, err := strconv.ParseFloat(text, 64)
+	return err == nil && !math.IsInf(v, 0) && !math.IsNaN(v)
+}
+
+func inputTextIsPhone(text string) bool {
+	hasDigit := false
+	for _, r := range text {
+		if unicode.IsDigit(r) {
+			hasDigit = true
+		} else if !(r == '+' || r == '-' || r == '(' || r == ')' || r == '.' || unicode.IsSpace(r)) {
+			return false
+		}
+	}
+	return hasDigit
 }
 
 func (input *Input) SetFGColor(newColor matrix.Color) {
@@ -691,7 +874,18 @@ func (input *Input) IsFocused() bool {
 	return input.InputData().isActive
 }
 
+func (input *Input) IsDisabled() bool {
+	return input.Base().IsDisabled()
+}
+
+func (input *Input) SetDisabled(disabled bool) {
+	input.Base().SetDisabled(disabled)
+}
+
 func (input *Input) Focus() {
+	if input.IsDisabled() {
+		return
+	}
 	data := input.InputData()
 	if !data.isActive {
 		data.isActive = true
@@ -703,6 +897,28 @@ func (input *Input) Focus() {
 			man.Group.setFocus((*UI)(input))
 		}
 		input.focus()
+	}
+}
+
+func (input *Input) removeFocusWithoutEvents() {
+	data := input.InputData()
+	if !data.isActive {
+		input.resetSelect()
+		input.hideCursor()
+		input.hideHighlight()
+		return
+	}
+	data.isActive = false
+	input.resetSelect()
+	input.hideCursor()
+	input.hideHighlight()
+	data.textOnFocus = input.Text()
+	man := input.man.Value()
+	if man != nil {
+		if man.Group.focus == input.Base() {
+			man.Group.focus = nil
+		}
+		man.Host.Window.CursorStandard()
 	}
 }
 
@@ -732,14 +948,44 @@ func (input *Input) SetFontSize(fontSize float32) {
 	data.placeholder.SetFontSize(fontSize)
 }
 
+func (input *Input) FontSize() float32 {
+	return input.InputData().label.FontSize()
+}
+
+func (input *Input) FontFace() rendering.FontFace {
+	return input.InputData().label.FontFace()
+}
+
+func (input *Input) SetLineHeight(lineHeight float32) {
+	data := input.InputData()
+	data.label.SetLineHeight(lineHeight)
+	data.placeholder.SetLineHeight(lineHeight)
+}
+
+func (input *Input) SetWrap(wrap bool) {
+	data := input.InputData()
+	data.label.SetWrap(wrap)
+	data.placeholder.SetWrap(wrap)
+}
+
 func (input *Input) SetCursorOffset(offset int) {
-	offset = klib.Clamp(offset, 0,
-		utf8.RuneCountInString(input.InputData().label.LabelData().text))
+	offset = editableTextClampOffset(input.InputData().text, offset)
 	input.moveCursor(offset)
 }
 
 func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
-	host := input.man.Value().Host
+	if input.IsDisabled() {
+		return
+	}
+	// doKeyCallbacks invokes this for EVERY registered input on every keypress,
+	// regardless of focus. A destroyed/recycled input (pooled UI) can still have
+	// a live callback for a frame; its manager weak-ref is then dead. Guard it so
+	// a stray keypress no-ops instead of nil-derefing host below.
+	man := input.man.Value()
+	if man == nil || input.entity.IsDestroyed() {
+		return
+	}
+	host := man.Host
 	data := input.InputData()
 	if input.entity.IsActive() && data.isActive {
 		if keyState == hid.KeyStateDown {
@@ -749,9 +995,9 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 				return
 			}
 			kb := &host.Window.Keyboard
-			c := kb.KeyToRune(keyId)
+			c := host.Localization.KeyToRune(kb, keyId)
 			if c != 0 {
-				if !kb.HasCtrl() {
+				if !kb.HasCtrlOrMeta() {
 					if kb.IsToggleKeyOn(hid.KeyboardKeyCapsLock) {
 						input.InsertText(string(unicode.ToUpper(c)))
 					} else {
@@ -812,8 +1058,20 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 			case hid.KeyboardKeyBackspace:
 				prev := kb.GetKeyLastClicked(keyId)
 				dt := time.Since(prev)
-				if dt.Milliseconds() > 500 {
+				if dt.Milliseconds() > holdKeyPressedDuration {
 					input.backspace(kb)
+				}
+			case hid.KeyboardKeyLeft:
+				prev := kb.GetKeyLastClicked(keyId)
+				dt := time.Since(prev)
+				if dt.Milliseconds() > holdKeyPressedDuration {
+					input.arrowMoveCursor(kb, -1)
+				}
+			case hid.KeyboardKeyRight:
+				prev := kb.GetKeyLastClicked(keyId)
+				dt := time.Since(prev)
+				if dt.Milliseconds() > holdKeyPressedDuration {
+					input.arrowMoveCursor(kb, 1)
 				}
 			}
 		}
@@ -836,13 +1094,10 @@ func cursorFit(layout *Layout) {
 func (input *Input) deleteSelection(skipEvent bool) {
 	data := input.InputData()
 	if data.selectStart != data.selectEnd {
-		sStart := data.selectStart
-		ld := data.label.LabelData()
-		lhs := ld.text[:data.selectStart]
-		rhs := ld.text[data.selectEnd:]
-		str := lhs + rhs
-		input.moveCursor(sStart)
+		str, cursorOffset, _ := editableTextDeleteRange(data.text,
+			data.selectStart, data.selectEnd)
 		input.setText(str, skipEvent)
+		input.moveCursor(cursorOffset)
 		input.resetSelect()
 		input.hideHighlight()
 	}
@@ -850,37 +1105,34 @@ func (input *Input) deleteSelection(skipEvent bool) {
 
 func (input *Input) backspace(kb *hid.Keyboard) {
 	data := input.InputData()
-	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection(false)
-	} else if kb.HasCtrl() {
+	} else if kb.HasMeta() {
+		input.setSelect(0, data.cursorOffset)
+		input.deleteSelection(false)
+	} else if kb.HasCtrl() || kb.HasAlt() {
 		from := input.findNextBreak(data.cursorOffset-1, -1)
 		input.setSelect(from, data.cursorOffset)
 		input.deleteSelection(false)
-	} else if len(ld.text) > 0 && data.cursorOffset > 0 {
-		lhs := ld.text[:data.cursorOffset-1]
-		rhs := ld.text[data.cursorOffset:]
-		str := lhs + rhs
-		input.moveCursor(data.cursorOffset - 1)
+	} else if len(data.text) > 0 && data.cursorOffset > 0 {
+		str, cursorOffset, _ := editableTextDeleteBefore(data.text, data.cursorOffset)
 		input.setText(str, false)
+		input.moveCursor(cursorOffset)
 	}
 }
 
 func (input *Input) delete(kb *hid.Keyboard) {
 	data := input.InputData()
-	ld := data.label.LabelData()
 	if data.highlight.entity.IsActive() {
 		input.deleteSelection(false)
 	} else if kb.HasCtrl() {
 		to := input.findNextBreak(data.cursorOffset+1, 1)
 		input.setSelect(data.cursorOffset, to)
 		input.deleteSelection(false)
-	} else if data.cursorOffset < ld.textLength {
-		lhs := ld.text[:data.cursorOffset]
-		rhs := ld.text[data.cursorOffset+1:]
-		str := lhs + rhs
-		input.moveCursor(data.cursorOffset)
+	} else if data.cursorOffset < editableTextRuneCount(data.text) {
+		str, cursorOffset, _ := editableTextDeleteAfter(data.text, data.cursorOffset)
 		input.setText(str, false)
+		input.moveCursor(cursorOffset)
 	}
 }
 
@@ -892,9 +1144,8 @@ func (input *Input) forceLabelAndPlaceholderRerender() {
 
 func (input *Input) internalCopyToClipboard() {
 	data := input.InputData()
-	l := data.label
 	if data.selectEnd != data.selectStart {
-		str := l.LabelData().text[data.selectStart:data.selectEnd]
+		str := editableTextSlice(data.text, data.selectStart, data.selectEnd)
 		input.Base().Host().Window.CopyToClipboard(str)
 	}
 }

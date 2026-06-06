@@ -1,50 +1,22 @@
 /******************************************************************************/
 /* content_config.go                                                          */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package content_database
 
 import (
 	"encoding/json"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
+	"fmt"
+	"io"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"strings"
+
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 // ContentConfig is a composition of all possible configs, identified by their
@@ -59,7 +31,7 @@ type ContentConfig struct {
 	// things together. This removes the need for the developer to manage their
 	// own folder structure and allows them to control content without
 	// physically moving things around.
-	Tags []string `json:",omitempty"`
+	Tags klib.Set[string] `json:",omitempty"`
 
 	// Name is a developer-facing friendly name for the content. This is often
 	// set to the same name as the asset that was imported. The developer can
@@ -102,6 +74,7 @@ type ContentConfig struct {
 	Mesh     *MeshConfig     `json:",omitempty"`
 	Music    *MusicConfig    `json:",omitempty"`
 	Sound    *SoundConfig    `json:",omitempty"`
+	Terrain  *TerrainConfig  `json:",omitempty"`
 	Texture  *TextureConfig  `json:",omitempty"`
 }
 
@@ -120,11 +93,14 @@ func (c *ContentConfig) AddTag(tag string) (string, bool) {
 		slog.Warn("the tag name supplied was empty, skipping")
 		return tag, false
 	}
-	if klib.StringsContainsCaseInsensitive(c.Tags, tag) {
+	if c.Tags == nil {
+		c.Tags = make(klib.Set[string])
+	}
+	if c.Tags.Contains(tag) {
 		slog.Warn("the tag is already applied to the content, skipping")
 		return tag, false
 	}
-	c.Tags = append(c.Tags, tag)
+	c.Tags.Add(tag)
 	return tag, true
 }
 
@@ -132,11 +108,13 @@ func (c *ContentConfig) AddTag(tag string) (string, bool) {
 // it finds the tag and removes it, this will return true, otherwise false.
 func (c *ContentConfig) RemoveTag(tag string) bool {
 	defer tracing.NewRegion("ContentConfig.RemoveTag").End()
-	for i := range c.Tags {
-		if strings.EqualFold(c.Tags[i], tag) {
-			c.Tags = slices.Delete(c.Tags, i, i+1)
-			return true
-		}
+	if c.Tags == nil {
+		slog.Warn("Content has no tags")
+		return false
+	}
+	if c.Tags.Contains(tag) {
+		c.Tags.Remove(tag)
+		return true
 	}
 	return false
 }
@@ -182,6 +160,19 @@ func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig,
 	// Try and upgrade the config file path, it might still be using
 	// the old configuration file path.
 	if fs.Exists(cfgPath) && !strings.HasSuffix(cfgPath, ".json") {
+		// The upgrade-rename is a destructive, irreversible operation
+		// (the file is permanently renamed; there is no in-engine
+		// undo path). Guard it: (a) refuse hidden / OS-droppings
+		// basenames, and (b) peek the first byte and only rename
+		// when the file actually starts with the JSON object opener
+		// '{'. Without these guards macOS Finder droppings get
+		// permanently renamed to .DS_Store.json the first time a
+		// project is opened, and every subsequent open then crashes
+		// trying to decode the binary Bud1 contents as JSON
+		// (recovered from 2026-05-26 .DS_Store lockout).
+		if !looksLikeUpgradableConfig(fs, cfgPath) {
+			return cfg, fmt.Errorf("skip non-config file: %s", cfgPath)
+		}
 		newName := cfgPath + ".json"
 		if err := fs.Rename(cfgPath, newName); err != nil {
 			return cfg, err
@@ -195,4 +186,28 @@ func ReadConfig(path string, fs *project_file_system.FileSystem) (ContentConfig,
 	defer f.Close()
 	err = json.NewDecoder(f).Decode(&cfg)
 	return cfg, err
+}
+
+// looksLikeUpgradableConfig returns true when the file at cfgPath is safe
+// to feed into the upgrade-rename path (cfgPath -> cfgPath + ".json"). It
+// rejects hidden / OS-droppings basenames outright and otherwise peeks the
+// first byte: only files starting with the JSON object opener '{' qualify.
+//
+// Best-effort: if the peek itself fails (file vanished between Exists()
+// and Open(), permission denied, empty file, ...) we treat the file as
+// not upgradable and let the caller surface the error.
+func looksLikeUpgradableConfig(fs *project_file_system.FileSystem, cfgPath string) bool {
+	if strings.HasPrefix(filepath.Base(cfgPath), ".") {
+		return false
+	}
+	f, err := fs.Open(cfgPath)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	var head [1]byte
+	if _, err := io.ReadFull(f, head[:]); err != nil {
+		return false
+	}
+	return head[0] == '{'
 }

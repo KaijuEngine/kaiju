@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* texture.go                                                                 */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
@@ -42,10 +12,11 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"strings"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -181,109 +152,77 @@ func TextureKeys(textures []*Texture) []string {
 	return keys
 }
 
+// ReadRawTextureData reads raw texture data from a byte slice based on the specified input type (ASTC, PNG, or RAW).
+// It returns a TextureData struct containing the decoded pixel data, dimensions, and format information.
 func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 	defer tracing.NewRegion("rendering.ReadRawTextureData").End()
+
 	var res TextureData
 	res.InputType = inputType
+
+	astcFormatMap := map[[2]byte]TextureInputType{
+		{4, 0}:   TextureInputTypeCompressedRgbaAstc4x4,
+		{5, 4}:   TextureInputTypeCompressedRgbaAstc5x4,
+		{5, 5}:   TextureInputTypeCompressedRgbaAstc5x5,
+		{6, 5}:   TextureInputTypeCompressedRgbaAstc6x5,
+		{6, 6}:   TextureInputTypeCompressedRgbaAstc6x6,
+		{8, 5}:   TextureInputTypeCompressedRgbaAstc8x5,
+		{8, 6}:   TextureInputTypeCompressedRgbaAstc8x6,
+		{8, 8}:   TextureInputTypeCompressedRgbaAstc8x8,
+		{10, 5}:  TextureInputTypeCompressedRgbaAstc10x5,
+		{10, 6}:  TextureInputTypeCompressedRgbaAstc10x6,
+		{10, 8}:  TextureInputTypeCompressedRgbaAstc10x8,
+		{10, 10}: TextureInputTypeCompressedRgbaAstc10x10,
+		{12, 10}: TextureInputTypeCompressedRgbaAstc12x10,
+		{12, 12}: TextureInputTypeCompressedRgbaAstc12x12,
+	}
+
 	switch inputType {
 	case TextureFileFormatAstc:
-		switch mem[4] {
-		case 4:
-			res.InternalFormat = TextureInputTypeCompressedRgbaAstc4x4
-		case 5:
-			switch mem[5] {
-			case 4:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc5x4
-			case 5:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc5x5
-			}
-		case 6:
-			switch mem[5] {
-			case 5:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc6x5
-			case 6:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc6x6
-			}
-		case 8:
-			switch mem[5] {
-			case 5:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x5
-			case 6:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x6
-			case 8:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc8x8
-			}
-		case 10:
-			switch mem[5] {
-			case 5:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x5
-			case 6:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x6
-			case 8:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x8
-			case 10:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc10x10
-			}
-		case 12:
-			switch mem[5] {
-			case 10:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc12x10
-			case 12:
-				res.InternalFormat = TextureInputTypeCompressedRgbaAstc12x12
-			}
+		key := [2]byte{mem[4], mem[5]}
+		if format, ok := astcFormatMap[key]; ok {
+			res.InternalFormat = format
 		}
-		res.Width = int(mem[9])
-		res.Width <<= 8
-		res.Width += int(mem[8])
-		res.Width <<= 8
-		res.Width += int(mem[7])
-		res.Height = int(mem[12])
-		res.Height <<= 8
-		res.Height += int(mem[11])
-		res.Height <<= 8
-		res.Height += int(mem[10])
+
+		res.Width = int(mem[9])<<16 | int(mem[8])<<8 | int(mem[7])
+		res.Height = int(mem[12])<<16 | int(mem[11])<<8 | int(mem[10])
+
 		res.Mem = mem[16:]
 		res.Format = TextureColorFormatRgbaUnorm
 		res.Type = TextureMemTypeUnsignedByte
+
 	case TextureFileFormatPng:
-		r := bytes.NewReader(mem)
-		if img, err := png.Decode(r); err == nil {
-			var mem []byte
-			switch pic := img.(type) {
-			case *image.RGBA:
-				mem = pic.Pix
-			//case *image.Paletted:
-			//	mem = pic.Pix
-			//case *image.NRGBA:
-			//	mem = pic.Pix
-			default:
-				b := img.Bounds()
-				dst := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-				draw.Draw(dst, dst.Bounds(), img, b.Min, draw.Src)
-				mem = dst.Pix
-			}
-			res.Width = img.Bounds().Dx()
-			res.Height = img.Bounds().Dy()
-			res.InternalFormat = TextureInputTypeRgba8
-			res.Format = TextureColorFormatRgbaUnorm
-			res.Type = TextureMemTypeUnsignedByte
-			res.Mem = mem
-			//res.Mem = make([]byte, len(mem))
-			//byteWidth := res.Width * bytesInPixel
-			//for y := 0; y < res.Height; y++ {
-			//	from := y * byteWidth
-			//	to := (res.Height - y - 1) * byteWidth
-			//	copy(res.Mem[to:to+byteWidth], mem[from:from+byteWidth])
-			//}
+		img, err := png.Decode(bytes.NewReader(mem))
+		if err != nil {
+			return res
 		}
+
+		b := img.Bounds()
+		w, h := b.Dx(), b.Dy()
+
+		if rgba, ok := img.(*image.RGBA); ok {
+			res.Mem = rgba.Pix
+		} else {
+			dst := image.NewRGBA(image.Rect(0, 0, w, h))
+			draw.Draw(dst, dst.Bounds(), img, b.Min, draw.Src)
+			res.Mem = dst.Pix
+		}
+
+		res.Width = w
+		res.Height = h
+		res.InternalFormat = TextureInputTypeRgba8
+		res.Format = TextureColorFormatRgbaUnorm
+		res.Type = TextureMemTypeUnsignedByte
+
 	case TextureFileFormatRaw:
-		res.Mem = mem[:]
+		res.Mem = mem
 		res.Width = 0
 		res.Height = 0
 		res.InternalFormat = TextureInputTypeRgba8
 		res.Format = TextureColorFormatRgbaUnorm
 		res.Type = TextureMemTypeUnsignedByte
 	}
+
 	return res
 }
 
@@ -314,7 +253,7 @@ func (t *Texture) create(imgBuff []byte) {
 	t.Height = data.Height
 }
 
-func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
+func NewTexture(assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
 	key = selectKey(key)
 	tex := &Texture{Key: key, Filter: filter}
@@ -332,7 +271,7 @@ func NewTexture(renderer Renderer, assetDb assets.Database, key string, filter T
 	}
 }
 
-func (t *Texture) Reload(renderer Renderer, assetDb assets.Database) error {
+func (t *Texture) Reload(assetDb assets.Database) error {
 	t.RenderId = TextureId{}
 	if assetDb.Exists(t.Key) {
 		if imgBuff, err := assetDb.Read(t.Key); err != nil {
@@ -368,12 +307,25 @@ func (t *Texture) ReadPendingDataForTransparency() bool {
 	return t.hasTransparency == transparencyReadStateFound
 }
 
-func (t *Texture) DelayedCreate(renderer Renderer) {
+func (t *Texture) DelayedCreate(device *GPUDevice) {
 	defer tracing.NewRegion("Texture.DelayedCreate").End()
+	t.delayedCreate(device, nil)
+}
+
+func (t *Texture) DelayedCreateInBatch(device *GPUDevice, batch *TextureUploadBatch) {
+	defer tracing.NewRegion("Texture.DelayedCreateInBatch").End()
+	t.delayedCreate(device, batch)
+}
+
+func (t *Texture) delayedCreate(device *GPUDevice, batch *TextureUploadBatch) {
 	if t.RenderId.IsValid() {
 		return
 	}
-	renderer.CreateTexture(t, t.pendingData)
+	if batch != nil {
+		device.SetupTextureInBatch(t, t.pendingData, batch)
+	} else {
+		device.SetupTexture(t, t.pendingData)
+	}
 	t.pendingData = nil
 }
 
@@ -398,19 +350,24 @@ func NewTextureFromMemory(key string, data []byte, width, height int, filter Tex
 	return tex, nil
 }
 
-func (t *Texture) ReadPixel(renderer Renderer, x, y int) matrix.Color {
+func (t *Texture) ReadPixel(app *GPUApplication, x, y int) matrix.Color {
 	defer tracing.NewRegion("Texture.ReadPixel").End()
-	return renderer.TextureReadPixel(t, x, y)
+	return app.FirstInstance().PrimaryDevice().TextureReadPixel(t, x, y)
 }
 
-func (t *Texture) ReadAllPixels(renderer Renderer) ([]byte, error) {
+func (t *Texture) ReadAllPixels(app *GPUApplication) ([]byte, error) {
 	defer tracing.NewRegion("Texture.ReadPixel").End()
-	return renderer.TextureRead(t)
+	return app.FirstInstance().PrimaryDevice().TextureRead(t)
 }
 
-func (t *Texture) WritePixels(renderer Renderer, requests []GPUImageWriteRequest) {
+func (t *Texture) ReadPixelRegion(app *GPUApplication, rect matrix.Vec4i) ([]byte, error) {
+	defer tracing.NewRegion("Texture.ReadPixelRegion").End()
+	return app.FirstInstance().PrimaryDevice().TextureReadRegion(t, rect)
+}
+
+func (t *Texture) WritePixels(device *GPUDevice, requests []GPUImageWriteRequest) {
 	defer tracing.NewRegion("Texture.WritePixels").End()
-	renderer.TextureWritePixels(t, requests)
+	device.TextureWritePixels(t, requests)
 }
 
 func (t Texture) Size() matrix.Vec2 {

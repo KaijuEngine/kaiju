@@ -1,63 +1,35 @@
 /******************************************************************************/
 /* stage_workspace_content_ui.go                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package stage_workspace
 
 import (
 	"fmt"
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_overlay/context_menu"
-	"kaiju/editor/editor_workspace/content_workspace"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/engine"
-	"kaiju/engine/ui/markup/document"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
-	"kaiju/rendering"
 	"log/slog"
 	"slices"
 	"strings"
 	"weak"
+
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/editor_overlay/context_menu"
+	"kaijuengine.com/editor/editor_workspace/content_workspace"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 type WorkspaceContentUI struct {
 	workspace          weak.Pointer[StageWorkspace]
+	doc                *document.Document
 	typeFilters        klib.Set[string]
 	typeFiltersDisable klib.Set[string]
 	tagFilters         klib.Set[string]
@@ -68,14 +40,25 @@ type WorkspaceContentUI struct {
 	filterArea         *document.Element
 	dragPreview        *document.Element
 	entryTemplate      *document.Element
+	contentLoader      content_workspace.BatchedContentLoader
 	dragging           *document.Element
-	tooltip            *document.Element
+	tooltipPanel       *ui.Panel
+	tooltipLabel       *ui.Label
 	dragContentId      string
+	dragSubmeshKey     string
 }
 
 type StageDragContent struct {
 	cui *WorkspaceContentUI
 	id  string
+	key string
+}
+
+func (d StageDragContent) MeshRef() string {
+	if d.key == "" {
+		return d.id
+	}
+	return kaiju_mesh.MeshRefString(d.id, d.key)
 }
 
 func (d StageDragContent) DragUpdate() {
@@ -98,6 +81,7 @@ func (cui *WorkspaceContentUI) setupFuncs() map[string]func(*document.Element) {
 		"entryMouseMove":    cui.entryMouseMove,
 		"entryMouseLeave":   cui.entryMouseLeave,
 		"rightClickContent": cui.rightClickContent,
+		"toggleMeshEntry":   cui.toggleMeshEntry,
 	}
 }
 
@@ -108,12 +92,14 @@ func (cui *WorkspaceContentUI) setup(w *StageWorkspace, edEvts *editor_events.Ed
 	cui.typeFiltersDisable = klib.NewSet[string]()
 	cui.tagFilters = klib.NewSet[string]()
 	cui.tagFiltersDisable = klib.NewSet[string]()
-	cui.contentArea, _ = w.Doc.GetElementById("contentArea")
-	cui.contentPreviewArea, _ = w.Doc.GetElementById("contentPreviewArea")
-	cui.filterArea, _ = w.Doc.GetElementById("filterArea")
-	cui.dragPreview, _ = w.Doc.GetElementById("dragPreview")
-	cui.entryTemplate, _ = w.Doc.GetElementById("entryTemplate")
-	cui.tooltip, _ = w.Doc.GetElementById("tooltip")
+	cui.doc = w.contentDoc
+	cui.contentLoader.Configure(w.Host, content_workspace.DefaultContentLoadBatchSize, cui.addContentBatch)
+	cui.contentArea, _ = cui.doc.GetElementById("contentArea")
+	cui.contentPreviewArea, _ = cui.doc.GetElementById("contentPreviewArea")
+	cui.filterArea, _ = cui.doc.GetElementById("filterArea")
+	cui.dragPreview, _ = cui.doc.GetElementById("dragPreview")
+	cui.entryTemplate, _ = cui.doc.GetElementById("entryTemplate")
+	cui.createTooltip()
 	edEvts.OnContentAdded.Add(cui.addContent)
 	edEvts.OnContentRemoved.Add(cui.removeContent)
 	edEvts.OnContentRenamed.Add(cui.renameContent)
@@ -126,26 +112,17 @@ func (cui *WorkspaceContentUI) open() {
 	defer tracing.NewRegion("WorkspaceContentUI.open").End()
 	cui.entryTemplate.UI.Hide()
 	cui.dragPreview.UI.Hide()
-	cui.tooltip.UI.Hide()
-}
-
-func (cui *WorkspaceContentUI) processHotkeys(host *engine.Host) {
-	defer tracing.NewRegion("WorkspaceContentUI.processHotkeys").End()
-	if host.Window.Keyboard.KeyDown(hid.KeyboardKeyC) {
-		if cui.contentArea.UI.Entity().IsActive() {
-			cui.contentArea.UI.Hide()
-			cui.workspace.Value().hierarchyUI.extendHeight()
-			cui.workspace.Value().detailsUI.extendHeight()
-		} else {
-			cui.contentArea.UI.Show()
-			cui.workspace.Value().hierarchyUI.standardHeight()
-			cui.workspace.Value().detailsUI.standardHeight()
-		}
-	}
+	cui.hideTooltip()
+	cui.runFilter()
 }
 
 func (cui *WorkspaceContentUI) addContent(ids []string) {
 	defer tracing.NewRegion("WorkspaceContentUI.addContent").End()
+	cui.contentLoader.Enqueue(ids)
+}
+
+func (cui *WorkspaceContentUI) addContentBatch(ids []string) {
+	defer tracing.NewRegion("WorkspaceContentUI.addContentBatch").End()
 	if len(ids) == 0 {
 		return
 	}
@@ -153,7 +130,7 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 	w.removeFtde()
 	ccAll := make([]content_database.CachedContent, 0, len(ids))
 	for i := range ids {
-		if _, ok := w.Doc.GetElementById(ids[i]); !ok {
+		if _, ok := cui.doc.GetElementById(ids[i]); !ok {
 			cc, err := w.ed.Cache().Read(ids[i])
 			if err != nil {
 				slog.Error("failed to read the cached content", "id", ids[i], "error", err)
@@ -162,24 +139,87 @@ func (cui *WorkspaceContentUI) addContent(ids []string) {
 			ccAll = append(ccAll, cc)
 		}
 	}
-	cpys := w.Doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
+	cpys := cui.doc.DuplicateElementRepeatWithoutApplyStyles(cui.entryTemplate, len(ccAll))
 	for i := range cpys {
 		cc := &ccAll[i]
-		w.Doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
+		cui.allowEntryVisualsClickThrough(cpys[i])
+		cui.doc.SetElementIdWithoutApplyStyles(cpys[i], cc.Id())
+		cpys[i].SetAttribute("data-content-id", cc.Id())
+		cpys[i].SetAttribute("data-mesh-key", "")
 		cpys[i].SetAttribute("data-type", strings.ToLower(cc.Config.Type))
+		cpys[i].SetAttribute("data-expanded", "false")
 		lbl := cpys[i].Children[1].Children[0].UI.ToLabel()
 		lbl.SetText(cc.Config.Name)
 		cui.loadEntryImage(cpys[i], cc)
-		tex, err := w.Host.TextureCache().Texture(
+		tex, err := w.Host.TextureCache().TextureWithPriority(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
-			rendering.TextureFilterLinear)
+			rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 		if err == nil {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
+		submeshes := meshSubmeshes(cc.Config.Mesh)
+		cpys[i].SetAttribute("data-has-submeshes", fmt.Sprintf("%t", len(submeshes) > 1))
+		cui.setMeshExpandVisible(cpys[i], len(submeshes) > 1)
+		last := cpys[i]
+		for _, submesh := range submeshes {
+			child := cui.doc.DuplicateElementWithoutApplyStyles(cui.entryTemplate)
+			cui.doc.InsertElementAfter(child, last)
+			cui.setupSubmeshEntry(child, cc, submesh)
+			child.UI.Hide()
+			last = child
+		}
 	}
-	w.Doc.ApplyStyles()
-	cui.refreshFilterOnContentChange()
+	cui.doc.ApplyStyles()
+	cui.runFilter()
 	w.ed.ContentPreviewer().GeneratePreviews(ids)
+}
+
+func (cui *WorkspaceContentUI) allowEntryVisualsClickThrough(e *document.Element) {
+	for i := range e.Children {
+		if e.Children[i].HasClass("meshExpand") {
+			continue
+		}
+		if e.Children[i].UIPanel != nil {
+			e.Children[i].UIPanel.AllowClickThrough()
+		}
+	}
+}
+
+func (cui *WorkspaceContentUI) setupSubmeshEntry(e *document.Element, cc *content_database.CachedContent, submesh content_database.MeshSubmeshConfig) {
+	cui.allowEntryVisualsClickThrough(e)
+	cui.doc.SetElementIdWithoutApplyStyles(e, stageSubmeshElementId(cc.Id(), submesh.Key))
+	e.SetAttribute("data-content-id", cc.Id())
+	e.SetAttribute("data-mesh-key", submesh.Key)
+	e.SetAttribute("data-parent-id", cc.Id())
+	e.SetAttribute("data-type", strings.ToLower(cc.Config.Type))
+	e.SetAttribute("data-expanded", "")
+	e.SetAttribute("data-has-submeshes", "false")
+	cui.doc.SetElementClassesWithoutApply(e, "entry", "meshChild")
+	e.Children[1].Children[0].UI.ToLabel().SetText(meshStageName(submesh.Name, submesh.Key))
+	cui.setMeshExpandVisible(e, false)
+	cui.setSubmeshEntryIcon(e)
+}
+
+func (cui *WorkspaceContentUI) setSubmeshEntryIcon(e *document.Element) {
+	tex, err := cui.workspace.Value().Host.TextureCache().TextureWithPriority(
+		fmt.Sprintf("editor/textures/icons/%s.png", (content_database.Mesh{}).TypeName()),
+		rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
+	if err != nil {
+		return
+	}
+	e.Children[0].UI.ToPanel().SetBackground(tex)
+	e.Children[2].UI.ToPanel().SetBackground(tex)
+}
+
+func (cui *WorkspaceContentUI) setMeshExpandVisible(e *document.Element, visible bool) {
+	if len(e.Children) <= 3 {
+		return
+	}
+	if visible {
+		e.Children[3].UI.Show()
+	} else {
+		e.Children[3].UI.Hide()
+	}
 }
 
 func (cui *WorkspaceContentUI) removeContent(ids []string) {
@@ -190,10 +230,15 @@ func (cui *WorkspaceContentUI) removeContent(ids []string) {
 		return
 	}
 	for _, id := range ids {
-		if el, ok := w.Doc.GetElementById(id); ok {
-			w.Doc.RemoveElement(el)
+		if el, ok := cui.doc.GetElementById(id); ok {
+			cui.doc.RemoveElement(el)
 		} else {
 			slog.Error("failed to find element to remove", "id", id)
+		}
+		for _, entry := range cui.doc.GetElementsByGroup("entry") {
+			if entry != nil && entry.Attribute("data-parent-id") == id {
+				cui.doc.RemoveElement(entry)
+			}
 		}
 	}
 }
@@ -209,7 +254,7 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 		slog.Warn("failed to find the matching stage content", "id", id, "error", err)
 		return
 	}
-	if e, ok := w.Doc.GetElementById(id); ok {
+	if e, ok := cui.doc.GetElementById(id); ok {
 		e.Children[1].Children[0].UI.ToLabel().SetText(cc.Config.Name)
 	} else {
 		slog.Error("failed to find element to remove", "id", id)
@@ -219,7 +264,12 @@ func (cui *WorkspaceContentUI) renameContent(id string) {
 func (cui *WorkspaceContentUI) contentPreviewGenerated(id string) {
 	defer tracing.NewRegion("WorkspaceContentUI.contentPreviewGenerated").End()
 	w := cui.workspace.Value()
-	elm, ok := w.Doc.GetElementById(id)
+	ref := kaiju_mesh.ParseMeshRef(id)
+	elementId := ref.Asset
+	if ref.Key != "" {
+		elementId = stageSubmeshElementId(ref.Asset, ref.Key)
+	}
+	elm, ok := cui.doc.GetElementById(elementId)
 	if !ok {
 		return
 	}
@@ -238,7 +288,8 @@ func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_d
 	if cc.Config.Type == (content_database.Texture{}).TypeName() {
 		// goroutine
 		go func() {
-			tex, err := w.Host.TextureCache().Texture(cc.Id(), rendering.TextureFilterLinear)
+			tex, err := w.Host.TextureCache().TextureWithPriority(
+				cc.Id(), rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 			if err != nil {
 				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return
@@ -265,7 +316,7 @@ func (cui *WorkspaceContentUI) inputFilter(e *document.Element) {
 func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.tagFilter").End()
 	q := strings.ToLower(e.UI.ToInput().Text())
-	tagElms := cui.workspace.Value().Doc.GetElementsByGroup("tag")[1:]
+	tagElms := cui.doc.GetElementsByGroup("tag")[1:]
 	for i := range tagElms {
 		tag := tagElms[i].Attribute("data-tag")
 		show := strings.Contains(strings.ToLower(tag), q)
@@ -280,22 +331,30 @@ func (cui *WorkspaceContentUI) tagFilter(e *document.Element) {
 func (cui *WorkspaceContentUI) runFilter() {
 	defer tracing.NewRegion("WorkspaceContentUI.runFilter").End()
 	w := cui.workspace.Value()
-	entries := w.Doc.GetElementsByGroup("entry")
+	entries := cui.doc.GetElementsByGroup("entry")
 	for i := range entries {
 		e := entries[i]
-		id := e.Attribute("id")
+		id, _ := stageContentEntryRef(e)
 		if id == "entryTemplate" {
 			continue
 		}
 		hide := content_workspace.ShouldHideContent(id, cui.typeFiltersDisable, cui.tagFiltersDisable, w.ed.Cache())
+		visible := false
 		if !hide && content_workspace.ShouldShowContent(cui.query, id, cui.typeFilters, cui.tagFilters, w.ed.Cache()) {
-			e.UI.Show()
-		} else {
-			e.UI.Hide()
+			if parentId := e.Attribute("data-parent-id"); parentId != "" {
+				parent, ok := cui.doc.GetElementById(parentId)
+				if ok && parent.Attribute("data-expanded") == "true" {
+					visible = true
+				}
+			} else {
+				visible = true
+			}
 		}
+		e.UI.SetVisibility(visible)
+		cui.setMeshExpandVisible(e, visible && e.Attribute("data-parent-id") == "" && e.Attribute("data-has-submeshes") == "true")
 	}
 	w.contentUI.contentPreviewArea.UIPanel.ResetScroll()
-	w.Host.RunOnMainThread(w.Doc.Clean)
+	w.Host.RunOnMainThread(cui.doc.Clean)
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
@@ -307,7 +366,6 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 	} else {
 		isSelected = slices.Contains(e.ClassList(), "selected")
 	}
-	w := cui.workspace.Value()
 	isSelected = !isSelected
 	typeName := e.Attribute("data-type")
 	tagName := e.Attribute("data-tag")
@@ -332,10 +390,10 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 		if inverted {
 			className = "inverted"
 		}
-		w.Doc.SetElementClasses(e, "filterBtn", className)
+		cui.doc.SetElementClasses(e, "filterBtn", className)
 		targetList.Add(name)
 	} else {
-		w.Doc.SetElementClasses(e, "filterBtn")
+		cui.doc.SetElementClasses(e, "filterBtn")
 		targetList.Remove(name)
 	}
 	// Remove it from inverse list in both cases intentionally
@@ -345,14 +403,18 @@ func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
 
 func (cui *WorkspaceContentUI) dblClickEntry(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.dblClickEntry").End()
-	id := e.Attribute("id")
+	id, key := stageContentEntryRef(e)
 	w := cui.workspace.Value()
 	cc, err := w.ed.Cache().Read(id)
 	if err != nil {
 		slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)
 		return
 	}
-	w.spawnContentAtPosition(&cc, w.Host.PrimaryCamera().LookAt())
+	if key != "" && cc.Config.Type == (content_database.Mesh{}).TypeName() {
+		w.spawnSubmesh(&cc, key, w.Host.PrimaryCamera().LookAt())
+	} else {
+		w.spawnContentAtPosition(&cc, w.Host.PrimaryCamera().LookAt())
+	}
 	cui.dragPreview.UI.Hide()
 }
 
@@ -361,35 +423,50 @@ func (cui *WorkspaceContentUI) entryDragStart(e *document.Element) {
 	cui.dragging = e
 	cui.dragPreview.UI.Show()
 	cui.dragPreview.UIPanel.SetBackground(e.Children[0].UIPanel.Background())
-	cui.dragContentId = e.Attribute("id")
-	windowing.SetDragData(StageDragContent{cui, cui.dragContentId})
+	cui.dragContentId, cui.dragSubmeshKey = stageContentEntryRef(e)
+	windowing.SetDragData(StageDragContent{cui: cui, id: cui.dragContentId, key: cui.dragSubmeshKey})
 	windowing.OnDragStop.Add(cui.dropContent)
 }
 
 func (cui *WorkspaceContentUI) entryMouseEnter(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseEnter").End()
-	ui := cui.tooltip.UI
-	id := e.Attribute("id")
+	if context_menu.IsOpen() {
+		cui.hideTooltip()
+		return
+	}
+	id, key := stageContentEntryRef(e)
 	cc, err := cui.workspace.Value().ed.Cache().Read(id)
 	if err != nil {
 		slog.Error("failed to find the config for the selected entry", "id", id, "error", err)
 		return
 	}
-	ui.Show()
-	lbl := cui.tooltip.Children[0].UI.ToLabel()
+	if key != "" {
+		if submesh, ok := meshConfigSubmesh(cc.Config.Mesh, key); ok {
+			cui.showTooltip(fmt.Sprintf("Name: %s\nType: Mesh\nSubmesh: %s", cc.Config.Name, submesh.Name))
+			return
+		}
+	}
 	if len(cc.Config.Tags) == 0 {
-		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
+		cui.showTooltip(fmt.Sprintf("Name: %s\nType: %s", cc.Config.Name, cc.Config.Type))
 	} else {
-		lbl.SetText(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
-			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags, ",")))
+		cui.showTooltip(fmt.Sprintf("Name: %s\nType: %s\nTags: %s",
+			cc.Config.Name, cc.Config.Type, strings.Join(cc.Config.Tags.ToSlice(), ",")))
 	}
 }
 
 func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseMove").End()
-	ui := cui.tooltip.UI
-	if !ui.Entity().IsActive() {
-		ui.Show()
+	if context_menu.IsOpen() {
+		cui.hideTooltip()
+		return
+	}
+	if cui.tooltipPanel == nil {
+		return
+	}
+	tooltipUI := cui.tooltipPanel.Base()
+	if !tooltipUI.Entity().IsActive() {
+		tooltipUI.Show()
+		tooltipUI.Clean()
 	}
 	host := cui.workspace.Value().Host
 	win := host.Window
@@ -399,7 +476,7 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 	const statusBarYBuffer = 20
 	x := p.X() + xOffset
 	y := p.Y() + yOffset
-	ps := ui.Layout().PixelSize()
+	ps := tooltipUI.Layout().PixelSize()
 	if x+ps.Width() > matrix.Float(win.Width()) {
 		x = p.X() - ps.Width() - xOffset
 	}
@@ -409,14 +486,56 @@ func (cui *WorkspaceContentUI) entryMouseMove(e *document.Element) {
 	// Running on the main thread so it's up to date with the mouse position on
 	// the next frame. Maybe there's no need for this...
 	host.RunOnMainThread(func() {
-		ui.Layout().SetOffset(x, y)
+		tooltipUI.Layout().SetOffset(x, y)
 	})
 }
 
 func (cui *WorkspaceContentUI) entryMouseLeave(e *document.Element) {
 	defer tracing.NewRegion("ContentWorkspace.entryMouseLeave").End()
-	cui.tooltip.UI.Layout().SetOffset(-1000, -1000)
-	cui.tooltip.UI.Hide()
+	cui.hideTooltip()
+}
+
+func (cui *WorkspaceContentUI) createTooltip() {
+	defer tracing.NewRegion("WorkspaceContentUI.createTooltip").End()
+	w := cui.workspace.Value()
+	panel := w.UiMan.Add().ToPanel()
+	panel.Init(nil, ui.ElementTypePanel)
+	panel.SetColor(matrix.ColorRGBInt(0x28, 0x28, 0x28))
+	panel.SetBorderSize(2, 2, 2, 2)
+	panel.SetBorderStyle(ui.BorderStyleSolid, ui.BorderStyleSolid, ui.BorderStyleSolid, ui.BorderStyleSolid)
+	panel.SetBorderColor(matrix.ColorWhite(), matrix.ColorWhite(), matrix.ColorWhite(), matrix.ColorWhite())
+	panel.Base().Layout().SetPadding(5, 0, 5, 0)
+	panel.AllowClickThrough()
+	panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	panel.Base().Layout().SetZ(20)
+	panel.Base().Layout().SetOffset(-1000, -1000)
+
+	label := w.UiMan.Add().ToLabel()
+	label.Init("Tooltip...")
+	label.SetColor(matrix.ColorRGBInt(0xAA, 0xAA, 0xAA))
+	label.SetBGColor(panel.Color())
+	panel.AddChild(label.Base())
+
+	cui.tooltipPanel = panel
+	cui.tooltipLabel = label
+	cui.hideTooltip()
+}
+
+func (cui *WorkspaceContentUI) showTooltip(text string) {
+	if cui.tooltipPanel == nil || cui.tooltipLabel == nil {
+		return
+	}
+	cui.tooltipLabel.SetText(text)
+	tooltipUI := cui.tooltipPanel.Base()
+	tooltipUI.Show()
+	tooltipUI.Clean()
+}
+
+func (cui *WorkspaceContentUI) hideTooltip() {
+	if cui.tooltipPanel != nil {
+		cui.tooltipPanel.Base().Layout().SetOffset(-1000, -1000)
+		cui.tooltipPanel.Base().Hide()
+	}
 }
 
 func (cui *WorkspaceContentUI) dropContent() {
@@ -432,36 +551,117 @@ func (cui *WorkspaceContentUI) dropContent() {
 			slog.Error("failed to read the content to spawn from cache", "id", cui.dragContentId)
 			return
 		}
-		w.spawnContentAtMouse(&cc, m)
+		if cui.dragSubmeshKey != "" && cc.Config.Type == (content_database.Mesh{}).TypeName() {
+			w.spawnSubmesh(&cc, cui.dragSubmeshKey, w.contentDropPoint(m))
+		} else {
+			w.spawnContentAtMouse(&cc, m)
+		}
 	}
 	cui.dragPreview.UI.Hide()
 	cui.dragging = nil
 	cui.dragContentId = ""
+	cui.dragSubmeshKey = ""
 }
 
 func (cui *WorkspaceContentUI) rightClickContent(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceContentUI.rightClickContent").End()
-	id := e.Attribute("id")
+	id, key := stageContentEntryRef(e)
 	w := cui.workspace.Value()
+	ref := id
+	if key != "" {
+		ref = kaiju_mesh.MeshRefString(id, key)
+	}
 	options := []context_menu.ContextMenuOption{
 		{
 			Label: "Copy ID to clipboard",
-			Call:  func() { w.Host.Window.CopyToClipboard(id) },
+			Call:  func() { w.Host.Window.CopyToClipboard(ref) },
 		},
 		{
 			Label: "Find references",
-			Call:  func() { w.ed.ShowReferences(id) },
+			Call:  func() { w.ed.ShowReferences(ref) },
 		},
 		{
 			Label: "Open in content workspace",
 			Call: func() {
-				w.ed.ContentWorkspaceSelected()
+				w.ed.SelectWorkspace("content")
 				w.ed.Events().OnFocusContent.Execute(id)
 			},
 		},
 	}
+	if cc, err := w.ed.Cache().Read(id); err == nil {
+		if cc.Config.Type == (content_database.Terrain{}).TypeName() {
+			options = append(options, context_menu.ContextMenuOption{
+				Label: "Open in terrain editor",
+				Call: func() {
+					w.ed.Events().OnRequestOpenTerrain.Execute(id)
+				},
+			})
+		}
+	}
 	w.ed.BlurInterface()
 	context_menu.Show(w.Host, options, w.Host.Window.Cursor.ScreenPosition(), w.ed.FocusInterface)
+}
+
+func (cui *WorkspaceContentUI) toggleMeshEntry(e *document.Element) {
+	defer tracing.NewRegion("WorkspaceContentUI.toggleMeshEntry").End()
+	parent := e.Parent.Value()
+	if parent == nil {
+		return
+	}
+	id, key := stageContentEntryRef(parent)
+	if id == "" || key != "" {
+		return
+	}
+	expanded := parent.Attribute("data-expanded") == "true"
+	if expanded {
+		parent.SetAttribute("data-expanded", "false")
+		e.InnerLabel().SetText("+")
+	} else {
+		parent.SetAttribute("data-expanded", "true")
+		e.InnerLabel().SetText("-")
+	}
+	cui.runFilter()
+}
+
+func stageContentEntryRef(e *document.Element) (string, string) {
+	id := e.Attribute("data-content-id")
+	if id == "" {
+		id = e.Attribute("id")
+	}
+	return id, e.Attribute("data-mesh-key")
+}
+
+func meshConfigSubmesh(cfg *content_database.MeshConfig, key string) (content_database.MeshSubmeshConfig, bool) {
+	if cfg == nil {
+		return content_database.MeshSubmeshConfig{}, false
+	}
+	for i := range cfg.Submeshes {
+		if cfg.Submeshes[i].Key == key {
+			return cfg.Submeshes[i], true
+		}
+	}
+	return content_database.MeshSubmeshConfig{}, false
+}
+
+func meshSubmeshes(cfg *content_database.MeshConfig) []content_database.MeshSubmeshConfig {
+	if cfg == nil || len(cfg.Submeshes) <= 1 {
+		return nil
+	}
+	out := make([]content_database.MeshSubmeshConfig, 0, len(cfg.Submeshes))
+	for i := range cfg.Submeshes {
+		if !cfg.Submeshes[i].Missing {
+			out = append(out, cfg.Submeshes[i])
+		}
+	}
+	if len(out) <= 1 {
+		return nil
+	}
+	return out
+}
+
+func stageSubmeshElementId(id, key string) string {
+	replacer := strings.NewReplacer("#", "_", "=", "_", "&", "_", "?", "_", "/", "_", "\\", "_", ":", "_", " ", "_")
+	return id + "__mesh__" + replacer.Replace(key)
 }
 
 func (cui *WorkspaceContentUI) refreshFilterOnContentChange() {
@@ -475,8 +675,8 @@ func (cui *WorkspaceContentUI) handleNewFilterTag(newTag string) {
 	w := cui.workspace.Value()
 	w.pageData.Tags[newTag]++
 
-	tagBtnElms := w.Doc.GetElementsByClass("filterBtn")[0]
-	newFilterBtn := w.Doc.DuplicateElement(tagBtnElms)
+	tagBtnElms := cui.doc.GetElementsByClass("filterBtn")[0]
+	newFilterBtn := cui.doc.DuplicateElement(tagBtnElms)
 
 	newFilterBtn.SetAttribute("data-tag", newTag)
 	newFilterBtn.SetAttribute("group", "tag")
@@ -489,10 +689,10 @@ func (cui *WorkspaceContentUI) handleTagNoLongerInUse(removedTag string) {
 	w := cui.workspace.Value()
 	delete(w.pageData.Tags, removedTag)
 
-	tagElms := w.Doc.GetElementsByClass("filterBtn")
+	tagElms := cui.doc.GetElementsByClass("filterBtn")
 	for _, elm := range tagElms {
 		if elm.Attribute("data-tag") == removedTag {
-			w.Doc.RemoveElement(elm)
+			cui.doc.RemoveElement(elm)
 			break
 		}
 	}

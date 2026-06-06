@@ -1,49 +1,20 @@
 /******************************************************************************/
 /* html_element.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package document
 
 import (
-	"kaiju/engine"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/ui"
-	"kaiju/matrix"
 	"slices"
 	"strings"
 	"weak"
+
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/matrix"
 
 	"golang.org/x/net/html"
 )
@@ -95,6 +66,15 @@ func (e *Element) SetAttribute(key, value string) {
 				Key: key,
 				Val: value,
 			})
+		}
+	}
+}
+
+func (e *Element) RemoveAttribute(key string) {
+	for i := range e.attr {
+		if e.attr[i].Key == key {
+			e.attr = slices.Delete(e.attr, i, i+1)
+			return
 		}
 	}
 }
@@ -164,6 +144,10 @@ func (e *Element) IsInput() bool {
 	return e.Data == "input"
 }
 
+func (e *Element) IsTextArea() bool {
+	return e.Data == "textarea"
+}
+
 func (e *Element) IsImage() bool {
 	return e.Data == "img"
 }
@@ -173,7 +157,12 @@ func (e *Element) IsSelect() bool {
 }
 
 func (e *Element) IsSelectOption() bool {
-	return e.Data == "option"
+	// Must be an <option> ELEMENT, not a text node whose content happens to be
+	// the word "option" (html.Node stores tag name and text in the same .Data
+	// field). Misclassifying such text skipped its Label UI — leaving the label
+	// blank and nil-dereferencing when the subtree is cloned (e.g. a popover row
+	// proto whose label text is "option").
+	return e.Type == html.ElementNode && e.Data == "option"
 }
 
 func NewHTML(htmlStr string) *Element {
@@ -254,6 +243,15 @@ func (e *Element) Attribute(key string) string {
 	return ""
 }
 
+func (e *Element) HasAttribute(key string) bool {
+	for i := range e.attr {
+		if e.attr[i].Key == key {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Element) FindElementById(id string) *Element {
 	if e.Attribute("id") == id {
 		return e
@@ -309,17 +307,27 @@ func (e *Element) Clone(parent *Element) *Element {
 		elm.Parent = weak.Make(parent)
 	}
 	var eParent *engine.Entity
-	if parent != nil {
+	if parent != nil && parent.UI != nil {
 		eParent = parent.UI.Entity()
 	}
-	elm.UI = e.UI.Clone(eParent)
-	if !elm.UI.IsType(ui.ElementTypeLabel) {
-		elm.UIPanel = elm.UI.ToPanel()
+	// Some elements intentionally have no UI (createUIElement returns early for
+	// select options), so mirror that here instead of nil-dereferencing e.UI /
+	// elm.UI when cloning a subtree that contains one (e.g. the MultiSelect
+	// popover rows). Children are still cloned so any UI-bearing descendants are
+	// reproduced.
+	if e.UI != nil {
+		elm.UI = e.UI.Clone(eParent)
+		if !elm.UI.IsType(ui.ElementTypeLabel) {
+			elm.UIPanel = elm.UI.ToPanel()
+		}
 	}
 	elm.Children = make([]*Element, 0, len(e.Children))
 	for i := range e.Children {
 		e.Children[i].Clone(elm)
 	}
 	elm.Stylizer = e.Stylizer.clone(elm)
+	if elm.UI != nil {
+		elm.UI.Layout().Stylizer = &elm.Stylizer
+	}
 	return elm
 }

@@ -1,46 +1,17 @@
 /******************************************************************************/
 /* vulkan_string_mappings.go                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
-	"kaiju/klib"
-	vk "kaiju/rendering/vulkan"
-	"kaiju/rendering/vulkan_const"
 	"log/slog"
+
+	"kaijuengine.com/klib"
+	vk "kaijuengine.com/rendering/vulkan"
+	"kaijuengine.com/rendering/vulkan_const"
 )
 
 const (
@@ -413,100 +384,100 @@ var (
 		"Clockwise":        vulkan_const.FrontFaceClockwise,
 		"CounterClockwise": vulkan_const.FrontFaceCounterClockwise,
 	}
-	StringVkSampleCountFlagBits = map[string]vulkan_const.SampleCountFlagBits{
-		swapChainSampleCountKey: vulkan_const.SampleCountFlagBitsMaxEnum,
-		"1Bit":                  vulkan_const.SampleCount1Bit,
-		"2Bit":                  vulkan_const.SampleCount2Bit,
-		"4Bit":                  vulkan_const.SampleCount4Bit,
-		"8Bit":                  vulkan_const.SampleCount8Bit,
-		"16Bit":                 vulkan_const.SampleCount16Bit,
-		"32Bit":                 vulkan_const.SampleCount32Bit,
-		"64Bit":                 vulkan_const.SampleCount64Bit,
+	StringVkSampleCountFlagBits = map[string]GPUSampleCountFlags{
+		swapChainSampleCountKey: GPUSampleSwapChainCount,
+		"1Bit":                  GPUSampleCount1Bit,
+		"2Bit":                  GPUSampleCount2Bit,
+		"4Bit":                  GPUSampleCount4Bit,
+		"8Bit":                  GPUSampleCount8Bit,
+		"16Bit":                 GPUSampleCount16Bit,
+		"32Bit":                 GPUSampleCount32Bit,
+		"64Bit":                 GPUSampleCount64Bit,
 	}
 	StringVkPatchControlPoints = map[string]uint32{
 		"Lines":     2,
 		"Triangles": 3,
 		"Quads":     4,
 	}
-	StringVkAttachmentLoadOp = map[string]vulkan_const.AttachmentLoadOp{
-		"Load":     vulkan_const.AttachmentLoadOpLoad,
-		"Clear":    vulkan_const.AttachmentLoadOpClear,
-		"DontCare": vulkan_const.AttachmentLoadOpDontCare,
+	StringVkAttachmentLoadOp = map[string]GPUAttachmentLoadOp{
+		"Load":     GPUAttachmentLoadOpLoad,
+		"Clear":    GPUAttachmentLoadOpClear,
+		"DontCare": GPUAttachmentLoadOpDontCare,
 	}
-	StringVkAttachmentStoreOp = map[string]vulkan_const.AttachmentStoreOp{
-		"Store":    vulkan_const.AttachmentStoreOpStore,
-		"DontCare": vulkan_const.AttachmentStoreOpDontCare,
+	StringVkAttachmentStoreOp = map[string]GPUAttachmentStoreOp{
+		"Store":    GPUAttachmentStoreOpStore,
+		"DontCare": GPUAttachmentStoreOpDontCare,
 	}
-	StringVkImageLayout = map[string]vulkan_const.ImageLayout{
-		"Undefined":                             vulkan_const.ImageLayoutUndefined,
-		"General":                               vulkan_const.ImageLayoutGeneral,
-		"ColorAttachmentOptimal":                vulkan_const.ImageLayoutColorAttachmentOptimal,
-		"DepthStencilAttachmentOptimal":         vulkan_const.ImageLayoutDepthStencilAttachmentOptimal,
-		"DepthStencilReadOnlyOptimal":           vulkan_const.ImageLayoutDepthStencilReadOnlyOptimal,
-		"ShaderReadOnlyOptimal":                 vulkan_const.ImageLayoutShaderReadOnlyOptimal,
-		"TransferSrcOptimal":                    vulkan_const.ImageLayoutTransferSrcOptimal,
-		"TransferDstOptimal":                    vulkan_const.ImageLayoutTransferDstOptimal,
-		"Preinitialized":                        vulkan_const.ImageLayoutPreinitialized,
-		"DepthReadOnlyStencilAttachmentOptimal": vulkan_const.ImageLayoutDepthReadOnlyStencilAttachmentOptimal,
-		"DepthAttachmentStencilReadOnlyOptimal": vulkan_const.ImageLayoutDepthAttachmentStencilReadOnlyOptimal,
-		"PresentSrc":                            vulkan_const.ImageLayoutPresentSrc,
-		"SharedPresent":                         vulkan_const.ImageLayoutSharedPresent,
-		"ShadingRateOptimalNv":                  vulkan_const.ImageLayoutShadingRateOptimalNv,
+	StringVkImageLayout = map[string]GPUImageLayout{
+		"Undefined":                             GPUImageLayoutUndefined,
+		"General":                               GPUImageLayoutGeneral,
+		"ColorAttachmentOptimal":                GPUImageLayoutColorAttachmentOptimal,
+		"DepthStencilAttachmentOptimal":         GPUImageLayoutDepthStencilAttachmentOptimal,
+		"DepthStencilReadOnlyOptimal":           GPUImageLayoutDepthStencilReadOnlyOptimal,
+		"ShaderReadOnlyOptimal":                 GPUImageLayoutShaderReadOnlyOptimal,
+		"TransferSrcOptimal":                    GPUImageLayoutTransferSrcOptimal,
+		"TransferDstOptimal":                    GPUImageLayoutTransferDstOptimal,
+		"Preinitialized":                        GPUImageLayoutPreinitialized,
+		"DepthReadOnlyStencilAttachmentOptimal": GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		"DepthAttachmentStencilReadOnlyOptimal": GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		"PresentSrc":                            GPUImageLayoutPresentSrc,
+		"SharedPresent":                         GPUImageLayoutSharedPresent,
+		"ShadingRateOptimalNv":                  GPUImageLayoutShadingRateOptimalNv,
 	}
-	StringVkPipelineStageFlagBits = map[string]vulkan_const.PipelineStageFlagBits{
-		"TopOfPipeBit":                    vulkan_const.PipelineStageTopOfPipeBit,
-		"DrawIndirectBit":                 vulkan_const.PipelineStageDrawIndirectBit,
-		"VertexInputBit":                  vulkan_const.PipelineStageVertexInputBit,
-		"VertexShaderBit":                 vulkan_const.PipelineStageVertexShaderBit,
-		"TessellationControlShaderBit":    vulkan_const.PipelineStageTessellationControlShaderBit,
-		"TessellationEvaluationShaderBit": vulkan_const.PipelineStageTessellationEvaluationShaderBit,
-		"GeometryShaderBit":               vulkan_const.PipelineStageGeometryShaderBit,
-		"FragmentShaderBit":               vulkan_const.PipelineStageFragmentShaderBit,
-		"EarlyFragmentTestsBit":           vulkan_const.PipelineStageEarlyFragmentTestsBit,
-		"LateFragmentTestsBit":            vulkan_const.PipelineStageLateFragmentTestsBit,
-		"ColorAttachmentOutputBit":        vulkan_const.PipelineStageColorAttachmentOutputBit,
-		"ComputeShaderBit":                vulkan_const.PipelineStageComputeShaderBit,
-		"TransferBit":                     vulkan_const.PipelineStageTransferBit,
-		"BottomOfPipeBit":                 vulkan_const.PipelineStageBottomOfPipeBit,
-		"HostBit":                         vulkan_const.PipelineStageHostBit,
-		"AllGraphicsBit":                  vulkan_const.PipelineStageAllGraphicsBit,
-		"AllCommandsBit":                  vulkan_const.PipelineStageAllCommandsBit,
-		"TransformFeedbackBit":            vulkan_const.PipelineStageTransformFeedbackBit,
-		"ConditionalRenderingBit":         vulkan_const.PipelineStageConditionalRenderingBit,
-		"CommandProcessBitNvx":            vulkan_const.PipelineStageCommandProcessBitNvx,
-		"ShadingRateImageBitNv":           vulkan_const.PipelineStageShadingRateImageBitNv,
-		"RaytracingBitNvx":                vulkan_const.PipelineStageRaytracingBitNvx,
-		"TaskShaderBitNv":                 vulkan_const.PipelineStageTaskShaderBitNv,
-		"MeshShaderBitNv":                 vulkan_const.PipelineStageMeshShaderBitNv,
+	StringVkPipelineStageFlagBits = map[string]GPUPipelineStageFlags{
+		"TopOfPipeBit":                    GPUPipelineStageTopOfPipeBit,
+		"DrawIndirectBit":                 GPUPipelineStageDrawIndirectBit,
+		"VertexInputBit":                  GPUPipelineStageVertexInputBit,
+		"VertexShaderBit":                 GPUPipelineStageVertexShaderBit,
+		"TessellationControlShaderBit":    GPUPipelineStageTessellationControlShaderBit,
+		"TessellationEvaluationShaderBit": GPUPipelineStageTessellationEvaluationShaderBit,
+		"GeometryShaderBit":               GPUPipelineStageGeometryShaderBit,
+		"FragmentShaderBit":               GPUPipelineStageFragmentShaderBit,
+		"EarlyFragmentTestsBit":           GPUPipelineStageEarlyFragmentTestsBit,
+		"LateFragmentTestsBit":            GPUPipelineStageLateFragmentTestsBit,
+		"ColorAttachmentOutputBit":        GPUPipelineStageColorAttachmentOutputBit,
+		"ComputeShaderBit":                GPUPipelineStageComputeShaderBit,
+		"TransferBit":                     GPUPipelineStageTransferBit,
+		"BottomOfPipeBit":                 GPUPipelineStageBottomOfPipeBit,
+		"HostBit":                         GPUPipelineStageHostBit,
+		"AllGraphicsBit":                  GPUPipelineStageAllGraphicsBit,
+		"AllCommandsBit":                  GPUPipelineStageAllCommandsBit,
+		"TransformFeedbackBit":            GPUPipelineStageTransformFeedbackBit,
+		"ConditionalRenderingBit":         GPUPipelineStageConditionalRenderingBit,
+		"CommandProcessBitNvx":            GPUPipelineStageCommandProcessBitNvx,
+		"ShadingRateImageBitNv":           GPUPipelineStageShadingRateImageBitNv,
+		"RaytracingBitNvx":                GPUPipelineStageRaytracingBitNvx,
+		"TaskShaderBitNv":                 GPUPipelineStageTaskShaderBitNv,
+		"MeshShaderBitNv":                 GPUPipelineStageMeshShaderBitNv,
 	}
-	StringVkAccessFlagBits = map[string]vulkan_const.AccessFlagBits{
-		"IndirectCommandReadBit":            vulkan_const.AccessIndirectCommandReadBit,
-		"IndexReadBit":                      vulkan_const.AccessIndexReadBit,
-		"VertexAttributeReadBit":            vulkan_const.AccessVertexAttributeReadBit,
-		"UniformReadBit":                    vulkan_const.AccessUniformReadBit,
-		"InputAttachmentReadBit":            vulkan_const.AccessInputAttachmentReadBit,
-		"ShaderReadBit":                     vulkan_const.AccessShaderReadBit,
-		"ShaderWriteBit":                    vulkan_const.AccessShaderWriteBit,
-		"ColorAttachmentReadBit":            vulkan_const.AccessColorAttachmentReadBit,
-		"ColorAttachmentWriteBit":           vulkan_const.AccessColorAttachmentWriteBit,
-		"DepthStencilAttachmentReadBit":     vulkan_const.AccessDepthStencilAttachmentReadBit,
-		"DepthStencilAttachmentWriteBit":    vulkan_const.AccessDepthStencilAttachmentWriteBit,
-		"TransferReadBit":                   vulkan_const.AccessTransferReadBit,
-		"TransferWriteBit":                  vulkan_const.AccessTransferWriteBit,
-		"HostReadBit":                       vulkan_const.AccessHostReadBit,
-		"HostWriteBit":                      vulkan_const.AccessHostWriteBit,
-		"MemoryReadBit":                     vulkan_const.AccessMemoryReadBit,
-		"MemoryWriteBit":                    vulkan_const.AccessMemoryWriteBit,
-		"TransformFeedbackWriteBit":         vulkan_const.AccessTransformFeedbackWriteBit,
-		"TransformFeedbackCounterReadBit":   vulkan_const.AccessTransformFeedbackCounterReadBit,
-		"TransformFeedbackCounterWriteBit":  vulkan_const.AccessTransformFeedbackCounterWriteBit,
-		"ConditionalRenderingReadBit":       vulkan_const.AccessConditionalRenderingReadBit,
-		"CommandProcessReadBitNvx":          vulkan_const.AccessCommandProcessReadBitNvx,
-		"CommandProcessWriteBitNvx":         vulkan_const.AccessCommandProcessWriteBitNvx,
-		"ColorAttachmentReadNoncoherentBit": vulkan_const.AccessColorAttachmentReadNoncoherentBit,
-		"ShadingRateImageReadBitNv":         vulkan_const.AccessShadingRateImageReadBitNv,
-		"AccelerationStructureReadBitNvx":   vulkan_const.AccessAccelerationStructureReadBitNvx,
-		"AccelerationStructureWriteBitNvx":  vulkan_const.AccessAccelerationStructureWriteBitNvx,
+	StringVkAccessFlagBits = map[string]GPUAccessFlags{
+		"IndirectCommandReadBit":            GPUAccessIndirectCommandReadBit,
+		"IndexReadBit":                      GPUAccessIndexReadBit,
+		"VertexAttributeReadBit":            GPUAccessVertexAttributeReadBit,
+		"UniformReadBit":                    GPUAccessUniformReadBit,
+		"InputAttachmentReadBit":            GPUAccessInputAttachmentReadBit,
+		"ShaderReadBit":                     GPUAccessShaderReadBit,
+		"ShaderWriteBit":                    GPUAccessShaderWriteBit,
+		"ColorAttachmentReadBit":            GPUAccessColorAttachmentReadBit,
+		"ColorAttachmentWriteBit":           GPUAccessColorAttachmentWriteBit,
+		"DepthStencilAttachmentReadBit":     GPUAccessDepthStencilAttachmentReadBit,
+		"DepthStencilAttachmentWriteBit":    GPUAccessDepthStencilAttachmentWriteBit,
+		"TransferReadBit":                   GPUAccessTransferReadBit,
+		"TransferWriteBit":                  GPUAccessTransferWriteBit,
+		"HostReadBit":                       GPUAccessHostReadBit,
+		"HostWriteBit":                      GPUAccessHostWriteBit,
+		"MemoryReadBit":                     GPUAccessMemoryReadBit,
+		"MemoryWriteBit":                    GPUAccessMemoryWriteBit,
+		"TransformFeedbackWriteBit":         GPUAccessTransformFeedbackWriteBit,
+		"TransformFeedbackCounterReadBit":   GPUAccessTransformFeedbackCounterReadBit,
+		"TransformFeedbackCounterWriteBit":  GPUAccessTransformFeedbackCounterWriteBit,
+		"ConditionalRenderingReadBit":       GPUAccessConditionalRenderingReadBit,
+		"CommandProcessReadBitNvx":          GPUAccessCommandProcessReadBitNvx,
+		"CommandProcessWriteBitNvx":         GPUAccessCommandProcessWriteBitNvx,
+		"ColorAttachmentReadNoncoherentBit": GPUAccessColorAttachmentReadNoncoherentBit,
+		"ShadingRateImageReadBitNv":         GPUAccessShadingRateImageReadBitNv,
+		"AccelerationStructureReadBitNvx":   GPUAccessAccelerationStructureReadBitNvx,
+		"AccelerationStructureWriteBitNvx":  GPUAccessAccelerationStructureWriteBitNvx,
 	}
 	StringVkShaderStageFlagBits = map[string]vulkan_const.ShaderStageFlagBits{
 		"VertexBit":                 vulkan_const.ShaderStageVertexBit,
@@ -527,15 +498,15 @@ var (
 		"MeshBitNv":                 vulkan_const.ShaderStageMeshBitNv,
 		"FlagBitsMaxEnum":           vulkan_const.ShaderStageFlagBitsMaxEnum,
 	}
-	StringVkPipelineBindPoint = map[string]vulkan_const.PipelineBindPoint{
-		"Graphics":      vulkan_const.PipelineBindPointGraphics,
-		"Compute":       vulkan_const.PipelineBindPointCompute,
-		"RaytracingNvx": vulkan_const.PipelineBindPointRaytracingNvx,
+	StringVkPipelineBindPoint = map[string]GPUPipelineBindPoint{
+		"Graphics":      GPUPipelineBindPointGraphics,
+		"Compute":       GPUPipelineBindPointCompute,
+		"RaytracingNvx": GPUPipelineBindPointRaytracingNvx,
 	}
-	StringVkDependencyFlagBits = map[string]vulkan_const.DependencyFlagBits{
-		"ByRegionBit":    vulkan_const.DependencyByRegionBit,
-		"DeviceGroupBit": vulkan_const.DependencyDeviceGroupBit,
-		"ViewLocalBit":   vulkan_const.DependencyViewLocalBit,
+	StringVkDependencyFlagBits = map[string]GPUDependencyFlags{
+		"ByRegionBit":    GPUDependencyByRegionBit,
+		"DeviceGroupBit": GPUDependencyDeviceGroupBit,
+		"ViewLocalBit":   GPUDependencyViewLocalBit,
 	}
 	StringVkColorComponentFlagBits = map[string]vulkan_const.ColorComponentFlagBits{
 		"R": vulkan_const.ColorComponentRBit,
@@ -551,47 +522,47 @@ var (
 		"DispatchBase":                vulkan_const.PipelineCreateDispatchBase,
 		"DeferCompileBitNvx":          vulkan_const.PipelineCreateDeferCompileBitNvx,
 	}
-	StringVkImageTiling = map[string]vulkan_const.ImageTiling{
-		"Optimal":           vulkan_const.ImageTilingOptimal,
-		"Linear":            vulkan_const.ImageTilingLinear,
-		"DrmFormatModifier": vulkan_const.ImageTilingDrmFormatModifier,
+	StringVkImageTiling = map[string]GPUImageTiling{
+		"Optimal":           GPUImageTilingOptimal,
+		"Linear":            GPUImageTilingLinear,
+		"DrmFormatModifier": GPUImageTilingDrmFormatModifier,
 	}
-	StringVkFilter = map[string]vulkan_const.Filter{
-		"Nearest":  vulkan_const.FilterNearest,
-		"Linear":   vulkan_const.FilterLinear,
-		"CubicImg": vulkan_const.FilterCubicImg,
+	StringVkFilter = map[string]GPUFilter{
+		"Nearest":  GPUFilterNearest,
+		"Linear":   GPUFilterLinear,
+		"CubicImg": GPUFilterCubicImg,
 	}
-	StringVkImageUsageFlagBits = map[string]vulkan_const.ImageUsageFlagBits{
-		"TransferSrcBit":            vulkan_const.ImageUsageTransferSrcBit,
-		"TransferDstBit":            vulkan_const.ImageUsageTransferDstBit,
-		"SampledBit":                vulkan_const.ImageUsageSampledBit,
-		"StorageBit":                vulkan_const.ImageUsageStorageBit,
-		"ColorAttachmentBit":        vulkan_const.ImageUsageColorAttachmentBit,
-		"DepthStencilAttachmentBit": vulkan_const.ImageUsageDepthStencilAttachmentBit,
-		"TransientAttachmentBit":    vulkan_const.ImageUsageTransientAttachmentBit,
-		"InputAttachmentBit":        vulkan_const.ImageUsageInputAttachmentBit,
-		"ShadingRateImageBitNv":     vulkan_const.ImageUsageShadingRateImageBitNv,
+	StringVkImageUsageFlagBits = map[string]GPUImageUsageFlags{
+		"TransferSrcBit":            GPUImageUsageTransferSrcBit,
+		"TransferDstBit":            GPUImageUsageTransferDstBit,
+		"SampledBit":                GPUImageUsageSampledBit,
+		"StorageBit":                GPUImageUsageStorageBit,
+		"ColorAttachmentBit":        GPUImageUsageColorAttachmentBit,
+		"DepthStencilAttachmentBit": GPUImageUsageDepthStencilAttachmentBit,
+		"TransientAttachmentBit":    GPUImageUsageTransientAttachmentBit,
+		"InputAttachmentBit":        GPUImageUsageInputAttachmentBit,
+		"ShadingRateImageBitNv":     GPUImageUsageShadingRateImageBitNv,
 	}
-	StringVkMemoryPropertyFlagBits = map[string]vulkan_const.MemoryPropertyFlagBits{
-		"DeviceLocalBit":     vulkan_const.MemoryPropertyDeviceLocalBit,
-		"HostVisibleBit":     vulkan_const.MemoryPropertyHostVisibleBit,
-		"HostCoherentBit":    vulkan_const.MemoryPropertyHostCoherentBit,
-		"HostCachedBit":      vulkan_const.MemoryPropertyHostCachedBit,
-		"LazilyAllocatedBit": vulkan_const.MemoryPropertyLazilyAllocatedBit,
-		"ProtectedBit":       vulkan_const.MemoryPropertyProtectedBit,
+	StringVkMemoryPropertyFlagBits = map[string]GPUMemoryPropertyFlags{
+		"DeviceLocalBit":     GPUMemoryPropertyDeviceLocalBit,
+		"HostVisibleBit":     GPUMemoryPropertyHostVisibleBit,
+		"HostCoherentBit":    GPUMemoryPropertyHostCoherentBit,
+		"HostCachedBit":      GPUMemoryPropertyHostCachedBit,
+		"LazilyAllocatedBit": GPUMemoryPropertyLazilyAllocatedBit,
+		"ProtectedBit":       GPUMemoryPropertyProtectedBit,
 	}
-	StringVkImageAspectFlagBits = map[string]vulkan_const.ImageAspectFlagBits{
-		"ColorBit":        vulkan_const.ImageAspectColorBit,
-		"DepthBit":        vulkan_const.ImageAspectDepthBit,
-		"StencilBit":      vulkan_const.ImageAspectStencilBit,
-		"MetadataBit":     vulkan_const.ImageAspectMetadataBit,
-		"Plane0Bit":       vulkan_const.ImageAspectPlane0Bit,
-		"Plane1Bit":       vulkan_const.ImageAspectPlane1Bit,
-		"Plane2Bit":       vulkan_const.ImageAspectPlane2Bit,
-		"MemoryPlane0Bit": vulkan_const.ImageAspectMemoryPlane0Bit,
-		"MemoryPlane1Bit": vulkan_const.ImageAspectMemoryPlane1Bit,
-		"MemoryPlane2Bit": vulkan_const.ImageAspectMemoryPlane2Bit,
-		"MemoryPlane3Bit": vulkan_const.ImageAspectMemoryPlane3Bit,
+	StringVkImageAspectFlagBits = map[string]GPUImageAspectFlags{
+		"ColorBit":        GPUImageAspectColorBit,
+		"DepthBit":        GPUImageAspectDepthBit,
+		"StencilBit":      GPUImageAspectStencilBit,
+		"MetadataBit":     GPUImageAspectMetadataBit,
+		"Plane0Bit":       GPUImageAspectPlane0Bit,
+		"Plane1Bit":       GPUImageAspectPlane1Bit,
+		"Plane2Bit":       GPUImageAspectPlane2Bit,
+		"MemoryPlane0Bit": GPUImageAspectMemoryPlane0Bit,
+		"MemoryPlane1Bit": GPUImageAspectMemoryPlane1Bit,
+		"MemoryPlane2Bit": GPUImageAspectMemoryPlane2Bit,
+		"MemoryPlane3Bit": GPUImageAspectMemoryPlane3Bit,
 	}
 	StringVkMap = map[string]any{
 		"StringVkFormat":                 StringVkFormat,
@@ -631,7 +602,7 @@ func boolToVkBool(val bool) vk.Bool32 {
 	}
 }
 
-func attachmentLoadOpToVK(val string) vulkan_const.AttachmentLoadOp {
+func attachmentLoadOpToGpu(val string) GPUAttachmentLoadOp {
 	if res, ok := StringVkAttachmentLoadOp[val]; ok {
 		return res
 	} else if val != "" {
@@ -640,7 +611,7 @@ func attachmentLoadOpToVK(val string) vulkan_const.AttachmentLoadOp {
 	return 0
 }
 
-func attachmentStoreOpToVK(val string) vulkan_const.AttachmentStoreOp {
+func attachmentStoreOpToGpu(val string) GPUAttachmentStoreOp {
 	if res, ok := StringVkAttachmentStoreOp[val]; ok {
 		return res
 	} else if val != "" {
@@ -649,7 +620,7 @@ func attachmentStoreOpToVK(val string) vulkan_const.AttachmentStoreOp {
 	return 0
 }
 
-func imageLayoutToVK(val string) vulkan_const.ImageLayout {
+func imageLayoutToGpu(val string) GPUImageLayout {
 	if res, ok := StringVkImageLayout[val]; ok {
 		return res
 	} else if val != "" {
@@ -658,9 +629,9 @@ func imageLayoutToVK(val string) vulkan_const.ImageLayout {
 	return 0
 }
 
-func sampleCountToVK(val string, vr *Vulkan) vulkan_const.SampleCountFlagBits {
+func sampleCountToGpu(val string, device *GPUPhysicalDevice) GPUSampleCountFlags {
 	if val == swapChainSampleCountKey {
-		return vr.msaaSamples
+		return device.MaxUsableSampleCount()
 	} else if res, ok := StringVkSampleCountFlagBits[val]; ok {
 		return res
 	} else if val != "" {
@@ -669,13 +640,16 @@ func sampleCountToVK(val string, vr *Vulkan) vulkan_const.SampleCountFlagBits {
 	return 0
 }
 
-func formatToVK(val string, vr *Vulkan) vulkan_const.Format {
+func formatToGpu(val string, device *GPUDevice) GPUFormat {
 	if val == detectDepthFormatKey {
-		return vr.findDepthFormat()
+		return device.PhysicalDevice.FindSupportedFormat(
+			depthFormatCandidates(), GPUImageTilingOptimal, GPUFormatFeatureDepthStencilAttachmentBit)
 	} else if val == swapChainFormatKey {
-		return vr.swapImages[0].Format
+		return device.LogicalDevice.SwapChain.Images[0].Format
 	} else if res, ok := StringVkFormat[val]; ok {
-		return res
+		var fmt GPUFormat
+		fmt.fromVulkan(res)
+		return fmt
 	} else if val != "" {
 		slog.Warn("failed to convert format string", "string", val)
 	}
@@ -718,7 +692,7 @@ func blendOpToVK(val string) vulkan_const.BlendOp {
 	return 0
 }
 
-func imageTilingToVK(val string) vulkan_const.ImageTiling {
+func imageTilingToGpu(val string) GPUImageTiling {
 	if res, ok := StringVkImageTiling[val]; ok {
 		return res
 	} else if val != "" {
@@ -727,7 +701,7 @@ func imageTilingToVK(val string) vulkan_const.ImageTiling {
 	return 0
 }
 
-func filterToVK(val string) vulkan_const.Filter {
+func filterToGpu(val string) GPUFilter {
 	if res, ok := StringVkFilter[val]; ok {
 		return res
 	} else if val != "" {
@@ -736,7 +710,7 @@ func filterToVK(val string) vulkan_const.Filter {
 	return 0
 }
 
-func pipelineBindPointToVK(val string) vulkan_const.PipelineBindPoint {
+func pipelineBindPointToGpu(val string) GPUPipelineBindPoint {
 	if res, ok := StringVkPipelineBindPoint[val]; ok {
 		return res
 	} else if val != "" {
@@ -757,32 +731,32 @@ func flagsToVK[B klib.Integer, F klib.Integer](mapping map[string]B, vals []stri
 	return F(mask)
 }
 
-func pipelineStageFlagsToVK(vals []string) vk.PipelineStageFlags {
-	return flagsToVK[vulkan_const.PipelineStageFlagBits, vk.PipelineStageFlags](
+func pipelineStageFlagsToGpu(vals []string) GPUPipelineStageFlags {
+	return flagsToVK[GPUPipelineStageFlags, GPUPipelineStageFlags](
 		StringVkPipelineStageFlagBits, vals)
 }
 
-func accessFlagsToVK(vals []string) vk.AccessFlags {
-	return flagsToVK[vulkan_const.AccessFlagBits, vk.AccessFlags](
+func accessFlagsToGpu(vals []string) GPUAccessFlags {
+	return flagsToVK[GPUAccessFlags, GPUAccessFlags](
 		StringVkAccessFlagBits, vals)
 }
 
-func imageUsageFlagsToVK(vals []string) vk.ImageUsageFlags {
-	return flagsToVK[vulkan_const.ImageUsageFlagBits, vk.ImageUsageFlags](
+func imageUsageFlagsToGpu(vals []string) GPUImageUsageFlags {
+	return flagsToVK[GPUImageUsageFlags, GPUImageUsageFlags](
 		StringVkImageUsageFlagBits, vals)
 }
 
-func memoryPropertyFlagsToVK(vals []string) vk.MemoryPropertyFlags {
-	return flagsToVK[vulkan_const.MemoryPropertyFlagBits, vk.MemoryPropertyFlags](
+func memoryPropertyFlagsToGpu(vals []string) GPUMemoryPropertyFlags {
+	return flagsToVK[GPUMemoryPropertyFlags, GPUMemoryPropertyFlags](
 		StringVkMemoryPropertyFlagBits, vals)
 }
 
-func imageAspectFlagsToVK(vals []string) vk.ImageAspectFlags {
-	return flagsToVK[vulkan_const.ImageAspectFlagBits, vk.ImageAspectFlags](
+func imageAspectFlagsToGpu(vals []string) GPUImageAspectFlags {
+	return flagsToVK[GPUImageAspectFlags, GPUImageAspectFlags](
 		StringVkImageAspectFlagBits, vals)
 }
 
-func dependencyFlagsToVK(vals []string) vk.DependencyFlags {
-	return flagsToVK[vulkan_const.DependencyFlagBits, vk.DependencyFlags](
+func dependencyFlagsToGpu(vals []string) GPUDependencyFlags {
+	return flagsToVK[GPUDependencyFlags, GPUDependencyFlags](
 		StringVkDependencyFlagBits, vals)
 }

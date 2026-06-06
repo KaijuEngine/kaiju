@@ -1,42 +1,18 @@
 /******************************************************************************/
 /* controller.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package hid
 
-import "errors"
+import (
+	"errors"
+
+	"kaijuengine.com/matrix"
+)
+
+type ControllerButton uint8
 
 // Based off XBOX controller
 const (
@@ -44,7 +20,7 @@ const (
 )
 
 const (
-	ControllerButtonUp = iota
+	ControllerButtonUp ControllerButton = iota
 	ControllerButtonDown
 	ControllerButtonLeft
 	ControllerButtonRight
@@ -135,10 +111,11 @@ func (c *Controller) Disconnected(id int) {
 
 func (device *ControllerDevice) endUpdate() {
 	if device.id >= 0 {
-		for i := 0; i < ControllerButtonMax; i++ {
-			if device.buttons[i] == controllerButtonStateDown {
+		for i := ControllerButton(0); i < ControllerButtonMax; i++ {
+			switch device.buttons[i] {
+			case controllerButtonStateDown:
 				device.buttons[i] = controllerButtonStateHeld
-			} else if device.buttons[i] == controllerButtonStateUp {
+			case controllerButtonStateUp:
 				device.buttons[i] = controllerButtonStateIdle
 			}
 		}
@@ -156,7 +133,7 @@ func (c *Controller) EndUpdate() {
 
 // SetButtonDown sets the button down on the given controller. This is called
 // automatically by the system and should not be called by the end-developer
-func (c *Controller) SetButtonDown(id, button int) {
+func (c *Controller) SetButtonDown(id int, button ControllerButton) {
 	if c.devices[id].buttons[button] == controllerButtonStateIdle {
 		c.devices[id].buttons[button] = controllerButtonStateDown
 	}
@@ -164,7 +141,7 @@ func (c *Controller) SetButtonDown(id, button int) {
 
 // SetButtonUp sets the button up on the given controller. This is called
 // automatically by the system and should not be called by the end-developer
-func (c *Controller) SetButtonUp(id, button int) {
+func (c *Controller) SetButtonUp(id int, button ControllerButton) {
 	if c.devices[id].buttons[button] != controllerButtonStateIdle {
 		c.devices[id].buttons[button] = controllerButtonStateUp
 	}
@@ -173,6 +150,9 @@ func (c *Controller) SetButtonUp(id, button int) {
 // SetAxis sets the axis on the given controller. This is called
 // automatically by the system and should not be called by the end-developer
 func (c *Controller) SetAxis(id, stick int, axis float32) {
+	if matrix.IsNaN(axis) {
+		return
+	}
 	c.devices[id].axis[stick] = axis
 }
 
@@ -182,24 +162,24 @@ func (c *Controller) Axis(id, stick int) float32 {
 }
 
 // IsButtonUp returns true if the button is up
-func (c *Controller) IsButtonUp(id, button int) bool {
+func (c *Controller) IsButtonUp(id, button ControllerButton) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateUp
 }
 
 // IsButtonDown returns true if the button is down
-func (c *Controller) IsButtonDown(id, button int) bool {
+func (c *Controller) IsButtonDown(id, button ControllerButton) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateDown
 }
 
 // IsButtonHeld returns true if the button is held
-func (c *Controller) IsButtonHeld(id, button int) bool {
+func (c *Controller) IsButtonHeld(id, button ControllerButton) bool {
 	return c.devices[id].buttons[button] == controllerButtonStateHeld
 }
 
 // Reset will completely wipe the state of all controllers
 func (c *Controller) Reset() {
 	for i := 0; i < ControllerMaxDevices; i++ {
-		for j := 0; j < ControllerButtonMax; j++ {
+		for j := ControllerButton(0); j < ControllerButtonMax; j++ {
 			if c.devices[i].buttons[j] == controllerButtonStateDown ||
 				c.devices[i].buttons[j] == controllerButtonStateHeld {
 				c.devices[i].buttons[j] = controllerButtonStateUp

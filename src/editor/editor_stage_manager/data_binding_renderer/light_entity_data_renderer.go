@@ -1,53 +1,24 @@
 /******************************************************************************/
 /* light_data_binding_renderer.go                                             */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package data_binding_renderer
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/lighting"
-	"kaiju/engine_entity_data/engine_entity_data_light"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
+
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/lighting"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 func init() {
@@ -73,8 +44,10 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 		return
 	}
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
-	l := rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
-		host.AssetDatabase(), host.MaterialCache(), lightType)
+	var l rendering.Light
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		l = rendering.NewLight(device, host.AssetDatabase(), host.MaterialCache(), lightType)
+	})
 	l.SetPosition(target.Transform.WorldPosition())
 	l.SetDirection(target.Transform.Up().Negative())
 	l.SetAmbient(data.FieldValueByName("Ambient").(matrix.Vec3))
@@ -141,11 +114,15 @@ func (c *LightEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_m
 }
 
 func (c *LightEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
-	l := c.Lights[target]
+	l, ok := c.Lights[target]
+	if !ok || l.light == nil {
+		return
+	}
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	if l.light.Type() != lightType {
-		l.light.Light = rendering.NewLight(host.Window.Renderer.(*rendering.Vulkan),
-			host.AssetDatabase(), host.MaterialCache(), lightType)
+		host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			l.light.Light = rendering.NewLight(device, host.AssetDatabase(), host.MaterialCache(), lightType)
+		})
 	}
 	l.light.Light.SetPosition(l.light.Transform.WorldPosition())
 	l.light.Light.SetDirection(l.light.Transform.Up().Negative())
@@ -186,7 +163,7 @@ func (c *LightEntityDataRenderer) createLines(host *engine.Host, transform *matr
 		grid = rendering.NewMeshGrid(host.MeshCache(), key,
 			points, matrix.Color{1, 1, 1, 1})
 	}
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	gsd := sd.(*shader_data_registry.ShaderDataEdTransformWire)
 	gsd.Color = matrix.NewColor(1, 1, 1, 1)
 	host.Drawings.AddDrawing(rendering.Drawing{
@@ -194,6 +171,7 @@ func (c *LightEntityDataRenderer) createLines(host *engine.Host, transform *matr
 		Mesh:       grid,
 		ShaderData: gsd,
 		Transform:  transform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &host.Cameras.Primary,
 	})
 	return sd

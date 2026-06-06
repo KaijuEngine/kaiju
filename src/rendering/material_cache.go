@@ -1,64 +1,42 @@
 /******************************************************************************/
 /* material_cache.go                                                          */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
 	"encoding/json"
-	"kaiju/engine/assets"
-	"kaiju/platform/profiler/tracing"
+	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"weak"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type MaterialCache struct {
-	renderer       Renderer
+	device         *GPUDevice
 	assetDatabase  assets.Database
 	materials      map[string]*Material
+	deviceCall     func(func(*GPUDevice))
 	mutex          sync.Mutex
 	loadingPrepass bool
 }
 
-func NewMaterialCache(renderer Renderer, assetDatabase assets.Database) MaterialCache {
+func NewMaterialCache(device *GPUDevice, assetDatabase assets.Database) MaterialCache {
 	return MaterialCache{
-		renderer:      renderer,
+		device:        device,
 		assetDatabase: assetDatabase,
 		materials:     make(map[string]*Material),
 	}
+}
+
+func (m *MaterialCache) SetDeviceCall(call func(func(*GPUDevice))) {
+	m.deviceCall = call
 }
 
 func (m *MaterialCache) AddMaterial(material *Material) *Material {
@@ -71,6 +49,33 @@ func (m *MaterialCache) AddMaterial(material *Material) *Material {
 	} else {
 		return found
 	}
+}
+
+func (m *MaterialCache) RemoveMaterial(key string) {
+	defer tracing.NewRegion("MaterialCache.RemoveMaterial").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	delete(m.materials, key)
+}
+
+func (m *MaterialCache) ReplaceMaterial(key string) error {
+	defer tracing.NewRegion("MaterialCache.ReplaceMaterial").End()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if material, ok := m.materials[key]; ok {
+		mat, err := m.loadMaterial(key)
+		if err != nil {
+			return err
+		}
+		instances := material.Instances
+		for i := range instances {
+			material.Instances[i].Textures = slices.Clone(mat.Textures)
+		}
+		*material = *mat
+		material.Instances = instances
+		return nil
+	}
+	return fmt.Errorf("material with id '%s' not found", key)
 }
 
 func (m *MaterialCache) FindMaterial(key string) (*Material, bool) {
@@ -92,28 +97,9 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 		return material, nil
 	} else {
 		m.mutex.Unlock()
-		matStr, err := m.assetDatabase.ReadText(key)
+		material, err := m.loadMaterial(key)
 		if err != nil {
-			slog.Error("failed to load the material", "material", key, "error", err)
 			return nil, err
-		}
-		var materialData MaterialData
-		if err := json.Unmarshal([]byte(matStr), &materialData); err != nil {
-			slog.Error("failed to read the material", "material", key, "error", err)
-			return nil, err
-		}
-		material, err := materialData.Compile(m.assetDatabase, m.renderer)
-		if err != nil {
-			slog.Error("failed to compile the material", "material", key, "error", err)
-			return nil, err
-		}
-		if materialData.PrepassMaterial != "" {
-			prep, err := m.Material(materialData.PrepassMaterial)
-			if err != nil {
-				slog.Error("failed to create the material prepass", "prepass", materialData.PrepassMaterial, "error", err)
-				return nil, err
-			}
-			material.PrepassMaterial = weak.Make(prep)
 		}
 		material.Id = key
 		m.mutex.Lock()
@@ -126,7 +112,67 @@ func (m *MaterialCache) Material(key string) (*Material, error) {
 func (m *MaterialCache) Destroy() {
 	defer tracing.NewRegion("MaterialCache.Destroy").End()
 	for _, mat := range m.materials {
-		mat.Destroy(m.renderer)
+		mat.Destroy(m.device)
 	}
 	m.materials = make(map[string]*Material)
+}
+
+func (m *MaterialCache) loadMaterial(key string) (*Material, error) {
+	matStr, err := m.assetDatabase.ReadText(key)
+	if err != nil {
+		slog.Error("failed to load the material", "material", key, "error", err)
+		return nil, err
+	}
+	var materialData MaterialData
+	if err := json.Unmarshal([]byte(matStr), &materialData); err != nil {
+		slog.Error("failed to read the material", "material", key, "error", err)
+		return nil, err
+	}
+	material, err := m.compileMaterial(&materialData)
+	if err != nil {
+		slog.Error("failed to compile the material", "material", key, "error", err)
+		return nil, err
+	}
+	if materialData.PrepassMaterial != "" {
+		prep, err := m.Material(materialData.PrepassMaterial)
+		if err != nil {
+			slog.Error("failed to create the material prepass", "prepass", materialData.PrepassMaterial, "error", err)
+			return nil, err
+		}
+		material.PrepassMaterial = weak.Make(prep)
+	}
+	for modeName, materialKey := range materialData.ViewModeOverrides {
+		mode, ok := ParseRenderViewMode(modeName)
+		if !ok {
+			slog.Warn("ignoring invalid render view mode material override",
+				"material", key, "mode", modeName, "override", materialKey)
+			continue
+		}
+		var override *Material
+		if materialKey == key {
+			override = material
+		} else {
+			var err error
+			override, err = m.Material(materialKey)
+			if err != nil {
+				slog.Error("failed to load render view mode material override",
+					"material", key, "mode", modeName, "override", materialKey, "error", err)
+				return nil, err
+			}
+		}
+		material.SetRenderViewModeOverride(mode, override)
+	}
+	return material, nil
+}
+
+func (m *MaterialCache) compileMaterial(materialData *MaterialData) (*Material, error) {
+	if m.deviceCall == nil {
+		return materialData.Compile(m.assetDatabase, m.device)
+	}
+	var material *Material
+	var err error
+	m.deviceCall(func(device *GPUDevice) {
+		material, err = materialData.Compile(m.assetDatabase, device)
+	})
+	return material, err
 }

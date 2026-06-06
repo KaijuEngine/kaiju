@@ -1,55 +1,28 @@
 /******************************************************************************/
 /* stage_entity.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_manager
 
 import (
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/engine"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
 	"unsafe"
+
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 type StageEntity struct {
 	engine.Entity
 	StageData    StageEntityEditorData
+	PickID       uint32
 	dataBindings []*entity_data_binding.EntityDataEntry
 	isDeleted    bool
+	isLocked     bool
 }
 
 func EntityToStageEntity(e *engine.Entity) *StageEntity {
@@ -60,6 +33,15 @@ func EntityToStageEntity(e *engine.Entity) *StageEntity {
 }
 
 func (e *StageEntity) DataBindings() []*entity_data_binding.EntityDataEntry { return e.dataBindings }
+
+func (e *StageEntity) IsDeleted() bool { return e.isDeleted }
+func (e *StageEntity) Lock()           { e.SetLocked(true) }
+func (e *StageEntity) Unlock()         { e.SetLocked(false) }
+func (e *StageEntity) IsLocked() bool  { return e.isLocked }
+func (e *StageEntity) SetLocked(locked bool) {
+	e.isLocked = locked
+	e.StageData.Description.Locked = locked
+}
 
 func (e *StageEntity) DetachDataBinding(binding *entity_data_binding.EntityDataEntry) {
 	for i, b := range e.dataBindings {
@@ -125,7 +107,7 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 	for i := range mat.Textures {
 		e.StageData.Description.Textures[i] = mat.Textures[i].Key
 	}
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
 		Mesh:       mesh,

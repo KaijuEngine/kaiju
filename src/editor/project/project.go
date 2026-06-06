@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* project.go                                                                 */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package project
@@ -41,14 +11,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"kaiju/editor/codegen"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/assets/content_archive"
-	"kaiju/engine/stages"
-	"kaiju/engine/systems/events"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -56,6 +18,21 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+	"time"
+
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/assets/content_archive"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_particles"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type GameBuildMode int
@@ -226,7 +203,7 @@ func (p *Project) CompileRelease() {
 }
 
 // CompileGame will build all of the Go code for the project without launching
-// it. Internally, this will call #CompileDebug or #CompileRelease based on the
+// it. Internally, this will call [Project.CompileDebug] or [Project.CompileRelease] based on the
 // supplied buildMode.
 func (p *Project) CompileGame(buildMode GameBuildMode) {
 	switch buildMode {
@@ -243,8 +220,12 @@ func (p *Project) CompileGame(buildMode GameBuildMode) {
 // details.
 func (p *Project) CompileWithTags(tags ...string) {
 	defer tracing.NewRegion("Project.CompileWithTags").End()
+
 	for !p.isCompiling.CompareAndSwap(false, true) {
+		time.Sleep(time.Millisecond)
 	}
+	defer p.isCompiling.Store(false)
+
 	if err := p.fileSystem.WriteDataBindingRegistryInit(p.entityData); err == nil {
 		slog.Info("successfully created data binding init registry")
 	} else {
@@ -275,7 +256,6 @@ func (p *Project) CompileWithTags(tags ...string) {
 	} else {
 		slog.Info("project executable successfully compiled")
 	}
-	p.isCompiling.Store(false)
 }
 
 func (p *Project) packagePath() string {
@@ -301,14 +281,15 @@ func (p *Project) Package(reader content_archive.FileReader) error {
 	// TODO:  Needs to use a reference graph to determine all of the content
 	// needed rather than just dumping all content in here
 	list := p.cacheDatabase.List()
-	files := make([]content_archive.SourceContent, 0, len(list))
-	for i := range list {
-		relPath := content_database.ToContentPath(list[i].Path)
+	allReferencedContent := p.FindAllReferencedContentFromCache(list)
+	files := make([]content_archive.SourceContent, 0, len(allReferencedContent))
+	for i := range allReferencedContent {
+		relPath := content_database.ToContentPath(allReferencedContent[i].Path)
 		sc := content_archive.SourceContent{
-			Key:      list[i].Id(),
+			Key:      allReferencedContent[i].Id(),
 			FullPath: filepath.Join(p.fileSystem.FullPath(relPath)),
 		}
-		if s, ok := p.contentSerializers[list[i].Config.Type]; ok {
+		if s, ok := p.contentSerializers[allReferencedContent[i].Config.Type]; ok {
 			sc.CustomSerializer = s
 		}
 		files = append(files, sc)
@@ -381,12 +362,13 @@ func (p *Project) Run(args ...string) {
 		slog.Warn("failed to grab the stdout pipe, no logs will be read")
 		return
 	}
+
 	scanner := bufio.NewScanner(outPipe)
-	var stderr, stdout bytes.Buffer
-	cmd.Stderr, cmd.Stdout = &stderr, &stdout
 	if err := cmd.Start(); err != nil {
 		slog.Error("failed to run", "error", err)
+		return
 	}
+
 	asStr := func(k string, m map[string]any) (string, bool) {
 		if iface, ok := m[k]; ok {
 			if v, ok := iface.(string); ok {
@@ -419,6 +401,12 @@ func (p *Project) Run(args ...string) {
 			}
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		slog.Warn("failed while reading process logs", "error", err)
+	}
+	if err := cmd.Wait(); err != nil {
+		slog.Error("process exited with error", "error", err)
+	}
 }
 
 func (p *Project) ReadSourceCode() {
@@ -427,34 +415,77 @@ func (p *Project) ReadSourceCode() {
 		return
 	}
 	p.readingCode = true
+	defer func() {
+		p.ensureBuiltInEntityDataBindings()
+		p.entityDataMap = make(map[string]*codegen.GeneratedType)
+		for i := range p.entityData {
+			p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]
+		}
+		slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
+		p.OnEntityDataUpdated.Execute(p.entityData)
+		p.readingCode = false
+	}()
+
 	p.entityData = p.entityData[:0]
 	p.entityDataMap = make(map[string]*codegen.GeneratedType)
 	slog.Info("reading through project code to find bindable data")
 	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
-	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_entity_data"))
 	if err != nil {
 		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
 		return
 	}
+	defer kaijuRoot.Close()
+
+	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_entity_data"))
+	if err != nil {
+		slog.Error("failed to read the kaiju engine entity data folder for the project", "error", err)
+		return
+	}
+	defer kaijuBindings.Close()
+
 	srcRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "src"))
 	if err != nil {
 		slog.Error("failed to read the source code folder for the project", "error", err)
 		return
 	}
-	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaiju")
+	defer srcRoot.Close()
+
+	a, _ := codegen.Walk(kaijuRoot, kaijuBindings, "kaijuengine.com")
 	b, _ := codegen.Walk(srcRoot, srcRoot, p.fileSystem.ReadModName())
 	p.entityData = append(a, b...)
-	for i := range p.entityData {
-		p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]
+}
+
+func (p *Project) ensureBuiltInEntityDataBindings() {
+	builtIns := []codegen.GeneratedType{
+		codegen.GeneratedTypeFromValue(engine_entity_data_camera.BindingKey(), engine_entity_data_camera.CameraEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_light.BindingKey(), engine_entity_data_light.LightEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_particles.BindingKey(), engine_entity_data_particles.ParticleSystemEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_physics.BindingKey(), engine_entity_data_physics.RigidBodyEntityData{}),
+		codegen.GeneratedTypeFromValue(engine_entity_data_terrain.BindingKey(), engine_entity_data_terrain.TerrainEntityData{}),
 	}
-	slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
-	p.readingCode = false
-	p.OnEntityDataUpdated.Execute(p.entityData)
+	for i := range builtIns {
+		found := false
+		for j := range p.entityData {
+			if p.entityData[j].RegisterKey == builtIns[i].RegisterKey {
+				found = true
+				break
+			}
+		}
+		if !found {
+			p.entityData = append(p.entityData, builtIns[i])
+		}
+	}
 }
 
 func (p *Project) TryUpgrade() error {
+	oldVersion := p.Settings.EditorVersion
 	if err := p.fileSystem.TryUpgrade(); err != nil {
 		return err
+	}
+	if oldVersion < meshGLBContentEditorVersion {
+		if err := p.upgradeMeshContentToGLB(); err != nil {
+			return err
+		}
 	}
 	p.writeProjectTitle()
 	return nil

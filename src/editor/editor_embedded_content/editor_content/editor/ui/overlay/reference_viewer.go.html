@@ -40,10 +40,15 @@
 				font-size: 1.2em;
 				text-align: center;
 			}
-			.note {
+			.search-info {
 				font-size: 0.7em;
 				text-align: center;
 				color: #AAA;
+			}
+			.not-found-info {
+				font-size: 1.0em;
+				text-align: center;
+				color: #e08026;
 			}
 		</style>
 	</head>
@@ -51,7 +56,8 @@
 		<div class="overlay" onmiss="clickMiss">
 			<div id="entryList">
 				<div class="title">References</div>
-				<div class="note">Searching...</div>
+				<div class="search-info">Searching...</div>
+				<div class="not-found-info">Could not find any references</div>
 				<div id="entryTemplate" class="entry">
 					<span>Name... (source)</span>
 				</div>

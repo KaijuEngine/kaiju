@@ -1,68 +1,53 @@
 /******************************************************************************/
 /* vk_buffer_destroyer.go                                                     */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
 	"slices"
+	"unsafe"
 
-	"kaiju/platform/profiler/tracing"
-	vk "kaiju/rendering/vulkan"
+	"kaijuengine.com/platform/profiler/tracing"
+	vk "kaijuengine.com/rendering/vulkan"
 )
 
 type bufferTrash struct {
 	delay         int
-	pool          vk.DescriptorPool
-	sets          [maxFramesInFlight]vk.DescriptorSet
-	buffers       [maxFramesInFlight]vk.Buffer
-	memories      [maxFramesInFlight]vk.DeviceMemory
-	namedBuffers  [maxFramesInFlight][]vk.Buffer
-	namedMemories [maxFramesInFlight][]vk.DeviceMemory
+	pool          GPUDescriptorPool
+	sets          [maxFramesInFlight]GPUDescriptorSet
+	buffers       [maxFramesInFlight]GPUBuffer
+	memories      [maxFramesInFlight]GPUDeviceMemory
+	namedBuffers  [maxFramesInFlight][]GPUBuffer
+	namedMemories [maxFramesInFlight][]GPUDeviceMemory
 }
 
 type bufferDestroyer struct {
-	device vk.Device
-	trash  []bufferTrash
-	dbg    *debugVulkan
+	device   *GPUDevice
+	trash    []bufferTrash
+	dbg      *memoryDebugger
+	releaser bufferTrashReleaser
 }
 
-func newBufferDestroyer(device vk.Device, dbg *debugVulkan) bufferDestroyer {
+type bufferTrashReleaser interface {
+	FreeDescriptorSets(pool GPUDescriptorPool, sets []GPUDescriptorSet)
+	DestroyBuffer(buffer GPUBuffer)
+	FreeMemory(memory GPUDeviceMemory)
+	RemoveDebug(handle unsafe.Pointer)
+}
+
+type gpuBufferTrashReleaser struct {
+	device *GPUDevice
+	dbg    *memoryDebugger
+}
+
+func newBufferDestroyer(device *GPUDevice, dbg *memoryDebugger) bufferDestroyer {
 	return bufferDestroyer{
-		device: device,
-		dbg:    dbg,
+		device:   device,
+		dbg:      dbg,
+		releaser: gpuBufferTrashReleaser{device: device, dbg: dbg},
 	}
 }
 
@@ -81,29 +66,91 @@ func (b *bufferDestroyer) Cycle() {
 	if len(b.trash) == 0 {
 		return
 	}
+	releaser := b.activeReleaser()
 	for i := len(b.trash) - 1; i >= 0; i-- {
 		pd := &b.trash[i]
 		pd.delay--
 		if pd.delay == 0 {
-			for j := range maxFramesInFlight {
-				vk.DestroyBuffer(b.device, pd.buffers[j], nil)
-				b.dbg.remove(vk.TypeToUintPtr(pd.buffers[j]))
-				vk.FreeMemory(b.device, pd.memories[j], nil)
-				b.dbg.remove(vk.TypeToUintPtr(pd.memories[j]))
-				for k := range pd.namedBuffers[j] {
-					vk.DestroyBuffer(b.device, pd.namedBuffers[j][k], nil)
-					b.dbg.remove(vk.TypeToUintPtr(pd.namedBuffers[j][k]))
-					vk.FreeMemory(b.device, pd.namedMemories[j][k], nil)
-					b.dbg.remove(vk.TypeToUintPtr(pd.namedMemories[j][k]))
-				}
-			}
-			if pd.pool != vk.DescriptorPool(vk.NullHandle) {
-				// TODO:  This is temp to fix close crash
-				var tmp [maxFramesInFlight]vk.DescriptorSet = pd.sets
-				vk.FreeDescriptorSets(b.device, pd.pool, uint32(len(pd.sets)), &tmp[0])
-			}
-			// TODO:  Does this need to be ordered delete?
+			releaseBufferTrash(releaser, pd)
 			b.trash = slices.Delete(b.trash, i, i+1)
 		}
+	}
+}
+
+func (b *bufferDestroyer) activeReleaser() bufferTrashReleaser {
+	if b.releaser != nil {
+		return b.releaser
+	}
+	return gpuBufferTrashReleaser{device: b.device, dbg: b.dbg}
+}
+
+func releaseBufferTrash(releaser bufferTrashReleaser, pd *bufferTrash) {
+	if releaser == nil || pd == nil {
+		return
+	}
+	if pd.pool.IsValid() {
+		if sets := validDescriptorSets(pd.sets); len(sets) > 0 {
+			releaser.FreeDescriptorSets(pd.pool, sets)
+		}
+	}
+	for j := range maxFramesInFlight {
+		if pd.buffers[j].IsValid() {
+			releaser.DestroyBuffer(pd.buffers[j])
+			releaser.RemoveDebug(pd.buffers[j].handle)
+		}
+		if pd.memories[j].IsValid() {
+			releaser.FreeMemory(pd.memories[j])
+			releaser.RemoveDebug(pd.memories[j].handle)
+		}
+		for k := range pd.namedBuffers[j] {
+			if pd.namedBuffers[j][k].IsValid() {
+				releaser.DestroyBuffer(pd.namedBuffers[j][k])
+				releaser.RemoveDebug(pd.namedBuffers[j][k].handle)
+			}
+			if k < len(pd.namedMemories[j]) && pd.namedMemories[j][k].IsValid() {
+				releaser.FreeMemory(pd.namedMemories[j][k])
+				releaser.RemoveDebug(pd.namedMemories[j][k].handle)
+			}
+		}
+	}
+}
+
+func validDescriptorSets(sets [maxFramesInFlight]GPUDescriptorSet) []GPUDescriptorSet {
+	valid := make([]GPUDescriptorSet, 0, len(sets))
+	for i := range sets {
+		if sets[i].IsValid() {
+			valid = append(valid, sets[i])
+		}
+	}
+	return valid
+}
+
+func (r gpuBufferTrashReleaser) FreeDescriptorSets(pool GPUDescriptorPool, sets []GPUDescriptorSet) {
+	if r.device == nil || !pool.IsValid() || len(sets) == 0 {
+		return
+	}
+	vkSets := make([]vk.DescriptorSet, len(sets))
+	for i := range sets {
+		vkSets[i] = vk.DescriptorSet(sets[i].handle)
+	}
+	vk.FreeDescriptorSets(vk.Device(r.device.LogicalDevice.handle),
+		vk.DescriptorPool(pool.handle), uint32(len(vkSets)), &vkSets[0])
+}
+
+func (r gpuBufferTrashReleaser) DestroyBuffer(buffer GPUBuffer) {
+	if r.device != nil && buffer.IsValid() {
+		r.device.DestroyBuffer(buffer)
+	}
+}
+
+func (r gpuBufferTrashReleaser) FreeMemory(memory GPUDeviceMemory) {
+	if r.device != nil && memory.IsValid() {
+		r.device.FreeMemory(memory)
+	}
+}
+
+func (r gpuBufferTrashReleaser) RemoveDebug(handle unsafe.Pointer) {
+	if r.dbg != nil && handle != nil {
+		r.dbg.remove(handle)
 	}
 }

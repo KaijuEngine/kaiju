@@ -1,47 +1,18 @@
 /******************************************************************************/
 /* standard_camera.go                                                         */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package cameras
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
 	"math"
 	"slices"
+
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type StandardCamera struct {
@@ -49,7 +20,7 @@ type StandardCamera struct {
 	iView            matrix.Mat4
 	projection       matrix.Mat4
 	iProjection      matrix.Mat4
-	frustum          collision.Frustum
+	frustum          graviton.Frustum
 	position         matrix.Vec3
 	lookAt           matrix.Vec3
 	up               matrix.Vec3
@@ -95,9 +66,9 @@ func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32,
 
 // Frustum will return the camera's view frustum which is updated any time the
 // view or project of the camera changes.
-func (c *StandardCamera) Frustum() collision.Frustum { return c.frustum }
-func (c *StandardCamera) IsDirty() bool              { return c.frameDirty }
-func (c *StandardCamera) NewFrame()                  { c.frameDirty = false }
+func (c *StandardCamera) Frustum() graviton.Frustum { return c.frustum }
+func (c *StandardCamera) IsDirty() bool             { return c.frameDirty }
+func (c *StandardCamera) NewFrame()                 { c.frameDirty = false }
 
 func (c *StandardCamera) LightFrustumCSMProjections() []matrix.Mat4 {
 	defer tracing.NewRegion("StandardCamera.LightFrustums").End()
@@ -234,7 +205,7 @@ func (c *StandardCamera) SetLookAtWithUp(point, up matrix.Vec3) {
 // at separately.
 func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	defer tracing.NewRegion("StandardCamera.SetPositionAndLookAt").End()
-	if matrix.Approx(position.Z(), lookAt.Z()) {
+	if matrix.Vec3Approx(position, lookAt) {
 		position[matrix.Vz] += 0.0001
 	}
 	c.position = position
@@ -242,9 +213,19 @@ func (c *StandardCamera) SetPositionAndLookAt(position, lookAt matrix.Vec3) {
 	c.callUpdateView()
 }
 
+// SetPositionAndLookAtWithUp sets the position, look at position, and up vector
+// with a single view update.
+func (c *StandardCamera) SetPositionAndLookAtWithUp(position, lookAt, up matrix.Vec3) {
+	defer tracing.NewRegion("StandardCamera.SetPositionAndLookAtWithUp").End()
+	c.position = position
+	c.lookAt = lookAt
+	c.up = up
+	c.callUpdateView()
+}
+
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
-func (c *StandardCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray {
+func (c *StandardCamera) RayCast(cursorPosition matrix.Vec2) graviton.Ray {
 	defer tracing.NewRegion("StandardCamera.RayCast").End()
 	return c.internalRayCast(cursorPosition, c.position)
 }
@@ -406,7 +387,7 @@ func (c *StandardCamera) updateFrustum() {
 	c.frustum.ExtractPlanes(vp)
 }
 
-func (c *StandardCamera) internalRayCast(cursorPosition matrix.Vec2, pos matrix.Vec3) collision.Ray {
+func (c *StandardCamera) internalRayCast(cursorPosition matrix.Vec2, pos matrix.Vec3) graviton.Ray {
 	defer tracing.NewRegion("StandardCamera.internalRayCast").End()
 	x := (2.0*cursorPosition.X())/c.viewWidth - 1.0
 	y := 1.0 - (2.0*cursorPosition.Y())/c.viewHeight
@@ -431,19 +412,22 @@ func (c *StandardCamera) internalRayCast(cursorPosition matrix.Vec2, pos matrix.
 		origin = c.position.Add(right.Scale(worldX)).Add(up.Scale(worldY))
 		direction = forward
 	}
-	return collision.Ray{Origin: origin, Direction: direction}
+	return graviton.Ray{Origin: origin, Direction: direction}
 }
 
 func (c *StandardCamera) callUpdateView() {
 	c.updateView()
+	c.markChanged()
+}
+
+func (c *StandardCamera) markChanged() {
 	c.frameDirty = true
 	c.csmDirty = true
 }
 
 func (c *StandardCamera) callUpdateProjection() {
 	c.updateProjection()
-	c.frameDirty = true
-	c.csmDirty = true
+	c.markChanged()
 }
 
 func (c *StandardCamera) updateCSM() {

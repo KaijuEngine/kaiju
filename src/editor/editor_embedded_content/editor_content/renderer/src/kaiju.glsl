@@ -43,8 +43,10 @@
 	#define FRAG_INOUT in
 #elif defined(VERTEX_SHADER)
 	#define FRAG_INOUT out
+#elif defined(TESS_CONTROL_SHADER) || defined(TESS_EVALUATION_SHADER)
+	#define FRAG_INOUT out
 #else
-	#error "FRAG_INOUT can only be used in vertex or fragment shaders"
+	#error "FRAG_INOUT can only be used in vertex, fragment, or tessellation shaders"
 #endif
 
 #ifdef SAMPLER_COUNT
@@ -145,8 +147,35 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_VERT_UVS
 	layout(location = LOCATION_START+LAYOUT_VERT_UVS) in vec4 uvs;
 #endif
+#ifdef LAYOUT_VERT_TERRAIN_SLOPE_PARAMS
+	layout(location = LOCATION_START+LAYOUT_VERT_TERRAIN_SLOPE_PARAMS) in vec4 slopeParams;
+#endif
+#ifdef LAYOUT_VERT_TERRAIN_GRASS_TINT
+	layout(location = LOCATION_START+LAYOUT_VERT_TERRAIN_GRASS_TINT) in vec4 grassTint;
+#endif
+#ifdef LAYOUT_VERT_TERRAIN_ROCK_TINT
+	layout(location = LOCATION_START+LAYOUT_VERT_TERRAIN_ROCK_TINT) in vec4 rockTint;
+#endif
+#ifdef LAYOUT_VERT_TERRAIN_LIGHT_DIRECTION_AMBIENT
+	layout(location = LOCATION_START+LAYOUT_VERT_TERRAIN_LIGHT_DIRECTION_AMBIENT) in vec4 lightDirectionAmbient;
+#endif
+#ifdef LAYOUT_VERT_TERRAIN_LIGHT_COLOR_DIFFUSE
+	layout(location = LOCATION_START+LAYOUT_VERT_TERRAIN_LIGHT_COLOR_DIFFUSE) in vec4 lightColorDiffuse;
+#endif
+#ifdef LAYOUT_VERT_TERRAIN_MATERIAL_PARAMS
+	layout(location = LOCATION_START+LAYOUT_VERT_TERRAIN_MATERIAL_PARAMS) in vec4 materialParams;
+#endif
 #ifdef LAYOUT_VERT_FLAGS
 	layout(location = LOCATION_START+LAYOUT_VERT_FLAGS) in uint flags;
+#endif
+#ifdef LAYOUT_VERT_BRUSH_CENTER_RADIUS
+	layout(location = LOCATION_START+LAYOUT_VERT_BRUSH_CENTER_RADIUS) in vec4 brushCenterRadius;
+#endif
+#ifdef LAYOUT_VERT_BRUSH_PARAMS
+	layout(location = LOCATION_START+LAYOUT_VERT_BRUSH_PARAMS) in vec4 brushParams;
+#endif
+#ifdef LAYOUT_VERT_BRUSH_COLOR
+	layout(location = LOCATION_START+LAYOUT_VERT_BRUSH_COLOR) in vec4 brushColor;
 #endif
 #ifdef LAYOUT_VERT_FRUSTUM_PROJECTION
 	layout(location = LOCATION_START+LAYOUT_VERT_FRUSTUM_PROJECTION) in mat4 frustumProjection;
@@ -203,6 +232,33 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 #ifdef LAYOUT_FRAG_WORLD_POS
 	layout(location = LAYOUT_FRAG_WORLD_POS) FRAG_INOUT vec3 fragWorldPos;
 #endif
+#ifdef LAYOUT_FRAG_BRUSH_CENTER_RADIUS
+	layout(location = LAYOUT_FRAG_BRUSH_CENTER_RADIUS) FRAG_INOUT vec4 fragBrushCenterRadius;
+#endif
+#ifdef LAYOUT_FRAG_BRUSH_PARAMS
+	layout(location = LAYOUT_FRAG_BRUSH_PARAMS) FRAG_INOUT vec4 fragBrushParams;
+#endif
+#ifdef LAYOUT_FRAG_BRUSH_COLOR
+	layout(location = LAYOUT_FRAG_BRUSH_COLOR) FRAG_INOUT vec4 fragBrushColor;
+#endif
+#ifdef LAYOUT_FRAG_TERRAIN_SLOPE_PARAMS
+	layout(location = LAYOUT_FRAG_TERRAIN_SLOPE_PARAMS) FRAG_INOUT vec4 fragSlopeParams;
+#endif
+#ifdef LAYOUT_FRAG_TERRAIN_GRASS_TINT
+	layout(location = LAYOUT_FRAG_TERRAIN_GRASS_TINT) FRAG_INOUT vec4 fragGrassTint;
+#endif
+#ifdef LAYOUT_FRAG_TERRAIN_ROCK_TINT
+	layout(location = LAYOUT_FRAG_TERRAIN_ROCK_TINT) FRAG_INOUT vec4 fragRockTint;
+#endif
+#ifdef LAYOUT_FRAG_TERRAIN_LIGHT_DIRECTION_AMBIENT
+	layout(location = LAYOUT_FRAG_TERRAIN_LIGHT_DIRECTION_AMBIENT) FRAG_INOUT vec4 fragLightDirectionAmbient;
+#endif
+#ifdef LAYOUT_FRAG_TERRAIN_LIGHT_COLOR_DIFFUSE
+	layout(location = LAYOUT_FRAG_TERRAIN_LIGHT_COLOR_DIFFUSE) FRAG_INOUT vec4 fragLightColorDiffuse;
+#endif
+#ifdef LAYOUT_FRAG_TERRAIN_MATERIAL_PARAMS
+	layout(location = LAYOUT_FRAG_TERRAIN_MATERIAL_PARAMS) FRAG_INOUT vec4 fragMaterialParams;
+#endif
 
 #ifdef FRAGMENT_SHADER
 	layout(location = 0) out vec4 outColor;
@@ -252,12 +308,18 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	void calcVertexLightInformation() {
 	#if defined(LAYOUT_FRAG_LIGHT_COUNT) && defined(LAYOUT_FRAG_LIGHT_T_POS) && defined(LAYOUT_FRAG_LIGHT_T_DIR) && defined(LAYOUT_FRAG_POS_LIGHT_SPACE) && defined(LAYOUT_FRAG_LIGHT_INDEXES) && defined(LAYOUT_FRAG_LIGHT_COUNT) && defined(LAYOUT_FRAG_TANGENT_VIEW_POS) && defined(LAYOUT_FRAG_TANGENT_FRAG_POS) && defined(LAYOUT_FRAG_NORMAL)
 		mat3 nmlMat = transpose(inverse(mat3(model)));
-		vec3 T = normalize(nmlMat * Tangent.xyz);
 		vec3 N = normalize(nmlMat * Normal);
-		// re-orthogonalize T with respect to N
-		T = normalize(T - dot(T, N) * N);
+		vec3 T = nmlMat * Tangent.xyz;
+		if (dot(T, T) <= 0.00000001) {
+			vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+			T = normalize(cross(up, N));
+		} else {
+			T = normalize(T);
+			// re-orthogonalize T with respect to N
+			T = normalize(T - dot(T, N) * N);
+		}
 		// then retrieve perpendicular vector B with the cross product of T and N
-		vec3 B = cross(N, T);
+		vec3 B = cross(N, T) * (Tangent.w < 0.0 ? -1.0 : 1.0);
 		mat3 TBN = transpose(mat3(T, B, N));
 		fragLightCount = 0;
 		for (int i = 0; i < NR_LIGHTS; ++i) {
@@ -372,7 +434,7 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	#ifdef HAS_GBUFFER
 		void processGBuffer(vec3 nml) {
 		#ifndef OIT
-			outPosition = vec4(fragPos, uintBitsToFloat(fragFlags));
+			outPosition = vec4(fragPos, uintBitsToFloat(fragFlags | 0x40000000u));
 			outNormal = vec4(nml, 0.0);
 		#endif
 		}

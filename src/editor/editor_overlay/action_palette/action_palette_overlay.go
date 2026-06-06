@@ -1,0 +1,299 @@
+/******************************************************************************/
+/* action_palette_overlay.go                                                  */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
+package action_palette
+
+import (
+	"log/slog"
+	"strconv"
+	"strings"
+
+	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+)
+
+var existing *ActionPalette
+
+type ActionPalette struct {
+	doc     *document.Document
+	uiMan   ui.Manager
+	service *editor_action.Service
+	keyKb   hid.KeyCallbackId
+	onClose func()
+	input   *document.Element
+	list    *document.Element
+	entries []editor_action.Entry
+}
+
+type paletteData struct {
+	Entries []paletteEntry
+}
+
+type paletteEntry struct {
+	Index       int
+	Label       string
+	Description string
+	Category    string
+	Search      string
+}
+
+func Show(host *engine.Host, service *editor_action.Service, onClose func()) (*ActionPalette, error) {
+	defer tracing.NewRegion("action_palette.Show").End()
+	if existing != nil {
+		existing.Close()
+	}
+	p := &ActionPalette{
+		service: service,
+		onClose: onClose,
+	}
+	p.uiMan.Init(host)
+	p.entries = service.Search("")
+	data := paletteData{Entries: make([]paletteEntry, len(p.entries))}
+	for i, entry := range p.entries {
+		data.Entries[i] = paletteEntry{
+			Index:       i,
+			Label:       entry.Label,
+			Description: entry.Description,
+			Category:    entry.Category,
+			Search:      entrySearchText(entry),
+		}
+	}
+	var err error
+	p.doc, err = markup.DocumentFromHTMLAsset(&p.uiMan,
+		"editor/ui/overlay/action_palette.go.html", data,
+		map[string]func(*document.Element){
+			"search":      p.search,
+			"clickAction": p.clickAction,
+			"clickMiss":   p.clickMiss,
+		})
+	if err != nil {
+		return p, err
+	}
+	p.input, _ = p.doc.GetElementById("search")
+	p.list, _ = p.doc.GetElementById("list")
+	if p.input != nil {
+		box := p.input.UI.ToInput()
+		box.Focus()
+		box.SelectAll()
+	}
+	p.updateVisibleEntries("")
+	p.keyKb = host.Window.Keyboard.AddKeyCallback(func(keyId int, keyState hid.KeyState) {
+		if keyState != hid.KeyStateDown && keyState != hid.KeyStatePressedAndReleased {
+			return
+		}
+		switch keyId {
+		case hid.KeyboardKeyEscape:
+			p.Close()
+		case hid.KeyboardKeyUp:
+			p.moveSelection(-1)
+		case hid.KeyboardKeyDown:
+			p.moveSelection(1)
+		case hid.KeyboardKeyEnter, hid.KeyboardKeyReturn:
+			p.runSelected()
+		}
+	})
+	existing = p
+	return p, nil
+}
+
+func (p *ActionPalette) Close() {
+	defer tracing.NewRegion("ActionPalette.Close").End()
+	if p.doc != nil {
+		p.doc.Destroy()
+		p.doc = nil
+	}
+	if p.uiMan.Host != nil {
+		p.uiMan.Host.Window.Keyboard.RemoveKeyCallback(p.keyKb)
+	}
+	if existing == p {
+		existing = nil
+	}
+	if p.onClose != nil {
+		p.onClose()
+		p.onClose = nil
+	}
+}
+
+func (p *ActionPalette) search(e *document.Element) {
+	defer tracing.NewRegion("ActionPalette.search").End()
+	query := strings.ToLower(strings.TrimSpace(e.UI.ToInput().Text()))
+	p.updateVisibleEntries(query)
+}
+
+func (p *ActionPalette) updateVisibleEntries(query string) {
+	defer tracing.NewRegion("ActionPalette.updateVisibleEntries").End()
+	if p.list == nil {
+		return
+	}
+	query = strings.ToLower(strings.TrimSpace(query))
+	selected := false
+	for _, child := range p.list.Children {
+		search := strings.ToLower(child.Attribute("data-search"))
+		visible := query == "" || containsAllTokens(search, query)
+		child.UI.SetVisibility(visible)
+		classes := []string{"actionEntry"}
+		if visible && !selected {
+			classes = append(classes, "selected")
+			selected = true
+		}
+		if p.doc != nil {
+			p.doc.SetElementClassesWithoutApply(child, classes...)
+		}
+	}
+	if p.doc != nil {
+		p.doc.ApplyStyles()
+	}
+	if list := p.list.UI.ToPanel(); list != nil {
+		list.SetScrollY(0)
+	}
+	p.list.UI.SetDirty(ui.DirtyTypeLayout)
+}
+
+func (p *ActionPalette) moveSelection(delta int) {
+	defer tracing.NewRegion("ActionPalette.moveSelection").End()
+	if p.list == nil || delta == 0 {
+		return
+	}
+	visible := make([]*document.Element, 0, len(p.list.Children))
+	selectedIdx := -1
+	for _, child := range p.list.Children {
+		if !child.UI.Entity().IsActive() {
+			continue
+		}
+		if child.HasClass("selected") {
+			selectedIdx = len(visible)
+		}
+		visible = append(visible, child)
+	}
+	if len(visible) == 0 {
+		return
+	}
+	nextIdx := 0
+	if selectedIdx >= 0 {
+		nextIdx = selectedIdx + delta
+		if nextIdx < 0 {
+			nextIdx = len(visible) - 1
+		} else if nextIdx >= len(visible) {
+			nextIdx = 0
+		}
+	} else if delta < 0 {
+		nextIdx = len(visible) - 1
+	}
+	p.selectEntry(visible[nextIdx])
+	if list := p.list.UI.ToPanel(); list != nil {
+		list.ScrollToChild(visible[nextIdx].UI)
+	}
+}
+
+func (p *ActionPalette) selectEntry(target *document.Element) {
+	defer tracing.NewRegion("ActionPalette.selectEntry").End()
+	if p.list == nil {
+		return
+	}
+	for _, child := range p.list.Children {
+		classes := []string{"actionEntry"}
+		if child == target {
+			classes = append(classes, "selected")
+		}
+		if p.doc != nil {
+			p.doc.SetElementClassesWithoutApply(child, classes...)
+		}
+	}
+	if p.doc != nil {
+		p.doc.ApplyStyles()
+	}
+	p.list.UI.SetDirty(ui.DirtyTypeLayout)
+}
+
+func (p *ActionPalette) clickMiss(*document.Element) {
+	defer tracing.NewRegion("ActionPalette.clickMiss").End()
+	p.Close()
+}
+
+func (p *ActionPalette) clickAction(e *document.Element) {
+	defer tracing.NewRegion("ActionPalette.clickAction").End()
+	p.runElement(e)
+}
+
+func (p *ActionPalette) runSelected() {
+	defer tracing.NewRegion("ActionPalette.runSelected").End()
+	child := p.selectedVisibleEntry()
+	if child == nil {
+		child = p.firstVisibleEntry()
+	}
+	if child != nil {
+		p.runElement(child)
+	}
+}
+
+func (p *ActionPalette) selectedVisibleEntry() *document.Element {
+	if p.list == nil {
+		return nil
+	}
+	for _, child := range p.list.Children {
+		if child.UI.Entity().IsActive() && child.HasClass("selected") {
+			return child
+		}
+	}
+	return nil
+}
+
+func (p *ActionPalette) firstVisibleEntry() *document.Element {
+	if p.list == nil {
+		return nil
+	}
+	for _, child := range p.list.Children {
+		if child.UI.Entity().IsActive() {
+			return child
+		}
+	}
+	return nil
+}
+
+func (p *ActionPalette) runElement(e *document.Element) {
+	idx, err := strconv.Atoi(e.Attribute("data-idx"))
+	if err != nil {
+		slog.Error("failed to parse action palette index", "error", err)
+		return
+	}
+	if idx < 0 || idx >= len(p.entries) {
+		slog.Error("action palette index is out of range", "index", idx, "len", len(p.entries))
+		return
+	}
+	entry := p.entries[idx]
+	p.Close()
+	p.service.Run(editor_action.Request{
+		ID:     entry.ID,
+		Params: entry.Params,
+		Source: editor_action.SourcePalette,
+	})
+}
+
+func entrySearchText(entry editor_action.Entry) string {
+	parts := []string{
+		string(entry.ID),
+		entry.Label,
+		entry.Description,
+		entry.Category,
+	}
+	parts = append(parts, entry.Tags...)
+	parts = append(parts, entry.Aliases...)
+	return strings.ToLower(strings.Join(parts, " "))
+}
+
+func containsAllTokens(haystack, query string) bool {
+	for _, token := range strings.Fields(query) {
+		if !strings.Contains(haystack, token) {
+			return false
+		}
+	}
+	return true
+}

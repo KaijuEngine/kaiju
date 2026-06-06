@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_plugin_manager.go                                                   */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_plugin
@@ -39,10 +9,12 @@ package editor_plugin
 import (
 	"encoding/json"
 	"fmt"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/profiler/tracing"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 const (
@@ -51,27 +23,65 @@ const (
 	pluginsFolder        = "plugins"
 )
 
+// Plugin registry-key convention (consumed by the editor's startup
+// validator):
+//
+// pluginKey MUST equal the plugin's Go module path — the string declared
+// on the `module` line of the plugin's go.mod. The
+// `editor.MissingCompiledPlugins` startup check pairs each enabled entry
+// in plugin.json with the compiled-in `editorPluginRegistry` by module
+// path. Any plugin that registers under a different key (e.g. a slug, a
+// URL with no path, a display name) is invisible to the validator and
+// will trigger a recompile-modal false-positive on every launch.
+//
+// `editor.RegisterPlugin` emits a soft `slog.Warn` when the supplied key
+// does not contain a "/" — module paths almost always do — but
+// registration still proceeds. The warning is advisory; it lets plugin
+// authors notice and fix the convention violation without bricking the
+// editor.
+//
+// Example call (taken from the scaffold body below):
+//
+//	const pluginKey = "github.com/example/my-plugin"
+//	editor.RegisterPlugin(pluginKey, &Plugin{})
+//
+// Where `"github.com/example/my-plugin"` exactly matches the plugin's
+// go.mod module declaration. See editor.RegisterPlugin's doc for the
+// reasoning and how the validator surfaces mismatches.
 const editorPluginGo = `package rename_me
 
 // If you would like to debug your plugin and are working from the editor source
 // code, stub your plugin import "_" in the editor_plugin_registry.go file.
 
 import (
-	"kaiju/editor"
-	"kaiju/editor/editor_plugin"
+	"kaijuengine.com/editor"
+	"kaijuengine.com/editor/editor_plugin"
 )
 
-// This key can be whatever you want, please make it unique so it doesn't
-// collide with other's plugins. Using a URL or something unique like that
-// is an option, but not required.
-const pluginKey = "https://github.com/KaijuEngine/kaiju"
+// pluginKey MUST equal the plugin's Go module path (the string on the
+// "module" line of this plugin's go.mod). The editor's startup validator
+// matches plugin.json entries against the compiled-in registry by module
+// path; a mismatched key here will produce a false-positive modal on
+// every launch. editor.RegisterPlugin emits a slog.Warn if the key does
+// not look like a module path (no "/") — that warning is advisory.
+const pluginKey = "github.com/example/my-plugin"
 
 type Plugin struct {}
 
-func init() { editor.RegisterPlugin(pluginKey, &Plugin{}) }
+func init() {
+	editor.RegisterPlugin(pluginKey, &Plugin{})
+	// To register a workspace tab, also call:
+	//   editor_workspace_registry.Register(&MyWorkspace{})
+	// where MyWorkspace implements editor_workspace.Workspace
+	// (see the built-in workspaces under editor/editor_workspace/* for examples).
+}
 
 func (p *Plugin) Launch(ed editor_plugin.EditorInterface) error {
-	// TODO:  Implement
+	// TODO:  Implement. The ed interface gives you access to the host,
+	// project, settings, events, history, stage view, and workspace
+	// registry. To switch to a different workspace use ed.SelectWorkspace(id),
+	// to query another workspace use ed.Workspace(id) and type-assert to a
+	// well-known interface.
 	return nil
 }
 `
@@ -84,6 +94,7 @@ type PluginConfig struct {
 	Author      string
 	Website     string
 	Enabled     bool
+	GitModule   string `json:",omitempty"`
 }
 
 type PluginInfo struct {
@@ -145,6 +156,7 @@ func PluginsFolder() (string, error) {
 func AvailablePlugins() []PluginInfo {
 	defer tracing.NewRegion("editor_plugin.AvailablePlugins").End()
 	plugs := []PluginInfo{}
+
 	plugFolder, err := PluginsFolder()
 	if err != nil {
 		return plugs
@@ -171,8 +183,12 @@ func AvailablePlugins() []PluginInfo {
 		}
 		var cfg PluginConfig
 		if err = json.NewDecoder(f).Decode(&cfg); err == nil {
+			path := folders[i]
+			if cfg.GitModule != "" {
+				path = "git://" + cfg.GitModule
+			}
 			plugs = append(plugs, PluginInfo{
-				Path:   folders[i],
+				Path:   path,
 				Config: cfg,
 			})
 		}
@@ -183,6 +199,11 @@ func AvailablePlugins() []PluginInfo {
 }
 
 func UpdatePluginConfigState(info PluginInfo) error {
+	// Skip Git plugins - they don't have physical config files to update
+	if strings.HasPrefix(info.Path, "git://") {
+		return nil
+	}
+
 	f, err := os.Create(filepath.Join(info.Path, pluginConfigFile))
 	if err != nil {
 		return err

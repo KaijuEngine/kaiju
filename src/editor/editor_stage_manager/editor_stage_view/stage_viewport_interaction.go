@@ -1,90 +1,59 @@
 /******************************************************************************/
 /* stage_viewport_interaction.go                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
-const menuBarHeightArea = 30
-
-func (v *StageView) processViewportInteractions() {
+func (v *StageView) processViewportInteractions(proj *project.Project) {
 	defer tracing.NewRegion("StageWorkspace.processViewportInteractions").End()
 	m := &v.host.Window.Mouse
 	kb := &v.host.Window.Keyboard
+	insideViewport := v.viewportContainsScreenPosition(m.ScreenPosition())
+	if !insideViewport && !v.selectTool.IsActive() && !v.transformTool.IsActive() &&
+		!v.transformMan.IsBusy() && !v.vertexSnap.IsBusy() {
+		return
+	}
+	if v.toolOwner != nil && v.toolOwner.UpdateViewportTool(v) {
+		return
+	}
+	if v.vertexSnap.Update(v.host) {
+		return
+	}
 	if v.transformTool.Update() {
 		return
 	}
-	v.transformMan.Update(v.host)
+	v.transformMan.Update(v.host, proj)
 	if v.transformMan.IsBusy() {
 		return
 	}
-	// TODO:  This is to prevent deselecting and box selection if the mouse was
-	// over the menu bar area. Probably should do this check in a better way
-	if m.ScreenPosition().Y() <= menuBarHeightArea {
-		return
-	}
-	v.selectTool.Update()
-	if m.Pressed(hid.MouseButtonLeft) {
-		ray := v.camera.RayCast(m)
-		if kb.HasShift() {
+	boxSelected := v.selectTool.Update()
+	if m.Released(hid.MouseButtonLeft) && !boxSelected {
+		ray := v.activeCamera().RayCast(m)
+		mode := stageSelectionMode(kb)
+		point := v.ViewportMousePosition(m)
+		if v.stagePicking.RequestClick(point, mode, ray) {
+			return
+		}
+		if mode == editor_stage_manager.SelectionModeAppend {
 			v.manager.TryAppendSelect(ray)
-		} else if kb.HasCtrl() {
+		} else if mode == editor_stage_manager.SelectionModeToggle {
 			v.manager.TryToggleSelect(ray)
 		} else {
 			v.manager.TrySelect(ray)
 		}
 	}
-	if kb.KeyDown(hid.KeyboardKeyF) {
-		if v.manager.HasSelection() {
-			v.camera.Focus(v.manager.SelectionBounds())
-		}
-	} else if kb.KeyDown(hid.KeyboardKeyG) {
-		v.transformTool.Enable(transform_tools.ToolStateMove)
-	} else if kb.KeyDown(hid.KeyboardKeyR) {
-		v.transformTool.Enable(transform_tools.ToolStateRotate)
-	} else if kb.KeyDown(hid.KeyboardKeyS) {
-		v.transformTool.Enable(transform_tools.ToolStateScale)
-	}
 }
 
 func (v *StageView) isCamera3D() bool {
-	return v.camera.Mode() == editor_controls.EditorCameraMode3d
+	return v.activeCamera().Mode() == editor_controls.EditorCameraMode3d
 }

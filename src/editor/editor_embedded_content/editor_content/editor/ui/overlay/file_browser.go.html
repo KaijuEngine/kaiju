@@ -87,7 +87,7 @@
 				background-color: #575757;
 			}
 			.selected {
-				background-color: #682A2D;
+				background-color: var(--ed-row-selected);
 			}
 			.actionBar {
 				width: 100%;
@@ -126,7 +126,7 @@
 						<button class="materialIcon" onclick="back">&#xE5C4;</button>
 						<button class="materialIcon" onclick="forward">&#xE5C8;</button>
 						<button class="materialIcon" onclick="upFolder">&#xE5D8;</button>
-						<button class="materialIcon" onclick="reload">&#xE627;</button>
+						<button class="materialIcon" onclick="reload">&#xE5D5;</button>
 						<button class="materialIcon" onclick="newFolder">&#xE2CC;</button>
 						<input id="filePath" type="text" placeholder="File path..." value="{{.CurrentPath}}" onsubmit="setPath" />
 					</div>
@@ -140,8 +140,8 @@
 					</div>
 					<div class="actionBar">
 						<div class="actionBtns">
-							<button onclick="confirmSelection">Select</button>
 							<button onclick="cancel">Cancel</button>
+							<button class="primary" onclick="confirmSelection">Select</button>
 						</div>
 					</div>
 				</div>

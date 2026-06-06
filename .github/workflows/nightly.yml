@@ -9,9 +9,58 @@ permissions:
   contents: write
 
 jobs:
+  check-changes:
+    name: Check for changes
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.changes.outputs.should_build }}
+      last_nightly_tag: ${{ steps.changes.outputs.last_nightly_tag }}
+      commits_since_last_nightly: ${{ steps.changes.outputs.commits_since_last_nightly }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check for changes since last nightly
+        id: changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run requested; building nightly."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "last_nightly_tag=manual" >> "$GITHUB_OUTPUT"
+            echo "commits_since_last_nightly=manual" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LAST_NIGHTLY_TAG="$(git tag --list '*-nightly' --sort=-version:refname | head -n 1)"
+          echo "last_nightly_tag=$LAST_NIGHTLY_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$LAST_NIGHTLY_TAG" ]; then
+            echo "No previous nightly tag found; building nightly."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "commits_since_last_nightly=unknown" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          COMMITS_SINCE_LAST_NIGHTLY="$(git rev-list "$LAST_NIGHTLY_TAG..HEAD" --count)"
+          echo "commits_since_last_nightly=$COMMITS_SINCE_LAST_NIGHTLY" >> "$GITHUB_OUTPUT"
+
+          if [ "$COMMITS_SINCE_LAST_NIGHTLY" -gt 0 ]; then
+            echo "Found $COMMITS_SINCE_LAST_NIGHTLY commit(s) since $LAST_NIGHTLY_TAG; building nightly."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits since $LAST_NIGHTLY_TAG; skipping nightly build."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-windows:
     name: Build Windows
     runs-on: windows-2022
+    needs: check-changes
+    if: needs.check-changes.outputs.should_build == 'true'
     env:
       VULKAN_SDK_VERSION: "1.4.335.0"
       MINGW_RELEASE: "15.2.0-rt_v13-rev0"
@@ -79,16 +128,54 @@ jobs:
           go build -tags="debug,editor" -o ../kaiju.exe ./
           Get-ChildItem ../kaiju.exe | Format-Table Name, Length, LastWriteTime
 
+      - name: Package Windows build with MinGW DLLs
+        shell: pwsh
+        run: |
+          $mingwBin = "C:\mingw64\bin"
+          $packageDir = ".\kaiju-package"
+          
+          # Create package directory
+          New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
+          
+          # Copy the executable
+          Copy-Item ".\kaiju.exe" -Destination $packageDir -Force
+          Write-Output "Copied kaiju.exe"
+          
+          # Copy the exact runtime DLLs that the MinGW build depends on
+          @(
+            "libgcc_s_seh-1.dll",
+            "libstdc++-6.dll",
+            "libwinpthread-1.dll"
+          ) | ForEach-Object {
+            $source = Join-Path $mingwBin $_
+            if (Test-Path $source) {
+              Copy-Item $source -Destination $packageDir -Force
+              Write-Output "Copied $_"
+            } else {
+              Write-Error "DLL not found: $source"
+              exit 1
+            }
+          }
+          
+          # Create zip from the package directory
+          $zipName = "kaiju-editor-windows.zip"
+          Compress-Archive -Path "$packageDir\*" -DestinationPath $zipName -Force
+          
+          Write-Output "Created Windows package: $zipName"
+          Get-ChildItem $zipName | Format-Table Name, Length, LastWriteTime
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kaiju-editor-windows
-          path: kaiju.exe
+          path: kaiju-editor-windows.zip
           retention-days: 7
 
   build-linux:
     name: Build Linux
     runs-on: ubuntu-22.04
+    needs: check-changes
+    if: needs.check-changes.outputs.should_build == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -130,19 +217,21 @@ jobs:
       - name: Build editor (Debug)
         working-directory: ./src
         run: |
-          go build -tags="debug,editor" -o ../kaiju ./
-          ls -lh ../kaiju
+          go build -tags="debug,editor" -o ../kaiju-linux ./
+          ls -lh ../kaiju-linux
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kaiju-editor-linux
-          path: kaiju
+          path: kaiju-linux
           retention-days: 7
 
   build-macos:
     name: Build macOS
     runs-on: macos-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.should_build == 'true'
     continue-on-error: true # macOS builds are currently unstable
 
     env:
@@ -207,9 +296,9 @@ jobs:
   release:
     name: Create Nightly Release
     runs-on: ubuntu-latest
-    needs: [build-windows, build-linux, build-macos]
+    needs: [check-changes, build-windows, build-linux, build-macos]
     # Run only if Windows and Linux builds succeeded (macOS ignored due to instability)
-    if: always() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success'
+    if: always() && needs.check-changes.outputs.should_build == 'true' && needs.build-windows.result == 'success' && needs.build-linux.result == 'success'
 
     steps:
       - name: Checkout code

@@ -1,62 +1,35 @@
 /******************************************************************************/
 /* shader_cache.go                                                            */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
 import (
-	"kaiju/engine/assets"
-	"kaiju/klib"
-	"kaiju/platform/profiler/tracing"
 	"sync"
+
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type ShaderCache struct {
-	renderer       Renderer
+	device         *GPUDevice
 	assetDatabase  assets.Database
 	shaders        map[string]*Shader
 	pendingShaders []*Shader
+	pendingDestroy []ShaderId
 	mutex          sync.Mutex
 }
 
-func NewShaderCache(renderer Renderer, assetDatabase assets.Database) ShaderCache {
+func NewShaderCache(device *GPUDevice, assetDatabase assets.Database) ShaderCache {
 	return ShaderCache{
-		renderer:       renderer,
+		device:         device,
 		assetDatabase:  assetDatabase,
 		shaders:        make(map[string]*Shader),
 		pendingShaders: make([]*Shader, 0),
+		pendingDestroy: make([]ShaderId, 0),
 		mutex:          sync.Mutex{},
 	}
 }
@@ -69,9 +42,7 @@ func (s *ShaderCache) Shader(shaderData ShaderDataCompiled) (shader *Shader, isN
 		return shader, false
 	} else {
 		shader := NewShader(shaderData)
-		if shader != nil {
-			s.pendingShaders = append(s.pendingShaders, shader)
-		}
+		s.queuePendingShader(shader)
 		s.shaders[shader.data.Name] = shader
 		return shader, true
 	}
@@ -84,25 +55,40 @@ func (s *ShaderCache) AddShader(shader *Shader) {
 	if _, ok := s.shaders[shader.data.Name]; ok {
 		return
 	}
-	if shader != nil {
-		s.pendingShaders = append(s.pendingShaders, shader)
-	}
+	s.queuePendingShader(shader)
 	s.shaders[shader.data.Name] = shader
 }
 
 func (s *ShaderCache) ReloadShader(shaderData ShaderDataCompiled) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	shader, ok := s.shaders[shaderData.Name]
 	if !ok {
 		return
 	}
-	var destroyHandle func(target *Shader)
-	destroyHandle = func(target *Shader) {
+	var queueDestroy func(target *Shader)
+	queueDestroy = func(target *Shader) {
 		for _, v := range target.subShaders {
-			destroyHandle(v)
+			queueDestroy(v)
 		}
-		s.renderer.(*Vulkan).destroyShaderHandle(target.RenderId)
+		if target.RenderId.IsValid() {
+			s.pendingDestroy = append(s.pendingDestroy, target.RenderId)
+		}
 	}
+	queueDestroy(shader)
 	shader.Reload(shaderData)
+	s.queuePendingShader(shader)
+}
+
+func (s *ShaderCache) queuePendingShader(shader *Shader) {
+	if shader == nil {
+		return
+	}
+	for i := range s.pendingShaders {
+		if s.pendingShaders[i] == shader {
+			return
+		}
+	}
 	s.pendingShaders = append(s.pendingShaders, shader)
 }
 
@@ -110,14 +96,29 @@ func (s *ShaderCache) CreatePending() {
 	defer tracing.NewRegion("ShaderCache.CreatePending").End()
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	for i := range s.pendingDestroy {
+		s.device.DestroyShaderHandle(s.pendingDestroy[i])
+	}
+	s.pendingDestroy = klib.WipeSlice(s.pendingDestroy)
 	for _, shader := range s.pendingShaders {
-		shader.DelayedCreate(s.renderer, s.assetDatabase)
+		shader.DelayedCreate(s.device, s.assetDatabase)
 	}
 	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
 }
 
 func (s *ShaderCache) Destroy() {
 	defer tracing.NewRegion("ShaderCache.Destroy").End()
+	s.pendingDestroy = klib.WipeSlice(s.pendingDestroy)
 	s.pendingShaders = klib.WipeSlice(s.pendingShaders)
+	for _, shader := range s.shaders {
+		s.destroyShaderTree(shader)
+	}
 	s.shaders = make(map[string]*Shader)
+}
+
+func (s *ShaderCache) destroyShaderTree(shader *Shader) {
+	for _, sub := range shader.subShaders {
+		s.destroyShaderTree(sub)
+	}
+	s.device.DestroyShaderHandle(shader.RenderId)
 }

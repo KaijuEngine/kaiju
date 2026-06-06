@@ -1,42 +1,15 @@
 /******************************************************************************/
 /* global_shader_data.go                                                      */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package rendering
 
-import "kaiju/matrix"
+import (
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/matrix"
+)
 
 const (
 	MaxJoints        = 50
@@ -63,4 +36,41 @@ type GlobalShaderData struct {
 	CascadePlaneDistances [4]float32
 	VertLights            [MaxLocalLights]GPULight
 	LightInfos            [MaxLocalLights]GPULightInfo
+}
+
+func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, screenSize matrix.Vec2) GlobalShaderData {
+	ubo := GlobalShaderData{
+		View:         matrix.Mat4Identity(),
+		Projection:   matrix.Mat4Identity(),
+		UIView:       matrix.Mat4Identity(),
+		UIProjection: matrix.Mat4Identity(),
+		Time:         runtime,
+		ScreenSize:   screenSize,
+	}
+	if camera != nil {
+		camOrtho := matrix.Float(0)
+		if camera.IsOrthographic() {
+			camOrtho = 1
+		}
+		ubo.View = camera.View()
+		ubo.Projection = camera.Projection()
+		ubo.CameraPosition = camera.Position().AsVec4WithW(camOrtho)
+		ubo.CascadeCount = int32(camera.NumCSMCascades())
+		ubo.CascadePlaneDistances = camera.CSMCascadeDistances()
+	}
+	if uiCamera != nil {
+		ubo.UIView = uiCamera.View()
+		ubo.UIProjection = uiCamera.Projection()
+		ubo.UICameraPosition = uiCamera.Position()
+	}
+	if camera != nil {
+		for i := range lights.Lights {
+			if lights.Lights[i].IsValid() {
+				lights.Lights[i].recalculate(camera)
+				ubo.VertLights[i] = lights.Lights[i].transformToGPULight()
+				ubo.LightInfos[i] = lights.Lights[i].transformToGPULightInfo()
+			}
+		}
+	}
+	return ubo
 }

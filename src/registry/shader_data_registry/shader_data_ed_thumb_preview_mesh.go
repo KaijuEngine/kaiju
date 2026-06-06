@@ -1,9 +1,16 @@
+/******************************************************************************/
+/* shader_data_ed_thumb_preview_mesh.go                                       */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package shader_data_registry
 
 import (
-	"kaiju/matrix"
-	"kaiju/rendering"
 	"unsafe"
+
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
 func init() {

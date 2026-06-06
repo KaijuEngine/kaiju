@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* window.go                                                                  */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package windowing
@@ -39,20 +9,23 @@ package windowing
 import (
 	"errors"
 	"image"
-	"kaiju/engine/assets"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/filesystem"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
+	"math"
 	"runtime"
 	"slices"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/filesystem"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 var (
@@ -71,11 +44,13 @@ type Window struct {
 	Stylus                   hid.Stylus
 	Controller               hid.Controller
 	Cursor                   hid.Cursor
-	Renderer                 rendering.Renderer
+	GpuHost                  rendering.GPUApplication
+	GpuInstance              *rendering.GPUApplicationInstance
 	OnResize                 events.Event
 	OnMove                   events.Event
 	OnActivate               events.Event
 	OnDeactivate             events.Event
+	fileDrop                 fileDropModule
 	title                    string
 	x, y                     int
 	width, height            int
@@ -84,9 +59,12 @@ type Window struct {
 	cursorChangeCount        int
 	cachedScreenSizeWidthMM  int
 	cacheScreenSizeHeightMM  int
+	dpmmCache                atomic.Uint64 // cached DotsPerMillimeter (float bits); 0 = recompute
 	windowSync               chan struct{}
+	titleBarMode             TitleBarMode
 	syncRequest              bool
 	isClosed                 bool
+	isDestroyed              bool
 	isCrashed                bool
 	fatalFromNativeAPI       bool
 	resizedFromNativeAPI     bool
@@ -98,8 +76,32 @@ type FileSearch struct {
 	Extension string
 }
 
+type TitleBarMode uint8
+
+const (
+	TitleBarModeSystem TitleBarMode = iota
+	TitleBarModeLight
+	TitleBarModeDark
+)
+
+func (m TitleBarMode) String() string {
+	switch m {
+	case TitleBarModeSystem:
+		return "system"
+	case TitleBarModeLight:
+		return "light"
+	case TitleBarModeDark:
+		return "dark"
+	default:
+		return "unknown"
+	}
+}
+
 func New(windowName string, width, height, x, y int, adb assets.Database, platformState any) (*Window, error) {
 	defer tracing.NewRegion("windowing.New").End()
+	debug.Assert(width > 0, "window width must be greater than zero")
+	debug.Assert(height > 0, "window height must be greater than zero")
+	debug.Assert(adb != nil, "asset database cannot be nil")
 	w := &Window{
 		Keyboard:   hid.NewKeyboard(),
 		Mouse:      hid.NewMouse(),
@@ -129,6 +131,7 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to create the window " + windowName)
 	}
+	w.SetTitleBarMode(TitleBarModeSystem)
 	createWindowContext(w.handle)
 	if w.fatalFromNativeAPI {
 		return nil, errors.New("failed to create the window context for " + windowName)
@@ -138,14 +141,21 @@ func New(windowName string, width, height, x, y int, adb assets.Database, platfo
 		return nil, errors.New("failed to present the window " + windowName)
 	}
 	adb.PostWindowCreate(w)
-	var err error
-	w.Renderer, err = selectRenderer(w, windowName, adb)
 	w.x, w.y = w.position()
-	return w, err
+	return w, nil
 }
 
-func NewBinding(ptr unsafe.Pointer, assets assets.Database) {
-
+func (w *Window) InitializeGPU(adb assets.Database) error {
+	defer tracing.NewRegion("Window.InitializeGPU").End()
+	if w.GpuInstance != nil && w.GpuInstance.IsValid() {
+		return nil
+	}
+	inst, err := w.GpuHost.CreateInstance(w, adb)
+	if err != nil {
+		return err
+	}
+	w.GpuInstance = inst
+	return nil
 }
 
 func FindWindowAtPoint(x, y int) (*Window, bool) {
@@ -199,11 +209,10 @@ func (w *Window) Poll() {
 		w.syncRequest = false
 	}
 	w.poll()
+	w.fileDrop.processQueuedFileDrops()
 	if w.resizedFromNativeAPI {
+		slog.Info("window resize has been requested")
 		w.resizedFromNativeAPI = false
-		if w.Renderer != nil {
-			w.Renderer.Resize(w, w.width, w.height)
-		}
 		w.OnResize.Execute()
 	}
 	w.isCrashed = w.isCrashed || w.fatalFromNativeAPI
@@ -228,13 +237,51 @@ func (w *Window) EndUpdate() {
 
 func (w *Window) SwapBuffers() {
 	defer tracing.NewRegion("Window.SwapBuffers").End()
-	if w.Renderer.SwapFrame(w, int32(w.Width()), int32(w.Height())) {
+	inst := w.GpuInstance
+	if inst == nil || !inst.IsValid() {
+		return
+	}
+	if inst.PrimaryDevice().SwapFrame(w, inst, int32(w.Width()), int32(w.Height())) {
 		swapBuffers(w.handle)
 	}
 }
 
+func (w *Window) SwapBuffersWithContainer(container rendering.RenderingContainer, width, height int32) bool {
+	defer tracing.NewRegion("Window.SwapBuffersWithContainer").End()
+	inst := w.GpuInstance
+	if inst == nil || !inst.IsValid() {
+		return false
+	}
+	if inst.PrimaryDevice().SwapFrame(container, inst, width, height) {
+		swapBuffers(w.handle)
+		return true
+	}
+	return false
+}
+
+// DotsPerMillimeter returns the window's DPI scaled to dots/mm. The underlying
+// platform query is a cgo call (e.g. cocoa_get_backing_scale_factor on macOS)
+// and was being invoked for every CSS length resolution during layout, which
+// dominated CPU. The value only changes on resize / display change, so it is
+// cached here and invalidated by the resize/move handlers. Cache is lock-free
 func (w *Window) DotsPerMillimeter() float64 {
-	return w.dotsPerMillimeter()
+	if bits := w.dpmmCache.Load(); bits != 0 {
+		return math.Float64frombits(bits)
+	}
+	v := w.dotsPerMillimeter()
+	if v > 0 {
+		w.dpmmCache.Store(math.Float64bits(v))
+	}
+	return v
+}
+
+// NOTE: currently only implemented on windows
+func (w *Window) MonitorCount() int {
+	count := w.monitorCount()
+	if count < 1 {
+		return 1
+	}
+	return count
 }
 
 func (w *Window) SizeMM() (int, int, error) {
@@ -264,10 +311,12 @@ func (w *Window) IsTabletSize() bool {
 }
 
 func DPI2PX(pixels, mm, targetMM int) int {
+	debug.Assert(mm != 0, "DPI2PX mm cannot be zero")
 	return targetMM * (pixels / mm)
 }
 
 func DPI2PXF(pixels, mm, targetMM float64) float64 {
+	debug.Assert(mm != 0, "DPI2PXF mm cannot be zero")
 	return targetMM * (pixels / mm)
 }
 
@@ -311,9 +360,13 @@ func (w *Window) ClipboardContents() string   { return w.clipboardContents() }
 
 func (w *Window) Destroy() {
 	defer tracing.NewRegion("Window.Destroy").End()
+	if w.isDestroyed {
+		return
+	}
+	w.isDestroyed = true
 	w.isClosed = true
 	w.removeFromActiveWindows()
-	w.Renderer.Destroy()
+	w.DestroyGPU()
 	// TODO:  Pass both to not have this if statement
 	if runtime.GOOS == "darwin" {
 		destroyWindow(w.instance)
@@ -321,6 +374,16 @@ func (w *Window) Destroy() {
 		destroyWindow(w.handle)
 	}
 	close(w.windowSync)
+}
+
+func (w *Window) DestroyGPU() {
+	defer tracing.NewRegion("Window.DestroyGPU").End()
+	if w.GpuInstance == nil {
+		return
+	}
+	w.GpuHost.Destroy()
+	w.GpuInstance = nil
+	w.GpuHost = rendering.GPUApplication{}
 }
 
 func (w *Window) Focus() {
@@ -343,6 +406,8 @@ func (w *Window) SetPosition(x, y int) {
 }
 
 func (w *Window) SetSize(width, height int) {
+	debug.Assert(width >= 0, "window width cannot be negative")
+	debug.Assert(height >= 0, "window height cannot be negative")
 	w.setSize(width, height)
 	w.width = width
 	w.height = height
@@ -356,6 +421,8 @@ func (w *Window) IsFullScreen() bool { return w.isFullScreen }
 func (w *Window) UnlockCursor()      { w.unlockCursor() }
 
 func (w *Window) LockCursor(x, y int) {
+	debug.Assert(w.width > 0, "cannot lock cursor: window width must be greater than zero")
+	debug.Assert(w.height > 0, "cannot lock cursor: window height must be greater than zero")
 	w.lockCursor(x, y)
 	w.Mouse.SetPosition(float32(x), float32(y), float32(w.width), float32(w.height))
 }
@@ -369,6 +436,8 @@ func (w *Window) SetFullscreen() {
 }
 
 func (w *Window) SetWindowed(width, height int) {
+	debug.Assert(width > 0, "windowed mode width must be greater than zero")
+	debug.Assert(height > 0, "windowed mode height must be greater than zero")
 	w.setWindowed(width, height)
 	w.isFullScreen = false
 }
@@ -379,6 +448,7 @@ func (w *Window) Center() (x int, y int) {
 }
 
 func (w *Window) OpenFileDialog(startPath string, extensions []filesystem.DialogExtension, ok func(path string), cancel func()) error {
+	debug.Assert(ok != nil, "OpenFileDialog requires a non-nil ok callback")
 	w.disableRawMouse()
 	return filesystem.OpenFileDialogWindow(startPath, extensions, func(path string) {
 		w.enableRawMouse()
@@ -392,6 +462,7 @@ func (w *Window) OpenFileDialog(startPath string, extensions []filesystem.Dialog
 }
 
 func (w *Window) SaveFileDialog(startPath string, fileName string, extensions []filesystem.DialogExtension, ok func(path string), cancel func()) error {
+	debug.Assert(ok != nil, "SaveFileDialog requires a non-nil ok callback")
 	w.disableRawMouse()
 	return filesystem.OpenSaveFileDialogWindow(startPath, fileName, extensions, func(path string) {
 		w.enableRawMouse()
@@ -408,6 +479,13 @@ func (w *Window) EnableRawMouseInput()  { w.enableRawMouse() }
 func (w *Window) DisableRawMouseInput() { w.disableRawMouse() }
 
 func (w *Window) SetTitle(name string) { w.setTitle(name) }
+
+func (w *Window) SetTitleBarMode(mode TitleBarMode) {
+	debug.Assert(mode <= TitleBarModeDark, "Invalid TitleBarMode")
+	w.titleBarMode = mode
+	w.setTitleBarMode(mode)
+}
+func (w *Window) TitleBarMode() TitleBarMode { return w.getTitleBarMode() }
 
 func (w *Window) SetIcon(img image.Image) {
 	if img == nil {
@@ -440,6 +518,7 @@ func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
 	w.right = int(evt.right)
 	w.bottom = int(evt.bottom)
 	w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM = 0, 0
+	w.dpmmCache.Store(0)
 }
 
 func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
@@ -451,6 +530,9 @@ func (w *Window) processWindowMoveEvent(evt *WindowMoveEvent) {
 	w.top = w.y
 	w.right = w.x + ww
 	w.bottom = w.y + wh
+	w.cachedScreenSizeWidthMM, w.cacheScreenSizeHeightMM = 0, 0
+	w.dpmmCache.Store(0)
+	w.invalidateMonitorCache()
 	w.OnMove.Execute()
 }
 
@@ -537,12 +619,23 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 	}
 	for i := 0; i < int(unsafe.Sizeof(evt.buttons)*8); i++ {
 		buttonId := evt.buttons & (1 << i)
+		btn, err := hid.ToControllerButton(i)
+		if err != nil {
+			continue
+		}
 		if buttonId != 0 {
-			w.Controller.SetButtonDown(int(evt.controllerId), i)
+			w.Controller.SetButtonDown(int(evt.controllerId), btn)
 		} else {
-			w.Controller.SetButtonUp(int(evt.controllerId), i)
+			w.Controller.SetButtonUp(int(evt.controllerId), btn)
 		}
 	}
+	id := int(evt.controllerId)
+	w.Controller.SetAxis(id, hid.ControllerAxisLeftHorizontal, float32(evt.thumbLX)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisLeftVertical, float32(evt.thumbLY)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisRightHorizontal, float32(evt.thumbRX)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisRightVertical, float32(evt.thumbRY)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisLeftTrigger, float32(evt.leftTrigger)/math.MaxUint8)
+	w.Controller.SetAxis(id, hid.ControllerAxisRightTrigger, float32(evt.rightTrigger)/math.MaxUint8)
 }
 
 func (w *Window) processTouchStateEvent(evt *TouchStateWindowEvent) {

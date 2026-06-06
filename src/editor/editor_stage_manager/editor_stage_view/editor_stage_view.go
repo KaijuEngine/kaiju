@@ -1,91 +1,113 @@
 /******************************************************************************/
 /* editor_stage_view.go                                                       */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_view
 
 import (
-	"kaiju/editor/editor_controls"
-	"kaiju/editor/editor_stage_manager"
-	"kaiju/editor/editor_stage_manager/data_binding_renderer"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/select_tool"
-	"kaiju/editor/editor_stage_manager/editor_stage_view/transform_tools"
-
-	"kaiju/editor/project"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/matrix"
-	"kaiju/platform/hid"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
 	"log/slog"
 	"weak"
+
+	"kaijuengine.com/editor/editor_controls"
+	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/select_tool"
+	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view/transform_tools"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
 )
 
 type StageView struct {
-	host          *engine.Host
-	camera        editor_controls.EditorCamera
-	gridTransform matrix.Transform
-	gridShader    *shader_data_registry.ShaderDataGrid
-	manager       editor_stage_manager.StageManager
-	transformTool transform_tools.TransformTool
-	selectTool    select_tool.SelectTool
-	transformMan  TransformationManager
+	host            *engine.Host
+	camera          editor_controls.EditorCamera
+	gridTransform   matrix.Transform
+	gridShader      *shader_data_registry.ShaderDataGrid
+	gridVisible     bool
+	manager         editor_stage_manager.StageManager
+	transformTool   transform_tools.TransformTool
+	vertexSnap      VertexSnapTool
+	selectTool      select_tool.SelectTool
+	stagePicking    StagePicking
+	transformMan    TransformationManager
+	toolOwner       ViewportToolOwner
+	stageViewports  []stageRenderViewport
+	cameraPreview   stageCameraPreview
+	activeViewport  int
+	hoveredViewport int
+	focusedViewport int
+	viewport        stageViewportBounds
+	open            bool
+	defaultView     struct {
+		options rendering.RenderViewOptions
+		active  bool
+	}
+}
+
+type ViewportToolOwner interface {
+	UpdateViewportTool(view *StageView) bool
 }
 
 func (v *StageView) Manager() *editor_stage_manager.StageManager { return &v.manager }
 
-func (v *StageView) Camera() *editor_controls.EditorCamera { return &v.camera }
+func (v *StageView) Camera() *editor_controls.EditorCamera { return v.activeCamera() }
 
 func (v *StageView) WorkspaceHost() *engine.Host { return v.host }
 
-func (v *StageView) LookAtPoint() matrix.Vec3 { return v.camera.LookAtPoint() }
+func (v *StageView) LookAtPoint() matrix.Vec3 { return v.activeCamera().LookAtPoint() }
 
 func (v *StageView) IsView3D() bool { return v.isCamera3D() }
+
+func (v *StageView) IsFlyCameraInputActive() bool {
+	if !v.open || v.activeCamera().Mode() != editor_controls.EditorCameraMode3d {
+		return false
+	}
+	if v.activeCamera().IsFlyCameraActive() {
+		return true
+	}
+	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
+	return v.viewportContainsScreenPosition(m.ScreenPosition()) &&
+		!kb.HasAlt() &&
+		(m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight))
+}
+
+func (v *StageView) SetViewportToolOwner(owner ViewportToolOwner) {
+	v.toolOwner = owner
+}
+
+func (v *StageView) ClearViewportToolOwner(owner ViewportToolOwner) {
+	if v.toolOwner == owner {
+		v.toolOwner = nil
+	}
+}
+
+func (v *StageView) RefreshTransformGizmoVisibility() {
+	v.transformMan.RefreshToolVisibility()
+}
 
 func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.Initialize").End()
 	v.manager.Initialize(host, ed.History(), ed)
 	v.host = host
+	v.gridVisible = ed.Settings().ShowGrid
 	v.manager.NewStage()
 	v.transformTool.Initialize(host, v, ed.History(), &ed.Settings().Snapping)
-	v.transformMan.Initialize(v, ed.History(), &ed.Settings().Snapping)
-	v.selectTool.Init(host, &v.manager)
+	v.transformMan.Initialize(v, ed.History(), ed.Settings())
+	v.vertexSnap.Initialize(host, v, &v.transformMan)
+	v.selectTool.Init(host, v)
+	v.stagePicking.Initialize(v)
 	v.createViewportGrid()
+	v.applyGridVisibility()
 	v.setupCamera(ed)
+	v.setupStageViewports(&ed.Settings().EditorCamera)
 	// Data binding visualizers
 	weakHost := weak.Make(host)
 	v.manager.OnEntitySelected.Add(func(e *editor_stage_manager.StageEntity) {
@@ -98,12 +120,42 @@ func (v *StageView) Initialize(host *engine.Host, ed EditorStageViewWorkspaceInt
 
 func (v *StageView) Open() {
 	defer tracing.NewRegion("StageView.Open").End()
-	v.gridShader.Activate()
+	v.open = true
+	v.syncStageViewport()
+	v.applyGridVisibility()
 }
 
 func (v *StageView) Close() {
 	defer tracing.NewRegion("StageView.Close").End()
-	v.gridShader.Deactivate()
+	v.open = false
+	v.hideCameraPreview()
+	v.disableStageRenderViews()
+	v.stagePicking.Close()
+	v.restoreDefaultRenderView()
+	if v.gridShader != nil {
+		v.gridShader.Deactivate()
+	}
+}
+
+// IsGridVisible returns whether the editor viewport grid is currently shown.
+func (v *StageView) IsGridVisible() bool { return v.gridVisible }
+
+// SetGridVisible toggles the editor viewport grid. The change is applied
+// immediately to the live drawing; persistence is the caller's responsibility.
+func (v *StageView) SetGridVisible(visible bool) {
+	v.gridVisible = visible
+	v.applyGridVisibility()
+}
+
+func (v *StageView) applyGridVisibility() {
+	if v.gridShader == nil {
+		return
+	}
+	if v.gridVisible {
+		v.gridShader.Activate()
+	} else {
+		v.gridShader.Deactivate()
+	}
 }
 
 // Update will update the stage view and return `true` if the view is taking
@@ -112,45 +164,96 @@ func (v *StageView) Close() {
 // of keyboard actions.
 func (v *StageView) Update(deltaTime float64, proj *project.Project) bool {
 	defer tracing.NewRegion("StageView.Update").End()
+	v.syncStageViewport()
+	v.syncCameraPreview()
+	v.stagePicking.Update()
 	v.gridTransform.ResetDirty()
 	// If we are currently using any of the transformation tools, we shouldn't
 	// do any of the other updates like camera
 	if v.transformMan.IsBusy() {
-		v.transformMan.Update(v.host)
+		v.transformMan.Update(v.host, proj)
 		return true
 	}
-	if v.camera.Update(v.host, deltaTime) {
+	if v.vertexSnap.IsBusy() {
+		v.vertexSnap.Update(v.host)
+		return true
+	}
+	if v.activeCamera().Update(v.host, deltaTime) {
 		v.updateGridPosition()
 		v.transformTool.Cancel()
 		v.selectTool.Cancel()
 		return true
 	} else {
-		v.processViewportInteractions()
-	}
-	kb := &v.host.Window.Keyboard
-	if kb.KeyDown(hid.KeyboardKeyDelete) {
-		v.manager.DestroySelected()
-	} else if kb.HasCtrl() && kb.KeyDown(hid.KeyboardKeyD) {
-		v.DuplicateSelected(proj)
-		return true
+		v.processViewportInteractions(proj)
 	}
 	return false
 }
 
 func (v *StageView) SetCameraMode(mode editor_controls.EditorCameraMode) {
 	defer tracing.NewRegion("StageView.SetCameraMode").End()
-	v.camera.SetMode(mode, v.host)
+	v.activeCamera().SetMode(mode, v.host)
+	v.bindActiveViewportCamera()
+}
+
+func (v *StageView) FocusSelection() bool {
+	defer tracing.NewRegion("StageView.FocusSelection").End()
+	if !v.manager.HasSelection() {
+		return false
+	}
+	v.activeCamera().Focus(v.manager.SelectionBounds())
+	return true
+}
+
+func (v *StageView) EnableTransformTool(state ToolState) bool {
+	defer tracing.NewRegion("StageView.EnableTransformTool").End()
+	return v.transformMan.EnableToolState(state)
+}
+
+func (v *StageView) EnableWireframeTransformTool(state transform_tools.ToolState) bool {
+	defer tracing.NewRegion("StageView.EnableWireframeTransformTool").End()
+	if !v.manager.HasSelection() {
+		return false
+	}
+	v.transformTool.Enable(state)
+	return true
+}
+
+func (v *StageView) CanUseTransformToolKeybinding() bool {
+	if v.host == nil || v.host.Window == nil {
+		return false
+	}
+	m := &v.host.Window.Mouse
+	kb := &v.host.Window.Keyboard
+	insideViewport := v.viewportContainsScreenPosition(m.ScreenPosition())
+	if !insideViewport && !v.selectTool.IsActive() && !v.transformTool.IsActive() &&
+		!v.transformMan.IsBusy() && !v.vertexSnap.IsBusy() {
+		return false
+	}
+	if insideViewport && !kb.HasAlt() && (m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight)) {
+		return false
+	}
+	if insideViewport && (m.Pressed(hid.MouseButtonMiddle) || m.Held(hid.MouseButtonMiddle)) {
+		return false
+	}
+	if insideViewport && kb.KeyHeld(hid.KeyboardKeySpace) {
+		return false
+	}
+	return true
 }
 
 func (v *StageView) updateGridPosition() {
 	defer tracing.NewRegion("StageView.updateGridPosition").End()
 	cam := v.host.PrimaryCamera()
 	camPos := cam.Position()
-	switch v.camera.Mode() {
-	case editor_controls.EditorCameraMode2d:
+	switch v.activeCamera().Mode() {
+	case editor_controls.EditorCameraMode2d, editor_controls.EditorCameraModeFront:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), matrix.Floor(camPos.Y()), -cam.FarPlane()*0.45))
-	case editor_controls.EditorCameraMode3d:
+	case editor_controls.EditorCameraModeSide, editor_controls.EditorCameraModeLeft,
+		editor_controls.EditorCameraModeRight:
+		v.gridTransform.SetPosition(matrix.NewVec3(
+			cam.FarPlane()*0.45, matrix.Floor(camPos.Y()), matrix.Floor(camPos.Z())))
+	case editor_controls.EditorCameraMode3d, editor_controls.EditorCameraModeTop:
 		v.gridTransform.SetPosition(matrix.NewVec3(
 			matrix.Floor(camPos.X()), 0, matrix.Floor(camPos.Z())))
 	}
@@ -176,7 +279,7 @@ func (v *StageView) createViewportGrid() {
 	grid := rendering.NewMeshGrid(v.host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
 	v.gridTransform.Initialize(v.host.WorkGroup())
-	sd := shader_data_registry.Create(material.Shader.ShaderDataName())
+	sd := shader_data_registry.Create(material.Shader.DrawInstanceDataName())
 	v.gridShader = sd.(*shader_data_registry.ShaderDataGrid)
 	v.gridShader.Color = matrix.NewColor(0.5, 0.5, 0.5, 1)
 	v.host.Drawings.AddDrawing(rendering.Drawing{
@@ -184,6 +287,7 @@ func (v *StageView) createViewportGrid() {
 		Mesh:       grid,
 		ShaderData: v.gridShader,
 		Transform:  &v.gridTransform,
+		Layer:      rendering.RenderLayerEditor,
 		ViewCuller: &v.host.Cameras.Primary,
 	})
 	v.gridTransform.ResetDirty()
@@ -192,8 +296,8 @@ func (v *StageView) createViewportGrid() {
 func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 	defer tracing.NewRegion("StageView.setupCamera").End()
 	pjs := &ed.Project().Settings
-	v.camera.OnModeChange.Add(func() {
-		switch v.camera.Mode() {
+	v.camera.OnModeChange.Add(func(mode editor_controls.EditorCameraMode) {
+		switch mode {
 		case editor_controls.EditorCameraMode3d:
 			// Identity matrix is fine
 			v.gridShader.Color.SetA(1)
@@ -214,12 +318,19 @@ func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 }
 
 func (v *StageView) DuplicateSelected(proj *project.Project) {
+	if !v.manager.HasSelection() {
+		return
+	}
 	v.manager.DuplicateSelected(proj)
 	// The new selection is the duplicated entities
+	weakHost := weak.Make(v.host)
 	var callAttachments func(e *editor_stage_manager.StageEntity)
 	callAttachments = func(e *editor_stage_manager.StageEntity) {
 		for _, de := range e.DataBindings() {
-			data_binding_renderer.Attached(de, weak.Make(v.host), &v.manager, e)
+			data_binding_renderer.Attached(de, weakHost, &v.manager, e)
+			if v.manager.IsSelected(e) {
+				data_binding_renderer.ShowSpecific(de, weakHost, e)
+			}
 		}
 		for _, c := range e.Children {
 			callAttachments(editor_stage_manager.EntityToStageEntity(c))
@@ -228,4 +339,5 @@ func (v *StageView) DuplicateSelected(proj *project.Project) {
 	for _, e := range v.manager.HierarchyRespectiveSelection() {
 		callAttachments(e)
 	}
+	v.transformMan.EnableTranslationTool()
 }

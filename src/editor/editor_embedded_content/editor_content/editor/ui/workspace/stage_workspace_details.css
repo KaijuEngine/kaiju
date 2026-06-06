@@ -1,0 +1,194 @@
+#detailsArea {
+	position: absolute;
+	right: 0;
+	top: var(--ed-menu-bar-height);
+	width: 18%;
+	color: white;
+	overflow-y: scroll;
+	border-left: 2px solid black;
+}
+#detailsName {
+	margin-top: 0.5em;
+}
+.tformInput { margin-left: 0; }
+.tformX, .tformY, .tformZ {
+	height: 1.2em;
+	padding-left: 3px;
+	margin-left: 0.25em;
+	margin-bottom: 0.5em;
+}
+.tformX { background-color: #A00; }
+.tformY { background-color: #080; }
+.tformZ { background-color: #00C; }
+.dataContentId {
+	width: 100%;
+	background-color: #282828;
+	color: #AAA;
+	border: 2px solid black;
+}
+.dataContentId .dragHover {
+	background-color: var(--ed-row-selected);
+}
+.dataEntityId {
+	display: inline-block;
+	width: calc(100% - 2em);
+	background-color: #282828;
+	color: #AAA;
+	border: 2px solid black;
+}
+.dataEntityId.dragHover {
+	background-color: #26465F;
+}
+.dataEntityIdInvalid {
+	color: #FFB3B3;
+	border-color: #A33;
+}
+.dataEntityIdClear {
+	width: 1.5em;
+	height: 1.5em;
+	font-size: 0.7em;
+	font-family: 'MaterialIcons-Regular';
+}
+.dataTable {
+	width: calc(100% - 0.5em);
+	padding: 5px;
+	font-size: 0.8em;
+}
+.dataBindingBlock {
+	background-color: #282828;
+	color: white;
+	border: 2px solid #AAA;
+	margin-bottom: 0.2em;
+}
+.center { text-align: center; }
+.entityDataFieldHidden {
+	display: none;
+}
+.entityDataFieldDisabled {
+	color: #777;
+}
+.entityDataValidation {
+	width: calc(100% - 0.7em);
+	padding: 0.35em;
+	margin: 0.25em;
+	background-color: #1C1C1C;
+	border-left: 3px solid #AAA;
+	color: #DDD;
+	font-size: 0.85em;
+}
+.entityDataValidationWarning {
+	background-color: #3A311B;
+	border-left-color: #D6A533;
+	color: #FFD56A;
+}
+.dataInput {
+	width: 100%;
+	height: 1.2em;
+	font-size: 0.8em;
+	margin-bottom: 0.2em;
+}
+.dataCheck {
+	width: 0.8em;
+	height: 0.8em;
+	margin-left: 5px;
+	margin-bottom: 0.2em;
+}
+.smallInput, .smallerInput, .tformInput {
+	width: 4.3em;
+	height: 1.2em;
+	font-size: 0.8em;
+}
+.smallerInput {
+	width: 3.15em;
+}
+.entityDataListEntry {
+	width: 100%;
+	background-color: #282828;
+	color: #AAA;
+	padding: 0.35em;
+	margin-bottom: 0.2em;
+}
+.entityDataListEntry:hover {
+	background-color: #353535;
+	color: white;
+}
+.addEntityDataButton {
+	width: calc(100% - 2em);
+	height: 2em;
+	margin: 0.25em;
+	background-color: #282828;
+	color: #AAA;
+	border: 2px solid #575757;
+}
+.addEntityDataButton:hover {
+	background-color: #575757;
+	color: white;
+}
+.edColorPickInput {
+	width: 100%;
+	height: 2em;
+	border: 5px solid black;
+}
+.dataControls {
+	width: 4.5em;
+	height: 1.5em;
+}
+.deleteButton, .copyIcon, .pasteIcon {
+	width: 1.5em;
+	height: 1.5em;
+	font-size: 0.7em;
+	font-family: 'MaterialIcons-Regular';
+}
+#entityDataSelectorOverlay {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.65);
+	z-index: 80;
+}
+#entityDataSelectorWindow {
+	position: absolute;
+	width: 50%;
+	height: 65%;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50% -50%);
+	color: white;
+	background-color: #121212;
+	border: 5px solid #575757;
+	border-radius: 5px;
+	padding: 1em;
+}
+#entityDataSelectorHeader {
+	height: 2em;
+	margin-bottom: 0.5em;
+}
+#entityDataSelectorHeader span {
+	width: calc(100% - 2em);
+	font-size: 1.1em;
+}
+#entityDataSelectorHeader button {
+	width: 2em;
+	height: 2em;
+	font-family: 'MaterialIcons-Regular';
+	background-color: #282828;
+	color: #AAA;
+	border: 2px solid #575757;
+}
+#entityDataSelectorHeader button:hover {
+	background-color: #575757;
+	color: white;
+}
+#entityDataSearch {
+	width: 100%;
+	height: 2em;
+	margin-left: 0;
+	margin-bottom: 0.5em;
+}
+#entityDataList {
+	width: 100%;
+	height: calc(100% - 5em);
+	overflow-y: scroll;
+}

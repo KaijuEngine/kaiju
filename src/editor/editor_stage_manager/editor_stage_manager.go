@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* editor_stage_manager.go                                                    */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package editor_stage_manager
@@ -39,25 +9,6 @@ package editor_stage_manager
 import (
 	"encoding/json"
 	"errors"
-	"kaiju/editor/codegen"
-	"kaiju/editor/codegen/entity_data_binding"
-	"kaiju/editor/editor_events"
-	"kaiju/editor/editor_overlay/confirm_prompt"
-	"kaiju/editor/memento"
-	"kaiju/editor/project"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/assets"
-	"kaiju/engine/collision"
-	"kaiju/engine/stages"
-	"kaiju/engine/systems/events"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/registry/shader_data_registry"
-	"kaiju/rendering"
-	"kaiju/rendering/loaders/kaiju_mesh"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -65,6 +16,26 @@ import (
 	"slices"
 	"strings"
 	"weak"
+
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/editor/editor_events"
+	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
+	"kaijuengine.com/editor/memento"
+	"kaijuengine.com/editor/project"
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -77,6 +48,7 @@ type StageManager struct {
 	OnEntitySelected      events.EventWithArg[*StageEntity]
 	OnEntityDeselected    events.EventWithArg[*StageEntity]
 	OnEntityChangedParent events.EventWithArg[*StageEntity]
+	OnEntityLockChanged   events.EventWithArg[*StageEntity]
 	stageId               string
 	stageName             string
 	host                  *engine.Host
@@ -84,16 +56,21 @@ type StageManager struct {
 	history               *memento.History
 	entities              []*StageEntity
 	selected              []*StageEntity
-	worldBVH              *collision.BVH
+	nextPickID            uint32
+	pickIDToEntity        map[uint32]*StageEntity
+	worldBVH              *graviton.BVH
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
 // and linking data about the entity on this stage. That will include things
 // like content linkage, data bindings, etc.
 type StageEntityEditorData struct {
-	Bvh                   *collision.BVH
+	Bvh                   *graviton.BVH
+	WorldBvh              *graviton.BVH
 	Mesh                  *rendering.Mesh
+	SnapVertices          []matrix.Vec3
 	ShaderData            rendering.DrawInstance
+	PickingShaderData     rendering.DrawInstance
 	Description           stages.EntityDescription
 	PendingMaterialChange bool
 }
@@ -113,6 +90,10 @@ func (m *StageManager) NewStage() {
 
 func (m *StageManager) IsNew() bool     { return m.stageId == "" }
 func (m *StageManager) StageId() string { return m.stageId }
+
+func (m *StageManager) Entities() []*StageEntity {
+	return slices.Clone(m.entities)
+}
 
 func (m *StageManager) SetStageId(name string, cache *content_database.Cache) error {
 	defer tracing.NewRegion("StageManager.SetStageId").End()
@@ -139,8 +120,20 @@ func (m *StageManager) List() []*StageEntity {
 
 func (m *StageManager) Selection() []*StageEntity { return m.selected }
 
+func (m *StageManager) SetEntityLocked(e *StageEntity, locked bool) {
+	defer tracing.NewRegion("StageManager.SetEntityLocked").End()
+	if e == nil || e.IsDeleted() || e.IsLocked() == locked {
+		return
+	}
+	if locked && m.IsSelected(e) {
+		m.DeselectEntity(e)
+	}
+	e.SetLocked(locked)
+	m.OnEntityLockChanged.Execute(e)
+}
+
 // AddEntity will generate a new entity for the stage with a new random Id. It
-// will internally just call #AddEntityWithId
+// will internally just call [StageManager.AddEntityWithId].
 func (m *StageManager) AddEntity(name string, point matrix.Vec3) *StageEntity {
 	defer tracing.NewRegion("StageManager.AddEntity").End()
 	e := m.AddEntityWithId(uuid.NewString(), name, point)
@@ -157,14 +150,7 @@ func (m *StageManager) AttachEntityData(e *StageEntity, g codegen.GeneratedType)
 func (m *StageManager) duplicateEntity(target *StageEntity, proj *project.Project) (*StageEntity, error) {
 	defer tracing.NewRegion("StageManager.duplicateEntity").End()
 	desc := m.entityToDescription(target)
-	var newId func(d *stages.EntityDescription)
-	newId = func(d *stages.EntityDescription) {
-		d.Id = uuid.NewString()
-		for i := range d.Children {
-			newId(&d.Children[i])
-		}
-	}
-	newId(&desc)
+	regenerateEntityIdsAndRewriteReferences(&desc, proj)
 	return m.importEntityByDescription(m.host, proj, EntityToStageEntity(target.Parent), &desc)
 }
 
@@ -175,13 +161,31 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 	defer tracing.NewRegion("StageManager.AddEntityWithId").End()
 	e := &StageEntity{}
 	e.Init(m.host.WorkGroup())
+	m.host.SetEntityId(&e.Entity, engine.EntityId(id))
 	e.SetName(name)
 	e.StageData.Description.Id = id
 	e.Transform.SetPosition(point)
 	m.entities = append(m.entities, e)
+	m.AssignPickID(e)
 	e.AddNamedData("stage", e.StageData)
 	wm := weak.Make(m)
 	we := weak.Make(e)
+	e.OnActivate.Add(func() {
+		if e.StageData.ShaderData != nil {
+			e.StageData.ShaderData.Activate()
+		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Activate()
+		}
+	})
+	e.OnDeactivate.Add(func() {
+		if e.StageData.ShaderData != nil {
+			e.StageData.ShaderData.Deactivate()
+		}
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Deactivate()
+		}
+	})
 	e.OnDestroy.Add(func() {
 		sm := wm.Value()
 		if sm == nil {
@@ -190,11 +194,12 @@ func (m *StageManager) AddEntityWithId(id, name string, point matrix.Vec3) *Stag
 		if e.StageData.ShaderData != nil {
 			e.StageData.ShaderData.Destroy()
 		}
-		if e.StageData.Bvh != nil {
-			collision.RemoveAllLeavesMatchingTransform(&m.worldBVH, &e.Transform)
+		if e.StageData.PickingShaderData != nil {
+			e.StageData.PickingShaderData.Destroy()
 		}
 		se := we.Value()
 		sm.RemoveEntityBVH(se)
+		sm.unregisterPickID(se)
 		for i := range sm.entities {
 			if sm.entities[i] == se {
 				sm.entities = klib.RemoveUnordered(sm.entities, i)
@@ -249,6 +254,24 @@ func (m *StageManager) DuplicateSelected(proj *project.Project) {
 		})
 		m.SelectEntity(dup)
 	}
+}
+
+func (m *StageManager) DuplicateSelectionInPlace(proj *project.Project) []*StageEntity {
+	defer tracing.NewRegion("StageManager.DuplicateSelectionInPlace").End()
+	if proj == nil {
+		return nil
+	}
+	sel := slices.Clone(m.Selection())
+	duplicates := make([]*StageEntity, 0, len(sel))
+	for _, e := range sel {
+		dup, err := m.duplicateEntity(e, proj)
+		if err != nil {
+			slog.Error("failed to duplicate entity in place", "error", err)
+			continue
+		}
+		duplicates = append(duplicates, dup)
+	}
+	return duplicates
 }
 
 func (m *StageManager) LastSelected() *StageEntity {
@@ -326,26 +349,50 @@ func (m *StageManager) Clear() {
 	// function is used right before a map load, so having a dirty entity list
 	// at that point is not good.
 	m.entities = klib.WipeSlice(m.entities)
+	clear(m.pickIDToEntity)
+	m.nextPickID = 0
 	m.worldBVH = nil
 }
 
-func (m *StageManager) RefitWorldBVH() { m.worldBVH.Refit() }
-
-func (m *StageManager) AddBVH(bvh *collision.BVH, transform *matrix.Transform) {
-	defer tracing.NewRegion("StageManager.AddBVH").End()
-	cpy := collision.CloneBVH(bvh)
-	collision.AddSubBVH(&m.worldBVH, cpy, transform)
-	m.RefitWorldBVH()
+func (m *StageManager) RefitWorldBVH() {
+	defer tracing.NewRegion("StageManager.RefitWorldBVH").End()
+	for _, e := range m.entities {
+		if e.isDeleted || e.StageData.Bvh == nil {
+			continue
+		}
+		e.StageData.Bvh.Refit()
+	}
+	m.worldBVH.Refit()
 }
 
-//func (m *StageManager) RemoveBVH(bvh *collision.BVH) {
+func (m *StageManager) AddBVH(e *StageEntity) {
+	defer tracing.NewRegion("StageManager.AddBVH").End()
+	if e == nil || e.StageData.Bvh == nil {
+		return
+	}
+	if e.StageData.WorldBvh != nil {
+		m.RemoveEntityBVH(e)
+	}
+	e.StageData.WorldBvh = graviton.AddSubBVH(&m.worldBVH,
+		e.StageData.Bvh, &e.Transform)
+}
+
+//func (m *StageManager) RemoveBVH(bvh *graviton.BVH) {
 //	defer tracing.NewRegion("StageManager.RemoveBVH").End()
-//	collision.RemoveSubBVH(&m.worldBVH, bvh)
+//	graviton.RemoveSubBVH(&m.worldBVH, bvh)
 //}
 
 func (m *StageManager) RemoveEntityBVH(e *StageEntity) {
 	defer tracing.NewRegion("StageManager.RemoveBVH").End()
-	collision.RemoveAllLeavesMatchingTransform(&m.worldBVH, &e.Transform)
+	if e == nil {
+		return
+	}
+	if e.StageData.WorldBvh != nil {
+		graviton.RemoveBVHNode(&m.worldBVH, e.StageData.WorldBvh)
+		e.StageData.WorldBvh = nil
+		return
+	}
+	graviton.RemoveAllLeavesMatchingTransform(&m.worldBVH, &e.Transform)
 }
 
 // entityToTemplate is a wrapper around [entityToDescription] so that the
@@ -360,6 +407,7 @@ func (m *StageManager) entityToTemplate(target *StageEntity) stages.EntityDescri
 func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDescription {
 	desc := &parent.StageData.Description
 	desc.Name = parent.Name()
+	desc.Locked = parent.IsLocked()
 	desc.Position = parent.Transform.Position()
 	desc.Rotation = parent.Transform.Rotation()
 	desc.Scale = parent.Transform.Scale()
@@ -602,14 +650,7 @@ func (m *StageManager) SpawnTemplate(host *engine.Host, proj *project.Project, c
 	}
 	desc.Position = point
 	desc.TemplateId = cc.Id()
-	var generateId func(d *stages.EntityDescription)
-	generateId = func(d *stages.EntityDescription) {
-		d.Id = uuid.NewString()
-		for i := range d.Children {
-			generateId(&d.Children[i])
-		}
-	}
-	generateId(&desc)
+	regenerateEntityIdsAndRewriteReferences(&desc, proj)
 	e, err := m.importEntityByDescription(host, proj, nil, &desc)
 	if err != nil {
 		slog.Error("failed to spawn the entity from entity template", "path", cc.Path, "error", err)
@@ -624,6 +665,10 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 	defer tracing.NewRegion("StageManager.importEntityByDescription").End()
 	e := m.AddEntityWithId(desc.Id, desc.Name, matrix.Vec3Zero())
 	e.StageData.Description = *desc
+	e.SetLocked(desc.Locked)
+	if desc.Locked {
+		m.OnEntityLockChanged.Execute(e)
+	}
 	if parent != nil {
 		m.SetEntityParent(e, parent)
 	}
@@ -632,7 +677,9 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 	e.Transform.SetScale(desc.Scale)
 	// TODO:  Setup all the other data for the entity
 	if desc.Mesh != "" {
-		m.spawnLoadedEntity(e, host, proj.FileSystem())
+		if err := m.spawnLoadedEntity(e, host, proj.FileSystem()); err != nil {
+			desc.Mesh = ""
+		}
 	}
 	for i := range desc.DataBinding {
 		db := &desc.DataBinding[i]
@@ -666,33 +713,27 @@ func (m *StageManager) importEntityByDescription(host *engine.Host, proj *projec
 func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("StageManager.spawnLoadedEntity").End()
 	const rootFolder = project_file_system.ContentFolder
-	const meshFolder = project_file_system.ContentMeshFolder
 	const texFolder = project_file_system.ContentTextureFolder
 	desc := &e.StageData.Description
 	meshId := desc.Mesh
 	materialId := desc.Material
 	textureIds := desc.Textures
 	var km kaiju_mesh.KaijuMesh
-	// TODO:  This is a hack, the quad/plane may need to be added to the stock
-	// folder. They are special here because the're used for textures in 3D/2D.
-	switch meshId {
-	case "quad":
-		km.Verts, km.Indexes = rendering.MeshQuadData()
-	case "plane":
-		km.Verts, km.Indexes = rendering.MeshPlaneData()
-	default:
-		kmData, err := fs.ReadFile(filepath.Join(rootFolder, meshFolder, meshId))
+	var err error
+	var builtIn bool
+	meshRef := kaiju_mesh.ParseMeshRef(meshId)
+	if meshRef.Key == "" {
+		km.Verts, km.Indexes, builtIn = rendering.BuiltInMeshData(meshId)
+	}
+	if !builtIn {
+		km, err = kaiju_mesh.ReadMesh(meshId, host)
 		if err != nil {
 			slog.Error("failed to load the mesh data", "id", meshId, "error", err)
 			return err
 		}
-		km, err = kaiju_mesh.Deserialize(kmData)
-		if err != nil {
-			slog.Error("failed to deserialize the mesh data", "id", meshId, "error", err)
-			return err
-		}
 	}
 	mesh := host.MeshCache().Mesh(meshId, km.Verts, km.Indexes)
+	e.StageData.SnapVertices = snapVerticesFromMesh(km.Verts)
 	if materialId == "" {
 		slog.Warn("no material provided for SpawnMesh, will use fallback material")
 		materialId = assets.MaterialDefinitionBasic
@@ -714,7 +755,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 			return err
 		}
 		// TODO:  Should be reading the filter from the configuration file
-		tex, err := rendering.NewTextureFromMemory(textureIds[i],
+		tex, err := m.host.TextureCache().InsertRawTexture(textureIds[i],
 			texData, 0, 0, rendering.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the texture from it's data", "id", textureIds[i], "error", err)
@@ -722,9 +763,10 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		}
 		texs = append(texs, tex)
 	}
-	// TODO:  This should be based on the rendering.MaterialData texture count
 	if len(textureIds) == 0 {
-		slog.Warn("missing textures for mesh, using a fallback one")
+		texs = append(texs, mat.Textures...)
+	}
+	if len(texs) == 0 {
 		tex, err := host.TextureCache().Texture(assets.TextureSquare,
 			rendering.TextureFilterLinear)
 		if err != nil {
@@ -733,17 +775,16 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		texs = append(texs, tex)
 	}
 	mat = mat.CreateInstance(texs)
-	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.ShaderDataName())
-	// Temp set position to 0,0,0 for the BVH generation
-	ePos := e.Transform.Position()
-	e.Transform.SetPosition(matrix.Vec3Zero())
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
+	e.StageData.Mesh = mesh
 	e.StageData.Bvh = km.GenerateBVH(host.Threads(), &e.Transform, e)
-	e.Transform.SetPosition(ePos)
-	m.AddBVH(e.StageData.Bvh, &e.Transform)
+	m.AddBVH(e)
 	host.RunOnMainThread(func() {
-		for i := range texs {
-			texs[i].DelayedCreate(host.Window.Renderer)
-		}
+		host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			for i := range texs {
+				texs[i].DelayedCreate(device)
+			}
+		})
 		draw := rendering.Drawing{
 			Material:   mat,
 			Mesh:       mesh,
@@ -752,7 +793,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 			ViewCuller: &host.Cameras.Primary,
 		}
 		host.Drawings.AddDrawing(draw)
-		e.OnDestroy.Add(func() { e.StageData.ShaderData.Destroy() })
+		m.addPickingDrawing(e)
 	})
 	return nil
 }
@@ -768,13 +809,6 @@ func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *
 		return err
 	}
 	m.ClearSelection()
-	var generateId func(d *stages.EntityDescription)
-	generateId = func(d *stages.EntityDescription) {
-		d.Id = uuid.NewString()
-		for i := range d.Children {
-			generateId(&d.Children[i])
-		}
-	}
 	for i := range m.entities {
 		if m.entities[i].StageData.Description.TemplateId != templateId {
 			continue
@@ -783,7 +817,7 @@ func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *
 			continue
 		}
 		cpy := tpl
-		generateId(&cpy)
+		regenerateEntityIdsAndRewriteReferences(&cpy, proj)
 		t := m.entities[i].Transform
 		m.OnEntityDestroy.Execute(m.entities[i])
 		m.host.DestroyEntity(&m.entities[i].Entity)
@@ -793,17 +827,27 @@ func (m *StageManager) updateExistingTemplateInstances(skip *StageEntity, host *
 		}
 		e.Transform.Copy(t)
 	}
-	m.worldBVH.Refit()
+	m.RefitWorldBVH()
 	m.history.Clear()
 	return nil
 }
 
 func (m *StageManager) RefitBVH(entity *StageEntity) {
-	// TODO:  It's getting a little late, but I may need to track all of the
-	// nodes that were related to each other when they were created and only
-	// update the matching ones here. For now I'm just going to update the whole
-	// tree before it gets too late.
-	m.RefitWorldBVH()
+	defer tracing.NewRegion("StageManager.RefitBVH").End()
+	if entity == nil {
+		return
+	}
+	for _, e := range explodeEntityHierarchy(entity) {
+		if e.isDeleted || e.StageData.Bvh == nil {
+			continue
+		}
+		if e.StageData.WorldBvh == nil {
+			m.AddBVH(e)
+			continue
+		}
+		e.StageData.Bvh.Refit()
+		e.StageData.WorldBvh.RefitUpwards()
+	}
 }
 
 func explodeEntityHierarchy(e *StageEntity) []*StageEntity {

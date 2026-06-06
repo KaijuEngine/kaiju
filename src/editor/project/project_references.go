@@ -1,37 +1,7 @@
 /******************************************************************************/
 /* project_references.go                                                      */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package project
@@ -41,14 +11,17 @@ import (
 	"encoding/json"
 	"io"
 	"io/fs"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine/stages"
-	"kaiju/platform/profiler/tracing"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/stages"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type ContentReference struct {
@@ -67,6 +40,26 @@ func (p *Project) FindReferences(id string) ([]ContentReference, error) {
 	return refs, err
 }
 
+// FindAllReferencedContentFromCache Identifies and returns a list of content entries from the cache that are
+// referenced in the project and therefore filtering out unreferenced content.
+func (p *Project) FindAllReferencedContentFromCache(cachedContent []content_database.CachedContent) []content_database.CachedContent {
+	var referencedContent []content_database.CachedContent
+
+	slog.Info("shake off all unreferenced content")
+	for _, content := range cachedContent {
+		references, _ := p.FindReferences(content.Id())
+		if len(references) > 0 {
+			referencedContent = append(referencedContent, content)
+		}
+	}
+	slog.Info("used project content",
+		"cached", len(cachedContent),
+		"referenced", len(referencedContent),
+	)
+
+	return referencedContent
+}
+
 func (p *Project) FindReferencesWithCallback(id string, onFound func(ref ContentReference)) error {
 	defer tracing.NewRegion("Project.FindReferencesWithCallback").End()
 	var err error
@@ -79,6 +72,7 @@ func (p *Project) FindReferencesWithCallback(id string, onFound func(ref Content
 		p.findReferencesHtml,
 		p.findReferencesCss,
 		p.findReferencesCode,
+		p.findReferencesSettings,
 	}
 	for i := range funcs {
 		if err = funcs[i](id, onFound); err != nil {
@@ -108,6 +102,9 @@ func (p *Project) findReferencesStages(id string, onFound func(ref ContentRefere
 					ref.SubReference = append(ref.SubReference, subs...)
 				}
 			}
+			if len(ref.SubReference) == 0 {
+				return ContentReference{}, nil
+			}
 			return ref, nil
 		}, onFound)
 }
@@ -125,6 +122,9 @@ func (p *Project) findReferencesTemplates(id string, onFound func(ref ContentRef
 				return ref, err
 			}
 			ref.SubReference = p.findEntityRefs(&desc, id)
+			if len(ref.SubReference) == 0 {
+				return ContentReference{}, nil
+			}
 			return ref, nil
 		}, onFound)
 }
@@ -185,7 +185,7 @@ func (p *Project) findReferencesCss(id string, onFound func(ref ContentReference
 }
 
 func (p *Project) findReferencesCode(id string, onFound func(ref ContentReference)) error {
-	defer tracing.NewRegion("Project.findReferencesCode").End()
+	defer tracing.NewRegion("Project.findReferencesSettings").End()
 	paths := []string{
 		p.fileSystem.FullPath(project_file_system.KaijuSrcFolder),
 		p.fileSystem.FullPath(project_file_system.ProjectCodeFolder),
@@ -219,6 +219,17 @@ func (p *Project) findReferencesCode(id string, onFound func(ref ContentReferenc
 		if wErr != nil {
 			return wErr
 		}
+	}
+	return nil
+}
+
+func (p *Project) findReferencesSettings(id string, onFound func(ref ContentReference)) error {
+	if p.Settings.EntryPointStage == id {
+		onFound(ContentReference{
+			Id:     "ProjectSettings",
+			Name:   "ProjectSettings",
+			Source: "ProjectSettings",
+		})
 	}
 	return nil
 }
@@ -257,6 +268,9 @@ func (p *Project) findRefsOnFolderAndDo(id, folder string, do func(name string, 
 			r, err := do(entryName, data)
 			if err != nil {
 				return err
+			}
+			if r.Id == "" {
+				continue
 			}
 			if cc, err := p.cacheDatabase.Read(entryName); err == nil {
 				r.Name = cc.Config.Name
@@ -306,7 +320,10 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 	}
 	for i := range e.DataBinding {
 		for k, v := range e.DataBinding[i].Fields {
-			if s, ok := v.(string); ok && s == id {
+			if !p.isContentIdDataBindingField(&e.DataBinding[i], k) {
+				continue
+			}
+			if s, ok := dataBindingReferenceString(v); ok && s == id {
 				sub.SubReference = append(sub.SubReference, ContentReference{
 					Id:     id,
 					Name:   k,
@@ -325,6 +342,35 @@ func (p *Project) findEntityRefs(e *stages.EntityDescription, id string) []Conte
 		}
 	}
 	return refs
+}
+
+func (p *Project) isContentIdDataBindingField(binding *stages.EntityDataBinding, fieldName string) bool {
+	g, ok := p.EntityDataBinding(binding.RegistraionKey)
+	if !ok {
+		return true
+	}
+	entityIdType := reflect.TypeFor[engine.EntityId]()
+	for i := range g.Fields {
+		if g.Fields[i].Name != fieldName {
+			continue
+		}
+		if g.Fields[i].Type == entityIdType {
+			return false
+		}
+		return g.Fields[i].Type.PkgPath() == "kaijuengine.com/engine_entity_data/content_id"
+	}
+	return false
+}
+
+func dataBindingReferenceString(value any) (string, bool) {
+	switch v := value.(type) {
+	case string:
+		return v, true
+	case engine.EntityId:
+		return string(v), true
+	default:
+		return "", false
+	}
 }
 
 func (p *Project) updateReferences(from, to string) error {

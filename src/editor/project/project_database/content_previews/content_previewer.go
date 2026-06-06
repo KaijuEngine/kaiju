@@ -1,25 +1,35 @@
+/******************************************************************************/
+/* content_previewer.go                                                       */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package content_previews
 
 import (
 	"bytes"
 	"image"
 	"image/png"
-	"kaiju/editor/project/project_database/content_database"
-	"kaiju/editor/project/project_file_system"
-	"kaiju/engine"
-	"kaiju/engine/cameras"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/rendering"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+
+	"kaijuengine.com/editor/project/project_database/content_database"
+	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
 const (
-	sphereRadius   = 1
-	sphereSegments = 32
+	contentPreviewCacheVersion = "v2"
+	sphereRadius               = 1
+	sphereSegments             = 32
 )
 
 type ContentPreviewer struct {
@@ -54,7 +64,7 @@ func (p *ContentPreviewer) GeneratePreviews(ids []string) {
 	defer tracing.NewRegion("ContentPreviewer.GeneratePreviews").End()
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.pending = append(p.pending, ids...)
+	p.pending = append(p.pending, p.expandPreviewIds(ids)...)
 	if p.inProc {
 		return
 	}
@@ -62,36 +72,67 @@ func (p *ContentPreviewer) GeneratePreviews(ids []string) {
 	go p.nextPreview()
 }
 
+func (p *ContentPreviewer) expandPreviewIds(ids []string) []string {
+	expanded := make([]string, 0, len(ids))
+	for _, id := range ids {
+		expanded = append(expanded, id)
+		ref := kaiju_mesh.ParseMeshRef(id)
+		if ref.Key != "" {
+			continue
+		}
+		cc, err := p.ed.Cache().Read(ref.Asset)
+		if err != nil || cc.Config.Type != (content_database.Mesh{}).TypeName() ||
+			cc.Config.Mesh == nil || len(cc.Config.Mesh.Submeshes) <= 1 {
+			continue
+		}
+		for i := range cc.Config.Mesh.Submeshes {
+			submesh := &cc.Config.Mesh.Submeshes[i]
+			if submesh.Key != "" && !submesh.Missing {
+				expanded = append(expanded, kaiju_mesh.MeshRefString(ref.Asset, submesh.Key))
+			}
+		}
+	}
+	return expanded
+}
+
 func (p *ContentPreviewer) DeletePreviewImage(id string) error {
 	defer tracing.NewRegion("ContentPreviewer.DeletePreviewImage").End()
-	path := filepath.Join(project_file_system.EditorCacheContentPreviews, id)
+	path := p.previewPath(id)
 	return p.ed.ProjectFileSystem().Remove(path)
 }
 
 func (p *ContentPreviewer) LoadPreviewImage(id string) (*rendering.Texture, error) {
 	defer tracing.NewRegion("ContentPreviewer.LoadPreviewImage").End()
-	path := filepath.Join(project_file_system.EditorCacheContentPreviews, id)
+	path := p.previewPath(id)
 	data, err := p.ed.ProjectFileSystem().ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	host := p.ed.Host()
-	texKey := "preview_" + id
+	texKey := "preview_" + contentPreviewCacheVersion + "_" + id
 	const filter = rendering.TextureFilterLinear
-	tex, err := host.TextureCache().Texture(texKey, filter)
-	if tex == nil || err != nil {
-		if tex, err = rendering.NewTextureFromImage(texKey, data, filter); err != nil {
-			return nil, err
-		}
-		host.TextureCache().InsertTexture(tex)
+	return cachedPreviewTexture(host.TextureCache(), texKey, data, filter)
+}
+
+// useCachedTexture attempts to insert the preview image data into the texture cache and returns the texture if successful.
+// This allows for efficient reuse of textures across multiple previews and avoids redundant GPU uploads if the texture already exists in the cache.
+func (p *ContentPreviewer) useCachedTexture(texKey string, data []byte, filter rendering.TextureFilter) (*rendering.Texture, error) {
+	defer tracing.NewRegion("ContentPreviewer.useCachedTexture").End()
+	host := p.ed.Host()
+	return cachedPreviewTexture(host.TextureCache(), texKey, data, filter)
+}
+
+func cachedPreviewTexture(textureCache *rendering.TextureCache, texKey string, data []byte, filter rendering.TextureFilter) (*rendering.Texture, error) {
+	if tex, ok := textureCache.Find(texKey, filter); ok {
+		return tex, nil
 	}
-	return tex, nil
+	return textureCache.InsertImageTextureWithPriority(
+		texKey, data, filter, rendering.TextureUploadPriorityHigh)
 }
 
 func (p *ContentPreviewer) previewExists(id string) bool {
 	defer tracing.NewRegion("ContentPreviewer.previewExists").End()
-	path := filepath.Join(project_file_system.EditorCacheContentPreviews, id)
-	return p.ed.ProjectFileSystem().Exists(path)
+	return p.ed.ProjectFileSystem().Exists(p.previewPath(id))
 }
 
 func (p *ContentPreviewer) nextPreview() {
@@ -102,7 +143,7 @@ func (p *ContentPreviewer) nextPreview() {
 		p.mutex.Unlock()
 		return
 	}
-	if len(p.pending) > 0 {
+	for len(p.pending) > 0 && id == "" {
 		id = p.pending[0]
 		p.pending = p.pending[1:]
 	}
@@ -123,9 +164,11 @@ func (p *ContentPreviewer) completeProc() {
 
 func (p *ContentPreviewer) proc(id string) {
 	defer tracing.NewRegion("ContentPreviewer.proc").End()
-	cc, err := p.ed.Cache().Read(id)
+	ref := kaiju_mesh.ParseMeshRef(id)
+	cc, err := p.ed.Cache().Read(ref.Asset)
 	if err != nil {
 		slog.Error("failed to read the cache for content", "id", id, "error", err)
+		p.completeProc()
 		return
 	}
 	if p.previewExists(id) {
@@ -136,6 +179,8 @@ func (p *ContentPreviewer) proc(id string) {
 	switch cc.Config.Type {
 	case content_database.Mesh{}.TypeName():
 		p.renderMesh(id)
+	case content_database.Terrain{}.TypeName():
+		p.renderTerrain(id)
 	// case content_database.Material{}.TypeName():
 	// 	p.renderMaterial(id)
 	default:
@@ -146,15 +191,40 @@ func (p *ContentPreviewer) proc(id string) {
 func (p *ContentPreviewer) writePreviewFile(id string, data []byte) error {
 	defer tracing.NewRegion("ContentPreviewer.writePreviewFile").End()
 	pfs := p.ed.ProjectFileSystem()
-	dir := project_file_system.EditorCacheContentPreviews
+	path := p.previewPath(id)
+	dir := filepath.Dir(path)
 	pfs.MkdirAll(dir, os.ModePerm)
-	return pfs.WriteFile(filepath.Join(dir, id), data, os.ModePerm)
+	return pfs.WriteFile(path, data, os.ModePerm)
 }
 
-func (p *ContentPreviewer) readRenderPass(host *engine.Host, sd rendering.DrawInstance, id string) {
+func (p *ContentPreviewer) previewPath(id string) string {
+	return filepath.Join(project_file_system.EditorCacheContentPreviews, contentPreviewCacheVersion, previewFileName(id))
+}
+
+func previewFileName(id string) string {
+	replacer := strings.NewReplacer(
+		"<", "_", ">", "_", ":", "_", `"`, "_", "/", "_", "\\", "_",
+		"|", "_", "?", "_", "*", "_",
+	)
+	return replacer.Replace(id)
+}
+
+func (p *ContentPreviewer) readRenderPassAfterNextRender(host *engine.Host, id string, shaderData ...rendering.DrawInstance) {
+	host.RunAfterRender(func(*rendering.GPUDevice, engine.RenderFrame) {
+		p.readRenderPass(host, id, shaderData...)
+	})
+}
+
+func (p *ContentPreviewer) readRenderPass(host *engine.Host, id string, shaderData ...rendering.DrawInstance) {
 	defer p.completeProc()
-	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(host.Window.Renderer)
-	sd.Destroy()
+	defer func() {
+		for _, sd := range shaderData {
+			if sd != nil {
+				sd.Destroy()
+			}
+		}
+	}()
+	pixels, err := p.mat.RenderPass().Texture(0).ReadAllPixels(&host.Window.GpuHost)
 	if err != nil {
 		slog.Error("failed to read the mesh preview image from GPU", "id", id, "error", err)
 		return

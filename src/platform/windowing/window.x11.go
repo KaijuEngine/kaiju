@@ -3,44 +3,14 @@
 /******************************************************************************/
 /* window.x11.go                                                              */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package windowing
 
 /*
 #cgo CFLAGS: -I/usr/include
-#cgo LDFLAGS: -lX11 -lXcursor
+#cgo LDFLAGS: -lX11 -lXcursor -lXrandr
 #cgo noescape get_toggle_key_state
 #cgo noescape window_main
 #cgo noescape window_poll_controller
@@ -68,6 +38,8 @@ package windowing
 #cgo noescape window_unlock_cursor
 #cgo noescape window_set_cursor_position
 #cgo noescape window_set_icon
+#cgo noescape window_invalidate_monitor_cache
+#cgo noescape screen_count
 
 #include <stdlib.h>
 #include "windowing.h"
@@ -76,9 +48,10 @@ import "C"
 import (
 	"errors"
 	"image"
-	"kaiju/klib"
-	"kaiju/platform/hid"
 	"unsafe"
+
+	"kaijuengine.com/klib"
+	"kaijuengine.com/platform/hid"
 
 	"golang.design/x/clipboard"
 )
@@ -153,9 +126,11 @@ func (w *Window) clipboardContents() string {
 }
 
 func (w *Window) sizeMM() (int, int, error) {
-	width := C.window_width_mm(w.handle)
-	height := C.window_height_mm(w.handle)
-	return int(width), int(height), nil
+	dpmm := float64(C.window_dpi(w.handle))
+	if dpmm <= 0 {
+		return 0, 0, errors.New("invalid dpmm")
+	}
+	return int(float64(w.width) / dpmm), int(float64(w.height) / dpmm), nil
 }
 
 func (w *Window) cHandle() unsafe.Pointer   { return C.window(w.handle) }
@@ -186,13 +161,20 @@ func (w *Window) hideCursor() {
 	C.window_hide_cursor(w.handle)
 }
 
+func (w *Window) invalidateMonitorCache() {
+	C.window_invalidate_monitor_cache(w.handle)
+}
+
+func (w *Window) monitorCount() int {
+	return int(C.screen_count(w.handle))
+}
+
 func (w *Window) dotsPerMillimeter() float64 {
 	return float64(C.window_dpi(w.handle))
 }
 
 func (w *Window) screenSizeMM() (int, int, error) {
-	mm := float64(C.window_dpi(w.handle))
-	return int(float64(w.width) * mm), int(float64(w.height) * mm), nil
+	return int(C.window_width_mm(w.handle)), int(C.window_height_mm(w.handle)), nil
 }
 
 func (w Window) setTitle(name string) {
@@ -200,6 +182,10 @@ func (w Window) setTitle(name string) {
 	defer C.free(unsafe.Pointer(title))
 	C.window_set_title(w.handle, title)
 }
+
+// TODO: placeholder
+func (w *Window) setTitleBarMode(mode TitleBarMode) {}
+func (w *Window) getTitleBarMode() TitleBarMode     { return w.titleBarMode }
 
 func (w Window) setFullscreen() {
 	C.window_set_full_screen(w.handle)
@@ -244,6 +230,9 @@ func (w *Window) setIcon(img image.Image) {
 	}
 	C.window_set_icon(w.handle, C.int(width), C.int(height), (*C.uchar)(&rgba.Pix[0]))
 }
+
+// TODO: placeholder
+func (w *Window) setFileDropEnabled(enabled bool) {}
 
 func (w *Window) readApplicationAsset(path string) ([]byte, error) {
 	return []byte{}, errors.New("linux doesn't support application assets")

@@ -89,33 +89,41 @@ jobs:
           "VULKAN_SDK=$sdk" | Out-File -Append $env:GITHUB_ENV
           "PATH=$sdk\Bin;$env:PATH" | Out-File -Append $env:GITHUB_ENV
 
-      - name: Install Mesa (lavapipe)
-        working-directory: .
+      - name: Install Mesa (lavapipe) + Fix ICD paths
+        shell: pwsh
         run: |
-          # Install Mesa (lavapipe) into MSYS2 mingw64
+          # Update MSYS2 and install Mesa + Vulkan loader
           C:\msys64\usr\bin\pacman.exe -Syu --noconfirm
-          C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-mesa
+          C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-mesa mingw-w64-x86_64-vulkan-loader
 
-          # Find the lavapipe ICD manifest
-          $icd = Get-ChildItem -Recurse C:\msys64\mingw64 -Filter lvp_icd.x86_64.json |
-          Select-Object -First 1 -ExpandProperty FullName
+          # Locate the lavapipe ICD JSON
+          $icdPath = Get-ChildItem -Recurse "C:\msys64\mingw64\share\vulkan\icd.d" -Filter "lvp_icd.x86_64.json" |
+                     Select-Object -First 1 -ExpandProperty FullName
 
-          if (-not $icd) { throw "lavapipe ICD manifest (lvp_icd.x86_64.json) not found" }
+          if (-not $icdPath) {
+            throw "Failed to find lvp_icd.x86_64.json after installation"
+          }
 
-          Write-Host "Using lavapipe ICD: $icd"
+          Write-Host "Found lavapipe ICD at: $icdPath"
 
-          # Point Vulkan loader at the software ICD
-          "VK_ICD_FILENAMES=$icd" | Out-File -Append $env:GITHUB_ENV
+          # Patch the broken relative library_path (this is the MSYS2 bug causing error 127)
+          $jsonContent = Get-Content $icdPath -Raw
+          $jsonContent = $jsonContent -replace '"library_path":\s*"[^"]*vulkan_lvp\.dll"', '"library_path": "C:/msys64/mingw64/bin/vulkan_lvp.dll"'
+          $jsonContent | Set-Content $icdPath -Encoding utf8NoBOM
 
-          # Make sure the DLL can be found (usually already on PATH if you're using mingw64)
-          # but include it explicitly to be safe:
-          $mesaBin = "C:\msys64\mingw64\bin"
-          "PATH=$mesaBin;$env:PATH" | Out-File -Append $env:GITHUB_ENV
+          Write-Host "✅ Successfully patched ICD JSON with absolute DLL path"
 
-          # Register ICD for 64-bit Vulkan loader
-          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
-          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" `
-          -Name $icd -PropertyType DWord -Value 0 -Force | Out-Null
+          # Register the fixed ICD in HKLM (required because loader runs elevated)
+          $regKey = "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers"
+          if (-not (Test-Path $regKey)) {
+            New-Item -Path $regKey -Force | Out-Null
+          }
+          New-ItemProperty -Path $regKey -Name $icdPath -PropertyType DWord -Value 0 -Force | Out-Null
+          Write-Host "✅ Registered fixed ICD in registry"
+
+          # Add Mesa bin directory to PATH for the rest of the job
+          "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "✅ Added C:\msys64\mingw64\bin to PATH"
 
 
       - name: Build editor (debug mode)
@@ -144,7 +152,7 @@ jobs:
 
           $p = Start-Process -FilePath $exe -ArgumentList $args -NoNewWindow -PassThru
 
-          $timeoutSec = 120
+          $timeoutSec = 180
           $exited = $p.WaitForExit($timeoutSec * 1000)
 
           if (-not $exited) {
@@ -347,25 +355,11 @@ jobs:
 
       - name: Run editor E2E test
         working-directory: .
-        env:
-          DISPLAY: ':99'
         run: |
-          # Start Xvfb (X Virtual Frame Buffer) for headless display
-          echo "Starting Xvfb..."
-          Xvfb :99 -screen 0 1920x1080x24 &
-          XVFB_PID=$!
-          echo "Xvfb PID: $XVFB_PID"
-
-          # Give Xvfb time to start and verify it's running
-          sleep 2
-          if ! kill -0 $XVFB_PID 2>/dev/null; then
-            echo "✗ Xvfb failed to start"
-            exit 1
-          fi
-
           # Run the editor with automated integration tests
           echo "Starting Kaiju Editor with automated tests..."
-          timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24 -ac" \
+            timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           # Exit code 0 means auto-test completed successfully
@@ -381,11 +375,7 @@ jobs:
             TEST_RESULT=1
           fi
 
-          # Cleanup
-          echo "Cleaning up..."
-          kill $XVFB_PID 2>/dev/null || true
           rm -rf autotestproject
-
           exit $TEST_RESULT
 
       - name: Upload build artifacts
@@ -514,25 +504,12 @@ jobs:
 
       - name: Run editor E2E test
         working-directory: .
-        env:
-          DISPLAY: ':99'
         run: |
-          # Start Xvfb
-          echo "Starting Xvfb..."
-          Xvfb :99 -screen 0 1920x1080x24 &
-          XVFB_PID=$!
-          echo "Xvfb PID: $XVFB_PID"
-
-          sleep 2
-          if ! kill -0 $XVFB_PID 2>/dev/null; then
-            echo "✗ Xvfb failed to start"
-            exit 1
-          fi
-
           # Run editor with automated tests
           echo "Starting Kaiju Editor with automated tests..."
           echo "GPU Profile: ${{ matrix.profile_name }}"
-          timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24 -ac" \
+            timeout 2m ./kaiju --autotest 2>&1 || EXIT_CODE=$?
 
           # Check exit code
           if [ ${EXIT_CODE:-0} -eq 0 ]; then
@@ -546,11 +523,7 @@ jobs:
             TEST_RESULT=1
           fi
 
-          # Cleanup
-          echo "Cleaning up..."
-          kill $XVFB_PID 2>/dev/null || true
           rm -rf autotestproject
-
           exit $TEST_RESULT
 
       - name: Upload build artifacts

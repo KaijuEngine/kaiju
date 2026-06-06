@@ -2,7 +2,7 @@ package test_data
 
 import (
 	"fake/test_data/sub_test_data"
-	"kaiju/engine"
+	"kaijuengine.com/engine"
 )
 
 func init() {

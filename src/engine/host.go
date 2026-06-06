@@ -1,65 +1,37 @@
 /******************************************************************************/
 /* host.go                                                                    */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package engine
 
 import (
-	"kaiju/build"
-	"kaiju/debug"
-	"kaiju/engine/assets"
-	"kaiju/engine/cameras"
-	"kaiju/engine/collision_system"
-	"kaiju/engine/lighting"
-	"kaiju/engine/systems/events"
-	"kaiju/engine/systems/logging"
-	"kaiju/engine/systems/tweening"
-	"kaiju/klib"
-	"kaiju/matrix"
-	"kaiju/platform/audio"
-	"kaiju/platform/concurrent"
-	"kaiju/platform/profiler/tracing"
-	"kaiju/platform/windowing"
-	"kaiju/plugins"
-	"kaiju/rendering"
 	"log/slog"
 	"math"
 	"runtime"
 	"sync"
 	"time"
 	"weak"
+
+	"kaijuengine.com/build"
+	"kaijuengine.com/debug"
+	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/cameras"
+	"kaijuengine.com/engine/collision_system"
+	"kaijuengine.com/engine/lighting"
+	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/engine/systems/logging"
+	"kaijuengine.com/engine/systems/tweening"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/localization"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/audio"
+	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/platform/windowing"
+	"kaijuengine.com/plugins"
+	"kaijuengine.com/rendering"
 )
 
 // FrameId is a unique identifier for a frame
@@ -77,6 +49,8 @@ type timeRun struct {
 	end  time.Time
 	call func()
 }
+
+type afterRenderRun func(*rendering.GPUDevice, RenderFrame)
 
 type hostCameras struct {
 	Primary cameras.Container
@@ -102,10 +76,12 @@ type Host struct {
 	name              string
 	game              any
 	destroyedEntities []*Entity
+	entitiesById      map[EntityId]*Entity
 	lighting          lighting.LightingInformation
 	timeRunner        []timeRun
 	frameRunner       []frameRun
 	preRenderRunner   []func()
+	postRenderRunner  []afterRenderRun
 	plugins           []*plugins.LuaVM
 	Window            *windowing.Window
 	LogStream         *logging.LogStream
@@ -122,6 +98,9 @@ type Host struct {
 	fontCache         rendering.FontCache
 	materialCache     rendering.MaterialCache
 	Drawings          rendering.Drawings
+	RenderTargets     rendering.RenderTargetManager
+	RenderViews       rendering.RenderViewManager
+	Localization      localization.Localization
 	frame             FrameId
 	frameTime         float64
 	Closing           bool
@@ -135,28 +114,40 @@ type Host struct {
 	CloseSignal       chan struct{}
 	frameRateLimit    *time.Ticker
 	runnerMutex       sync.Mutex
+	renderThread      *RenderThread
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
 // is the log handler that is used by the slog package functions. A Host that
-// is created through NewHost has no function until #Host.Initialize is called.
+// is created through NewHost has no function until [Host.Initialize] is called.
 //
 // This is primarily called from #host_container/New
 func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database) *Host {
 	w := float32(DefaultWindowWidth)
 	h := float32(DefaultWindowHeight)
+	primaryCamera := cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())
+	uiCamera := cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})
 	host := &Host{
 		name:          name,
 		frameTime:     0,
 		Closing:       false,
 		assetDatabase: assetDb,
 		Drawings:      rendering.NewDrawings(),
-		CloseSignal:   make(chan struct{}, 1),
-		LogStream:     logStream,
-		lighting:      lighting.NewLightingInformation(rendering.MaxLocalLights),
+		RenderTargets: rendering.NewRenderTargetManager(),
+		RenderViews: rendering.NewRenderViewManager(rendering.RenderViewOptions{
+			Name:      rendering.DefaultRenderViewName,
+			Camera:    primaryCamera,
+			LayerMask: rendering.RenderLayerAll,
+			Clear:     true,
+		}),
+		Localization: localization.Select(),
+		entitiesById: make(map[EntityId]*Entity),
+		CloseSignal:  make(chan struct{}, 1),
+		LogStream:    logStream,
+		lighting:     lighting.NewLightingInformation(rendering.MaxLocalLights),
 		Cameras: hostCameras{
-			Primary: cameras.NewContainer(cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())),
-			UI:      cameras.NewContainer(cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})),
+			Primary: cameras.NewContainer(primaryCamera),
+			UI:      cameras.NewContainer(uiCamera),
 		},
 	}
 	host.workGroup.Init()
@@ -199,39 +190,63 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 		return err
 	}
 	host.Window = win
+	host.entitiesById = make(map[EntityId]*Entity)
 	host.threads.Start()
 	host.updateThreads.Start()
 	host.uiThreads.Start()
 	host.Cameras.Primary.Camera.ViewportChanged(float32(width), float32(height))
 	host.Cameras.UI.Camera.ViewportChanged(float32(width), float32(height))
-	host.shaderCache = rendering.NewShaderCache(host.Window.Renderer, host.assetDatabase)
-	host.textureCache = rendering.NewTextureCache(host.Window.Renderer, host.assetDatabase)
-	host.meshCache = rendering.NewMeshCache(host.Window.Renderer, host.assetDatabase)
-	host.fontCache = rendering.NewFontCache(host.Window.Renderer, host.assetDatabase)
-	host.materialCache = rendering.NewMaterialCache(host.Window.Renderer, host.assetDatabase)
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
-	// TODO:  This is tempoarary for testing, it should only be started if a
-	// stage has rigidbodies requested to be spawned (issue: #513)
-	if !build.Editor {
-		host.physics.Start()
-	}
 	return nil
 }
 
+func (host *Host) StartPhysics() {
+	if !build.Editor {
+		if !host.physics.IsActive() {
+			host.physics.Start()
+		}
+	}
+}
+
 func (host *Host) InitializeRenderer() error {
+	if err := host.Window.InitializeGPU(host.assetDatabase); err != nil {
+		slog.Error("failed to initialize the GPU", "error", err)
+		return err
+	}
+	gpuDevice := host.Window.GpuInstance.PrimaryDevice()
+	host.shaderCache = rendering.NewShaderCache(gpuDevice, host.assetDatabase)
+	host.textureCache = rendering.NewTextureCache(gpuDevice, host.assetDatabase)
+	host.meshCache = rendering.NewMeshCache(gpuDevice, host.assetDatabase)
+	host.fontCache = rendering.NewFontCache(gpuDevice, host.assetDatabase)
+	host.materialCache = rendering.NewMaterialCache(gpuDevice, host.assetDatabase)
+	if host.renderThread != nil {
+		host.materialCache.SetDeviceCall(host.RunOnRenderThread)
+	}
 	w, h := int32(host.Window.Width()), int32(host.Window.Height())
-	if err := host.Window.Renderer.Initialize(host, w, h); err != nil {
+	if err := host.Window.GpuInstance.SetupCaches(host, w, h); err != nil {
 		slog.Error("failed to initialize the renderer", "error", err)
 		return err
 	}
-	if err := host.FontCache().Init(host.Window.Renderer, host.AssetDatabase(), host); err != nil {
+	if err := host.FontCache().Init(host); err != nil {
 		slog.Error("failed to initialize the font cache", "error", err)
 		return err
 	}
 	if err := rendering.SetupLightMaterials(host.MaterialCache()); err != nil {
 		slog.Error("failed to setup the light materials", "error", err)
 		return err
+	}
+	if runtime.GOOS == "windows" {
+		wHost := weak.Make(host)
+		host.Window.OnMove.Add(func() {
+			host := wHost.Value()
+			if host == nil || host.Closing || host.Window == nil {
+				return
+			}
+			if host.renderThread == nil {
+				host.Render()
+			}
+		})
 	}
 	return nil
 }
@@ -303,6 +318,45 @@ func (host *Host) AssetDatabase() assets.Database {
 	return host.assetDatabase
 }
 
+// SetEntityId assigns the given identifier to an entity and registers it for
+// host-wide lookup. Duplicate non-empty identifiers are rejected and leave the
+// entity's current identifier unchanged.
+func (host *Host) SetEntityId(entity *Entity, id EntityId) bool {
+	if entity == nil {
+		slog.Error("can't assign id to nil entity", "id", id)
+		return false
+	}
+	if entity.isDestroyed {
+		slog.Error("can't assign id to destroyed entity", "id", id)
+		return false
+	}
+	if entity.id == id {
+		return true
+	}
+	if id != "" {
+		if existing, ok := host.entitiesById[id]; ok && existing != entity {
+			slog.Error("duplicate entity id rejected", "id", id)
+			return false
+		}
+	}
+	host.unregisterEntityId(entity)
+	entity.id = id
+	entity.idHost = weak.Pointer[Host]{}
+	if id != "" {
+		host.entitiesById[id] = entity
+		entity.idHost = weak.Make(host)
+	}
+	return true
+}
+
+// EntityById returns the entity currently registered with the given identifier.
+func (host *Host) EntityById(id EntityId) *Entity {
+	if id == "" || host.entitiesById == nil {
+		return nil
+	}
+	return host.entitiesById[id]
+}
+
 // Plugins returns all of the loaded plugins for the host
 func (host *Host) Plugins() []*plugins.LuaVM {
 	return host.plugins
@@ -335,40 +389,23 @@ func (host *Host) Lighting() *lighting.LightingInformation {
 // tick the editor entities for cleanup.
 func (host *Host) Update(deltaTime float64) {
 	defer tracing.NewRegion("Host.Update").End()
-	host.frame++
 	host.Cameras.NewFrame()
 	debug.Ensure(deltaTime >= 0)
+	host.runnerMutex.Lock()
+	host.frame++
 	host.frameTime += max(0.0, deltaTime)
+	host.runnerMutex.Unlock()
 	host.processDestroyedEntities()
 	host.Window.Poll()
-	for i := 0; i < len(host.frameRunner); i++ {
-		if host.frameRunner[i].frame <= host.frame {
-			// TODO:  This shouldn't be needed, see why the [0] sometimes
-			// is nil
-			if host.frameRunner[i].call != nil {
-				host.frameRunner[i].call()
-			}
-			host.frameRunner = klib.RemoveUnordered(host.frameRunner, i)
-			i--
-		}
-	}
-	if len(host.timeRunner) > 0 {
-		now := time.Now()
-		for i := 0; i < len(host.timeRunner); i++ {
-			if host.timeRunner[i].end.Before(now) {
-				host.timeRunner[i].call()
-				host.timeRunner = klib.RemoveUnordered(host.timeRunner, i)
-				i--
-			}
-		}
-	}
+	host.runFrameCallbacks()
+	host.runTimeCallbacks()
 	host.UIUpdater.Update(deltaTime)
 	host.UILateUpdater.Update(deltaTime)
 	tweening.Update(deltaTime)
 	host.Updater.Update(deltaTime)
 	if !build.Editor {
 		if host.physics.IsActive() {
-			host.physics.Update(&host.threads, deltaTime)
+			host.physics.Update(host.WorkGroup(), &host.threads, deltaTime)
 		}
 	}
 	host.LateUpdater.Update(deltaTime)
@@ -386,38 +423,29 @@ func (host *Host) Update(deltaTime float64) {
 func (host *Host) Render() {
 	defer tracing.NewRegion("Host.Render").End()
 	host.workGroup.Execute(matrix.TransformWorkGroup, &host.threads)
-	for _, p := range host.preRenderRunner {
-		p()
-	}
-	host.preRenderRunner = host.preRenderRunner[:0]
+	host.runBeforeRenderCallbacks()
+	host.RenderViews.SetDefaultCamera(host.Cameras.Primary.Camera)
 	host.Drawings.PreparePending(host.PrimaryCamera().NumCSMCascades())
-	host.shaderCache.CreatePending()
-	host.textureCache.CreatePending()
-	host.meshCache.CreatePending()
-	if host.Drawings.HasDrawings() {
-		lights := rendering.LightsForRender{
-			Lights:     host.lighting.Lights.Cache,
-			HasChanges: host.lighting.Lights.HasChanges(),
-		}
-		for i := 0; i < len(lights.Lights) && !lights.HasChanges; i++ {
-			lights.HasChanges = lights.Lights[i].ResetFrameDirty()
-		}
-		host.lighting.Update(host.PrimaryCamera().Position())
-		if host.Window.Renderer.ReadyFrame(host.Window,
-			host.Cameras.Primary.Camera, host.Cameras.UI.Camera,
-			lights, float32(host.Runtime())) {
-			host.Drawings.Render(host.Window.Renderer, lights)
-		}
-	}
-	host.Window.SwapBuffers()
+	host.ProcessPendingRenderResources()
+	frame := host.captureRenderFrame()
+	host.Drawings.CaptureFrameData(frame.Lights, frame.Views)
+	host.renderCapturedFrame(frame)
 	host.workGroup.Execute(matrix.TransformResetWorkGroup, &host.threads)
 }
 
 // Frame will return the current frame id
-func (host *Host) Frame() FrameId { return host.frame }
+func (host *Host) Frame() FrameId {
+	host.runnerMutex.Lock()
+	defer host.runnerMutex.Unlock()
+	return host.frame
+}
 
 // Runtime will return how long the host has been running in seconds
-func (host *Host) Runtime() float64 { return host.frameTime }
+func (host *Host) Runtime() float64 {
+	host.runnerMutex.Lock()
+	defer host.runnerMutex.Unlock()
+	return host.frameTime
+}
 
 // RunAfterFrames will call the given function after the given number of frames
 // have passed from the current frame
@@ -457,8 +485,32 @@ func (host *Host) RunBeforeRender(call func()) {
 	host.runnerMutex.Unlock()
 }
 
+// RunAfterRender runs call once after the next successfully swapped render
+// frame. When render-thread mode is active, call runs on the render thread.
+func (host *Host) RunAfterRender(call func(*rendering.GPUDevice, RenderFrame)) {
+	if call == nil {
+		return
+	}
+	host.runnerMutex.Lock()
+	host.postRenderRunner = append(host.postRenderRunner, call)
+	host.runnerMutex.Unlock()
+}
+
 func (host *Host) RunOnMainThread(call func()) {
 	host.RunAfterFrames(0, call)
+}
+
+func (host *Host) RunOnRenderThread(call func(*rendering.GPUDevice)) {
+	if call == nil {
+		return
+	}
+	if host.renderThread != nil {
+		host.renderThread.Run(call)
+		return
+	}
+	if host.Window != nil && host.Window.GpuInstance != nil && host.Window.GpuInstance.IsValid() {
+		call(host.Window.GpuInstance.PrimaryDevice())
+	}
 }
 
 // RunAfterTime will call the given function after the given number of time
@@ -479,19 +531,24 @@ func (host *Host) RunAfterTime(wait time.Duration, call func()) {
 // Teardown will destroy the host and all of its resources. This will also
 // execute the OnClose event. This will also signal the CloseSignal channel.
 func (host *Host) Teardown() {
-	host.Window.Renderer.WaitForRender()
 	host.OnClose.Execute()
 	host.processDestroyedEntities()
 	host.UIUpdater.Destroy()
 	host.UILateUpdater.Destroy()
 	host.Updater.Destroy()
 	host.LateUpdater.Destroy()
-	host.Drawings.Destroy(host.Window.Renderer)
-	host.textureCache.Destroy()
-	host.meshCache.Destroy()
-	host.shaderCache.Destroy()
-	host.fontCache.Destroy()
-	host.materialCache.Destroy()
+	if host.renderThread != nil {
+		if err := host.renderThread.Stop(); err != nil {
+			slog.Error("failed to stop render thread", "error", err)
+		}
+		host.renderThread = nil
+	} else {
+		host.TeardownRenderer()
+	}
+	for i := range host.plugins {
+		host.plugins[i].Close()
+	}
+	host.plugins = nil
 	host.assetDatabase.Close()
 	host.Window.Destroy()
 	host.threads.Stop()
@@ -517,12 +574,11 @@ func (h *Host) WaitForFrameRate() {
 // is reached before continuing the update loop.
 func (h *Host) SetFrameRateLimit(fps int64) {
 	defer tracing.NewRegion("Host.SetFrameRateLimit").End()
-	if fps == 0 {
-		if h.frameRateLimit != nil {
-			h.frameRateLimit.Stop()
-			h.frameRateLimit = nil
-		}
-	} else {
+	if h.frameRateLimit != nil {
+		h.frameRateLimit.Stop()
+		h.frameRateLimit = nil
+	}
+	if fps > 0 {
 		h.frameRateLimit = time.NewTicker(time.Second / time.Duration(fps))
 	}
 }
@@ -556,6 +612,7 @@ func (host *Host) resized() {
 	w, h := float32(host.Window.Width()), float32(host.Window.Height())
 	host.Cameras.Primary.Camera.ViewportChanged(w, h)
 	host.Cameras.UI.Camera.ViewportChanged(w, h)
+	host.RenderTargets.ResizeMatchingWindow(int(w), int(h))
 }
 
 func (host *Host) processDestroyedEntities() {
@@ -563,4 +620,56 @@ func (host *Host) processDestroyedEntities() {
 		host.destroyedEntities[i].ForceCleanup()
 	}
 	host.destroyedEntities = klib.WipeSlice(host.destroyedEntities)
+}
+
+func (host *Host) runFrameCallbacks() {
+	host.runnerMutex.Lock()
+	calls := make([]func(), 0)
+	for i := 0; i < len(host.frameRunner); i++ {
+		if host.frameRunner[i].frame <= host.frame {
+			if host.frameRunner[i].call != nil {
+				calls = append(calls, host.frameRunner[i].call)
+			}
+			host.frameRunner = klib.RemoveUnordered(host.frameRunner, i)
+			i--
+		}
+	}
+	host.runnerMutex.Unlock()
+	for i := range calls {
+		calls[i]()
+	}
+}
+
+func (host *Host) runTimeCallbacks() {
+	host.runnerMutex.Lock()
+	if len(host.timeRunner) == 0 {
+		host.runnerMutex.Unlock()
+		return
+	}
+	now := time.Now()
+	calls := make([]func(), 0)
+	for i := 0; i < len(host.timeRunner); i++ {
+		if host.timeRunner[i].end.Before(now) {
+			if host.timeRunner[i].call != nil {
+				calls = append(calls, host.timeRunner[i].call)
+			}
+			host.timeRunner = klib.RemoveUnordered(host.timeRunner, i)
+			i--
+		}
+	}
+	host.runnerMutex.Unlock()
+	for i := range calls {
+		calls[i]()
+	}
+}
+
+func (host *Host) unregisterEntityId(entity *Entity) {
+	if entity == nil || entity.id == "" || host.entitiesById == nil {
+		return
+	}
+	if host.entitiesById[entity.id] == entity {
+		delete(host.entitiesById, entity.id)
+	}
+	entity.id = ""
+	entity.idHost = weak.Pointer[Host]{}
 }

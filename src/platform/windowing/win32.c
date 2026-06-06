@@ -56,31 +56,61 @@
 
 #include "win32.h"
 #include <assert.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <windowsx.h>
+#include <dwmapi.h>
+
+#ifndef KAIJU_ENABLE_FILEDROP
+#define KAIJU_ENABLE_FILEDROP 0
+#endif
+
+#if KAIJU_ENABLE_FILEDROP
+#include <shellapi.h>
+#endif
+
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20
+#define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20 19
+#endif
+
+#define WINDOW_TITLE_BAR_MODE_SYSTEM 0
+#define WINDOW_TITLE_BAR_MODE_LIGHT 1
+#define WINDOW_TITLE_BAR_MODE_DARK 2
+
+static void apply_title_bar_mode(HWND hwnd, int mode);
+static bool user_prefers_dark_mode(void);
 
 /*
 * Messages defined here are NOT to be sent to other windows
 * https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerwindowmessagea#remarks
 */
-#define UWM_SET_CURSOR		(WM_USER + 0x0001)
-#define CURSOR_ARROW        1
-#define CURSOR_IBEAM        2
-#define CURSOR_WAIT         3
-#define CURSOR_CROSS        4
-#define CURSOR_UPARROW      5
-#define CURSOR_SIZE_NWSE    6
-#define CURSOR_SIZE_NESW    7
-#define CURSOR_SIZE_WE      8
-#define CURSOR_SIZE_NS      9
-#define CURSOR_SIZE_ALL     10
-#define CURSOR_NO           11
-#define CURSOR_HAND         12
-#define CURSOR_APP_STARTING 13
-#define CURSOR_HELP         14
-#define CURSOR_PIN          15
-#define CURSOR_PERSON       16
+#define UWM_SET_CURSOR            (WM_USER + 0x0001)
+#define UWM_SET_TITLE_BAR_MODE    (WM_USER + 0x0002)
+#define UWM_SET_CURSOR_VISIBILITY (WM_USER + 0x0004)
+#if KAIJU_ENABLE_FILEDROP
+#define UWM_SET_FILE_DROP         (WM_USER + 0x0003)
+#endif
+#define CURSOR_ARROW           1
+#define CURSOR_IBEAM           2
+#define CURSOR_WAIT            3
+#define CURSOR_CROSS           4
+#define CURSOR_UPARROW         5
+#define CURSOR_SIZE_NWSE       6
+#define CURSOR_SIZE_NESW       7
+#define CURSOR_SIZE_WE         8
+#define CURSOR_SIZE_NS         9
+#define CURSOR_SIZE_ALL        10
+#define CURSOR_NO              11
+#define CURSOR_HAND            12
+#define CURSOR_APP_STARTING    13
+#define CURSOR_HELP            14
+#define CURSOR_PIN             15
+#define CURSOR_PERSON          16
 
 static inline void readMousePosition(LPARAM lParam, int32_t* x, int32_t* y) {
 	*x = GET_X_LPARAM(lParam);
@@ -138,6 +168,24 @@ static inline bool obtainControllerStates(SharedMem* sm) {
 			evt.controllerState.connectionType = WINDOW_EVENT_CONTROLLER_CONNECTION_TYPE_CONNECTED;
 			readControllerStates = true;
 			connectedControllers[i] = 0; // Check this controller next frame
+			if (abs(evt.controllerState.thumbLX) < XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE &&
+				abs(evt.controllerState.thumbLY) < XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+			{
+				evt.controllerState.thumbLX = 0;
+				evt.controllerState.thumbLY = 0;
+			}
+			if (abs(evt.controllerState.thumbRX) < XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE &&
+				abs(evt.controllerState.thumbRY) < XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+			{
+				evt.controllerState.thumbRX = 0;
+				evt.controllerState.thumbRY = 0;
+			}
+			if (abs(evt.controllerState.leftTrigger) < XINPUT_GAMEPAD_TRIGGER_THRESHOLD) {
+				evt.controllerState.leftTrigger = 0;
+			}
+			if (abs(evt.controllerState.rightTrigger) < XINPUT_GAMEPAD_TRIGGER_THRESHOLD) {
+				evt.controllerState.rightTrigger = 0;
+			}
 		} else {
 			// TODO:  readControllerStates would be true here too, but
 			// no need to spam the event if no controllers are available?
@@ -154,8 +202,7 @@ static inline bool obtainControllerStates(SharedMem* sm) {
 LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
-		case WM_QUIT:
-		case WM_DESTROY:
+		case WM_CLOSE:
 		{
 			if (sm != NULL) {
 				shared_mem_add_event(sm, (WindowEvent) {
@@ -164,6 +211,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				});
 				shared_mem_flush_events(sm);
 			}
+			return 0;
+		}
+		case WM_QUIT:
+		case WM_DESTROY:
+		{
 			PostQuitMessage(0);
 			return 0;
 		}
@@ -185,6 +237,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					break;
 			}
 			shared_mem_flush_events(sm);
+			break;
+		}
+		case WM_SETTINGCHANGE:
+		case WM_THEMECHANGED:
+		{
+			if (sm != NULL && sm->titleBarMode == WINDOW_TITLE_BAR_MODE_SYSTEM) {
+				apply_title_bar_mode(hwnd, sm->titleBarMode);
+			}
 			break;
 		}
 		case WM_MOVE:
@@ -256,17 +316,18 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			readMousePosition(lParam, &evt.mouseMove.x, &evt.mouseMove.y);
 			sm->mouseX = evt.mouseMove.x;
 			sm->mouseY = evt.mouseMove.y;
-			shared_mem_add_event(sm, evt);
-			if (!sm->rawInputFailed && sm->rawInputRequested) {
-				bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
-					|| evt.mouseMove.x <= sm->clientRect.right
-					|| evt.mouseMove.y <= sm->clientRect.bottom;
-				if (mouseEnteredWindow) {
-					window_enable_raw_mouse(hwnd);
-				}
-			}
 			if (sm->lockCursor.active) {
-				lock_cursor_position(sm);
+				// When locked, raw input handles movement via deltas; skip here
+			} else {
+				shared_mem_add_event(sm, evt);
+				if (!sm->rawInputFailed && sm->rawInputRequested) {
+					bool mouseEnteredWindow = evt.mouseMove.x >= 0 || evt.mouseMove.y >= 0
+						|| evt.mouseMove.x <= sm->clientRect.right
+						|| evt.mouseMove.y <= sm->clientRect.bottom;
+					if (mouseEnteredWindow) {
+						window_enable_raw_mouse(hwnd);
+					}
+				}
 			}
 			break;
 		}
@@ -435,6 +496,66 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			shared_mem_add_event(sm, evt);
 			break;
 		}
+#if KAIJU_ENABLE_FILEDROP
+		case WM_DROPFILES:
+		{
+			HDROP hDrop = (HDROP)wParam;
+			UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, NULL, 0);
+			POINT pt = { 0 };
+			DragQueryPoint(hDrop, &pt); // drop position (x, y) relative to client area
+			if (sm != NULL && fileCount > 0) {
+				char** paths = (char**)calloc(fileCount, sizeof(char*));
+				uint32_t pathCount = 0;
+				if (paths != NULL) {
+					for (UINT i = 0; i < fileCount; ++i) {
+						UINT wideLen = DragQueryFileW(hDrop, i, NULL, 0);
+						if (wideLen == 0) {
+							continue;
+						}
+						wchar_t* widePath = (wchar_t*)calloc((size_t)wideLen + 1, sizeof(wchar_t));
+						if (widePath == NULL) {
+							continue;
+						}
+						if (DragQueryFileW(hDrop, i, widePath, wideLen + 1) > 0) {
+							// Query the exact UTF-8 size first so long paths are not truncated.
+							int utf8Len = WideCharToMultiByte(CP_UTF8, 0, widePath, -1, NULL, 0, NULL, NULL);
+							if (utf8Len > 0) {
+								char* utf8Path = (char*)calloc((size_t)utf8Len, sizeof(char));
+								if (utf8Path != NULL) {
+									int bytes = WideCharToMultiByte(CP_UTF8, 0, widePath, -1, utf8Path, utf8Len, NULL, NULL);
+									if (bytes > 0) {
+										paths[pathCount++] = utf8Path;
+									} else {
+										free(utf8Path);
+									}
+								}
+							}
+						}
+						free(widePath);
+					}
+					if (pathCount > 0) {
+						goProcessFileDrop((uint64_t)sm->goWindow, (int32_t)pt.x, (int32_t)pt.y, paths, pathCount);
+					}
+
+					// free dropped paths
+					for (uint32_t i = 0; i < pathCount; ++i) {
+						free(paths[i]);
+					}
+					free(paths);
+				}
+			}
+			DragFinish(hDrop);
+			break;
+		}
+#endif
+		case WM_SETCURSOR:
+		{
+			if (sm != NULL && sm->cursorHidden) {
+				SetCursor(NULL);
+				return TRUE;
+			}
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		}
 		case UWM_SET_CURSOR:
 		{
 			HCURSOR c = NULL;
@@ -489,11 +610,51 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				//	break;
 			}
 			if (c != NULL) {
-				SetCursor(c);
 				SetClassLongPtr(hwnd, GCLP_HCURSOR, (LONG_PTR)c);
+				if (sm != NULL && sm->cursorHidden) {
+					SetCursor(NULL);
+				} else {
+					SetCursor(c);
+				}
 			}
 			break;
 		}
+		case UWM_SET_CURSOR_VISIBILITY:
+		{
+			if (sm == NULL) {
+				break;
+			}
+			if (wParam) {
+				if (!sm->cursorHidden) {
+					sm->cursorHidden = true;
+					SetCursor(NULL);
+					// Hide cursor: bring counter to -1 (hidden)
+					while (ShowCursor(FALSE) >= 0) {}
+				}
+			} else if (sm->cursorHidden) {
+				sm->cursorHidden = false;
+				// Restore cursor visibility: bring counter back to 0 (visible)
+				while (ShowCursor(TRUE) < 0) {}
+				HCURSOR c = (HCURSOR)GetClassLongPtr(hwnd, GCLP_HCURSOR);
+				if (c != NULL) {
+					SetCursor(c);
+				}
+			}
+			break;
+		}
+		case UWM_SET_TITLE_BAR_MODE:
+		{
+			sm->titleBarMode = (int)wParam;
+			apply_title_bar_mode(hwnd, sm->titleBarMode);
+			return 0;
+		}
+#if KAIJU_ENABLE_FILEDROP
+		case UWM_SET_FILE_DROP:
+		{
+			DragAcceptFiles(hwnd, wParam ? TRUE : FALSE);
+			return 0;
+		}
+#endif
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -524,16 +685,18 @@ void window_main(const wchar_t* windowTitle,
     wc.lpszClassName = className;
 	wc.hCursor		 = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon		 = LoadIcon(NULL, IDI_APPLICATION);
-    RegisterClass(&wc);
+	// NOTE: could expose the colors to user later, but leave it as is for now
+	wc.hbrBackground = CreateSolidBrush(user_prefers_dark_mode() ? RGB(0,0,0) : RGB(255,255,255));
+	RegisterClass(&wc);
 	RECT clientArea = {0, 0, width, height};
 	AdjustWindowRectEx(&clientArea, WS_OVERLAPPEDWINDOW, FALSE, 0);
 	width = clientArea.right-clientArea.left;
 	height = clientArea.bottom-clientArea.top;
-	if (x < 0) {
-		x = CW_USEDEFAULT;
-	}
-	if (y < 0) {
-		x = CW_USEDEFAULT;
+	if (x < 0 || y < 0) {
+		int screenWidth = GetSystemMetrics(SM_CXSCREEN);  // primary screen
+		int screenHeight = GetSystemMetrics(SM_CYSCREEN); // primary screen
+		x = (screenWidth - width) / 2;
+		y = (screenHeight - height) / 2;
 	}
     // Create the window.
     HWND hwnd = CreateWindowEx(
@@ -549,6 +712,7 @@ void window_main(const wchar_t* windowTitle,
 	);
 	SharedMem* sm = calloc(1, sizeof(SharedMem));
 	sm->goWindow = (void*)goWindow;
+	sm->titleBarMode = WINDOW_TITLE_BAR_MODE_LIGHT;
     if (hwnd == NULL) {
 		shared_mem_add_event(sm, (WindowEvent) {
 			.type = WINDOW_EVENT_TYPE_FATAL,
@@ -705,18 +869,23 @@ void window_poll(void* hwnd) {
 						}
 						// Mouse move
 						{
-							bool hadMouseEvent = false;
-							if (sm->eventCount > 0) {
-								int type = sm->events[sm->eventCount-1].type;
-								hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
-									|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
-							}
-							if (!hadMouseEvent) {
-								WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
-								evt.mouseMove.x = pt.x;
-								evt.mouseMove.y = pt.y;
-								shared_mem_add_event(sm, evt);
-								hadMouseEvent = true;
+							if (sm->lockCursor.active) {
+								// Accumulate raw deltas; emit once after message loop
+								sm->lockCursor.dx += mouse->lLastX;
+								sm->lockCursor.dy += mouse->lLastY;
+							} else {
+								bool hadMouseEvent = false;
+								if (sm->eventCount > 0) {
+									int type = sm->events[sm->eventCount-1].type;
+									hadMouseEvent = type == WINDOW_EVENT_TYPE_MOUSE_BUTTON
+										|| type == WINDOW_EVENT_TYPE_MOUSE_SCROLL;
+								}
+								if (!hadMouseEvent) {
+									WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+									evt.mouseMove.x = pt.x;
+									evt.mouseMove.y = pt.y;
+									shared_mem_add_event(sm, evt);
+								}
 							}
 						}
 						bool mouseLeftWindow = pt.x < 0 || pt.y < 0
@@ -735,12 +904,23 @@ void window_poll(void* hwnd) {
 			//process_message(sm, &msg);
 		}
 	}
+	// Emit accumulated locked cursor deltas as a single mouse move event
+	if (sm->lockCursor.active && (sm->lockCursor.dx != 0 || sm->lockCursor.dy != 0)) {
+		WindowEvent evt = { WINDOW_EVENT_TYPE_MOUSE_MOVE };
+		evt.mouseMove.x = sm->lockCursor.x + sm->lockCursor.dx;
+		evt.mouseMove.y = sm->lockCursor.y + sm->lockCursor.dy;
+		shared_mem_add_event(sm, evt);
+		sm->lockCursor.dx = 0;
+		sm->lockCursor.dy = 0;
+	}
 	shared_mem_flush_events(sm);
 }
 
 void window_destroy(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	DestroyWindow(hwnd);
+	if (hwnd) {
+		DestroyWindow(hwnd);
+	}
 	free(sm);
 }
 
@@ -766,6 +946,11 @@ void window_cursor_size_we(void* hwnd) {
 
 float window_dpi(void* hwnd) {
 	return ((float)GetDpiForWindow(hwnd));
+}
+
+int screen_count(void* hwnd) {
+	(void)hwnd;
+	return GetSystemMetrics(SM_CMONITORS);
 }
 
 int screen_width_mm(void* hwnd) {
@@ -834,24 +1019,34 @@ void window_add_border(void* hwnd) {
 }
 
 void window_show_cursor(void* hwnd) {
-	ShowCursor(TRUE);
+	PostMessageA(hwnd, UWM_SET_CURSOR_VISIBILITY, FALSE, 0);
 }
 
 void window_hide_cursor(void* hwnd) {
-	ShowCursor(FALSE);
+	PostMessageA(hwnd, UWM_SET_CURSOR_VISIBILITY, TRUE, 0);
 }
 
 void window_lock_cursor(void* hwnd, int x, int y) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->lockCursor.x = x;
 	sm->lockCursor.y = y;
+	sm->lockCursor.dx = 0;
+	sm->lockCursor.dy = 0;
 	sm->lockCursor.active = true;
 	set_cursor_position_relative_to_window(sm, x, y);
+	// Clip cursor to a 1-pixel rect at the lock position to prevent visible movement
+	int borderSize = ((sm->right-sm->left)-sm->clientRect.right) / 2;
+	int titleSize = (sm->bottom-sm->top)-sm->clientRect.bottom-borderSize;
+	int wx = sm->left + x + borderSize;
+	int wy = sm->top + y + titleSize;
+	RECT clipRect = { wx, wy, wx + 1, wy + 1 };
+	ClipCursor(&clipRect);
 }
 
 void window_unlock_cursor(void* hwnd) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	sm->lockCursor.active = false;
+	ClipCursor(NULL);
 }
 
 void window_set_fullscreen(void* hwnd) {
@@ -863,11 +1058,11 @@ void window_set_fullscreen(void* hwnd) {
 	HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
 	GetMonitorInfo(hMonitor, &monitorInfo);
 	SetWindowLong(hwnd, GWL_STYLE, sm->savedState.style & ~(WS_CAPTION | WS_THICKFRAME));
-	SetWindowLong(hwnd, GWL_EXSTYLE, sm->savedState.exStyle & ~(WS_EX_DLGMODALFRAME | 
+	SetWindowLong(hwnd, GWL_EXSTYLE, sm->savedState.exStyle & ~(WS_EX_DLGMODALFRAME |
 		WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
 	SetWindowPos(hwnd, NULL,
-		monitorInfo.rcMonitor.left, 
-		monitorInfo.rcMonitor.top, 
+		monitorInfo.rcMonitor.left,
+		monitorInfo.rcMonitor.top,
 		monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
 		monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
 		SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -898,7 +1093,7 @@ void window_set_windowed(void* hwnd, int width, int height) {
 		sm->windowWidth = width;
 		sm->windowHeight = height;
 		SetWindowPos(hwnd, NULL,
-			sm->savedState.rect.left, 
+			sm->savedState.rect.left,
 			sm->savedState.rect.top,
 			width, height,
 			SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -934,40 +1129,157 @@ void window_set_title(void* hwnd, const wchar_t* windowTitle) {
 	SetWindowTextW(hwnd, windowTitle);
 }
 
+static bool user_prefers_dark_mode() {
+	DWORD value = 1;
+	DWORD valueSize = sizeof(value);
+	LSTATUS status = RegGetValueW(
+		HKEY_CURRENT_USER,
+		L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+		L"AppsUseLightTheme",
+		RRF_RT_REG_DWORD,
+		NULL,
+		&value,
+		&valueSize
+	);
+	if (status != ERROR_SUCCESS) {
+		return false;
+	}
+	return value == 0;
+}
+
+static void apply_title_bar_mode(HWND hwnd, int mode) {
+	BOOL darkMode = FALSE;
+	switch (mode) {
+		case WINDOW_TITLE_BAR_MODE_DARK:
+			darkMode = TRUE;
+			break;
+		case WINDOW_TITLE_BAR_MODE_SYSTEM:
+			darkMode = user_prefers_dark_mode() ? TRUE : FALSE;
+			break;
+		case WINDOW_TITLE_BAR_MODE_LIGHT:
+		default:
+			darkMode = FALSE;
+			break;
+	}
+	HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+	if (FAILED(hr)) {
+		DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20, &darkMode, sizeof(darkMode));
+	}
+
+	// Force title-bar style redraw (needed for titlebar color change after window creation)
+	// NOTE: RedrawWindow() and DwmFlush() did not work here
+	BOOL isActive = (GetForegroundWindow() == hwnd || GetActiveWindow() == hwnd) ? TRUE : FALSE;
+	SendMessage(hwnd, WM_NCACTIVATE, (WPARAM)(!isActive), 0);
+	SendMessage(hwnd, WM_NCACTIVATE, (WPARAM)isActive, 0);
+}
+
+void window_set_title_bar_mode(void* hwnd, int mode) {
+	if (hwnd == NULL) {
+		return;
+	}
+	HWND window = (HWND)hwnd;
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(window, GWLP_USERDATA);
+	if (sm != NULL) {
+		sm->titleBarMode = mode;
+	}
+
+	// This may be called from another thread. If so, send a message to the
+	// window's thread to update the title bar there. Calling the window API
+	// directly from a worker thread can deadlock.
+	DWORD windowThread = GetWindowThreadProcessId(window, NULL);
+	if (windowThread == GetCurrentThreadId()) {
+		apply_title_bar_mode(window, mode);
+	} else {
+		PostMessageA(window, UWM_SET_TITLE_BAR_MODE, (WPARAM)mode, 0);
+	}
+}
+
 void window_set_cursor_position(void* hwnd, int x, int y) {
 	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(hwnd, GWLP_USERDATA);
 	set_cursor_position_relative_to_window(sm, x, y);
 }
 
+#if KAIJU_ENABLE_FILEDROP
+void window_set_file_drop_enabled(void* hwnd, bool enabled) {
+	PostMessageA((HWND)hwnd, UWM_SET_FILE_DROP, enabled ? TRUE : FALSE, 0);
+}
+#endif
+
 void window_set_icon(void* hwnd, int width, int height, const uint8_t* pixelData) {
+	if (hwnd == NULL || pixelData == NULL || width <= 0 || height <= 0) {
+		return;
+	}
+
 	// Create BITMAPINFO structure for the icon
 	BITMAPINFO bmi = { 0 };
 	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmi.bmiHeader.biWidth = width;
 	bmi.bmiHeader.biHeight = -height; // Negative for top-down DIB
 	bmi.bmiHeader.biPlanes = 1;
-	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biBitCount = 32;    // 32-bit
 	bmi.bmiHeader.biCompression = BI_RGB;
+
 	// Create a device context and allocate memory for the pixel data
 	HDC hdc = GetDC(NULL);
-	HDC memDC = CreateCompatibleDC(hdc);
-	HBITMAP colorBmp = CreateCompatibleBitmap(hdc, width, height);
-	// Set the pixel data into the bitmap
-	SetDIBits(memDC, colorBmp, 0, height, pixelData, &bmi, DIB_RGB_COLORS);
-	// Create ICONINFO structure
+	void* dibPixels = NULL;
+	HBITMAP colorBmp = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &dibPixels, NULL, 0);
+	if (colorBmp == NULL || dibPixels == NULL) {
+		if (hdc != NULL) {
+			ReleaseDC(NULL, hdc);
+		}
+		return;
+	}
+
+	size_t pixelBytes = (size_t)width * (size_t)height * 4u;
+	memcpy(dibPixels, pixelData, pixelBytes);
+
+	HBITMAP maskBmp = NULL;
+	int maskStrideBytes = ((width + 31) / 32) * 4;
+	size_t maskBytes = (size_t)maskStrideBytes * (size_t)height;
+	uint8_t* maskBits = (uint8_t*)calloc(maskBytes, 1);
+	if (maskBits != NULL) {
+		// Win32 icons require a 1bpp AND-mask bitmap even if the color
+		// bitmap is 32-bit with alpha. All-zero bits means "do not mask out
+		// any pixels", so alpha in the color bitmap decides alpha.
+		maskBmp = CreateBitmap(width, height, 1, 1, maskBits);
+		free(maskBits);
+	} else {
+		// Allocation fallback: still pass a valid 1bpp mask handle so
+		// CreateIconIndirect gets valid icon inputs.
+		maskBmp = CreateBitmap(width, height, 1, 1, NULL);
+	}
+	if (maskBmp == NULL) {
+		DeleteObject(colorBmp);
+		ReleaseDC(NULL, hdc);
+		return;
+	}
+
 	ICONINFO ii = { 0 };
 	ii.fIcon = TRUE;
 	ii.hbmColor = colorBmp;
-	ii.hbmMask = CreateCompatibleBitmap(hdc, width, height);
-	// Create the icon
+	ii.hbmMask = maskBmp;
+
 	HICON icon = CreateIconIndirect(&ii);
-	// Set both large (taskbar) and small (title bar) icons
-	SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon);
-	SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icon);
-	// Clean up
-	DeleteObject(ii.hbmMask);
+	if (icon == NULL) {
+		DeleteObject(maskBmp);
+		DeleteObject(colorBmp);
+		ReleaseDC(NULL, hdc);
+		return;
+	}
+
+	HICON oldBig = (HICON)SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)icon);
+	if (oldBig != NULL && oldBig != icon) {
+		/* cleanup previous icon */
+		DestroyIcon(oldBig);
+	}
+	HICON oldSmall = (HICON)SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)icon);
+	if (oldSmall != NULL && oldSmall != icon && oldSmall != oldBig) {
+		/* cleanup previous icon */
+		DestroyIcon(oldSmall);
+	}
+
+	DeleteObject(maskBmp);
 	DeleteObject(colorBmp);
-	DeleteDC(memDC);
 	ReleaseDC(NULL, hdc);
 }
 

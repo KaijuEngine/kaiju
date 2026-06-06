@@ -1,45 +1,15 @@
 /******************************************************************************/
 /* turntable_camera.go                                                        */
 /******************************************************************************/
-/*                            This file is part of                            */
-/*                                KAIJU ENGINE                                */
-/*                          https://kaijuengine.com/                          */
-/******************************************************************************/
-/* MIT License                                                                */
-/*                                                                            */
-/* Copyright (c) 2023-present Kaiju Engine authors (AUTHORS.md).              */
-/* Copyright (c) 2015-present Brent Farris.                                   */
-/*                                                                            */
-/* May all those that this source may reach be blessed by the LORD and find   */
-/* peace and joy in life.                                                     */
-/* Everyone who drinks of this water will be thirsty again; but whoever       */
-/* drinks of the water that I will give him shall never thirst; John 4:13-14  */
-/*                                                                            */
-/* Permission is hereby granted, free of charge, to any person obtaining a    */
-/* copy of this software and associated documentation files (the "Software"), */
-/* to deal in the Software without restriction, including without limitation  */
-/* the rights to use, copy, modify, merge, publish, distribute, sublicense,   */
-/* and/or sell copies of the Software, and to permit persons to whom the      */
-/* Software is furnished to do so, subject to the following conditions:       */
-/*                                                                            */
-/* The above copyright notice and this permission notice shall be included in */
-/* all copies or substantial portions of the Software.                        */
-/*                                                                            */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    */
-/* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 */
-/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     */
-/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       */
-/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT  */
-/* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE      */
-/* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
 package cameras
 
 import (
-	"kaiju/engine/collision"
-	"kaiju/matrix"
-	"kaiju/platform/profiler/tracing"
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type TurntableCamera struct {
@@ -120,6 +90,24 @@ func (c *TurntableCamera) Dolly(delta float32) {
 	c.SetZoom(zoom)
 }
 
+// Dolly moves the camera closer/further from a target point by the given delta
+func (c *TurntableCamera) DollyTo(delta float32, targetPoint matrix.Vec3) {
+	defer tracing.NewRegion("TurntableCamera.Dolly").End()
+	newZoom := c.zoom
+	oldZoom := c.zoom
+	diff := c.position.Subtract(c.lookAt)
+	length := diff.Length()
+	newZoom += delta * length
+	if c.position.Z() <= 0.0 {
+		newZoom += 0.001
+	}
+	zoomRatio := newZoom / oldZoom
+
+	newLookAt := targetPoint.Add(c.lookAt.Subtract(targetPoint).Scale(zoomRatio))
+	c.SetLookAt(newLookAt)
+	c.SetZoom(newZoom)
+}
+
 // Orbit orbits the camera around the look at point by the given delta.
 func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	defer tracing.NewRegion("TurntableCamera.Orbit").End()
@@ -159,6 +147,7 @@ func (c *TurntableCamera) FlyUpdateView() {
 	c.iView = c.view
 	c.iView.Inverse()
 	c.updateFrustum()
+	c.markChanged()
 }
 
 // SetYaw sets the yaw of the camera.
@@ -203,7 +192,7 @@ func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
 
 // RayCast will project a ray from the camera's position given a screen position
 // using the camera's view and projection matrices.
-func (c *TurntableCamera) RayCast(cursorPosition matrix.Vec2) collision.Ray {
+func (c *TurntableCamera) RayCast(cursorPosition matrix.Vec2) graviton.Ray {
 	defer tracing.NewRegion("TurntableCamera.RayCast").End()
 	return c.internalRayCast(cursorPosition, c.iView.ExtractPosition())
 }
