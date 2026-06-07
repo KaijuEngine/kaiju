@@ -20,7 +20,6 @@
 
 const float MIN_ROUGHNESS = 0.045;
 const float DEFAULT_AMBIENT_STRENGTH = 0.03;
-const float MIN_TBN_DERIVATIVE_LEN2 = 1e-20;
 
 vec3 safeNormalize(vec3 v, vec3 fallback) {
 	float len2 = dot(v, v);
@@ -64,7 +63,7 @@ mat3 cotangentFrame(vec3 n, vec3 pos, vec2 uv) {
 	vec3 t = dp2Perp * duv1.x + dp1Perp * duv2.x;
 	vec3 b = dp2Perp * duv1.y + dp1Perp * duv2.y;
 	float maxLen = max(dot(t, t), dot(b, b));
-	if (maxLen <= MIN_TBN_DERIVATIVE_LEN2) {
+	if (maxLen <= 0.00000001) {
 		return fallbackTBN(n);
 	}
 	float invMax = inversesqrt(maxLen);
