@@ -626,6 +626,37 @@ func TestRenderGraphCompilerSupportsTextureSamplingNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerUsesCurrentTextureFieldAfterLoadedGeneratedGraph(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Generated = &RenderGraphGenerated{
+		ShaderID:   "generated.shader",
+		MaterialID: "generated.material",
+	}
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "albedo",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture": {Text: "new-albedo.png"},
+				"label":   {Text: "Albedo"},
+			},
+		},
+		RenderGraphNode{ID: "sample", Type: "sample-texture-2d"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "albedo", Port: 0}, Input: RenderGraphPortRef{Node: "sample", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	if got := out.Textures[4].Texture; got != "new-albedo.png" {
+		t.Fatalf("texture slot asset = %q, want new-albedo.png", got)
+	}
+}
+
 func TestRenderGraphCompilerReusesTextureNodeSamplerSlot(t *testing.T) {
 	doc := defaultRenderGraphCompilerDocument()
 	doc.Nodes = append(doc.Nodes,

@@ -7,6 +7,7 @@
 package editor_stage_manager
 
 import (
+	"slices"
 	"unsafe"
 
 	"kaijuengine.com/editor/codegen/entity_data_binding"
@@ -92,11 +93,8 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 		toMatId:   mat.Id,
 	})
 	e.StageData.ShaderData.Destroy()
-	e.StageData.Description.Textures = make([]string, len(mat.Textures))
 	e.StageData.Description.Material = mat.Id
-	for i := range mat.Textures {
-		e.StageData.Description.Textures[i] = mat.Textures[i].Key
-	}
+	e.StageData.Description.Textures = stageEntityMaterialTextureOverrides(mat)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	draw := rendering.Drawing{
 		Material:   mat,
@@ -112,4 +110,33 @@ func (e *StageEntity) SetMaterial(mat *rendering.Material, manager *StageManager
 		}
 	}
 	manager.host.Drawings.AddDrawing(draw)
+}
+
+func stageEntityMaterialTextureOverrides(mat *rendering.Material) []string {
+	if mat == nil {
+		return nil
+	}
+	root := mat.SelectRoot()
+	if root == nil || materialTextureKeysEqual(mat.Textures, root.Textures) {
+		return nil
+	}
+	textures := make([]string, len(mat.Textures))
+	for i := range mat.Textures {
+		if mat.Textures[i] != nil {
+			textures[i] = mat.Textures[i].Key
+		}
+	}
+	return textures
+}
+
+func materialTextureKeysEqual(a, b []*rendering.Texture) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	return slices.EqualFunc(a, b, func(left, right *rendering.Texture) bool {
+		if left == nil || right == nil {
+			return left == right
+		}
+		return left.Key == right.Key
+	})
 }
