@@ -24,6 +24,7 @@ type renderGraphCreateNodeMenu struct {
 	workspace      *RenderGraphWorkspace
 	root           *document.Element
 	search         *document.Element
+	list           *document.Element
 	empty          *document.Element
 	items          []*document.Element
 	createPosition matrix.Vec2
@@ -46,6 +47,7 @@ func (m *renderGraphCreateNodeMenu) Initialize(workspace *RenderGraphWorkspace) 
 	}
 	m.root, _ = workspace.Doc.GetElementById("createNodeMenu")
 	m.search, _ = workspace.Doc.GetElementById("createNodeSearch")
+	m.list, _ = workspace.Doc.GetElementById("createNodeList")
 	m.empty, _ = workspace.Doc.GetElementById("createNodeEmpty")
 	m.items = workspace.Doc.GetElementsByClass("createNodeMenuItem")
 	for _, item := range m.items {
@@ -154,6 +156,10 @@ func (m *renderGraphCreateNodeMenu) Filter(query string) {
 		} else {
 			m.empty.UI.Hide()
 		}
+	}
+	if m.list != nil && m.list.UI != nil {
+		m.list.UI.ToPanel().SetScrollY(0)
+		m.list.UI.SetDirty(ui.DirtyTypeLayout)
 	}
 }
 

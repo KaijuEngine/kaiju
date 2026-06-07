@@ -105,6 +105,25 @@ func TestRenderGraphNodeCatalogHasProceduralNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphNodeCatalogMenuDataSearchFindsNoise(t *testing.T) {
+	found := false
+	for _, entry := range renderGraphNodeCatalogMenuData() {
+		if entry.ID != "noise" {
+			continue
+		}
+		found = true
+		if entry.Name != "Noise" {
+			t.Fatalf("noise menu name = %q, want Noise", entry.Name)
+		}
+		if !renderGraphCreateMenuMatches(entry.Search, "noise") {
+			t.Fatalf("noise menu search = %q, want to match noise", entry.Search)
+		}
+	}
+	if !found {
+		t.Fatal("noise node was not exported to create menu data")
+	}
+}
+
 func TestRenderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 	want := []string{
 		"vector2",
