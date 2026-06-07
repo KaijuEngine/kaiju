@@ -52,6 +52,7 @@ type StageWorkspace struct {
 	detailsUI     WorkspaceDetailsUI
 	stageViewport stageWorkspaceStageViewport
 	cameraPreview stageWorkspaceCameraPreview
+	isOpen        bool
 	ftde          struct {
 		arrow *document.Element
 		y     float32
@@ -197,6 +198,7 @@ func (w *StageWorkspace) loadLastOpenStage() {
 
 func (w *StageWorkspace) Open() {
 	defer tracing.NewRegion("StageWorkspace.Open").End()
+	w.isOpen = true
 	w.CommonOpen()
 	w.activatePanelDocuments()
 	w.contentUI.open()
@@ -211,6 +213,7 @@ func (w *StageWorkspace) Open() {
 
 func (w *StageWorkspace) Close() {
 	defer tracing.NewRegion("StageWorkspace.Close").End()
+	w.isOpen = false
 	w.contentUI.hideTooltip()
 	w.stageView.Close()
 	w.hideManualRenderTargetUI()
