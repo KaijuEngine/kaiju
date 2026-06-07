@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	distanceFieldSize  = 64.0
 	distanceFieldRange = 4.0
 	invalidRuneProxy   = '_'
 )
@@ -103,6 +102,10 @@ type TextShaderData struct {
 	BgColor matrix.Color
 	Scissor matrix.Vec4
 	PxRange matrix.Vec2
+}
+
+func msdfAtlasPxRange() matrix.Vec2 {
+	return matrix.Vec2{distanceFieldRange, distanceFieldRange}
 }
 
 func (s TextShaderData) Size() int {
@@ -259,13 +262,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	clm.uvs = matrix.Vec4{
 		uvx / float32(font.width), uvy / float32(font.height),
 		uvw / float32(font.width), uvh / float32(font.height)}
-	// TODO:  Figure out the distance field size
-	clm.pxRange = matrix.Vec2{
-		c.Width() / distanceFieldSize * distanceFieldRange,
-		c.Height() / distanceFieldSize * distanceFieldRange}
-	//clm.pxRange = matrix.Vec2{
-	//	c.Width() / c.AtlasWidth() * 2.0,
-	//	c.Height() / c.AtlasHeight() * 2.0}
+	clm.pxRange = msdfAtlasPxRange()
 	font.cachedLetters[key] = &clm
 
 	clmCpy := clm
@@ -280,16 +277,23 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
-	bin.texture, _ = cache.renderCaches.TextureCache().Texture(face.string()+".png", TextureFilterLinear)
+	textureKey := face.string() + ".png"
+	bin.texture, _ = cache.renderCaches.TextureCache().Texture(textureKey, TextureFilterLinear)
+	if bin.texture != nil {
+		needsReload := bin.texture.RenderId.IsValid() && bin.texture.RenderId.MipLevels != 1
+		bin.texture.MipLevels = 1
+		if needsReload {
+			if err := cache.renderCaches.TextureCache().ReloadTexture(textureKey, TextureFilterLinear); err != nil {
+				slog.Error("failed to reload font texture without mipmaps", "texture", textureKey, "error", err)
+			}
+		}
+	}
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
 	out, _ := adb.Read(face.string() + ".bin")
 	if bin.texture == nil || out == nil || len(out) == 0 {
 		return false
 	}
-	// Set MipLevels only after confirming the texture loaded; a missing font
-	// (nil texture) must fail gracefully here, not nil-deref.
-	bin.texture.MipLevels = 1
 	read := bytes.NewReader(out)
 	// Create an int32 variable named count that is read from read
 	var count int32
@@ -481,13 +485,7 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 				yPos += yOffset
 				w := ch.Width() * scale * inverseWidth
 				h := ch.Height() * scale * inverseHeight
-				// TODO:  Figure out the distance field size
-				pxRange := matrix.Vec2{
-					(ch.Width() * scale) / distanceFieldSize * distanceFieldRange,
-					(-ch.Height() * scale) / distanceFieldSize * distanceFieldRange}
-				//pxRange := matrix.Vec2{
-				//	(ch.Width() * scale) / ch.AtlasWidth() * distanceFieldRange,
-				//	(ch.Height() * scale) / ch.AtlasHeight() * distanceFieldRange}
+				pxRange := msdfAtlasPxRange()
 				var uvs matrix.Vec4
 				var clm *cachedLetterMesh = nil
 				if instanced {
