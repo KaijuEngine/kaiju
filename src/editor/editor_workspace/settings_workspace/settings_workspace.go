@@ -80,12 +80,13 @@ type workspaceRowData struct {
 }
 
 type settingsWorkspaceData struct {
-	Editor     common_workspace.DataUISection
-	Project    common_workspace.DataUISection
-	WebAPI     editor_settings.WebAPISettings
-	Plugins    []editor_plugin.PluginInfo
-	Workspaces []workspaceRowData
-	Shortcuts  []shortcutSectionData
+	Editor         common_workspace.DataUISection
+	Project        common_workspace.DataUISection
+	WebAPI         editor_settings.WebAPISettings
+	Plugins        []editor_plugin.PluginInfo
+	Workspaces     []workspaceRowData
+	Shortcuts      []shortcutSectionData
+	ShortcutHeight float32
 }
 
 func (w *SettingsWorkspace) ID() string          { return ID }
@@ -517,15 +518,17 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 	}
 	listings := map[string][]ui.SelectOption{}
 	cache := w.editor.Project().CacheDatabase()
+	shortcuts := w.buildShortcutSections()
 	return settingsWorkspaceData{
 		Editor: common_workspace.ReflectUIStructure(cache,
 			w.editorSettings, "", listings),
 		Project: common_workspace.ReflectUIStructure(cache,
 			w.projectSettings, "", listings),
-		WebAPI:     w.editorSettings.WebAPI,
-		Plugins:    w.plugins,
-		Workspaces: w.buildWorkspaceRows(),
-		Shortcuts:  w.buildShortcutSections(),
+		WebAPI:         w.editorSettings.WebAPI,
+		Plugins:        w.plugins,
+		Workspaces:     w.buildWorkspaceRows(),
+		Shortcuts:      shortcuts,
+		ShortcutHeight: shortcutKeyboardHeight(shortcuts),
 	}
 }
 

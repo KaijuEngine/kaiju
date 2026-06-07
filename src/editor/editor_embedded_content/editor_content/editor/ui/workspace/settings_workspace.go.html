@@ -386,7 +386,7 @@
 					</div>
 					{{end}}
 				</div>
-				<div id="keyboardSettingsBox" class="settingsBox">
+				<div id="keyboardSettingsBox" class="settingsBox" style="min-height: {{.ShortcutHeight}}px;">
 					<h1>Keyboard Shortcuts</h1>
 					<div class="shortcutToolbar">
 						<input id="shortcutSearch" class="input shortcutSearch" type="text" placeholder="Filter shortcuts" onchange="filterShortcuts" />
@@ -395,7 +395,7 @@
 						<button onclick="importShortcuts">Import</button>
 					</div>
 					{{range $s := .Shortcuts}}
-					<div class="shortcutSection">
+					<div class="shortcutSection" style="min-height: {{muladd (len $s.Rows) 31 42}}px;">
 						<h2>{{$s.Name}}</h2>
 						<div class="shortcutList">
 						{{range $r := $s.Rows}}

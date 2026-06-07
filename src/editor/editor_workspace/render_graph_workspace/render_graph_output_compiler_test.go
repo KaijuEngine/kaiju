@@ -626,6 +626,37 @@ func TestRenderGraphCompilerSupportsTextureSamplingNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphCompilerUsesCurrentTextureFieldAfterLoadedGeneratedGraph(t *testing.T) {
+	doc := defaultRenderGraphCompilerDocument()
+	doc.Generated = &RenderGraphGenerated{
+		ShaderID:   "generated.shader",
+		MaterialID: "generated.material",
+	}
+	doc.Nodes = append(doc.Nodes,
+		RenderGraphNode{
+			ID:   "albedo",
+			Type: "texture-2d",
+			Values: map[string]RenderGraphFieldValue{
+				"texture": {Text: "new-albedo.png"},
+				"label":   {Text: "Albedo"},
+			},
+		},
+		RenderGraphNode{ID: "sample", Type: "sample-texture-2d"},
+	)
+	doc.Connections = append(doc.Connections,
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "albedo", Port: 0}, Input: RenderGraphPortRef{Node: "sample", Port: 0}},
+		RenderGraphConnection{Output: RenderGraphPortRef{Node: "sample", Port: 0}, Input: RenderGraphPortRef{Node: "bsdf", Port: 0}},
+	)
+
+	out, err := compileRenderGraphDocumentOutput(doc)
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	if got := out.Textures[4].Texture; got != "new-albedo.png" {
+		t.Fatalf("texture slot asset = %q, want new-albedo.png", got)
+	}
+}
+
 func TestRenderGraphCompilerReusesTextureNodeSamplerSlot(t *testing.T) {
 	doc := defaultRenderGraphCompilerDocument()
 	doc.Nodes = append(doc.Nodes,
@@ -920,6 +951,7 @@ func TestRenderGraphCompilerSupportsHeightBumpAndParallaxHelpers(t *testing.T) {
 	for _, want := range []string{
 		"vec3 graphBumpNormal(float height, float strength, vec3 geometricNormal)",
 		"graphBumpNormal(0.8, 0.02, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0)))",
+		"vec3 surfaceGradient = (dhdx * r1 + dhdy * r2) / det;",
 		"vec2 graphParallaxUV(vec2 uv, float height, float scale, vec3 geometricNormal)",
 		"texture(textures[4], graphParallaxUV(fragTexCoords, 0.8, 0.1, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))))",
 	} {

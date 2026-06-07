@@ -105,6 +105,25 @@ func TestRenderGraphNodeCatalogHasProceduralNodes(t *testing.T) {
 	}
 }
 
+func TestRenderGraphNodeCatalogMenuDataSearchFindsNoise(t *testing.T) {
+	found := false
+	for _, entry := range renderGraphNodeCatalogMenuData() {
+		if entry.ID != "noise" {
+			continue
+		}
+		found = true
+		if entry.Name != "Noise" {
+			t.Fatalf("noise menu name = %q, want Noise", entry.Name)
+		}
+		if !renderGraphCreateMenuMatches(entry.Search, "noise") {
+			t.Fatalf("noise menu search = %q, want to match noise", entry.Search)
+		}
+	}
+	if !found {
+		t.Fatal("noise node was not exported to create menu data")
+	}
+}
+
 func TestRenderGraphNodeCatalogHasVectorCompositionNodes(t *testing.T) {
 	want := []string{
 		"vector2",
@@ -208,6 +227,17 @@ func TestRenderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
 		packed.Outputs[1].Name != "Roughness" || packed.Outputs[2].Name != "Metallic" {
 		t.Fatalf("orm-mra-unpack ports = %#v -> %#v, want color -> occlusion/roughness/metallic floats",
 			packed.Inputs, packed.Outputs)
+	}
+
+	heightBump, ok := renderGraphNodeCatalogSpec("height-bump")
+	if !ok {
+		t.Fatal("height-bump node missing")
+	}
+	if len(heightBump.Inputs) != 2 || heightBump.Inputs[0].Type != "float" ||
+		heightBump.Inputs[1].Type != "float" ||
+		len(heightBump.Outputs) != 1 || heightBump.Outputs[0].Type != "vec3" {
+		t.Fatalf("height-bump ports = %#v -> %#v, want float,float -> vec3",
+			heightBump.Inputs, heightBump.Outputs)
 	}
 
 	parallax, ok := renderGraphNodeCatalogSpec("parallax")

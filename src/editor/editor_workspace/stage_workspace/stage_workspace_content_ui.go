@@ -116,6 +116,14 @@ func (cui *WorkspaceContentUI) open() {
 	cui.runFilter()
 }
 
+func (cui *WorkspaceContentUI) deactivateDocumentWhenWorkspaceClosed() {
+	w := cui.workspace.Value()
+	if w == nil || w.isOpen || cui.doc == nil {
+		return
+	}
+	cui.doc.Deactivate()
+}
+
 func (cui *WorkspaceContentUI) addContent(ids []string) {
 	defer tracing.NewRegion("WorkspaceContentUI.addContent").End()
 	cui.contentLoader.Enqueue(ids)
@@ -171,6 +179,7 @@ func (cui *WorkspaceContentUI) addContentBatch(ids []string) {
 	}
 	cui.doc.ApplyStyles()
 	cui.runFilter()
+	cui.deactivateDocumentWhenWorkspaceClosed()
 	w.ed.ContentPreviewer().GeneratePreviews(ids)
 }
 
@@ -279,6 +288,7 @@ func (cui *WorkspaceContentUI) contentPreviewGenerated(id string) {
 	}
 	img := elm.Children[0].UI.ToPanel()
 	img.SetBackground(tex)
+	cui.deactivateDocumentWhenWorkspaceClosed()
 }
 
 func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_database.CachedContent) {
@@ -355,6 +365,7 @@ func (cui *WorkspaceContentUI) runFilter() {
 	}
 	w.contentUI.contentPreviewArea.UIPanel.ResetScroll()
 	w.Host.RunOnMainThread(cui.doc.Clean)
+	cui.deactivateDocumentWhenWorkspaceClosed()
 }
 
 func (cui *WorkspaceContentUI) clickFilter(e *document.Element) {
@@ -681,6 +692,7 @@ func (cui *WorkspaceContentUI) handleNewFilterTag(newTag string) {
 	newFilterBtn.SetAttribute("data-tag", newTag)
 	newFilterBtn.SetAttribute("group", "tag")
 	newFilterBtn.InnerLabel().SetText(newTag)
+	cui.deactivateDocumentWhenWorkspaceClosed()
 }
 
 func (cui *WorkspaceContentUI) handleTagNoLongerInUse(removedTag string) {

@@ -2044,8 +2044,11 @@ vec3 graphBumpNormal(float height, float strength, vec3 geometricNormal) {
 	vec3 r1 = cross(dpdy, geometricNormal);
 	vec3 r2 = cross(geometricNormal, dpdx);
 	float det = dot(dpdx, r1);
-	vec3 gradient = sign(det) * (dhdx * r1 + dhdy * r2);
-	return safeNormalize(abs(det) * geometricNormal - max(strength, 0.0) * gradient, geometricNormal);
+	if (abs(det) <= 0.00000000000000000001) {
+		return geometricNormal;
+	}
+	vec3 surfaceGradient = (dhdx * r1 + dhdy * r2) / det;
+	return safeNormalize(geometricNormal - max(strength, 0.0) * surfaceGradient, geometricNormal);
 }
 
 vec2 graphParallaxUV(vec2 uv, float height, float scale, vec3 geometricNormal) {

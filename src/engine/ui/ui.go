@@ -124,6 +124,7 @@ const (
 	ElementTypeSelect
 	ElementTypeSlider
 	ElementTypeTextArea
+	ElementTypeVirtualList
 )
 
 const (
@@ -879,6 +880,8 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 		ui.ToInput().update(deltaTime)
 	case ElementTypeTextArea:
 		ui.ToTextArea().update(deltaTime)
+	case ElementTypeVirtualList:
+		ui.ToVirtualList().update(deltaTime)
 	case ElementTypeLabel:
 		ui.Update(deltaTime)
 	case ElementTypePanel:

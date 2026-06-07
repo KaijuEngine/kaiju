@@ -67,9 +67,11 @@ func (m *MaterialCache) ReplaceMaterial(key string) error {
 		if err != nil {
 			return err
 		}
+		mat.Id = key
 		instances := material.Instances
 		for i := range instances {
 			material.Instances[i].Textures = slices.Clone(mat.Textures)
+			material.Instances[i].Id = key
 		}
 		*material = *mat
 		material.Instances = instances

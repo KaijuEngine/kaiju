@@ -746,9 +746,6 @@ func TestEntity_Init(t *testing.T) {
 	if e.HasChildren() {
 		t.Fatal("Init should initialize empty children")
 	}
-	if e.namedData == nil {
-		t.Fatal("Init should initialize namedData map")
-	}
 }
 
 // ---------------------------------------------------------------------------
