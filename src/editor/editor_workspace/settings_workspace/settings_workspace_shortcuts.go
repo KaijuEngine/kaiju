@@ -20,6 +20,7 @@ import (
 	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/editor_overlay/file_browser"
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
+	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/hid"
@@ -27,6 +28,10 @@ import (
 )
 
 const shortcutProfileVersion = 1
+const shortcutKeyboardBaseHeight = 82
+const shortcutNoResultsHeight = 32
+const shortcutSectionHeaderHeight = 42
+const shortcutSectionRowHeight = 31
 
 type shortcutSectionData struct {
 	ID   string
@@ -609,16 +614,28 @@ func (w *SettingsWorkspace) applyShortcutFilter() {
 	}
 	query := w.shortcutFilterQuery()
 	anyVisible := false
+	visibleSections := 0
+	totalVisibleRows := 0
 	for _, section := range w.Doc.GetElementsByClass("shortcutSection") {
 		sectionVisible := false
+		visibleRows := 0
 		for _, row := range shortcutElementsByClass(section, "shortcutRow") {
 			visible := shortcutRowMatchesFilter(row, query)
 			row.UI.SetVisibility(visible)
 			sectionVisible = sectionVisible || visible
+			if visible {
+				visibleRows++
+			}
 		}
+		updateShortcutSectionHeight(section, visibleRows)
 		section.UI.SetVisibility(sectionVisible)
+		if sectionVisible {
+			visibleSections++
+			totalVisibleRows += visibleRows
+		}
 		anyVisible = anyVisible || sectionVisible
 	}
+	w.updateShortcutKeyboardHeight(totalVisibleRows, visibleSections, !anyVisible)
 	if empty, ok := w.Doc.GetElementById("shortcutNoResults"); ok && empty.UI != nil {
 		empty.UI.SetVisibility(!anyVisible)
 	}
@@ -706,6 +723,55 @@ func shortcutRowSearchText(row *document.Element) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+func shortcutSectionHeight(rows int) float32 {
+	return float32(shortcutSectionHeaderHeight + rows*shortcutSectionRowHeight)
+}
+
+func shortcutKeyboardHeight(sections []shortcutSectionData) float32 {
+	visibleSections := 0
+	rows := 0
+	for _, section := range sections {
+		if len(section.Rows) == 0 {
+			continue
+		}
+		visibleSections++
+		rows += len(section.Rows)
+	}
+	return shortcutKeyboardHeightForCounts(rows, visibleSections, visibleSections == 0)
+}
+
+func shortcutKeyboardHeightForCounts(rows, sections int, noResults bool) float32 {
+	height := float32(shortcutKeyboardBaseHeight)
+	if sections > 0 {
+		height += float32(sections*shortcutSectionHeaderHeight + rows*shortcutSectionRowHeight)
+	} else if noResults {
+		height += shortcutNoResultsHeight
+	}
+	return height
+}
+
+func (w *SettingsWorkspace) updateShortcutKeyboardHeight(rows, sections int, noResults bool) {
+	keyboardBox := w.keyboardSettingsBox
+	if keyboardBox == nil && w.Doc != nil {
+		keyboardBox, _ = w.Doc.GetElementById("keyboardSettingsBox")
+	}
+	if keyboardBox == nil || keyboardBox.UI == nil {
+		return
+	}
+	panel := keyboardBox.UI.ToPanel()
+	panel.SetMinHeight(shortcutKeyboardHeightForCounts(rows, sections, noResults))
+	keyboardBox.UI.SetDirty(ui.DirtyTypeLayout)
+}
+
+func updateShortcutSectionHeight(section *document.Element, rows int) {
+	if section == nil || section.UI == nil {
+		return
+	}
+	panel := section.UI.ToPanel()
+	panel.SetMinHeight(shortcutSectionHeight(rows))
+	section.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
 func (w *SettingsWorkspace) cancelShortcutCapture() {
