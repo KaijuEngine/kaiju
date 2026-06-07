@@ -951,6 +951,7 @@ func TestRenderGraphCompilerSupportsHeightBumpAndParallaxHelpers(t *testing.T) {
 	for _, want := range []string{
 		"vec3 graphBumpNormal(float height, float strength, vec3 geometricNormal)",
 		"graphBumpNormal(0.8, 0.02, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0)))",
+		"vec3 surfaceGradient = (dhdx * r1 + dhdy * r2) / det;",
 		"vec2 graphParallaxUV(vec2 uv, float height, float scale, vec3 geometricNormal)",
 		"texture(textures[4], graphParallaxUV(fragTexCoords, 0.8, 0.1, safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0))))",
 	} {

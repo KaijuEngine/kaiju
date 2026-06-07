@@ -229,6 +229,17 @@ func TestRenderGraphMaterialTextureHelperNodePortTypes(t *testing.T) {
 			packed.Inputs, packed.Outputs)
 	}
 
+	heightBump, ok := renderGraphNodeCatalogSpec("height-bump")
+	if !ok {
+		t.Fatal("height-bump node missing")
+	}
+	if len(heightBump.Inputs) != 2 || heightBump.Inputs[0].Type != "float" ||
+		heightBump.Inputs[1].Type != "float" ||
+		len(heightBump.Outputs) != 1 || heightBump.Outputs[0].Type != "vec3" {
+		t.Fatalf("height-bump ports = %#v -> %#v, want float,float -> vec3",
+			heightBump.Inputs, heightBump.Outputs)
+	}
+
 	parallax, ok := renderGraphNodeCatalogSpec("parallax")
 	if !ok {
 		t.Fatal("parallax node missing")
