@@ -121,6 +121,7 @@ type requestScroll struct {
 
 type panelData struct {
 	scrollBarX, scrollBarY    *Panel
+	scrollBarsHidden          bool
 	scrollBarStart            float32
 	scrollBarDrag             matrix.Vec2
 	scroll, offset, maxScroll matrix.Vec2
@@ -1902,6 +1903,15 @@ func (p *Panel) updateScrollBars() {
 	if pd.scrollBarX == nil && pd.scrollBarY == nil {
 		return
 	}
+	if pd.scrollBarsHidden {
+		if pd.scrollBarX != nil {
+			pd.scrollBarX.Base().Hide()
+		}
+		if pd.scrollBarY != nil {
+			pd.scrollBarY.Base().Hide()
+		}
+		return
+	}
 	if !p.flags.hovering() {
 		if pd.scrollBarX != nil {
 			pd.scrollBarX.Base().Hide()
@@ -1979,6 +1989,16 @@ func (p *Panel) updateScrollBars() {
 
 func (p *Panel) ScrollDirection() PanelScrollDirection {
 	return p.PanelData().scrollDirection
+}
+
+// SetScrollbarsVisible toggles whether this panel's scroll bars are ever shown.
+// Scrolling (wheel, drag, programmatic SetScrollY/SetScrollX) still works when
+// hidden; only the visual bars are suppressed. Used by views that drive their
+// scroll externally (e.g. a line-number gutter slaved to a sibling's scroll).
+func (p *Panel) SetScrollbarsVisible(visible bool) {
+	pd := p.PanelData()
+	pd.scrollBarsHidden = !visible
+	p.Base().SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) BorderSize() matrix.Vec4     { return p.layout.Border() }
