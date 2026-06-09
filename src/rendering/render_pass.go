@@ -12,6 +12,8 @@ import (
 	"log/slog"
 	"math"
 	"strconv"
+
+	"kaijuengine.com/matrix"
 )
 
 type RenderPassData struct {
@@ -61,6 +63,13 @@ type RenderPassAttachmentImageClear struct {
 	IsDepth bool
 }
 
+func (c *RenderPassAttachmentImageClear) setColor(color matrix.Color) {
+	c.R = float32(color.R())
+	c.G = float32(color.G())
+	c.B = float32(color.B())
+	c.A = float32(color.A())
+}
+
 type RenderPassSubpassDescription struct {
 	PipelineBindPoint         string `options:"StringVkPipelineBindPoint"`
 	ColorAttachmentReferences []RenderPassAttachmentReference
@@ -107,6 +116,16 @@ type RenderPassDataCompiled struct {
 	ImageClears            []RenderPassAttachmentImageClear
 	Subpass                []RenderPassSubpassDataCompiled
 	SkipCombine            bool
+}
+
+func (r *RenderPassDataCompiled) setClearColor(color matrix.Color) bool {
+	for i := range r.ImageClears {
+		if !r.ImageClears[i].IsDepth {
+			r.ImageClears[i].setColor(color)
+			return true
+		}
+	}
+	return false
 }
 
 type RenderPassSubpassDataCompiled struct {

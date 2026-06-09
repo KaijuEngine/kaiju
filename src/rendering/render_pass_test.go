@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"kaijuengine.com/matrix"
 )
 
 func TestNewRenderPassData(t *testing.T) {
@@ -183,6 +185,75 @@ func TestRenderPassDataCompile(t *testing.T) {
 		compiled.Subpass[0].Shader != "combine.shader" ||
 		compiled.Subpass[0].SampledImages[0] != 0 {
 		t.Fatalf("subpass data = %+v", compiled.Subpass)
+	}
+}
+
+func TestRenderPassDataCompiledSetClearColor(t *testing.T) {
+	compiled := RenderPassDataCompiled{
+		ImageClears: []RenderPassAttachmentImageClear{
+			{Depth: 1, IsDepth: true},
+			{R: 1, G: 1, B: 1, A: 0},
+		},
+	}
+	color := matrix.NewColor(0.1, 0.2, 0.3, 1)
+	if !compiled.setClearColor(color) {
+		t.Fatalf("setClearColor should update the first color clear")
+	}
+	if compiled.ImageClears[0].R != 0 || compiled.ImageClears[0].Depth != 1 {
+		t.Fatalf("depth clear was changed: %+v", compiled.ImageClears[0])
+	}
+	got := compiled.ImageClears[1]
+	if got.R != 0.1 || got.G != 0.2 || got.B != 0.3 || got.A != 1 {
+		t.Fatalf("color clear = %+v, want %v", got, color)
+	}
+}
+
+func TestSetSwapChainClearColorUpdatesCachedFinalPasses(t *testing.T) {
+	color := matrix.NewColor(0.25, 0.5, 0.75, 1)
+	combine := &RenderPass{construction: RenderPassDataCompiled{
+		Name:        combineRenderPassName,
+		ImageClears: []RenderPassAttachmentImageClear{{R: 1, G: 1, B: 1, A: 1}},
+	}}
+	swapchain := &RenderPass{construction: RenderPassDataCompiled{
+		Name:        swapChainRenderPassName,
+		ImageClears: []RenderPassAttachmentImageClear{{R: 1, G: 1, B: 1, A: 1}},
+	}}
+	opaque := &RenderPass{construction: RenderPassDataCompiled{
+		Name:        "opaque",
+		ImageClears: []RenderPassAttachmentImageClear{{R: 1, G: 1, B: 1, A: 0}},
+	}}
+	device := &GPUDevice{}
+	device.LogicalDevice.renderPassCache = map[string]*RenderPass{
+		combineRenderPassName:   combine,
+		swapChainRenderPassName: swapchain,
+		"opaque":                opaque,
+	}
+
+	device.SetSwapChainClearColor(color)
+
+	combineClear := matrix.Color{
+		matrix.Float(combine.construction.ImageClears[0].R),
+		matrix.Float(combine.construction.ImageClears[0].G),
+		matrix.Float(combine.construction.ImageClears[0].B),
+		matrix.Float(combine.construction.ImageClears[0].A),
+	}
+	if !combineClear.Equals(color) {
+		t.Fatalf("combine clear = %+v, want %v", combine.construction.ImageClears[0], color)
+	}
+	swapChainClear := matrix.Color{
+		matrix.Float(swapchain.construction.ImageClears[0].R),
+		matrix.Float(swapchain.construction.ImageClears[0].G),
+		matrix.Float(swapchain.construction.ImageClears[0].B),
+		matrix.Float(swapchain.construction.ImageClears[0].A),
+	}
+	if !swapChainClear.Equals(color) {
+		t.Fatalf("swapchain clear = %+v, want %v", swapchain.construction.ImageClears[0], color)
+	}
+	if opaque.construction.ImageClears[0].A != 0 {
+		t.Fatalf("non-final pass clear was changed: %+v", opaque.construction.ImageClears[0])
+	}
+	if !device.SwapChainClearColor().Equals(color) {
+		t.Fatalf("device clear color = %v, want %v", device.SwapChainClearColor(), color)
 	}
 }
 

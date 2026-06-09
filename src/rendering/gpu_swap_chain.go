@@ -23,6 +23,8 @@ type GPUSwapChain struct {
 	Depth                    TextureId
 	Color                    TextureId
 	FrameBuffers             []GPUFrameBuffer
+	clearColorOverride       matrix.Color
+	hasClearColorOverride    bool
 	renderPass               *RenderPass
 	renderFinishedSemaphores []GPUSemaphore
 	imageSemaphores          [maxFramesInFlight]GPUSemaphore
@@ -32,9 +34,42 @@ type GPUSwapChain struct {
 func (g *GPUSwapChain) CopyAndReset() GPUSwapChain {
 	cpy := *g
 	*g = GPUSwapChain{
-		renderPass: cpy.renderPass,
+		clearColorOverride:    cpy.clearColorOverride,
+		hasClearColorOverride: cpy.hasClearColorOverride,
+		renderPass:            cpy.renderPass,
 	}
 	return cpy
+}
+
+// DefaultSwapChainClearColor returns the engine's built-in presented
+// background color used before a game supplies its own.
+func DefaultSwapChainClearColor() matrix.Color {
+	return matrix.ColorDarkBG()
+}
+
+// SetClearColor stores the clear color used by final swap-chain presentation
+// passes and applies it to the existing swap-chain render pass.
+func (g *GPUSwapChain) SetClearColor(color matrix.Color) {
+	g.clearColorOverride = color
+	g.hasClearColorOverride = true
+	if g.renderPass != nil {
+		g.renderPass.setClearColor(color)
+	}
+}
+
+// ClearColor returns the configured clear color, or the engine default when no
+// override has been set.
+func (g *GPUSwapChain) ClearColor() matrix.Color {
+	if color, ok := g.ClearColorOverride(); ok {
+		return color
+	}
+	return DefaultSwapChainClearColor()
+}
+
+// ClearColorOverride returns the explicitly configured clear color and whether
+// one has been set.
+func (g *GPUSwapChain) ClearColorOverride() (matrix.Color, bool) {
+	return g.clearColorOverride, g.hasClearColorOverride
 }
 
 func (g *GPUSwapChain) Setup(window RenderingContainer, inst *GPUApplicationInstance, device *GPUDevice) error {

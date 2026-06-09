@@ -114,6 +114,9 @@ type Host struct {
 	CloseSignal       chan struct{}
 	frameRateLimit    *time.Ticker
 	runnerMutex       sync.Mutex
+	renderConfigMutex sync.RWMutex
+	swapChainClear    matrix.Color
+	hasSwapChainClear bool
 	renderThread      *RenderThread
 }
 
@@ -214,6 +217,7 @@ func (host *Host) InitializeRenderer() error {
 		slog.Error("failed to initialize the GPU", "error", err)
 		return err
 	}
+	host.applySwapChainClearColorToRenderer()
 	gpuDevice := host.Window.GpuInstance.PrimaryDevice()
 	host.shaderCache = rendering.NewShaderCache(gpuDevice, host.assetDatabase)
 	host.textureCache = rendering.NewTextureCache(gpuDevice, host.assetDatabase)
@@ -316,6 +320,28 @@ func (host *Host) MaterialCache() *rendering.MaterialCache {
 // AssetDatabase returns the asset database for the host
 func (host *Host) AssetDatabase() assets.Database {
 	return host.assetDatabase
+}
+
+// SetSwapChainClearColor sets the background clear color used by the final
+// swap-chain presentation path. Games can call this from Launch.
+func (host *Host) SetSwapChainClearColor(color matrix.Color) {
+	host.renderConfigMutex.Lock()
+	host.swapChainClear = color
+	host.hasSwapChainClear = true
+	host.renderConfigMutex.Unlock()
+	host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+		device.SetSwapChainClearColor(color)
+	})
+}
+
+// SwapChainClearColor returns the configured swap-chain clear color or the
+// engine default when no override has been set.
+func (host *Host) SwapChainClearColor() matrix.Color {
+	color, ok := host.swapChainClearColorOverride()
+	if ok {
+		return color
+	}
+	return rendering.DefaultSwapChainClearColor()
 }
 
 // SetEntityId assigns the given identifier to an entity and registers it for
@@ -672,4 +698,18 @@ func (host *Host) unregisterEntityId(entity *Entity) {
 	}
 	entity.id = ""
 	entity.idHost = weak.Pointer[Host]{}
+}
+
+func (host *Host) swapChainClearColorOverride() (matrix.Color, bool) {
+	host.renderConfigMutex.RLock()
+	defer host.renderConfigMutex.RUnlock()
+	return host.swapChainClear, host.hasSwapChainClear
+}
+
+func (host *Host) applySwapChainClearColorToRenderer() {
+	color, ok := host.swapChainClearColorOverride()
+	if !ok || !host.hasValidRenderer() {
+		return
+	}
+	host.Window.GpuInstance.PrimaryDevice().SetSwapChainClearColor(color)
 }

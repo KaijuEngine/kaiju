@@ -175,6 +175,7 @@ func (ed *Editor) earlyLoadUI() {
 	defer tracing.NewRegion("Editor.earlyLoadUI").End()
 	ed.globalInterfaces.menuBar.Initialize(ed.host, ed)
 	ed.globalInterfaces.statusBar.Initialize(ed.host, &ed.logging, ed)
+	ed.host.SetSwapChainClearColor(matrix.ColorCornflowerBlue())
 }
 
 func (ed *Editor) UpdateSettings() {

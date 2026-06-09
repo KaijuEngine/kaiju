@@ -37,6 +37,11 @@ type RenderPass struct {
 	frame        int
 }
 
+const (
+	combineRenderPassName   = "combine"
+	swapChainRenderPassName = "swapchain"
+)
+
 type RenderPassSubpass struct {
 	shader         *Shader
 	shaderPipeline ShaderPipelineDataCompiled
@@ -57,6 +62,18 @@ func (r *RenderPass) Width() int  { return r.construction.Width }
 func (r *RenderPass) Height() int { return r.construction.Height }
 
 func (r *RenderPass) Texture(index int) *Texture { return &r.textures[index] }
+
+func (r *RenderPass) usesSwapChainClearColor() bool {
+	return r != nil && (r.construction.Name == combineRenderPassName ||
+		r.construction.Name == swapChainRenderPassName)
+}
+
+func (r *RenderPass) setClearColor(color matrix.Color) bool {
+	if r == nil {
+		return false
+	}
+	return r.construction.setClearColor(color)
+}
 
 func (r *RenderPass) IsShadowPass() bool {
 	// TODO:  Need another way to denote this is a shadow pass
@@ -340,6 +357,12 @@ func NewRenderPass(device *GPUDevice, setup *RenderPassDataCompiled) (*RenderPas
 	p := &RenderPass{
 		construction: *setup,
 		textures:     make([]Texture, 0, len(setup.AttachmentDescriptions)),
+	}
+	p.construction.ImageClears = append([]RenderPassAttachmentImageClear(nil), setup.ImageClears...)
+	if device != nil && p.usesSwapChainClearColor() {
+		if color, ok := device.LogicalDevice.SwapChain.ClearColorOverride(); ok {
+			p.setClearColor(color)
+		}
 	}
 	for i := range len(setup.AttachmentDescriptions) {
 		a := &setup.AttachmentDescriptions[i]

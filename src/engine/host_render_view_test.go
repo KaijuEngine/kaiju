@@ -9,6 +9,7 @@ package engine
 import (
 	"testing"
 
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -26,5 +27,18 @@ func TestNewHostInitializesDefaultRenderView(t *testing.T) {
 	}
 	if view.Target() != nil {
 		t.Fatalf("default render view should target the swapchain path")
+	}
+}
+
+func TestHostSwapChainClearColor(t *testing.T) {
+	host := NewHost("test", nil, nil)
+	if !host.SwapChainClearColor().Equals(rendering.DefaultSwapChainClearColor()) {
+		t.Fatalf("default clear color = %v, want %v",
+			host.SwapChainClearColor(), rendering.DefaultSwapChainClearColor())
+	}
+	color := matrix.NewColor(0.2, 0.3, 0.4, 1)
+	host.SetSwapChainClearColor(color)
+	if !host.SwapChainClearColor().Equals(color) {
+		t.Fatalf("clear color = %v, want %v", host.SwapChainClearColor(), color)
 	}
 }
