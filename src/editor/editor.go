@@ -43,6 +43,7 @@ import (
 	// (e.g. editor_menu_bar_handler.go) re-import them by name.
 	_ "kaijuengine.com/editor/editor_workspace/content_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/render_graph_workspace"
+	_ "kaijuengine.com/editor/editor_workspace/schema_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/settings_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/stage_workspace"
 	_ "kaijuengine.com/editor/editor_workspace/terrain_workspace"
@@ -295,7 +296,36 @@ var defaultWorkspaceOrder = []string{
 	"vfx",
 	"ui",
 	"vulkan",
+	"schema",
 	"settings",
+}
+
+func defaultWorkspaceOrderIndex(id string) int {
+	for i := range defaultWorkspaceOrder {
+		if defaultWorkspaceOrder[i] == id {
+			return i
+		}
+	}
+	return -1
+}
+
+func insertDefaultWorkspaceConfig(workspaces []editor_settings.WorkspaceConfig, cfg editor_settings.WorkspaceConfig) []editor_settings.WorkspaceConfig {
+	cfgOrder := defaultWorkspaceOrderIndex(cfg.ID)
+	if cfgOrder < 0 {
+		return append(workspaces, cfg)
+	}
+	insertAt := len(workspaces)
+	for i := range workspaces {
+		workspaceOrder := defaultWorkspaceOrderIndex(workspaces[i].ID)
+		if workspaceOrder > cfgOrder {
+			insertAt = i
+			break
+		}
+	}
+	workspaces = append(workspaces, editor_settings.WorkspaceConfig{})
+	copy(workspaces[insertAt+1:], workspaces[insertAt:])
+	workspaces[insertAt] = cfg
+	return workspaces
 }
 
 // reconcileWorkspaces walks the global registry and the persisted
@@ -344,7 +374,7 @@ func (ed *Editor) reconcileWorkspaces() bool {
 		if !missing[id] {
 			continue
 		}
-		ed.settings.Workspaces = append(ed.settings.Workspaces, editor_settings.WorkspaceConfig{
+		ed.settings.Workspaces = insertDefaultWorkspaceConfig(ed.settings.Workspaces, editor_settings.WorkspaceConfig{
 			ID:      id,
 			Enabled: true,
 		})
