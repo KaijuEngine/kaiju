@@ -141,8 +141,20 @@ func (g *schemaGraph) createNode(kind schemaNodeKind, parent *schemaNode) *schem
 func (g *schemaGraph) clear() {
 	if g.host != nil {
 		for i := range g.nodes {
-			if g.nodes[i] != nil && g.nodes[i].root != nil {
-				g.host.DestroyEntity(g.nodes[i].root.Base().Entity())
+			node := g.nodes[i]
+			if node == nil {
+				continue
+			}
+			if node.propertyInspector != nil {
+				g.host.DestroyEntity(node.propertyInspector.Base().Entity())
+			}
+			for j := range node.floatingPanels {
+				if node.floatingPanels[j].panel != nil {
+					g.host.DestroyEntity(node.floatingPanels[j].panel.Base().Entity())
+				}
+			}
+			if node.root != nil {
+				g.host.DestroyEntity(node.root.Base().Entity())
 			}
 		}
 	}

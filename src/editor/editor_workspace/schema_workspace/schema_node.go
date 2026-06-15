@@ -48,8 +48,16 @@ type schemaNode struct {
 	width    float32
 	height   float32
 
-	propertyName   string
-	definitionName string
+	propertyName     string
+	definitionName   string
+	schemaType       string
+	propertyRequired bool
+	propertyFields   map[string]string
+
+	titleLabel        *ui.Label
+	requiredMarker    *ui.Label
+	propertyInspector *ui.Panel
+	floatingPanels    []schemaNodeFloatingPanel
 }
 
 func (n *schemaNode) Initialize(uiMan *ui.Manager, parent *ui.Panel, spec schemaNodeSpec) {
@@ -79,6 +87,8 @@ func (n *schemaNode) SetPosition(position matrix.Vec2) {
 		return
 	}
 	n.root.Base().Layout().SetOffset(float32(position.X()), float32(position.Y()))
+	n.updatePropertyInspectorPosition()
+	n.updateFloatingPanels()
 }
 
 func (n *schemaNode) createHeader(uiMan *ui.Manager, spec schemaNodeSpec) {
@@ -91,6 +101,7 @@ func (n *schemaNode) createHeader(uiMan *ui.Manager, spec schemaNodeSpec) {
 	header.Base().Layout().Scale(n.width, schemaNodeHeaderH)
 	header.Base().Layout().SetOffset(0, 0)
 	n.root.AddChild(header.Base())
+	n.addPropertyInspectorEvents(header.Base())
 
 	title := uiMan.Add().ToLabel()
 	title.Init(spec.Title)
@@ -100,9 +111,30 @@ func (n *schemaNode) createHeader(uiMan *ui.Manager, spec schemaNodeSpec) {
 	title.SetBaseline(rendering.FontBaselineCenter)
 	title.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	title.Base().Layout().SetZ(0.2)
-	title.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeHeaderH)
+	title.Base().Layout().Scale(n.width-schemaNodePadding*2-24, schemaNodeHeaderH)
 	title.Base().Layout().SetOffset(schemaNodePadding, schemaNodeTextOffsetY)
 	header.AddChild(title.Base())
+	n.titleLabel = title
+	n.addPropertyInspectorEvents(title.Base())
+
+	if spec.Kind == schemaNodeKindProperty {
+		marker := uiMan.Add().ToLabel()
+		marker.Init("*")
+		marker.SetFontSize(16)
+		marker.SetWrap(false)
+		marker.SetColor(matrix.ColorWhite())
+		marker.SetJustify(rendering.FontJustifyRight)
+		marker.SetBaseline(rendering.FontBaselineCenter)
+		marker.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+		marker.Base().Layout().SetZ(0.5)
+		marker.Base().Layout().Scale(24, schemaNodeHeaderH)
+		marker.Base().Layout().SetOffset(n.width-schemaNodePadding-24, schemaNodeTextOffsetY)
+		header.AddChild(marker.Base())
+		n.requiredMarker = marker
+		n.refreshRequiredMarker()
+		n.addPropertyInspectorEvents(n.root.Base())
+		n.addPropertyInspectorEvents(marker.Base())
+	}
 }
 
 func (n *schemaNode) createSummary(uiMan *ui.Manager, spec schemaNodeSpec) {
@@ -146,6 +178,7 @@ func (n *schemaNode) createRow(uiMan *ui.Manager, row schemaNodeRowSpec, y float
 	rowPanel.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeRowH)
 	rowPanel.Base().Layout().SetOffset(schemaNodePadding, y)
 	n.root.AddChild(rowPanel.Base())
+	n.addPropertyInspectorEvents(rowPanel.Base())
 
 	labelWidth := (n.width - schemaNodePadding*2) * 0.48
 	valueWidth := (n.width - schemaNodePadding*2) - labelWidth
@@ -160,9 +193,18 @@ func (n *schemaNode) createRow(uiMan *ui.Manager, row schemaNodeRowSpec, y float
 	label.Base().Layout().Scale(labelWidth-schemaNodePadding, schemaNodeRowH)
 	label.Base().Layout().SetOffset(8, schemaNodeTextOffsetY)
 	rowPanel.AddChild(label.Base())
+	n.addPropertyInspectorEvents(label.Base())
 
 	if schemaNodeRowIsEditable(row) {
 		n.createRowInput(uiMan, rowPanel, row, labelWidth, valueWidth)
+		return
+	}
+	if schemaNodeRowIsSelectable(row) {
+		n.createRowSelect(uiMan, rowPanel, row, labelWidth, valueWidth, y)
+		return
+	}
+	if schemaNodeRowIsCheckable(row) {
+		n.createRowCheckbox(uiMan, rowPanel, row, labelWidth)
 		return
 	}
 

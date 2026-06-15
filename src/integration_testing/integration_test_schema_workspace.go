@@ -67,7 +67,7 @@ func IntegrationTestSchemaWorkspace(host *engine.Host) {
 		}
 	})
 	host.RunAfterFrames(28, func() {
-		host.Window.Mouse.SetPosition(162, 263,
+		host.Window.Mouse.SetPosition(162, 291,
 			float32(host.Window.Width()), float32(host.Window.Height()))
 		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
 	})
@@ -75,12 +75,28 @@ func IntegrationTestSchemaWorkspace(host *engine.Host) {
 		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
 	})
 	host.RunAfterFrames(36, func() {
-		host.Window.Mouse.SetPosition(502, 291,
+		host.Window.Mouse.SetPosition(502, 319,
 			float32(host.Window.Width()), float32(host.Window.Height()))
 		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
 	})
 	host.RunAfterFrames(37, func() {
 		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(44, func() {
+		host.Window.Mouse.SetPosition(508, 181,
+			float32(host.Window.Width()), float32(host.Window.Height()))
+		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(45, func() {
+		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(52, func() {
+		host.Window.Mouse.SetPosition(500, 72,
+			float32(host.Window.Width()), float32(host.Window.Height()))
+		host.Window.Mouse.SetDown(hid.MouseButtonRight)
+	})
+	host.RunAfterFrames(53, func() {
+		host.Window.Mouse.SetUp(hid.MouseButtonRight)
 	})
 	host.RunAfterFrames(58, func() {
 		img, err := captureScreenshotImage(host)
@@ -168,6 +184,14 @@ func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_worksp
 	}
 	if propertyBody < 1600 {
 		return fmt.Errorf("expected visible child property node body pixels, found %d", propertyBody)
+	}
+	inspectorRect := image.Rect(bounds.Min.X+620, bounds.Min.Y+42, bounds.Min.X+980, bounds.Min.Y+420).Intersect(bounds)
+	inspectorAccent, inspectorBody := countSchemaPropertiesNodePixels(img, inspectorRect)
+	if inspectorAccent < 250 {
+		return fmt.Errorf("expected visible property inspector accent pixels, found %d", inspectorAccent)
+	}
+	if inspectorBody < 2200 {
+		return fmt.Errorf("expected visible property inspector body pixels, found %d", inspectorBody)
 	}
 	definitionsRect := image.Rect(bounds.Min.X+24, bounds.Min.Y+180, bounds.Min.X+330, bounds.Min.Y+330).Intersect(bounds)
 	definitionsAccent, definitionsBody := countSchemaPropertiesNodePixels(img, definitionsRect)

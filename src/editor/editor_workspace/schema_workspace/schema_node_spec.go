@@ -23,6 +23,8 @@ const (
 	schemaNodeRowKindText           schemaNodeRowKind = "text"
 	schemaNodeRowKindPropertyName   schemaNodeRowKind = "propertyName"
 	schemaNodeRowKindDefinitionName schemaNodeRowKind = "definitionName"
+	schemaNodeRowKindSchemaType     schemaNodeRowKind = "schemaType"
+	schemaNodeRowKindRequired       schemaNodeRowKind = "required"
 )
 
 type schemaNodeRowSpec struct {
@@ -75,7 +77,8 @@ func schemaNodeSpecForKind(kind schemaNodeKind) (schemaNodeSpec, bool) {
 			Accent:  schemaNodeAccentColor,
 			Rows: []schemaNodeRowSpec{
 				{Label: "name", Kind: schemaNodeRowKindPropertyName},
-				{Label: "type", Value: "object", Kind: schemaNodeRowKindText},
+				{Label: "type", Kind: schemaNodeRowKindSchemaType},
+				{Label: "required", Kind: schemaNodeRowKindRequired},
 			},
 			MinWidth: schemaNodeWidth,
 		}, true
