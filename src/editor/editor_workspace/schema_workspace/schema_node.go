@@ -19,6 +19,8 @@ const (
 	schemaNodeSummaryH    = float32(18.0)
 	schemaNodeRowH        = float32(24.0)
 	schemaNodeRowGap      = float32(6.0)
+	schemaNodeActionH     = float32(24.0)
+	schemaNodeActionGap   = float32(6.0)
 	schemaNodeBottomPad   = float32(12.0)
 	schemaNodeBorderWidth = float32(1.0)
 )
@@ -62,7 +64,8 @@ func (n *schemaNode) Initialize(uiMan *ui.Manager, parent *ui.Panel, spec schema
 
 	n.createHeader(uiMan, spec)
 	n.createSummary(uiMan, spec)
-	n.createRows(uiMan, spec)
+	nextY := n.createRows(uiMan, spec)
+	n.createActions(uiMan, spec, nextY)
 }
 
 func (n *schemaNode) SetPosition(position matrix.Vec2) {
@@ -111,12 +114,17 @@ func (n *schemaNode) createSummary(uiMan *ui.Manager, spec schemaNodeSpec) {
 	n.root.AddChild(summary.Base())
 }
 
-func (n *schemaNode) createRows(uiMan *ui.Manager, spec schemaNodeSpec) {
+func (n *schemaNode) createRows(uiMan *ui.Manager, spec schemaNodeSpec) float32 {
 	y := schemaNodeHeaderH + 31
 	for i := range spec.Rows {
 		n.createRow(uiMan, spec.Rows[i], y)
 		y += schemaNodeRowH + schemaNodeRowGap
 	}
+	if len(spec.Rows) > 0 {
+		y -= schemaNodeRowGap
+		y += schemaNodeActionGap
+	}
+	return y
 }
 
 func (n *schemaNode) createRow(uiMan *ui.Manager, row schemaNodeRowSpec, y float32) {
@@ -160,11 +168,70 @@ func (n *schemaNode) createRow(uiMan *ui.Manager, row schemaNodeRowSpec, y float
 	rowPanel.AddChild(value.Base())
 }
 
+func (n *schemaNode) createActions(uiMan *ui.Manager, spec schemaNodeSpec, y float32) {
+	for i := range spec.Actions {
+		n.createAction(uiMan, spec.Actions[i], y)
+		y += schemaNodeActionH + schemaNodeActionGap
+	}
+}
+
+func (n *schemaNode) createAction(uiMan *ui.Manager, action schemaNodeActionSpec, y float32) {
+	button := uiMan.Add().ToPanel()
+	button.Init(nil, ui.ElementTypePanel)
+	button.DontFitContent()
+	button.SetColor(schemaNodeRowColor)
+	button.SetBorderRadius(3, 3, 3, 3)
+	button.SetBorderSize(1, 1, 1, 1)
+	button.SetBorderColor(schemaNodeBorderColor, schemaNodeBorderColor, schemaNodeBorderColor, schemaNodeBorderColor)
+	button.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	button.Base().Layout().SetZ(0.2)
+	button.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeActionH)
+	button.Base().Layout().SetOffset(schemaNodePadding, y)
+	button.Base().AddEvent(ui.EventTypeClick, func() {
+		n.executeAction(action.Kind)
+	})
+	button.Base().AddEvent(ui.EventTypeEnter, func() {
+		button.SetColor(schemaNodeBorderColor)
+	})
+	button.Base().AddEvent(ui.EventTypeExit, func() {
+		button.SetColor(schemaNodeRowColor)
+	})
+	n.root.AddChild(button.Base())
+
+	label := uiMan.Add().ToLabel()
+	label.Init(action.Label)
+	label.SetFontSize(10)
+	label.SetWrap(false)
+	label.SetColor(schemaNodeTextColor)
+	label.SetJustify(rendering.FontJustifyCenter)
+	label.SetBaseline(rendering.FontBaselineCenter)
+	label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	label.Base().Layout().SetZ(0.3)
+	label.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeActionH)
+	label.Base().Layout().SetOffset(0, 0)
+	button.AddChild(label.Base())
+}
+
+func (n *schemaNode) executeAction(kind schemaNodeActionKind) {
+	switch kind {
+	case schemaNodeActionAddProperty:
+		if n.graph != nil {
+			n.graph.AddProperty(n)
+		}
+	}
+}
+
 func schemaNodeHeight(spec schemaNodeSpec) float32 {
 	rowCount := len(spec.Rows)
 	rowHeight := float32(0)
 	if rowCount > 0 {
 		rowHeight = float32(rowCount)*schemaNodeRowH + float32(rowCount-1)*schemaNodeRowGap
 	}
-	return schemaNodeHeaderH + 31 + rowHeight + schemaNodeBottomPad
+	actionCount := len(spec.Actions)
+	actionHeight := float32(0)
+	if actionCount > 0 {
+		actionHeight = schemaNodeActionGap + float32(actionCount)*schemaNodeActionH +
+			float32(actionCount-1)*schemaNodeActionGap
+	}
+	return schemaNodeHeaderH + 31 + rowHeight + actionHeight + schemaNodeBottomPad
 }

@@ -87,6 +87,13 @@ func (g *schemaGraph) CreateRootNode(kind schemaNodeKind) *schemaNode {
 	return g.createNode(kind, nil)
 }
 
+func (g *schemaGraph) AddProperty(parent *schemaNode) *schemaNode {
+	if parent == nil || parent.kind != schemaNodeKindProperties {
+		return nil
+	}
+	return g.createNode(schemaNodeKindProperty, parent)
+}
+
 func (g *schemaGraph) NodeCount() int {
 	return len(g.nodes)
 }

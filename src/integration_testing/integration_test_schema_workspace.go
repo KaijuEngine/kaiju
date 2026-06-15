@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/editor/editor_workspace/schema_workspace"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/platform/hid"
 )
 
 const (
@@ -48,7 +49,15 @@ func IntegrationTestSchemaWorkspace(host *engine.Host) {
 			failSchemaWorkspaceIntegration("click properties button", nil)
 		}
 	})
-	host.RunAfterFrames(24, func() {
+	host.RunAfterFrames(14, func() {
+		host.Window.Mouse.SetPosition(162, 157,
+			float32(host.Window.Width()), float32(host.Window.Height()))
+		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(15, func() {
+		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(36, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
 			failSchemaWorkspaceIntegration("capture screenshot", err)
@@ -116,8 +125,8 @@ func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_worksp
 			return fmt.Errorf("expected visible schema add button %q pixels, found %d", id, pixels)
 		}
 	}
-	if workspace.NodeCount() != 1 {
-		return fmt.Errorf("expected properties click to create 1 schema node, found %d", workspace.NodeCount())
+	if workspace.NodeCount() != 2 {
+		return fmt.Errorf("expected card action to create 2 schema nodes, found %d", workspace.NodeCount())
 	}
 	nodeRect := image.Rect(bounds.Min.X+24, bounds.Min.Y+42, bounds.Min.X+330, bounds.Min.Y+190).Intersect(bounds)
 	accentPixels, bodyPixels := countSchemaPropertiesNodePixels(img, nodeRect)
@@ -126,6 +135,14 @@ func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_worksp
 	}
 	if bodyPixels < 1200 {
 		return fmt.Errorf("expected visible properties node body pixels, found %d", bodyPixels)
+	}
+	propertyRect := image.Rect(bounds.Min.X+360, bounds.Min.Y+42, bounds.Min.X+670, bounds.Min.Y+220).Intersect(bounds)
+	propertyAccent, propertyBody := countSchemaPropertiesNodePixels(img, propertyRect)
+	if propertyAccent < 300 {
+		return fmt.Errorf("expected visible child property node accent pixels, found %d", propertyAccent)
+	}
+	if propertyBody < 1600 {
+		return fmt.Errorf("expected visible child property node body pixels, found %d", propertyBody)
 	}
 	return nil
 }
