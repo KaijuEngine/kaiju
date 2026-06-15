@@ -1,0 +1,157 @@
+//go:build editor
+
+/******************************************************************************/
+/* integration_test_schema_workspace.go                                       */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
+package integration_testing
+
+import (
+	"fmt"
+	"image"
+	"log/slog"
+	"os"
+
+	"kaijuengine.com/editor/editor_workspace/schema_workspace"
+	"kaijuengine.com/engine"
+)
+
+const (
+	schemaWorkspaceScreenshotOutput = "integration_test_schema_workspace.png"
+)
+
+func init() {
+	tests["schema-workspace"] = IntegrationTestSchemaWorkspace
+}
+
+func IntegrationTestSchemaWorkspace(host *engine.Host) {
+	ed, err := newRenderGraphWorkspaceTestEditor(host)
+	if err != nil {
+		failSchemaWorkspaceIntegration("create test editor", err)
+	}
+	workspace := &schema_workspace.SchemaWorkspace{}
+	if err = workspace.Initialize(ed); err != nil {
+		failSchemaWorkspaceIntegration("initialize schema workspace", err)
+	}
+	workspace.Open()
+	updateId := host.Updater.AddUpdate(workspace.Update)
+
+	host.RunAfterFrames(24, func() {
+		img, err := captureScreenshotImage(host)
+		if err != nil {
+			failSchemaWorkspaceIntegration("capture screenshot", err)
+		}
+		if err = assertSchemaWorkspaceScreenshot(host, workspace, img); err != nil {
+			_ = writeScreenshotImage(img, schemaWorkspaceScreenshotOutput)
+			failSchemaWorkspaceIntegration("screenshot smoke check", err)
+		}
+		if err = writeScreenshotImage(img, schemaWorkspaceScreenshotOutput); err != nil {
+			failSchemaWorkspaceIntegration("write screenshot", err)
+		}
+		host.Updater.RemoveUpdate(&updateId)
+		workspace.Shutdown()
+		ed.cleanup()
+		slog.Info("Screenshot captured", "path", schemaWorkspaceScreenshotOutput)
+		os.Exit(0)
+	})
+}
+
+func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_workspace.SchemaWorkspace, img *image.RGBA) error {
+	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return fmt.Errorf("screenshot has invalid bounds %v", bounds)
+	}
+	if workspace == nil || workspace.Doc == nil {
+		return fmt.Errorf("schema workspace document was not initialized")
+	}
+	bar, ok := workspace.Doc.GetElementById("schemaActionBar")
+	if !ok || bar == nil || bar.UI == nil || !bar.UI.IsActive() {
+		return fmt.Errorf("schema action bar is not active")
+	}
+	barRect := elementBoundsRectangle(host, bounds, bar.UI)
+	if barRect.Dx() < 300 || barRect.Dy() < 36 {
+		return fmt.Errorf("schema action bar has invalid screenshot bounds %v", barRect)
+	}
+	if barRect.Min.Y < bounds.Min.Y+bounds.Dy()/2 {
+		return fmt.Errorf("schema action bar is not in the lower half of the workspace: %v", barRect)
+	}
+	if pixels := countSchemaActionBarPixels(img, barRect); pixels < 1000 {
+		return fmt.Errorf("expected visible schema action bar pixels, found %d", pixels)
+	}
+	buttonIDs := []string{
+		"schemaNewButton",
+		"schemaLoadButton",
+		"schemaSaveButton",
+		"schemaAddProperties",
+		"schemaAddPatternProperties",
+		"schemaAddDefinitions",
+		"schemaAddItems",
+		"schemaAddItemsArray",
+	}
+	for _, id := range buttonIDs {
+		button, ok := workspace.Doc.GetElementById(id)
+		if !ok || button == nil || button.UI == nil || !button.UI.IsActive() {
+			return fmt.Errorf("schema add button %q is not active", id)
+		}
+		rect := elementBoundsRectangle(host, bounds, button.UI)
+		if rect.Dx() < 70 || rect.Dy() < 18 {
+			return fmt.Errorf("schema add button %q has invalid screenshot bounds %v", id, rect)
+		}
+		if !rect.In(barRect) {
+			return fmt.Errorf("schema add button %q is outside the action bar: button=%v bar=%v", id, rect, barRect)
+		}
+		if pixels := countSchemaButtonPixels(img, rect); pixels < 120 {
+			return fmt.Errorf("expected visible schema add button %q pixels, found %d", id, pixels)
+		}
+	}
+	return nil
+}
+
+func countSchemaActionBarPixels(img *image.RGBA, rect image.Rectangle) int {
+	rect = rect.Intersect(img.Bounds())
+	count := 0
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r >= 12 && r <= 28 && g >= 14 && g <= 32 && b >= 18 && b <= 38 {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func countSchemaButtonPixels(img *image.RGBA, rect image.Rectangle) int {
+	rect = rect.Intersect(img.Bounds())
+	count := 0
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r >= 30 && r <= 55 && g >= 34 && g <= 60 && b >= 40 && b <= 72 {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func failSchemaWorkspaceIntegration(message string, err error) {
+	if err != nil {
+		slog.Error("schema workspace integration test failed",
+			"path", schemaWorkspaceScreenshotOutput,
+			"message", message, "error", err)
+	} else {
+		slog.Error("schema workspace integration test failed",
+			"path", schemaWorkspaceScreenshotOutput,
+			"message", message)
+	}
+	os.Exit(1)
+}

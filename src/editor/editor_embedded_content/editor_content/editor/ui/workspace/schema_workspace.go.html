@@ -4,8 +4,90 @@
 		<style>
 			body {
 				background-color: #1b1b1b;
+				color: white;
+			}
+			#schemaWorkspace {
+				position: absolute;
+				left: 0;
+				top: var(--ed-menu-bar-height);
+				width: 100%;
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				background-color: #17191d;
+			}
+			#schemaCanvas {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: calc(100% - 48px);
+				background-color: #20232a;
+				border-top: 1px solid #2d313a;
+				border-bottom: 1px solid #0a0b0d;
+				z-index: 1;
+			}
+			#schemaActionBar {
+				position: absolute;
+				left: 0;
+				bottom: 0;
+				width: 100%;
+				height: 48px;
+				padding: 10px 12px;
+				background-color: #111318;
+				border-top: 2px solid black;
+				z-index: 5;
+			}
+			#schemaActionButtons {
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-wrap: wrap;
+			}
+			.schemaBarButton {
+				width: 126px;
+				height: 26px;
+				margin-right: 8px;
+				padding: 3px 8px;
+				color: #e8ebf0;
+				background-color: #242832;
+				border: 1px solid #3a3f4b;
+				border-radius: 4px;
+				font-size: 0.74em;
+				text-align: center;
+			}
+			.schemaBarButton:hover {
+				color: white;
+				background-color: #303542;
+				border-color: #682A2D;
+			}
+			.schemaCommandButton {
+				width: 72px;
+			}
+			#schemaSaveButton {
+				margin-right: 18px;
+			}
+			#schemaAddPatternProperties {
+				width: 156px;
+			}
+			#schemaAddItemsArray {
+				width: 112px;
 			}
 		</style>
 	</head>
-	<body></body>
+	<body>
+		<div id="schemaWorkspace">
+			<div id="schemaCanvas"></div>
+			<div id="schemaActionBar">
+				<div id="schemaActionButtons">
+					<button id="schemaNewButton" class="schemaBarButton schemaCommandButton">New</button>
+					<button id="schemaLoadButton" class="schemaBarButton schemaCommandButton">Load</button>
+					<button id="schemaSaveButton" class="schemaBarButton schemaCommandButton">Save</button>
+					<button id="schemaAddProperties" class="schemaBarButton" data-schema-group="properties">Properties</button>
+					<button id="schemaAddPatternProperties" class="schemaBarButton" data-schema-group="patternProperties">Pattern properties</button>
+					<button id="schemaAddDefinitions" class="schemaBarButton" data-schema-group="definitions">Definitions</button>
+					<button id="schemaAddItems" class="schemaBarButton" data-schema-group="items">Items</button>
+					<button id="schemaAddItemsArray" class="schemaBarButton" data-schema-group="itemsArray">Items array</button>
+				</div>
+			</div>
+		</div>
+	</body>
 </html>
