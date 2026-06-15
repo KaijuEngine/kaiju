@@ -11,15 +11,18 @@ import "kaijuengine.com/matrix"
 type schemaNodeKind string
 
 const (
-	schemaNodeKindProperties schemaNodeKind = "properties"
-	schemaNodeKindProperty   schemaNodeKind = "property"
+	schemaNodeKindProperties  schemaNodeKind = "properties"
+	schemaNodeKindProperty    schemaNodeKind = "property"
+	schemaNodeKindDefinitions schemaNodeKind = "definitions"
+	schemaNodeKindDefinition  schemaNodeKind = "definition"
 )
 
 type schemaNodeRowKind string
 
 const (
-	schemaNodeRowKindText         schemaNodeRowKind = "text"
-	schemaNodeRowKindPropertyName schemaNodeRowKind = "propertyName"
+	schemaNodeRowKindText           schemaNodeRowKind = "text"
+	schemaNodeRowKindPropertyName   schemaNodeRowKind = "propertyName"
+	schemaNodeRowKindDefinitionName schemaNodeRowKind = "definitionName"
 )
 
 type schemaNodeRowSpec struct {
@@ -31,7 +34,9 @@ type schemaNodeRowSpec struct {
 type schemaNodeActionKind string
 
 const (
-	schemaNodeActionAddProperty schemaNodeActionKind = "addProperty"
+	schemaNodeActionAddProperties schemaNodeActionKind = "addProperties"
+	schemaNodeActionAddProperty   schemaNodeActionKind = "addProperty"
+	schemaNodeActionAddDefinition schemaNodeActionKind = "addDefinition"
 )
 
 type schemaNodeActionSpec struct {
@@ -71,6 +76,31 @@ func schemaNodeSpecForKind(kind schemaNodeKind) (schemaNodeSpec, bool) {
 			Rows: []schemaNodeRowSpec{
 				{Label: "name", Kind: schemaNodeRowKindPropertyName},
 				{Label: "type", Value: "object", Kind: schemaNodeRowKindText},
+			},
+			MinWidth: schemaNodeWidth,
+		}, true
+	case schemaNodeKindDefinitions:
+		return schemaNodeSpec{
+			Kind:    kind,
+			Title:   "definitions",
+			Summary: "Reusable schema map",
+			Accent:  schemaNodeAccentColor,
+			Actions: []schemaNodeActionSpec{
+				{Label: "Add definition", Kind: schemaNodeActionAddDefinition},
+			},
+			MinWidth: schemaNodeWidth,
+		}, true
+	case schemaNodeKindDefinition:
+		return schemaNodeSpec{
+			Kind:    kind,
+			Title:   "definition",
+			Summary: "Reusable named schema",
+			Accent:  schemaNodeAccentColor,
+			Rows: []schemaNodeRowSpec{
+				{Label: "name", Kind: schemaNodeRowKindDefinitionName},
+			},
+			Actions: []schemaNodeActionSpec{
+				{Label: "Add properties", Kind: schemaNodeActionAddProperties},
 			},
 			MinWidth: schemaNodeWidth,
 		}, true

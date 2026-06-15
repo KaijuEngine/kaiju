@@ -57,7 +57,32 @@ func IntegrationTestSchemaWorkspace(host *engine.Host) {
 	host.RunAfterFrames(15, func() {
 		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
 	})
+	host.RunAfterFrames(22, func() {
+		button, ok := workspace.Doc.GetElementById("schemaAddDefinitions")
+		if !ok || button == nil || button.UI == nil {
+			failSchemaWorkspaceIntegration("find definitions button", nil)
+		}
+		if !button.UI.ExecuteEvent(ui.EventTypeClick) {
+			failSchemaWorkspaceIntegration("click definitions button", nil)
+		}
+	})
+	host.RunAfterFrames(28, func() {
+		host.Window.Mouse.SetPosition(162, 263,
+			float32(host.Window.Width()), float32(host.Window.Height()))
+		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(29, func() {
+		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
+	})
 	host.RunAfterFrames(36, func() {
+		host.Window.Mouse.SetPosition(502, 291,
+			float32(host.Window.Width()), float32(host.Window.Height()))
+		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(37, func() {
+		host.Window.Mouse.SetUp(hid.MouseButtonLeft)
+	})
+	host.RunAfterFrames(58, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
 			failSchemaWorkspaceIntegration("capture screenshot", err)
@@ -125,8 +150,8 @@ func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_worksp
 			return fmt.Errorf("expected visible schema add button %q pixels, found %d", id, pixels)
 		}
 	}
-	if workspace.NodeCount() != 2 {
-		return fmt.Errorf("expected card action to create 2 schema nodes, found %d", workspace.NodeCount())
+	if workspace.NodeCount() != 5 {
+		return fmt.Errorf("expected card actions to create 5 schema nodes, found %d", workspace.NodeCount())
 	}
 	nodeRect := image.Rect(bounds.Min.X+24, bounds.Min.Y+42, bounds.Min.X+330, bounds.Min.Y+190).Intersect(bounds)
 	accentPixels, bodyPixels := countSchemaPropertiesNodePixels(img, nodeRect)
@@ -143,6 +168,30 @@ func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_worksp
 	}
 	if propertyBody < 1600 {
 		return fmt.Errorf("expected visible child property node body pixels, found %d", propertyBody)
+	}
+	definitionsRect := image.Rect(bounds.Min.X+24, bounds.Min.Y+180, bounds.Min.X+330, bounds.Min.Y+330).Intersect(bounds)
+	definitionsAccent, definitionsBody := countSchemaPropertiesNodePixels(img, definitionsRect)
+	if definitionsAccent < 300 {
+		return fmt.Errorf("expected visible definitions node accent pixels, found %d", definitionsAccent)
+	}
+	if definitionsBody < 1200 {
+		return fmt.Errorf("expected visible definitions node body pixels, found %d", definitionsBody)
+	}
+	definitionRect := image.Rect(bounds.Min.X+360, bounds.Min.Y+180, bounds.Min.X+670, bounds.Min.Y+350).Intersect(bounds)
+	definitionAccent, definitionBody := countSchemaPropertiesNodePixels(img, definitionRect)
+	if definitionAccent < 300 {
+		return fmt.Errorf("expected visible child definition node accent pixels, found %d", definitionAccent)
+	}
+	if definitionBody < 1600 {
+		return fmt.Errorf("expected visible child definition node body pixels, found %d", definitionBody)
+	}
+	definitionPropertiesRect := image.Rect(bounds.Min.X+700, bounds.Min.Y+180, bounds.Min.X+1010, bounds.Min.Y+330).Intersect(bounds)
+	definitionPropertiesAccent, definitionPropertiesBody := countSchemaPropertiesNodePixels(img, definitionPropertiesRect)
+	if definitionPropertiesAccent < 300 {
+		return fmt.Errorf("expected visible definition properties node accent pixels, found %d", definitionPropertiesAccent)
+	}
+	if definitionPropertiesBody < 1200 {
+		return fmt.Errorf("expected visible definition properties node body pixels, found %d", definitionPropertiesBody)
 	}
 	return nil
 }

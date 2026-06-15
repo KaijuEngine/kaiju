@@ -48,7 +48,8 @@ type schemaNode struct {
 	width    float32
 	height   float32
 
-	propertyName string
+	propertyName   string
+	definitionName string
 }
 
 func (n *schemaNode) Initialize(uiMan *ui.Manager, parent *ui.Panel, spec schemaNodeSpec) {
@@ -224,9 +225,17 @@ func (n *schemaNode) createAction(uiMan *ui.Manager, action schemaNodeActionSpec
 
 func (n *schemaNode) executeAction(kind schemaNodeActionKind) {
 	switch kind {
+	case schemaNodeActionAddProperties:
+		if n.graph != nil {
+			n.graph.AddProperties(n)
+		}
 	case schemaNodeActionAddProperty:
 		if n.graph != nil {
 			n.graph.AddProperty(n)
+		}
+	case schemaNodeActionAddDefinition:
+		if n.graph != nil {
+			n.graph.AddDefinition(n)
 		}
 	}
 }

@@ -31,8 +31,11 @@ func (n *schemaNode) createRowInput(uiMan *ui.Manager, rowPanel *ui.Panel, row s
 	input.Base().Layout().Scale(width-5, schemaNodeRowH-4)
 	input.Base().Layout().SetOffset(x, 2)
 	input.Base().AddEvent(ui.EventTypeChange, func() {
-		if row.Kind == schemaNodeRowKindPropertyName {
+		switch row.Kind {
+		case schemaNodeRowKindPropertyName:
 			n.setPropertyName(input.Text())
+		case schemaNodeRowKindDefinitionName:
+			n.setDefinitionName(input.Text())
 		}
 	})
 	rowPanel.AddChild(input.Base())

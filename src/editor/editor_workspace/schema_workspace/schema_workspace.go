@@ -40,7 +40,8 @@ func (w *SchemaWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterfac
 	defer tracing.NewRegion("SchemaWorkspace.Initialize").End()
 	w.ed = ed
 	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(), uiFile, nil, map[string]func(*document.Element){
-		"clickAddProperties": w.clickAddProperties,
+		"clickAddProperties":  w.clickAddProperties,
+		"clickAddDefinitions": w.clickAddDefinitions,
 	}); err != nil {
 		return err
 	}
@@ -88,6 +89,11 @@ func (w *SchemaWorkspace) AddPropertiesNode() {
 	w.graph.CreateRootNode(schemaNodeKindProperties)
 }
 
+func (w *SchemaWorkspace) AddDefinitionsNode() {
+	defer tracing.NewRegion("SchemaWorkspace.AddDefinitionsNode").End()
+	w.graph.CreateRootNode(schemaNodeKindDefinitions)
+}
+
 func (w *SchemaWorkspace) NodeCount() int {
 	return w.graph.NodeCount()
 }
@@ -95,4 +101,9 @@ func (w *SchemaWorkspace) NodeCount() int {
 func (w *SchemaWorkspace) clickAddProperties(*document.Element) {
 	defer tracing.NewRegion("SchemaWorkspace.clickAddProperties").End()
 	w.AddPropertiesNode()
+}
+
+func (w *SchemaWorkspace) clickAddDefinitions(*document.Element) {
+	defer tracing.NewRegion("SchemaWorkspace.clickAddDefinitions").End()
+	w.AddDefinitionsNode()
 }

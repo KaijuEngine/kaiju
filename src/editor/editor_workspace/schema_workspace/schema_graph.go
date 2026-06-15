@@ -94,6 +94,20 @@ func (g *schemaGraph) AddProperty(parent *schemaNode) *schemaNode {
 	return g.createNode(schemaNodeKindProperty, parent)
 }
 
+func (g *schemaGraph) AddProperties(parent *schemaNode) *schemaNode {
+	if parent == nil || parent.kind != schemaNodeKindDefinition {
+		return nil
+	}
+	return g.createNode(schemaNodeKindProperties, parent)
+}
+
+func (g *schemaGraph) AddDefinition(parent *schemaNode) *schemaNode {
+	if parent == nil || parent.kind != schemaNodeKindDefinitions {
+		return nil
+	}
+	return g.createNode(schemaNodeKindDefinition, parent)
+}
+
 func (g *schemaGraph) NodeCount() int {
 	return len(g.nodes)
 }
@@ -112,7 +126,7 @@ func (g *schemaGraph) createNode(kind schemaNodeKind, parent *schemaNode) *schem
 		kind:   kind,
 		parent: parent,
 	}
-	node.initializePropertyState(parent)
+	node.initializeNamedState(parent)
 	node.Initialize(&g.uiMan, g.root, spec)
 	if parent == nil {
 		g.rootNodes = append(g.rootNodes, node)
