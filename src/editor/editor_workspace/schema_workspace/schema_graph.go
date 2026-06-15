@@ -112,6 +112,7 @@ func (g *schemaGraph) createNode(kind schemaNodeKind, parent *schemaNode) *schem
 		kind:   kind,
 		parent: parent,
 	}
+	node.initializePropertyState(parent)
 	node.Initialize(&g.uiMan, g.root, spec)
 	if parent == nil {
 		g.rootNodes = append(g.rootNodes, node)

@@ -50,7 +50,7 @@ func IntegrationTestSchemaWorkspace(host *engine.Host) {
 		}
 	})
 	host.RunAfterFrames(14, func() {
-		host.Window.Mouse.SetPosition(162, 157,
+		host.Window.Mouse.SetPosition(162, 119,
 			float32(host.Window.Width()), float32(host.Window.Height()))
 		host.Window.Mouse.SetDown(hid.MouseButtonLeft)
 	})

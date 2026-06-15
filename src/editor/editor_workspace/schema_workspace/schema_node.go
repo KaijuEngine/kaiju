@@ -15,14 +15,16 @@ import (
 const (
 	schemaNodeWidth       = float32(260.0)
 	schemaNodeHeaderH     = float32(28.0)
-	schemaNodePadding     = float32(12.0)
-	schemaNodeSummaryH    = float32(18.0)
+	schemaNodePadding     = float32(10.0)
+	schemaNodeSummaryH    = float32(20.0)
+	schemaNodeContentGap  = float32(5.0)
 	schemaNodeRowH        = float32(24.0)
-	schemaNodeRowGap      = float32(6.0)
+	schemaNodeRowGap      = float32(4.0)
 	schemaNodeActionH     = float32(24.0)
-	schemaNodeActionGap   = float32(6.0)
-	schemaNodeBottomPad   = float32(12.0)
+	schemaNodeActionGap   = float32(5.0)
+	schemaNodeBottomPad   = float32(8.0)
 	schemaNodeBorderWidth = float32(1.0)
+	schemaNodeTextOffsetY = float32(2.0)
 )
 
 var (
@@ -45,6 +47,8 @@ type schemaNode struct {
 	position matrix.Vec2
 	width    float32
 	height   float32
+
+	propertyName string
 }
 
 func (n *schemaNode) Initialize(uiMan *ui.Manager, parent *ui.Panel, spec schemaNodeSpec) {
@@ -89,33 +93,34 @@ func (n *schemaNode) createHeader(uiMan *ui.Manager, spec schemaNodeSpec) {
 
 	title := uiMan.Add().ToLabel()
 	title.Init(spec.Title)
-	title.SetFontSize(12)
+	title.SetFontSize(13)
 	title.SetWrap(false)
 	title.SetColor(matrix.ColorWhite())
 	title.SetBaseline(rendering.FontBaselineCenter)
 	title.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	title.Base().Layout().SetZ(0.2)
 	title.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeHeaderH)
-	title.Base().Layout().SetOffset(schemaNodePadding, 0)
+	title.Base().Layout().SetOffset(schemaNodePadding, schemaNodeTextOffsetY)
 	header.AddChild(title.Base())
 }
 
 func (n *schemaNode) createSummary(uiMan *ui.Manager, spec schemaNodeSpec) {
 	summary := uiMan.Add().ToLabel()
 	summary.Init(spec.Summary)
-	summary.SetFontSize(10)
+	summary.SetFontSize(11)
 	summary.SetWrap(false)
 	summary.SetColor(schemaNodeMutedTextColor)
 	summary.SetBaseline(rendering.FontBaselineCenter)
 	summary.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	summary.Base().Layout().SetZ(0.1)
 	summary.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeSummaryH)
-	summary.Base().Layout().SetOffset(schemaNodePadding, schemaNodeHeaderH+7)
+	summary.Base().Layout().SetOffset(schemaNodePadding,
+		schemaNodeHeaderH+schemaNodeContentGap+schemaNodeTextOffsetY)
 	n.root.AddChild(summary.Base())
 }
 
 func (n *schemaNode) createRows(uiMan *ui.Manager, spec schemaNodeSpec) float32 {
-	y := schemaNodeHeaderH + 31
+	y := schemaNodeBodyStartY()
 	for i := range spec.Rows {
 		n.createRow(uiMan, spec.Rows[i], y)
 		y += schemaNodeRowH + schemaNodeRowGap
@@ -145,26 +150,31 @@ func (n *schemaNode) createRow(uiMan *ui.Manager, row schemaNodeRowSpec, y float
 	valueWidth := (n.width - schemaNodePadding*2) - labelWidth
 	label := uiMan.Add().ToLabel()
 	label.Init(row.Label)
-	label.SetFontSize(10)
+	label.SetFontSize(11)
 	label.SetWrap(false)
 	label.SetColor(schemaNodeLabelColor)
 	label.SetBaseline(rendering.FontBaselineCenter)
 	label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	label.Base().Layout().SetZ(0.2)
 	label.Base().Layout().Scale(labelWidth-schemaNodePadding, schemaNodeRowH)
-	label.Base().Layout().SetOffset(8, 0)
+	label.Base().Layout().SetOffset(8, schemaNodeTextOffsetY)
 	rowPanel.AddChild(label.Base())
 
+	if schemaNodeRowIsEditable(row) {
+		n.createRowInput(uiMan, rowPanel, row, labelWidth, valueWidth)
+		return
+	}
+
 	value := uiMan.Add().ToLabel()
-	value.Init(row.Value)
-	value.SetFontSize(10)
+	value.Init(n.rowValue(row))
+	value.SetFontSize(11)
 	value.SetWrap(false)
 	value.SetColor(schemaNodeTextColor)
 	value.SetBaseline(rendering.FontBaselineCenter)
 	value.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	value.Base().Layout().SetZ(0.2)
 	value.Base().Layout().Scale(valueWidth-8, schemaNodeRowH)
-	value.Base().Layout().SetOffset(labelWidth, 0)
+	value.Base().Layout().SetOffset(labelWidth, schemaNodeTextOffsetY)
 	rowPanel.AddChild(value.Base())
 }
 
@@ -200,7 +210,7 @@ func (n *schemaNode) createAction(uiMan *ui.Manager, action schemaNodeActionSpec
 
 	label := uiMan.Add().ToLabel()
 	label.Init(action.Label)
-	label.SetFontSize(10)
+	label.SetFontSize(11)
 	label.SetWrap(false)
 	label.SetColor(schemaNodeTextColor)
 	label.SetJustify(rendering.FontJustifyCenter)
@@ -208,7 +218,7 @@ func (n *schemaNode) createAction(uiMan *ui.Manager, action schemaNodeActionSpec
 	label.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	label.Base().Layout().SetZ(0.3)
 	label.Base().Layout().Scale(n.width-schemaNodePadding*2, schemaNodeActionH)
-	label.Base().Layout().SetOffset(0, 0)
+	label.Base().Layout().SetOffset(0, schemaNodeTextOffsetY)
 	button.AddChild(label.Base())
 }
 
@@ -223,15 +233,22 @@ func (n *schemaNode) executeAction(kind schemaNodeActionKind) {
 
 func schemaNodeHeight(spec schemaNodeSpec) float32 {
 	rowCount := len(spec.Rows)
-	rowHeight := float32(0)
+	contentBottom := schemaNodeBodyStartY()
 	if rowCount > 0 {
-		rowHeight = float32(rowCount)*schemaNodeRowH + float32(rowCount-1)*schemaNodeRowGap
+		contentBottom += float32(rowCount)*schemaNodeRowH +
+			float32(rowCount-1)*schemaNodeRowGap
 	}
 	actionCount := len(spec.Actions)
-	actionHeight := float32(0)
 	if actionCount > 0 {
-		actionHeight = schemaNodeActionGap + float32(actionCount)*schemaNodeActionH +
+		if rowCount > 0 {
+			contentBottom += schemaNodeActionGap
+		}
+		contentBottom += float32(actionCount)*schemaNodeActionH +
 			float32(actionCount-1)*schemaNodeActionGap
 	}
-	return schemaNodeHeaderH + 31 + rowHeight + actionHeight + schemaNodeBottomPad
+	return contentBottom + schemaNodeBottomPad
+}
+
+func schemaNodeBodyStartY() float32 {
+	return schemaNodeHeaderH + schemaNodeContentGap + schemaNodeSummaryH + schemaNodeContentGap
 }

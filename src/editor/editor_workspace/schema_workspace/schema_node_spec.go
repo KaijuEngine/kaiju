@@ -15,9 +15,17 @@ const (
 	schemaNodeKindProperty   schemaNodeKind = "property"
 )
 
+type schemaNodeRowKind string
+
+const (
+	schemaNodeRowKindText         schemaNodeRowKind = "text"
+	schemaNodeRowKindPropertyName schemaNodeRowKind = "propertyName"
+)
+
 type schemaNodeRowSpec struct {
 	Label string
 	Value string
+	Kind  schemaNodeRowKind
 }
 
 type schemaNodeActionKind string
@@ -49,9 +57,6 @@ func schemaNodeSpecForKind(kind schemaNodeKind) (schemaNodeSpec, bool) {
 			Title:   "properties",
 			Summary: "Object property map",
 			Accent:  schemaNodeAccentColor,
-			Rows: []schemaNodeRowSpec{
-				{Label: "propertyName", Value: "schema"},
-			},
 			Actions: []schemaNodeActionSpec{
 				{Label: "Add property", Kind: schemaNodeActionAddProperty},
 			},
@@ -64,8 +69,8 @@ func schemaNodeSpecForKind(kind schemaNodeKind) (schemaNodeSpec, bool) {
 			Summary: "Named child schema",
 			Accent:  schemaNodeAccentColor,
 			Rows: []schemaNodeRowSpec{
-				{Label: "name", Value: "newProperty"},
-				{Label: "type", Value: "object"},
+				{Label: "name", Kind: schemaNodeRowKindPropertyName},
+				{Label: "type", Value: "object", Kind: schemaNodeRowKindText},
 			},
 			MinWidth: schemaNodeWidth,
 		}, true
