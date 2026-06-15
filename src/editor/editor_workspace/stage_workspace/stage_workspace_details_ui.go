@@ -38,6 +38,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
+	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
@@ -1025,8 +1026,31 @@ func (dui *WorkspaceDetailsUI) setMeshInputValue(meshId string) {
 				str = fmt.Sprintf("%s / %s", cc.Config.Name, ref.Key)
 			}
 		}
+	} else if name, ok := primitiveMeshName(meshId); ok {
+		str = name
 	}
 	dui.detailsMesh.InnerLabel().SetText(str)
+}
+
+func primitiveMeshName(meshId string) (string, bool) {
+	switch rendering.PrimitiveMesh(meshId) {
+	case rendering.PrimitiveMeshTexturableCube:
+		return "Cube", true
+	case rendering.PrimitiveMeshSphere:
+		return "Sphere", true
+	case rendering.PrimitiveMeshPlane:
+		return "Plane", true
+	case rendering.PrimitiveMeshCapsule:
+		return "Capsule", true
+	case rendering.PrimitiveMeshCylinder:
+		return "Cylinder", true
+	case rendering.PrimitiveMeshCone:
+		return "Cone", true
+	case rendering.PrimitiveMeshArrow:
+		return "Arrow", true
+	default:
+		return "", false
+	}
 }
 
 func meshDragAccepted(cc content_database.CachedContent, key string) bool {

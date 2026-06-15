@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
 )
 
@@ -77,6 +78,27 @@ func Show(host *engine.Host, typeName string, cache *content_database.Cache, onS
 			Name:    assets.TextureSquare,
 			Texture: assets.TextureSquare,
 		})
+	}
+	if typeName == (content_database.Mesh{}).TypeName() {
+		primitives := []struct {
+			mesh rendering.PrimitiveMesh
+			name string
+		}{
+			{rendering.PrimitiveMeshTexturableCube, "Cube"},
+			{rendering.PrimitiveMeshSphere, "Sphere"},
+			{rendering.PrimitiveMeshPlane, "Plane"},
+			{rendering.PrimitiveMeshCapsule, "Capsule"},
+			{rendering.PrimitiveMeshCylinder, "Cylinder"},
+			{rendering.PrimitiveMeshCone, "Cone"},
+			{rendering.PrimitiveMeshArrow, "Arrow"},
+		}
+		for _, p := range primitives {
+			data.Options = append(data.Options, contentSelectorEntry{
+				Id:      string(p.mesh),
+				Name:    p.name,
+				Texture: "editor/textures/icons/Mesh.png",
+			})
+		}
 	}
 	data.Options = append(data.Options, contentSelectorEntry{
 		Name:    "None",
