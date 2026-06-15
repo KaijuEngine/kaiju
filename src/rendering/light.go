@@ -106,7 +106,8 @@ type LightShadowShaderData struct {
 }
 
 func (t LightShadowShaderData) Size() int {
-	return int(unsafe.Sizeof(LightShadowShaderData{}) - ShaderBaseDataStart)
+	return int(ShaderBaseDataSize +
+		unsafe.Sizeof(LightShadowShaderData{}.LightIndex))
 }
 
 func SetupLightMaterials(materialCache *MaterialCache) error {

@@ -19,6 +19,8 @@ type ShaderData struct {
 	FgColor matrix.Color
 }
 
-func (t ShaderData) Size() int {
-	return int(unsafe.Sizeof(ShaderData{}) - rendering.ShaderBaseDataStart)
+func (ShaderData) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderData{}.UVs) +
+		unsafe.Sizeof(ShaderData{}.FgColor))
 }

@@ -123,7 +123,7 @@ func LinkDrawInstanceLifecycle(owner, follower DrawInstance) {
 	owner.addShadow(follower)
 }
 
-const ShaderBaseDataStart = unsafe.Offsetof(ShaderDataBase{}.model)
+const ShaderBaseDataSize = unsafe.Sizeof(ShaderDataBase{}.model)
 
 type ShaderDataBase struct {
 	aabb           graviton.AABB
@@ -144,7 +144,8 @@ type ShaderDataCombine struct {
 }
 
 func (t ShaderDataCombine) Size() int {
-	return int(unsafe.Sizeof(ShaderDataCombine{}) - ShaderBaseDataStart)
+	return int(ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataCombine{}.Color))
 }
 
 func NewShaderDataBase() ShaderDataBase {

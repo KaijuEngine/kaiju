@@ -30,5 +30,7 @@ type ShaderDataStandard struct {
 }
 
 func (ShaderDataStandard) Size() int {
-	return int(unsafe.Sizeof(ShaderDataStandard{}) - rendering.ShaderBaseDataStart)
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataStandard{}.Color) +
+		unsafe.Sizeof(ShaderDataStandard{}.Flags))
 }

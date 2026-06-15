@@ -30,14 +30,14 @@ type ShaderDataStandardSkinned struct {
 	Flags StandardShaderDataFlags `visible:"false"`
 }
 
-func (t *ShaderDataStandardSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
-	return &t.SkinnedShaderDataHeader
+func (ShaderDataStandardSkinned) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataStandardSkinned{}.Color) +
+		unsafe.Sizeof(ShaderDataStandardSkinned{}.Flags))
 }
 
-func (t ShaderDataStandardSkinned) Size() int {
-	const top = unsafe.Offsetof(ShaderDataStandardSkinned{}.ShaderDataBase) + rendering.ShaderBaseDataStart
-	const size = int(unsafe.Sizeof(ShaderDataStandardSkinned{}) - top)
-	return size
+func (t *ShaderDataStandardSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
+	return &t.SkinnedShaderDataHeader
 }
 
 func (t *ShaderDataStandardSkinned) InstanceBoundDataSize() int {

@@ -49,7 +49,19 @@ type ShaderDataTerrain struct {
 }
 
 func (t ShaderDataTerrain) Size() int {
-	return int(unsafe.Sizeof(ShaderDataTerrain{}) - rendering.ShaderBaseDataStart)
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataTerrain{}.Color) +
+		unsafe.Sizeof(ShaderDataTerrain{}.UVs) +
+		unsafe.Sizeof(ShaderDataTerrain{}.SlopeParams) +
+		unsafe.Sizeof(ShaderDataTerrain{}.GrassTint) +
+		unsafe.Sizeof(ShaderDataTerrain{}.RockTint) +
+		unsafe.Sizeof(ShaderDataTerrain{}.LightDirectionAmbient) +
+		unsafe.Sizeof(ShaderDataTerrain{}.LightColorDiffuse) +
+		unsafe.Sizeof(ShaderDataTerrain{}.MaterialParams) +
+		unsafe.Sizeof(ShaderDataTerrain{}.BrushCenterRadius) +
+		unsafe.Sizeof(ShaderDataTerrain{}.BrushParams) +
+		unsafe.Sizeof(ShaderDataTerrain{}.BrushColor) +
+		unsafe.Sizeof(ShaderDataTerrain{}.Flags))
 }
 
 func (t *ShaderDataTerrain) SetBrush(centerXZ matrix.Vec2, radius, ringWidth matrix.Float, color matrix.Color) {

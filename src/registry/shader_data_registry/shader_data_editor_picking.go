@@ -28,6 +28,7 @@ type ShaderDataEditorPicking struct {
 	PickID uint32 `visible:"false"`
 }
 
-func (t ShaderDataEditorPicking) Size() int {
-	return int(unsafe.Sizeof(ShaderDataEditorPicking{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataEditorPicking) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataEditorPicking{}.PickID))
 }

@@ -30,6 +30,8 @@ type ShaderDataEdFrustumWire struct {
 	FrustumProjection matrix.Mat4
 }
 
-func (t ShaderDataEdFrustumWire) Size() int {
-	return int(unsafe.Sizeof(ShaderDataEdFrustumWire{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataEdFrustumWire) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataEdFrustumWire{}.Color) +
+		unsafe.Sizeof(ShaderDataEdFrustumWire{}.FrustumProjection))
 }

@@ -30,6 +30,9 @@ type ShaderDataUnlit struct {
 	Flags StandardShaderDataFlags `visible:"false"`
 }
 
-func (t ShaderDataUnlit) Size() int {
-	return int(unsafe.Sizeof(ShaderDataUnlit{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataUnlit) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataUnlit{}.Color) +
+		unsafe.Sizeof(ShaderDataUnlit{}.UVs) +
+		unsafe.Sizeof(ShaderDataUnlit{}.Flags))
 }
