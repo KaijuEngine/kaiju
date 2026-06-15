@@ -29,6 +29,8 @@ type ShaderDataParticle struct {
 	UVs   matrix.Vec4 `default:"0,0,1,1"`
 }
 
-func (t ShaderDataParticle) Size() int {
-	return int(unsafe.Sizeof(ShaderDataParticle{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataParticle) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataParticle{}.Color) +
+		unsafe.Sizeof(ShaderDataParticle{}.UVs))
 }

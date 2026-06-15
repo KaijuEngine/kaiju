@@ -28,6 +28,7 @@ type ShaderDataEdTransformWire struct {
 	Color matrix.Color
 }
 
-func (t ShaderDataEdTransformWire) Size() int {
-	return int(unsafe.Sizeof(ShaderDataEdTransformWire{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataEdTransformWire) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataEdTransformWire{}.Color))
 }

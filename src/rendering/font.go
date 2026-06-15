@@ -104,13 +104,17 @@ type TextShaderData struct {
 	PxRange matrix.Vec2
 }
 
-func msdfAtlasPxRange() matrix.Vec2 {
-	return matrix.Vec2{distanceFieldRange, distanceFieldRange}
+func (s TextShaderData) Size() int {
+	return int(ShaderBaseDataSize +
+		unsafe.Sizeof(TextShaderData{}.UVs) +
+		unsafe.Sizeof(TextShaderData{}.FgColor) +
+		unsafe.Sizeof(TextShaderData{}.BgColor) +
+		unsafe.Sizeof(TextShaderData{}.Scissor) +
+		unsafe.Sizeof(TextShaderData{}.PxRange))
 }
 
-func (s TextShaderData) Size() int {
-	const size = int(unsafe.Sizeof(TextShaderData{}) - ShaderBaseDataStart)
-	return size
+func msdfAtlasPxRange() matrix.Vec2 {
+	return matrix.Vec2{distanceFieldRange, distanceFieldRange}
 }
 
 func (cache *FontCache) TransparentMaterial(target *Material) *Material {

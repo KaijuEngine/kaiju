@@ -33,8 +33,12 @@ type ShaderDataPBR struct {
 	LightIds   [4]int32                `visible:"false"`
 }
 
-func (t ShaderDataPBR) Size() int {
-	return int(unsafe.Sizeof(ShaderDataPBR{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataPBR) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataPBR{}.VertColors) +
+		unsafe.Sizeof(ShaderDataPBR{}.MeRoEmAo) +
+		unsafe.Sizeof(ShaderDataPBR{}.Flags) +
+		unsafe.Sizeof(ShaderDataPBR{}.LightIds))
 }
 
 func (s *ShaderDataPBR) SelectLights(lights rendering.LightsForRender) {

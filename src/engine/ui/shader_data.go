@@ -28,9 +28,19 @@ type ShaderData struct {
 	OutlineSize  matrix.Vec2
 }
 
-func (s ShaderData) Size() int {
-	const size = int(unsafe.Sizeof(ShaderData{}) - rendering.ShaderBaseDataStart)
-	return size
+func (ShaderData) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderData{}.UVs) +
+		unsafe.Sizeof(ShaderData{}.FgColor) +
+		unsafe.Sizeof(ShaderData{}.BgColor) +
+		unsafe.Sizeof(ShaderData{}.Scissor) +
+		unsafe.Sizeof(ShaderData{}.Size2D) +
+		unsafe.Sizeof(ShaderData{}.BorderRadius) +
+		unsafe.Sizeof(ShaderData{}.BorderSize) +
+		unsafe.Sizeof(ShaderData{}.BorderColor) +
+		unsafe.Sizeof(ShaderData{}.BorderLen) +
+		unsafe.Sizeof(ShaderData{}.OutlineColor) +
+		unsafe.Sizeof(ShaderData{}.OutlineSize))
 }
 
 func (s *ShaderData) setUVSize(width, height float32) {

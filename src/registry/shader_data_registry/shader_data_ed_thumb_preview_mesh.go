@@ -34,5 +34,7 @@ func (s *ShaderDataEdThumbPreviewMesh) SetCamera(view, projection matrix.Mat4) {
 }
 
 func (ShaderDataEdThumbPreviewMesh) Size() int {
-	return int(unsafe.Sizeof(ShaderDataEdThumbPreviewMesh{}) - rendering.ShaderBaseDataStart)
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataEdThumbPreviewMesh{}.View) +
+		unsafe.Sizeof(ShaderDataEdThumbPreviewMesh{}.Projection))
 }

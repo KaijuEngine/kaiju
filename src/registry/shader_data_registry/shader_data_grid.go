@@ -28,6 +28,7 @@ type ShaderDataGrid struct {
 	Color matrix.Color
 }
 
-func (t ShaderDataGrid) Size() int {
-	return int(unsafe.Sizeof(ShaderDataGrid{}) - rendering.ShaderBaseDataStart)
+func (ShaderDataGrid) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataGrid{}.Color))
 }

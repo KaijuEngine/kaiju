@@ -34,12 +34,16 @@ type ShaderDataPbrSkinned struct {
 	LightIds   [4]int32                `visible:"false"`
 }
 
-func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
-	return &t.SkinnedShaderDataHeader
+func (ShaderDataPbrSkinned) Size() int {
+	return int(rendering.ShaderBaseDataSize +
+		unsafe.Sizeof(ShaderDataPbrSkinned{}.VertColors) +
+		unsafe.Sizeof(ShaderDataPbrSkinned{}.MeRoEmAo) +
+		unsafe.Sizeof(ShaderDataPbrSkinned{}.Flags) +
+		unsafe.Sizeof(ShaderDataPbrSkinned{}.LightIds))
 }
 
-func (t ShaderDataPbrSkinned) Size() int {
-	return int(unsafe.Sizeof(ShaderDataPbrSkinned{}) - rendering.ShaderBaseDataStart)
+func (t *ShaderDataPbrSkinned) SkinningHeader() *rendering.SkinnedShaderDataHeader {
+	return &t.SkinnedShaderDataHeader
 }
 
 func (s *ShaderDataPbrSkinned) SelectLights(lights rendering.LightsForRender) {
