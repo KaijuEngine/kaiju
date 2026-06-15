@@ -10,6 +10,7 @@ import (
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
+	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -26,6 +27,9 @@ func init() {
 
 type SchemaWorkspace struct {
 	common_workspace.CommonWorkspace
+	ed     editor_workspace.WorkspaceEditorInterface
+	graph  schemaGraph
+	canvas *document.Element
 }
 
 func (w *SchemaWorkspace) ID() string          { return ID }
@@ -34,24 +38,61 @@ func (w *SchemaWorkspace) IsRequired() bool    { return false }
 
 func (w *SchemaWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	defer tracing.NewRegion("SchemaWorkspace.Initialize").End()
-	return w.CommonWorkspace.InitializeWithUI(ed.Host(), uiFile, nil, nil)
+	w.ed = ed
+	if err := w.CommonWorkspace.InitializeWithUI(ed.Host(), uiFile, nil, map[string]func(*document.Element){
+		"clickAddProperties": w.clickAddProperties,
+	}); err != nil {
+		return err
+	}
+	w.canvas, _ = w.Doc.GetElementById("schemaCanvas")
+	w.graph.Initialize(ed.Host())
+	w.applyLayout()
+	return nil
 }
 
 func (w *SchemaWorkspace) Shutdown() {
 	defer tracing.NewRegion("SchemaWorkspace.Shutdown").End()
+	w.graph.Shutdown()
+	w.canvas = nil
 	w.CommonShutdown()
 }
 
 func (w *SchemaWorkspace) Open() {
 	defer tracing.NewRegion("SchemaWorkspace.Open").End()
 	w.CommonOpen()
+	w.applyLayout()
+	w.graph.Open()
 }
 
 func (w *SchemaWorkspace) Close() {
 	defer tracing.NewRegion("SchemaWorkspace.Close").End()
+	w.graph.Close()
 	w.CommonClose()
 }
 
 func (w *SchemaWorkspace) Hotkeys() []common_workspace.HotKey {
 	return []common_workspace.HotKey{}
+}
+
+func (w *SchemaWorkspace) Update(float64) {
+	defer tracing.NewRegion("SchemaWorkspace.Update").End()
+	if w.UiMan.IsUpdateDisabled() || w.IsBlurred {
+		return
+	}
+	w.applyLayout()
+	w.graph.Update()
+}
+
+func (w *SchemaWorkspace) AddPropertiesNode() {
+	defer tracing.NewRegion("SchemaWorkspace.AddPropertiesNode").End()
+	w.graph.CreateRootNode(schemaNodeKindProperties)
+}
+
+func (w *SchemaWorkspace) NodeCount() int {
+	return w.graph.NodeCount()
+}
+
+func (w *SchemaWorkspace) clickAddProperties(*document.Element) {
+	defer tracing.NewRegion("SchemaWorkspace.clickAddProperties").End()
+	w.AddPropertiesNode()
 }

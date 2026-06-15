@@ -16,6 +16,7 @@ import (
 
 	"kaijuengine.com/editor/editor_workspace/schema_workspace"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/ui"
 )
 
 const (
@@ -38,6 +39,15 @@ func IntegrationTestSchemaWorkspace(host *engine.Host) {
 	workspace.Open()
 	updateId := host.Updater.AddUpdate(workspace.Update)
 
+	host.RunAfterFrames(8, func() {
+		button, ok := workspace.Doc.GetElementById("schemaAddProperties")
+		if !ok || button == nil || button.UI == nil {
+			failSchemaWorkspaceIntegration("find properties button", nil)
+		}
+		if !button.UI.ExecuteEvent(ui.EventTypeClick) {
+			failSchemaWorkspaceIntegration("click properties button", nil)
+		}
+	})
 	host.RunAfterFrames(24, func() {
 		img, err := captureScreenshotImage(host)
 		if err != nil {
@@ -106,6 +116,17 @@ func assertSchemaWorkspaceScreenshot(host *engine.Host, workspace *schema_worksp
 			return fmt.Errorf("expected visible schema add button %q pixels, found %d", id, pixels)
 		}
 	}
+	if workspace.NodeCount() != 1 {
+		return fmt.Errorf("expected properties click to create 1 schema node, found %d", workspace.NodeCount())
+	}
+	nodeRect := image.Rect(bounds.Min.X+24, bounds.Min.Y+42, bounds.Min.X+330, bounds.Min.Y+190).Intersect(bounds)
+	accentPixels, bodyPixels := countSchemaPropertiesNodePixels(img, nodeRect)
+	if accentPixels < 300 {
+		return fmt.Errorf("expected visible properties node accent pixels, found %d", accentPixels)
+	}
+	if bodyPixels < 1200 {
+		return fmt.Errorf("expected visible properties node body pixels, found %d", bodyPixels)
+	}
 	return nil
 }
 
@@ -141,6 +162,27 @@ func countSchemaButtonPixels(img *image.RGBA, rect image.Rectangle) int {
 		}
 	}
 	return count
+}
+
+func countSchemaPropertiesNodePixels(img *image.RGBA, rect image.Rectangle) (int, int) {
+	rect = rect.Intersect(img.Bounds())
+	accent := 0
+	body := 0
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			i := img.PixOffset(x, y)
+			r := int(img.Pix[i])
+			g := int(img.Pix[i+1])
+			b := int(img.Pix[i+2])
+			if r > 80 && r < 150 && g > 20 && g < 95 && b > 20 && b < 105 && r-g > 35 {
+				accent++
+			}
+			if r >= 18 && r <= 34 && g >= 20 && g <= 38 && b >= 24 && b <= 48 {
+				body++
+			}
+		}
+	}
+	return accent, body
 }
 
 func failSchemaWorkspaceIntegration(message string, err error) {
