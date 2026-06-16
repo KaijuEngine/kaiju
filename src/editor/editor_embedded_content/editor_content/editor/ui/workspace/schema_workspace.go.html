@@ -11,7 +11,7 @@
 				width: 100%;
 				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
 				box-sizing: border-box;
-				color: white;
+				color: #e8ebf0;
 				background-color: #1b1b1b;
 			}
 			#schemaSidebar {
@@ -32,26 +32,45 @@
 				font-size: 1.05em;
 				color: white;
 			}
-			.schemaFieldLabel {
+			.schemaFieldLabel,
+			.schemaControlLabel {
 				width: 100%;
 				height: 18px;
 				margin-bottom: 3px;
-				color: #AAA;
+				color: #aeb6c4;
 				font-size: 0.72em;
 			}
-			#schemaName {
+			.schemaInput,
+			.schemaTextarea,
+			.schemaSelect {
 				width: 100%;
-				height: 30px;
-				margin-bottom: 8px;
-				padding: 4px 6px;
 				box-sizing: border-box;
-				color: white;
+				color: #e8ebf0;
 				background-color: #151515;
-				border: 2px solid #151515;
-				font-size: 0.8em;
+				border: 1px solid #343842;
+				border-radius: 4px;
 			}
-			#schemaName:focus {
-				border-color: #363636;
+			.schemaInput,
+			.schemaTextarea {
+				font-size: 0.76em;
+			}
+			.schemaInput,
+			.schemaSelect {
+				height: 30px;
+				padding: 4px 6px;
+			}
+			.schemaTextarea {
+				height: 44px;
+				padding: 6px;
+				overflow-y: scroll;
+			}
+			.schemaInput:focus,
+			.schemaTextarea:focus,
+			.schemaSelect:focus {
+				border-color: #682A2D;
+			}
+			#schemaName {
+				margin-bottom: 8px;
 			}
 			#schemaActionButtons {
 				width: 100%;
@@ -69,7 +88,9 @@
 				border-radius: 4px;
 				font-size: 0.72em;
 			}
-			#schemaActionButtons button:hover {
+			#schemaActionButtons button:hover,
+			.schemaSmallButton:hover,
+			.schemaRemoveButton:hover {
 				background-color: #303542;
 				border-color: #682A2D;
 			}
@@ -90,49 +111,267 @@
 				border: 1px solid #111;
 				overflow-y: scroll;
 			}
-			.schemaDefinitionEmpty {
-				width: 100%;
-				padding: 8px 4px;
-				color: #777;
-				font-size: 0.72em;
-				text-align: center;
-			}
 			.schemaDefinitionEntry {
 				width: 100%;
-				height: 24px;
+				height: 25px;
 				margin-bottom: 3px;
-				padding: 4px 6px;
+				padding: 5px 6px;
 				box-sizing: border-box;
 				color: #AAA;
 				background-color: #1C1E25;
-				font-size: 0.76em;
+				font-size: 0.74em;
 			}
-			.schemaDefinitionEntry:hover {
+			.schemaDefinitionEntry:hover,
+			.schemaDefinitionEntry.active {
 				color: white;
-				background-color: #2a2d38;
+				background-color: #682A2D;
 			}
-			#schemaRootArea {
+			#schemaMain {
 				position: absolute;
 				left: 16em;
 				top: 0;
-				width: calc(100% - 16em);
+				width: calc(100% - 36em);
 				height: 100%;
 				padding: 10px;
 				box-sizing: border-box;
 				background-color: #1C1C1C;
+				overflow-y: scroll;
+			}
+			#schemaInspector {
+				position: absolute;
+				right: 0;
+				top: 0;
+				width: 20em;
+				height: 100%;
+				padding: 8px;
+				box-sizing: border-box;
+				background-color: #292929;
+				border-left: 2px solid black;
+				overflow-y: scroll;
+			}
+			#schemaWorkspaceTitle {
+				width: 100%;
+				height: 30px;
+				color: white;
+				font-size: 1.1em;
+			}
+			.schemaPanel,
+			.schemaSubPanel,
+			.schemaFieldCard {
+				width: 100%;
+				box-sizing: border-box;
+				background-color: #20232a;
+				border: 1px solid #343842;
+				border-radius: 6px;
+			}
+			.schemaPanel {
+				margin-bottom: 12px;
+			}
+			#schemaRootObjectPanel {
+				height: 560px;
 				overflow: hidden;
 			}
-			#schemaRootHeader {
+			#schemaDefinitionsPanel {
+				height: 420px;
+				overflow: hidden;
+			}
+			.schemaSubPanel,
+			.schemaFieldCard {
+				margin-bottom: 10px;
+				padding: 10px;
+			}
+			.schemaPanelHeader {
+				width: 100%;
+				height: 34px;
+				padding: 8px 10px;
+				box-sizing: border-box;
+				color: white;
+				background-color: #242832;
+				border-bottom: 1px solid #343842;
+				font-size: 0.84em;
+				font-weight: bold;
+			}
+			.schemaPanelBody {
+				width: 100%;
+				padding: 10px;
+				box-sizing: border-box;
+			}
+			.schemaObjectTools {
+				width: 100%;
+				height: 30px;
+				margin-bottom: 8px;
+			}
+			.schemaFieldTop {
+				display: flex;
+				width: 100%;
+				height: 52px;
+				margin-bottom: 5px;
+			}
+			.schemaFieldName {
+				width: 44%;
+				margin-right: 8px;
+			}
+			.schemaFieldType {
+				width: 138px;
+				margin-right: 8px;
+			}
+			.schemaRequired {
+				width: 98px;
+				height: 30px;
+				margin-top: 18px;
+				margin-right: 8px;
+				font-size: 0.76em;
+			}
+			.schemaRequiredText {
+				width: 62px;
+				height: 22px;
+				margin-left: 4px;
+				padding-top: 2px;
+				box-sizing: border-box;
+			}
+			.schemaRemoveButton {
+				width: 64px;
+				height: 30px;
+				margin-top: 18px;
+				color: #ffb1b1;
+				background-color: #2a1d20;
+				border: 1px solid #8b373c;
+				border-radius: 4px;
+				font-size: 0.68em;
+			}
+			.schemaToggle {
+				display: inline-block;
+				width: 28px;
+				height: 14px;
+				margin-top: 3px;
+				border-radius: 8px;
+				background-color: #3a3f4b;
+				border: 1px solid #555b66;
+			}
+			.schemaToggleKnob {
+				width: 10px;
+				height: 10px;
+				margin-top: 1px;
+				margin-left: 2px;
+				border-radius: 5px;
+				background-color: #c7cbd2;
+			}
+			.schemaToggle.on {
+				background-color: #682A2D;
+				border-color: #8b373c;
+			}
+			.schemaToggle.on .schemaToggleKnob {
+				margin-left: 14px;
+				background-color: white;
+			}
+			.schemaDisclosure {
+				width: 100%;
+				height: 24px;
+				color: white;
+				font-size: 0.76em;
+			}
+			.schemaOptionsGrid {
+				display: flex;
+				flex-wrap: wrap;
+				width: 100%;
+				margin-top: 5px;
+			}
+			.schemaOptionCell {
+				width: calc(50% - 5px);
+				margin-right: 10px;
+				margin-bottom: 8px;
+			}
+			.schemaOptionCell.right {
+				margin-right: 0;
+			}
+			.schemaOptionCell.third {
+				width: calc(33.333% - 7px);
+			}
+			.schemaOptionCell.wide {
+				width: 100%;
+				margin-right: 0;
+			}
+			.schemaInlineControl {
+				width: 100%;
+				height: 30px;
+				margin-bottom: 8px;
+				color: #e8ebf0;
+				font-size: 0.76em;
+			}
+			.schemaInlineText {
+				width: calc(100% - 38px);
+				height: 22px;
+				margin-left: 7px;
+				padding-top: 2px;
+				box-sizing: border-box;
+			}
+			.schemaSmallButton {
+				height: 30px;
+				padding: 0 8px;
+				color: #e8ebf0;
+				background-color: #242832;
+				border: 1px solid #3a3f4b;
+				border-radius: 4px;
+				font-size: 0.72em;
+			}
+			.schemaRefPath {
+				width: 100%;
+				height: 30px;
+				padding: 6px;
+				box-sizing: border-box;
+				color: #d9dde5;
+				background-color: #151515;
+				border: 1px dashed #4d5360;
+				border-radius: 4px;
+				font-size: 0.72em;
+			}
+			.schemaDefinitionHeaderRow {
+				display: flex;
+				width: 100%;
+				height: 52px;
+				margin-bottom: 7px;
+			}
+			.schemaDefinitionName {
+				width: calc(100% - 74px);
+				margin-right: 8px;
+			}
+			.schemaObjectPreview {
+				width: 100%;
+				height: 64px;
+				padding: 18px 10px;
+				box-sizing: border-box;
+				color: #8f98a8;
+				background-color: #181a20;
+				border: 1px dashed #4d5360;
+				border-radius: 5px;
+				font-size: 0.74em;
+			}
+			.schemaInspectorPanel {
+				width: 100%;
+				margin-bottom: 10px;
+				background-color: #20232a;
+				border: 1px solid #343842;
+				border-radius: 6px;
+			}
+			.schemaInspectorPanel .schemaPanelBody {
+				padding: 9px;
+			}
+			.schemaJSONPreview {
+				width: 100%;
+				height: 192px;
+				padding: 8px;
+				box-sizing: border-box;
+				color: #d8dde6;
+				background-color: #151515;
+				border: 1px solid #343842;
+				border-radius: 4px;
+				font-size: 0.68em;
+				overflow-y: scroll;
+			}
+			.schemaInspectorActions {
 				width: 100%;
 				height: 32px;
-				color: #DDD;
-				font-size: 1em;
-			}
-			#schemaRootCanvas {
-				width: 100%;
-				height: calc(100% - 32px);
-				background-color: #202020;
-				border: 1px solid #111;
+				margin-top: 8px;
 			}
 		</style>
 	</head>
@@ -141,7 +380,7 @@
 			<div id="schemaSidebar">
 				<div id="schemaSidebarTitle">Schema</div>
 				<div class="schemaFieldLabel">Name</div>
-				<input id="schemaName" type="text" placeholder="Schema name" />
+				<input id="schemaName" class="schemaInput" type="text" value="Draft schema" placeholder="Schema name" />
 				<div id="schemaActionButtons">
 					<button id="schemaNewButton">New</button>
 					<button id="schemaLoadButton">Load</button>
@@ -149,12 +388,209 @@
 				</div>
 				<div id="schemaDefinitionsHeader">Definitions</div>
 				<div id="schemaDefinitionList">
-					<div class="schemaDefinitionEmpty">No definitions yet</div>
+					<div class="schemaDefinitionEntry active">Root object</div>
+					<div class="schemaDefinitionEntry">address</div>
+					<div class="schemaDefinitionEntry">money</div>
+					<div class="schemaDefinitionEntry">lineItem</div>
 				</div>
 			</div>
-			<div id="schemaRootArea">
-				<div id="schemaRootHeader">Root Document</div>
-				<div id="schemaRootCanvas"></div>
+			<div id="schemaMain">
+				<div id="schemaWorkspaceTitle">Draft schema</div>
+				<div id="schemaRootObjectPanel" class="schemaPanel">
+					<div class="schemaPanelHeader">Root object</div>
+					<div class="schemaPanelBody">
+						<div class="schemaObjectTools">
+							<span class="schemaToggle on"><span class="schemaToggleKnob"></span></span>
+							<span>Allow extra properties</span>
+						</div>
+						<div class="schemaFieldCard">
+							<div class="schemaFieldTop">
+								<div class="schemaFieldName">
+									<div class="schemaControlLabel">Field</div>
+									<input class="schemaInput" type="text" value="id" />
+								</div>
+								<div class="schemaFieldType">
+									<div class="schemaControlLabel">Type</div>
+									<select class="schemaSelect" value="string">
+										<option value="string">String</option>
+										<option value="integer">Integer</option>
+										<option value="number">Number</option>
+										<option value="boolean">Boolean</option>
+										<option value="object">Object</option>
+										<option value="array">Array</option>
+										<option value="reference">Reference</option>
+										<option value="oneOf">One of</option>
+										<option value="anyOf">Any of</option>
+										<option value="allOf">All of</option>
+										<option value="any">Any</option>
+										<option value="null">Null</option>
+									</select>
+								</div>
+								<div class="schemaRequired">
+									<span class="schemaToggle on"><span class="schemaToggleKnob"></span></span>
+									<span class="schemaRequiredText">Required</span>
+								</div>
+								<button class="schemaRemoveButton">Remove</button>
+							</div>
+							<div class="schemaDisclosure">▶ Options</div>
+						</div>
+						<div class="schemaFieldCard">
+							<div class="schemaFieldTop">
+								<div class="schemaFieldName">
+									<div class="schemaControlLabel">Field</div>
+									<input class="schemaInput" type="text" value="price" />
+								</div>
+								<div class="schemaFieldType">
+									<div class="schemaControlLabel">Type</div>
+									<select class="schemaSelect" value="number">
+										<option value="string">String</option>
+										<option value="integer">Integer</option>
+										<option value="number">Number</option>
+										<option value="boolean">Boolean</option>
+										<option value="object">Object</option>
+										<option value="array">Array</option>
+										<option value="reference">Reference</option>
+										<option value="oneOf">One of</option>
+										<option value="anyOf">Any of</option>
+										<option value="allOf">All of</option>
+										<option value="any">Any</option>
+										<option value="null">Null</option>
+									</select>
+								</div>
+								<div class="schemaRequired">
+									<span class="schemaToggle on"><span class="schemaToggleKnob"></span></span>
+									<span class="schemaRequiredText">Required</span>
+								</div>
+								<button class="schemaRemoveButton">Remove</button>
+							</div>
+							<div class="schemaDisclosure">▼ Options</div>
+							<div class="schemaOptionsGrid">
+								<div class="schemaOptionCell">
+									<div class="schemaControlLabel">Title</div>
+									<input class="schemaInput" type="text" />
+								</div>
+								<div class="schemaOptionCell right">
+									<div class="schemaControlLabel">Description</div>
+									<textarea class="schemaTextarea"></textarea>
+								</div>
+								<div class="schemaOptionCell">
+									<div class="schemaInlineControl">
+										<span class="schemaToggle"><span class="schemaToggleKnob"></span></span>
+										<span class="schemaInlineText">Nullable</span>
+									</div>
+								</div>
+								<div class="schemaOptionCell right">
+									<div class="schemaControlLabel">Default JSON</div>
+									<textarea class="schemaTextarea"></textarea>
+								</div>
+								<div class="schemaOptionCell third">
+									<div class="schemaControlLabel">Minimum</div>
+									<input class="schemaInput" type="text" />
+								</div>
+								<div class="schemaOptionCell third">
+									<div class="schemaControlLabel">Maximum</div>
+									<input class="schemaInput" type="text" />
+								</div>
+								<div class="schemaOptionCell third right">
+									<div class="schemaControlLabel">Multiple of</div>
+									<input class="schemaInput" type="text" />
+								</div>
+							</div>
+						</div>
+						<button class="schemaSmallButton">Add field</button>
+					</div>
+				</div>
+				<div id="schemaDefinitionsPanel" class="schemaPanel">
+					<div class="schemaPanelHeader">Reusable definitions &lpar;$defs&rpar;</div>
+					<div class="schemaPanelBody">
+						<div class="schemaSubPanel">
+							<div class="schemaDefinitionHeaderRow">
+								<div class="schemaDefinitionName">
+									<div class="schemaControlLabel">Definition</div>
+									<input class="schemaInput" type="text" value="address" />
+								</div>
+								<button class="schemaRemoveButton">Remove</button>
+							</div>
+							<div class="schemaFieldCard">
+								<div class="schemaFieldTop">
+									<div class="schemaFieldName">
+										<div class="schemaControlLabel">Definition root</div>
+										<input class="schemaInput" type="text" value="address" />
+									</div>
+									<div class="schemaFieldType">
+										<div class="schemaControlLabel">Type</div>
+										<select class="schemaSelect" value="object">
+											<option value="string">String</option>
+											<option value="integer">Integer</option>
+											<option value="number">Number</option>
+											<option value="boolean">Boolean</option>
+											<option value="object">Object</option>
+											<option value="array">Array</option>
+											<option value="reference">Reference</option>
+											<option value="oneOf">One of</option>
+											<option value="anyOf">Any of</option>
+											<option value="allOf">All of</option>
+											<option value="any">Any</option>
+											<option value="null">Null</option>
+										</select>
+									</div>
+								</div>
+								<div class="schemaInlineControl">
+									<span class="schemaToggle"><span class="schemaToggleKnob"></span></span>
+									<span class="schemaInlineText">Allow extra properties</span>
+								</div>
+								<div class="schemaObjectPreview">No nested fields</div>
+								<button class="schemaSmallButton">Add nested field</button>
+								<div class="schemaDisclosure">▶ Options</div>
+							</div>
+						</div>
+						<button class="schemaSmallButton">Add definition</button>
+					</div>
+				</div>
+			</div>
+			<div id="schemaInspector">
+				<div class="schemaInspectorPanel">
+					<div class="schemaPanelHeader">Metadata</div>
+					<div class="schemaPanelBody">
+						<div class="schemaControlLabel">$schema</div>
+						<input class="schemaInput" type="text" value="https://json-schema.org/draft/2020-12/schema" />
+						<div class="schemaControlLabel">$id</div>
+						<input class="schemaInput" type="text" />
+						<div class="schemaControlLabel">Title</div>
+						<input class="schemaInput" type="text" value="Draft schema" />
+						<div class="schemaControlLabel">Description</div>
+						<textarea class="schemaTextarea"></textarea>
+					</div>
+				</div>
+				<div class="schemaInspectorPanel">
+					<div class="schemaPanelHeader">Schema JSON</div>
+					<div class="schemaPanelBody">
+						<div class="schemaDisclosure">▼ JSON</div>
+						<div class="schemaJSONPreview">{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "price"],
+  "properties": {
+    "id": { "type": "string" },
+    "price": { "type": "number" }
+  },
+  "$defs": {
+    "address": { "type": "object" }
+  }
+}</div>
+						<div class="schemaInspectorActions">
+							<button class="schemaSmallButton">Refresh JSON</button>
+							<button class="schemaSmallButton">Apply JSON</button>
+						</div>
+					</div>
+				</div>
+				<div class="schemaInspectorPanel">
+					<div class="schemaPanelHeader">Reference</div>
+					<div class="schemaPanelBody">
+						<div class="schemaControlLabel">Selected definition path</div>
+						<div class="schemaRefPath">#/$defs/address</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	</body>
