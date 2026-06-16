@@ -36,6 +36,10 @@ func (w *SchemaWorkspace) ID() string          { return ID }
 func (w *SchemaWorkspace) DisplayName() string { return DisplayName }
 func (w *SchemaWorkspace) IsRequired() bool    { return false }
 
+func (w *SchemaWorkspace) IsFocusedOnInput() bool {
+	return w.CommonWorkspace.IsFocusedOnInput() || w.graph.IsFocusedOnInput()
+}
+
 func (w *SchemaWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error {
 	defer tracing.NewRegion("SchemaWorkspace.Initialize").End()
 	w.ed = ed

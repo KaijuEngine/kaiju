@@ -62,6 +62,10 @@ func (g *schemaGraph) Close() {
 	}
 }
 
+func (g *schemaGraph) IsFocusedOnInput() bool {
+	return g != nil && g.uiMan.Group.IsFocusedOnInput()
+}
+
 func (g *schemaGraph) Update() {
 	if g.root == nil || !g.root.Base().IsActive() {
 		return
