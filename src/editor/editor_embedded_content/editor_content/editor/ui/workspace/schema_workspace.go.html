@@ -5,7 +5,157 @@
 			body {
 				background-color: #1b1b1b;
 			}
+			#schemaWorkspace {
+				position: absolute;
+				top: var(--ed-menu-bar-height);
+				width: 100%;
+				height: calc(100% - var(--ed-menu-bar-height) - var(--ed-status-bar-height));
+				box-sizing: border-box;
+				color: white;
+				background-color: #1b1b1b;
+			}
+			#schemaSidebar {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 16em;
+				height: 100%;
+				padding: 8px;
+				box-sizing: border-box;
+				background-color: #292929;
+				border-right: 2px solid black;
+				overflow-y: hidden;
+			}
+			#schemaSidebarTitle {
+				width: 100%;
+				height: 28px;
+				font-size: 1.05em;
+				color: white;
+			}
+			.schemaFieldLabel {
+				width: 100%;
+				height: 18px;
+				margin-bottom: 3px;
+				color: #AAA;
+				font-size: 0.72em;
+			}
+			#schemaName {
+				width: 100%;
+				height: 30px;
+				margin-bottom: 8px;
+				padding: 4px 6px;
+				box-sizing: border-box;
+				color: white;
+				background-color: #151515;
+				border: 2px solid #151515;
+				font-size: 0.8em;
+			}
+			#schemaName:focus {
+				border-color: #363636;
+			}
+			#schemaActionButtons {
+				width: 100%;
+				height: 32px;
+				margin-bottom: 10px;
+			}
+			#schemaActionButtons button {
+				width: 4.55em;
+				height: 30px;
+				margin-right: 3px;
+				box-sizing: border-box;
+				color: #e8ebf0;
+				background-color: #242832;
+				border: 1px solid #3a3f4b;
+				border-radius: 4px;
+				font-size: 0.72em;
+			}
+			#schemaActionButtons button:hover {
+				background-color: #303542;
+				border-color: #682A2D;
+			}
+			#schemaDefinitionsHeader {
+				width: 100%;
+				height: 24px;
+				padding-top: 3px;
+				color: white;
+				border-top: 1px solid #111;
+				font-size: 0.82em;
+			}
+			#schemaDefinitionList {
+				width: 100%;
+				height: calc(100% - 102px);
+				padding: 4px;
+				box-sizing: border-box;
+				background-color: #1C1C1C;
+				border: 1px solid #111;
+				overflow-y: scroll;
+			}
+			.schemaDefinitionEmpty {
+				width: 100%;
+				padding: 8px 4px;
+				color: #777;
+				font-size: 0.72em;
+				text-align: center;
+			}
+			.schemaDefinitionEntry {
+				width: 100%;
+				height: 24px;
+				margin-bottom: 3px;
+				padding: 4px 6px;
+				box-sizing: border-box;
+				color: #AAA;
+				background-color: #1C1E25;
+				font-size: 0.76em;
+			}
+			.schemaDefinitionEntry:hover {
+				color: white;
+				background-color: #2a2d38;
+			}
+			#schemaRootArea {
+				position: absolute;
+				left: 16em;
+				top: 0;
+				width: calc(100% - 16em);
+				height: 100%;
+				padding: 10px;
+				box-sizing: border-box;
+				background-color: #1C1C1C;
+				overflow: hidden;
+			}
+			#schemaRootHeader {
+				width: 100%;
+				height: 32px;
+				color: #DDD;
+				font-size: 1em;
+			}
+			#schemaRootCanvas {
+				width: 100%;
+				height: calc(100% - 32px);
+				background-color: #202020;
+				border: 1px solid #111;
+			}
 		</style>
 	</head>
-	<body></body>
+	<body>
+		<div id="schemaWorkspace">
+			<div id="schemaSidebar">
+				<div id="schemaSidebarTitle">Schema</div>
+				<div class="schemaFieldLabel">Name</div>
+				<input id="schemaName" type="text" placeholder="Schema name" />
+				<div id="schemaActionButtons">
+					<button id="schemaNewButton">New</button>
+					<button id="schemaLoadButton">Load</button>
+					<button id="schemaSaveButton">Save</button>
+				</div>
+				<div id="schemaDefinitionsHeader">Definitions</div>
+				<div id="schemaDefinitionList">
+					<div class="schemaDefinitionEmpty">No definitions yet</div>
+				</div>
+			</div>
+			<div id="schemaRootArea">
+				<div id="schemaRootHeader">Root Document</div>
+				<div id="schemaRootCanvas"></div>
+			</div>
+		</div>
+	</body>
 </html>
