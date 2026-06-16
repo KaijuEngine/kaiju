@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 )
 
 func assertCaret(t *testing.T, got textareaCaretGeometry, line int, x, y, height float32) {
@@ -226,4 +227,36 @@ func TestTextAreaSelectionPanelRectsExplicitNewlines(t *testing.T) {
 		{20, 0, 0.001, 20},
 	}
 	assertVec4s(t, got, want)
+}
+
+func TestTextAreaRepeatedStyleSettersAreNoops(t *testing.T) {
+	t.Parallel()
+
+	base := &UI{
+		elmType: ElementTypeTextArea,
+		elmData: &textareaData{
+			fontFace:      rendering.FontRegular,
+			fontWeight:    "600",
+			fontStyle:     "normal",
+			fontSize:      12,
+			lineHeight:    18,
+			letterSpacing: 1.25,
+			fgColor:       matrix.ColorWhite(),
+			bgColor:       matrix.ColorBlack(),
+		},
+	}
+	textarea := base.ToTextArea()
+
+	textarea.SetFontFace(rendering.FontRegular)
+	textarea.SetFontWeight("600")
+	textarea.SetFontStyle("normal")
+	textarea.SetFontSize(12)
+	textarea.SetLineHeight(18)
+	textarea.SetLetterSpacing(1.25)
+	textarea.SetFGColor(matrix.ColorWhite())
+	textarea.SetBGColor(matrix.ColorBlack())
+
+	if base.dirty() != DirtyTypeNone {
+		t.Fatalf("unchanged style setters dirtied textarea: %d", base.dirty())
+	}
 }

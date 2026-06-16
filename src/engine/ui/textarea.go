@@ -1513,6 +1513,9 @@ func (textarea *TextArea) VisibleLineRange() (first, last int) {
 
 func (textarea *TextArea) SetFontFace(face rendering.FontFace) {
 	data := textarea.Data()
+	if data.fontFace == face {
+		return
+	}
 	data.fontFace = face
 	data.placeholder.SetFontFace(face)
 	textarea.refreshRowStyle()
@@ -1520,6 +1523,9 @@ func (textarea *TextArea) SetFontFace(face rendering.FontFace) {
 
 func (textarea *TextArea) SetFontWeight(weight string) {
 	data := textarea.Data()
+	if data.fontWeight == weight {
+		return
+	}
 	data.fontWeight = weight
 	data.placeholder.SetFontWeight(weight)
 	textarea.refreshRowStyle()
@@ -1527,6 +1533,9 @@ func (textarea *TextArea) SetFontWeight(weight string) {
 
 func (textarea *TextArea) SetFontStyle(style string) {
 	data := textarea.Data()
+	if data.fontStyle == style {
+		return
+	}
 	data.fontStyle = style
 	data.placeholder.SetFontStyle(style)
 	textarea.refreshRowStyle()
@@ -1534,6 +1543,9 @@ func (textarea *TextArea) SetFontStyle(style string) {
 
 func (textarea *TextArea) SetFontSize(fontSize float32) {
 	data := textarea.Data()
+	if matrix.Approx(data.fontSize, fontSize) {
+		return
+	}
 	data.fontSize = fontSize
 	data.placeholder.SetFontSize(fontSize)
 	textarea.applyHeightMode()
@@ -1545,6 +1557,9 @@ func (textarea *TextArea) FontFace() rendering.FontFace { return textarea.Data()
 
 func (textarea *TextArea) SetLineHeight(lineHeight float32) {
 	data := textarea.Data()
+	if matrix.Approx(data.lineHeight, lineHeight) {
+		return
+	}
 	data.lineHeight = lineHeight
 	data.placeholder.SetLineHeight(lineHeight)
 	textarea.applyHeightMode()
@@ -1552,7 +1567,11 @@ func (textarea *TextArea) SetLineHeight(lineHeight float32) {
 }
 
 func (textarea *TextArea) SetLetterSpacing(spacing float32) {
-	textarea.Data().letterSpacing = spacing
+	data := textarea.Data()
+	if matrix.Approx(data.letterSpacing, spacing) {
+		return
+	}
+	data.letterSpacing = spacing
 	textarea.refreshRowStyle()
 }
 
@@ -1576,6 +1595,9 @@ func (textarea *TextArea) refreshRowStyle() {
 
 func (textarea *TextArea) SetFGColor(newColor matrix.Color) {
 	data := textarea.Data()
+	if data.fgColor.Equals(newColor) {
+		return
+	}
 	data.fgColor = newColor
 	data.cursor.SetColor(newColor)
 	data.placeholder.SetColor(matrix.ColorMix(newColor, newColor.Inverted(), 0.5))
@@ -1584,6 +1606,9 @@ func (textarea *TextArea) SetFGColor(newColor matrix.Color) {
 
 func (textarea *TextArea) SetBGColor(newColor matrix.Color) {
 	data := textarea.Data()
+	if data.bgColor.Equals(newColor) {
+		return
+	}
 	data.bgColor = newColor
 	(*Panel)(textarea).SetColor(newColor)
 	data.placeholder.SetBGColor(newColor)

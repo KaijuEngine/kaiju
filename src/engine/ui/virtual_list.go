@@ -180,6 +180,9 @@ func (vl *VirtualList) SetOverscan(rows int) {
 // This is the O(1) path used for code (no soft wrap, one line per row).
 func (vl *VirtualList) SetFixedRowHeight(h float32) {
 	data := vl.Data()
+	if data.model == data.fixedModel && approxEqf(data.fixedModel.rowHeight, h) {
+		return
+	}
 	data.fixedModel.setRowHeight(h)
 	data.model = data.fixedModel
 	data.heightFn = nil

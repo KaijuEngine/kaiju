@@ -65,3 +65,27 @@ func TestVirtualWindowVariableHeights(t *testing.T) {
 	assertEqualI(t, first, 1, "first") // indexAt(35)=1
 	assertEqualI(t, last, 2, "last")   // indexAt(135)=2
 }
+
+func TestVirtualListSetFixedRowHeightNoopsWhenUnchanged(t *testing.T) {
+	t.Parallel()
+
+	fixed := newFixedHeightModel(14)
+	base := &UI{
+		elmType: ElementTypeVirtualList,
+		elmData: &virtualListData{
+			fixedModel: fixed,
+			model:      fixed,
+		},
+	}
+	list := base.ToVirtualList()
+
+	list.SetFixedRowHeight(14)
+	if base.dirty() != DirtyTypeNone {
+		t.Fatalf("unchanged fixed row height dirtied virtual list: %d", base.dirty())
+	}
+
+	list.SetFixedRowHeight(16)
+	if base.dirty() != DirtyTypeLayout {
+		t.Fatalf("changed fixed row height dirty = %d, want %d", base.dirty(), DirtyTypeLayout)
+	}
+}
