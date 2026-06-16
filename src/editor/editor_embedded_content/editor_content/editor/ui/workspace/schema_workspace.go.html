@@ -90,7 +90,8 @@
 			}
 			#schemaActionButtons button:hover,
 			.schemaSmallButton:hover,
-			.schemaRemoveButton:hover {
+			.schemaRemoveButton:hover,
+			.schemaDisclosure:hover {
 				background-color: #303542;
 				border-color: #682A2D;
 			}
@@ -104,7 +105,7 @@
 			}
 			#schemaDefinitionList {
 				width: 100%;
-				height: calc(100% - 102px);
+				height: calc(100% - 124px);
 				padding: 4px;
 				box-sizing: border-box;
 				background-color: #1C1C1C;
@@ -125,6 +126,17 @@
 			.schemaDefinitionEntry.active {
 				color: white;
 				background-color: #682A2D;
+			}
+			.schemaStatus {
+				width: 100%;
+				height: 36px;
+				margin-bottom: 8px;
+				padding: 5px;
+				box-sizing: border-box;
+				color: #aeb6c4;
+				background-color: #1C1C1C;
+				border: 1px solid #111;
+				font-size: 0.64em;
 			}
 			#schemaMain {
 				position: absolute;
@@ -166,13 +178,6 @@
 			}
 			.schemaPanel {
 				margin-bottom: 12px;
-			}
-			#schemaRootObjectPanel {
-				height: 560px;
-				overflow: hidden;
-			}
-			#schemaDefinitionsPanel {
-				height: 420px;
 				overflow: hidden;
 			}
 			.schemaSubPanel,
@@ -267,7 +272,11 @@
 			.schemaDisclosure {
 				width: 100%;
 				height: 24px;
+				padding: 4px 5px;
+				box-sizing: border-box;
 				color: white;
+				background-color: #20232a;
+				border: 1px solid transparent;
 				font-size: 0.76em;
 			}
 			.schemaOptionsGrid {
@@ -314,16 +323,16 @@
 				border-radius: 4px;
 				font-size: 0.72em;
 			}
-			.schemaRefPath {
+			.schemaObjectPreview {
 				width: 100%;
-				height: 30px;
-				padding: 6px;
+				height: 46px;
+				padding: 12px 10px;
 				box-sizing: border-box;
-				color: #d9dde5;
-				background-color: #151515;
+				color: #8f98a8;
+				background-color: #181a20;
 				border: 1px dashed #4d5360;
-				border-radius: 4px;
-				font-size: 0.72em;
+				border-radius: 5px;
+				font-size: 0.74em;
 			}
 			.schemaDefinitionHeaderRow {
 				display: flex;
@@ -334,17 +343,6 @@
 			.schemaDefinitionName {
 				width: calc(100% - 74px);
 				margin-right: 8px;
-			}
-			.schemaObjectPreview {
-				width: 100%;
-				height: 64px;
-				padding: 18px 10px;
-				box-sizing: border-box;
-				color: #8f98a8;
-				background-color: #181a20;
-				border: 1px dashed #4d5360;
-				border-radius: 5px;
-				font-size: 0.74em;
 			}
 			.schemaInspectorPanel {
 				width: 100%;
@@ -358,7 +356,7 @@
 			}
 			.schemaJSONPreview {
 				width: 100%;
-				height: 192px;
+				height: 214px;
 				padding: 8px;
 				box-sizing: border-box;
 				color: #d8dde6;
@@ -376,175 +374,252 @@
 		</style>
 	</head>
 	<body>
+		{{ $typeOptions := .TypeOptions }}
 		<div id="schemaWorkspace">
 			<div id="schemaSidebar">
 				<div id="schemaSidebarTitle">Schema</div>
 				<div class="schemaFieldLabel">Name</div>
-				<input id="schemaName" class="schemaInput" type="text" value="Draft schema" placeholder="Schema name" />
+				<input id="schemaName" class="schemaInput schemaBinding" data-target="document" data-prop="Name" type="text" value="{{ .Document.Name }}" placeholder="Schema name" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 				<div id="schemaActionButtons">
-					<button id="schemaNewButton">New</button>
-					<button id="schemaLoadButton">Load</button>
-					<button id="schemaSaveButton">Save</button>
+					<button id="schemaNewButton" onclick="schemaNewDocument">New</button>
+					<button id="schemaLoadButton" onclick="schemaLoadDocument">Load</button>
+					<button id="schemaSaveButton" onclick="schemaSaveDocument">Save</button>
 				</div>
+				<div class="schemaStatus">{{ if .Status }}{{ .Status }}{{ else }}In-memory schema{{ end }}</div>
 				<div id="schemaDefinitionsHeader">Definitions</div>
 				<div id="schemaDefinitionList">
-					<div class="schemaDefinitionEntry active">Root object</div>
-					<div class="schemaDefinitionEntry">address</div>
-					<div class="schemaDefinitionEntry">money</div>
-					<div class="schemaDefinitionEntry">lineItem</div>
+					<div class="schemaDefinitionEntry {{ if eq .Selected "root" }}active{{ end }}" data-anchor="root" onclick="schemaSelectAnchor">Root object</div>
+					{{ range $defIndex, $def := .Document.Definitions }}
+					<div class="schemaDefinitionEntry {{ if eq $.Selected (printf "definition-%d" $defIndex) }}active{{ end }}" data-anchor="definition-{{ $defIndex }}" onclick="schemaSelectAnchor">{{ $def.Name }}</div>
+					{{ end }}
 				</div>
 			</div>
 			<div id="schemaMain">
-				<div id="schemaWorkspaceTitle">Draft schema</div>
-				<div id="schemaRootObjectPanel" class="schemaPanel">
+				<div id="schemaWorkspaceTitle">{{ .Document.Name }}</div>
+				<div id="schemaRootObjectPanel" class="schemaPanel" style="height: {{ .Document.Root.PanelHeight }}px;">
 					<div class="schemaPanelHeader">Root object</div>
 					<div class="schemaPanelBody">
 						<div class="schemaObjectTools">
-							<span class="schemaToggle on"><span class="schemaToggleKnob"></span></span>
+							<span class="schemaToggle {{ if .Document.Root.AllowAdditional }}on{{ end }}" data-target="root" data-prop="AllowAdditional" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
 							<span>Allow extra properties</span>
 						</div>
-						<div class="schemaFieldCard">
+						{{ range $fieldIndex, $field := .Document.Root.Fields }}
+						<div class="schemaFieldCard" style="height: {{ $field.CardHeight }}px;">
 							<div class="schemaFieldTop">
 								<div class="schemaFieldName">
 									<div class="schemaControlLabel">Field</div>
-									<input class="schemaInput" type="text" value="id" />
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Name" type="text" value="{{ $field.Name }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
 								<div class="schemaFieldType">
 									<div class="schemaControlLabel">Type</div>
-									<select class="schemaSelect" value="string">
-										<option value="string">String</option>
-										<option value="integer">Integer</option>
-										<option value="number">Number</option>
-										<option value="boolean">Boolean</option>
-										<option value="object">Object</option>
-										<option value="array">Array</option>
-										<option value="reference">Reference</option>
-										<option value="oneOf">One of</option>
-										<option value="anyOf">Any of</option>
-										<option value="allOf">All of</option>
-										<option value="any">Any</option>
-										<option value="null">Null</option>
+									<select class="schemaSelect schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Type" value="{{ $field.Node.TypeSelectValue }}" onchange="schemaValueChanged">
+										{{ range $typeOptions }}
+										<option value="{{ .Value }}">{{ .Name }}</option>
+										{{ end }}
 									</select>
 								</div>
 								<div class="schemaRequired">
-									<span class="schemaToggle on"><span class="schemaToggleKnob"></span></span>
+									<span class="schemaToggle {{ if $field.Required }}on{{ end }}" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Required" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
 									<span class="schemaRequiredText">Required</span>
 								</div>
-								<button class="schemaRemoveButton">Remove</button>
+								<button class="schemaRemoveButton" data-target="root-field" data-field-index="{{ $fieldIndex }}" onclick="schemaRemoveField">Remove</button>
 							</div>
-							<div class="schemaDisclosure">▶ Options</div>
-						</div>
-						<div class="schemaFieldCard">
-							<div class="schemaFieldTop">
-								<div class="schemaFieldName">
-									<div class="schemaControlLabel">Field</div>
-									<input class="schemaInput" type="text" value="price" />
-								</div>
-								<div class="schemaFieldType">
-									<div class="schemaControlLabel">Type</div>
-									<select class="schemaSelect" value="number">
-										<option value="string">String</option>
-										<option value="integer">Integer</option>
-										<option value="number">Number</option>
-										<option value="boolean">Boolean</option>
-										<option value="object">Object</option>
-										<option value="array">Array</option>
-										<option value="reference">Reference</option>
-										<option value="oneOf">One of</option>
-										<option value="anyOf">Any of</option>
-										<option value="allOf">All of</option>
-										<option value="any">Any</option>
-										<option value="null">Null</option>
-									</select>
-								</div>
-								<div class="schemaRequired">
-									<span class="schemaToggle on"><span class="schemaToggleKnob"></span></span>
-									<span class="schemaRequiredText">Required</span>
-								</div>
-								<button class="schemaRemoveButton">Remove</button>
-							</div>
-							<div class="schemaDisclosure">▼ Options</div>
+							<div class="schemaDisclosure" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="OptionsOpen" onclick="schemaToggleBool">{{ if $field.Node.OptionsOpen }}v{{ else }}&gt;{{ end }} Options</div>
+							{{ if $field.Node.OptionsOpen }}
 							<div class="schemaOptionsGrid">
 								<div class="schemaOptionCell">
 									<div class="schemaControlLabel">Title</div>
-									<input class="schemaInput" type="text" />
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Title" type="text" value="{{ $field.Node.Title }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
 								<div class="schemaOptionCell right">
 									<div class="schemaControlLabel">Description</div>
-									<textarea class="schemaTextarea"></textarea>
+									<textarea class="schemaTextarea schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Description" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ $field.Node.Description }}</textarea>
 								</div>
 								<div class="schemaOptionCell">
 									<div class="schemaInlineControl">
-										<span class="schemaToggle"><span class="schemaToggleKnob"></span></span>
+										<span class="schemaToggle {{ if $field.Node.Nullable }}on{{ end }}" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Nullable" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
 										<span class="schemaInlineText">Nullable</span>
 									</div>
 								</div>
 								<div class="schemaOptionCell right">
 									<div class="schemaControlLabel">Default JSON</div>
-									<textarea class="schemaTextarea"></textarea>
+									<textarea class="schemaTextarea schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="DefaultJSON" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ $field.Node.DefaultJSON }}</textarea>
+								</div>
+								<div class="schemaOptionCell wide">
+									<div class="schemaControlLabel">Enum values</div>
+									<textarea class="schemaTextarea schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="EnumValues" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ $field.Node.EnumValues }}</textarea>
+								</div>
+								{{ if $field.Node.IsString }}
+								<div class="schemaOptionCell third">
+									<div class="schemaControlLabel">Format</div>
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Format" type="text" value="{{ $field.Node.Format }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
 								<div class="schemaOptionCell third">
+									<div class="schemaControlLabel">Min length</div>
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="MinLength" type="text" value="{{ $field.Node.MinLength }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+								</div>
+								<div class="schemaOptionCell third right">
+									<div class="schemaControlLabel">Max length</div>
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="MaxLength" type="text" value="{{ $field.Node.MaxLength }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+								</div>
+								<div class="schemaOptionCell wide">
+									<div class="schemaControlLabel">Pattern</div>
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Pattern" type="text" value="{{ $field.Node.Pattern }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+								</div>
+								{{ end }}
+								{{ if $field.Node.IsNumberLike }}
+								<div class="schemaOptionCell third">
 									<div class="schemaControlLabel">Minimum</div>
-									<input class="schemaInput" type="text" />
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Minimum" type="text" value="{{ $field.Node.Minimum }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
 								<div class="schemaOptionCell third">
 									<div class="schemaControlLabel">Maximum</div>
-									<input class="schemaInput" type="text" />
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Maximum" type="text" value="{{ $field.Node.Maximum }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
 								<div class="schemaOptionCell third right">
 									<div class="schemaControlLabel">Multiple of</div>
-									<input class="schemaInput" type="text" />
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="MultipleOf" type="text" value="{{ $field.Node.MultipleOf }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
+								{{ end }}
+								{{ if $field.Node.IsObject }}
+								<div class="schemaOptionCell wide">
+									<div class="schemaInlineControl">
+										<span class="schemaToggle {{ if $field.Node.AllowAdditional }}on{{ end }}" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="AllowAdditional" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
+										<span class="schemaInlineText">Allow extra properties</span>
+									</div>
+									<div class="schemaObjectPreview">Nested fields are available in definitions in this first pass</div>
+								</div>
+								{{ end }}
+								{{ if $field.Node.IsArray }}
+								<div class="schemaOptionCell">
+									<div class="schemaControlLabel">Item type</div>
+									<select class="schemaSelect schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="ItemsType" value="{{ $field.Node.ItemsTypeSelectValue }}" onchange="schemaValueChanged">
+										{{ range $typeOptions }}
+										<option value="{{ .Value }}">{{ .Name }}</option>
+										{{ end }}
+									</select>
+								</div>
+								<div class="schemaOptionCell right">
+									<div class="schemaControlLabel">Item reference</div>
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="ItemsReference" type="text" value="{{ $field.Node.ItemsReference }}" placeholder="#/$defs/name" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+								</div>
+								{{ end }}
+								{{ if $field.Node.IsReference }}
+								<div class="schemaOptionCell wide">
+									<div class="schemaControlLabel">Reference path</div>
+									<input class="schemaInput schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="Reference" type="text" value="{{ $field.Node.Reference }}" placeholder="#/$defs/name" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+								</div>
+								{{ end }}
+								{{ if $field.Node.IsCombinator }}
+								<div class="schemaOptionCell wide">
+									<div class="schemaControlLabel">Schema references</div>
+									<textarea class="schemaTextarea schemaBinding" data-target="root-field" data-field-index="{{ $fieldIndex }}" data-prop="CombinationRefs" placeholder="#/$defs/one&#10;#/$defs/two" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ $field.Node.CombinationRefs }}</textarea>
+								</div>
+								{{ end }}
 							</div>
+							{{ end }}
 						</div>
-						<button class="schemaSmallButton">Add field</button>
+						{{ end }}
+						<button class="schemaSmallButton" onclick="schemaAddRootField">Add field</button>
 					</div>
 				</div>
-				<div id="schemaDefinitionsPanel" class="schemaPanel">
+				<div id="schemaDefinitionsPanel" class="schemaPanel" style="height: {{ .Document.DefinitionsPanelHeight }}px;">
 					<div class="schemaPanelHeader">Reusable definitions &lpar;$defs&rpar;</div>
 					<div class="schemaPanelBody">
-						<div class="schemaSubPanel">
+						{{ range $defIndex, $def := .Document.Definitions }}
+						<div class="schemaSubPanel" style="height: {{ $def.PanelHeight }}px;">
 							<div class="schemaDefinitionHeaderRow">
 								<div class="schemaDefinitionName">
 									<div class="schemaControlLabel">Definition</div>
-									<input class="schemaInput" type="text" value="address" />
+									<input class="schemaInput schemaBinding" data-target="definition" data-def-index="{{ $defIndex }}" data-prop="Name" type="text" value="{{ $def.Name }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 								</div>
-								<button class="schemaRemoveButton">Remove</button>
+								<button class="schemaRemoveButton" data-def-index="{{ $defIndex }}" onclick="schemaRemoveDefinition">Remove</button>
 							</div>
-							<div class="schemaFieldCard">
+							<div class="schemaFieldCard" style="height: {{ $def.Node.CardHeight }}px;">
 								<div class="schemaFieldTop">
 									<div class="schemaFieldName">
 										<div class="schemaControlLabel">Definition root</div>
-										<input class="schemaInput" type="text" value="address" />
+										<input class="schemaInput" type="text" value="{{ $def.Name }}" disabled="disabled" />
 									</div>
 									<div class="schemaFieldType">
 										<div class="schemaControlLabel">Type</div>
-										<select class="schemaSelect" value="object">
-											<option value="string">String</option>
-											<option value="integer">Integer</option>
-											<option value="number">Number</option>
-											<option value="boolean">Boolean</option>
-											<option value="object">Object</option>
-											<option value="array">Array</option>
-											<option value="reference">Reference</option>
-											<option value="oneOf">One of</option>
-											<option value="anyOf">Any of</option>
-											<option value="allOf">All of</option>
-											<option value="any">Any</option>
-											<option value="null">Null</option>
+										<select class="schemaSelect schemaBinding" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="Type" value="{{ $def.Node.TypeSelectValue }}" onchange="schemaValueChanged">
+											{{ range $typeOptions }}
+											<option value="{{ .Value }}">{{ .Name }}</option>
+											{{ end }}
 										</select>
 									</div>
 								</div>
-								<div class="schemaInlineControl">
-									<span class="schemaToggle"><span class="schemaToggleKnob"></span></span>
-									<span class="schemaInlineText">Allow extra properties</span>
+								<div class="schemaDisclosure" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="OptionsOpen" onclick="schemaToggleBool">{{ if $def.Node.OptionsOpen }}v{{ else }}&gt;{{ end }} Options</div>
+								{{ if $def.Node.OptionsOpen }}
+								<div class="schemaOptionsGrid">
+									<div class="schemaOptionCell">
+										<div class="schemaControlLabel">Title</div>
+										<input class="schemaInput schemaBinding" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="Title" type="text" value="{{ $def.Node.Title }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+									</div>
+									<div class="schemaOptionCell right">
+										<div class="schemaControlLabel">Description</div>
+										<textarea class="schemaTextarea schemaBinding" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="Description" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ $def.Node.Description }}</textarea>
+									</div>
+									<div class="schemaOptionCell">
+										<div class="schemaInlineControl">
+											<span class="schemaToggle {{ if $def.Node.Nullable }}on{{ end }}" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="Nullable" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
+											<span class="schemaInlineText">Nullable</span>
+										</div>
+									</div>
+									<div class="schemaOptionCell right">
+										<div class="schemaControlLabel">Default JSON</div>
+										<textarea class="schemaTextarea schemaBinding" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="DefaultJSON" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ $def.Node.DefaultJSON }}</textarea>
+									</div>
+									{{ if $def.Node.IsObject }}
+									<div class="schemaOptionCell wide">
+										<div class="schemaInlineControl">
+											<span class="schemaToggle {{ if $def.Node.AllowAdditional }}on{{ end }}" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="AllowAdditional" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
+											<span class="schemaInlineText">Allow extra properties</span>
+										</div>
+										{{ if $def.Node.Fields }}
+										{{ range $nestedIndex, $nested := $def.Node.Fields }}
+										<div class="schemaFieldCard" style="height: {{ $nested.CardHeight }}px;">
+											<div class="schemaFieldTop">
+												<div class="schemaFieldName">
+													<div class="schemaControlLabel">Nested field</div>
+													<input class="schemaInput schemaBinding" data-target="definition-field" data-def-index="{{ $defIndex }}" data-field-index="{{ $nestedIndex }}" data-prop="Name" type="text" value="{{ $nested.Name }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+												</div>
+												<div class="schemaFieldType">
+													<div class="schemaControlLabel">Type</div>
+													<select class="schemaSelect schemaBinding" data-target="definition-field" data-def-index="{{ $defIndex }}" data-field-index="{{ $nestedIndex }}" data-prop="Type" value="{{ $nested.Node.TypeSelectValue }}" onchange="schemaValueChanged">
+														{{ range $typeOptions }}
+														<option value="{{ .Value }}">{{ .Name }}</option>
+														{{ end }}
+													</select>
+												</div>
+												<div class="schemaRequired">
+													<span class="schemaToggle {{ if $nested.Required }}on{{ end }}" data-target="definition-field" data-def-index="{{ $defIndex }}" data-field-index="{{ $nestedIndex }}" data-prop="Required" onclick="schemaToggleBool"><span class="schemaToggleKnob"></span></span>
+													<span class="schemaRequiredText">Required</span>
+												</div>
+												<button class="schemaRemoveButton" data-target="definition-field" data-def-index="{{ $defIndex }}" data-field-index="{{ $nestedIndex }}" onclick="schemaRemoveField">Remove</button>
+											</div>
+											<div class="schemaDisclosure" data-target="definition-field" data-def-index="{{ $defIndex }}" data-field-index="{{ $nestedIndex }}" data-prop="OptionsOpen" onclick="schemaToggleBool">{{ if $nested.Node.OptionsOpen }}v{{ else }}&gt;{{ end }} Options</div>
+										</div>
+										{{ end }}
+										{{ else }}
+										<div class="schemaObjectPreview">No nested fields</div>
+										{{ end }}
+										<button class="schemaSmallButton" data-def-index="{{ $defIndex }}" onclick="schemaAddDefinitionField">Add nested field</button>
+									</div>
+									{{ end }}
+									{{ if $def.Node.IsReference }}
+									<div class="schemaOptionCell wide">
+										<div class="schemaControlLabel">Reference path</div>
+										<input class="schemaInput schemaBinding" data-target="definition-root" data-def-index="{{ $defIndex }}" data-prop="Reference" type="text" value="{{ $def.Node.Reference }}" placeholder="#/$defs/name" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
+									</div>
+									{{ end }}
 								</div>
-								<div class="schemaObjectPreview">No nested fields</div>
-								<button class="schemaSmallButton">Add nested field</button>
-								<div class="schemaDisclosure">▶ Options</div>
+								{{ end }}
 							</div>
 						</div>
-						<button class="schemaSmallButton">Add definition</button>
+						{{ end }}
+						<button class="schemaSmallButton" onclick="schemaAddDefinition">Add definition</button>
 					</div>
 				</div>
 			</div>
@@ -553,42 +628,31 @@
 					<div class="schemaPanelHeader">Metadata</div>
 					<div class="schemaPanelBody">
 						<div class="schemaControlLabel">$schema</div>
-						<input class="schemaInput" type="text" value="https://json-schema.org/draft/2020-12/schema" />
+						<input class="schemaInput schemaBinding" data-target="document" data-prop="SchemaURI" type="text" value="{{ .Document.SchemaURI }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 						<div class="schemaControlLabel">$id</div>
-						<input class="schemaInput" type="text" />
+						<input class="schemaInput schemaBinding" data-target="document" data-prop="ID" type="text" value="{{ .Document.ID }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 						<div class="schemaControlLabel">Title</div>
-						<input class="schemaInput" type="text" value="Draft schema" />
+						<input class="schemaInput schemaBinding" data-target="document" data-prop="Title" type="text" value="{{ .Document.Title }}" onchange="schemaValueChanged" onsubmit="schemaValueChanged" />
 						<div class="schemaControlLabel">Description</div>
-						<textarea class="schemaTextarea"></textarea>
+						<textarea class="schemaTextarea schemaBinding" data-target="document" data-prop="Description" onchange="schemaValueChanged" onsubmit="schemaValueChanged">{{ .Document.Description }}</textarea>
 					</div>
 				</div>
 				<div class="schemaInspectorPanel">
 					<div class="schemaPanelHeader">Schema JSON</div>
 					<div class="schemaPanelBody">
-						<div class="schemaDisclosure">▼ JSON</div>
-						<div class="schemaJSONPreview">{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "required": ["id", "price"],
-  "properties": {
-    "id": { "type": "string" },
-    "price": { "type": "number" }
-  },
-  "$defs": {
-    "address": { "type": "object" }
-  }
-}</div>
+						<div class="schemaDisclosure">v JSON</div>
+						<textarea id="schemaJSONEditor" class="schemaJSONPreview">{{ .SchemaJSON }}</textarea>
 						<div class="schemaInspectorActions">
-							<button class="schemaSmallButton">Refresh JSON</button>
-							<button class="schemaSmallButton">Apply JSON</button>
+							<button class="schemaSmallButton" onclick="schemaRefreshJSON">Refresh JSON</button>
+							<button class="schemaSmallButton" onclick="schemaApplyJSON">Apply JSON</button>
 						</div>
 					</div>
 				</div>
 				<div class="schemaInspectorPanel">
 					<div class="schemaPanelHeader">Reference</div>
 					<div class="schemaPanelBody">
-						<div class="schemaControlLabel">Selected definition path</div>
-						<div class="schemaRefPath">#/$defs/address</div>
+						<div class="schemaControlLabel">Definition reference format</div>
+						<div class="schemaObjectPreview">#/$defs/name</div>
 					</div>
 				</div>
 			</div>
