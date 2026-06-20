@@ -591,8 +591,24 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 		p.textures[i].RenderId = TextureId{}
 	}
 	for i := range p.subpasses {
-		for j := range len(p.subpasses[i].cmd) {
-			p.subpasses[i].cmd[j].Destroy(device)
+		sp := &p.subpasses[i]
+		// setupSubpass allocates a descriptor set + pool for every render-pass
+		// (re)construction. Without freeing them here, each swap-chain remake
+		// (which reconstructs every render pass) leaks one descriptor set per
+		// subpass — the combine/composite subpass in particular — growing the
+		// descriptor pool's backing argument buffer until a draw binds past its
+		// end and the Metal driver faults (the climbing spvDescriptorSet0 offset).
+		if sp.descriptorPool.IsValid() || len(validDescriptorSets(sp.descriptorSets)) > 0 {
+			device.LogicalDevice.bufferTrash.Add(bufferTrash{
+				delay: maxFramesInFlight,
+				pool:  sp.descriptorPool,
+				sets:  sp.descriptorSets,
+			})
+		}
+		sp.descriptorPool = GPUDescriptorPool{}
+		sp.descriptorSets = [maxFramesInFlight]GPUDescriptorSet{}
+		for j := range len(sp.cmd) {
+			sp.cmd[j].Destroy(device)
 		}
 	}
 	for frame := range p.viewCmds {

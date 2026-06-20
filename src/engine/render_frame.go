@@ -119,8 +119,21 @@ func (host *Host) renderCapturedFrame(frame RenderFrame) {
 	if !host.hasValidRenderer() || !host.Drawings.HasDrawings() {
 		return
 	}
+	// While AppKit performs a live (interactive) window resize it mutates the
+	// CAMetalLayer on the main thread. Pause rendering entirely for the duration so
+	// the render thread never acquires/submits/presents to the layer concurrently —
+	// the macOS resize race. The swap chain rebuilds on the first frame after the
+	// drag ends (acquire returns out-of-date). No-op off macOS.
+	if host.Window.IsInLiveResize() {
+		return
+	}
 	gpuInstance := host.Window.GpuInstance
 	gpuDevice := gpuInstance.PrimaryDevice()
+	// Serialize the entire acquire/submit/present span against AppKit's main-thread
+	// CAMetalLayer resize (no-op off macOS). The drawable acquired by ReadyFrame
+	// must stay valid through present, so the lock spans the whole frame.
+	host.Window.RenderLock()
+	defer host.Window.RenderUnlock()
 	if gpuDevice.ReadyFrame(gpuInstance, frame.Window, frame.PrimaryCamera,
 		frame.UICamera, frame.Lights, frame.Runtime, frame.Views) {
 		host.Drawings.Render(gpuDevice, frame.Lights, frame.Views)

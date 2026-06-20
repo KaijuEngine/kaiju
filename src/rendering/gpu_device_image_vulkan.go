@@ -133,12 +133,19 @@ func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout GPUImageL
 	if aspectMask == 0 {
 		if newLayout == GPUImageLayoutDepthStencilAttachmentOptimal {
 			aspectMask = GPUImageAspectDepthBit
-			if vt.Format == GPUFormatD32SfloatS8Uint || vt.Format == GPUFormatD24UnormS8Uint {
-				aspectMask |= GPUImageAspectStencilBit
-			}
 		} else {
 			aspectMask = GPUImageAspectColorBit
 		}
+	}
+	// A combined depth/stencil image must transition BOTH aspects together
+	// (separateDepthStencilLayouts is not enabled). This must hold for every
+	// caller, not just the aspectMask==0 auto-detect: render-pass attachment
+	// transitions pass GPUImageAspectDepthBit explicitly, and if the stencil
+	// aspect is left in VK_IMAGE_LAYOUT_UNDEFINED, any later use of the image is
+	// undefined behavior — which MoltenVK turns into a GPU fault (the resize
+	// crash). VUID-VkImageMemoryBarrier-image-03320 / VUID-vkCmdDraw-None-09600.
+	if aspectMask&GPUImageAspectDepthBit != 0 && formatHasStencil(vt.Format) {
+		aspectMask |= GPUImageAspectStencilBit
 	}
 	commandBuffer := cmd
 	if cmd == nil {

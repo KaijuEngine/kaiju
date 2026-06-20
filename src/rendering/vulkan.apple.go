@@ -9,6 +9,8 @@
 package rendering
 
 import (
+	"os"
+
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -28,8 +30,17 @@ func vkColorSpace(_ GPUSurfaceFormat) vulkan_const.ColorSpace {
 }
 
 func vkInstanceExtensions() []string {
-	// VK_KHR_portability_enumeration is enabled via VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR flag (vkInstanceFlags = 1)
-	// Don't request it as an extension, just use the flag
+	// The portability-enumeration flag (vkInstanceFlags = 1) alone is tolerated by
+	// MoltenVK reached directly (the default path). But when routing through the
+	// real Vulkan loader so validation layers can be injected (opt-in via
+	// KAIJU_VULKAN_USE_LOADER, matching vk_default_loader.c), the loader hides the
+	// MoltenVK portability ICD unless VK_KHR_portability_enumeration is actually
+	// enabled — otherwise vkCreateInstance returns VK_ERROR_INCOMPATIBLE_DRIVER
+	// (-9). Only request it in that opt-in mode so the default/release path is
+	// unchanged.
+	if os.Getenv("KAIJU_VULKAN_USE_LOADER") != "" {
+		return []string{"VK_KHR_portability_enumeration\x00"}
+	}
 	return []string{}
 }
 

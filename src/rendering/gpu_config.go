@@ -23,3 +23,15 @@ func depthStencilFormatCandidates() []GPUFormat {
 		GPUFormatD32SfloatS8Uint, GPUFormatD16UnormS8Uint,
 	}
 }
+
+// formatHasStencil reports whether the format carries a stencil component, i.e.
+// it is one of the combined depth/stencil formats. Such images must always have
+// their stencil aspect transitioned alongside depth.
+func formatHasStencil(f GPUFormat) bool {
+	switch f {
+	case GPUFormatD24UnormS8Uint, GPUFormatD32SfloatS8Uint, GPUFormatD16UnormS8Uint:
+		return true
+	default:
+		return false
+	}
+}

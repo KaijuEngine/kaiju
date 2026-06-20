@@ -211,7 +211,7 @@ func (w *Window) Poll() {
 	w.poll()
 	w.fileDrop.processQueuedFileDrops()
 	if w.resizedFromNativeAPI {
-		slog.Info("window resize has been requested")
+		slog.Debug("window resize has been requested")
 		w.resizedFromNativeAPI = false
 		w.OnResize.Execute()
 	}

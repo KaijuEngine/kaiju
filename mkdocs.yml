@@ -33,6 +33,7 @@ nav:
     - FBX importer: engine/fbx_importer.md
     - Physics constraints: engine/physics_constraints.md
     - Performance profiling: engine/performance_profiling.md
+    - Vulkan validation layers: engine/vulkan_validation_layers.md
     - Building new fonts: engine/fonts/building_fonts.md
     - UI:
       - Writing: engine/ui/writing.md

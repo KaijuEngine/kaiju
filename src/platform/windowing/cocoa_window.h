@@ -80,6 +80,20 @@ bool cocoa_get_caps_lock_toggle_key_state(void);
 
 void cocoa_run_app(void);
 
+// Render/resize serialization. AppKit mutates the view's CAMetalLayer on the main
+// thread during a live resize while the render goroutine submits/presents to it
+// via MoltenVK on another thread. CAMetalLayer is not safe for that concurrent
+// access (a race that only manifests on the fast path — validation-layer overhead
+// hides it). The render side brackets a frame with lock/unlock; the view brackets
+// its layer geometry change with the same lock.
+void cocoa_render_lock(void* nsView);
+void cocoa_render_unlock(void* nsView);
+
+// Nonzero while AppKit is performing a live (interactive) window resize. The render
+// loop pauses while this is set so it never renders to the CAMetalLayer concurrently
+// with AppKit resizing it.
+int cocoa_in_live_resize(void);
+
 // File drop (drag-and-drop from Finder)
 #if KAIJU_ENABLE_FILEDROP
 void cocoa_set_file_drop_enabled(void* nsView, bool enabled);
