@@ -7,20 +7,25 @@
 package ui
 
 import (
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-// VirtualList is a vertically-scrolling list that only materializes the rows
-// currently in view, recycling a small pool of row elements as the user
-// scrolls. That is what lets a list of 100k rows cost the same to render as a
-// list of 30: at any moment only a viewport-worth of row elements are active.
+// VirtualList is a scrolling list that only materializes the items currently in
+// view, recycling a small pool of cell elements as the user scrolls. That is
+// what lets a list of 100k items cost the same to render as a list of 30: at any
+// moment only a viewport-worth of cell elements are active.
 //
 // It is content-agnostic and not generic: the owner supplies a
-// VirtualListDelegate that knows the row count and how to create/bind/unbind a
-// row element by index, and supplies row heights either as a single fixed value
-// (SetFixedRowHeight, the O(1) no-wrap path) or per-row (SetRowHeightFunc, the
-// variable/wrapped path). The rewritten TextArea is the first consumer (one row
-// per text line); Select's option list is a natural follow-up.
+// VirtualListDelegate that knows the item count and how to create/bind/unbind a
+// cell element by index. Geometry — where each item sits and which are visible —
+// is owned by a pluggable VirtualLayout strategy. The default strategy is a
+// top-to-bottom vertical stack with item heights supplied either as a single
+// fixed value (SetFixedRowHeight, the O(1) no-wrap path) or per-row
+// (SetRowHeightFunc, the variable/wrapped path), so VirtualList behaves exactly
+// as it always has unless SetLayout installs another strategy (horizontal, grid,
+// masonry, ...). The rewritten TextArea is the first consumer (one row per text
+// line); the kaiju-widgets RecyclerView is the second.
 //
 // All access is on the main thread, in the layout/update loop — no locks.
 type VirtualList Panel
@@ -57,13 +62,16 @@ type VirtualListDelegate interface {
 
 const virtualListDefaultEstimate float32 = 20
 
-// virtualListParkOffset is where recycled rows are moved (well above any content)
-// so they are scissor-clipped out of view while staying entity-active. We keep
-// pooled rows active rather than SetActive(false): deactivating a row turns off
-// its child glyph drawings, and reactivating + re-binding races the label render
-// (it can mesh-then-deactivate and consume the render flag), leaving a permanent
-// blank row. Parking sidesteps that entirely; the active pool stays bounded to a
-// viewport's worth, so virtualization performance is unchanged.
+// virtualListParkOffset is where recycled rows are moved (well above-left of any
+// content) so they are scissor-clipped out of view while staying entity-active.
+// We keep pooled rows active rather than SetActive(false): deactivating a row
+// turns off its child glyph drawings, and reactivating + re-binding races the
+// label render (it can mesh-then-deactivate and consume the render flag), leaving
+// a permanent blank row. Parking sidesteps that entirely; the active pool stays
+// bounded to a viewport's worth, so virtualization performance is unchanged.
+// Content grows from origin (0,0) toward +x/+y, so a row parked at both
+// {-1e6,-1e6} is off-screen for every scroll axis (vertical, horizontal, grid,
+// masonry).
 const virtualListParkOffset float32 = -1_000_000
 
 // warmingRow is a pooled row that has been created but not yet shown. bornFrame
@@ -76,24 +84,39 @@ type warmingRow struct {
 
 type virtualListData struct {
 	panelData
-	content        *Panel
-	delegate       VirtualListDelegate
-	model          virtualHeightModel
-	fixedModel     *fixedHeightModel
-	prefixModel    *prefixHeightModel
-	heightFn       func(index int) float32
-	overscan       int
-	minContentW    float32
-	active         map[int]*UI
-	free           []*UI
-	warming        []warmingRow
-	frame          uint64
-	needsFill      bool
+	content  *Panel
+	delegate VirtualListDelegate
+	// layout is the active geometry strategy (2-D). It defaults to linear (the
+	// classic vertical stack), so existing consumers are unchanged.
+	layout VirtualLayout
+	// linear is the default vertical strategy, retained so the back-compat shims
+	// (SetFixedRowHeight/SetRowHeightFunc/SetContentWidth and the vertical
+	// accessors RowOffset/RowHeight/RowAt/TotalHeight) keep operating on it
+	// regardless of which strategy is currently active.
+	linear    *linearVerticalLayout
+	overscan  int
+	active    map[int]*UI
+	free      []*UI
+	warming   []warmingRow
+	frame     uint64
+	needsFill bool
+	// pinned cells are skipped by the recycle/park loop: a drag-in-flight or
+	// animating cell must outlive scrolling it out of the window.
+	pinned map[*UI]struct{}
+	// onAfterReflow, when set, runs at the END of reflow on the single-threaded
+	// clean pass — the safe place for drag-follow and item-animation cell moves.
+	onAfterReflow func()
+
+	// reused scratch for the zero-allocation visible-vs-active diff.
+	visibleSet map[int]struct{}
+	visibleIdx []int
+
 	lastWindowSize int
 
-	lastFirst     int
-	lastLast      int
+	// reflow change-gate: skip the body when nothing affecting geometry moved.
+	lastScrollX   float32
 	lastScrollY   float32
+	lastViewportW float32
 	lastViewportH float32
 	lastTotal     float32
 	haveLast      bool
@@ -106,13 +129,15 @@ func (vl *VirtualList) Base() *UI              { return (*UI)(vl) }
 func (vl *VirtualList) Data() *virtualListData { return vl.elmData.(*virtualListData) }
 
 func (vl *VirtualList) Init() {
+	linear := newLinearVertical(virtualListDefaultEstimate)
 	data := &virtualListData{
 		active:     map[int]*UI{},
 		overscan:   4,
-		fixedModel: newFixedHeightModel(virtualListDefaultEstimate),
-		lastLast:   -1,
+		linear:     linear,
+		layout:     linear,
+		pinned:     map[*UI]struct{}{},
+		visibleSet: map[int]struct{}{},
 	}
-	data.model = data.fixedModel
 	vl.elmData = data
 	p := vl.Base().ToPanel()
 	man := p.man.Value()
@@ -135,30 +160,32 @@ func (vl *VirtualList) Init() {
 // parent overlays (cursors, selection rects) to it so they scroll with the rows.
 func (vl *VirtualList) Content() *Panel { return vl.Data().content }
 
-// RowOffset is the y of the top of row index in content space.
-func (vl *VirtualList) RowOffset(index int) float32 { return vl.Data().model.offsetOf(index) }
+// RowOffset is the y of the top of row index in content space (vertical layout).
+func (vl *VirtualList) RowOffset(index int) float32 { return vl.Data().linear.model.offsetOf(index) }
 
-// RowHeight is the height of row index.
-func (vl *VirtualList) RowHeight(index int) float32 { return vl.Data().model.heightOf(index) }
+// RowHeight is the height of row index (vertical layout).
+func (vl *VirtualList) RowHeight(index int) float32 { return vl.Data().linear.model.heightOf(index) }
 
-// TotalHeight is the full scrollable content height.
-func (vl *VirtualList) TotalHeight() float32 { return vl.Data().model.total() }
+// TotalHeight is the full scrollable content height (vertical layout).
+func (vl *VirtualList) TotalHeight() float32 { return vl.Data().linear.model.total() }
 
-// RowAt is the row index whose vertical span contains content-space y.
-func (vl *VirtualList) RowAt(y float32) int { return vl.Data().model.indexAt(y) }
+// RowAt is the row index whose vertical span contains content-space y (vertical
+// layout).
+func (vl *VirtualList) RowAt(y float32) int { return vl.Data().linear.model.indexAt(y) }
 
 // ViewportHeight is the visible content height of the list.
 func (vl *VirtualList) ViewportHeight() float32 { return vl.viewportHeight() }
 
 // SetContentWidth sets a minimum content width; the content panel is sized to
-// max(viewportWidth, w). Used for horizontal scrolling of long, unwrapped rows.
-// Pass 0 to track the viewport width (no horizontal scroll).
+// max(viewportWidth, w). Used for horizontal scrolling of long, unwrapped rows
+// in the default vertical layout. Pass 0 to track the viewport width (no
+// horizontal scroll).
 func (vl *VirtualList) SetContentWidth(w float32) {
 	data := vl.Data()
-	if data.minContentW == w {
+	if data.linear.minContentW == w {
 		return
 	}
-	data.minContentW = w
+	data.linear.setMinContentW(w)
 	vl.invalidateWindow()
 	vl.Base().SetDirty(DirtyTypeLayout)
 }
@@ -176,64 +203,104 @@ func (vl *VirtualList) SetOverscan(rows int) {
 	vl.invalidateWindow()
 }
 
-// SetFixedRowHeight switches the list to fixed-height rows (every row is h tall).
-// This is the O(1) path used for code (no soft wrap, one line per row).
+// SetFixedRowHeight switches the default vertical layout to fixed-height rows
+// (every row is h tall). This is the O(1) path used for code (no soft wrap, one
+// line per row).
 func (vl *VirtualList) SetFixedRowHeight(h float32) {
 	data := vl.Data()
-	data.fixedModel.setRowHeight(h)
-	data.model = data.fixedModel
-	data.heightFn = nil
+	data.linear.setFixed(h)
+	data.layout = data.linear
 	vl.invalidateWindow()
 	vl.Base().SetDirty(DirtyTypeLayout)
 }
 
-// SetRowHeightFunc switches the list to variable-height rows, measuring each
-// row's height via fn. Used for wrapped / chat content.
+// SetRowHeightFunc switches the default vertical layout to variable-height rows,
+// measuring each row's height via fn. Used for wrapped / chat content.
 func (vl *VirtualList) SetRowHeightFunc(fn func(index int) float32) {
 	data := vl.Data()
-	if data.prefixModel == nil {
-		data.prefixModel = newPrefixHeightModel(virtualListDefaultEstimate)
-	}
-	data.model = data.prefixModel
-	data.heightFn = fn
-	vl.remeasureAll()
+	data.linear.setVariable(fn)
+	data.layout = data.linear
+	data.layout.SetCount(vl.rowCount())
+	data.layout.Remeasure()
 	vl.invalidateWindow()
 	vl.Base().SetDirty(DirtyTypeLayout)
 }
+
+// SetLayout installs a geometry strategy, switching the list among vertical
+// (default), horizontal, grid, or masonry arrangements, and sets the panel scroll
+// direction from the strategy's axis. Passing nil restores the default vertical
+// strategy. The strategy's methods are pure math invoked only on the clean pass.
+func (vl *VirtualList) SetLayout(l VirtualLayout) {
+	data := vl.Data()
+	if l == nil {
+		l = data.linear
+	}
+	data.layout = l
+	switch l.Axis() {
+	case VirtualAxisHorizontal:
+		(*Panel)(vl).SetScrollDirection(PanelScrollDirectionHorizontal)
+	case VirtualAxisBoth:
+		(*Panel)(vl).SetScrollDirection(PanelScrollDirectionBoth)
+	default:
+		(*Panel)(vl).SetScrollDirection(PanelScrollDirectionVertical)
+	}
+	l.SetCount(vl.rowCount())
+	l.Remeasure()
+	vl.invalidateWindow()
+	vl.Base().SetDirty(DirtyTypeLayout)
+}
+
+// Layout returns the active geometry strategy (so an owner can reach
+// strategy-specific knobs it installed).
+func (vl *VirtualList) Layout() VirtualLayout { return vl.Data().layout }
+
+// OnAfterReflow registers a callback invoked at the end of every reflow, on the
+// single-threaded clean pass — the only place it is safe to mutate cell layout in
+// response to scrolling. Pass nil to clear. Used by the RecyclerView for
+// drag-follow and item animations; the callback may re-dirty the list to keep
+// animating and must stop doing so once it settles.
+func (vl *VirtualList) OnAfterReflow(fn func()) { vl.Data().onAfterReflow = fn }
+
+// PinRow marks a realized row as pinned: the recycle/park loop will not reclaim
+// it when it scrolls out of the window (used to keep a drag-in-flight or
+// animating cell alive). Unpin with UnpinRow.
+func (vl *VirtualList) PinRow(row *UI) { vl.Data().pinned[row] = struct{}{} }
+
+// UnpinRow removes a row's pin so it can be recycled normally again.
+func (vl *VirtualList) UnpinRow(row *UI) { delete(vl.Data().pinned, row) }
 
 // ReloadData re-reads the row count and rebinds the visible rows. Call after the
 // backing data changes (count or content).
 func (vl *VirtualList) ReloadData() {
 	data := vl.Data()
 	n := vl.rowCount()
-	data.model.setCount(n)
-	vl.remeasureAll()
+	data.layout.SetCount(n)
+	data.layout.Remeasure()
 	vl.recycleAll()
 	vl.clampScroll()
 	vl.invalidateWindow()
 	vl.Base().SetDirty(DirtyTypeLayout)
 }
 
-// InvalidateRow re-measures a single row's height (variable mode) and reflows so
-// the rows below it shift to their new positions.
+// InvalidateRow re-measures a single row's extent (variable strategies) and
+// reflows so the rows after it shift to their new positions.
 func (vl *VirtualList) InvalidateRow(index int) {
-	data := vl.Data()
-	if data.heightFn != nil {
-		data.model.setHeight(index, data.heightFn(index))
-	}
+	vl.Data().layout.Invalidate(index)
 	vl.invalidateWindow()
 	vl.reflow(true)
 }
 
 // RefreshVisible re-binds the rows currently on screen without changing the
-// window (use when row content/styling changed but heights did not).
+// window (use when row content/styling changed but extents did not).
 func (vl *VirtualList) RefreshVisible() {
 	data := vl.Data()
 	if data.delegate == nil {
 		return
 	}
+	vp := vl.viewport()
 	for idx, row := range data.active {
-		row.layout.SetOffset(0, data.model.offsetOf(idx))
+		rect := data.layout.RectOf(idx, vp)
+		row.layout.SetOffset(rect.X, rect.Y)
 		data.delegate.BindRow(idx, row)
 	}
 }
@@ -241,10 +308,24 @@ func (vl *VirtualList) RefreshVisible() {
 // VisibleRange returns the [first,last] data indices currently realized. If the
 // list is empty last < first.
 func (vl *VirtualList) VisibleRange() (first, last int) {
-	return vl.windowFor(vl.viewportHeight(), (*Panel)(vl).ScrollY())
+	data := vl.Data()
+	first, last = -1, -1
+	data.layout.VisibleAt(vl.scroll(), vl.viewport(), data.overscan, func(i int) {
+		if first < 0 || i < first {
+			first = i
+		}
+		if i > last {
+			last = i
+		}
+	})
+	if first < 0 {
+		return 0, -1
+	}
+	return first, last
 }
 
-// ScrollToIndex scrolls so row index is visible according to align.
+// ScrollToIndex scrolls so row index is visible according to align. It works for
+// the active layout's primary axis (vertical or horizontal).
 func (vl *VirtualList) ScrollToIndex(index int, align VirtualAlign) {
 	data := vl.Data()
 	n := vl.rowCount()
@@ -252,28 +333,38 @@ func (vl *VirtualList) ScrollToIndex(index int, align VirtualAlign) {
 		return
 	}
 	index = min(max(index, 0), n-1)
-	top := data.model.offsetOf(index)
-	h := data.model.heightOf(index)
-	vh := vl.viewportHeight()
+	p := (*Panel)(vl)
+	vp := vl.viewport()
+	rect := data.layout.RectOf(index, vp)
+	horizontal := data.layout.Axis() == VirtualAxisHorizontal
+	var top, size, vpMain, cur float32
+	if horizontal {
+		top, size, vpMain, cur = rect.X, rect.W, vp.X(), p.ScrollX()
+	} else {
+		top, size, vpMain, cur = rect.Y, rect.H, vp.Y(), p.ScrollY()
+	}
 	target := top
 	switch align {
 	case VirtualAlignStart:
 		target = top
 	case VirtualAlignEnd:
-		target = top + h - vh
+		target = top + size - vpMain
 	case VirtualAlignCenter:
-		target = top - (vh-h)*0.5
+		target = top - (vpMain-size)*0.5
 	case VirtualAlignNearest:
-		scrollY := (*Panel)(vl).ScrollY()
-		if top < scrollY {
+		if top < cur {
 			target = top
-		} else if top+h > scrollY+vh {
-			target = top + h - vh
+		} else if top+size > cur+vpMain {
+			target = top + size - vpMain
 		} else {
 			return
 		}
 	}
-	(*Panel)(vl).SetScrollY(target)
+	if horizontal {
+		p.SetScrollX(target)
+	} else {
+		p.SetScrollY(target)
+	}
 }
 
 func (vl *VirtualList) onLayoutUpdating() {
@@ -308,6 +399,18 @@ func (vl *VirtualList) viewportHeight() float32 {
 	return max(vl.layout.PixelSize().Y(), 0)
 }
 
+// viewport is the visible content size of the list (both axes, clamped to >= 0).
+func (vl *VirtualList) viewport() matrix.Vec2 {
+	ps := vl.layout.PixelSize()
+	return matrix.Vec2{max(ps.X(), 0), max(ps.Y(), 0)}
+}
+
+// scroll is the current scroll offset in content space (both axes, positive).
+func (vl *VirtualList) scroll() matrix.Vec2 {
+	p := (*Panel)(vl)
+	return matrix.Vec2{p.ScrollX(), p.ScrollY()}
+}
+
 func (vl *VirtualList) invalidateWindow() { vl.Data().haveLast = false }
 
 func (vl *VirtualList) clampScroll() {
@@ -315,31 +418,26 @@ func (vl *VirtualList) clampScroll() {
 	p.SetScrollY(p.ScrollY())
 }
 
-// remeasureAll fills in every row height for the variable-height model up front.
-// For fixed-height this is a no-op. The huge-list requirement is the fixed path,
-// so paying O(n) here for the variable (chat) path is acceptable.
-func (vl *VirtualList) remeasureAll() {
-	data := vl.Data()
-	if data.model != data.prefixModel || data.heightFn == nil {
-		return
-	}
-	data.prefixModel.reset()
-	n := vl.rowCount()
-	for i := range n {
-		data.prefixModel.setHeight(i, data.heightFn(i))
-	}
-}
-
 func (vl *VirtualList) recycleAll() {
 	data := vl.Data()
 	for idx, row := range data.active {
+		if _, pinned := data.pinned[row]; pinned {
+			continue
+		}
 		if data.delegate != nil {
 			data.delegate.UnbindRow(idx, row)
 		}
-		row.layout.SetOffset(0, virtualListParkOffset)
+		vl.parkRow(row)
 		data.free = append(data.free, row)
 		delete(data.active, idx)
 	}
+}
+
+// parkRow moves a recycled/pooled row off-screen along BOTH axes so it is
+// scissor-clipped out of view for any scroll axis while staying entity-active
+// (see virtualListParkOffset).
+func (vl *VirtualList) parkRow(row *UI) {
+	row.layout.SetOffset(virtualListParkOffset, virtualListParkOffset)
 }
 
 // parkNewRow creates a new row element parked off-screen and queues it in the
@@ -347,21 +445,21 @@ func (vl *VirtualList) recycleAll() {
 // during a frame is NOT in the manager's iteration list / clean tree for that
 // frame, so it is only laid out/rendered the FOLLOWING frame. Using one before
 // then renders it blank with no recovery, so a warming row is never handed to
-// bind until a later frame (see promoteWarm). Creation only happens in update()
-// (once per frame) so the frame tag is meaningful.
+// bind until a later frame (see promoteWarm). Creation only happens in reflow
+// (once per frame, on the clean pass) so the frame tag is meaningful.
 func (vl *VirtualList) parkNewRow() {
 	data := vl.Data()
 	row := data.delegate.CreateRow(vl.man.Value())
 	row.entity.SetActive(true)
 	data.content.AddChild(row)
 	row.layout.SetPositioning(PositioningAbsolute)
-	row.layout.SetOffset(0, virtualListParkOffset)
+	vl.parkRow(row)
 	data.warming = append(data.warming, warmingRow{row: row, bornFrame: data.frame})
 }
 
 // promoteWarm moves rows that have been parked for at least one full frame from
 // the warming queue into the usable free pool (they have now been through a
-// clean/render pass and are safe to show). Called once per frame in update().
+// clean/render pass and are safe to show). Called once per frame in reflow.
 func (vl *VirtualList) promoteWarm() {
 	data := vl.Data()
 	if len(data.warming) == 0 {
@@ -388,16 +486,11 @@ func (vl *VirtualList) replenishPool(target int) {
 	}
 }
 
-// windowFor computes the visible [first,last] index range for a viewport height
-// and scroll offset, expanded by overscan and clamped to the data range.
-func (vl *VirtualList) windowFor(viewportH, scrollY float32) (first, last int) {
-	data := vl.Data()
-	return virtualWindow(data.model, vl.rowCount(), data.overscan, viewportH, scrollY)
-}
-
-// virtualWindow is the pure visible-window computation: the [first,last] rows
-// (inclusive) whose vertical span intersects [scrollY, scrollY+viewportH),
-// expanded by overscan and clamped to [0,n). Returns last < first when empty.
+// virtualWindow is the pure visible-window computation for a 1-D vertical model:
+// the [first,last] rows (inclusive) whose vertical span intersects
+// [scrollY, scrollY+viewportH), expanded by overscan and clamped to [0,n).
+// Returns last < first when empty. The default linear strategy uses it so the
+// visible set stays identical to the pre-seam reflow.
 func virtualWindow(model virtualHeightModel, n, overscan int, viewportH, scrollY float32) (first, last int) {
 	if n == 0 {
 		return 0, -1
@@ -424,94 +517,123 @@ func (vl *VirtualList) reflow(force bool) {
 			vl.promoteWarm()
 		}
 	}
+
 	p := (*Panel)(vl)
 	n := vl.rowCount()
-	data.model.setCount(n)
-	ps := vl.layout.PixelSize()
-	viewportH := max(ps.Y(), 0)
-	width := max(max(ps.X(), 1), data.minContentW)
-	total := data.model.total()
-	scrollY := p.ScrollY()
-	first, last := vl.windowFor(viewportH, scrollY)
-
-	// Only do work when the visible WINDOW (row range), viewport, or content
-	// actually changes — NOT on every scroll pixel — UNLESS a previous pass left
-	// some visible slot unfilled (needsFill), in which case keep running until the
-	// window is complete (so a fast scroll that outran the warm pool self-heals).
-	if !force && !data.needsFill && data.haveLast &&
-		first == data.lastFirst && last == data.lastLast &&
-		approxEqf(viewportH, data.lastViewportH) &&
-		approxEqf(total, data.lastTotal) {
-		return
+	data.layout.SetCount(n)
+	vp := vl.viewport()
+	scroll := matrix.Vec2{p.ScrollX(), p.ScrollY()}
+	content := data.layout.ContentSize(vp)
+	total := content.Y()
+	if data.layout.Axis() == VirtualAxisHorizontal {
+		total = content.X()
 	}
 
-	// Size the content panel to the full scroll height so the panel's own
-	// post-layout step computes maxScroll and the scrollbar correctly.
-	data.content.layout.Scale(width, max(total, 1))
+	// Only do real work when the visible window can actually have changed — the
+	// scroll offset, viewport, or content extent moved — UNLESS a previous pass
+	// left a slot unfilled (needsFill), in which case keep running until the
+	// window is complete (a fast scroll that outran the warm pool self-heals), or
+	// a forced reflow (InvalidateRow) demands a rebind. Unlike the pre-seam gate
+	// (which keyed on the contiguous [first,last] row window), this keys on
+	// scroll/viewport/total so it works for any 2-D strategy. The post-reflow hook
+	// still runs below even when gated, so animations keep ticking.
+	gated := !force && !data.needsFill && data.haveLast &&
+		approxEqf(scroll.X(), data.lastScrollX) && approxEqf(scroll.Y(), data.lastScrollY) &&
+		approxEqf(vp.X(), data.lastViewportW) && approxEqf(vp.Y(), data.lastViewportH) &&
+		approxEqf(total, data.lastTotal)
 
-	// Recycle rows that fell outside the window: unbind and park them off-screen
-	// (kept entity-active — see virtualListParkOffset). Parked rows go back into
-	// the free pool and, being already laid-out/rendered, are "warm".
-	for idx, row := range data.active {
-		if idx < first || idx > last {
+	if !gated {
+		// Size the content panel to the full scroll extent so the panel's own
+		// post-layout step computes both-axis maxScroll and the scrollbars
+		// correctly.
+		data.content.layout.Scale(max(content.X(), 1), max(content.Y(), 1))
+
+		// Enumerate the visible set with zero allocation: clear the reused
+		// membership set + index list, then collect via the strategy's visitor.
+		clear(data.visibleSet)
+		data.visibleIdx = data.visibleIdx[:0]
+		data.layout.VisibleAt(scroll, vp, data.overscan, func(i int) {
+			data.visibleSet[i] = struct{}{}
+			data.visibleIdx = append(data.visibleIdx, i)
+		})
+
+		// Recycle rows that fell outside the visible set: unbind and park them
+		// off-screen (kept entity-active). Pinned rows (drag/animation) are kept.
+		for idx, row := range data.active {
+			if _, vis := data.visibleSet[idx]; vis {
+				continue
+			}
+			if _, pinned := data.pinned[row]; pinned {
+				continue
+			}
 			data.delegate.UnbindRow(idx, row)
-			row.layout.SetOffset(0, virtualListParkOffset)
+			vl.parkRow(row)
 			data.free = append(data.free, row)
 			delete(data.active, idx)
 		}
-	}
-	// Bind every visible slot, but ONLY ever with a "warm" row — one that already
-	// existed (and was laid out/rendered) before this pass. A row created this
-	// frame is NOT in the manager's iteration list or this frame's clean tree, so
-	// if it were shown immediately it would render blank with no way to recover.
-	// All rows in the free pool at this point are warm (parked >= 1 frame ago);
-	// the recycled rows just added are also warm. We consume only that many.
-	warm := len(data.free)
-	data.needsFill = false
-	for i := first; i <= last; i++ {
-		if _, ok := data.active[i]; ok {
-			if force {
-				row := data.active[i]
-				row.layout.SetOffset(0, data.model.offsetOf(i))
-				data.delegate.BindRow(i, row)
+
+		// Bind every visible slot, but ONLY with a "warm" row — one that already
+		// existed (and was laid out/rendered) before this pass. A row created this
+		// frame is NOT in the manager's iteration list or this frame's clean tree,
+		// so showing it immediately renders it blank with no recovery. The recycled
+		// rows just parked are warm; so are the rows in the free pool.
+		warm := len(data.free)
+		data.needsFill = false
+		for _, i := range data.visibleIdx {
+			if row, ok := data.active[i]; ok {
+				if force {
+					rect := data.layout.RectOf(i, vp)
+					row.layout.SetOffset(rect.X, rect.Y)
+					data.delegate.BindRow(i, row)
+				}
+				continue
 			}
-			continue
+			if warm <= 0 {
+				// No warm row available for this slot this frame. Leave it empty,
+				// flag the window incomplete; update() grows the pool and needsFill
+				// keeps reflow running until it can be filled. We never
+				// create-and-show a row here (that renders blank with no recovery).
+				data.needsFill = true
+				continue
+			}
+			row := data.free[0]
+			data.free = data.free[1:]
+			warm--
+			data.active[i] = row
+			rect := data.layout.RectOf(i, vp)
+			row.layout.SetPositioning(PositioningAbsolute)
+			row.layout.SetOffset(rect.X, rect.Y)
+			data.delegate.BindRow(i, row)
+			// Mark the row dirty so this clean pass (we are in onLayoutUpdating)
+			// re-runs its layout + render at the new offset; otherwise a row laid
+			// out while parked stays at the parked position.
+			row.SetDirty(DirtyTypeGenerated)
 		}
-		if warm <= 0 {
-			// No warm row available for this slot this frame. Leave it empty for
-			// now and flag that the window is incomplete; update() grows the pool
-			// and needsFill keeps reflow running until it can be filled. We never
-			// create-and-show a row here (that renders blank with no recovery).
-			data.needsFill = true
-			continue
+
+		data.lastScrollX, data.lastScrollY = scroll.X(), scroll.Y()
+		data.lastViewportW, data.lastViewportH = vp.X(), vp.Y()
+		data.lastTotal = total
+		data.lastWindowSize = len(data.visibleIdx)
+		data.haveLast = true
+
+		// Top the pool up to a warm buffer big enough to fill the whole visible
+		// window in one go after rows warm. New rows go into the warming queue
+		// (used a later frame). Done here in the single-threaded clean pass so
+		// man.Add is safe.
+		vl.replenishPool(data.lastWindowSize + data.overscan*2 + 8)
+
+		// If the window could not be fully filled this frame (warm pool too small),
+		// make sure another clean pass runs so it gets filled as the pool warms up.
+		if data.needsFill {
+			vl.Base().SetDirty(DirtyTypeLayout)
 		}
-		row := data.free[0]
-		data.free = data.free[1:]
-		warm--
-		data.active[i] = row
-		row.layout.SetPositioning(PositioningAbsolute)
-		row.layout.SetOffset(0, data.model.offsetOf(i))
-		data.delegate.BindRow(i, row)
-		// Mark the row dirty so this clean pass (we are in onLayoutUpdating) re-runs
-		// its layout + render at the new offset; otherwise a row that was last laid
-		// out while parked stays at the parked position.
-		row.SetDirty(DirtyTypeGenerated)
 	}
 
-	data.lastFirst, data.lastLast = first, last
-	data.lastViewportH, data.lastTotal = viewportH, total
-	data.lastWindowSize = last - first + 1
-	data.haveLast = true
-
-	// Top the pool up to a warm buffer big enough to fill the whole visible window
-	// in one go after rows warm. New rows go into the warming queue (used a later
-	// frame). Done here in the single-threaded clean pass so man.Add is safe.
-	vl.replenishPool(data.lastWindowSize + data.overscan*2 + 8)
-
-	// If the window could not be fully filled this frame (warm pool too small),
-	// make sure another clean pass runs so it gets filled as the pool warms up.
-	if data.needsFill {
-		vl.Base().SetDirty(DirtyTypeLayout)
+	// Run the post-reflow hook on the clean pass (drag-follow, animation lerp). It
+	// runs even when the recycle/bind work was gated, so animations keep ticking
+	// while the list is otherwise idle.
+	if data.onAfterReflow != nil {
+		data.onAfterReflow()
 	}
 }
 
