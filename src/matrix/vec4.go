@@ -48,15 +48,15 @@ func (v Vec4) AsVec4i() Vec4i {
 	return Vec4i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz]), int32(v[Vw])}
 }
 
-func NewVec4[T1, T2, T3, T4 floatInput](x T1, y T2, z T3, w T4) Vec4 {
+func NewVec4[T1, T2, T3, T4 tNumber](x T1, y T2, z T3, w T4) Vec4 {
 	return Vec4{Float(x), Float(y), Float(z), Float(w)}
 }
 
-func Vec4FromArray[T floatInput](a [4]T) Vec4 {
+func Vec4FromArray[T tNumber](a [4]T) Vec4 {
 	return Vec4{Float(a[0]), Float(a[1]), Float(a[2]), Float(a[3])}
 }
 
-func Vec4FromSlice[T floatInput](a []T) Vec4 {
+func Vec4FromSlice[T tNumber](a []T) Vec4 {
 	return Vec4{Float(a[0]), Float(a[1]), Float(a[2]), Float(a[3])}
 }
 
