@@ -32,16 +32,16 @@ func (v Vec2) AsVec2i() Vec2i {
 	return Vec2i{int32(v[Vx]), int32(v[Vy])}
 }
 
-func NewVec2(x, y Float) Vec2 {
-	return Vec2{x, y}
+func NewVec2[T1, T2 floatInput](x T1, y T2) Vec2 {
+	return Vec2{Float(x), Float(y)}
 }
 
-func Vec2FromArray(a [2]Float) Vec2 {
-	return Vec2{a[0], a[1]}
+func Vec2FromArray[T floatInput](a [2]T) Vec2 {
+	return Vec2{Float(a[0]), Float(a[1])}
 }
 
-func Vec2FromSlice(a []Float) Vec2 {
-	return Vec2{a[0], a[1]}
+func Vec2FromSlice[T floatInput](a []T) Vec2 {
+	return Vec2{Float(a[0]), Float(a[1])}
 }
 
 func (v Vec2) Add(other Vec2) Vec2 {

@@ -198,7 +198,7 @@ func (w *Window) Width() int      { return w.width }
 func (w *Window) Height() int     { return w.height }
 
 func (w *Window) Viewport() matrix.Vec4 {
-	return matrix.Vec4{0, 0, float32(w.width), float32(w.height)}
+	return matrix.NewVec4(0, 0, w.width, w.height)
 }
 
 func (w *Window) Poll() {

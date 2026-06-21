@@ -843,7 +843,7 @@ func (textarea *TextArea) updateSelectionPanels() {
 		prs := textareaSelectionPanelRects(lineText, rects, sCol, eCol, contentW, lh)
 		if len(prs) == 0 && fullLine {
 			// Fully-selected empty line: show a thin marker the line height tall.
-			prs = []matrix.Vec4{{0, 0, lh * 0.5, lh}}
+			prs = []matrix.Vec4{matrix.NewVec4(0, 0, lh*0.5, lh)}
 		}
 		for _, r := range prs {
 			w := r.Z()

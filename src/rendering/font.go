@@ -249,7 +249,7 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 
 	mesh := NewMeshScreenQuad(meshCache)
 	transformation := matrix.Mat4Identity()
-	transformation.Scale(matrix.Vec3{w, h, 1})
+	transformation.Scale(matrix.NewVec3(w, h, 1))
 	var clm cachedLetterMesh
 	clm.mesh = mesh
 	clm.material = mat
@@ -259,9 +259,9 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	uvy := c.atlasBounds[3]
 	uvw := c.atlasBounds[2] - c.atlasBounds[0]
 	uvh := c.atlasBounds[1] - c.atlasBounds[3]
-	clm.uvs = matrix.Vec4{
-		uvx / float32(font.width), uvy / float32(font.height),
-		uvw / float32(font.width), uvh / float32(font.height)}
+	clm.uvs = matrix.NewVec4(
+		uvx/float32(font.width), uvy/float32(font.height),
+		uvw/float32(font.width), uvh/float32(font.height))
 	clm.pxRange = msdfAtlasPxRange()
 	font.cachedLetters[key] = &clm
 
@@ -503,20 +503,20 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 				}
 				if clm == nil {
 					var verts [4]Vertex
-					verts[0].Position = matrix.Vec3{xPos, yPos, zPos}
-					verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+					verts[0].Position = matrix.NewVec3(xPos, yPos, zPos)
+					verts[0].Normal = matrix.NewVec3(0.0, 0.0, 1.0)
 					verts[0].UV0 = matrix.Vec2{0.0, 1.0}
 					verts[0].Color = matrix.ColorWhite()
-					verts[1].Position = matrix.Vec3{xPos, yPos + h, zPos}
-					verts[1].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+					verts[1].Position = matrix.NewVec3(xPos, yPos+h, zPos)
+					verts[1].Normal = matrix.NewVec3(0.0, 0.0, 1.0)
 					verts[1].UV0 = matrix.Vec2{0.0, 0.0}
 					verts[1].Color = matrix.ColorWhite()
-					verts[2].Position = matrix.Vec3{xPos + w, yPos + h, zPos}
-					verts[2].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+					verts[2].Position = matrix.NewVec3(xPos+w, yPos+h, zPos)
+					verts[2].Normal = matrix.NewVec3(0.0, 0.0, 1.0)
 					verts[2].UV0 = matrix.Vec2{1.0, 0.0}
 					verts[2].Color = matrix.ColorWhite()
-					verts[3].Position = matrix.Vec3{xPos + w, yPos, zPos}
-					verts[3].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+					verts[3].Position = matrix.NewVec3(xPos+w, yPos, zPos)
+					verts[3].Normal = matrix.NewVec3(0.0, 0.0, 1.0)
 					verts[3].UV0 = matrix.Vec2{1.0, 1.0}
 					verts[3].Color = matrix.ColorWhite()
 					indexes := [6]uint32{0, 1, 2, 0, 2, 3}
@@ -525,14 +525,14 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 					uvy := ch.atlasBounds[1]
 					uvw := ch.atlasBounds[2] - ch.atlasBounds[0]
 					uvh := ch.atlasBounds[3] - ch.atlasBounds[1]
-					uvs = matrix.Vec4{
-						uvx / float32(fontFace.width), uvy / float32(fontFace.height),
-						uvw / float32(fontFace.width), uvh / float32(fontFace.height)}
+					uvs = matrix.NewVec4(
+						uvx/float32(fontFace.width), uvy/float32(fontFace.height),
+						uvw/float32(fontFace.width), uvh/float32(fontFace.height))
 				} else {
 					// TODO:  Scale and place the mesh based on justify, baseline, etc.
 					model.MultiplyAssign(clm.transformation)
 					model.Scale(matrix.Vec3{scale * inverseWidth, scale * inverseHeight, 1.0})
-					model.Translate(matrix.Vec3{xPos, (yPos + h), zPos})
+					model.Translate(matrix.NewVec3(xPos, (yPos + h), zPos))
 					uvs = clm.uvs
 					m = clm.mesh
 				}
@@ -612,7 +612,7 @@ func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text
 		y += maxHeight
 		clip = []rune(clip)[count:]
 	}
-	return matrix.Vec2{x, y}
+	return matrix.NewVec2(x, y)
 }
 
 func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {
@@ -644,7 +644,7 @@ func (cache *FontCache) StringRectsWithinWithLetterSpacing(face FontFace, text s
 				ch := findBinChar(fontFace, r)
 				w = ch.advance * scale
 			}
-			rects = append(rects, matrix.Vec4{x, y, w, height})
+			rects = append(rects, matrix.NewVec4(x, y, w, height))
 			current++
 			if r == '\n' {
 				continue
@@ -676,7 +676,7 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 
 func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
 	ch := findBinChar(cache.fontFaces[face], r)
-	return matrix.Vec2{ch.Width() * pixelSize, ch.Height() * pixelSize}
+	return matrix.NewVec2(ch.Width()*pixelSize, ch.Height()*pixelSize)
 }
 
 func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {

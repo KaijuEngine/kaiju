@@ -135,19 +135,19 @@ func (m Mouse) Scrolled() bool {
 }
 
 func (m Mouse) Position() matrix.Vec2 {
-	return matrix.Vec2{m.X, m.Y}
+	return matrix.NewVec2(m.X, m.Y)
 }
 
 func (m Mouse) CenteredPosition() matrix.Vec2 {
-	return matrix.Vec2{m.CX, m.CY}
+	return matrix.NewVec2(m.CX, m.CY)
 }
 
 func (m Mouse) ScreenPosition() matrix.Vec2 {
-	return matrix.Vec2{m.SX, m.SY}
+	return matrix.NewVec2(m.SX, m.SY)
 }
 
 func (m Mouse) Scroll() matrix.Vec2 {
-	return matrix.Vec2{m.ScrollX, m.ScrollY}
+	return matrix.NewVec2(m.ScrollX, m.ScrollY)
 }
 
 func (m *Mouse) SetScroll(x, y float32) {
