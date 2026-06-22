@@ -541,8 +541,9 @@ double cocoa_get_backing_scale_factor(void* nsWindow) {
 }
 
 int cocoa_screen_count(void* nsWindow) {
-	(void)nsWindow;
-	return 1; // TODO
+    if(!nsWindow) return 0;
+	NSArray* screens = [NSScreen screens];
+    return (int)screens.count;
 }
 
 void cocoa_get_position(void* nsWindow, int* x, int* y) {

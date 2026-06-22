@@ -201,6 +201,7 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	host.Cameras.UI.Camera.ViewportChanged(float32(width), float32(height))
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
+	slog.Info("Host.Initialize", "window count", host.Window.MonitorCount())
 	return nil
 }
 
