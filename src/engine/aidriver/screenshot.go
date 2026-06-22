@@ -50,7 +50,7 @@ func capturePixels(host *engine.Host) ([]byte, int, int, error) {
 }
 
 func readDevicePixels(device *rendering.GPUDevice) ([]byte, int, int, error) {
-	pixels, err := device.Screenshot()
+	pixels, err := device.ScreenshotRGBA()
 	if err != nil {
 		return nil, 0, 0, err
 	}
