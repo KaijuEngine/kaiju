@@ -55,7 +55,6 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 		ShaderDrawParameters: vulkan_const.True,
 	}
 	extensions := requiredDeviceExtensions()
-	validationLayers := validationLayers()
 	createInfo := &vk.DeviceCreateInfo{
 		SType:                vulkan_const.StructureTypeDeviceCreateInfo,
 		PQueueCreateInfos:    &queueCreateInfos[:qFamCount][0],
@@ -63,7 +62,9 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 		PEnabledFeatures:     &deviceFeatures,
 		PNext:                unsafe.Pointer(&drawFeatures),
 	}
-	createInfo.SetEnabledLayerNames(validationLayers)
+	// Device layers are deprecated and must not be set (enabledLayerCount must be
+	// 0, VUID-VkDeviceCreateInfo-enabledLayerCount-12384). Validation layers are
+	// enabled at the instance level instead.
 	createInfo.SetEnabledExtensionNames(extensions)
 	defer createInfo.Free()
 	var device vk.Device

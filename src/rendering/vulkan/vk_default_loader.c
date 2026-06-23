@@ -1,5 +1,6 @@
 #include "vk_default_loader.h"
 #include "kaiju_vulkan.h"
+#include <stdlib.h> // getenv
 
 #if defined(_WIN32)
     #include <windows.h>
@@ -34,8 +35,23 @@ void* getDefaultProcAddr() {
         }
         return &loaderWrap;
     #elif defined(__APPLE__) && defined(__MACH__)
-        // On macOS, try to load MoltenVK (which includes the Vulkan loader)
-        void* libvulkan = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+        // Default: load MoltenVK directly (unchanged release behavior). Opt-in via
+        // KAIJU_VULKAN_USE_LOADER: prefer the real Vulkan loader (libvulkan.dylib),
+        // which loads MoltenVK as its ICD AND inserts explicit layers such as
+        // VK_LAYER_KHRONOS_validation (configured via VK_ADD_LAYER_PATH /
+        // VK_ICD_FILENAMES). dlopening MoltenVK directly bypasses the loader, so
+        // layers can never be enumerated; the loader is therefore required to run
+        // validation. See docs/engine/vulkan_validation_layers.md.
+        void* libvulkan = NULL;
+        if (getenv("KAIJU_VULKAN_USE_LOADER")) {
+            libvulkan = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
+            if (libvulkan == NULL) {
+                libvulkan = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
+            }
+        }
+        if (libvulkan == NULL) {
+            libvulkan = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+        }
         if (libvulkan == NULL) {
             return NULL;
         }

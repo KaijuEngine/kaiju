@@ -45,7 +45,8 @@ func (g *GPUInstance) setupImpl(window RenderingContainer, app *GPUApplication) 
 	validationLayers := validationLayers()
 	if len(validationLayers) > 0 {
 		if !checkValidationLayerSupport(validationLayers) {
-			slog.Warn("Expected to have validation layers for debugging, but didn't find them")
+			slog.Warn("Expected to have validation layers for debugging, but didn't find them; " +
+				"see docs/engine/vulkan_validation_layers.md to enable them on macOS")
 		} else {
 			slog.Info("enabling the validation layers")
 			createInfo.SetEnabledLayerNames(validationLayers)

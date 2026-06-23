@@ -18,6 +18,28 @@ extern void goProcessFileDropDarwin(uint64_t goWindow, int32_t x, int32_t y, voi
 static inline SharedMem* getSharedMem(NSWindow* window);
 #endif
 
+#pragma mark - Render/resize serialization
+
+// Binary semaphore (value 1) used as a cross-thread mutex between the AppKit main
+// thread (resizing the CAMetalLayer) and the render goroutine (submitting/presenting
+// via MoltenVK). dispatch_semaphore is used rather than os_unfair_lock/pthread_mutex
+// because a Go goroutine may migrate OS threads between the lock and unlock cgo
+// calls, and those lock types require release on the acquiring thread.
+static dispatch_semaphore_t renderSemaphore(void) {
+	static dispatch_semaphore_t sem;
+	static dispatch_once_t once;
+	dispatch_once(&once, ^{ sem = dispatch_semaphore_create(1); });
+	return sem;
+}
+
+// Set on the main thread for the duration of an AppKit live resize (window-edge
+// drag). While set, the render loop skips acquiring/submitting/presenting entirely,
+// so it never touches the CAMetalLayer concurrently with AppKit's resize. Plain
+// volatile int: a single-word flag written on the main thread and read on the render
+// thread; the exact frame the transition lands on does not matter.
+static volatile int g_inLiveResize = 0;
+int cocoa_in_live_resize(void) { return g_inLiveResize; }
+
 #pragma mark - Metal View
 
 @interface MetalView : NSView
@@ -42,6 +64,29 @@ static inline SharedMem* getSharedMem(NSWindow* window);
 }
 - (CALayer*)makeBackingLayer { return [[CAMetalLayer alloc] init]; }
 - (BOOL)wantsUpdateLayer { return YES; }
+
+// AppKit resizes the backing CAMetalLayer inside this call. Bracket it with the
+// render lock so it cannot run concurrently with a MoltenVK submit/present on the
+// render goroutine (which would corrupt the layer's drawable state and fault).
+- (void)setFrameSize:(NSSize)newSize {
+	dispatch_semaphore_t sem = renderSemaphore();
+	dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
+	[super setFrameSize:newSize];
+	dispatch_semaphore_signal(sem);
+}
+
+// AppKit drives a live window-edge resize between these two calls (main thread). The
+// render loop pauses while the flag is set so it cannot touch the CAMetalLayer while
+// AppKit is mutating it; a single swap-chain rebuild happens on the first frame after
+// the drag ends (the acquire returns out-of-date).
+- (void)viewWillStartLiveResize {
+	[super viewWillStartLiveResize];
+	g_inLiveResize = 1;
+}
+- (void)viewDidEndLiveResize {
+	[super viewDidEndLiveResize];
+	g_inLiveResize = 0;
+}
 
 #if KAIJU_ENABLE_FILEDROP
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
@@ -421,6 +466,16 @@ void* cocoa_create_window(const char* title,
 }
 
 void cocoa_poll_events(void* nsWindow) { (void)nsWindow; /* intentionally empty */ }
+
+void cocoa_render_lock(void* nsView) {
+	(void)nsView;
+	dispatch_semaphore_wait(renderSemaphore(), DISPATCH_TIME_FOREVER);
+}
+
+void cocoa_render_unlock(void* nsView) {
+	(void)nsView;
+	dispatch_semaphore_signal(renderSemaphore());
+}
 
 void cocoa_destroy_window(void* nsWindow) {
 	if (!nsWindow) return;
