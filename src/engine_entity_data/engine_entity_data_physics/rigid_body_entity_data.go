@@ -70,17 +70,17 @@ func (r RigidBodyEntityData) gravitonRigidBody(e *engine.Entity, host *engine.Ho
 	body.Transform.SetupRawTransform()
 	body.Transform.SetPosition(e.Transform.Position())
 	body.Transform.SetRotation(e.Transform.Rotation())
-	if r.Shape == ShapeMesh {
-		body.SetStaticMesh(r.gravitonMesh(host))
-		return body
-	}
-	if r.Shape == ShapeTerrain {
+	shape := r.gravitonShape(e.Transform.Scale())
+	switch r.Shape {
+	case ShapeTerrain:
 		body.SetStaticTerrain(r.gravitonTerrain(e))
 		return body
+	case ShapeMesh:
+		body.SetShapeMesh(r.gravitonMesh(host))
+	default:
+		body.SetShape(shape)
 	}
-	shape := r.gravitonShape(e.Transform.Scale())
 	// Scale is baked into the shape dimensions to match the existing behavior.
-	body.SetShape(shape)
 	if r.IsStatic {
 		body.SetStatic()
 	} else {

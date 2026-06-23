@@ -311,7 +311,8 @@ func TestSystemDynamicSphereRestsOnStaticMeshFloor(t *testing.T) {
 	sphere.Collision.Shape = NewSphereShape(0.5)
 	sphere.Transform.SetPosition(matrix.Vec3{0, 0.5, 0})
 	floor := system.NewBody()
-	floor.SetStaticMesh(testMeshFloor())
+	floor.SetShapeMesh(testMeshFloor())
+	floor.SetStatic()
 	workGroup := concurrent.WorkGroup{}
 	workGroup.Init()
 	threads := concurrent.Threads{}
@@ -418,7 +419,8 @@ func testRigidBody(shape Shape, position matrix.Vec3) *RigidBody {
 func testStaticMeshBody(mesh *MeshCollision) *RigidBody {
 	body := &RigidBody{}
 	body.Transform.SetupRawTransform()
-	body.SetStaticMesh(mesh)
+	body.SetShapeMesh(mesh)
+	body.SetStatic()
 	return body
 }
 

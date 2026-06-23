@@ -33,7 +33,8 @@ func TestStaticMeshBodyGeneratesBroadPhaseAABB(t *testing.T) {
 	system.Initialize()
 	body := system.NewBody()
 	body.Transform.SetPosition(matrix.Vec3{3, 0, 0})
-	body.SetStaticMesh(testTriangleMesh())
+	body.SetShapeMesh(testTriangleMesh())
+	body.SetStatic()
 	system.broadPhase.Rebuild(&system.bodies)
 	if len(system.broadPhase.proxies) != 1 {
 		t.Fatalf("expected 1 broad phase proxy, got %d", len(system.broadPhase.proxies))
@@ -53,7 +54,8 @@ func TestSystemRaycastHitsStaticMesh(t *testing.T) {
 	system.Initialize()
 	body := system.NewBody()
 	body.Transform.SetPosition(matrix.Vec3{3, 0, 0})
-	body.SetStaticMesh(testTriangleMesh())
+	body.SetShapeMesh(testTriangleMesh())
+	body.SetStatic()
 	hit, ok := system.Raycast(matrix.Vec3{3, 0, 1}, matrix.Vec3{3, 0, -1})
 	if !ok {
 		t.Fatal("expected raycast to hit mesh")
