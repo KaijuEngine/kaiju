@@ -860,8 +860,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		}
 		p.shaderData.BorderLen = matrix.Vec2{8.0, 8.0}
 		p.shaderData.UVs = matrix.Vec4{0.0, 0.0, 1.0, 1.0}
-		p.shaderData.Size2D = matrix.Vec4{0.0, 0.0,
-			float32(tex.Width), float32(tex.Height)}
+		p.shaderData.Size2D = matrix.NewVec4(0.0, 0.0, tex.Width, tex.Height)
 		p.textureSize = tex.Size()
 		p.shaderData.resetSize2D(p.Base())
 		material = material.CreateInstance([]*rendering.Texture{tex})
@@ -2013,8 +2012,8 @@ func (p *Panel) OutlineOutset() float32 {
 }
 
 func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
-	p.shaderData.BorderRadius = matrix.Vec4{
-		bottomLeft, bottomRight, topRight, topLeft}
+	p.shaderData.BorderRadius = matrix.NewVec4(
+		bottomLeft, bottomRight, topRight, topLeft)
 }
 
 func (p *Panel) SetBorderRadiusTopLeft(r float32)     { p.shaderData.BorderRadius.SetW(r) }

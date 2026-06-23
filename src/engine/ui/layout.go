@@ -128,7 +128,7 @@ func (l *Layout) SetOffsetY(y float32) {
 }
 
 func (l *Layout) SetInnerOffset(left, top, right, bottom float32) {
-	io := matrix.Vec4{left, top, right, bottom}
+	io := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(l.innerOffset, io, fractionOfPixel) {
 		return
 	}
@@ -173,10 +173,10 @@ func (l *Layout) LocalInnerOffset() matrix.Vec4 {
 }
 
 func (l *Layout) SetLocalInnerOffset(left, top, right, bottom float32) {
-	if matrix.Vec4ApproxTo(l.localInnerOffset, matrix.Vec4{left, top, right, bottom}, fractionOfPixel) {
+	if matrix.Vec4ApproxTo(l.localInnerOffset, matrix.NewVec4(left, top, right, bottom), fractionOfPixel) {
 		return
 	}
-	l.localInnerOffset = matrix.Vec4{left, top, right, bottom}
+	l.localInnerOffset = matrix.NewVec4(left, top, right, bottom)
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
@@ -191,13 +191,13 @@ func (l *Layout) InnerOffset() matrix.Vec4 {
 
 func (l *Layout) Scale(width, height float32) bool {
 	ps := l.PixelSize()
-	if matrix.Vec2ApproxTo(ps, matrix.Vec2{width, height}, fractionOfPixel) {
+	if matrix.Vec2ApproxTo(ps, matrix.NewVec2(width, height), fractionOfPixel) {
 		return false
 	}
 	if matrix.Approx(width, 0) || matrix.Approx(height, 0) {
 		return false
 	}
-	size := matrix.Vec3{width, height, 1.0}
+	size := matrix.NewVec3(width, height, 1.0)
 	if l.ui.Entity().Parent != nil {
 		parentScale := l.ui.Entity().Parent.Transform.WorldScale()
 		if matrix.Approx(parentScale.X(), 0) || matrix.Approx(parentScale.Y(), 0) {
@@ -218,7 +218,7 @@ func (l *Layout) ScaleWidth(width float32) bool {
 	if matrix.Approx(width, 0) {
 		return false
 	}
-	size := matrix.Vec3{width, ps.Height(), 1.0}
+	size := matrix.NewVec3(width, ps.Height(), 1.0)
 	if l.ui.Entity().Parent != nil {
 		parentScale := l.ui.Entity().Parent.Transform.WorldScale()
 		if matrix.Approx(parentScale.X(), 0) || matrix.Approx(parentScale.Y(), 0) {
@@ -240,7 +240,7 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	if matrix.Approx(height, 0) {
 		return false
 	}
-	size := matrix.Vec3{ps.Width(), height, 1.0}
+	size := matrix.NewVec3(ps.Width(), height, 1.0)
 	if l.ui.Entity().Parent != nil {
 		parentScale := l.ui.Entity().Parent.Transform.WorldScale()
 		if matrix.Approx(parentScale.X(), 0) || matrix.Approx(parentScale.Y(), 0) {
@@ -363,7 +363,7 @@ func (l *Layout) SetGridColumn(start, end int) {
 }
 
 func (l *Layout) SetBorder(left, top, right, bottom float32) {
-	b := matrix.Vec4{left, top, right, bottom}
+	b := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(l.border, b, fractionOfPixel) {
 		return
 	}
@@ -379,7 +379,7 @@ func (l *Layout) SetBorder(left, top, right, bottom float32) {
 }
 
 func (l *Layout) SetPadding(left, top, right, bottom float32) {
-	newPadding := matrix.Vec4{left, top, right, bottom}
+	newPadding := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(l.padding, newPadding, fractionOfPixel) {
 		return
 	}
@@ -395,7 +395,7 @@ func (l *Layout) SetPadding(left, top, right, bottom float32) {
 }
 
 func (l *Layout) SetMargin(left, top, right, bottom float32) {
-	m := matrix.Vec4{left, top, right, bottom}
+	m := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(m, l.margin, fractionOfPixel) {
 		return
 	}

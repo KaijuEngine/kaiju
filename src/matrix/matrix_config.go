@@ -66,24 +66,24 @@ type tMatrix interface {
 const RadToDegVal = (180.0 / math.Pi)
 const DegToRadVal = (math.Pi / 180.0)
 
-func Rad2Deg(radian Float) Float {
-	return radian * (180.0 / math.Pi)
+func Rad2Deg[T tNumber](radian T) Float {
+	return Float(radian) * Float(180.0/math.Pi)
 }
 
-func Deg2Rad(degree Float) Float {
-	return degree * (math.Pi / 180.0)
+func Deg2Rad[T tNumber](degree T) Float {
+	return Float(degree) * Float(math.Pi/180.0)
 }
 
-func Approx(a, b Float) bool {
-	return math.Abs(float64(a-b)) < float64(FloatSmallestNonzero)
+func Approx[T1, T2 tNumber](a T1, b T2) bool {
+	return math.Abs(float64(a)-float64(b)) < float64(FloatSmallestNonzero)
 }
 
-func ApproxTo(a, b, tolerance Float) bool {
-	return math.Abs(float64(a-b)) < float64(tolerance)
+func ApproxTo[T1, T2, T3 tNumber](a T1, b T2, tolerance T3) bool {
+	return math.Abs(float64(a)-float64(b)) < float64(tolerance)
 }
 
-func Clamp(current, minimum, maximum Float) Float {
-	return max(minimum, min(maximum, current))
+func Clamp[T1, T2, T3 tNumber](current T1, minimum T2, maximum T3) Float {
+	return max(Float(minimum), min(Float(maximum), Float(current)))
 }
 
 func AbsInt(a int) int { return a & int(^uint(0)>>1) }

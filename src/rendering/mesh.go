@@ -864,10 +864,10 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 			}
 			normal := matrix.Vec3{cosPhi * normalRadius, normalY, sinPhi * normalRadius}
 			verts[vIndex].Normal = normal.Normal()
-			verts[vIndex].UV0 = matrix.Vec2{
-				float32(j) / float32(segments),
-				float32(row) / float32(rowCount-1),
-			}
+			verts[vIndex].UV0 = matrix.NewVec2(
+				float32(j)/float32(segments),
+				float32(row)/float32(rowCount-1),
+			)
 			verts[vIndex].Color = matrix.ColorWhite()
 			vIndex++
 		}
@@ -926,10 +926,10 @@ func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBan
 			} else {
 				verts[vIdx].Normal = matrix.Vec3{0, 0, 0}
 			}
-			verts[vIdx].UV0 = matrix.Vec2{
-				float32(lon) / float32(longitudeBands),
-				float32(lat) / float32(latitudeBands),
-			}
+			verts[vIdx].UV0 = matrix.NewVec2(
+				float32(lon)/float32(longitudeBands),
+				float32(lat)/float32(latitudeBands),
+			)
 			verts[vIdx].Color = matrix.ColorWhite()
 			vIdx++
 		}
@@ -1075,7 +1075,7 @@ func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightS
 	numRings := heightSegments + 1
 	numVerts := 1 + numRings*segments
 	verts := make([]Vertex, numVerts)
-	verts[0].Position = matrix.Vec3{0.0, height / 2.0, 0.0}
+	verts[0].Position = matrix.NewVec3(0.0, height/2.0, 0.0)
 	verts[0].Normal = matrix.Vec3{0.0, 0.0, 1.0}
 	verts[0].UV0 = matrix.Vec2{0.0, 0.0}
 	verts[0].Color = matrix.ColorWhite()
@@ -1264,7 +1264,7 @@ func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, 
 			sinPhi := matrix.Sin(phi)
 			verts[vIndex].Position = matrix.Vec3{radius * cosPhi, y, radius * sinPhi}
 			verts[vIndex].Normal = matrix.Vec3{cosPhi, 0.0, sinPhi} // Side normal
-			verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), float32(i)}
+			verts[vIndex].UV0 = matrix.NewVec2(float32(j)/float32(segments), float32(i))
 			verts[vIndex].Color = matrix.ColorWhite()
 			vIndex++
 		}
@@ -1287,14 +1287,14 @@ func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, 
 		// For caps, we need center points or triangulate
 		// Add bottom center
 		bottomCenter := vIndex
-		verts[vIndex].Position = matrix.Vec3{0.0, -halfHeight, 0.0}
+		verts[vIndex].Position = matrix.NewVec3(0.0, -halfHeight, 0.0)
 		verts[vIndex].Normal = matrix.Vec3{0.0, -1.0, 0.0}
 		verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
 		verts[vIndex].Color = matrix.ColorWhite()
 		vIndex++
 		// Add top center
 		topCenter := vIndex
-		verts[vIndex].Position = matrix.Vec3{0.0, halfHeight, 0.0}
+		verts[vIndex].Position = matrix.NewVec3(0.0, halfHeight, 0.0)
 		verts[vIndex].Normal = matrix.Vec3{0.0, 1.0, 0.0}
 		verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
 		verts[vIndex].Color = matrix.ColorWhite()
@@ -1337,7 +1337,7 @@ func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []ui
 	iIndex := 0
 	// Apex
 	apex := vIndex
-	verts[vIndex].Position = matrix.Vec3{0.0, height, 0.0}
+	verts[vIndex].Position = matrix.NewVec3(0.0, height, 0.0)
 	verts[vIndex].Normal = matrix.Vec3{0.0, 1.0, 0.0} // Will compute better normals later if needed
 	verts[vIndex].UV0 = matrix.Vec2{0.5, 0.5}
 	verts[vIndex].Color = matrix.ColorWhite()
@@ -1353,7 +1353,7 @@ func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []ui
 		normalXz := radius / slantLength
 		normalY := height / slantLength
 		verts[vIndex].Normal = matrix.Vec3{normalXz * cosPhi, normalY, normalXz * sinPhi}
-		verts[vIndex].UV0 = matrix.Vec2{float32(j) / float32(segments), 0.0}
+		verts[vIndex].UV0 = matrix.NewVec2(float32(j)/float32(segments), 0.0)
 		verts[vIndex].Color = matrix.ColorWhite()
 		vIndex++
 	}

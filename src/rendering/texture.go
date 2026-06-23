@@ -371,7 +371,7 @@ func (t *Texture) WritePixels(device *GPUDevice, requests []GPUImageWriteRequest
 }
 
 func (t Texture) Size() matrix.Vec2 {
-	return matrix.Vec2{float32(t.Width), float32(t.Height)}
+	return matrix.NewVec2(t.Width, t.Height)
 }
 
 func (t *Texture) SetPendingDataDimensions(dim TextureDimensions) {

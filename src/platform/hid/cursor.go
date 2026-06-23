@@ -60,9 +60,9 @@ func (c *Cursor) Poll() {
 func (c *Cursor) ScreenPosition() matrix.Vec2 {
 	if len(c.touch.Pointers) == 1 {
 		p := c.touch.Pointer(0)
-		return matrix.Vec2{p.X, p.SY}
+		return matrix.NewVec2(p.X, p.SY)
 	} else if c.stylus.IsActive() {
-		return matrix.Vec2{c.stylus.X, c.stylus.SY}
+		return matrix.NewVec2(c.stylus.X, c.stylus.SY)
 	} else {
 		return c.mouse.ScreenPosition()
 	}
@@ -86,9 +86,9 @@ func (c *Cursor) UIPosition(uiSize, windowSize matrix.Vec2) matrix.Vec2 {
 func (c *Cursor) Position() matrix.Vec2 {
 	if len(c.touch.Pointers) == 1 {
 		p := c.touch.Pointer(0)
-		return matrix.Vec2{p.X, p.Y}
+		return matrix.NewVec2(p.X, p.Y)
 	} else if c.stylus.IsActive() {
-		return matrix.Vec2{c.stylus.X, c.stylus.Y}
+		return matrix.NewVec2(c.stylus.X, c.stylus.Y)
 	} else {
 		return c.mouse.Position()
 	}

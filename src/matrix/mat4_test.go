@@ -33,7 +33,7 @@ func legacyMat4Multiply(a, b Mat4) Mat4 {
 	var result Mat4
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			var sum float32 = 0
+			var sum Float = 0
 			for k := 0; k < 4; k++ {
 				sum += a[i*4+k] * b[k*4+j]
 			}

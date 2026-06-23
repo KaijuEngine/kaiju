@@ -48,20 +48,20 @@ func (v Vec3) AsVec3i() Vec3i {
 	return Vec3i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz])}
 }
 
-func NewVec3(x, y, z Float) Vec3 {
-	return Vec3{x, y, z}
+func NewVec3[T1, T2, T3 tNumber](x T1, y T2, z T3) Vec3 {
+	return Vec3{Float(x), Float(y), Float(z)}
 }
 
-func NewVec3XYZ(xyz Float) Vec3 {
-	return Vec3{xyz, xyz, xyz}
+func NewVec3XYZ[T tNumber](xyz T) Vec3 {
+	return Vec3{Float(xyz), Float(xyz), Float(xyz)}
 }
 
-func Vec3FromArray(a [3]Float) Vec3 {
-	return Vec3{a[0], a[1], a[2]}
+func Vec3FromArray[T tNumber](a [3]T) Vec3 {
+	return Vec3{Float(a[0]), Float(a[1]), Float(a[2])}
 }
 
-func Vec3FromSlice(a []Float) Vec3 {
-	return Vec3{a[0], a[1], a[2]}
+func Vec3FromSlice[T tNumber](a []T) Vec3 {
+	return Vec3{Float(a[0]), Float(a[1]), Float(a[2])}
 }
 
 func NewVec3MinMax() Vec3MinMax {

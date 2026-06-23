@@ -271,10 +271,10 @@ func (v *StageView) createViewportGrid() {
 	points := make([]matrix.Vec3, 0, gridCount*4)
 	for i := -halfGridCount; i <= halfGridCount; i++ {
 		fi := float32(i)
-		points = append(points, matrix.Vec3{fi, 0, -halfGridCount})
-		points = append(points, matrix.Vec3{fi, 0, halfGridCount})
-		points = append(points, matrix.Vec3{-halfGridCount, 0, fi})
-		points = append(points, matrix.Vec3{halfGridCount, 0, fi})
+		points = append(points, matrix.NewVec3(fi, 0, -halfGridCount))
+		points = append(points, matrix.NewVec3(fi, 0, halfGridCount))
+		points = append(points, matrix.NewVec3(-halfGridCount, 0, fi))
+		points = append(points, matrix.NewVec3(halfGridCount, 0, fi))
 	}
 	grid := rendering.NewMeshGrid(v.host.MeshCache(), "viewport_grid",
 		points, matrix.Color{0.5, 0.5, 0.5, 1})
