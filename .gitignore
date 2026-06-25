@@ -30,6 +30,7 @@ external/bin
 interpreter/kaiju-*
 *.zip
 .gocache
+.echo
 
 # Go pprof files
 heap.prof
