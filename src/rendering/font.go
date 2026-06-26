@@ -343,8 +343,12 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	cReturn := fontBinChar{letter: '\r', advance: 0.0,
 		planeBounds: [4]float32{0, 0, 0, 0}, atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0}}
 	bin.letters['\r'] = cReturn
-	for i := int32(0); i < count; i++ {
-		cache.createLetterMesh(bin, bin.letters[i].letter, bin.letters[i], cache.renderCaches.MeshCache())
+	// bin.letters is keyed by codepoint (not a dense 0..count-1 array), so range
+	// over its values to pre-create a mesh for every glyph. Indexing by i would
+	// only build meshes for codepoints < count, leaving higher glyphs (symbols,
+	// arrows, geometric shapes) to fall back to the invalidRuneProxy.
+	for r, fbc := range bin.letters {
+		cache.createLetterMesh(bin, r, fbc, cache.renderCaches.MeshCache())
 	}
 	cache.fontFaces[face.string()] = bin
 	return true
