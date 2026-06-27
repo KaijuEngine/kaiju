@@ -93,7 +93,7 @@ func (g *Game) Launch(host *engine.Host) {
 	g.cube = engine.NewEntity(host.WorkGroup())
 	g.cube.Transform.SetPosition(matrix.NewVec3(2, 0, -5))
 	g.cube.Transform.SetRotation(matrix.NewVec3(-20, 20, 20))
-	sd = shader_data_registry.Create("cube")
+	sd = shader_data_registry.Create("basic")
 	sd.(*shader_data_registry.ShaderDataStandard).Color = matrix.ColorBlue()
 	host.Drawings.AddDrawing(rendering.Drawing{
 		Material:   mat.CreateInstance([]*rendering.Texture{tex}),
