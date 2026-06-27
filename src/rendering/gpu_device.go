@@ -122,6 +122,48 @@ func (g *GPUDevice) Screenshot() ([]byte, error) {
 	return g.textureReadImpl(&s.Images[idxSF])
 }
 
+// ScreenshotRGBA captures the last presented frame and returns its pixels in
+// canonical R,G,B,A byte order regardless of the swap chain's native channel
+// order. The swap chain may present in BGRA (e.g. Metal/MoltenVK on macOS), in
+// which case Screenshot's raw bytes are B,G,R,A; this normalizes them so the
+// result can be fed straight into image.RGBA / image/png without swapping the
+// red and blue channels.
+func (g *GPUDevice) ScreenshotRGBA() ([]byte, error) {
+	defer tracing.NewRegion("GPUDevice.ScreenshotRGBA").End()
+	pixels, err := g.Screenshot()
+	if err != nil {
+		return nil, err
+	}
+	if g.swapChainIsBGRA() {
+		swapRB(pixels)
+	}
+	return pixels, nil
+}
+
+// swapChainIsBGRA reports whether the presented swap-chain images use a BGRA
+// channel order. All swap-chain images share the single selected surface
+// format, so the first image is representative.
+func (g *GPUDevice) swapChainIsBGRA() bool {
+	s := &g.LogicalDevice.SwapChain
+	if len(s.Images) == 0 {
+		return false
+	}
+	switch s.Images[0].Format {
+	case GPUFormatB8g8r8a8Unorm, GPUFormatB8g8r8a8Srgb:
+		return true
+	default:
+		return false
+	}
+}
+
+// swapRB swaps the red and blue channels of tightly-packed 4-bytes-per-pixel
+// data in place, converting between BGRA and RGBA orderings.
+func swapRB(pixels []byte) {
+	for i := 0; i+3 < len(pixels); i += 4 {
+		pixels[i], pixels[i+2] = pixels[i+2], pixels[i]
+	}
+}
+
 func (g *GPUDevice) createGlobalUniforms() error {
 	slog.Info("creating global uniform buffers")
 	g.globalUniforms = make(map[*RenderView]*globalUniformBufferSet)

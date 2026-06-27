@@ -988,7 +988,7 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 	host := man.Host
 	data := input.InputData()
 	if input.entity.IsActive() && data.isActive {
-		if keyState == hid.KeyStateDown {
+		if keyState == hid.KeyStateDown || keyState == hid.KeyStatePressedAndReleased {
 			if keyId == hid.KeyboardKeyEscape {
 				input.SetTextWithoutEvent(data.textOnFocus)
 				input.RemoveFocus()
