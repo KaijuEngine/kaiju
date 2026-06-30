@@ -1019,7 +1019,7 @@ func gltfAnimationFrame(anim *load_result.Animation, time matrix.Float) *load_re
 	}
 	anim.Frames = append(anim.Frames, load_result.AnimKeyFrame{
 		Bones: make([]load_result.AnimBone, 0),
-		Time:  time,
+		Time:  float32(time),
 	})
 	return &anim.Frames[len(anim.Frames)-1]
 }

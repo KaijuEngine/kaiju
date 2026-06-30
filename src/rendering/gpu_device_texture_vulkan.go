@@ -551,10 +551,10 @@ func (g *GPUDevice) textureReadPixelImpl(texture *Texture, x, y int) matrix.Colo
 		g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
 	}
 	return matrix.Color{
-		float32(raw[0]) / 255.0,
-		float32(raw[1]) / 255.0,
-		float32(raw[2]) / 255.0,
-		float32(raw[3]) / 255.0,
+		matrix.Float(raw[0]) / 255.0,
+		matrix.Float(raw[1]) / 255.0,
+		matrix.Float(raw[2]) / 255.0,
+		matrix.Float(raw[3]) / 255.0,
 	}
 }
 

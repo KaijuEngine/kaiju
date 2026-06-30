@@ -56,7 +56,13 @@ func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, l
 		ubo.Projection = camera.Projection()
 		ubo.CameraPosition = camera.Position().AsVec4WithW(camOrtho)
 		ubo.CascadeCount = int32(camera.NumCSMCascades())
-		ubo.CascadePlaneDistances = camera.CSMCascadeDistances()
+		csmCascadeDistances := camera.CSMCascadeDistances()
+		ubo.CascadePlaneDistances = [4]float32{
+			float32(csmCascadeDistances[0]),
+			float32(csmCascadeDistances[1]),
+			float32(csmCascadeDistances[2]),
+			float32(csmCascadeDistances[3]),
+		}
 	}
 	if uiCamera != nil {
 		ubo.UIView = uiCamera.View()
