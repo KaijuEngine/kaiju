@@ -72,79 +72,92 @@ func DoTweenExt(val *float32, target float32, time float64, easing Easing,
 		scale:       (target - *val) / max(float32(time), 0.00001),
 		totalUpdate: 0,
 	}
-	switch easing {
-	case EasingLinear:
-		tween.easing = easeLinear
-	case EasingIn:
-		tween.easing = easeInQuad
-	case EasingOut:
-		tween.easing = easeOutQuad
-	case EasingInAndOut:
-		tween.easing = easeInOutQuad
-	case EasingInSine:
-		tween.easing = easeInSine
-	case EasingOutSine:
-		tween.easing = easeOutSine
-	case EasingInAndOutSine:
-		tween.easing = easeInOutSine
-	case EasingInQuad:
-		tween.easing = easeInQuad
-	case EasingOutQuad:
-		tween.easing = easeOutQuad
-	case EasingInAndOutQuad:
-		tween.easing = easeInOutQuad
-	case EasingInCubic:
-		tween.easing = easeInCubic
-	case EasingOutCubic:
-		tween.easing = easeOutCubic
-	case EasingInAndOutCubic:
-		tween.easing = easeInOutCubic
-	case EasingInQuart:
-		tween.easing = easeInQuart
-	case EasingOutQuart:
-		tween.easing = easeOutQuart
-	case EasingInAndOutQuart:
-		tween.easing = easeInOutQuart
-	case EasingInQuint:
-		tween.easing = easeInQuint
-	case EasingOutQuint:
-		tween.easing = easeOutQuint
-	case EasingInAndOutQuint:
-		tween.easing = easeInOutQuint
-	case EasingInExpo:
-		tween.easing = easeInExpo
-	case EasingOutExpo:
-		tween.easing = easeOutExpo
-	case EasingInAndOutExpo:
-		tween.easing = easeInOutExpo
-	case EasingInCirc:
-		tween.easing = easeInCirc
-	case EasingOutCirc:
-		tween.easing = easeOutCirc
-	case EasingInAndOutCirc:
-		tween.easing = easeInOutCirc
-	case EasingInBack:
-		tween.easing = easeInBack
-	case EasingOutBack:
-		tween.easing = easeOutBack
-	case EasingInAndOutBack:
-		tween.easing = easeInOutBack
-	case EasingInElastic:
-		tween.easing = easeInElastic
-	case EasingOutElastic:
-		tween.easing = easeOutElastic
-	case EasingInAndOutElastic:
-		tween.easing = easeInOutElastic
-	case EasingInBounce:
-		tween.easing = easeInBounce
-	case EasingOutBounce:
-		tween.easing = easeOutBounce
-	case EasingInAndOutBounce:
-		tween.easing = easeInOutBounce
-	}
+	tween.easing = easingFunc(easing)
 	// Stop the tweener for the same value if one exists
 	Stop(val, true, false)
 	tweens = append(tweens, tween)
+}
+
+// Apply samples this easing curve at normalized time t (typically in [0, 1]) and
+// returns the eased progress. Use it to shape a progress value you compute yourself
+// (e.g. a server-timestamp-derived fraction) without driving a stateful Tween/Tweener.
+func (e Easing) Apply(t float32) float32 { return easingFunc(e)(t) }
+
+// easingFunc maps an Easing to its curve function. An unrecognized value falls back to
+// linear so the result is always a usable (non-nil) function.
+func easingFunc(easing Easing) func(float32) float32 {
+	switch easing {
+	case EasingLinear:
+		return easeLinear
+	case EasingIn:
+		return easeInQuad
+	case EasingOut:
+		return easeOutQuad
+	case EasingInAndOut:
+		return easeInOutQuad
+	case EasingInSine:
+		return easeInSine
+	case EasingOutSine:
+		return easeOutSine
+	case EasingInAndOutSine:
+		return easeInOutSine
+	case EasingInQuad:
+		return easeInQuad
+	case EasingOutQuad:
+		return easeOutQuad
+	case EasingInAndOutQuad:
+		return easeInOutQuad
+	case EasingInCubic:
+		return easeInCubic
+	case EasingOutCubic:
+		return easeOutCubic
+	case EasingInAndOutCubic:
+		return easeInOutCubic
+	case EasingInQuart:
+		return easeInQuart
+	case EasingOutQuart:
+		return easeOutQuart
+	case EasingInAndOutQuart:
+		return easeInOutQuart
+	case EasingInQuint:
+		return easeInQuint
+	case EasingOutQuint:
+		return easeOutQuint
+	case EasingInAndOutQuint:
+		return easeInOutQuint
+	case EasingInExpo:
+		return easeInExpo
+	case EasingOutExpo:
+		return easeOutExpo
+	case EasingInAndOutExpo:
+		return easeInOutExpo
+	case EasingInCirc:
+		return easeInCirc
+	case EasingOutCirc:
+		return easeOutCirc
+	case EasingInAndOutCirc:
+		return easeInOutCirc
+	case EasingInBack:
+		return easeInBack
+	case EasingOutBack:
+		return easeOutBack
+	case EasingInAndOutBack:
+		return easeInOutBack
+	case EasingInElastic:
+		return easeInElastic
+	case EasingOutElastic:
+		return easeOutElastic
+	case EasingInAndOutElastic:
+		return easeInOutElastic
+	case EasingInBounce:
+		return easeInBounce
+	case EasingOutBounce:
+		return easeOutBounce
+	case EasingInAndOutBounce:
+		return easeInOutBounce
+	default:
+		return easeLinear
+	}
 }
 
 func Update(deltaTime float64) {
