@@ -67,6 +67,7 @@ type EditorCamera struct {
 	viewport         EditorCameraViewport
 	lastMousePos     matrix.Vec2
 	flyStartMousePos matrix.Vec2
+	lastFlyCamMD     matrix.Vec2 // last fly cam mouse delta (MD)
 	mouseDown        matrix.Vec2
 	lastHit          matrix.Vec3
 	yawScale         matrix.Float
@@ -267,19 +268,23 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		if !kb.HasAlt() && e.mouseInViewport(host) && m.Pressed(hid.MouseButtonRight) {
 			lockX, lockY := e.viewportCenter(host)
 			e.flyStartMousePos = m.ScreenPosition()
-			win.HideCursor()
-			win.LockCursor(lockX, lockY)
+			// win.HideCursor()
+			// win.LockCursor(lockX, lockY)
+			// e.lastMousePos = e.localPositionFromScreen(host, e.lastMousePos)
 			e.lastMousePos = e.localPositionFromScreen(host,
 				matrix.NewVec2(float32(lockX), float32(lockY)))
+			e.lastFlyCamMD = matrix.Vec2{0, 0}
 			e.flyCamStarted = true
 			return true
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Released(hid.MouseButtonRight) {
 			e.flyCamStarted = false
-			win.UnlockCursor()
-			win.SetCursorPosition(int(e.flyStartMousePos.X()), int(e.flyStartMousePos.Y()))
-			win.Mouse.SetPosition(e.flyStartMousePos.X(), e.flyStartMousePos.Y(),
-				float32(win.Width()), float32(win.Height()))
-			win.ShowCursor()
+			e.lastMousePos = m.ScreenPosition()
+			e.lastFlyCamMD = matrix.Vec2{0, 0}
+			// win.UnlockCursor()
+			// win.SetCursorPosition(int(e.flyStartMousePos.X()), int(e.flyStartMousePos.Y()))
+			// win.Mouse.SetPosition(e.flyStartMousePos.X(), e.flyStartMousePos.Y(),
+			// 	float32(win.Width()), float32(win.Height()))
+			// win.ShowCursor()
 			return false
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
 			e.update3dFly(host, delta)
@@ -371,8 +376,12 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 	kb := &host.Window.Keyboard
 	if mouse.Moved() {
 		mp := e.mousePosition(host)
-		md := e.lastMousePos.Subtract(mp)
-		tc.FlyRotate(md.X()*xSensitivity, -md.Y()*ySensitivity)
+		curMD := e.lastMousePos.Subtract(mp) // current mouse delta
+		// difference between cur and last mouse delta , this allows us to get
+		// the signed changed in rotation
+		mdDiff := curMD.Subtract(e.lastFlyCamMD)
+		tc.FlyRotate(mdDiff.X()*xSensitivity, -mdDiff.Y()*ySensitivity)
+		e.lastFlyCamMD = curMD
 	}
 	cp := e.camera.Position()
 	cl := e.camera.LookAt()
@@ -434,14 +443,17 @@ func (e *EditorCamera) flyBoostMultiplier() float32 {
 
 func (e *EditorCamera) update3d(host *engine.Host, _ float64) (changed bool) {
 	defer tracing.NewRegion("EditorCamera.update3d").End()
+
 	tc := e.camera.(*cameras.TurntableCamera)
 	mouse := &host.Window.Mouse
 	kb := &host.Window.Keyboard
 	mp := e.mousePosition(host)
 	mouseInside := e.mouseInViewport(host)
+
 	if mouseInside && (kb.HasAlt() || kb.KeyHeld(hid.KeyboardKeySpace)) {
 		changed = true
 	}
+
 	if mouseInside && (mouse.Pressed(hid.MouseButtonLeft) || mouse.Pressed(hid.MouseButtonMiddle) ||
 		(mouse.Pressed(hid.MouseButtonRight) && kb.HasAlt())) {
 		e.dragging = true
