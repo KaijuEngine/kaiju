@@ -266,13 +266,12 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		m := &win.Mouse
 		kb := &win.Keyboard
 		if !kb.HasAlt() && e.mouseInViewport(host) && m.Pressed(hid.MouseButtonRight) {
-			lockX, lockY := e.viewportCenter(host)
+			// lockX, lockY := e.viewportCenter(host)
 			e.flyStartMousePos = m.ScreenPosition()
 			// win.HideCursor()
 			// win.LockCursor(lockX, lockY)
-			// e.lastMousePos = e.localPositionFromScreen(host, e.lastMousePos)
-			e.lastMousePos = e.localPositionFromScreen(host,
-				matrix.NewVec2(float32(lockX), float32(lockY)))
+			// e.lastMousePos = e.localPositionFromScreen(host,
+			// 	matrix.NewVec2(float32(lockX), float32(lockY)))
 			e.lastFlyCamMD = matrix.Vec2{0, 0}
 			e.flyCamStarted = true
 			return true
