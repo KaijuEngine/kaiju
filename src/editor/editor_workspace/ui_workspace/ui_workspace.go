@@ -201,7 +201,7 @@ func (w *UIWorkspace) applyRatio() {
 	}
 	scaleW := drawW / r.X()
 	scaleH := drawH / r.Y()
-	scale := matrix.Min(scaleW, scaleH)
+	scale := min(scaleW, scaleH)
 	targetWidth := r.X() * scale
 	targetHeight := r.Y() * scale
 	w.previewArea.UI.Layout().Scale(targetWidth, targetHeight)

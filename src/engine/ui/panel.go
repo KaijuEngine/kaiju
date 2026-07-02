@@ -423,10 +423,10 @@ func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 		return false
 	}
 	rb.elements = append(rb.elements, e)
-	rb.maxMarginTop = matrix.Max(rb.maxMarginTop, e.Layout().margin.Y())
-	rb.maxMarginBottom = matrix.Max(rb.maxMarginBottom, e.Layout().margin.W())
+	rb.maxMarginTop = max(rb.maxMarginTop, e.Layout().margin.Y())
+	rb.maxMarginBottom = max(rb.maxMarginBottom, e.Layout().margin.W())
 	rb.x += w
-	rb.height = matrix.Max(rb.height, h)
+	rb.height = max(rb.height, h)
 	return true
 }
 
@@ -1357,7 +1357,7 @@ func buildFlexLines(items []*flexLayoutItem, row, wrap bool, containerMain, gapM
 		}
 		line.items = append(line.items, item)
 		line.main += outerMain
-		line.cross = matrix.Max(line.cross, item.cross)
+		line.cross = max(line.cross, item.cross)
 	}
 	appendFlexLine(&lines, line)
 	return lines
@@ -1396,7 +1396,7 @@ func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain f
 		item.finalMain = flexMainSize(size, row)
 		item.cross = flexCrossSize(size, row)
 		line.main += item.finalMain + flexMainMargin(item.margin, row)
-		line.cross = matrix.Max(line.cross, item.cross+flexCrossMargin(item.margin, row))
+		line.cross = max(line.cross, item.cross+flexCrossMargin(item.margin, row))
 	}
 	if len(line.items) > 1 {
 		line.main += float32(len(line.items)-1) * gapMain
@@ -1580,8 +1580,8 @@ func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 				mainPos += item.finalMain + item.margin.Vertical() + gapMain + extraMainGap
 			}
 		}
-		maxMainUsed = matrix.Max(maxMainUsed, line.main)
-		maxCrossUsed = matrix.Max(maxCrossUsed, crossPos+line.cross)
+		maxMainUsed = max(maxMainUsed, line.main)
+		maxCrossUsed = max(maxCrossUsed, crossPos+line.cross)
 		crossPos += line.cross + gapCross + lineExtraGap
 	}
 	if row {
@@ -1835,7 +1835,7 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		kLayout := items[i].ui.Layout()
 		kSize := kLayout.PixelSize()
 		margin := kLayout.Margin()
-		rowHeights[items[i].row] = matrix.Max(rowHeights[items[i].row], kSize.Y()+margin.Vertical())
+		rowHeights[items[i].row] = max(rowHeights[items[i].row], kSize.Y()+margin.Vertical())
 	}
 	rowOffsets := make([]float32, rowCount)
 	y := startY
@@ -1857,9 +1857,9 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		itemY := rowOffsets[items[i].row] + margin.Y()
 		kLayout.SetRowLayoutOffset(matrix.NewVec2(x, itemY))
 		right := (x - startX) + kSize.X() + margin.Z()
-		contentSize.SetX(matrix.Max(contentSize.X(), right))
+		contentSize.SetX(max(contentSize.X(), right))
 		bottom := itemY - offsetStart.Y() + kSize.Y() + margin.W()
-		contentSize.SetY(matrix.Max(contentSize.Y(), bottom))
+		contentSize.SetY(max(contentSize.Y(), bottom))
 	}
 	contentSize.SetY(contentSize.Y() + p.layout.padding.Bottom() + p.layout.border.Bottom())
 	return contentSize

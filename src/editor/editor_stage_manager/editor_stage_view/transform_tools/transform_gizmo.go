@@ -87,7 +87,7 @@ func (t *TransformGizmo) resize(cam cameras.Camera) {
 	} else {
 		viewWidth := cam.Width()
 		viewHeight := cam.Height()
-		maxDim := matrix.Float(matrix.Max(viewWidth, viewHeight))
+		maxDim := matrix.Float(max(viewWidth, viewHeight))
 		gizmoScale = maxDim * translationGizmoScale / 3
 	}
 	gizmoScale *= t.viewportScaleFactor(viewSize, refSize)

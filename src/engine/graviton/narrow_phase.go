@@ -676,7 +676,7 @@ func collideConeOOBB(c Cone, b OOBB) (Contact, bool) {
 		boxRadius := projectOOBBRadius(b, axis)
 		boxMin := boxCenter - boxRadius
 		boxMax := boxCenter + boxRadius
-		overlap := matrix.Min(coneMax, boxMax) - matrix.Max(coneMin, boxMin)
+		overlap := min(coneMax, boxMax) - max(coneMin, boxMin)
 		if overlap < 0 {
 			return Contact{}, false
 		}
@@ -945,7 +945,7 @@ func newContact(pointA, pointB, normal matrix.Vec3, penetration matrix.Float) Co
 		PointA:      pointA,
 		PointB:      pointB,
 		Normal:      safeNormal(normal, matrix.Vec3Right()),
-		Penetration: matrix.Max(penetration, 0),
+		Penetration: max(penetration, 0),
 	}
 }
 
@@ -969,7 +969,7 @@ func approximateContact(a, b Shape) Contact {
 func approximatePenetration(a, b AABB, normal matrix.Vec3) matrix.Float {
 	axis := matrix.Vec3Abs(normal).LongestAxis()
 	delta := matrix.Abs(b.Center[axis] - a.Center[axis])
-	return matrix.Max(a.Extent[axis]+b.Extent[axis]-delta, 0)
+	return max(a.Extent[axis]+b.Extent[axis]-delta, 0)
 }
 
 func worldShape(body *RigidBody) Shape {
@@ -1106,10 +1106,10 @@ func satOOBBTriangleAxis(box OOBB, points [3]matrix.Vec3, axis matrix.Vec3, norm
 	triMax := triMin
 	for i := 1; i < 3; i++ {
 		projection := matrix.Vec3Dot(points[i], axis)
-		triMin = matrix.Min(triMin, projection)
-		triMax = matrix.Max(triMax, projection)
+		triMin = min(triMin, projection)
+		triMax = max(triMax, projection)
 	}
-	overlap := matrix.Min(boxMax, triMax) - matrix.Max(boxMin, triMin)
+	overlap := min(boxMax, triMax) - max(boxMin, triMin)
 	if triMax-triMin <= contactEpsilon {
 		overlap = boxRadius - matrix.Abs(triMin-boxCenter)
 	}
@@ -1190,7 +1190,7 @@ func supportAABB(box AABB, direction matrix.Vec3) matrix.Vec3 {
 func projectCylinderRadius(c Cylinder, axis matrix.Vec3) matrix.Float {
 	direction := safeNormal(c.Direction, matrix.Vec3Up())
 	axisDot := matrix.Vec3Dot(axis, direction)
-	radialSq := matrix.Max(1-axisDot*axisDot, 0)
+	radialSq := max(1-axisDot*axisDot, 0)
 	return c.Height*0.5*matrix.Abs(axisDot) + c.Radius*matrix.Sqrt(radialSq)
 }
 
@@ -1207,7 +1207,7 @@ func projectCone(c Cone, axis matrix.Vec3) (matrix.Float, matrix.Float) {
 
 func closestPointOnConeSurface(point matrix.Vec3, c Cone) (matrix.Vec3, matrix.Float, bool) {
 	axis := safeNormal(c.Direction, matrix.Vec3Up())
-	height := matrix.Max(c.Height, contactEpsilon)
+	height := max(c.Height, contactEpsilon)
 	apex := c.Center.Subtract(axis.Scale(height * 0.5))
 	local := point.Subtract(apex)
 	axial := matrix.Vec3Dot(local, axis)
@@ -1230,7 +1230,7 @@ func closestPointOnConeSurface(point matrix.Vec3, c Cone) (matrix.Vec3, matrix.F
 		distanceSq = baseDistanceSq
 	}
 	inside := pointInCone(point, c)
-	return closest, matrix.Sqrt(matrix.Max(distanceSq, 0)), inside
+	return closest, matrix.Sqrt(max(distanceSq, 0)), inside
 }
 
 func closestPointOnTriangle(point, a, b, c matrix.Vec3) matrix.Vec3 {
@@ -1364,38 +1364,38 @@ func triangleNormal(tri DetailedTriangle) matrix.Vec3 {
 }
 
 func closestAABBFaceNormal(point matrix.Vec3, box AABB) (matrix.Vec3, matrix.Float) {
-	min := box.Min()
-	max := box.Max()
+	minimum := box.Min()
+	maximum := box.Max()
 	bestAxis := matrix.Vx
 	bestSign := matrix.Float(-1)
-	bestDistance := point.X() - min.X()
-	if d := max.X() - point.X(); d < bestDistance {
+	bestDistance := point.X() - minimum.X()
+	if d := maximum.X() - point.X(); d < bestDistance {
 		bestDistance = d
 		bestSign = 1
 	}
-	if d := point.Y() - min.Y(); d < bestDistance {
+	if d := point.Y() - minimum.Y(); d < bestDistance {
 		bestDistance = d
 		bestAxis = matrix.Vy
 		bestSign = -1
 	}
-	if d := max.Y() - point.Y(); d < bestDistance {
+	if d := maximum.Y() - point.Y(); d < bestDistance {
 		bestDistance = d
 		bestAxis = matrix.Vy
 		bestSign = 1
 	}
-	if d := point.Z() - min.Z(); d < bestDistance {
+	if d := point.Z() - minimum.Z(); d < bestDistance {
 		bestDistance = d
 		bestAxis = matrix.Vz
 		bestSign = -1
 	}
-	if d := max.Z() - point.Z(); d < bestDistance {
+	if d := maximum.Z() - point.Z(); d < bestDistance {
 		bestDistance = d
 		bestAxis = matrix.Vz
 		bestSign = 1
 	}
 	normal := matrix.Vec3Zero()
 	normal[bestAxis] = bestSign
-	return normal, matrix.Max(bestDistance, 0)
+	return normal, max(bestDistance, 0)
 }
 
 func closestPointOnSegment(point, a, b matrix.Vec3) matrix.Vec3 {

@@ -595,7 +595,7 @@ func (cache *FontCache) MeasureStringWithLetterSpacing(face FontFace, text strin
 			if i < len(runes)-1 && runes[i+1] != '\n' {
 				x += letterSpacing
 			}
-			maxX = matrix.Max(maxX, x)
+			maxX = max(maxX, x)
 		}
 	}
 	return maxX

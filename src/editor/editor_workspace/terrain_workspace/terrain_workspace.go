@@ -1051,7 +1051,7 @@ func (w *TerrainWorkspace) showBrushPreview(hit terrain.TerrainRayHit) {
 	if w.toolMode == TerrainToolTexturePaint {
 		color = matrix.NewColor(0.9, 0.55, 0.18, 1.0)
 	}
-	ringWidth := matrix.Max(radius*matrix.Float(0.035), matrix.Float(0.05))
+	ringWidth := max(radius*matrix.Float(0.035), matrix.Float(0.05))
 	w.active.SetBrushPreview(hit.Point.XZ(), radius, ringWidth, color)
 	if w.brushRingData == nil {
 		return

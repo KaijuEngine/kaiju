@@ -89,7 +89,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 	mip := texture.MipLevels
 	if mip <= 0 {
 		w, h := float32(width), float32(height)
-		mip = int(matrix.Floor(matrix.Log2(matrix.Max(w, h)))) + 1
+		mip = int(matrix.Floor(matrix.Log2(max(w, h)))) + 1
 	}
 	layerCount := uintptr(1)
 	flags := GPUImageCreateFlags(0)

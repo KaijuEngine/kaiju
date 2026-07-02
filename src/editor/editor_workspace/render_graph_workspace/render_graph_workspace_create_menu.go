@@ -261,8 +261,8 @@ func (w *RenderGraphWorkspace) defaultCreateNodeViewPosition() matrix.Vec2 {
 	size := w.graph.root.Base().Layout().PixelSize()
 	offset := matrix.Float(w.createNodeCount % 10 * 18)
 	return matrix.NewVec2(
-		matrix.Max(24, size.X()*0.5-renderGraphNodeWidth*0.5+offset),
-		matrix.Max(24, size.Y()*0.35+offset),
+		max(24, size.X()*0.5-renderGraphNodeWidth*0.5+offset),
+		max(24, size.Y()*0.35+offset),
 	)
 }
 

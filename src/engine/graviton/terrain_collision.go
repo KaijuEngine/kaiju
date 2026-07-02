@@ -169,10 +169,10 @@ func (c *TerrainCollision) CellRangeForLocalAABB(bounds AABB) (minX, minZ, maxX,
 	)
 	gridMinX, gridMinZ := c.LocalToGrid(localMin)
 	gridMaxX, gridMaxZ := c.LocalToGrid(localMax)
-	minX = int(matrix.Floor(matrix.Min(gridMinX, gridMaxX)))
-	minZ = int(matrix.Floor(matrix.Min(gridMinZ, gridMaxZ)))
-	maxX = int(matrix.Floor(matrix.Max(gridMinX, gridMaxX)))
-	maxZ = int(matrix.Floor(matrix.Max(gridMinZ, gridMaxZ)))
+	minX = int(matrix.Floor(min(gridMinX, gridMaxX)))
+	minZ = int(matrix.Floor(min(gridMinZ, gridMaxZ)))
+	maxX = int(matrix.Floor(max(gridMinX, gridMaxX)))
+	maxZ = int(matrix.Floor(max(gridMinZ, gridMaxZ)))
 	lastCell := c.Resolution - 2
 	minX = max(0, min(minX, lastCell))
 	minZ = max(0, min(minZ, lastCell))
@@ -269,12 +269,12 @@ func (c *TerrainCollision) raycastLocal(ray Ray, length matrix.Float) (matrix.Ve
 	if entry > length {
 		return matrix.Vec3Zero(), false
 	}
-	exit = matrix.Min(exit, length)
-	cell := matrix.Min(
+	exit = min(exit, length)
+	cell := min(
 		c.WorldSize.X()/matrix.Float(c.Resolution-1),
 		c.WorldSize.Y()/matrix.Float(c.Resolution-1),
 	)
-	step := matrix.Max(cell*terrainRayStep, matrix.Tiny)
+	step := max(cell*terrainRayStep, matrix.Tiny)
 	if entry < 0 {
 		entry = 0
 	}
@@ -284,9 +284,9 @@ func (c *TerrainCollision) raycastLocal(ray Ray, length matrix.Float) (matrix.Ve
 		return lastPoint, true
 	}
 	for distance := entry + step; distance <= exit+matrix.Tiny; distance += step {
-		point := ray.Point(float32(matrix.Min(distance, exit)))
+		point := ray.Point(float32(min(distance, exit)))
 		if point.Y() <= c.HeightAtLocal(point.XZ()) {
-			return c.refineRayHit(ray, lastDistance, matrix.Min(distance, exit)), true
+			return c.refineRayHit(ray, lastDistance, min(distance, exit)), true
 		}
 		lastDistance = distance
 	}
@@ -326,8 +326,8 @@ func terrainRayBounds(ray Ray, minBounds, maxBounds matrix.Vec3) (matrix.Float, 
 		if t0 > t1 {
 			t0, t1 = t1, t0
 		}
-		tMin = matrix.Max(tMin, t0)
-		tMax = matrix.Min(tMax, t1)
+		tMin = max(tMin, t0)
+		tMax = min(tMax, t1)
 		if tMin > tMax {
 			return 0, 0, false
 		}

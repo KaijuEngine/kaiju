@@ -451,12 +451,12 @@ func (s *CollisionSolver) solvePosition(manifold *ContactManifold) {
 	normal := safeNormal(manifold.Normal, matrix.Vec3Right())
 	for i := range manifold.Count {
 		penetration := manifold.Contacts[i].Penetration
-		depth := matrix.Max(penetration-s.PenetrationSlop, 0)
+		depth := max(penetration-s.PenetrationSlop, 0)
 		if depth <= 0 {
 			continue
 		}
 		correctionMagnitude := depth * s.Baumgarte / invMassSum
-		correctionMagnitude = matrix.Min(correctionMagnitude, s.MaxCorrection)
+		correctionMagnitude = min(correctionMagnitude, s.MaxCorrection)
 		correctionMagnitude /= matrix.Float(manifold.Count)
 		correction := normal.Scale(correctionMagnitude)
 		moveBody(bodyA, correction.Scale(-invMassA))

@@ -66,7 +66,7 @@ func (t ShaderDataTerrain) Size() int {
 
 func (t *ShaderDataTerrain) SetBrush(centerXZ matrix.Vec2, radius, ringWidth matrix.Float, color matrix.Color) {
 	t.BrushCenterRadius = matrix.NewVec4(centerXZ.X(), centerXZ.Y(), radius, 1)
-	t.BrushParams.SetX(matrix.Max(ringWidth, matrix.Float(0.001)))
+	t.BrushParams.SetX(max(ringWidth, matrix.Float(0.001)))
 	t.BrushColor = color
 }
 

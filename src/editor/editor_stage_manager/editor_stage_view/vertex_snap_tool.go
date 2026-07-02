@@ -217,7 +217,7 @@ func vertexSnapMarkerWorldScale(cam cameras.Camera, pos matrix.Vec3) matrix.Floa
 		return vertexSnapMarkerScale
 	}
 	if cam.IsOrthographic() {
-		return matrix.Float(matrix.Max(cam.Width(), cam.Height())) * vertexSnapMarkerScale
+		return matrix.Float(max(cam.Width(), cam.Height())) * vertexSnapMarkerScale
 	}
 	viewPos := matrix.Mat4MultiplyVec4(cam.View(), pos.AsVec4())
 	dist := matrix.Abs(viewPos.Z())

@@ -464,7 +464,7 @@ func (t *Terrain) VisitPaintLineStamps(from, to matrix.Vec2, stroke PaintStroke,
 	distance := delta.Length()
 	spacing := stroke.Spacing
 	if spacing <= 0 {
-		spacing = matrix.Max(stroke.Radius*defaultBrushSpacingScale, matrix.Tiny)
+		spacing = max(stroke.Radius*defaultBrushSpacingScale, matrix.Tiny)
 	}
 	if distance <= matrix.Tiny {
 		stroke.Center = from
@@ -921,11 +921,11 @@ func (t *Terrain) RayHitLocal(ray graviton.Ray) (TerrainRayHit, bool) {
 	if !ok {
 		return TerrainRayHit{}, false
 	}
-	cell := matrix.Min(
+	cell := min(
 		t.Config.WorldSize.X()/matrix.Float(t.HeightField.Resolution-1),
 		t.Config.WorldSize.Y()/matrix.Float(t.HeightField.Resolution-1),
 	)
-	step := matrix.Max(cell*defaultRayStep, matrix.Tiny)
+	step := max(cell*defaultRayStep, matrix.Tiny)
 	if entry < 0 {
 		entry = 0
 	}
@@ -936,10 +936,10 @@ func (t *Terrain) RayHitLocal(ray graviton.Ray) (TerrainRayHit, bool) {
 		return t.localHit(lastPoint, ray.Origin), true
 	}
 	for distance := entry + step; distance <= exit+matrix.Tiny; distance += step {
-		point := ray.Point(matrix.Min(distance, exit))
+		point := ray.Point(min(distance, exit))
 		delta := point.Y() - t.HeightAtLocal(point.XZ())
 		if delta <= 0 {
-			hitPoint := t.refineRayHit(ray, lastDistance, matrix.Min(distance, exit))
+			hitPoint := t.refineRayHit(ray, lastDistance, min(distance, exit))
 			return t.localHit(hitPoint, ray.Origin), true
 		}
 		lastDistance = distance
@@ -1269,7 +1269,7 @@ func (t *Terrain) buildChunkIndexes(chunk *TerrainChunk) []uint32 {
 
 func (t *Terrain) localStrokeToGrid(stroke PaintStroke) PaintStroke {
 	x, z := t.localToGrid(stroke.Center)
-	cell := matrix.Min(
+	cell := min(
 		t.Config.WorldSize.X()/matrix.Float(t.HeightField.Resolution-1),
 		t.Config.WorldSize.Y()/matrix.Float(t.HeightField.Resolution-1),
 	)
@@ -1286,7 +1286,7 @@ func (t *Terrain) localStrokeToWeightGrid(stroke PaintStroke) PaintStroke {
 		return stroke
 	}
 	x, z := t.localToWeightGrid(stroke.Center)
-	cell := matrix.Min(
+	cell := min(
 		t.Config.WorldSize.X()/matrix.Float(t.LayerSet.WeightMap.Resolution-1),
 		t.Config.WorldSize.Y()/matrix.Float(t.LayerSet.WeightMap.Resolution-1),
 	)
@@ -1537,8 +1537,8 @@ func rayBounds(ray graviton.Ray, minBounds, maxBounds matrix.Vec3) (matrix.Float
 		if t0 > t1 {
 			t0, t1 = t1, t0
 		}
-		tMin = matrix.Max(tMin, t0)
-		tMax = matrix.Min(tMax, t1)
+		tMin = max(tMin, t0)
+		tMax = min(tMax, t1)
 		if tMin > tMax {
 			return 0, 0, false
 		}

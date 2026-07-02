@@ -170,10 +170,10 @@ func renderGraphNodesBounds(nodes []*renderGraphNode) (matrix.Vec4, bool) {
 			hasBounds = true
 			continue
 		}
-		bounds.SetX(matrix.Min(bounds.Left(), nodeBounds.Left()))
-		bounds.SetY(matrix.Min(bounds.Top(), nodeBounds.Top()))
-		bounds.SetZ(matrix.Max(bounds.Right(), nodeBounds.Right()))
-		bounds.SetW(matrix.Max(bounds.Bottom(), nodeBounds.Bottom()))
+		bounds.SetX(min(bounds.Left(), nodeBounds.Left()))
+		bounds.SetY(min(bounds.Top(), nodeBounds.Top()))
+		bounds.SetZ(max(bounds.Right(), nodeBounds.Right()))
+		bounds.SetW(max(bounds.Bottom(), nodeBounds.Bottom()))
 	}
 	return bounds, hasBounds
 }

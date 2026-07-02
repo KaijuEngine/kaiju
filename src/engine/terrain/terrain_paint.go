@@ -867,7 +867,7 @@ func (m *TextureWeightMap) textureStrokeAmount(stroke TexturePaintStroke, x, z i
 		distance := matrix.Sqrt(dx*dx + dz*dz)
 		if stroke.Jitter > 0 {
 			jitter := textureHashSigned(x, z, stroke.NoiseSeed+17) * stroke.Jitter
-			distance = matrix.Max(0, distance+jitter)
+			distance = max(0, distance+jitter)
 		}
 		if distance > stroke.Radius {
 			return 0, false
@@ -876,8 +876,8 @@ func (m *TextureWeightMap) textureStrokeAmount(stroke TexturePaintStroke, x, z i
 	}
 	if stroke.Stamp != nil && stroke.Mode != TextureBrushFill {
 		weight *= stroke.Stamp.Sample(
-			(matrix.Float(x)-stroke.Center.X())/matrix.Max(stroke.Radius, matrix.Tiny),
-			(matrix.Float(z)-stroke.Center.Y())/matrix.Max(stroke.Radius, matrix.Tiny),
+			(matrix.Float(x)-stroke.Center.X())/max(stroke.Radius, matrix.Tiny),
+			(matrix.Float(z)-stroke.Center.Y())/max(stroke.Radius, matrix.Tiny),
 			stroke.StampScale,
 			stroke.StampRotation,
 		)

@@ -12,6 +12,8 @@ import (
 
 const vec3StrFmt = "%f, %f, %f"
 
+type Vec3T[T tNumber] [3]T
+
 type Vec3 [3]Float
 
 type Vec3MinMax struct {
@@ -227,9 +229,9 @@ func Vec3Abs(v Vec3) Vec3 {
 func Vec3Min(v ...Vec3) Vec3 {
 	res := v[0]
 	for i := 1; i < len(v); i++ {
-		res[0] = Min(res[0], v[i][0])
-		res[1] = Min(res[1], v[i][1])
-		res[2] = Min(res[2], v[i][2])
+		res[0] = min(res[0], v[i][0])
+		res[1] = min(res[1], v[i][1])
+		res[2] = min(res[2], v[i][2])
 	}
 	return res
 }
@@ -237,9 +239,9 @@ func Vec3Min(v ...Vec3) Vec3 {
 func Vec3MinAbs(v ...Vec3) Vec3 {
 	res := v[0].Abs()
 	for i := 1; i < len(v); i++ {
-		res[0] = Min(res[0], Abs(v[i][0]))
-		res[1] = Min(res[1], Abs(v[i][1]))
-		res[2] = Min(res[2], Abs(v[i][2]))
+		res[0] = min(res[0], Abs(v[i][0]))
+		res[1] = min(res[1], Abs(v[i][1]))
+		res[2] = min(res[2], Abs(v[i][2]))
 	}
 	return res
 }
@@ -247,9 +249,9 @@ func Vec3MinAbs(v ...Vec3) Vec3 {
 func Vec3Max(v ...Vec3) Vec3 {
 	res := v[0]
 	for i := 1; i < len(v); i++ {
-		res[0] = Max(res[0], v[i][0])
-		res[1] = Max(res[1], v[i][1])
-		res[2] = Max(res[2], v[i][2])
+		res[0] = max(res[0], v[i][0])
+		res[1] = max(res[1], v[i][1])
+		res[2] = max(res[2], v[i][2])
 	}
 	return res
 }
@@ -257,9 +259,9 @@ func Vec3Max(v ...Vec3) Vec3 {
 func Vec3MaxAbs(v ...Vec3) Vec3 {
 	res := v[0].Abs()
 	for i := 1; i < len(v); i++ {
-		res[0] = Max(res[0], Abs(v[i][0]))
-		res[1] = Max(res[1], Abs(v[i][1]))
-		res[2] = Max(res[2], Abs(v[i][2]))
+		res[0] = max(res[0], Abs(v[i][0]))
+		res[1] = max(res[1], Abs(v[i][1]))
+		res[2] = max(res[2], Abs(v[i][2]))
 	}
 	return res
 }

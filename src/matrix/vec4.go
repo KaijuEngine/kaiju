@@ -172,37 +172,37 @@ func Vec4ApproxTo(a, b Vec4, delta Float) bool {
 
 func Vec4Min(a, b Vec4) Vec4 {
 	return Vec4{
-		Min(a[Vx], b[Vx]),
-		Min(a[Vy], b[Vy]),
-		Min(a[Vz], b[Vz]),
-		Min(a[Vw], b[Vw]),
+		min(a[Vx], b[Vx]),
+		min(a[Vy], b[Vy]),
+		min(a[Vz], b[Vz]),
+		min(a[Vw], b[Vw]),
 	}
 }
 
 func Vec4MinAbs(a, b Vec4) Vec4 {
 	return Vec4{
-		Min(Abs(a[Vx]), Abs(b[Vx])),
-		Min(Abs(a[Vy]), Abs(b[Vy])),
-		Min(Abs(a[Vz]), Abs(b[Vz])),
-		Min(Abs(a[Vw]), Abs(b[Vw])),
+		min(Abs(a[Vx]), Abs(b[Vx])),
+		min(Abs(a[Vy]), Abs(b[Vy])),
+		min(Abs(a[Vz]), Abs(b[Vz])),
+		min(Abs(a[Vw]), Abs(b[Vw])),
 	}
 }
 
 func Vec4Max(a, b Vec4) Vec4 {
 	return Vec4{
-		Max(a[Vx], b[Vx]),
-		Max(a[Vy], b[Vy]),
-		Max(a[Vz], b[Vz]),
-		Max(a[Vw], b[Vw]),
+		max(a[Vx], b[Vx]),
+		max(a[Vy], b[Vy]),
+		max(a[Vz], b[Vz]),
+		max(a[Vw], b[Vw]),
 	}
 }
 
 func Vec4MaxAbs(a, b Vec4) Vec4 {
 	return Vec4{
-		Max(Abs(a[Vx]), Abs(b[Vx])),
-		Max(Abs(a[Vy]), Abs(b[Vy])),
-		Max(Abs(a[Vz]), Abs(b[Vz])),
-		Max(Abs(a[Vw]), Abs(b[Vw])),
+		max(Abs(a[Vx]), Abs(b[Vx])),
+		max(Abs(a[Vy]), Abs(b[Vy])),
+		max(Abs(a[Vz]), Abs(b[Vz])),
+		max(Abs(a[Vw]), Abs(b[Vw])),
 	}
 }
 

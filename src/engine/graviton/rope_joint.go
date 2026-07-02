@@ -95,7 +95,7 @@ func (j *RopeJoint) SetMaxLength(maxLength matrix.Float) {
 	if j == nil {
 		return
 	}
-	j.MaxLength = matrix.Max(maxLength, 0)
+	j.MaxLength = max(maxLength, 0)
 	j.AccumulatedImpulse = 0
 	WakeConstrainedBodies(j.BodyA, j.BodyB)
 }
@@ -134,7 +134,7 @@ func (j *RopeJoint) prepare(deltaTime matrix.Float) {
 	j.row.SetImpulseLimits(-matrix.Inf(1), 0)
 	j.row.AccumulatedImpulse = 0
 	if j.WarmStarting {
-		j.row.AccumulatedImpulse = matrix.Min(j.AccumulatedImpulse, 0)
+		j.row.AccumulatedImpulse = min(j.AccumulatedImpulse, 0)
 		j.row.ApplyImpulse(j.row.AccumulatedImpulse)
 	}
 }
@@ -164,7 +164,7 @@ func (j *RopeJoint) solvePosition() {
 		return
 	}
 	correction := (length - j.MaxLength) * j.positionCorrectionFactor() * j.stiffness()
-	correction = matrix.Min(correction, j.maxCorrection())
+	correction = min(correction, j.maxCorrection())
 	correction /= invMassSum
 	moveBody(j.BodyA, axis.Scale(correction*invMassA))
 	moveBody(j.BodyB, axis.Scale(-correction*invMassB))
@@ -190,7 +190,7 @@ func (j *RopeJoint) bias(length, deltaTime matrix.Float) matrix.Float {
 	if deltaTime <= 0 {
 		deltaTime = defaultDistanceJointTimeStep
 	}
-	return matrix.Max(length-j.MaxLength, 0) * j.biasFactor() / deltaTime
+	return max(length-j.MaxLength, 0) * j.biasFactor() / deltaTime
 }
 
 func (j *RopeJoint) stiffness() matrix.Float {

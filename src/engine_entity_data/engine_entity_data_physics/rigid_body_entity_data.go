@@ -146,7 +146,7 @@ func (r RigidBodyEntityData) gravitonShape(scale matrix.Vec3) graviton.Shape {
 		return graviton.NewCapsuleShape(radius, height)
 	case ShapeCylinder:
 		size := r.Extent.Multiply(scale)
-		radius := matrix.Max(size.X(), size.Z())
+		radius := max(size.X(), size.Z())
 		height := size.Y() * 2
 		return graviton.NewCylinderShape(radius, height)
 	case ShapeCone:

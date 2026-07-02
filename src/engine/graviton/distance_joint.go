@@ -104,7 +104,7 @@ func (j *DistanceJoint) SetRestLength(restLength matrix.Float) {
 	if j == nil {
 		return
 	}
-	j.RestLength = matrix.Max(restLength, 0)
+	j.RestLength = max(restLength, 0)
 	j.AccumulatedImpulse = 0
 	WakeConstrainedBodies(j.BodyA, j.BodyB)
 }

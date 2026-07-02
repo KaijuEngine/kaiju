@@ -143,7 +143,7 @@ func TestHingeJointAngularLimits(t *testing.T) {
 	var observedLimitImpulse matrix.Float
 	for range 120 {
 		system.Step(workGroup, threads, 1.0/60.0)
-		observedLimitImpulse = matrix.Max(observedLimitImpulse, matrix.Abs(joint.AccumulatedLimitImpulse))
+		observedLimitImpulse = max(observedLimitImpulse, matrix.Abs(joint.AccumulatedLimitImpulse))
 	}
 	angle := joint.CurrentAngle()
 	if angle > joint.MaxAngle+0.03 {

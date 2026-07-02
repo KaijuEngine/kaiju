@@ -220,7 +220,7 @@ func (j *HingeJoint) SetMotor(targetSpeed, maxMotorImpulse matrix.Float) {
 		return
 	}
 	j.MotorTargetSpeed = targetSpeed
-	j.MaxMotorImpulse = matrix.Max(maxMotorImpulse, 0)
+	j.MaxMotorImpulse = max(maxMotorImpulse, 0)
 	j.EnableMotor = j.MaxMotorImpulse > 0 || j.MaxMotorTorque > 0
 	j.AccumulatedMotorImpulse = 0
 	WakeConstrainedBodies(j.BodyA, j.BodyB)
@@ -231,7 +231,7 @@ func (j *HingeJoint) SetMotorTorque(targetSpeed, maxMotorTorque matrix.Float) {
 		return
 	}
 	j.MotorTargetSpeed = targetSpeed
-	j.MaxMotorTorque = matrix.Max(maxMotorTorque, 0)
+	j.MaxMotorTorque = max(maxMotorTorque, 0)
 	j.EnableMotor = j.MaxMotorImpulse > 0 || j.MaxMotorTorque > 0
 	j.AccumulatedMotorImpulse = 0
 	WakeConstrainedBodies(j.BodyA, j.BodyB)
@@ -539,10 +539,10 @@ func (j *HingeJoint) setReferenceAxesFromCurrentPose() {
 
 func (j *HingeJoint) clampedLimitWarmImpulse() matrix.Float {
 	if j.limitState < 0 {
-		return matrix.Min(j.AccumulatedLimitImpulse, 0)
+		return min(j.AccumulatedLimitImpulse, 0)
 	}
 	if j.limitState > 0 {
-		return matrix.Max(j.AccumulatedLimitImpulse, 0)
+		return max(j.AccumulatedLimitImpulse, 0)
 	}
 	return 0
 }

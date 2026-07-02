@@ -284,9 +284,9 @@ func (s Cylinder) IntersectsRay(r Ray) (bool, float32) {
 		return false, 0
 	}
 	ds := matrix.Sqrt(dd)
-	t := matrix.Min((-ho-ds)/ee, (-ho+ds)/ee)
+	t := min((-ho-ds)/ee, (-ho+ds)/ee)
 	if t < 0 {
-		t = matrix.Max((-ho-ds)/ee, (-ho+ds)/ee)
+		t = max((-ho-ds)/ee, (-ho+ds)/ee)
 		if t < 0 {
 			return false, 0
 		}
