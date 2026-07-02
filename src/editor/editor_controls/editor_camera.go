@@ -66,7 +66,6 @@ type EditorCamera struct {
 	camera           cameras.Camera
 	viewport         EditorCameraViewport
 	lastMousePos     matrix.Vec2
-	flyStartMousePos matrix.Vec2
 	lastFlyCamMD     matrix.Vec2 // last fly cam mouse delta (MD)
 	mouseDown        matrix.Vec2
 	lastHit          matrix.Vec3
@@ -266,12 +265,6 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 		m := &win.Mouse
 		kb := &win.Keyboard
 		if !kb.HasAlt() && e.mouseInViewport(host) && m.Pressed(hid.MouseButtonRight) {
-			// lockX, lockY := e.viewportCenter(host)
-			e.flyStartMousePos = m.ScreenPosition()
-			// win.HideCursor()
-			// win.LockCursor(lockX, lockY)
-			// e.lastMousePos = e.localPositionFromScreen(host,
-			// 	matrix.NewVec2(float32(lockX), float32(lockY)))
 			e.lastFlyCamMD = matrix.Vec2{0, 0}
 			e.flyCamStarted = true
 			return true
@@ -279,11 +272,6 @@ func (e *EditorCamera) Update(host *engine.Host, delta float64) (changed bool) {
 			e.flyCamStarted = false
 			e.lastMousePos = m.ScreenPosition()
 			e.lastFlyCamMD = matrix.Vec2{0, 0}
-			// win.UnlockCursor()
-			// win.SetCursorPosition(int(e.flyStartMousePos.X()), int(e.flyStartMousePos.Y()))
-			// win.Mouse.SetPosition(e.flyStartMousePos.X(), e.flyStartMousePos.Y(),
-			// 	float32(win.Width()), float32(win.Height()))
-			// win.ShowCursor()
 			return false
 		} else if e.flyCamStarted && !kb.HasAlt() && m.Held(hid.MouseButtonRight) {
 			e.update3dFly(host, delta)
