@@ -260,6 +260,6 @@ func (e *Emitter) spawn(transform *matrix.Transform) {
 	p.Velocity.Position = dir.Normal().Scale(v)
 }
 
-func randomFloat32InRange(r *rand.Rand, minMax matrix.Vec2) float32 {
-	return minMax.X() + r.Float32()*(minMax.Y()-minMax.X())
+func randomFloat32InRange(r *rand.Rand, minMax matrix.Vec2) matrix.Float {
+	return minMax.X() + matrix.Float(r.Float32())*(minMax.Y()-minMax.X())
 }

@@ -108,8 +108,8 @@ func (v *StageView) updateCameraPreview(entity *editor_stage_manager.StageEntity
 }
 
 func (v *StageView) cameraPreviewProjectionSize(data *entity_data_binding.EntityDataEntry) (float32, float32) {
-	width := cameraPreviewFieldFloat32(data, "Width", 0)
-	height := cameraPreviewFieldFloat32(data, "Height", 0)
+	width := cameraPreviewFieldFloat(data, "Width", 0)
+	height := cameraPreviewFieldFloat(data, "Height", 0)
 	if width <= 0 {
 		width = cameraPreviewFallbackWidth
 		if v.host != nil && v.host.Window != nil && v.host.Window.Width() > 0 {
@@ -195,9 +195,9 @@ func cameraPreviewCameraFromBinding(entity *editor_stage_manager.StageEntity, da
 		camera = cameras.NewStandardCamera(width, height, viewWidth, viewHeight, position)
 	}
 	camera.SetProperties(
-		cameraPreviewFieldFloat32(data, "FOV", 60),
-		cameraPreviewFieldFloat32(data, "NearPlane", 0.01),
-		cameraPreviewFieldFloat32(data, "FarPlane", 500),
+		cameraPreviewFieldFloat(data, "FOV", 60),
+		cameraPreviewFieldFloat(data, "NearPlane", 0.01),
+		cameraPreviewFieldFloat(data, "FarPlane", 500),
 		width,
 		height,
 	)
@@ -249,7 +249,7 @@ func (v *StageView) hideCameraPreview() {
 	v.cameraPreview.data = nil
 }
 
-func cameraPreviewFieldFloat32(data *entity_data_binding.EntityDataEntry, name string, fallback float32) float32 {
+func cameraPreviewFieldFloat(data *entity_data_binding.EntityDataEntry, name string, fallback matrix.Float) matrix.Float {
 	if data == nil {
 		return fallback
 	}
@@ -258,12 +258,12 @@ func cameraPreviewFieldFloat32(data *entity_data_binding.EntityDataEntry, name s
 		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
 			return fallback
 		}
-		return v
+		return matrix.Float(v)
 	case float64:
 		if math.IsNaN(v) || math.IsInf(v, 0) {
 			return fallback
 		}
-		return float32(v)
+		return matrix.Float(v)
 	default:
 		return fallback
 	}

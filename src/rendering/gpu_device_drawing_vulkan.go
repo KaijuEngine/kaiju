@@ -153,10 +153,10 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	region.SrcOffsets[1].X = int32(extentWidth)
 	region.SrcOffsets[1].Y = int32(extentHeight)
 	region.SrcOffsets[1].Z = 1
-	region.DstOffsets[0].X = int32(float32(extentWidth) * area[0])
-	region.DstOffsets[0].Y = int32(float32(extentHeight) * area[1])
-	region.DstOffsets[1].X = int32(float32(extentWidth) * area[2])
-	region.DstOffsets[1].Y = int32(float32(extentHeight) * area[3])
+	region.DstOffsets[0].X = int32(matrix.Float(extentWidth) * area[0])
+	region.DstOffsets[0].Y = int32(matrix.Float(extentHeight) * area[1])
+	region.DstOffsets[1].X = int32(matrix.Float(extentWidth) * area[2])
+	region.DstOffsets[1].Y = int32(matrix.Float(extentHeight) * area[3])
 	region.DstOffsets[1].Z = 1
 	region.DstSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	region.DstSubresource.LayerCount = 1

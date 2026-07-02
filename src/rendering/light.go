@@ -148,8 +148,8 @@ func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *Materia
 		quadratic:   0.000007,
 		direction:   matrix.Vec3Down(),
 		lightType:   lightType,
-		cutoff:      matrix.Cos(matrix.Deg2Rad(32.5)),
-		outerCutoff: matrix.Cos(matrix.Deg2Rad(50.5)),
+		cutoff:      float32(matrix.Cos(matrix.Deg2Rad(32.5))),
+		outerCutoff: float32(matrix.Cos(matrix.Deg2Rad(50.5))),
 		reset:       true,
 		device:      device,
 	}
@@ -271,8 +271,8 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 		Linear:      l.linear,
 		Specular:    l.specular,
 		Quadratic:   l.quadratic,
-		NearPlane:   l.camera.NearPlane(),
-		FarPlane:    l.camera.FarPlane(),
+		NearPlane:   float32(l.camera.NearPlane()),
+		FarPlane:    float32(l.camera.FarPlane()),
 		Type:        int32(l.lightType),
 	}
 }

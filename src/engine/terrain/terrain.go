@@ -930,13 +930,13 @@ func (t *Terrain) RayHitLocal(ray graviton.Ray) (TerrainRayHit, bool) {
 		entry = 0
 	}
 	lastDistance := entry
-	lastPoint := ray.Point(float32(lastDistance))
+	lastPoint := ray.Point(lastDistance)
 	lastDelta := lastPoint.Y() - t.HeightAtLocal(lastPoint.XZ())
 	if lastDelta <= 0 {
 		return t.localHit(lastPoint, ray.Origin), true
 	}
 	for distance := entry + step; distance <= exit+matrix.Tiny; distance += step {
-		point := ray.Point(float32(matrix.Min(distance, exit)))
+		point := ray.Point(matrix.Min(distance, exit))
 		delta := point.Y() - t.HeightAtLocal(point.XZ())
 		if delta <= 0 {
 			hitPoint := t.refineRayHit(ray, lastDistance, matrix.Min(distance, exit))
@@ -953,14 +953,14 @@ func (t *Terrain) RayHitLocal(ray graviton.Ray) (TerrainRayHit, bool) {
 func (t *Terrain) refineRayHit(ray graviton.Ray, low, high matrix.Float) matrix.Vec3 {
 	for i := 0; i < 12; i++ {
 		mid := (low + high) * 0.5
-		point := ray.Point(float32(mid))
+		point := ray.Point(mid)
 		if point.Y() > t.HeightAtLocal(point.XZ()) {
 			low = mid
 		} else {
 			high = mid
 		}
 	}
-	return ray.Point(float32(high))
+	return ray.Point(high)
 }
 
 func (t *Terrain) localHit(localPoint, rayOrigin matrix.Vec3) TerrainRayHit {

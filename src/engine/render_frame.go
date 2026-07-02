@@ -22,7 +22,7 @@ type RenderFrame struct {
 	UICamera      cameras.Camera
 	Views         []rendering.RenderViewFrame
 	Lights        rendering.LightsForRender
-	Runtime       float32
+	Runtime       matrix.Float
 	Width         int32
 	Height        int32
 }
@@ -66,7 +66,7 @@ func (host *Host) captureRenderFrame() RenderFrame {
 		},
 		PrimaryCamera: primaryCamera,
 		UICamera:      uiCamera,
-		Runtime:       float32(host.Runtime()),
+		Runtime:       matrix.Float(host.Runtime()),
 		Width:         width,
 		Height:        height,
 	}
@@ -135,7 +135,7 @@ func (host *Host) renderCapturedFrame(frame RenderFrame) {
 	host.Window.RenderLock()
 	defer host.Window.RenderUnlock()
 	if gpuDevice.ReadyFrame(gpuInstance, frame.Window, frame.PrimaryCamera,
-		frame.UICamera, frame.Lights, frame.Runtime, frame.Views) {
+		frame.UICamera, frame.Lights, float32(frame.Runtime), frame.Views) {
 		host.Drawings.Render(gpuDevice, frame.Lights, frame.Views)
 		if host.Window.SwapBuffersWithContainer(frame.Window, frame.Width, frame.Height) {
 			host.runAfterRenderCallbacks(gpuDevice, frame)
