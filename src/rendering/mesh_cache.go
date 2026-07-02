@@ -19,6 +19,7 @@ type MeshCache struct {
 	assetDatabase assets.Database
 	meshes        map[string]*Mesh
 	pendingMeshes []*Mesh
+	pendingFree   []MeshId
 	mutex         sync.Mutex
 }
 
@@ -28,6 +29,7 @@ func NewMeshCache(device *GPUDevice, assetDatabase assets.Database) MeshCache {
 		assetDatabase: assetDatabase,
 		meshes:        make(map[string]*Mesh),
 		pendingMeshes: make([]*Mesh, 0),
+		pendingFree:   make([]MeshId, 0),
 		mutex:         sync.Mutex{},
 	}
 }
@@ -56,10 +58,36 @@ func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 	}
 }
 
+// RemoveMesh evicts a mesh from the cache and reclaims its GPU memory. The
+// mesh handle (if it has already been created) is queued into pendingFree so
+// CreatePending destroys it on the next frame, and any still-queued creation
+// for the mesh is dropped so an evicted mesh is never created after removal.
+// Callers must ensure no live Drawing still references the mesh.
 func (m *MeshCache) RemoveMesh(key string) {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	mesh, ok := m.meshes[key]
+	if !ok {
+		return
+	}
+	if mesh.MeshId.IsValid() {
+		m.pendingFree = append(m.pendingFree, mesh.MeshId)
+	}
+	m.removePendingMeshLocked(mesh)
 	delete(m.meshes, key)
-	m.mutex.Unlock()
+}
+
+// removePendingMeshLocked drops any queued creation referencing the given mesh
+// so a mesh that is evicted before its deferred creation runs is not created
+// after removal.
+func (m *MeshCache) removePendingMeshLocked(mesh *Mesh) {
+	for i := 0; i < len(m.pendingMeshes); {
+		if m.pendingMeshes[i] == mesh {
+			m.pendingMeshes = klib.RemoveUnordered(m.pendingMeshes, i)
+		} else {
+			i++
+		}
+	}
 }
 
 func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
@@ -109,6 +137,10 @@ func (m *MeshCache) CreatePending() {
 	defer tracing.NewRegion("MeshCache.CreatePending").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+	for i := range m.pendingFree {
+		m.device.destroyMeshHandle(m.pendingFree[i])
+	}
+	m.pendingFree = klib.WipeSlice(m.pendingFree)
 	for _, mesh := range m.pendingMeshes {
 		mesh.DelayedCreate(m.device)
 	}

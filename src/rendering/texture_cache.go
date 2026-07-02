@@ -227,9 +227,22 @@ func (t *TextureCache) InsertImageTextureWithPriority(key string, imageData []by
 	return tex, nil
 }
 
+// ForceRemoveTexture evicts a texture from the cache and reclaims its GPU
+// memory. The texture's RenderId (if it has already been uploaded) is queued
+// into pendingFree so CreatePending frees it on the next frame, and any
+// still-queued upload for the texture is dropped so an evicted texture is
+// never uploaded after removal.
 func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	texture, ok := t.textures[filter][key]
+	if !ok {
+		return
+	}
+	if texture.RenderId.IsValid() {
+		t.pendingFree = append(t.pendingFree, texture.RenderId)
+	}
+	t.removePendingUploadLocked(texture)
 	delete(t.textures[filter], key)
 }
 
@@ -281,6 +294,19 @@ func (t *TextureCache) queuePendingLocked(texture *Texture, priority TextureUplo
 		priority: priority,
 		sequence: t.uploadSequence,
 	})
+}
+
+// removePendingUploadLocked drops any queued upload referencing the given
+// texture so a texture that is evicted before its deferred upload runs is not
+// uploaded after removal.
+func (t *TextureCache) removePendingUploadLocked(texture *Texture) {
+	for i := 0; i < len(t.pendingTextures); {
+		if t.pendingTextures[i].texture == texture {
+			t.pendingTextures = klib.RemoveUnordered(t.pendingTextures, i)
+		} else {
+			i++
+		}
+	}
 }
 
 func (t *TextureCache) promotePendingLocked(texture *Texture, priority TextureUploadPriority) {
