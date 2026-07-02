@@ -1,0 +1,38 @@
+package settings_workspace // import "kaijuengine.com/editor/editor_workspace/settings_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "settings"
+	DisplayName = "Settings"
+)
+
+TYPES
+
+type SettingsWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *SettingsWorkspace) Close()
+
+func (w *SettingsWorkspace) DisplayName() string
+
+func (w *SettingsWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *SettingsWorkspace) ID() string
+
+func (w *SettingsWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *SettingsWorkspace) IsFocusedOnInput() bool
+
+func (w *SettingsWorkspace) IsRequired() bool
+
+func (w *SettingsWorkspace) Open()
+
+func (w *SettingsWorkspace) RequestReload()
+
+func (w *SettingsWorkspace) Shutdown()
+

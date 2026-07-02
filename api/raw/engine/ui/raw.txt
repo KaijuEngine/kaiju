@@ -1,0 +1,1393 @@
+package ui // import "kaijuengine.com/engine/ui"
+
+
+CONSTANTS
+
+const (
+	EventTypeInvalid = EventType(iota)
+	EventTypeEnter
+	EventTypeMove
+	EventTypeExit
+	EventTypeClick
+	EventTypeRightClick
+	EventTypeDoubleClick
+	EventTypeDown
+	EventTypeUp
+	EventTypeRightDown
+	EventTypeRightUp
+	EventTypeMiss
+	EventTypeDragStart
+	EventTypeDrop
+	EventTypeDropEnter
+	EventTypeDropExit
+	EventTypeDragEnd
+	EventTypeScroll
+	EventTypeRebuild
+	EventTypeDestroy
+	EventTypeFocus
+	EventTypeBlur
+	EventTypeSubmit
+	EventTypeChange
+	EventTypeRender
+	EventTypeKeyDown
+	EventTypeKeyUp
+	EventTypeEnd
+)
+const (
+	InputTypeDefault = iota
+	InputTypeText
+	InputTypeNumber
+	InputTypePhone
+	InputTypeDatetime
+	InputTypeEmail
+	InputTypePassword
+)
+const (
+	PositioningStatic = Positioning(iota)
+	PositioningAbsolute
+	PositioningFixed
+	PositioningRelative
+	PositioningSticky
+)
+const (
+	FlexAlignAuto = FlexAlign(iota)
+	FlexAlignStart
+	FlexAlignEnd
+	FlexAlignCenter
+	FlexAlignStretch
+)
+const (
+	PanelScrollDirectionNone       = 0x00
+	PanelScrollDirectionVertical   = 0x01
+	PanelScrollDirectionHorizontal = 0x02
+	PanelScrollDirectionBoth       = 0x03
+)
+const (
+	BorderStyleNone = iota
+	BorderStyleHidden
+	BorderStyleDotted
+	BorderStyleDashed
+	BorderStyleSolid
+	BorderStyleDouble
+	BorderStyleGroove
+	BorderStyleRidge
+	BorderStyleInset
+	BorderStyleOutset
+)
+const (
+	ContentFitNone = iota
+	ContentFitWidth
+	ContentFitHeight
+	ContentFitBoth
+)
+const (
+	OverflowScroll = iota
+	OverflowVisible
+	OverflowHidden
+)
+const (
+	LayoutModeFlow = LayoutMode(iota)
+	LayoutModeGrid
+	LayoutModeFlex
+)
+const (
+	FlexDirectionRow = FlexDirection(iota)
+	FlexDirectionRowReverse
+	FlexDirectionColumn
+	FlexDirectionColumnReverse
+)
+const (
+	FlexWrapNoWrap = FlexWrap(iota)
+	FlexWrapWrap
+	FlexWrapWrapReverse
+)
+const (
+	FlexJustifyStart = FlexJustify(iota)
+	FlexJustifyEnd
+	FlexJustifyCenter
+	FlexJustifySpaceBetween
+	FlexJustifySpaceAround
+	FlexJustifySpaceEvenly
+)
+const (
+	FlexAlignContentStart = FlexAlignContent(iota)
+	FlexAlignContentEnd
+	FlexAlignContentCenter
+	FlexAlignContentStretch
+	FlexAlignContentSpaceBetween
+	FlexAlignContentSpaceAround
+	FlexAlignContentSpaceEvenly
+)
+const (
+	DirtyTypeNone = iota
+	DirtyTypeLayout
+	DirtyTypeResize
+	DirtyTypeGenerated
+	DirtyTypeColorChange
+	DirtyTypeScissor
+	DirtyTypeParent
+	DirtyTypeParentLayout
+	DirtyTypeParentResize
+	DirtyTypeParentGenerated
+	DirtyTypeParentReGenerated
+	DirtyTypeParentColorChange
+	DirtyTypeParentScissor
+)
+const (
+	ElementTypeLabel = ElementType(iota)
+	ElementTypePanel
+	ElementTypeButton
+	ElementTypeCheckbox
+	ElementTypeImage
+	ElementTypeInput
+	ElementTypeProgressBar
+	ElementTypeSelect
+	ElementTypeSlider
+	ElementTypeTextArea
+	ElementTypeVirtualList
+)
+const (
+	EntityDataName = "ui"
+)
+const (
+	LabelFontSize = 14.0
+)
+
+VARIABLES
+
+var UIScrollSpeed float32 = 20
+
+TYPES
+
+type BasicStylizer struct {
+	Parent weak.Pointer[UI]
+}
+
+type BorderStyle = int32
+
+type Button Panel
+
+func (b *Button) Base() *UI
+
+func (b *Button) ButtonData() *buttonData
+
+func (b *Button) Init(texture *rendering.Texture, text string)
+
+func (b *Button) IsDisabled() bool
+
+func (b *Button) Label() *Label
+
+func (b *Button) SetColor(color matrix.Color)
+
+func (b *Button) SetDisabled(disabled bool)
+
+type Checkbox Panel
+
+func (cb *Checkbox) Base() *UI
+
+func (cb *Checkbox) CheckboxData() *checkboxData
+
+func (cb *Checkbox) Init()
+
+func (cb *Checkbox) IsChecked() bool
+
+func (cb *Checkbox) IsDisabled() bool
+
+func (cb *Checkbox) SetChecked(isChecked bool)
+
+func (cb *Checkbox) SetCheckedWithoutEvent(isChecked bool)
+
+func (cb *Checkbox) SetDisabled(disabled bool)
+
+type ContentFit = int32
+
+type DirtyType = int
+
+type ElementType = uint8
+
+type EventType = int
+
+type FlexAlign = int
+
+type FlexAlignContent = int
+
+type FlexDirection = int
+
+type FlexJustify = int
+
+type FlexWrap = int
+
+type Group struct {
+	// Has unexported fields.
+}
+
+func (group *Group) Attach(host *engine.Host)
+
+func (group *Group) Detach(host *engine.Host)
+
+func (group *Group) HasRequests() bool
+
+func (group *Group) IsFocusedOnInput() bool
+
+func (g *Group) SetThreaded()
+
+type Image Panel
+
+func (s *Image) Base() *UI
+
+func (img *Image) Frame() int
+
+func (s *Image) ImageData() *imageData
+
+func (s *Image) Init(texture *rendering.Texture)
+
+func (s *Image) InitFlipbook(framesPerSecond float32, textures []*rendering.Texture)
+
+func (s *Image) InitSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string)
+
+func (img *Image) PlayAnimation()
+
+func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture)
+
+func (img *Image) SetFrame(index int)
+
+func (img *Image) SetFrameRate(framesPerSecond float32)
+
+func (img *Image) SetSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string)
+
+func (img *Image) SetTexture(texture *rendering.Texture)
+
+func (img *Image) StopAnimation()
+
+type Input Panel
+
+func (input *Input) Base() *UI
+
+func (input *Input) Focus()
+
+func (input *Input) FontFace() rendering.FontFace
+
+func (input *Input) FontSize() float32
+
+func (input *Input) Init(placeholderText string)
+
+func (input *Input) InputData() *inputData
+
+func (input *Input) InsertText(text string)
+
+func (input *Input) IsDisabled() bool
+
+func (input *Input) IsFocused() bool
+
+func (input *Input) IsRequired() bool
+
+func (input *Input) IsValid() bool
+
+func (input *Input) RemoveFocus()
+
+func (input *Input) SelectAll()
+
+func (input *Input) SetBGColor(newColor matrix.Color)
+
+func (input *Input) SetCursorColor(newColor matrix.Color)
+
+func (input *Input) SetCursorOffset(offset int)
+
+func (input *Input) SetDescription(text string)
+
+func (input *Input) SetDisabled(disabled bool)
+
+func (input *Input) SetFGColor(newColor matrix.Color)
+
+func (input *Input) SetFontFace(face rendering.FontFace)
+
+func (input *Input) SetFontSize(fontSize float32)
+
+func (input *Input) SetFontStyle(style string)
+
+func (input *Input) SetFontWeight(weight string)
+
+func (input *Input) SetLineHeight(lineHeight float32)
+
+func (input *Input) SetNextFocusedElement(next *UI)
+
+func (input *Input) SetNextFocusedInput(next *Input)
+
+func (input *Input) SetPlaceholder(text string)
+
+func (input *Input) SetRequired(required bool)
+
+func (input *Input) SetSelectColor(newColor matrix.Color)
+
+func (input *Input) SetText(text string)
+
+func (input *Input) SetTextWithoutEvent(text string)
+
+func (input *Input) SetTitle(text string)
+
+func (input *Input) SetType(inputType InputType)
+
+func (input *Input) SetWrap(wrap bool)
+
+func (input *Input) Text() string
+
+type InputType = int32
+
+type Label UI
+
+func (l *Label) Base() *UI
+
+func (label *Label) BoldRange(start, end int)
+
+func (label *Label) CalculateMaxWidth() float32
+
+func (label *Label) ClearColorRanges()
+    ClearColorRanges drops every persisted color range overlay on this label
+    and re-runs the base color pass. Use this when a consumer wants to wipe all
+    overlays without changing the underlying text.
+
+func (label *Label) Clone(to *Label)
+
+func (label *Label) ColorRange(start, end int, newColor, bgColor matrix.Color)
+
+func (label *Label) EnforceBGColor(color matrix.Color)
+
+func (label *Label) EnforceFGColor(color matrix.Color)
+
+func (label *Label) FontFace() rendering.FontFace
+
+func (label *Label) FontSize() float32
+
+func (label *Label) Hide()
+
+func (label *Label) Init(text string)
+
+func (label *Label) Justify() rendering.FontJustify
+
+func (l *Label) LabelData() *labelData
+
+func (label *Label) LetterSpacing() float32
+
+func (label *Label) LineHeight() float32
+
+func (label *Label) MaxWidth() float32
+
+func (label *Label) Measure() matrix.Vec2
+
+func (label *Label) SetBGColor(newColor matrix.Color)
+
+func (label *Label) SetBaseline(baseline rendering.FontBaseline)
+
+func (label *Label) SetColor(newColor matrix.Color)
+
+func (label *Label) SetFontFace(face rendering.FontFace)
+
+func (label *Label) SetFontSize(size float32)
+
+func (label *Label) SetFontStyle(style string)
+
+func (label *Label) SetFontWeight(weight string)
+
+func (label *Label) SetJustify(justify rendering.FontJustify)
+
+func (label *Label) SetLetterSpacing(spacing float32)
+
+func (label *Label) SetLineHeight(height float32)
+
+func (label *Label) SetMaxWidth(maxWidth float32)
+
+func (label *Label) SetText(text string)
+
+func (label *Label) SetWidthAutoHeight(width float32)
+
+func (label *Label) SetWrap(wrapText bool)
+
+func (label *Label) Show()
+
+func (label *Label) Text() string
+
+func (label *Label) UnEnforceBGColor()
+
+func (label *Label) UnEnforceFGColor()
+
+type Layout struct {
+	Stylizer LayoutStylizer
+	// Has unexported fields.
+}
+
+func (l *Layout) AlignSelf() FlexAlign
+
+func (l *Layout) Border() matrix.Vec4
+
+func (l *Layout) CalcOffset() matrix.Vec2
+
+func (l *Layout) ClearStyles()
+
+func (l *Layout) ContentSize() matrix.Vec2
+
+func (l *Layout) FlexBasis() float32
+
+func (l *Layout) FlexBasisAuto() bool
+
+func (l *Layout) FlexBasisPercent() bool
+
+func (l *Layout) FlexGrow() float32
+
+func (l *Layout) FlexOrder() int
+
+func (l *Layout) FlexShrink() float32
+
+func (l *Layout) GridColumnEnd() int
+
+func (l *Layout) GridColumnStart() int
+
+func (l *Layout) GridRowEnd() int
+
+func (l *Layout) GridRowStart() int
+
+func (l *Layout) InnerOffset() matrix.Vec4
+
+func (l *Layout) LocalInnerOffset() matrix.Vec4
+
+func (l *Layout) Margin() matrix.Vec4
+
+func (l *Layout) Offset() matrix.Vec2
+
+func (l *Layout) Padding() matrix.Vec4
+
+func (l *Layout) PixelSize() matrix.Vec2
+
+func (l *Layout) Positioning() Positioning
+
+func (l *Layout) Scale(width, height float32) bool
+
+func (l *Layout) ScaleHeight(height float32) bool
+
+func (l *Layout) ScaleWidth(width float32) bool
+
+func (l *Layout) SetAlignSelf(align FlexAlign)
+
+func (l *Layout) SetBorder(left, top, right, bottom float32)
+
+func (l *Layout) SetFlexBasis(basis float32, percent bool)
+
+func (l *Layout) SetFlexBasisAuto()
+
+func (l *Layout) SetFlexGrow(grow float32)
+
+func (l *Layout) SetFlexOrder(order int)
+
+func (l *Layout) SetFlexShrink(shrink float32)
+
+func (l *Layout) SetGridColumn(start, end int)
+
+func (l *Layout) SetGridRow(start, end int)
+
+func (l *Layout) SetInnerOffset(left, top, right, bottom float32)
+
+func (l *Layout) SetInnerOffsetBottom(offset float32)
+
+func (l *Layout) SetInnerOffsetLeft(offset float32)
+
+func (l *Layout) SetInnerOffsetRight(offset float32)
+
+func (l *Layout) SetInnerOffsetTop(offset float32)
+
+func (l *Layout) SetLocalInnerOffset(left, top, right, bottom float32)
+
+func (l *Layout) SetMargin(left, top, right, bottom float32)
+
+func (l *Layout) SetOffset(x, y float32)
+
+func (l *Layout) SetOffsetX(x float32)
+
+func (l *Layout) SetOffsetY(y float32)
+
+func (l *Layout) SetPadding(left, top, right, bottom float32)
+
+func (l *Layout) SetPositioning(pos Positioning)
+
+func (l *Layout) SetRowLayoutOffset(offset matrix.Vec2)
+
+func (l *Layout) SetZ(z float32)
+
+func (l *Layout) Ui() *UI
+
+func (l *Layout) Z() float32
+
+type LayoutMode = int
+
+type LayoutStylizer interface {
+	ProcessStyle(layout *Layout) []error
+}
+
+type LeftStylizer struct{ BasicStylizer }
+
+func (s LeftStylizer) ProcessStyle(layout *Layout) []error
+
+type Manager struct {
+	Host  *engine.Host
+	Group Group
+
+	// Has unexported fields.
+}
+
+func (man *Manager) Add() *UI
+
+func (man *Manager) Clear()
+
+func (man *Manager) DisableUpdate()
+
+func (man *Manager) EnableUpdate()
+
+func (man *Manager) Hovered() []*UI
+
+func (man *Manager) Init(host *engine.Host)
+
+func (man *Manager) IsUpdateDisabled() bool
+
+func (man *Manager) Remove(ui *UI)
+
+func (man *Manager) Reserve(additionalElements int)
+
+func (man *Manager) RootBackgroundColor() matrix.Color
+    RootBackgroundColor is the opaque backdrop that the top of the UI tree
+    composites against when computing calculated ("used") colors for halo-free
+    font rendering. It is the color a root-level transparent element resolves
+    to. Defaults to opaque black; a zero (fully transparent) value is treated as
+    opaque black so the calculated-color chain is always grounded on an opaque
+    backdrop.
+
+func (man *Manager) SetRootBackgroundColor(c matrix.Color)
+    SetRootBackgroundColor overrides the backdrop used for calculated colors and
+    re-renders the root elements so the new value propagates down the tree.
+
+func (man *Manager) Shutdown()
+    Shutdown synchronously detaches the Manager from its host: removes its
+    update from UIUpdater, detaches its Group from UILateUpdater, and removes
+    its window-resize handler. It also clears any UI elements still owned by the
+    Manager so the next Init starts clean.
+
+    This is safe to call when Manager hasn't been Init'd yet (no-op). It is also
+    idempotent — calling it twice in a row tears down nothing the second time.
+    After Shutdown the Manager can be Init'd again on the same or a different
+    host.
+
+    Without this, calling Init twice on the same Manager (which happens when a
+    workspace is disabled then re-enabled in the editor) leaves the previous
+    update callback registered, so two goroutines race on the same Manager's
+    iteration slices and panic with index-out-of-range.
+
+type Overflow = int
+
+type Panel UI
+
+func FirstPanelOnEntity(entity *engine.Entity) *Panel
+
+func (p *Panel) AddChild(target *UI)
+
+func (p *Panel) AllowClickThrough()
+
+func (p *Panel) Background() *rendering.Texture
+
+func (p *Panel) Base() *UI
+
+func (p *Panel) BorderColor() [4]matrix.Color
+
+func (p *Panel) BorderSize() matrix.Vec4
+
+func (p *Panel) BorderStyle() [4]BorderStyle
+
+func (p *Panel) CalculatedBGColor() matrix.Color
+    CalculatedBGColor returns this panel's opaque "used" background color:
+    its own fill (which may be partially or fully transparent) alpha-composited
+    over its parent's calculated background, recursively up to the manager's
+    opaque root backdrop. This is the actual color a child element or its
+    text visually sits on. The font renderer uses it as the glyph-edge blend
+    target so anti-aliasing produces no halo, regardless of how transparent the
+    intervening panels are.
+
+    It is computed live by walking ancestors (cheap: tree depth is small
+    and this only runs while the UI is dirty/cleaning). The result is opaque
+    whenever the root backdrop is opaque (the default), which is why text
+    composited onto it can be rendered fully opaque and halo-free.
+
+func (p *Panel) Child(index int) *UI
+
+func (p *Panel) ClearLayoutStyles()
+
+func (p *Panel) Color() matrix.Color
+
+func (p *Panel) DisableDragScroll()
+
+func (p *Panel) DontFitContent()
+
+func (p *Panel) DontFitContentHeight()
+
+func (p *Panel) DontFitContentWidth()
+
+func (p *Panel) EnableDragScroll()
+
+func (p *Panel) EnforceColor(color matrix.Color)
+
+func (p *Panel) FitContent()
+
+func (p *Panel) FitContentHeight()
+
+func (p *Panel) FitContentWidth()
+
+func (p *Panel) FittingContent() bool
+
+func (p *Panel) FittingContentHeight() bool
+
+func (p *Panel) FittingContentWidth() bool
+
+func (p *Panel) Freeze()
+
+func (p *Panel) GetAspectRatio() float32
+
+func (p *Panel) GetMaxSize() matrix.Vec2
+
+func (p *Panel) GetMinSize() matrix.Vec2
+
+func (p *Panel) GetUsesBorderBox() bool
+
+func (p *Panel) GridCellWidth() float32
+    GridCellWidth returns the computed width of a single grid column (based
+    on current panel dimensions, column count, and gap). Used by CSS width %
+    processing so children (e.g. div{width:100%}) fit their grid cell instead of
+    full parent.
+
+func (p *Panel) GridColumns() int
+
+func (p *Panel) GridGap() matrix.Vec2
+
+func (p *Panel) HasBackground() bool
+
+func (p *Panel) HasEnforcedColor() bool
+
+func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType)
+
+func (p *Panel) InsertChild(target *UI, idx int)
+
+func (p *Panel) IsFlex() bool
+
+func (p *Panel) IsFrozen() bool
+
+func (p *Panel) IsGrid() bool
+
+func (p *Panel) IsScrolling() bool
+
+func (p *Panel) MaxScroll() matrix.Vec2
+
+func (p *Panel) OutlineColor() matrix.Color
+
+func (p *Panel) OutlineOffset() float32
+
+func (p *Panel) OutlineOutset() float32
+
+func (p *Panel) OutlineWidth() float32
+
+func (p *Panel) Overflow() Overflow
+
+func (p *Panel) PanelData() *panelData
+
+func (p *Panel) RemoveBackground()
+
+func (p *Panel) RemoveChild(target *UI)
+
+func (p *Panel) ResetScroll()
+
+func (p *Panel) ScrollDirection() PanelScrollDirection
+
+func (p *Panel) ScrollToChild(child *UI)
+
+func (p *Panel) ScrollX() float32
+
+func (p *Panel) ScrollY() float32
+
+func (p *Panel) SetAspectRatio(r float32)
+
+func (p *Panel) SetBackground(tex *rendering.Texture)
+
+func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color)
+
+func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32)
+
+func (p *Panel) SetBorderRadiusBottomLeft(r float32)
+
+func (p *Panel) SetBorderRadiusBottomRight(r float32)
+
+func (p *Panel) SetBorderRadiusTopLeft(r float32)
+
+func (p *Panel) SetBorderRadiusTopRight(r float32)
+
+func (p *Panel) SetBorderSize(left, top, right, bottom float32)
+
+func (p *Panel) SetBorderStyle(left, top, right, bottom BorderStyle)
+
+func (p *Panel) SetColor(bgColor matrix.Color)
+
+func (p *Panel) SetFlex()
+
+func (p *Panel) SetFlexAlignContent(align FlexAlignContent)
+
+func (p *Panel) SetFlexAlignItems(align FlexAlign)
+
+func (p *Panel) SetFlexDirection(direction FlexDirection)
+
+func (p *Panel) SetFlexJustify(justify FlexJustify)
+
+func (p *Panel) SetFlexWrap(wrap FlexWrap)
+
+func (p *Panel) SetFlowLayout()
+
+func (p *Panel) SetGrid(columns int)
+    SetGrid enables CSS Grid-like layout with the given number of columns.
+    Children will be placed in row-major order into the grid cells. Column
+    widths are computed by dividing available width by columns (accounting for
+    gaps). Use SetGridGap to control spacing between items. This works with the
+    existing fit content and scrolling systems.
+
+func (p *Panel) SetGridAutoColumns(width float32)
+
+func (p *Panel) SetGridAutoRows(height float32)
+
+func (p *Panel) SetGridGap(x, y float32)
+
+func (p *Panel) SetGridTemplateColumns(columns []float32)
+    SetGridTemplateColumns configures explicit grid column widths. Positive
+    values are fixed pixels, negative values are fr units.
+
+func (p *Panel) SetMaterial(mat *rendering.Material)
+
+func (p *Panel) SetMaxHeight(h float32)
+
+func (p *Panel) SetMaxWidth(w float32)
+
+func (p *Panel) SetMinHeight(h float32)
+
+func (p *Panel) SetMinWidth(w float32)
+
+func (p *Panel) SetOutline(width, offset float32, color matrix.Color)
+
+func (p *Panel) SetOverflow(overflow Overflow)
+
+func (p *Panel) SetScrollDirection(direction PanelScrollDirection)
+
+func (p *Panel) SetScrollX(value float32)
+
+func (p *Panel) SetScrollY(value float32)
+
+func (p *Panel) SetScrollbarsVisible(visible bool)
+    SetScrollbarsVisible toggles whether this panel's scroll bars are ever
+    shown. Scrolling (wheel, drag, programmatic SetScrollY/SetScrollX) still
+    works when hidden; only the visual bars are suppressed. Used by views
+    that drive their scroll externally (e.g. a line-number gutter slaved to a
+    sibling's scroll).
+
+func (p *Panel) SetUseBlending(useBlending bool)
+
+func (p *Panel) SetUsesBorderBox(v bool)
+
+func (p *Panel) UnEnforceColor()
+
+func (p *Panel) UnFreeze()
+
+type PanelScrollDirection = int32
+
+type Positioning = int
+
+type ProgressBar Panel
+
+func (p *ProgressBar) Base() *UI
+
+func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture)
+
+func (b *ProgressBar) SetBGColor(bgColor matrix.Color)
+
+func (b *ProgressBar) SetFGColor(fgColor matrix.Color)
+
+func (b *ProgressBar) SetValue(value float32)
+
+func (b *ProgressBar) Value() float32
+
+type RightStylizer struct{ BasicStylizer }
+
+func (s RightStylizer) ProcessStyle(layout *Layout) []error
+
+type Select Panel
+
+func (s *Select) AddOption(name, value string)
+
+func (s *Select) Base() *UI
+
+func (s *Select) ClearOptions()
+
+func (s *Select) Init(text string, options []SelectOption)
+
+func (s *Select) IsDisabled() bool
+
+func (s *Select) Name() string
+
+func (s *Select) PickOption(index int)
+
+func (s *Select) PickOptionByLabel(label string)
+
+func (s *Select) PickOptionByLabelWithoutEvent(label string)
+
+func (s *Select) PickOptionWithoutEvent(index int) bool
+
+func (s *Select) SelectData() *selectData
+
+func (s *Select) SetColor(newColor matrix.Color)
+
+func (s *Select) SetDisabled(disabled bool)
+
+func (s *Select) SetOptionsColor(newColor matrix.Color)
+
+func (s *Select) SetTextColor(newColor matrix.Color)
+
+func (s *Select) Value() string
+
+type SelectOption struct {
+	Name  string
+	Value string
+
+	// Has unexported fields.
+}
+
+type SelectOptionCheckStylizer struct{ BasicStylizer }
+
+func (s SelectOptionCheckStylizer) ProcessStyle(layout *Layout) []error
+
+type SelectOptionStylizer struct{ BasicStylizer }
+
+func (s SelectOptionStylizer) ProcessStyle(layout *Layout) []error
+
+type SelectOptionTextStylizer struct{ BasicStylizer }
+
+func (s SelectOptionTextStylizer) ProcessStyle(layout *Layout) []error
+
+type SelectTextStylizer struct{ BasicStylizer }
+
+func (s SelectTextStylizer) ProcessStyle(layout *Layout) []error
+
+type ShaderData struct {
+	rendering.ShaderDataBase
+	UVs          matrix.Vec4
+	FgColor      matrix.Color
+	BgColor      matrix.Color
+	Scissor      matrix.Vec4
+	Size2D       matrix.Vec4
+	BorderRadius matrix.Vec4
+	BorderSize   matrix.Vec4
+	BorderColor  [4]matrix.Color
+	BorderLen    matrix.Vec2
+	OutlineColor matrix.Color
+	OutlineSize  matrix.Vec2
+}
+
+func (ShaderData) Size() int
+
+type Slider Panel
+
+func (s *Slider) Base() *UI
+
+func (slider *Slider) Delta() float32
+
+func (s *Slider) Init()
+
+func (slider *Slider) IsDisabled() bool
+
+func (slider *Slider) SetBGColor(bgColor matrix.Color)
+
+func (slider *Slider) SetDisabled(disabled bool)
+
+func (slider *Slider) SetFGColor(fgColor matrix.Color)
+
+func (slider *Slider) SetValue(value float32)
+
+func (slider *Slider) SetValueWithoutEvent(value float32)
+
+func (s *Slider) SliderData() *sliderData
+
+func (slider *Slider) Value() float32
+
+type StretchCenterStylizer struct{ BasicStylizer }
+
+func (s StretchCenterStylizer) ProcessStyle(layout *Layout) []error
+
+type StretchHeightStylizer struct{ BasicStylizer }
+
+func (s StretchHeightStylizer) ProcessStyle(layout *Layout) []error
+
+type StretchWidthStylizer struct{ BasicStylizer }
+
+func (s StretchWidthStylizer) ProcessStyle(layout *Layout) []error
+
+type TextArea Panel
+
+func (textarea *TextArea) ApplyColorRange(start, end int, fg, bg matrix.Color)
+    ApplyColorRange colors a [start,end) rune range using flat (whole-document)
+    rune offsets, for backward compatibility with the old single-string API.
+    It maps the flat range onto the affected lines.
+
+func (textarea *TextArea) Base() *UI
+
+func (textarea *TextArea) ClearColorRanges()
+
+func (textarea *TextArea) ClearLineColorSpans(line int)
+
+func (textarea *TextArea) CursorPosition() (line, col int)
+
+func (textarea *TextArea) Data() *textareaData
+
+func (textarea *TextArea) Focus()
+
+func (textarea *TextArea) FontFace() rendering.FontFace
+
+func (textarea *TextArea) FontSize() float32
+
+func (textarea *TextArea) Init(placeholderText string)
+
+func (textarea *TextArea) InsertText(text string)
+
+func (textarea *TextArea) IsDisabled() bool
+
+func (textarea *TextArea) IsFocused() bool
+
+func (textarea *TextArea) IsReadOnly() bool
+
+func (textarea *TextArea) IsRequired() bool
+
+func (textarea *TextArea) IsValid() bool
+
+func (textarea *TextArea) Line(i int) string
+    Line returns the text of logical line i (without its newline).
+
+func (textarea *TextArea) LineCount() int
+    LineCount is the number of logical lines in the document.
+
+func (textarea *TextArea) LineHeight() float32
+    LineHeight is the rendered height of a single line (the fixed row height in
+    no-wrap mode), which a companion gutter should match.
+
+func (textarea *TextArea) MaxScrollY() float32
+    MaxScrollY is the maximum vertical scroll offset.
+
+func (textarea *TextArea) Redo()
+
+func (textarea *TextArea) RemoveFocus()
+
+func (textarea *TextArea) ScrollToLine(line int, align VirtualAlign)
+
+func (textarea *TextArea) ScrollY() float32
+    ScrollY is the current vertical scroll offset (pixels from the top).
+
+func (textarea *TextArea) SelectAll()
+
+func (textarea *TextArea) SelectedText() string
+    SelectedText returns the currently selected text (empty if no selection).
+
+func (textarea *TextArea) SetBGColor(newColor matrix.Color)
+
+func (textarea *TextArea) SetCursorColor(newColor matrix.Color)
+
+func (textarea *TextArea) SetCursorLineColumn(line, col int)
+
+func (textarea *TextArea) SetCursorOffset(offset int)
+
+func (textarea *TextArea) SetDisabled(disabled bool)
+
+func (textarea *TextArea) SetFGColor(newColor matrix.Color)
+
+func (textarea *TextArea) SetFontFace(face rendering.FontFace)
+
+func (textarea *TextArea) SetFontSize(fontSize float32)
+
+func (textarea *TextArea) SetFontStyle(style string)
+
+func (textarea *TextArea) SetFontWeight(weight string)
+
+func (textarea *TextArea) SetHighlightCurrentLine(enabled bool, color matrix.Color)
+
+func (textarea *TextArea) SetLetterSpacing(spacing float32)
+
+func (textarea *TextArea) SetLineColorSpans(line int, spans []TextColorSpan)
+    SetLineColorSpans replaces the color spans for a single line (rune columns
+    within the line). This is the per-line API the widget layer's virtualized
+    highlighter uses.
+
+func (textarea *TextArea) SetLineHeight(lineHeight float32)
+
+func (textarea *TextArea) SetLineSpansBulk(spans map[int][]TextColorSpan)
+    SetLineSpansBulk replaces ALL per-line color spans in one shot (one
+    refresh). The map is keyed by line index; values are per-line rune-column
+    spans. This is the entry point the widget-layer virtualized highlighter uses
+    so it can push a freshly tokenized document without O(visible^2) per-line
+    refreshes.
+
+func (textarea *TextArea) SetNextFocusedElement(next *UI)
+
+func (textarea *TextArea) SetOnScroll(fn func())
+    SetOnScroll registers an observer fired whenever the vertical scroll
+    position changes. The widget layer uses it to keep a companion gutter in
+    lockstep.
+
+func (textarea *TextArea) SetOnVisibleRangeChanged(fn func(first, last int))
+
+func (textarea *TextArea) SetPlaceholder(text string)
+
+func (textarea *TextArea) SetReadOnly(readOnly bool)
+
+func (textarea *TextArea) SetRequired(required bool)
+
+func (textarea *TextArea) SetScrollY(y float32)
+    SetScrollY sets the vertical scroll offset (clamped to the content).
+
+func (textarea *TextArea) SetScrollbarsVisible(visible bool)
+    SetScrollbarsVisible toggles the built-in scroll bars. A code editor that
+    paints its own scroll/marker track hides these and drives scrolling through
+    SetScrollY instead.
+
+func (textarea *TextArea) SetSelectColor(newColor matrix.Color)
+
+func (textarea *TextArea) SetText(text string)
+
+func (textarea *TextArea) SetTextWithoutEvent(text string)
+
+func (textarea *TextArea) SetWrap(wrap bool)
+
+func (textarea *TextArea) Text() string
+
+func (textarea *TextArea) TextAreaData() *textareaData
+
+func (textarea *TextArea) Undo()
+
+func (textarea *TextArea) ViewportHeight() float32
+    ViewportHeight is the visible height of the scrolling text area (excluding
+    the internal padding), i.e. how much of the document is on screen at once.
+
+func (textarea *TextArea) VisibleLineRange() (first, last int)
+    VisibleLineRange returns the first and last line indices currently realized.
+
+type TextColorSpan struct {
+	Start, End int
+	FG, BG     matrix.Color
+}
+    TextColorSpan colors a [Start,End) rune range WITHIN a single line. It is a
+    pure data carrier used by the widget layer (syntax highlighting, markers).
+
+type TriangleStylizer struct{ BasicStylizer }
+
+func (t TriangleStylizer) ProcessStyle(layout *Layout) []error
+
+type UI struct {
+	// Has unexported fields.
+}
+
+func AllOnEntity(entity *engine.Entity) []*UI
+
+func FirstOnEntity(entity *engine.Entity) *UI
+
+func (ui *UI) AddEvent(evtType EventType, evt func()) events.Id
+
+func (ui *UI) Clean()
+
+func (ui *UI) Clone(parent *engine.Entity) *UI
+
+func (ui *UI) Entity() *engine.Entity
+
+func (ui *UI) Event(evtType EventType) *events.Event
+
+func (ui *UI) ExecuteEvent(evtType EventType) bool
+
+func (ui *UI) FindByName(name string) *UI
+
+func (ui *UI) GenerateScissor()
+
+func (ui *UI) Hide()
+
+func (ui *UI) Host() *engine.Host
+
+func (ui *UI) IsActive() bool
+
+func (ui *UI) IsDisabled() bool
+
+func (ui *UI) IsDown() bool
+
+func (ui *UI) IsInFrontOf(other *UI) bool
+
+func (ui *UI) IsType(elmType ElementType) bool
+
+func (ui *UI) IsValid() bool
+
+func (ui *UI) Layout() *Layout
+
+func (ui *UI) RemoveEvent(evtType EventType, evtId events.Id)
+
+func (ui *UI) SetDirty(dirtyType DirtyType)
+
+func (ui *UI) SetDisabled(disabled bool)
+
+func (ui *UI) SetDontClean(val bool)
+
+func (ui *UI) SetVisibility(visible bool)
+
+func (ui *UI) ShaderData() *ShaderData
+
+func (ui *UI) Show()
+
+func (u *UI) ToButton() *Button
+
+func (u *UI) ToCheckbox() *Checkbox
+
+func (u *UI) ToImage() *Image
+
+func (u *UI) ToInput() *Input
+
+func (u *UI) ToLabel() *Label
+
+func (u *UI) ToPanel() *Panel
+
+func (u *UI) ToProgressBar() *ProgressBar
+
+func (u *UI) ToSelect() *Select
+
+func (u *UI) ToSlider() *Slider
+
+func (u *UI) ToTextArea() *TextArea
+
+func (u *UI) ToVirtualList() *VirtualList
+
+func (ui *UI) Type() ElementType
+
+func (ui *UI) Update(deltaTime float64)
+
+type UIElementData interface {
+	// Has unexported methods.
+}
+
+type VirtualAlign = int
+    VirtualAlign selects how ScrollToIndex positions a row within the viewport.
+
+const (
+	// VirtualAlignStart aligns the row's top with the viewport top.
+	VirtualAlignStart VirtualAlign = iota
+	// VirtualAlignCenter centers the row vertically in the viewport.
+	VirtualAlignCenter
+	// VirtualAlignEnd aligns the row's bottom with the viewport bottom.
+	VirtualAlignEnd
+	// VirtualAlignNearest scrolls the minimum amount to make the row visible.
+	VirtualAlignNearest
+)
+type VirtualAxis = int32
+    VirtualAxis is the primary scroll axis a VirtualLayout drives. Vertical is
+    the default so existing VirtualList consumers are unaffected.
+
+const (
+	// VirtualAxisVertical scrolls along Y (the default).
+	VirtualAxisVertical VirtualAxis = iota
+	// VirtualAxisHorizontal scrolls along X.
+	VirtualAxisHorizontal
+	// VirtualAxisBoth scrolls along both axes (grids/masonry that can overflow
+	// the viewport in either direction).
+	VirtualAxisBoth
+)
+type VirtualLayout interface {
+	// Axis is the primary scroll axis the strategy drives. The VirtualList sets
+	// its panel scroll direction to match when the strategy is installed.
+	Axis() VirtualAxis
+	// SetCount sets the item count. It is cheap (O(1)); strategies that need an
+	// O(n) build (e.g. masonry column assignment) defer it to the first geometry
+	// query, since the build depends on the viewport.
+	SetCount(n int)
+	// Count is the current item count.
+	Count() int
+	// ContentSize is the full scrollable content size for the given viewport
+	// (the viewport drives column/row counts for grid/masonry). The VirtualList
+	// feeds it to the content panel so both-axis max-scroll and scrollbars are
+	// correct.
+	ContentSize(viewport matrix.Vec2) matrix.Vec2
+	// VisibleAt enumerates, via visit, every item index whose rect intersects the
+	// window [scroll, scroll+viewport) expanded by overscan items along the main
+	// axis. It MUST NOT allocate. The VirtualList uses it to diff which cells are
+	// on screen.
+	VisibleAt(scroll, viewport matrix.Vec2, overscan int, visit VirtualVisitor)
+	// RectOf is the content-space rect (position + size) of an item for the given
+	// viewport. The VirtualList positions the recycled cell at (X,Y); the cell's
+	// size is applied by the owner's BindRow (the engine never Scales cells, so
+	// content that self-sizes — like TextArea's labels — is undisturbed).
+	RectOf(index int, viewport matrix.Vec2) VirtualRect
+	// Invalidate re-derives geometry for a single item whose size source may have
+	// changed (a measured/variable extent), shifting the items after it. Fixed
+	// strategies treat it as a no-op.
+	Invalidate(index int)
+	// Remeasure re-derives ALL item geometry from the strategy's size source
+	// (O(n), or deferred to the next geometry query). The VirtualList calls it
+	// when the backing data is reloaded. Fixed strategies treat it as a no-op.
+	Remeasure()
+}
+    VirtualLayout is the pluggable geometry strategy for a VirtualList. It owns
+    ALL item geometry in 2-D content space; the VirtualList core keeps doing
+    the hard parts (recycle pool, warming/park, the visible-vs-active diff,
+    threading) and only asks the strategy pure questions: how big is the
+    content, which items are visible, and where each one sits.
+
+    Because every method is pure math over (scroll, viewport, index) — it must
+    NOT create elements (man.Add), render, touch fonts, or reach the Host —
+    a VirtualLayout can be implemented from ANY package. The engine ships
+    exactly one implementation, linearVerticalLayout, installed by default
+    so a VirtualList behaves identically to before unless SetLayout installs
+    another strategy. The kaiju-widgets RecyclerView supplies horizontal, grid,
+    and masonry strategies; third parties can supply their own.
+
+    All methods are invoked on the VirtualList's single-threaded clean pass
+    (onLayoutUpdating -> reflow), the same place row creation happens, so a
+    strategy never has to think about concurrency.
+
+type VirtualList Panel
+    VirtualList is a scrolling list that only materializes the items currently
+    in view, recycling a small pool of cell elements as the user scrolls. That
+    is what lets a list of 100k items cost the same to render as a list of 30:
+    at any moment only a viewport-worth of cell elements are active.
+
+    It is content-agnostic and not generic: the owner supplies a
+    VirtualListDelegate that knows the item count and how to create/bind/unbind
+    a cell element by index. Geometry — where each item sits and which are
+    visible — is owned by a pluggable VirtualLayout strategy. The default
+    strategy is a top-to-bottom vertical stack with item heights supplied
+    either as a single fixed value (SetFixedRowHeight, the O(1) no-wrap path)
+    or per-row (SetRowHeightFunc, the variable/wrapped path), so VirtualList
+    behaves exactly as it always has unless SetLayout installs another strategy
+    (horizontal, grid, masonry, ...). The rewritten TextArea is the first
+    consumer (one row per text line); the kaiju-widgets RecyclerView is the
+    second.
+
+    All access is on the main thread, in the layout/update loop — no locks.
+
+func (vl *VirtualList) Base() *UI
+
+func (vl *VirtualList) Content() *Panel
+    Content returns the inner panel that holds the row elements. Consumers may
+    parent overlays (cursors, selection rects) to it so they scroll with the
+    rows.
+
+func (vl *VirtualList) Data() *virtualListData
+
+func (vl *VirtualList) Init()
+
+func (vl *VirtualList) InvalidateRow(index int)
+    InvalidateRow re-measures a single row's extent (variable strategies) and
+    reflows so the rows after it shift to their new positions.
+
+func (vl *VirtualList) Layout() VirtualLayout
+    Layout returns the active geometry strategy (so an owner can reach
+    strategy-specific knobs it installed).
+
+func (vl *VirtualList) OnAfterReflow(fn func())
+    OnAfterReflow registers a callback invoked at the end of every reflow,
+    on the single-threaded clean pass — the only place it is safe to mutate cell
+    layout in response to scrolling. Pass nil to clear. Used by the RecyclerView
+    for drag-follow and item animations; the callback may re-dirty the list to
+    keep animating and must stop doing so once it settles.
+
+func (vl *VirtualList) PinRow(row *UI)
+    PinRow marks a realized row as pinned: the recycle/park loop will not
+    reclaim it when it scrolls out of the window (used to keep a drag-in-flight
+    or animating cell alive). Unpin with UnpinRow.
+
+func (vl *VirtualList) RefreshVisible()
+    RefreshVisible re-binds the rows currently on screen without changing the
+    window (use when row content/styling changed but extents did not).
+
+func (vl *VirtualList) ReloadData()
+    ReloadData re-reads the row count and rebinds the visible rows. Call after
+    the backing data changes (count or content).
+
+func (vl *VirtualList) RowAt(y float32) int
+    RowAt is the row index whose vertical span contains content-space y
+    (vertical layout).
+
+func (vl *VirtualList) RowHeight(index int) float32
+    RowHeight is the height of row index (vertical layout).
+
+func (vl *VirtualList) RowOffset(index int) float32
+    RowOffset is the y of the top of row index in content space (vertical
+    layout).
+
+func (vl *VirtualList) ScrollToIndex(index int, align VirtualAlign)
+    ScrollToIndex scrolls so row index is visible according to align. It works
+    for the active layout's primary axis (vertical or horizontal).
+
+func (vl *VirtualList) SetContentWidth(w float32)
+    SetContentWidth sets a minimum content width; the content panel is sized
+    to max(viewportWidth, w). Used for horizontal scrolling of long, unwrapped
+    rows in the default vertical layout. Pass 0 to track the viewport width (no
+    horizontal scroll).
+
+func (vl *VirtualList) SetDelegate(d VirtualListDelegate)
+
+func (vl *VirtualList) SetFixedRowHeight(h float32)
+    SetFixedRowHeight switches the default vertical layout to fixed-height rows
+    (every row is h tall). This is the O(1) path used for code (no soft wrap,
+    one line per row).
+
+func (vl *VirtualList) SetLayout(l VirtualLayout)
+    SetLayout installs a geometry strategy, switching the list among vertical
+    (default), horizontal, grid, or masonry arrangements, and sets the panel
+    scroll direction from the strategy's axis. Passing nil restores the default
+    vertical strategy. The strategy's methods are pure math invoked only on the
+    clean pass.
+
+func (vl *VirtualList) SetOverscan(rows int)
+
+func (vl *VirtualList) SetRowHeightFunc(fn func(index int) float32)
+    SetRowHeightFunc switches the default vertical layout to variable-height
+    rows, measuring each row's height via fn. Used for wrapped / chat content.
+
+func (vl *VirtualList) TotalHeight() float32
+    TotalHeight is the full scrollable content height (vertical layout).
+
+func (vl *VirtualList) UnpinRow(row *UI)
+    UnpinRow removes a row's pin so it can be recycled normally again.
+
+func (vl *VirtualList) ViewportHeight() float32
+    ViewportHeight is the visible content height of the list.
+
+func (vl *VirtualList) VisibleRange() (first, last int)
+    VisibleRange returns the [first,last] data indices currently realized.
+    If the list is empty last < first.
+
+type VirtualListDelegate interface {
+	// RowCount is the total number of rows in the backing data.
+	RowCount() int
+	// CreateRow builds a fresh, reusable row element. It is called only when
+	// the recycle pool is empty (at most a viewport-worth of times), and the
+	// returned element is reused across many data indices via BindRow.
+	CreateRow(man *Manager) *UI
+	// BindRow populates an existing row element for the given data index.
+	BindRow(index int, row *UI)
+	// UnbindRow is called before a row leaves the viewport and returns to the
+	// pool. Optional cleanup hook (clear text, hide children, etc.).
+	UnbindRow(index int, row *UI)
+}
+    VirtualListDelegate is the data source + row lifecycle for a VirtualList.
+    Implementations own the backing data and answer purely by index.
+
+type VirtualRect struct {
+	X, Y, W, H float32
+}
+    VirtualRect is the content-space rectangle of a virtualized item: position
+    (X,Y) of its top-left corner and size (W,H), measured in the same content
+    space the VirtualList's inner content panel lives in (origin top-left,
+    +x right, +y down). It is a pure data carrier (no behavior), an exported
+    struct on a hot path like ColorSpan, so strategies return it by value with
+    no allocation.
+
+type VirtualVisitor func(index int)
+    VirtualVisitor receives each visible item index during a VisibleAt
+    enumeration. It exists so the window can be walked with zero allocation (no
+    returned slice).
+

@@ -1,0 +1,48 @@
+package integration_testing // import "kaijuengine.com/integration_testing"
+
+
+FUNCTIONS
+
+func IntegrationTestBorderRadius(host *engine.Host)
+func IntegrationTestCSSChildSelector(host *engine.Host)
+func IntegrationTestCSSNot(host *engine.Host)
+func IntegrationTestFBXMonkey(host *engine.Host)
+func IntegrationTestFont(host *engine.Host)
+func IntegrationTestGridAutoColumns(host *engine.Host)
+func IntegrationTestGridAutoRows(host *engine.Host)
+func IntegrationTestGridColumn(host *engine.Host)
+func IntegrationTestGridRow(host *engine.Host)
+func IntegrationTestInputRequired(host *engine.Host)
+func IntegrationTestInputTypes(host *engine.Host)
+func IntegrationTestLetterSpacing(host *engine.Host)
+func IntegrationTestLineHeight(host *engine.Host)
+func IntegrationTestOutline(host *engine.Host)
+func IntegrationTestPosition(host *engine.Host)
+func IntegrationTestRenderGraphDefault(host *engine.Host)
+func IntegrationTestRenderGraphTargetUI(host *engine.Host)
+func IntegrationTestRenderViewModes(host *engine.Host)
+func IntegrationTestScreenshot(host *engine.Host)
+func IntegrationTestSelect(host *engine.Host)
+func IntegrationTestSelectionOutlineOccluder(host *engine.Host)
+func IntegrationTestSelectionOutlineSelectedPair(host *engine.Host)
+func IntegrationTestTextAlign(host *engine.Host)
+func IntegrationTestTextArea(host *engine.Host)
+func IntegrationTestTextAreaDefault(host *engine.Host)
+func IntegrationTestTextTransform(host *engine.Host)
+func IntegrationTestVerticalAlign(host *engine.Host)
+func IntegrationTestVideo(host *engine.Host)
+
+TYPES
+
+type IntegrationGame struct {
+	// Has unexported fields.
+}
+
+func IntegrationTestGame(testName string) (*IntegrationGame, error)
+
+func (IntegrationGame) ContentDatabase() (assets.Database, error)
+
+func (g *IntegrationGame) Launch(host *engine.Host)
+
+func (IntegrationGame) PluginRegistry() []reflect.Type
+

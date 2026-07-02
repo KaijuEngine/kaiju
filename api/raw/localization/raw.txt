@@ -1,0 +1,21 @@
+package localization // import "kaijuengine.com/localization"
+
+
+FUNCTIONS
+
+func String() string
+    String returns the user's current localization as a canonical language tag.
+
+
+TYPES
+
+type AmericanEnglish struct{}
+
+func (AmericanEnglish) KeyToRune(keyboard *hid.Keyboard, key hid.KeyboardKey) rune
+
+type Localization interface {
+	KeyToRune(keyboard *hid.Keyboard, key hid.KeyboardKey) rune
+}
+
+func Select() Localization
+

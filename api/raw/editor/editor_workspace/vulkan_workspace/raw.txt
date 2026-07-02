@@ -1,0 +1,48 @@
+package vulkan_workspace // import "kaijuengine.com/editor/editor_workspace/vulkan_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "vulkan"
+	DisplayName = "Vulkan"
+)
+
+TYPES
+
+type VulkanWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *VulkanWorkspace) Close()
+
+func (w *VulkanWorkspace) DisplayName() string
+
+func (w *VulkanWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *VulkanWorkspace) ID() string
+
+func (w *VulkanWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *VulkanWorkspace) IsRequired() bool
+
+func (w *VulkanWorkspace) Open()
+
+func (w *VulkanWorkspace) OpenSpec(id string)
+
+func (w *VulkanWorkspace) Shutdown()
+
+func (w *VulkanWorkspace) Update(deltaTime float64)
+
+type VulkanWorkspaceUIData struct {
+	Files []VulkanWorkspaceUIDataFile
+}
+
+type VulkanWorkspaceUIDataFile struct {
+	Id   string
+	Type string
+	Name string
+}
+

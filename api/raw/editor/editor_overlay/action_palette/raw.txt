@@ -1,0 +1,13 @@
+package action_palette // import "kaijuengine.com/editor/editor_overlay/action_palette"
+
+
+TYPES
+
+type ActionPalette struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, service *editor_action.Service, onClose func()) (*ActionPalette, error)
+
+func (p *ActionPalette) Close()
+
