@@ -720,7 +720,8 @@ func TestVec4Area(t *testing.T) {
 	result := Vec4Area(10, 20, 5, 15)
 	// min(10,5)=5, min(20,15)=15, max(10,5)=10, max(20,15)=20
 	if result.X() != 5 || result.Y() != 15 || result.Z() != 10 || result.W() != 20 {
-		t.Errorf("Expected {5, 15, 10, 20}, got (%f, %f, %f, %f)", result.X(), result.Y(), result.Z(), result.W())
+		t.Errorf("Expected {5, 15, 10, 20}, got (%f, %f, %f, %f)",
+			Float(result.X()), Float(result.Y()), Float(result.Z()), Float(result.W()))
 	}
 }
 
@@ -791,45 +792,5 @@ func TestVec4ScreenAreaContainsOutside(t *testing.T) {
 	v := Vec4{0, 0, 100, 100}
 	if v.ScreenAreaContains(150, 50) {
 		t.Errorf("Expected ScreenAreaContains(150,50) = false")
-	}
-}
-
-// ---- Benchmarks ----
-
-func BenchmarkVec4Add(b *testing.B) {
-	a := vec4ForTest()
-	c := vec4ForTestOther()
-	for i := 0; i < b.N; i++ {
-		a.Add(c)
-	}
-}
-
-func BenchmarkVec4Dot(b *testing.B) {
-	a := vec4ForTest()
-	c := vec4ForTestOther()
-	for i := 0; i < b.N; i++ {
-		Vec4Dot(a, c)
-	}
-}
-
-func BenchmarkVec4Normal(b *testing.B) {
-	v := vec4ForTest()
-	for i := 0; i < b.N; i++ {
-		v.Normal()
-	}
-}
-
-func BenchmarkVec4Scale(b *testing.B) {
-	v := vec4ForTest()
-	for i := 0; i < b.N; i++ {
-		v.Scale(2)
-	}
-}
-
-func BenchmarkVec4Lerp(b *testing.B) {
-	a := vec4ForTest()
-	c := vec4ForTestOther()
-	for i := 0; i < b.N; i++ {
-		Vec4Lerp(a, c, 0.5)
 	}
 }
