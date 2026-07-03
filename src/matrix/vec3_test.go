@@ -377,7 +377,7 @@ func TestVec3ShrinkAssign(t *testing.T) {
 
 func TestVec3Length(t *testing.T) {
 	v := Vec3{3, 4, 0}
-	expected := Sqrt(25)
+	expected := Sqrt(Float(25))
 	if Abs(v.Length()-expected) > Tiny {
 		t.Errorf("Expected Length = %f, got %f", expected, v.Length())
 	}

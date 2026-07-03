@@ -74,15 +74,15 @@ func Deg2Rad[T tNumber](degree T) Float {
 	return Float(degree) * Float(math.Pi/180.0)
 }
 
-func Approx[T1, T2 tNumber](a T1, b T2) bool {
+func Approx[T tNumber](a, b T) bool {
 	return math.Abs(float64(a)-float64(b)) < float64(FloatSmallestNonzero)
 }
 
-func ApproxTo[T1, T2, T3 tNumber](a T1, b T2, tolerance T3) bool {
-	return math.Abs(float64(a)-float64(b)) < float64(tolerance)
+func ApproxTo[T tNumber](a, b, tolerance T) bool {
+	return math.Abs(float64(a)-float64(b)) <= float64(tolerance)
 }
 
-func Clamp[T1, T2, T3 tNumber](current T1, minimum T2, maximum T3) Float {
+func Clamp[T tNumber](current, minimum, maximum T) Float {
 	return max(Float(minimum), min(Float(maximum), Float(current)))
 }
 

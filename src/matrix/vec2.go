@@ -189,7 +189,7 @@ func (v Vec2T[T]) Distance(other Vec2T[T]) T {
 }
 
 func (v Vec2T[T]) String() string {
-	return fmt.Sprintf(vec2StrFmt, v[Vx], v[Vy])
+	return fmt.Sprintf(vec2StrFmt, Float(v[Vx]), Float(v[Vy]))
 }
 
 func (v Vec2T[T]) Angle(other Vec2T[T]) T {
