@@ -1,3 +1,4 @@
+#if BUILD_STEAM_API
 #include "steam_wrapper.h"
 #include "../../../publishing/steam_sdk/public/steam/steam_api_flat.h"
 
@@ -64,3 +65,5 @@ extern "C" {
 	////////////////////////////////////////////////////////////////////////////
 	int64_t c_SteamUtils_GetAppID() { return SteamUtils()->GetAppID(); }
 }
+
+#endif
