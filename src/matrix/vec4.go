@@ -8,43 +8,43 @@ package matrix
 
 import (
 	"fmt"
-	"math"
 )
 
 const vec4StrFmt = "%f, %f, %f, %f"
 
-type Vec4 [4]Float
+type Vec4T[T tNumber] [4]T
+type Vec4 = Vec4T[Float]
 
-func (v Vec4) X() Float                           { return v[Vx] }
-func (v Vec4) Y() Float                           { return v[Vy] }
-func (v Vec4) Z() Float                           { return v[Vz] }
-func (v Vec4) W() Float                           { return v[Vw] }
-func (v Vec4) Left() Float                        { return v[Vx] }
-func (v Vec4) Top() Float                         { return v[Vy] }
-func (v Vec4) Right() Float                       { return v[Vz] }
-func (v Vec4) Bottom() Float                      { return v[Vw] }
-func (v Vec4) Width() Float                       { return v[Vz] }
-func (v Vec4) Height() Float                      { return v[Vw] }
-func (v *Vec4) PX() *Float                        { return &v[Vx] }
-func (v *Vec4) PY() *Float                        { return &v[Vy] }
-func (v *Vec4) PZ() *Float                        { return &v[Vz] }
-func (v *Vec4) PW() *Float                        { return &v[Vw] }
-func (v *Vec4) SetX(x Float)                      { v[Vx] = x }
-func (v *Vec4) SetY(y Float)                      { v[Vy] = y }
-func (v *Vec4) SetZ(z Float)                      { v[Vz] = z }
-func (v *Vec4) SetW(w Float)                      { v[Vw] = w }
-func (v *Vec4) SetLeft(x Float)                   { v[Vx] = x }
-func (v *Vec4) SetTop(y Float)                    { v[Vy] = y }
-func (v *Vec4) SetRight(z Float)                  { v[Vz] = z }
-func (v *Vec4) SetBottom(w Float)                 { v[Vw] = w }
-func (v *Vec4) SetWidth(z Float)                  { v[Vz] = z }
-func (v *Vec4) SetHeight(w Float)                 { v[Vw] = w }
-func (v Vec4) AsVec3() Vec3                       { return Vec3(v[:Vw]) }
-func (v Vec4) XYZW() (Float, Float, Float, Float) { return v[Vx], v[Vy], v[Vz], v[Vw] }
-func (v Vec4) Horizontal() Float                  { return v[Vx] + v[Vz] }
-func (v Vec4) Vertical() Float                    { return v[Vy] + v[Vw] }
+func (v Vec4T[T]) X() T               { return v[Vx] }
+func (v Vec4T[T]) Y() T               { return v[Vy] }
+func (v Vec4T[T]) Z() T               { return v[Vz] }
+func (v Vec4T[T]) W() T               { return v[Vw] }
+func (v Vec4T[T]) Left() T            { return v[Vx] }
+func (v Vec4T[T]) Top() T             { return v[Vy] }
+func (v Vec4T[T]) Right() T           { return v[Vz] }
+func (v Vec4T[T]) Bottom() T          { return v[Vw] }
+func (v Vec4T[T]) Width() T           { return v[Vz] }
+func (v Vec4T[T]) Height() T          { return v[Vw] }
+func (v *Vec4T[T]) PX() *T            { return &v[Vx] }
+func (v *Vec4T[T]) PY() *T            { return &v[Vy] }
+func (v *Vec4T[T]) PZ() *T            { return &v[Vz] }
+func (v *Vec4T[T]) PW() *T            { return &v[Vw] }
+func (v *Vec4T[T]) SetX(x T)          { v[Vx] = x }
+func (v *Vec4T[T]) SetY(y T)          { v[Vy] = y }
+func (v *Vec4T[T]) SetZ(z T)          { v[Vz] = z }
+func (v *Vec4T[T]) SetW(w T)          { v[Vw] = w }
+func (v *Vec4T[T]) SetLeft(x T)       { v[Vx] = x }
+func (v *Vec4T[T]) SetTop(y T)        { v[Vy] = y }
+func (v *Vec4T[T]) SetRight(z T)      { v[Vz] = z }
+func (v *Vec4T[T]) SetBottom(w T)     { v[Vw] = w }
+func (v *Vec4T[T]) SetWidth(z T)      { v[Vz] = z }
+func (v *Vec4T[T]) SetHeight(w T)     { v[Vw] = w }
+func (v Vec4T[T]) AsVec3() Vec3       { return Vec3{Float(v[Vx]), Float(v[Vy]), Float(v[Vz])} }
+func (v Vec4T[T]) XYZW() (T, T, T, T) { return v[Vx], v[Vy], v[Vz], v[Vw] }
+func (v Vec4T[T]) Horizontal() T      { return v[Vx] + v[Vz] }
+func (v Vec4T[T]) Vertical() T        { return v[Vy] + v[Vw] }
 
-func (v Vec4) AsVec4i() Vec4i {
+func (v Vec4T[T]) AsVec4i() Vec4i {
 	return Vec4i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz]), int32(v[Vw])}
 }
 
@@ -60,89 +60,89 @@ func Vec4FromSlice[T tNumber](a []T) Vec4 {
 	return Vec4{Float(a[0]), Float(a[1]), Float(a[2]), Float(a[3])}
 }
 
-func (v Vec4) Add(other Vec4) Vec4 {
-	return Vec4{v[Vx] + other[Vx], v[Vy] + other[Vy], v[Vz] + other[Vz], v[Vw] + other[Vw]}
+func (v Vec4T[T]) Add(other Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{v[Vx] + other[Vx], v[Vy] + other[Vy], v[Vz] + other[Vz], v[Vw] + other[Vw]}
 }
 
-func (v *Vec4) AddAssign(other Vec4) {
+func (v *Vec4T[T]) AddAssign(other Vec4T[T]) {
 	v[Vx] += other[Vx]
 	v[Vy] += other[Vy]
 	v[Vz] += other[Vz]
 	v[Vw] += other[Vw]
 }
 
-func (v Vec4) Subtract(other Vec4) Vec4 {
-	return Vec4{v[Vx] - other[Vx], v[Vy] - other[Vy], v[Vz] - other[Vz], v[Vw] - other[Vw]}
+func (v Vec4T[T]) Subtract(other Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{v[Vx] - other[Vx], v[Vy] - other[Vy], v[Vz] - other[Vz], v[Vw] - other[Vw]}
 }
 
-func (v *Vec4) SubtractAssign(other Vec4) {
+func (v *Vec4T[T]) SubtractAssign(other Vec4T[T]) {
 	v[Vx] -= other[Vx]
 	v[Vy] -= other[Vy]
 	v[Vz] -= other[Vz]
 	v[Vw] -= other[Vw]
 }
 
-func (v Vec4) Multiply(other Vec4) Vec4 {
-	return Vec4{v[Vx] * other[Vx], v[Vy] * other[Vy], v[Vz] * other[Vz], v[Vw] * other[Vw]}
+func (v Vec4T[T]) Multiply(other Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{v[Vx] * other[Vx], v[Vy] * other[Vy], v[Vz] * other[Vz], v[Vw] * other[Vw]}
 }
 
-func (v *Vec4) MultiplyAssign(other Vec4) {
+func (v *Vec4T[T]) MultiplyAssign(other Vec4T[T]) {
 	v[Vx] *= other[Vx]
 	v[Vy] *= other[Vy]
 	v[Vz] *= other[Vz]
 	v[Vw] *= other[Vw]
 }
 
-func (v Vec4) Divide(other Vec4) Vec4 {
-	return Vec4{v[Vx] / other[Vx], v[Vy] / other[Vy], v[Vz] / other[Vz], v[Vw] / other[Vw]}
+func (v Vec4T[T]) Divide(other Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{v[Vx] / other[Vx], v[Vy] / other[Vy], v[Vz] / other[Vz], v[Vw] / other[Vw]}
 }
 
-func (v *Vec4) DivideAssign(other Vec4) {
+func (v *Vec4T[T]) DivideAssign(other Vec4T[T]) {
 	v[Vx] /= other[Vx]
 	v[Vy] /= other[Vy]
 	v[Vz] /= other[Vz]
 	v[Vw] /= other[Vw]
 }
 
-func (v Vec4) Scale(scalar Float) Vec4 {
-	return Vec4{v[Vx] * scalar, v[Vy] * scalar, v[Vz] * scalar, v[Vw] * scalar}
+func (v Vec4T[T]) Scale(scalar T) Vec4T[T] {
+	return Vec4T[T]{v[Vx] * scalar, v[Vy] * scalar, v[Vz] * scalar, v[Vw] * scalar}
 }
 
-func (v *Vec4) ScaleAssign(scalar Float) {
+func (v *Vec4T[T]) ScaleAssign(scalar T) {
 	v[Vx] *= scalar
 	v[Vy] *= scalar
 	v[Vz] *= scalar
 	v[Vw] *= scalar
 }
 
-func (v Vec4) Shrink(scalar Float) Vec4 {
-	return Vec4{v[Vx] / scalar, v[Vy] / scalar, v[Vz] / scalar, v[Vw] / scalar}
+func (v Vec4T[T]) Shrink(scalar T) Vec4T[T] {
+	return Vec4T[T]{v[Vx] / scalar, v[Vy] / scalar, v[Vz] / scalar, v[Vw] / scalar}
 }
 
-func (v *Vec4) ShrinkAssign(scalar Float) {
+func (v *Vec4T[T]) ShrinkAssign(scalar T) {
 	v[Vx] /= scalar
 	v[Vy] /= scalar
 	v[Vz] /= scalar
 	v[Vw] /= scalar
 }
 
-func (v Vec4) Length() Float {
-	return Sqrt(Vec4Dot(v, v))
+func (v Vec4T[T]) Length() T {
+	return T(Sqrt(Vec4Dot(v, v)))
 }
 
-func (v Vec4) Normal() Vec4 {
+func (v Vec4T[T]) Normal() Vec4T[T] {
 	return v.Scale(1.0 / v.Length())
 }
 
-func (v *Vec4) Normalize() {
+func (v *Vec4T[T]) Normalize() {
 	v.ScaleAssign(1.0 / v.Length())
 }
 
-func (v Vec4) Negative() Vec4 {
-	return Vec4{-v[Vx], -v[Vy], -v[Vz], -v[Vw]}
+func (v Vec4T[T]) Negative() Vec4T[T] {
+	return Vec4T[T]{-v[Vx], -v[Vy], -v[Vz], -v[Vw]}
 }
 
-func (v *Vec4) Inverse() {
+func (v *Vec4T[T]) Inverse() {
 	v[Vx] = -v[Vx]
 	v[Vy] = -v[Vy]
 	v[Vz] = -v[Vz]
@@ -156,22 +156,20 @@ func Vec4Roughly(a, b Vec4) bool {
 		Abs(a.W()-b.W()) < Roughly
 }
 
-func Vec4Approx(a, b Vec4) bool {
-	return Abs(a.X()-b.X()) < math.SmallestNonzeroFloat32 &&
-		Abs(a.Y()-b.Y()) < math.SmallestNonzeroFloat32 &&
-		Abs(a.Z()-b.Z()) < math.SmallestNonzeroFloat32 &&
-		Abs(a.W()-b.W()) < math.SmallestNonzeroFloat32
+func Vec4Approx[T tNumber](a, b Vec4T[T]) bool {
+	return Float(Abs(a.X()-b.X())) < FloatSmallestNonzero &&
+		Float(Abs(a.Y()-b.Y())) < FloatSmallestNonzero &&
+		Float(Abs(a.Z()-b.Z())) < FloatSmallestNonzero &&
+		Float(Abs(a.W()-b.W())) < FloatSmallestNonzero
 }
 
-func Vec4ApproxTo(a, b Vec4, delta Float) bool {
-	return Abs(a.X()-b.X()) < delta &&
-		Abs(a.Y()-b.Y()) < delta &&
-		Abs(a.Z()-b.Z()) < delta &&
-		Abs(a.W()-b.W()) < delta
+func Vec4ApproxTo[T tNumber](a, b Vec4T[T], delta T) bool {
+	return Abs(a.X()-b.X()) < delta && Abs(a.Y()-b.Y()) < delta &&
+		Abs(a.Z()-b.Z()) < delta && Abs(a.W()-b.W()) < delta
 }
 
-func Vec4Min(a, b Vec4) Vec4 {
-	return Vec4{
+func Vec4Min[T tNumber](a, b Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{
 		min(a[Vx], b[Vx]),
 		min(a[Vy], b[Vy]),
 		min(a[Vz], b[Vz]),
@@ -179,8 +177,8 @@ func Vec4Min(a, b Vec4) Vec4 {
 	}
 }
 
-func Vec4MinAbs(a, b Vec4) Vec4 {
-	return Vec4{
+func Vec4MinAbs[T tNumber](a, b Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{
 		min(Abs(a[Vx]), Abs(b[Vx])),
 		min(Abs(a[Vy]), Abs(b[Vy])),
 		min(Abs(a[Vz]), Abs(b[Vz])),
@@ -188,8 +186,8 @@ func Vec4MinAbs(a, b Vec4) Vec4 {
 	}
 }
 
-func Vec4Max(a, b Vec4) Vec4 {
-	return Vec4{
+func Vec4Max[T tNumber](a, b Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{
 		max(a[Vx], b[Vx]),
 		max(a[Vy], b[Vy]),
 		max(a[Vz], b[Vz]),
@@ -197,28 +195,28 @@ func Vec4Max(a, b Vec4) Vec4 {
 	}
 }
 
-func Vec4MaxAbs(a, b Vec4) Vec4 {
-	return Vec4{
-		max(Abs(a[Vx]), Abs(b[Vx])),
-		max(Abs(a[Vy]), Abs(b[Vy])),
-		max(Abs(a[Vz]), Abs(b[Vz])),
-		max(Abs(a[Vw]), Abs(b[Vw])),
+func Vec4MaxAbs[T tNumber](a, b Vec4T[T]) Vec4T[T] {
+	return Vec4T[T]{
+		max(T(Abs(a[Vx])), T(Abs(b[Vx]))),
+		max(T(Abs(a[Vy])), T(Abs(b[Vy]))),
+		max(T(Abs(a[Vz])), T(Abs(b[Vz]))),
+		max(T(Abs(a[Vw])), T(Abs(b[Vw]))),
 	}
 }
 
-func (v Vec4) Abs() Vec4 {
-	return Vec4{Abs(v[Vx]), Abs(v[Vy]), Abs(v[Vz]), Abs(v[Vw])}
+func (v Vec4T[T]) Abs() Vec4T[T] {
+	return Vec4T[T]{T(Abs(v[Vx])), T(Abs(v[Vy])), T(Abs(v[Vz])), T(Abs(v[Vw]))}
 }
 
-func (v Vec4) Distance(other Vec4) Float {
+func (v Vec4T[T]) Distance(other Vec4T[T]) T {
 	return v.Subtract(other).Length()
 }
 
-func Vec4Dot(a, b Vec4) Float {
-	return a[Vx]*b[Vx] + a[Vy]*b[Vy] + a[Vz]*b[Vz] + a[Vw]*b[Vw]
+func Vec4Dot[T tNumber](v, other Vec4T[T]) T {
+	return v[Vx]*other[Vx] + v[Vy]*other[Vy] + v[Vz]*other[Vz] + v[Vw]*other[Vw]
 }
 
-func Vec4Lerp(from, to Vec4, t Float) Vec4 {
+func Vec4Lerp[T tNumber](from, to Vec4T[T], t T) Vec4T[T] {
 	return from.Add(to.Subtract(from).Scale(t))
 }
 
@@ -228,15 +226,15 @@ func Vec4FromString(str string) Vec4 {
 	return v
 }
 
-func (v Vec4) String() string {
-	return fmt.Sprintf(vec4StrFmt, v[Vx], v[Vy], v[Vz], v[Vw])
+func (v Vec4T[T]) String() string {
+	return fmt.Sprintf(vec4StrFmt, Float(v[Vx]), Float(v[Vy]), Float(v[Vz]), Float(v[Vw]))
 }
 
-func (v Vec4) Angle(other Vec4) Float {
+func (v Vec4T[T]) Angle(other Vec4T[T]) T {
 	return Acos(Vec4Dot(v, other) / (v.Length() * other.Length()))
 }
 
-func (v Vec4) Equals(other Vec4) bool {
+func (v Vec4T[T]) Equals(other Vec4T[T]) bool {
 	return Vec4Approx(v, other)
 }
 
@@ -247,11 +245,11 @@ func Vec4Largest() Vec4 {
 	return Vec4{FloatMax, FloatMax, FloatMax, FloatMax}
 }
 
-func (v Vec4) LargestAxis() Float {
+func (v Vec4T[T]) LargestAxis() T {
 	return max(v[Vx], v[Vy], v[Vz], v[Vw])
 }
 
-func (v Vec4) LargestAxisDelta() Float {
+func (v Vec4T[T]) LargestAxisDelta() T {
 	lo := min(v[Vx], v[Vy], v[Vz], v[Vw])
 	hi := max(v[Vx], v[Vy], v[Vz], v[Vw])
 	if Abs(lo) > Abs(hi) {
@@ -261,18 +259,18 @@ func (v Vec4) LargestAxisDelta() Float {
 	}
 }
 
-func Vec4Area(xa, ya, xb, yb Float) Vec4 {
-	return Vec4{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
+func Vec4Area[T tNumber](xa, ya, xb, yb T) Vec4T[T] {
+	return Vec4T[T]{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
 }
 
-func (v Vec4) BoxContains(x, y Float) bool {
-	return v.X() <= x && v.X()+v.Width() >= x && v.Y() <= y && v.Y()+v.Height() >= y
+func (v Vec4T[T]) BoxContains(x, y Float) bool {
+	return Float(v.X()) <= x && Float(v.X())+Float(v.Width()) >= x && Float(v.Y()) <= y && Float(v.Y())+Float(v.Height()) >= y
 }
 
-func (v Vec4) AreaContains(x, y Float) bool {
-	return v.X() <= x && v.Right() >= x && v.Y() <= y && v.Bottom() >= y
+func (v Vec4T[T]) AreaContains(x, y Float) bool {
+	return Float(v.X()) <= x && Float(v.Right()) >= x && Float(v.Y()) <= y && Float(v.Bottom()) >= y
 }
 
-func (v Vec4) ScreenAreaContains(x, y Float) bool {
-	return v.X() <= x && v.Right() >= x && v.Y() <= y && v.Bottom() >= y
+func (v Vec4T[T]) ScreenAreaContains(x, y Float) bool {
+	return Float(v.X()) <= x && Float(v.Right()) >= x && Float(v.Y()) <= y && Float(v.Bottom()) >= y
 }

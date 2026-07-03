@@ -56,7 +56,7 @@ func legacyMat4MultiplyVec4(a Mat4, b Vec4) Vec4 {
 	return result
 }
 
-func (v Vec4) legacyMultiplyMat4(rhs Mat4) Vec4 {
+func legacyMulMat4Vec(v Vec4, rhs Mat4) Vec4 {
 	var result Vec4
 	row := rhs.RowVector(0)
 	result[Vx] = Vec4Dot(row, v)
@@ -1007,7 +1007,7 @@ func TestMat4MultiplyVec4Agreement(t *testing.T) {
 func TestVec4MultiplyMat4Agreement(t *testing.T) {
 	a := testVec4()
 	b := testMat4()
-	c := a.legacyMultiplyMat4(b)
+	c := legacyMulMat4Vec(a, b)
 	d := Vec4MultiplyMat4(a, b)
 	if !Vec4Approx(c, d) {
 		t.Errorf("\nc = %v\nd = %v", c, d)
@@ -1308,7 +1308,7 @@ func BenchmarkVec4MultiplyMat4(b *testing.B) {
 	a := testVec4()
 	c := testMat4()
 	for i := 0; i < b.N; i++ {
-		a.legacyMultiplyMat4(c)
+		legacyMulMat4Vec(a, c)
 	}
 }
 
