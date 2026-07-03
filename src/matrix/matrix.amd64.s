@@ -155,6 +155,47 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 	MOVUPS X5, ret+176(FP)
 	RET
 
+// func Mat4MultiplyAVX(a, b Mat4) Mat4
+TEXT   ·Mat4MultiplyAVX(SB),NOSPLIT,$0-192
+	// Zen 4 executes 256-bit vectors natively. Pack two matrix rows into each
+	// YMM register so that both halves perform useful independent work.
+	VMOVUPS a+0(FP),  Y0
+	VMOVUPS a+32(FP), Y9
+
+	// Broadcast each coefficient within its 128-bit matrix row.
+	VSHUFPS $0x00, Y0, Y0, Y1
+	VSHUFPS $0x55, Y0, Y0, Y2
+	VSHUFPS $0xAA, Y0, Y0, Y3
+	VSHUFPS $0xFF, Y0, Y0, Y4
+	VSHUFPS $0x00, Y9, Y9, Y10
+	VSHUFPS $0x55, Y9, Y9, Y11
+	VSHUFPS $0xAA, Y9, Y9, Y12
+	VSHUFPS $0xFF, Y9, Y9, Y13
+
+	// Duplicate each 128-bit row of b into both halves of a YMM register.
+	VBROADCASTF128 b+64(FP),  Y5
+	VBROADCASTF128 b+80(FP),  Y6
+	VBROADCASTF128 b+96(FP),  Y7
+	VBROADCASTF128 b+112(FP), Y8
+
+	// Use two partial sums for each row pair to shorten the FMA dependency
+	// chains. The two row pairs are independent and can execute in parallel.
+	VMULPS      Y5, Y1, Y1
+	VMULPS      Y7, Y3, Y3
+	VMULPS      Y5, Y10, Y10
+	VMULPS      Y7, Y12, Y12
+	VFMADD231PS Y6, Y2, Y1
+	VFMADD231PS Y8, Y4, Y3
+	VFMADD231PS Y6, Y11, Y10
+	VFMADD231PS Y8, Y13, Y12
+	VADDPS      Y3, Y1, Y1
+	VADDPS      Y12, Y10, Y10
+
+	VMOVUPS Y1,  ret+128(FP)
+	VMOVUPS Y10, ret+160(FP)
+	VZEROUPPER
+	RET
+
 // func Mat4MultiplyAVX512(a, b Mat4) Mat4
 TEXT   ·Mat4MultiplyAVX512(SB),NOSPLIT,$0-192
 	// Load all four rows of a. Each 128-bit lane contains one matrix row.
