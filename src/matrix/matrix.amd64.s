@@ -155,6 +155,39 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 	MOVUPS X5, ret+176(FP)
 	RET
 
+// func Mat4MultiplyAVX512(a, b Mat4) Mat4
+TEXT   ·Mat4MultiplyAVX512(SB),NOSPLIT,$0-192
+	// Load all four rows of a. Each 128-bit lane contains one matrix row.
+	VMOVUPS a+0(FP), Z0
+
+	// Broadcast each coefficient within its row. This forms:
+	// Z1 = {a00 x4, a10 x4, a20 x4, a30 x4}
+	// Z2 = {a01 x4, a11 x4, a21 x4, a31 x4}, and so on.
+	VSHUFPS $0x00, Z0, Z0, Z1
+	VSHUFPS $0x55, Z0, Z0, Z2
+	VSHUFPS $0xAA, Z0, Z0, Z3
+	VSHUFPS $0xFF, Z0, Z0, Z4
+
+	// Replicate each 128-bit row of b across a full 512-bit register.
+	// Loading directly with VBROADCASTF32X4 avoids index vectors and VPERMPS.
+	VBROADCASTF32X4 b+64(FP),  Z5
+	VBROADCASTF32X4 b+80(FP),  Z6
+	VBROADCASTF32X4 b+96(FP),  Z7
+	VBROADCASTF32X4 b+112(FP), Z8
+
+	// Compute two independent partial sums, then combine them. Compared with
+	// one four-instruction dependency chain, this exposes enough independent
+	// work to hide part of the AVX-512 FMA latency.
+	VMULPS      Z5, Z1, Z1
+	VMULPS      Z7, Z3, Z3
+	VFMADD231PS Z6, Z2, Z1
+	VFMADD231PS Z8, Z4, Z3
+	VADDPS      Z3, Z1, Z1
+
+	VMOVUPS Z1, ret+128(FP)
+	VZEROUPPER
+	RET
+
 // func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
 TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
 	MOVUPS m+0(FP), X0

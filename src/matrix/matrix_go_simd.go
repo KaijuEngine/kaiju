@@ -29,7 +29,7 @@ var mat4Avx512RowIndices = [4][16]uint32{
 
 func init() {
 	if archsimd.X86.AVX512() {
-		mat4MulFn = Mat4MultiplyAVX512
+		mat4MulFn = mat4MultiplyAvx512
 	} else if archsimd.X86.AVX() && archsimd.X86.FMA() {
 		mat4MulFn = mat4MultiplyAvx
 	} else {
