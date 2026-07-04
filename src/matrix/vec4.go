@@ -259,8 +259,8 @@ func (v Vec4T[T]) LargestAxisDelta() T {
 	}
 }
 
-func Vec4Area[T tNumber](xa, ya, xb, yb T) Vec4T[T] {
-	return Vec4T[T]{min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb)}
+func Vec4Area[T tNumber](xa, ya, xb, yb T) Vec4 {
+	return NewVec4(min(xa, xb), min(ya, yb), max(xa, xb), max(ya, yb))
 }
 
 func (v Vec4T[T]) BoxContains(x, y Float) bool {
