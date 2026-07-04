@@ -40,7 +40,15 @@ type EmitterConfig struct {
 	ParticleLifeSpan float32
 	LifeSpan         float64
 	Offset           matrix.Vec3
-	DirectionMin     matrix.Vec3
+	// SpawnArea is the half-extents of a box (centered on Offset) over which each
+	// particle's spawn position is scattered UNIFORMLY. Zero = all particles spawn at a
+	// single point (the classic fountain/cone look). Use a large area for volumetric
+	// effects like rain/snow so drops fill space instead of firing from one point.
+	SpawnArea matrix.Vec3
+	// Size is the per-particle scale. Zero defaults to (1,1,1). Use small values for
+	// fine particles (rain drops, dust).
+	Size         matrix.Vec3
+	DirectionMin matrix.Vec3
 	DirectionMax     matrix.Vec3
 	VelocityMinMax   matrix.Vec2
 	OpacityMinMax    matrix.Vec2
@@ -233,9 +241,23 @@ func (e *Emitter) spawn(transform *matrix.Transform) {
 	pd.Activate()
 	pd.Color = e.Config.Color
 	pd.Color.SetA(1)
-	p.Transform.Position = transform.Position().Add(e.offset)
+	pos := transform.Position().Add(e.offset)
+	if sa := c.SpawnArea; sa.X() != 0 || sa.Y() != 0 || sa.Z() != 0 {
+		// Uniform scatter within the +/- box so particles fill an area (real rain),
+		// rather than all emanating from one point (a fountain/cone).
+		pos = pos.Add(matrix.NewVec3(
+			(e.rand.Float32()*2-1)*sa.X(),
+			(e.rand.Float32()*2-1)*sa.Y(),
+			(e.rand.Float32()*2-1)*sa.Z(),
+		))
+	}
+	p.Transform.Position = pos
 	p.Transform.Rotation = transform.Rotation()
-	p.Transform.Scale = matrix.Vec3One()
+	if sz := c.Size; sz.X() != 0 || sz.Y() != 0 || sz.Z() != 0 {
+		p.Transform.Scale = sz
+	} else {
+		p.Transform.Scale = matrix.Vec3One()
+	}
 	p.LifeSpan = e.Config.ParticleLifeSpan
 	if e.Config.FadeOutOverLife {
 		opacity := c.OpacityMinMax.X()

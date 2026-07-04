@@ -241,7 +241,15 @@ func (s *ShaderDataBase) UpdateModelForView(view *RenderView, viewCuller ViewCul
 		s.aabb = container.Transform(s.model)
 		recalcCulling = true
 	} else if s.transform == nil {
-		s.aabb = container
+		// No Transform: the model matrix is authoritative — particles write their world
+		// position straight into it via ModelPtr/putWorldMatrix, bypassing transform. Cull
+		// by the model-transformed bounds, NOT the raw origin-centered container; otherwise
+		// the draw is culled by whether the WORLD ORIGIN is in the frustum, which flips the
+		// whole system on/off with a tiny camera turn when far from origin (e.g. rain on a
+		// Kelethin platform). model is identity by default, so static transform-less draws
+		// are unchanged. Recalc every frame — a directly-written model has no dirty flag.
+		s.aabb = container.Transform(s.model)
+		recalcCulling = true
 	}
 	if s.viewCullStates == nil {
 		s.viewCullStates = make(map[*RenderView]bool)
