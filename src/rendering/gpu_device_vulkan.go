@@ -266,14 +266,22 @@ func (g *GPUDevice) createDescriptorSet(layout GPUDescriptorSetLayout, poolIdx i
 		gpuSets[i].handle = unsafe.Pointer(sets[i])
 	}
 	if res != vulkan_const.Success {
-		if res == vulkan_const.ErrorOutOfPoolMemory {
+		// Grow onto a fresh pool + retry for exhaustion AND fragmentation. MoltenVK
+		// reports a heavily-used pool (many NPCs/objects in view) as ErrorFragmentedPool/
+		// ErrorFragmentation, which the old code treated as fatal -> returned null-handle
+		// descriptor sets -> a null DstSet segfaulting vkUpdateDescriptorSets. A fresh pool
+		// is neither full nor fragmented, so one retry succeeds.
+		switch res {
+		case vulkan_const.ErrorOutOfPoolMemory, vulkan_const.ErrorFragmentedPool, vulkan_const.ErrorFragmentation:
 			if poolIdx < len(g.Painter.descriptorPools)-1 {
 				return g.createDescriptorSet(layout, poolIdx+1)
-			} else {
-				g.createDescriptorPool(1000)
-				return g.createDescriptorSet(layout, poolIdx+1)
 			}
+			if err := g.createDescriptorPool(1000); err != nil {
+				return gpuSets, GPUDescriptorPool{}, err
+			}
+			return g.createDescriptorSet(layout, poolIdx+1)
 		}
+		slog.Error("failed to allocate descriptor sets", "result", int(res))
 		return gpuSets, GPUDescriptorPool{}, errors.New("failed to allocate descriptor sets")
 	}
 	return gpuSets, g.Painter.descriptorPools[poolIdx], nil
