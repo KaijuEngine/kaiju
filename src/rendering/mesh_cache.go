@@ -60,7 +60,7 @@ func (m *MeshCache) FindMesh(key string) (*Mesh, bool) {
 
 // RemoveMesh evicts a mesh from the cache and reclaims its GPU memory. The
 // mesh handle (if it has already been created) is queued into pendingFree so
-// CreatePending destroys it on the next frame, and any still-queued creation
+// ProcessPending destroys it on the next frame, and any still-queued creation
 // for the mesh is dropped so an evicted mesh is never created after removal.
 // Callers must ensure no live Drawing still references the mesh.
 func (m *MeshCache) RemoveMesh(key string) {
@@ -133,7 +133,7 @@ func (m *MeshCache) UpdateMeshVertices(key string, verts []Vertex) {
 	}
 }
 
-func (m *MeshCache) CreatePending() {
+func (m *MeshCache) ProcessPending() {
 	defer tracing.NewRegion("MeshCache.CreatePending").End()
 	m.mutex.Lock()
 	defer m.mutex.Unlock()

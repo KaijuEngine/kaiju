@@ -229,7 +229,7 @@ func (t *TextureCache) InsertImageTextureWithPriority(key string, imageData []by
 
 // ForceRemoveTexture evicts a texture from the cache and reclaims its GPU
 // memory. The texture's RenderId (if it has already been uploaded) is queued
-// into pendingFree so CreatePending frees it on the next frame, and any
+// into pendingFree so ProcessPending frees it on the next frame, and any
 // still-queued upload for the texture is dropped so an evicted texture is
 // never uploaded after removal.
 func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter) {
@@ -246,14 +246,13 @@ func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter) {
 	delete(t.textures[filter], key)
 }
 
-func (t *TextureCache) CreatePending() {
+func (t *TextureCache) ProcessPending() {
 	defer tracing.NewRegion("TextureCache.CreatePending").End()
 	t.mutex.Lock()
 	pendingFree := append([]TextureId(nil), t.pendingFree...)
 	t.pendingFree = klib.WipeSlice(t.pendingFree)
 	pendingTextures := t.takePendingUploadsLocked()
 	t.mutex.Unlock()
-
 	for i := range pendingFree {
 		t.device.LogicalDevice.FreeTexture(&pendingFree[i])
 	}

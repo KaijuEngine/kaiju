@@ -193,7 +193,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 	}
 	sp.sampledImages = append(sp.sampledImages, c.SampledImages...)
 	sp.renderQuad = NewMeshUnitQuad(device.Painter.caches.MeshCache())
-	device.Painter.caches.MeshCache().CreatePending()
+	device.Painter.caches.MeshCache().ProcessPending()
 	for i := range len(sp.cmd) {
 		if sp.cmd[i], err = NewCommandRecorderSecondary(device, r, index); err != nil {
 			return err
