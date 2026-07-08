@@ -75,8 +75,8 @@ TEXT   ·Mat4fMultiply(SB),NOSPLIT,$0-192
     MULROWWISE(48, 176)
     RET
 
-// func Mat4fMultiplyVec4(a Mat4f, b Vec4f) Vec4f
-TEXT   ·Mat4fMultiplyVec4(SB),NOSPLIT,$0-96
+// func Mat4fMultiplyVec4f(a Mat4f, b Vec4f) Vec4f
+TEXT   ·Mat4fMultiplyVec4f(SB),NOSPLIT,$0-96
     FMOVQ a_0+0(FP), F0
     FMOVQ a_4+16(FP), F1
     FMOVQ a_8+32(FP), F2
@@ -90,8 +90,8 @@ TEXT   ·Mat4fMultiplyVec4(SB),NOSPLIT,$0-96
     FMOVQ F14, ret+80(FP)
     RET
 
-// func Vec4fMultiplyMat4(v Vec4f, m Mat4f) Vec4f
-TEXT   ·Vec4fMultiplyMat4(SB),NOSPLIT,$0-96
+// func Vec4fMultiplyMat4f(v Vec4f, m Mat4f) Vec4f
+TEXT   ·Vec4fMultiplyMat4f(SB),NOSPLIT,$0-96
     FMOVQ m_0+16(FP), F0
     FMOVQ m_4+32(FP), F1
     FMOVQ m_8+48(FP), F2
