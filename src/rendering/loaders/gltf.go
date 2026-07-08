@@ -1013,7 +1013,7 @@ func gltfReadAnimation(doc *fullGLTF, index int) (load_result.Animation, error) 
 
 func gltfAnimationFrame(anim *load_result.Animation, time matrix.Float) *load_result.AnimKeyFrame {
 	for i := range anim.Frames {
-		if matrix.Approx(anim.Frames[i].Time, time) {
+		if matrix.Approx(anim.Frames[i].Time, float32(time)) {
 			return &anim.Frames[i]
 		}
 	}

@@ -74,6 +74,20 @@ func mat4MultiplyFallback(a, b Mat4) Mat4 {
 	return result
 }
 
+func mat4fMultiplyFallback(a, b Mat4f) Mat4f {
+	var result Mat4f
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			var sum float32 = 0
+			for k := 0; k < 4; k++ {
+				sum += a[i*4+k] * b[k*4+j]
+			}
+			result[i*4+j] = sum
+		}
+	}
+	return result
+}
+
 func mat4MultiplyVec4Fallback(a Mat4, b Vec4) Vec4 {
 	var result Vec4
 	c := a.ColumnVector(0)
@@ -87,8 +101,34 @@ func mat4MultiplyVec4Fallback(a Mat4, b Vec4) Vec4 {
 	return result
 }
 
+func mat4fMultiplyVec4fFallback(a Mat4f, b Vec4f) Vec4f {
+	var result Vec4f
+	c := a.ColumnVector(0)
+	result[Vx] = Vec4Dot(c, b)
+	c = a.ColumnVector(1)
+	result[Vy] = Vec4Dot(c, b)
+	c = a.ColumnVector(2)
+	result[Vz] = Vec4Dot(c, b)
+	c = a.ColumnVector(3)
+	result[Vw] = Vec4Dot(c, b)
+	return result
+}
+
 func vec4MultiplyMat4Fallback(v Vec4, m Mat4) Vec4 {
 	var result Vec4
+	row := m.RowVector(0)
+	result[Vx] = Vec4Dot(row, v)
+	row = m.RowVector(1)
+	result[Vy] = Vec4Dot(row, v)
+	row = m.RowVector(2)
+	result[Vz] = Vec4Dot(row, v)
+	row = m.RowVector(3)
+	result[Vw] = Vec4Dot(row, v)
+	return result
+}
+
+func vec4fMultiplyMat4fFallback(v Vec4f, m Mat4f) Vec4f {
+	var result Vec4f
 	row := m.RowVector(0)
 	result[Vx] = Vec4Dot(row, v)
 	row = m.RowVector(1)

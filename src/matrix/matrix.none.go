@@ -1,4 +1,4 @@
-//go:build !amd64 && !arm64 && !F64
+//go:build !amd64 && !arm64
 
 /******************************************************************************/
 /* matrix.none.go                                                             */
@@ -9,13 +9,13 @@
 package matrix
 
 func Mat4fMultiply(a, b Mat4f) Mat4f {
-	return mat4MultiplyFallback(a, b)
+	return mat4fMultiplyFallback(a, b)
 }
 
 func Mat4fMultiplyVec4f(a Mat4f, b Vec4f) Vec4f {
-	return mat4MultiplyVec4Fallback(a, b)
+	return mat4fMultiplyVec4fFallback(a, b)
 }
 
 func Vec4fMultiplyMat4f(v Vec4f, m Mat4f) Vec4f {
-	return vec4MultiplyMat4Fallback(v, m)
+	return vec4fMultiplyMat4fFallback(v, m)
 }
