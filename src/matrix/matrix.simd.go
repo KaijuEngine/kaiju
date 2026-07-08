@@ -1,4 +1,4 @@
-//go:build amd64 || arm64
+//go:build (amd64 || arm64) && !F64
 
 /******************************************************************************/
 /* matrix.simd.go                                                             */
@@ -9,10 +9,10 @@
 package matrix
 
 //go:noescape
-func Mat4Multiply(a, b Mat4) Mat4
+func Mat4fMultiply(a, b Mat4f) Mat4f
 
 //go:noescape
-func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
+func Mat4fMultiplyVec4f(a Mat4f, b Vec4f) Vec4f
 
 //go:noescape
-func Vec4MultiplyMat4(v Vec4, m Mat4) Vec4
+func Vec4fMultiplyMat4f(v Vec4f, m Mat4f) Vec4f
