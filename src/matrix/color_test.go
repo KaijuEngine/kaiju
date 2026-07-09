@@ -43,14 +43,14 @@ func TestColorRGBAInt(t *testing.T) {
 	if !Approx(c.R(), 1.0) {
 		t.Errorf("R expected 1.0, got %v", c.R())
 	}
-	if !Approx(c.G(), Float(128)/255.0) {
-		t.Errorf("G expected %v, got %v", Float(128)/255.0, c.G())
+	if !Approx(c.G(), float32(128)/255.0) {
+		t.Errorf("G expected %v, got %v", float32(128)/255.0, c.G())
 	}
-	if !Approx(c.B(), Float(64)/255.0) {
-		t.Errorf("B expected %v, got %v", Float(64)/255.0, c.B())
+	if !Approx(c.B(), float32(64)/255.0) {
+		t.Errorf("B expected %v, got %v", float32(64)/255.0, c.B())
 	}
-	if !Approx(c.A(), Float(200)/255.0) {
-		t.Errorf("A expected %v, got %v", Float(200)/255.0, c.A())
+	if !Approx(c.A(), float32(200)/255.0) {
+		t.Errorf("A expected %v, got %v", float32(200)/255.0, c.A())
 	}
 }
 
@@ -216,11 +216,11 @@ func TestColorFromColor8(t *testing.T) {
 	if !Approx(c.G(), 0.0) {
 		t.Errorf("G expected 0.0, got %v", c.G())
 	}
-	if !Approx(c.B(), Float(128)/255.0) {
-		t.Errorf("B expected %v, got %v", Float(128)/255.0, c.B())
+	if !Approx(c.B(), float32(128)/255.0) {
+		t.Errorf("B expected %v, got %v", float32(128)/255.0, c.B())
 	}
-	if !Approx(c.A(), Float(200)/255.0) {
-		t.Errorf("A expected %v, got %v", Float(200)/255.0, c.A())
+	if !Approx(c.A(), float32(200)/255.0) {
+		t.Errorf("A expected %v, got %v", float32(200)/255.0, c.A())
 	}
 }
 
@@ -562,8 +562,8 @@ func TestColorEquals(t *testing.T) {
 }
 
 func TestColorEqualsNaN(t *testing.T) {
-	a := NewColor(0.5, NaN(), 0.3, 1.0)
-	b := NewColor(0.5, NaN(), 0.3, 1.0)
+	a := NewColor(0.5, float32(NaN()), 0.3, 1.0)
+	b := NewColor(0.5, float32(NaN()), 0.3, 1.0)
 	// NaN != NaN, so Colors containing NaN should not be equal
 	if a.Equals(b) {
 		t.Error("Color.Equals should return false when components contain NaN")
@@ -1143,7 +1143,7 @@ func TestColorInvertedTwice(t *testing.T) {
 
 func BenchmarkNewColor(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = NewColor(Float(i%256)/255.0, 0.5, 0.3, 1.0)
+		_ = NewColor(float32(i%256)/255.0, 0.5, 0.3, 1.0)
 	}
 }
 

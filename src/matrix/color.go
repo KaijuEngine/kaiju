@@ -13,22 +13,22 @@ import (
 	"strings"
 )
 
-type Color Vec4
+type Color Vec4T[float32]
 type Color8 [4]uint8
 
-func (c Color) R() Float                           { return c[R] }
-func (c Color) G() Float                           { return c[G] }
-func (c Color) B() Float                           { return c[B] }
-func (c Color) A() Float                           { return c[A] }
-func (c *Color) PR() *Float                        { return &c[R] }
-func (c *Color) PG() *Float                        { return &c[G] }
-func (c *Color) PB() *Float                        { return &c[B] }
-func (c *Color) PA() *Float                        { return &c[A] }
-func (c Color) RGBA() (Float, Float, Float, Float) { return c[R], c[G], c[B], c[A] }
-func (c *Color) SetR(r Float)                      { c[R] = r }
-func (c *Color) SetG(g Float)                      { c[G] = g }
-func (c *Color) SetB(b Float)                      { c[B] = b }
-func (c *Color) SetA(a Float)                      { c[A] = a }
+func (c Color) R() float32                                 { return c[R] }
+func (c Color) G() float32                                 { return c[G] }
+func (c Color) B() float32                                 { return c[B] }
+func (c Color) A() float32                                 { return c[A] }
+func (c *Color) PR() *float32                              { return &c[R] }
+func (c *Color) PG() *float32                              { return &c[G] }
+func (c *Color) PB() *float32                              { return &c[B] }
+func (c *Color) PA() *float32                              { return &c[A] }
+func (c Color) RGBA() (float32, float32, float32, float32) { return c[R], c[G], c[B], c[A] }
+func (c *Color) SetR(r float32)                            { c[R] = r }
+func (c *Color) SetG(g float32)                            { c[G] = g }
+func (c *Color) SetB(b float32)                            { c[B] = b }
+func (c *Color) SetA(a float32)                            { c[A] = a }
 
 func (c Color8) R() uint8                           { return c[R] }
 func (c Color8) G() uint8                           { return c[G] }
@@ -44,7 +44,7 @@ func (c *Color8) SetG(g uint8)                      { c[G] = g }
 func (c *Color8) SetB(b uint8)                      { c[B] = b }
 func (c *Color8) SetA(a uint8)                      { c[A] = a }
 
-func NewColor(r, g, b, a Float) Color {
+func NewColor(r, g, b, a float32) Color {
 	return Color{r, g, b, a}
 }
 
@@ -54,17 +54,17 @@ func NewColor8(r, g, b, a uint8) Color8 {
 
 // https://bottosson.github.io/posts/oklab/#the-oklab-color-space
 // h (hue) is in degrees
-func OklchToColor(l, c, h, alpha Float) Color {
-	a := c * Cos(Float(h)*((2*math.Pi)/360.0))
-	b := c * Sin(Float(h)*((2*math.Pi)/360.0))
+func OklchToColor(l, c, h, alpha float32) Color {
+	a := c * Cos(h*((2*math.Pi)/360.0))
+	b := c * Sin(h*((2*math.Pi)/360.0))
 	return OklabToColor(l, a, b, alpha)
 }
 
 // https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab
-func OklabToColor(l, a, b, alpha Float) Color {
-	var l_ Float = l + 0.3963377774*a + 0.2158037573*b
-	var m_ Float = l - 0.1055613458*a - 0.0638541728*b
-	var s_ Float = l - 0.0894841775*a - 1.2914855480*b
+func OklabToColor(l, a, b, alpha float32) Color {
+	l_ := l + 0.3963377774*a + 0.2158037573*b
+	m_ := l - 0.1055613458*a - 0.0638541728*b
+	s_ := l - 0.0894841775*a - 1.2914855480*b
 
 	l__ := l_ * l_ * l_
 	a__ := m_ * m_ * m_
@@ -92,10 +92,10 @@ func OklabToColor(l, a, b, alpha Float) Color {
 
 func ColorFromColor8(c Color8) Color {
 	return Color{
-		Float(c[R]) / 255.0,
-		Float(c[G]) / 255.0,
-		Float(c[B]) / 255.0,
-		Float(c[A]) / 255.0,
+		float32(c[R]) / 255.0,
+		float32(c[G]) / 255.0,
+		float32(c[B]) / 255.0,
+		float32(c[A]) / 255.0,
 	}
 }
 
@@ -113,19 +113,19 @@ func Color8FromBytes(bytes []byte) Color8 {
 }
 
 func ColorFromVec3(v Vec3) Color {
-	return Color{v.X(), v.Y(), v.Z(), 1}
+	return Color{float32(v.X()), float32(v.Y()), float32(v.Z()), 1}
 }
 
 func ColorFromVec4(v Vec4) Color {
-	return Color{v.X(), v.Y(), v.Z(), v.W()}
+	return Color{float32(v.X()), float32(v.Y()), float32(v.Z()), float32(v.W())}
 }
 
 func ColorRGBAInt(r, g, b, a int) Color {
-	return Color{Float(r) / 255.0, Float(g) / 255.0, Float(b) / 255.0, Float(a) / 255.0}
+	return Color{float32(r) / 255.0, float32(g) / 255.0, float32(b) / 255.0, float32(a) / 255.0}
 }
 
 func ColorRGBInt(r, g, b int) Color {
-	return Color{Float(r) / 255.0, Float(g) / 255.0, Float(b) / 255.0, 1.0}
+	return Color{float32(r) / 255.0, float32(g) / 255.0, float32(b) / 255.0, 1.0}
 }
 
 func (c Color) AsColor8() Color8 { return Color8FromColor(c) }
@@ -135,7 +135,7 @@ func (c Color8) Equal(rhs Color8) bool {
 	return c[R] == rhs[R] && c[G] == rhs[G] && c[B] == rhs[B] && c[A] == rhs[A]
 }
 
-func ColorMix(lhs, rhs Color, amount Float) Color {
+func ColorMix(lhs, rhs Color, amount float32) Color {
 	return Color{
 		lhs[R] + (rhs[R]-lhs[R])*amount,
 		lhs[G] + (rhs[G]-lhs[G])*amount,
@@ -359,10 +359,10 @@ func (lhs Color8) Similar(rhs Color8, tolerance uint8) bool {
 		uint8(AbsInt(int(lhs[A])-int(rhs[A]))) <= tolerance
 }
 
-func (lhs Color) Equals(rhs Color) bool { return Vec4(lhs).Equals(Vec4(rhs)) }
+func (lhs Color) Equals(rhs Color) bool { return Vec4T[float32](lhs).Equals(Vec4T[float32](rhs)) }
 func (c Color) IsZero() bool            { return c.Equals(ColorZero()) }
 
-func (c Color) ScaleWithoutAlpha(scale Float) Color {
+func (c Color) ScaleWithoutAlpha(scale float32) Color {
 	return Color{c[R] * scale, c[G] * scale, c[B] * scale, c[A]}
 }
 
