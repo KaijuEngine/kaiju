@@ -10,5 +10,5 @@ import "kaijuengine.com/matrix"
 
 type AnimatedUV struct {
 	uv      matrix.Vec4
-	seconds float32
+	seconds matrix.Float
 }

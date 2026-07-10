@@ -26,13 +26,13 @@ type StandardCamera struct {
 	up               matrix.Vec3
 	updateProjection func()
 	updateView       func()
-	fieldOfView      float32
-	nearPlane        float32
-	farPlane         float32
-	width            float32
-	height           float32
-	viewWidth        float32
-	viewHeight       float32
+	fieldOfView      matrix.Float
+	nearPlane        matrix.Float
+	farPlane         matrix.Float
+	width            matrix.Float
+	height           matrix.Float
+	viewWidth        matrix.Float
+	viewHeight       matrix.Float
 	isOrthographic   bool
 	sizeIsViewSize   bool
 	frameDirty       bool
@@ -44,7 +44,7 @@ type StandardCamera struct {
 
 // NewStandardCamera creates a new perspective camera using the width/height
 // for the viewport and the position to place the camera.
-func NewStandardCamera(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera {
+func NewStandardCamera(width, height, viewWidth, viewHeight matrix.Float, position matrix.Vec3) *StandardCamera {
 	defer tracing.NewRegion("cameras.NewStandardCamera").End()
 	c := new(StandardCamera)
 	c.initializeValues(position)
@@ -54,7 +54,7 @@ func NewStandardCamera(width, height, viewWidth, viewHeight float32, position ma
 
 // NewStandardCameraOrthographic creates a new orthographic camera using the
 // width/height for the viewport and the position to place the camera.
-func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight float32, position matrix.Vec3) *StandardCamera {
+func NewStandardCameraOrthographic(width, height, viewWidth, viewHeight matrix.Float, position matrix.Vec3) *StandardCamera {
 	defer tracing.NewRegion("cameras.NewStandardCameraOrthographic").End()
 	c := new(StandardCamera)
 	c.initializeValues(position)
@@ -87,42 +87,42 @@ func (c *StandardCamera) SetPosition(position matrix.Vec3) {
 }
 
 // SetFOV sets the field of view for the camera.
-func (c *StandardCamera) SetFOV(fov float32) {
+func (c *StandardCamera) SetFOV(fov matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.SetFOV").End()
 	c.fieldOfView = fov
 	c.callUpdateProjection()
 }
 
 // SetNearPlane sets the near plane for the camera.
-func (c *StandardCamera) SetNearPlane(near float32) {
+func (c *StandardCamera) SetNearPlane(near matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.SetNearPlane").End()
 	c.nearPlane = near
 	c.callUpdateProjection()
 }
 
 // SetFarPlane sets the far plane for the camera.
-func (c *StandardCamera) SetFarPlane(far float32) {
+func (c *StandardCamera) SetFarPlane(far matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.SetFarPlane").End()
 	c.farPlane = far
 	c.callUpdateProjection()
 }
 
 // SetWidth sets the width of the camera viewport.
-func (c *StandardCamera) SetWidth(width float32) {
+func (c *StandardCamera) SetWidth(width matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.SetWidth").End()
 	c.width = width
 	c.callUpdateProjection()
 }
 
 // SetHeight sets the height of the camera viewport.
-func (c *StandardCamera) SetHeight(height float32) {
+func (c *StandardCamera) SetHeight(height matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.SetHeight").End()
 	c.height = height
 	c.callUpdateProjection()
 }
 
 // Resize sets the width and height of the camera viewport.
-func (c *StandardCamera) Resize(width, height float32) {
+func (c *StandardCamera) Resize(width, height matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.Resize").End()
 	c.width = width
 	c.height = height
@@ -132,7 +132,7 @@ func (c *StandardCamera) Resize(width, height float32) {
 // ViewportChanged will update the camera's projection matrix and should only
 // be used when there is a change in the viewport. This is typically done
 // internally in the system and should not be called by the end-developer.
-func (c *StandardCamera) ViewportChanged(width, height float32) {
+func (c *StandardCamera) ViewportChanged(width, height matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.ViewportChanged").End()
 	if c.sizeIsViewSize {
 		c.width = width
@@ -147,7 +147,7 @@ func (c *StandardCamera) ViewportChanged(width, height float32) {
 // This is typically used for initializing the camera to new values. Calling
 // each individual setter for fields would otherwise do needless projection
 // matrix updates.
-func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height float32) {
+func (c *StandardCamera) SetProperties(fov, nearPlane, farPlane, width, height matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.SetProperties").End()
 	c.fieldOfView = fov
 	c.nearPlane = nearPlane
@@ -261,10 +261,10 @@ func (c *StandardCamera) ForwardPlaneHit(screenPos matrix.Vec2, planePos matrix.
 func (c *StandardCamera) Position() matrix.Vec3 { return c.position }
 
 // Width will return the width of the camera's viewport.
-func (c *StandardCamera) Width() float32 { return c.width }
+func (c *StandardCamera) Width() matrix.Float { return c.width }
 
 // Height will return the height of the camera's viewport.
-func (c *StandardCamera) Height() float32 { return c.height }
+func (c *StandardCamera) Height() matrix.Float { return c.height }
 
 // View will return the view matrix of the camera.
 func (c *StandardCamera) View() matrix.Mat4 { return c.view }
@@ -279,10 +279,10 @@ func (c *StandardCamera) InverseProjection() matrix.Mat4 { return c.iProjection 
 func (c *StandardCamera) LookAt() matrix.Vec3 { return c.lookAt }
 
 // NearPlane will return the near plane of the camera.
-func (c *StandardCamera) NearPlane() float32 { return c.nearPlane }
+func (c *StandardCamera) NearPlane() matrix.Float { return c.nearPlane }
 
 // FarPlane will return the far plane of the camera.
-func (c *StandardCamera) FarPlane() float32 { return c.farPlane }
+func (c *StandardCamera) FarPlane() matrix.Float { return c.farPlane }
 
 // IsOrthographic will return if this camera is set to be an orthographic camera
 func (c *StandardCamera) IsOrthographic() bool { return c.isOrthographic }
@@ -293,8 +293,8 @@ func (c *StandardCamera) Viewport() matrix.Vec4 {
 
 func (c *StandardCamera) NumCSMCascades() uint8 { return max(1, c.csmNumCascades) }
 
-func (c *StandardCamera) CSMCascadeDistances() [4]float32 {
-	out := [4]float32{}
+func (c *StandardCamera) CSMCascadeDistances() [4]matrix.Float {
+	out := [4]matrix.Float{}
 	if len(c.csmSplits) < int(c.csmNumCascades) {
 		c.csmDirty = true
 		c.updateCSM()
@@ -330,7 +330,7 @@ func (c *StandardCamera) initializeValues(position matrix.Vec3) {
 	c.csmDirty = true
 }
 
-func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32) {
+func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.initialize").End()
 	c.updateProjection = c.internalUpdateProjection
 	c.updateView = c.internalUpdateView
@@ -341,7 +341,7 @@ func (c *StandardCamera) initialize(width, height, viewWidth, viewHeight float32
 	c.sizeIsViewSize = width == viewWidth && height == viewHeight
 }
 
-func (c *StandardCamera) setProjection(width, height float32) {
+func (c *StandardCamera) setProjection(width, height matrix.Float) {
 	defer tracing.NewRegion("StandardCamera.setProjection").End()
 	c.width = width
 	c.height = height
@@ -361,7 +361,7 @@ func (c *StandardCamera) internalUpdateProjection() {
 	c.updateFrustum()
 }
 
-func (c *StandardCamera) createProjection(near, far float32) matrix.Mat4 {
+func (c *StandardCamera) createProjection(near, far matrix.Float) matrix.Mat4 {
 	defer tracing.NewRegion("StandardCamera.createProjection").End()
 	proj := matrix.Mat4Identity()
 	if !c.isOrthographic {
@@ -449,7 +449,7 @@ func (c *StandardCamera) updateCSM() {
 	}
 	c.csmSplits = slices.Grow(c.csmSplits, num+1)
 	c.csmSplits = append(c.csmSplits, c.nearPlane)
-	const lambda float32 = 0.5
+	const lambda matrix.Float = 0.5
 	near64 := float64(c.nearPlane)
 	far64 := float64(c.farPlane)
 	range64 := far64 - near64
@@ -457,8 +457,8 @@ func (c *StandardCamera) updateCSM() {
 		p := float64(i) / float64(num)
 		logSplit := near64 * math.Pow(far64/near64, p)
 		uniSplit := near64 + range64*p
-		split64 := lambda*float32(logSplit) + (1-lambda)*float32(uniSplit)
-		c.csmSplits = append(c.csmSplits, float32(split64))
+		split64 := lambda*matrix.Float(logSplit) + (1-lambda)*matrix.Float(uniSplit)
+		c.csmSplits = append(c.csmSplits, matrix.Float(split64))
 	}
 	for range int(c.csmNumCascades+1) - len(c.csmSplits) {
 		c.csmSplits = append(c.csmSplits, c.farPlane)

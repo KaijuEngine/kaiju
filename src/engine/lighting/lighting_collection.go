@@ -20,7 +20,7 @@ import (
 type LightEntry struct {
 	rendering.Light
 	Transform *matrix.Transform
-	lastDist  float32
+	lastDist  matrix.Float
 	poolId    pooling.PoolGroupId
 	id        pooling.PoolIndex
 }

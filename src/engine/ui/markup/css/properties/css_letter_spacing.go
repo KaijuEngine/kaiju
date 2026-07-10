@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p LetterSpacing) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -21,7 +22,7 @@ func (p LetterSpacing) Process(panel *ui.Panel, elm *document.Element, values []
 		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
 	}
 	labels := childLabels(elm)
-	spacing := float32(0)
+	spacing := matrix.Float(0)
 	switch values[0].Str {
 	case "normal", "initial", "unset":
 	case "inherit":
@@ -31,7 +32,7 @@ func (p LetterSpacing) Process(panel *ui.Panel, elm *document.Element, values []
 			}
 		}
 	default:
-		emSize := float32(16)
+		emSize := matrix.Float(16)
 		if len(labels) > 0 {
 			emSize = host.FontCache().EMSize(labels[0].FontFace())
 		}

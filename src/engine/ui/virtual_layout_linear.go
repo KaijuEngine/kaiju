@@ -23,11 +23,11 @@ type linearVerticalLayout struct {
 	fixed       *fixedHeightModel
 	prefix      *prefixHeightModel
 	model       virtualHeightModel // == fixed or prefix
-	heightFn    func(index int) float32
-	minContentW float32
+	heightFn    func(index int) matrix.Float
+	minContentW matrix.Float
 }
 
-func newLinearVertical(estimate float32) *linearVerticalLayout {
+func newLinearVertical(estimate matrix.Float) *linearVerticalLayout {
 	f := newFixedHeightModel(estimate)
 	return &linearVerticalLayout{fixed: f, model: f}
 }
@@ -83,14 +83,14 @@ func (l *linearVerticalLayout) Remeasure() {
 // --- back-compat configuration (driven by the VirtualList shims) -------------
 
 // setFixed switches to fixed-height rows (the O(1) path).
-func (l *linearVerticalLayout) setFixed(h float32) {
+func (l *linearVerticalLayout) setFixed(h matrix.Float) {
 	l.fixed.setRowHeight(h)
 	l.model = l.fixed
 	l.heightFn = nil
 }
 
 // setVariable switches to per-row measured heights via fn.
-func (l *linearVerticalLayout) setVariable(fn func(index int) float32) {
+func (l *linearVerticalLayout) setVariable(fn func(index int) matrix.Float) {
 	if l.prefix == nil {
 		l.prefix = newPrefixHeightModel(virtualListDefaultEstimate)
 	}
@@ -99,11 +99,11 @@ func (l *linearVerticalLayout) setVariable(fn func(index int) float32) {
 }
 
 // setMinContentW records SetContentWidth's minimum content width.
-func (l *linearVerticalLayout) setMinContentW(w float32) { l.minContentW = w }
+func (l *linearVerticalLayout) setMinContentW(w matrix.Float) { l.minContentW = w }
 
 // contentWidth is the content panel width: the viewport width, widened to
 // minContentW when a larger one was requested (horizontal scroll of long rows).
-func (l *linearVerticalLayout) contentWidth(viewport matrix.Vec2) float32 {
+func (l *linearVerticalLayout) contentWidth(viewport matrix.Vec2) matrix.Float {
 	w := max(viewport.X(), 1)
 	if l.minContentW > w {
 		w = l.minContentW

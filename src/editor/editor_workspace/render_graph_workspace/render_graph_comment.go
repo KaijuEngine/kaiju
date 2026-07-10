@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	renderGraphCommentDefaultWidth  = float32(360)
-	renderGraphCommentDefaultHeight = float32(220)
+	renderGraphCommentDefaultWidth  = matrix.Float(360)
+	renderGraphCommentDefaultHeight = matrix.Float(220)
 	renderGraphCommentMinWidth      = matrix.Float(180)
 	renderGraphCommentMinHeight     = matrix.Float(96)
-	renderGraphCommentHeaderHeight  = float32(28)
-	renderGraphCommentGripSize      = float32(18)
-	renderGraphCommentZDepth        = float32(2)
+	renderGraphCommentHeaderHeight  = matrix.Float(28)
+	renderGraphCommentGripSize      = matrix.Float(18)
+	renderGraphCommentZDepth        = matrix.Float(2)
 )
 
 var (
@@ -244,8 +244,8 @@ func (c *renderGraphComment) applySize() {
 	if c == nil || c.root == nil {
 		return
 	}
-	width := float32(c.size.X())
-	height := float32(c.size.Y())
+	width := matrix.Float(c.size.X())
+	height := matrix.Float(c.size.Y())
 	c.root.Base().Layout().Scale(width, height)
 	if c.labelInput != nil {
 		c.labelInput.Base().Layout().Scale(max(1, width-16), renderGraphCommentHeaderHeight)
@@ -280,7 +280,7 @@ func (c *renderGraphComment) createHeader(uiMan *ui.Manager) {
 	c.header.SetColor(renderGraphCommentHeaderColor)
 	c.header.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	c.header.Base().Layout().SetZ(0.1)
-	c.header.Base().Layout().Scale(float32(c.size.X()), renderGraphCommentHeaderHeight)
+	c.header.Base().Layout().Scale(matrix.Float(c.size.X()), renderGraphCommentHeaderHeight)
 	c.header.Base().Layout().SetOffset(0, 0)
 	c.bindDragEvents(c.header.Base())
 	c.root.AddChild(c.header.Base())

@@ -22,6 +22,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -84,7 +85,7 @@ func (win *ShaderDesigner) materialPullTextureLabels() {
 }
 
 func (win *ShaderDesigner) reloadMaterialDoc() {
-	sy := float32(0)
+	sy := matrix.Float(0)
 	if win.materialDoc != nil {
 		content := win.materialDoc.GetElementsByClass("topFields")[0]
 		sy = content.UIPanel.ScrollY()

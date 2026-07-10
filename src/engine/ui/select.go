@@ -503,7 +503,7 @@ func (s *Select) expand() {
 	s.updateExpandedTransform()
 }
 
-func (s *Select) expandedListZ() float32 {
+func (s *Select) expandedListZ() matrix.Float {
 	pos := s.entity.Transform.WorldPosition()
 	return max(selectPopupZ, pos.Z()+s.layout.Z()+1)
 }
@@ -518,8 +518,8 @@ func (s *Select) updateExpandedTransform() {
 	// Not a permanent solution, just ensures all options are visible
 	topY := winHalfHeight - pos.Y()
 	nOpts := len(s.SelectData().options)
-	downHeight := selectSize.Y() * float32(nOpts)
-	upHeight := min(topY-arbitraryPadding, selectSize.Y()*float32(nOpts))
+	downHeight := selectSize.Y() * matrix.Float(nOpts)
+	upHeight := min(topY-arbitraryPadding, selectSize.Y()*matrix.Float(nOpts))
 	maxHeight := win.Height()
 	if d := matrix.Float(maxHeight) - (topY + downHeight + arbitraryPadding); d < 0 {
 		downHeight += d

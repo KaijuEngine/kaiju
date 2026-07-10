@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 const selectScreenshotOutput = "integration_test_select.png"
@@ -127,11 +128,11 @@ func assertSelectCollapsedPixels(host *engine.Host, doc *document.Document, img 
 	return nil
 }
 
-func selectPixelAt(img *image.RGBA, x, y float32) color.RGBA {
+func selectPixelAt(img *image.RGBA, x, y matrix.Float) color.RGBA {
 	bounds := img.Bounds()
 	return img.RGBAAt(
-		clampPixel(x, float32(bounds.Dx())),
-		clampPixel(y, float32(bounds.Dy())),
+		clampPixel(x, matrix.Float(bounds.Dx())),
+		clampPixel(y, matrix.Float(bounds.Dy())),
 	)
 }
 
@@ -151,12 +152,12 @@ func selectBrightness(c color.RGBA) int {
 	return int(c.R) + int(c.G) + int(c.B)
 }
 
-func selectHasWhitePixel(img *image.RGBA, left, top, right, bottom float32) bool {
+func selectHasWhitePixel(img *image.RGBA, left, top, right, bottom matrix.Float) bool {
 	bounds := img.Bounds()
-	minX := clampPixel(left, float32(bounds.Dx()))
-	minY := clampPixel(top, float32(bounds.Dy()))
-	maxX := clampPixel(right, float32(bounds.Dx()))
-	maxY := clampPixel(bottom, float32(bounds.Dy()))
+	minX := clampPixel(left, matrix.Float(bounds.Dx()))
+	minY := clampPixel(top, matrix.Float(bounds.Dy()))
+	maxX := clampPixel(right, matrix.Float(bounds.Dx()))
+	maxY := clampPixel(bottom, matrix.Float(bounds.Dy()))
 	for y := minY; y <= maxY; y++ {
 		for x := minX; x <= maxX; x++ {
 			c := img.RGBAAt(x, y)
@@ -168,12 +169,12 @@ func selectHasWhitePixel(img *image.RGBA, left, top, right, bottom float32) bool
 	return false
 }
 
-func selectHasAccentPixel(img *image.RGBA, left, top, right, bottom float32) bool {
+func selectHasAccentPixel(img *image.RGBA, left, top, right, bottom matrix.Float) bool {
 	bounds := img.Bounds()
-	minX := clampPixel(left, float32(bounds.Dx()))
-	minY := clampPixel(top, float32(bounds.Dy()))
-	maxX := clampPixel(right, float32(bounds.Dx()))
-	maxY := clampPixel(bottom, float32(bounds.Dy()))
+	minX := clampPixel(left, matrix.Float(bounds.Dx()))
+	minY := clampPixel(top, matrix.Float(bounds.Dy()))
+	maxX := clampPixel(right, matrix.Float(bounds.Dx()))
+	maxY := clampPixel(bottom, matrix.Float(bounds.Dy()))
 	for y := minY; y <= maxY; y++ {
 		for x := minX; x <= maxX; x++ {
 			if selectAccent(img.RGBAAt(x, y)) {

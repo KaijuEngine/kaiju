@@ -811,7 +811,7 @@ func NewMeshWireCube(cache *MeshCache, key string, vertColor matrix.Color) *Mesh
 // NewMeshCapsule creates a capsule mesh (cylinder with hemispherical ends) with the specified radius and height.
 // The capsule is aligned along the Y-axis, with hemispheres at y=height/2 and y=-height/2.
 // segments controls the number of subdivisions around the circumference, rings controls the number of rings per hemisphere.
-func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings int) *Mesh {
+func NewMeshCapsule(cache *MeshCache, radius, height matrix.Float, segments, rings int) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCapsule").End()
 	if segments < 3 {
 		segments = 3
@@ -832,9 +832,9 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 	topCenter := height / 2
 	bottomCenter := -height / 2
 	for row := 0; row < rowCount; row++ {
-		var y, ringRadius, normalRadius, normalY float32
+		var y, ringRadius, normalRadius, normalY matrix.Float
 		if row <= rings {
-			theta := float32(row) * math.Pi / (2.0 * float32(rings))
+			theta := matrix.Float(row) * math.Pi / (2.0 * matrix.Float(rings))
 			normalRadius = matrix.Sin(theta)
 			normalY = matrix.Cos(theta)
 			y = topCenter + radius*normalY
@@ -846,7 +846,7 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 			ringRadius = radius
 		} else {
 			hemisphereRow := row - (rings + 1)
-			theta := math.Pi/2 + float32(hemisphereRow)*math.Pi/(2.0*float32(rings))
+			theta := math.Pi/2 + matrix.Float(hemisphereRow)*math.Pi/(2.0*matrix.Float(rings))
 			normalRadius = matrix.Sin(theta)
 			normalY = matrix.Cos(theta)
 			y = bottomCenter + radius*normalY
@@ -854,7 +854,7 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 		}
 
 		for j := 0; j <= segments; j++ {
-			phi := float32(j) * 2.0 * math.Pi / float32(segments)
+			phi := matrix.Float(j) * 2.0 * math.Pi / matrix.Float(segments)
 			sinPhi := matrix.Sin(phi)
 			cosPhi := matrix.Cos(phi)
 			verts[vIndex].Position = matrix.Vec3{
@@ -865,8 +865,8 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 			normal := matrix.Vec3{cosPhi * normalRadius, normalY, sinPhi * normalRadius}
 			verts[vIndex].Normal = normal.Normal()
 			verts[vIndex].UV0 = matrix.NewVec2(
-				float32(j)/float32(segments),
-				float32(row)/float32(rowCount-1),
+				matrix.Float(j)/matrix.Float(segments),
+				matrix.Float(row)/matrix.Float(rowCount-1),
 			)
 			verts[vIndex].Color = matrix.ColorWhite()
 			vIndex++
@@ -894,7 +894,7 @@ func NewMeshCapsule(cache *MeshCache, radius, height float32, segments, rings in
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
+func NewMeshSphere(cache *MeshCache, radius matrix.Float, latitudeBands, longitudeBands int) *Mesh {
 	if latitudeBands < 2 {
 		latitudeBands = 2
 	}
@@ -909,11 +909,11 @@ func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBan
 	verts := make([]Vertex, numVerts)
 	vIdx := 0
 	for lat := 0; lat <= latitudeBands; lat++ {
-		theta := float32(lat) * math.Pi / float32(latitudeBands) // 0..π
+		theta := matrix.Float(lat) * math.Pi / matrix.Float(latitudeBands) // 0..π
 		sinTheta := matrix.Sin(theta)
 		cosTheta := matrix.Cos(theta)
 		for lon := 0; lon <= longitudeBands; lon++ {
-			phi := float32(lon) * 2.0 * math.Pi / float32(longitudeBands) // 0..2π
+			phi := matrix.Float(lon) * 2.0 * math.Pi / matrix.Float(longitudeBands) // 0..2π
 			sinPhi := matrix.Sin(phi)
 			cosPhi := matrix.Cos(phi)
 			x := radius * sinTheta * cosPhi
@@ -927,8 +927,8 @@ func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBan
 				verts[vIdx].Normal = matrix.Vec3{0, 0, 0}
 			}
 			verts[vIdx].UV0 = matrix.NewVec2(
-				float32(lon)/float32(longitudeBands),
-				float32(lat)/float32(latitudeBands),
+				matrix.Float(lon)/matrix.Float(longitudeBands),
+				matrix.Float(lat)/matrix.Float(latitudeBands),
 			)
 			verts[vIdx].Color = matrix.ColorWhite()
 			vIdx++
@@ -953,7 +953,7 @@ func NewMeshSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBan
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshWireSphere(cache *MeshCache, radius float32, latitudeBands, longitudeBands int) *Mesh {
+func NewMeshWireSphere(cache *MeshCache, radius matrix.Float, latitudeBands, longitudeBands int) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshWireSphereLatLon").End()
 	key := fmt.Sprintf("wire_sphere_latlon_%.2f_%d_%d", radius, latitudeBands, longitudeBands)
 	if mesh, ok := cache.FindMesh(key); ok {
@@ -970,11 +970,11 @@ func NewMeshWireSphere(cache *MeshCache, radius float32, latitudeBands, longitud
 	verts := make([]Vertex, numVerts)
 	vIdx := 0
 	for ring := 1; ring < latitudeBands; ring++ {
-		theta := float32(ring) * math.Pi / float32(latitudeBands)
+		theta := matrix.Float(ring) * math.Pi / matrix.Float(latitudeBands)
 		sinTheta := matrix.Sin(theta)
 		cosTheta := matrix.Cos(theta)
 		for lon := 0; lon < longitudeBands; lon++ {
-			phi := float32(lon) * 2.0 * math.Pi / float32(longitudeBands)
+			phi := matrix.Float(lon) * 2.0 * math.Pi / matrix.Float(longitudeBands)
 			sinPhi := matrix.Sin(phi)
 			cosPhi := matrix.Cos(phi)
 			verts[vIdx].Position = matrix.Vec3{
@@ -1007,7 +1007,7 @@ func NewMeshWireSphere(cache *MeshCache, radius float32, latitudeBands, longitud
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshWireCylinder(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh {
+func NewMeshWireCylinder(cache *MeshCache, radius, height matrix.Float, segments, heightSegments int) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshWireCylinder").End()
 	key := fmt.Sprintf("wire_cylinder_%.2f_%.2f_%d_%d", radius, height, segments, heightSegments)
 	if mesh, ok := cache.FindMesh(key); ok {
@@ -1025,9 +1025,9 @@ func NewMeshWireCylinder(cache *MeshCache, radius, height float32, segments, hei
 	vIdx := 0
 	halfHeight := height / 2.0
 	for ring := 0; ring < numRings; ring++ {
-		y := -halfHeight + float32(ring)/float32(heightSegments)*height
+		y := -halfHeight + matrix.Float(ring)/matrix.Float(heightSegments)*height
 		for s := 0; s < segments; s++ {
-			phi := float32(s) * 2.0 * math.Pi / float32(segments)
+			phi := matrix.Float(s) * 2.0 * math.Pi / matrix.Float(segments)
 			cosPhi := matrix.Cos(phi)
 			sinPhi := matrix.Sin(phi)
 			verts[vIdx].Position = matrix.Vec3{
@@ -1060,7 +1060,7 @@ func NewMeshWireCylinder(cache *MeshCache, radius, height float32, segments, hei
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightSegments int) *Mesh {
+func NewMeshWireCone(cache *MeshCache, radius, height matrix.Float, segments, heightSegments int) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshWireCone").End()
 	key := fmt.Sprintf("wire_cone_%.2f_%.2f_%d_%d", radius, height, segments, heightSegments)
 	if mesh, ok := cache.FindMesh(key); ok {
@@ -1083,11 +1083,11 @@ func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightS
 	apexIdx := uint32(0)
 	vIdx := 1
 	for ring := 0; ring < numRings; ring++ {
-		t := float32(ring) / float32(heightSegments)
+		t := matrix.Float(ring) / matrix.Float(heightSegments)
 		y := -halfHeight + t*height
 		currentRadius := radius * (1.0 - t)
 		for s := 0; s < segments; s++ {
-			phi := float32(s) * 2.0 * math.Pi / float32(segments)
+			phi := matrix.Float(s) * 2.0 * math.Pi / matrix.Float(segments)
 			cosPhi := matrix.Cos(phi)
 			sinPhi := matrix.Sin(phi)
 
@@ -1104,7 +1104,7 @@ func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightS
 	}
 	var indices []uint32
 	for ring := 0; ring < numRings; ring++ {
-		t := float32(ring) / float32(heightSegments)
+		t := matrix.Float(ring) / matrix.Float(heightSegments)
 		if t >= 1.0 {
 			continue
 		}
@@ -1135,7 +1135,7 @@ func NewMeshWireCone(cache *MeshCache, radius, height float32, segments, heightS
 // NewMeshCircleWire creates a wireframe circle (line loop) mesh.
 // It follows the same pattern as the other wireframe mesh generators
 // (e.g. NewMeshWireCube, NewMeshWireSphereLatLon, etc.).
-func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh {
+func NewMeshCircleWire(cache *MeshCache, radius matrix.Float, segments int) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCircleWire").End()
 	if segments < 3 {
 		segments = 3
@@ -1148,7 +1148,7 @@ func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh {
 	// Vertex layout: one vertex per segment (no center vertex needed for a line loop).
 	verts := make([]Vertex, segments)
 	for i := 0; i < segments; i++ {
-		phi := float32(i) * 2.0 * math.Pi / float32(segments)
+		phi := matrix.Float(i) * 2.0 * math.Pi / matrix.Float(segments)
 		cosPhi := matrix.Cos(phi)
 		sinPhi := matrix.Sin(phi)
 		verts[i].Position = matrix.Vec3{
@@ -1174,7 +1174,7 @@ func NewMeshCircleWire(cache *MeshCache, radius float32, segments int) *Mesh {
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshCylinder(cache *MeshCache, height, radius float32, segments int, capped bool) *Mesh {
+func NewMeshCylinder(cache *MeshCache, height, radius matrix.Float, segments int, capped bool) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCylinder").End()
 	if segments < 3 {
 		segments = 3
@@ -1190,7 +1190,7 @@ func NewMeshCylinder(cache *MeshCache, height, radius float32, segments int, cap
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshCone(cache *MeshCache, height, baseRadius float32, segments int, capped bool) *Mesh {
+func NewMeshCone(cache *MeshCache, height, baseRadius matrix.Float, segments int, capped bool) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshCone").End()
 	if segments < 3 {
 		segments = 3
@@ -1203,7 +1203,7 @@ func NewMeshCone(cache *MeshCache, height, baseRadius float32, segments int, cap
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshArrowWithTransform(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius float32, segments int, transform matrix.Mat4, uid string) *Mesh {
+func NewMeshArrowWithTransform(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius matrix.Float, segments int, transform matrix.Mat4, uid string) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshArrow").End()
 	if segments < 3 {
 		segments = 3
@@ -1235,12 +1235,12 @@ func NewMeshArrowWithTransform(cache *MeshCache, shaftLength, shaftRadius, tipHe
 	return cache.Mesh(key, verts, indices)
 }
 
-func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius float32, segments int) *Mesh {
+func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadius matrix.Float, segments int) *Mesh {
 	return NewMeshArrowWithTransform(cache, shaftLength, shaftRadius,
 		tipHeight, tipRadius, segments, matrix.Mat4Identity(), "")
 }
 
-func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
+func meshCylinder(height, radius matrix.Float, segments int, capped bool) ([]Vertex, []uint32) {
 	if segments < 3 {
 		segments = 3
 	}
@@ -1257,14 +1257,14 @@ func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, 
 	// Generate bottom and top rings
 	halfHeight := height / 2.0
 	for i := 0; i < 2; i++ { // 0: bottom, 1: top
-		y := -halfHeight + float32(i)*height
+		y := -halfHeight + matrix.Float(i)*height
 		for j := 0; j < segments; j++ {
-			phi := float32(j) * 2.0 * math.Pi / float32(segments)
+			phi := matrix.Float(j) * 2.0 * math.Pi / matrix.Float(segments)
 			cosPhi := matrix.Cos(phi)
 			sinPhi := matrix.Sin(phi)
 			verts[vIndex].Position = matrix.Vec3{radius * cosPhi, y, radius * sinPhi}
 			verts[vIndex].Normal = matrix.Vec3{cosPhi, 0.0, sinPhi} // Side normal
-			verts[vIndex].UV0 = matrix.NewVec2(float32(j)/float32(segments), float32(i))
+			verts[vIndex].UV0 = matrix.NewVec2(matrix.Float(j)/matrix.Float(segments), matrix.Float(i))
 			verts[vIndex].Color = matrix.ColorWhite()
 			vIndex++
 		}
@@ -1321,7 +1321,7 @@ func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, 
 	return verts, indices
 }
 
-func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
+func meshCone(height, radius matrix.Float, segments int, capped bool) ([]Vertex, []uint32) {
 	if segments < 3 {
 		segments = 3
 	}
@@ -1344,7 +1344,7 @@ func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []ui
 	vIndex++
 	// Base ring
 	for j := 0; j < segments; j++ {
-		phi := float32(j) * 2.0 * math.Pi / float32(segments)
+		phi := matrix.Float(j) * 2.0 * math.Pi / matrix.Float(segments)
 		cosPhi := matrix.Cos(phi)
 		sinPhi := matrix.Sin(phi)
 		verts[vIndex].Position = matrix.Vec3{radius * cosPhi, 0.0, radius * sinPhi}
@@ -1353,7 +1353,7 @@ func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []ui
 		normalXz := radius / slantLength
 		normalY := height / slantLength
 		verts[vIndex].Normal = matrix.Vec3{normalXz * cosPhi, normalY, normalXz * sinPhi}
-		verts[vIndex].UV0 = matrix.NewVec2(float32(j)/float32(segments), 0.0)
+		verts[vIndex].UV0 = matrix.NewVec2(matrix.Float(j)/matrix.Float(segments), 0.0)
 		verts[vIndex].Color = matrix.ColorWhite()
 		vIndex++
 	}

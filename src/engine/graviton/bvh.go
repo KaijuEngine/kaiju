@@ -15,7 +15,7 @@ import (
 
 type HitObject interface {
 	Bounds() AABB
-	RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
+	RayIntersectTest(ray Ray, length matrix.Float, transform *matrix.Transform) (matrix.Vec3, bool)
 }
 
 type BVH struct {
@@ -56,7 +56,7 @@ func (item BVHItem) Bounds() AABB {
 	return bounds.Transform(item.Transform.WorldMatrix())
 }
 
-func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
+func (item BVHItem) RayIntersect(ray Ray, length matrix.Float, transform *matrix.Transform) (matrix.Vec3, bool) {
 	defer tracing.NewRegion("BVHItem.RayIntersect").End()
 	return item.HitCheck.RayIntersectTest(ray, length, item.Transform)
 }
@@ -161,13 +161,13 @@ func (b *TriangleBVH) ToBVH(transform *matrix.Transform, data any) *BVH {
 	return out
 }
 
-func (b *BVH) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
+func (b *BVH) RayIntersectTest(ray Ray, length matrix.Float, transform *matrix.Transform) (matrix.Vec3, bool) {
 	defer tracing.NewRegion("BVH.RayIntersectTest").End()
 	_, pt, ok := b.RayIntersect(ray, length)
 	return pt, ok
 }
 
-func (b *BVH) RayIntersect(ray Ray, length float32) (any, matrix.Vec3, bool) {
+func (b *BVH) RayIntersect(ray Ray, length matrix.Float) (any, matrix.Vec3, bool) {
 	defer tracing.NewRegion("BVH.RayIntersect").End()
 	if b == nil {
 		return nil, matrix.Vec3{}, false

@@ -10,6 +10,7 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/matrix"
 )
 
 var bindingKey = ""
@@ -34,11 +35,11 @@ func BindingKey() string {
 }
 
 type CameraEntityData struct {
-	Width        float32 `default:"0" tip:"0 = viewport width"`
-	Height       float32 `default:"0" tip:"0 = viewport height"`
-	FOV          float32 `clamp:"60,45,120"` //default,min,max
-	NearPlane    float32 `default:"0.01"`
-	FarPlane     float32 `default:"500.0"`
+	Width        matrix.Float `default:"0" tip:"0 = viewport width"`
+	Height       matrix.Float `default:"0" tip:"0 = viewport height"`
+	FOV          matrix.Float `clamp:"60,45,120"` //default,min,max
+	NearPlane    matrix.Float `default:"0.01"`
+	FarPlane     matrix.Float `default:"500.0"`
 	Type         CameraType
 	IsMainCamera bool
 }
@@ -67,10 +68,10 @@ func (c CameraEntityData) Init(e *engine.Entity, host *engine.Host) {
 	w := c.Width
 	h := c.Height
 	if w <= 0 {
-		w = float32(host.Window.Width())
+		w = matrix.Float(host.Window.Width())
 	}
 	if h <= 0 {
-		h = float32(host.Window.Height())
+		h = matrix.Float(host.Window.Height())
 	}
 	switch c.Type {
 	case CameraTypeOrthographic:

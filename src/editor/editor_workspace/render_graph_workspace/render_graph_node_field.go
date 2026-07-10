@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	renderGraphFieldHeight     = float32(21)
-	renderGraphFieldGap        = float32(4)
-	renderGraphFieldLabelWidth = float32(54)
-	renderGraphFieldControlH   = float32(20)
+	renderGraphFieldHeight     = matrix.Float(21)
+	renderGraphFieldGap        = matrix.Float(4)
+	renderGraphFieldLabelWidth = matrix.Float(54)
+	renderGraphFieldControlH   = matrix.Float(20)
 	renderGraphFieldControlX   = renderGraphNodePadding + renderGraphFieldLabelWidth + 5
-	renderGraphTexturePreview  = float32(52)
+	renderGraphTexturePreview  = matrix.Float(52)
 )
 
 var (
@@ -68,14 +68,14 @@ func (n *renderGraphNode) createFields(uiMan *ui.Manager, fields []renderGraphNo
 	}
 }
 
-func renderGraphNodeFieldHeight(field renderGraphNodeFieldSpec) float32 {
+func renderGraphNodeFieldHeight(field renderGraphNodeFieldSpec) matrix.Float {
 	if field.Type == renderGraphNodeFieldTexture && field.Preview {
 		return renderGraphFieldControlH + 4 + renderGraphTexturePreview
 	}
 	return renderGraphFieldHeight
 }
 
-func (f *renderGraphNodeField) create(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) create(uiMan *ui.Manager, y matrix.Float) {
 	f.createLabel(uiMan, y)
 	switch f.spec.Type {
 	case renderGraphNodeFieldBool:
@@ -101,7 +101,7 @@ func (f *renderGraphNodeField) create(uiMan *ui.Manager, y float32) {
 	}
 }
 
-func (f *renderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createTexture(uiMan *ui.Manager, y matrix.Float) {
 	f.textureRoot = uiMan.Add().ToPanel()
 	f.textureRoot.Init(nil, ui.ElementTypePanel)
 	f.textureRoot.DontFitContent()
@@ -133,7 +133,7 @@ func (f *renderGraphNodeField) createTexture(uiMan *ui.Manager, y float32) {
 	}
 }
 
-func (f *renderGraphNodeField) createTexturePreview(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createTexturePreview(uiMan *ui.Manager, y matrix.Float) {
 	f.texturePreview = uiMan.Add().ToImage()
 	f.texturePreview.Init(nil)
 	preview := f.texturePreview.Base().ToPanel()
@@ -151,7 +151,7 @@ func (f *renderGraphNodeField) createTexturePreview(uiMan *ui.Manager, y float32
 	f.updateTexturePreview()
 }
 
-func (f *renderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createLabel(uiMan *ui.Manager, y matrix.Float) {
 	f.label = uiMan.Add().ToLabel()
 	f.label.Init(f.spec.Label)
 	f.label.SetFontSize(9)
@@ -166,7 +166,7 @@ func (f *renderGraphNodeField) createLabel(uiMan *ui.Manager, y float32) {
 	f.node.root.AddChild(f.label.Base())
 }
 
-func (f *renderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createCheckbox(uiMan *ui.Manager, y matrix.Float) {
 	cb := uiMan.Add().ToCheckbox()
 	cb.Init()
 	cb.Base().Layout().SetPositioning(ui.PositioningAbsolute)
@@ -184,7 +184,7 @@ func (f *renderGraphNodeField) createCheckbox(uiMan *ui.Manager, y float32) {
 	f.node.root.AddChild(cb.Base())
 }
 
-func (f *renderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createSelect(uiMan *ui.Manager, y matrix.Float) {
 	f.selectRoot = uiMan.Add().ToPanel()
 	f.selectRoot.Init(nil, ui.ElementTypePanel)
 	f.selectRoot.DontFitContent()
@@ -227,11 +227,11 @@ func (f *renderGraphNodeField) createSelect(uiMan *ui.Manager, y float32) {
 	f.createSelectList(uiMan, y)
 }
 
-func (f *renderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createSelectList(uiMan *ui.Manager, y matrix.Float) {
 	if len(f.spec.Options) == 0 {
 		return
 	}
-	const optionHeight = float32(18)
+	const optionHeight = matrix.Float(18)
 	f.selectList = uiMan.Add().ToPanel()
 	f.selectList.Init(nil, ui.ElementTypePanel)
 	f.selectList.DontFitContent()
@@ -240,7 +240,7 @@ func (f *renderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 	f.selectList.SetBorderColor(renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor, renderGraphFieldBorderColor)
 	f.selectList.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	f.selectList.Base().Layout().SetZ(0.7)
-	f.selectList.Base().Layout().Scale(f.controlWidth(), optionHeight*float32(len(f.spec.Options)))
+	f.selectList.Base().Layout().Scale(f.controlWidth(), optionHeight*matrix.Float(len(f.spec.Options)))
 	f.selectList.Base().Layout().SetOffset(renderGraphFieldControlX, y+renderGraphFieldControlH+2)
 	f.selectList.Base().AddEvent(ui.EventTypeMiss, f.hideSelectList)
 	f.selectList.Base().Hide()
@@ -255,7 +255,7 @@ func (f *renderGraphNodeField) createSelectList(uiMan *ui.Manager, y float32) {
 		row.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 		row.Base().Layout().SetZ(0.05)
 		row.Base().Layout().Scale(f.controlWidth(), optionHeight)
-		row.Base().Layout().SetOffset(0, optionHeight*float32(i))
+		row.Base().Layout().SetOffset(0, optionHeight*matrix.Float(i))
 		row.Base().AddEvent(ui.EventTypeClick, func() {
 			f.pickSelectOption(option)
 		})
@@ -316,7 +316,7 @@ func (f *renderGraphNodeField) selectLabelText() string {
 	return ""
 }
 
-func (f *renderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createColor(uiMan *ui.Manager, y matrix.Float) {
 	value := f.node.FieldValue(f.spec.ID)
 	swatchSize := renderGraphFieldControlH
 	f.swatch = uiMan.Add().ToPanel()
@@ -347,24 +347,24 @@ func (f *renderGraphNodeField) createColor(uiMan *ui.Manager, y float32) {
 	f.inputs = append(f.inputs, input)
 }
 
-func (f *renderGraphNodeField) createVector3(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createVector3(uiMan *ui.Manager, y matrix.Float) {
 	f.createVectorInputs(uiMan, y, 3, []string{"X", "Y", "Z"})
 }
 
-func (f *renderGraphNodeField) createVector4(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createVector4(uiMan *ui.Manager, y matrix.Float) {
 	f.createVectorInputs(uiMan, y, 4, []string{"X", "Y", "Z", "W"})
 }
 
-func (f *renderGraphNodeField) createVector2(uiMan *ui.Manager, y float32) {
+func (f *renderGraphNodeField) createVector2(uiMan *ui.Manager, y matrix.Float) {
 	f.createVectorInputs(uiMan, y, 2, []string{"X", "Y"})
 }
 
-func (f *renderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, count int, labels []string) {
+func (f *renderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y matrix.Float, count int, labels []string) {
 	parts := renderGraphFieldParts(f.node.FieldValue(f.spec.ID).Parts, count)
-	gap := float32(3)
-	width := (f.controlWidth() - gap*float32(count-1)) / float32(count)
+	gap := matrix.Float(3)
+	width := (f.controlWidth() - gap*matrix.Float(count-1)) / matrix.Float(count)
 	for i := 0; i < count; i++ {
-		x := renderGraphFieldControlX + float32(i)*(width+gap)
+		x := renderGraphFieldControlX + matrix.Float(i)*(width+gap)
 		input := f.createInput(uiMan, x, y+1, width, parts[i], true)
 		index := i
 		if i < len(labels) {
@@ -381,7 +381,7 @@ func (f *renderGraphNodeField) createVectorInputs(uiMan *ui.Manager, y float32, 
 	}
 }
 
-func (f *renderGraphNodeField) createTextInput(uiMan *ui.Manager, y float32, text string, number bool, onChange func(string)) {
+func (f *renderGraphNodeField) createTextInput(uiMan *ui.Manager, y matrix.Float, text string, number bool, onChange func(string)) {
 	input := f.createInput(uiMan, renderGraphFieldControlX, y+1, f.controlWidth(), text, number)
 	input.Base().AddEvent(ui.EventTypeChange, func() {
 		f.beginFieldValueEdit()
@@ -390,7 +390,7 @@ func (f *renderGraphNodeField) createTextInput(uiMan *ui.Manager, y float32, tex
 	f.inputs = append(f.inputs, input)
 }
 
-func (f *renderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float32, text string, number bool) *ui.Input {
+func (f *renderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width matrix.Float, text string, number bool) *ui.Input {
 	input := uiMan.Add().ToInput()
 	input.Init("")
 	input.SetFontSize(9)
@@ -418,7 +418,7 @@ func (f *renderGraphNodeField) createInput(uiMan *ui.Manager, x, y, width float3
 	return input
 }
 
-func (f *renderGraphNodeField) controlWidth() float32 {
+func (f *renderGraphNodeField) controlWidth() matrix.Float {
 	return renderGraphNodeWidth - renderGraphFieldControlX - renderGraphNodePadding
 }
 

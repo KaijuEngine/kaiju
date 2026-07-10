@@ -116,7 +116,7 @@ func (m *MeshCollision) Raycast(ray Ray, length matrix.Float, transform *matrix.
 	if transform != nil {
 		inv := transform.InverseWorldMatrix()
 		localOrigin := inv.TransformPoint(ray.Origin)
-		localEnd := inv.TransformPoint(ray.Point(float32(length)))
+		localEnd := inv.TransformPoint(ray.Point(matrix.Float(length)))
 		localDelta := localEnd.Subtract(localOrigin)
 		localLength = localDelta.Length()
 		if localLength <= contactEpsilon {
@@ -127,7 +127,7 @@ func (m *MeshCollision) Raycast(ray Ray, length matrix.Float, transform *matrix.
 			Direction: localDelta.Scale(1.0 / localLength),
 		}
 	}
-	data, localPoint, ok := m.BVH.RayIntersect(localRay, float32(localLength))
+	data, localPoint, ok := m.BVH.RayIntersect(localRay, matrix.Float(localLength))
 	if !ok {
 		return Hit{}, false
 	}

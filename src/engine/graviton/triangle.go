@@ -31,7 +31,7 @@ func (t DetailedTriangle) Bounds() AABB {
 	return NewAABB(min.Add(max).Scale(0.5), max.Subtract(min).Scale(0.5))
 }
 
-func (t DetailedTriangle) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
+func (t DetailedTriangle) RayIntersectTest(ray Ray, length matrix.Float, transform *matrix.Transform) (matrix.Vec3, bool) {
 	p0, p1, p2 := t.Points[0], t.Points[1], t.Points[2]
 	if transform != nil {
 		mat := transform.WorldMatrix()

@@ -6,7 +6,11 @@
 
 package ui
 
-import "sort"
+import (
+	"sort"
+
+	"kaijuengine.com/matrix"
+)
 
 // virtualHeightModel maps row indices to vertical offsets and back for a
 // VirtualList. It is the piece that lets the list render only the visible
@@ -23,16 +27,16 @@ type virtualHeightModel interface {
 	setCount(n int)
 	count() int
 	// total is the full content height (sum of all row heights).
-	total() float32
+	total() matrix.Float
 	// offsetOf is the y of the top edge of row index.
-	offsetOf(index int) float32
+	offsetOf(index int) matrix.Float
 	// heightOf is the height of row index.
-	heightOf(index int) float32
+	heightOf(index int) matrix.Float
 	// indexAt is the row whose vertical span contains y (clamped to range).
-	indexAt(y float32) int
+	indexAt(y matrix.Float) int
 	// setHeight records a measured height for a single row. The fixed model
 	// ignores it (all rows share one height).
-	setHeight(index int, h float32)
+	setHeight(index int, h matrix.Float)
 	// reset drops any per-row measurements back to defaults.
 	reset()
 }
@@ -40,14 +44,14 @@ type virtualHeightModel interface {
 // fixedHeightModel gives every row the same height. All queries are O(1).
 type fixedHeightModel struct {
 	n         int
-	rowHeight float32
+	rowHeight matrix.Float
 }
 
-func newFixedHeightModel(rowHeight float32) *fixedHeightModel {
+func newFixedHeightModel(rowHeight matrix.Float) *fixedHeightModel {
 	return &fixedHeightModel{rowHeight: rowHeight}
 }
 
-func (m *fixedHeightModel) setRowHeight(h float32) { m.rowHeight = h }
+func (m *fixedHeightModel) setRowHeight(h matrix.Float) { m.rowHeight = h }
 
 func (m *fixedHeightModel) setCount(n int) {
 	if n < 0 {
@@ -58,16 +62,16 @@ func (m *fixedHeightModel) setCount(n int) {
 
 func (m *fixedHeightModel) count() int { return m.n }
 
-func (m *fixedHeightModel) total() float32 { return float32(m.n) * m.rowHeight }
+func (m *fixedHeightModel) total() matrix.Float { return matrix.Float(m.n) * m.rowHeight }
 
-func (m *fixedHeightModel) offsetOf(index int) float32 {
+func (m *fixedHeightModel) offsetOf(index int) matrix.Float {
 	index = min(max(index, 0), m.n)
-	return float32(index) * m.rowHeight
+	return matrix.Float(index) * m.rowHeight
 }
 
-func (m *fixedHeightModel) heightOf(index int) float32 { return m.rowHeight }
+func (m *fixedHeightModel) heightOf(index int) matrix.Float { return m.rowHeight }
 
-func (m *fixedHeightModel) indexAt(y float32) int {
+func (m *fixedHeightModel) indexAt(y matrix.Float) int {
 	if m.rowHeight <= 0 || m.n == 0 {
 		return 0
 	}
@@ -78,7 +82,7 @@ func (m *fixedHeightModel) indexAt(y float32) int {
 	return min(max(idx, 0), m.n-1)
 }
 
-func (m *fixedHeightModel) setHeight(index int, h float32) {}
+func (m *fixedHeightModel) setHeight(index int, h matrix.Float) {}
 
 func (m *fixedHeightModel) reset() {}
 
@@ -89,20 +93,20 @@ func (m *fixedHeightModel) reset() {}
 // are rebuilt lazily from a dirty watermark so a single setHeight does not force
 // a full O(n) recompute on every call.
 type prefixHeightModel struct {
-	estimate  float32
-	heights   []float32
-	cum       []float32 // len == len(heights)+1; cum[i] = sum heights[0..i-1]
-	dirtyFrom int       // first index whose cum entry is stale; len(cum) when clean
+	estimate  matrix.Float
+	heights   []matrix.Float
+	cum       []matrix.Float // len == len(heights)+1; cum[i] = sum heights[0..i-1]
+	dirtyFrom int            // first index whose cum entry is stale; len(cum) when clean
 }
 
-func newPrefixHeightModel(estimate float32) *prefixHeightModel {
+func newPrefixHeightModel(estimate matrix.Float) *prefixHeightModel {
 	if estimate <= 0 {
 		estimate = 1
 	}
-	return &prefixHeightModel{estimate: estimate, cum: []float32{0}, dirtyFrom: 1}
+	return &prefixHeightModel{estimate: estimate, cum: []matrix.Float{0}, dirtyFrom: 1}
 }
 
-func (m *prefixHeightModel) setEstimate(h float32) {
+func (m *prefixHeightModel) setEstimate(h matrix.Float) {
 	if h <= 0 {
 		h = 1
 	}
@@ -123,7 +127,7 @@ func (m *prefixHeightModel) setCount(n int) {
 			m.heights = append(m.heights, m.estimate)
 		}
 	}
-	m.cum = make([]float32, n+1)
+	m.cum = make([]matrix.Float, n+1)
 	m.dirtyFrom = 0
 }
 
@@ -135,7 +139,7 @@ func (m *prefixHeightModel) ensureCum() {
 		return
 	}
 	if len(m.cum) != len(m.heights)+1 {
-		m.cum = make([]float32, len(m.heights)+1)
+		m.cum = make([]matrix.Float, len(m.heights)+1)
 		m.dirtyFrom = 0
 	}
 	start := max(m.dirtyFrom, 0)
@@ -145,25 +149,25 @@ func (m *prefixHeightModel) ensureCum() {
 	m.dirtyFrom = len(m.cum)
 }
 
-func (m *prefixHeightModel) total() float32 {
+func (m *prefixHeightModel) total() matrix.Float {
 	m.ensureCum()
 	return m.cum[len(m.cum)-1]
 }
 
-func (m *prefixHeightModel) offsetOf(index int) float32 {
+func (m *prefixHeightModel) offsetOf(index int) matrix.Float {
 	m.ensureCum()
 	index = min(max(index, 0), len(m.heights))
 	return m.cum[index]
 }
 
-func (m *prefixHeightModel) heightOf(index int) float32 {
+func (m *prefixHeightModel) heightOf(index int) matrix.Float {
 	if index < 0 || index >= len(m.heights) {
 		return 0
 	}
 	return m.heights[index]
 }
 
-func (m *prefixHeightModel) indexAt(y float32) int {
+func (m *prefixHeightModel) indexAt(y matrix.Float) int {
 	if len(m.heights) == 0 {
 		return 0
 	}
@@ -179,7 +183,7 @@ func (m *prefixHeightModel) indexAt(y float32) int {
 	return min(max(i, 0), n-1)
 }
 
-func (m *prefixHeightModel) setHeight(index int, h float32) {
+func (m *prefixHeightModel) setHeight(index int, h matrix.Float) {
 	if index < 0 || index >= len(m.heights) {
 		return
 	}

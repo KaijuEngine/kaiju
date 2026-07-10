@@ -209,7 +209,7 @@ func (s Cone) IntersectsOOBB(b OOBB) bool {
 	return false
 }
 
-func (s Cone) IntersectsRay(r Ray) (bool, float32) {
+func (s Cone) IntersectsRay(r Ray) (bool, matrix.Float) {
 	halfH := s.Height / 2
 	tan2 := s.Radius * s.Radius / (s.Height * s.Height)
 	oc := r.Origin.Subtract(s.Center)
@@ -273,10 +273,10 @@ func (s Cone) IntersectsRay(r Ray) (bool, float32) {
 			}
 		}
 	}
-	return hit, float32(tHit)
+	return hit, matrix.Float(tHit)
 }
 
-func (s Cone) IntersectsPlane(p Plane) (bool, float32) {
+func (s Cone) IntersectsPlane(p Plane) (bool, matrix.Float) {
 	halfH := s.Height / 2
 	apex := s.Center.Subtract(s.Direction.Scale(halfH))
 	baseCenter := s.Center.Add(s.Direction.Scale(halfH))
@@ -289,7 +289,7 @@ func (s Cone) IntersectsPlane(p Plane) (bool, float32) {
 		if centerDist < 0 {
 			centerDist = -centerDist
 		}
-		return true, float32(maxDist - centerDist)
+		return true, matrix.Float(maxDist - centerDist)
 	}
 	// Check base cap
 	capDist := distBase
@@ -297,7 +297,7 @@ func (s Cone) IntersectsPlane(p Plane) (bool, float32) {
 		capDist = -capDist
 	}
 	if capDist <= s.Radius {
-		return true, float32(s.Radius - capDist)
+		return true, matrix.Float(s.Radius - capDist)
 	}
 	// Check lateral surface
 	ne := matrix.Vec3Dot(p.Normal, s.Direction)
@@ -325,7 +325,7 @@ func (s Cone) IntersectsPlane(p Plane) (bool, float32) {
 		closestDist = -closestDist
 	}
 	if closestDist <= radiusAtH {
-		return true, float32(radiusAtH - closestDist)
+		return true, matrix.Float(radiusAtH - closestDist)
 	}
 	return false, 0
 }

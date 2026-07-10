@@ -23,6 +23,7 @@ import (
 	"os"
 	"unsafe"
 
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 )
 
@@ -33,7 +34,7 @@ func goProcessEvents(goWindow C.uint64_t, events unsafe.Pointer, eventCount C.ui
 
 // Scroll delta is already scaled to match Windows in cocoa_window.m (* 120),
 // so just pass through without additional scaling
-func scaleScrollDelta(delta float32) float32 {
+func scaleScrollDelta(delta matrix.Float) matrix.Float {
 	return delta
 }
 

@@ -6,7 +6,11 @@
 
 package ui
 
-import "testing"
+import (
+	"testing"
+
+	"kaijuengine.com/matrix"
+)
 
 // Shared assertion helpers for the virtual-list / document tests. The engine
 // package's tests use the standard library only (no testify).
@@ -18,7 +22,7 @@ func assertEqualI(t *testing.T, got, want int, name string) {
 	}
 }
 
-func assertEqualF(t *testing.T, got, want float32, name string) {
+func assertEqualF(t *testing.T, got, want matrix.Float, name string) {
 	t.Helper()
 	if got != want {
 		t.Fatalf("%s = %v, want %v", name, got, want)

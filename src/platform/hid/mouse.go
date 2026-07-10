@@ -30,10 +30,10 @@ const (
 )
 
 type Mouse struct {
-	X, Y             float32
-	SX, SY           float32
-	CX, CY           float32
-	ScrollX, ScrollY float32
+	X, Y             matrix.Float
+	SX, SY           matrix.Float
+	CX, CY           matrix.Float
+	ScrollX, ScrollY matrix.Float
 	buttonStates     [MouseButtonLast]int
 	moved            bool
 	buttonChanged    bool
@@ -71,7 +71,7 @@ func (m *Mouse) EndUpdate() {
 	m.moved = false
 }
 
-func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight float32) {
+func (m *Mouse) SetPosition(x, y, windowWidth, windowHeight matrix.Float) {
 	if m.X != x || m.Y != y {
 		m.X = x
 		m.Y = windowHeight - y
@@ -150,7 +150,7 @@ func (m Mouse) Scroll() matrix.Vec2 {
 	return matrix.NewVec2(m.ScrollX, m.ScrollY)
 }
 
-func (m *Mouse) SetScroll(x, y float32) {
+func (m *Mouse) SetScroll(x, y matrix.Float) {
 	m.ScrollX = x
 	m.ScrollY = y
 	m.scrollPending = true

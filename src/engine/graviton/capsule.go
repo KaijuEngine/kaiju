@@ -189,7 +189,7 @@ func (s Capsule) IntersectsOOBB(b OOBB) bool {
 	return false
 }
 
-func (s Capsule) IntersectsRay(r Ray) (bool, float32) {
+func (s Capsule) IntersectsRay(r Ray) (bool, matrix.Float) {
 	halfH := s.Height / 2
 	a1 := s.Center.Subtract(s.Direction.Scale(halfH))
 	a2 := s.Center.Add(s.Direction.Scale(halfH))
@@ -262,12 +262,12 @@ func (s Capsule) IntersectsRay(r Ray) (bool, float32) {
 		}
 	}
 	if minT < matrix.Inf(1) {
-		return true, float32(minT)
+		return true, matrix.Float(minT)
 	}
 	return false, 0
 }
 
-func (s Capsule) IntersectsPlane(p Plane) (bool, float32) {
+func (s Capsule) IntersectsPlane(p Plane) (bool, matrix.Float) {
 	halfH := s.Height / 2
 	a1 := s.Center.Subtract(s.Direction.Scale(halfH))
 	a2 := s.Center.Add(s.Direction.Scale(halfH))
@@ -281,7 +281,7 @@ func (s Capsule) IntersectsPlane(p Plane) (bool, float32) {
 		}
 	}
 	if dist <= s.Radius {
-		return true, float32(s.Radius - dist)
+		return true, matrix.Float(s.Radius - dist)
 	}
 	return false, 0
 }

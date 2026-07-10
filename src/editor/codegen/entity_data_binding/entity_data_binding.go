@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/editor/codegen/reflect_helpers"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 )
 
 var (
@@ -257,9 +258,9 @@ func (g *EntityDataEntry) FieldString(fieldIdx int) string {
 	return v.String()
 }
 
-func (g *EntityDataEntry) FieldVectorComponent(fieldIdx, componentIdx int) float32 {
+func (g *EntityDataEntry) FieldVectorComponent(fieldIdx, componentIdx int) matrix.Float {
 	v := reflect.ValueOf(g.BoundData).Elem().Field(fieldIdx)
-	return float32(v.Index(componentIdx).Float())
+	return matrix.Float(v.Index(componentIdx).Float())
 }
 
 func (g *EntityDataEntry) FieldVectorComponentAsString(fieldIdx, componentIdx int) string {

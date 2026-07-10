@@ -19,7 +19,7 @@ type sliderData struct {
 	panelData
 	bgPanel  *Panel
 	fgPanel  *Panel
-	value    float32
+	value    matrix.Float
 	dragging bool
 }
 
@@ -92,9 +92,9 @@ func (slider *Slider) update(deltaTime float64) {
 	}
 }
 
-func (slider *Slider) Delta() float32 {
+func (slider *Slider) Delta() matrix.Float {
 	host := slider.man.Value().Host
-	ww := float32(host.Window.Width())
+	ww := matrix.Float(host.Window.Width())
 	w := slider.entity.Transform.WorldScale().X()
 	xPos := slider.entity.Transform.WorldPosition().X() + (ww * 0.5)
 	xPos -= w * 0.5
@@ -102,11 +102,11 @@ func (slider *Slider) Delta() float32 {
 	return (mp.X() - xPos) / w
 }
 
-func (slider *Slider) Value() float32 {
+func (slider *Slider) Value() matrix.Float {
 	return slider.SliderData().value
 }
 
-func (slider *Slider) SetValueWithoutEvent(value float32) {
+func (slider *Slider) SetValueWithoutEvent(value matrix.Float) {
 	ld := slider.SliderData()
 	ld.value = matrix.Clamp(value, 0, 1)
 	w := ld.bgPanel.entity.Transform.WorldScale().X()
@@ -114,7 +114,7 @@ func (slider *Slider) SetValueWithoutEvent(value float32) {
 	ld.fgPanel.layout.SetInnerOffsetLeft(x)
 }
 
-func (slider *Slider) SetValue(value float32) {
+func (slider *Slider) SetValue(value matrix.Float) {
 	slider.SetValueWithoutEvent(value)
 	(*UI)(slider).changed()
 }

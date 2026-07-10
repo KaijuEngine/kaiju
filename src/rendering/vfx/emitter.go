@@ -37,7 +37,7 @@ type Emitter struct {
 type EmitterConfig struct {
 	Texture          content_id.Texture
 	SpawnRate        float64
-	ParticleLifeSpan float32
+	ParticleLifeSpan matrix.Float
 	LifeSpan         float64
 	Offset           matrix.Vec3
 	// SpawnArea is the half-extents of a box (centered on Offset) over which each
@@ -47,20 +47,20 @@ type EmitterConfig struct {
 	SpawnArea matrix.Vec3
 	// Size is the per-particle scale. Zero defaults to (1,1,1). Use small values for
 	// fine particles (rain drops, dust).
-	Size         matrix.Vec3
-	DirectionMin matrix.Vec3
-	DirectionMax     matrix.Vec3
-	VelocityMinMax   matrix.Vec2
-	OpacityMinMax    matrix.Vec2
-	Color            matrix.Color
-	PathFuncName     string                      `options:"PathFuncName"`
-	PathFunc         func(t float64) matrix.Vec3 `visible:"hidden" json:"-"`
-	PathFuncOffset   float64
-	PathFuncScale    float32
-	PathFuncSpeed    float32
-	FadeOutOverLife  bool
-	Burst            bool
-	Repeat           bool
+	Size            matrix.Vec3
+	DirectionMin    matrix.Vec3
+	DirectionMax    matrix.Vec3
+	VelocityMinMax  matrix.Vec2
+	OpacityMinMax   matrix.Vec2
+	Color           matrix.Color
+	PathFuncName    string                      `options:"PathFuncName"`
+	PathFunc        func(t float64) matrix.Vec3 `visible:"hidden" json:"-"`
+	PathFuncOffset  float64
+	PathFuncScale   matrix.Float
+	PathFuncSpeed   matrix.Float
+	FadeOutOverLife bool
+	Burst           bool
+	Repeat          bool
 }
 
 func (e *Emitter) IsValid() bool { return e.rand != nil }
@@ -107,8 +107,8 @@ func (e *Emitter) Deactivate() {
 func (e *Emitter) maxSpawnCount() int {
 	maxCount := 0
 	if e.Config.SpawnRate > 0 {
-		maxCount = int(matrix.Ceil(float32(1 / e.Config.SpawnRate * float64(e.Config.ParticleLifeSpan))))
-		maxCount += int(float32(maxCount) * 0.25) // Quarter buffer for lower frame rates
+		maxCount = int(matrix.Ceil(matrix.Float(1 / e.Config.SpawnRate * float64(e.Config.ParticleLifeSpan))))
+		maxCount += int(matrix.Float(maxCount) * 0.25) // Quarter buffer for lower frame rates
 	}
 	return maxCount
 }
@@ -211,7 +211,7 @@ func (e *Emitter) update(transform *matrix.Transform, deltaTime float64) {
 			p := &e.particles[i]
 			p.update(deltaTime)
 			a := e.particleData[i].Color.A()
-			e.particleData[i].Color.SetA(a - p.OpacityVelocity*float32(deltaTime))
+			e.particleData[i].Color.SetA(a - p.OpacityVelocity*matrix.Float(deltaTime))
 			e.particles[i].putWorldMatrix(e.particleData[i].ModelPtr())
 			if e.particles[i].LifeSpan <= 0 {
 				e.particleData[i].Deactivate()
@@ -243,12 +243,10 @@ func (e *Emitter) spawn(transform *matrix.Transform) {
 	pd.Color.SetA(1)
 	pos := transform.Position().Add(e.offset)
 	if sa := c.SpawnArea; sa.X() != 0 || sa.Y() != 0 || sa.Z() != 0 {
-		// Uniform scatter within the +/- box so particles fill an area (real rain),
-		// rather than all emanating from one point (a fountain/cone).
 		pos = pos.Add(matrix.NewVec3(
-			(e.rand.Float32()*2-1)*sa.X(),
-			(e.rand.Float32()*2-1)*sa.Y(),
-			(e.rand.Float32()*2-1)*sa.Z(),
+			matrix.Float(e.rand.Float32()*2-1)*sa.X(),
+			matrix.Float(e.rand.Float32()*2-1)*sa.Y(),
+			matrix.Float(e.rand.Float32()*2-1)*sa.Z(),
 		))
 	}
 	p.Transform.Position = pos

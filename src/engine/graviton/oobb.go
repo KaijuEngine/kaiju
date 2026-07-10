@@ -72,7 +72,7 @@ func (o OOBB) Intersect(other OOBB) bool {
 	return true
 }
 
-func (o OOBB) RayIntersect(ray Ray, length float32) bool {
+func (o OOBB) RayIntersect(ray Ray, length matrix.Float) bool {
 	localRayOrigin := o.Orientation.Transpose().MultiplyVec3(ray.Origin.Subtract(o.Center))
 	localRayDir := o.Orientation.Transpose().MultiplyVec3(ray.Direction)
 	localRay := Ray{
@@ -97,7 +97,7 @@ func (o OOBB) Bounds() AABB {
 
 func (o OOBB) Corners() [8]matrix.Vec3 {
 	var corners [8]matrix.Vec3
-	signs := [8][3]float32{
+	signs := [8][3]matrix.Float{
 		{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1},
 		{-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1},
 	}
@@ -112,12 +112,12 @@ func (o OOBB) Corners() [8]matrix.Vec3 {
 	return corners
 }
 
-func intervalsOverlap(min1, max1, min2, max2 float32) bool {
+func intervalsOverlap(min1, max1, min2, max2 matrix.Float) bool {
 	const epsilon = 1e-6
 	return max1 >= (min2-epsilon) && max2 >= (min1-epsilon)
 }
 
-func (o OOBB) projectInterval(axis matrix.Vec3) (float32, float32) {
+func (o OOBB) projectInterval(axis matrix.Vec3) (matrix.Float, matrix.Float) {
 	p := matrix.Vec3Dot(o.Center, axis)
 	r := matrix.Abs(matrix.Vec3Dot(o.Orientation.ColumnVector(0), axis))*o.Extent.X() +
 		matrix.Abs(matrix.Vec3Dot(o.Orientation.ColumnVector(1), axis))*o.Extent.Y() +

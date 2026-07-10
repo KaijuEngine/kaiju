@@ -13,7 +13,7 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func testLayoutUI(width, height float32) *UI {
+func testLayoutUI(width, height matrix.Float) *UI {
 	entity := engine.NewEntity(nil)
 	target := &UI{
 		entity:  *entity,

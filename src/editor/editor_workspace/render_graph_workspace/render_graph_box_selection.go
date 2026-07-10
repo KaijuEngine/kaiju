@@ -72,7 +72,7 @@ func (g *renderGraph) updateSelectionBoxVisual(current matrix.Vec2) {
 	base := g.selectionBox.Base()
 	base.Show()
 	base.Layout().SetOffset(viewPosition.X(), viewPosition.Y())
-	base.Layout().Scale(float32(width*zoom), float32(height*zoom))
+	base.Layout().Scale(matrix.Float(width*zoom), matrix.Float(height*zoom))
 	base.Clean()
 }
 

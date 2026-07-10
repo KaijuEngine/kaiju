@@ -20,6 +20,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -86,7 +87,7 @@ type settingsWorkspaceData struct {
 	Plugins        []editor_plugin.PluginInfo
 	Workspaces     []workspaceRowData
 	Shortcuts      []shortcutSectionData
-	ShortcutHeight float32
+	ShortcutHeight matrix.Float
 }
 
 func (w *SettingsWorkspace) ID() string          { return ID }

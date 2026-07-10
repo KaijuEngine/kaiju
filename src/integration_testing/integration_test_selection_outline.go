@@ -77,7 +77,7 @@ func IntegrationTestSelectionOutlineSelectedPair(host *engine.Host) {
 	})
 }
 
-func createSelectionOutlineScene(host *engine.Host, selectSphere bool) (matrix.Vec3, float32) {
+func createSelectionOutlineScene(host *engine.Host, selectSphere bool) (matrix.Vec3, matrix.Float) {
 	host.PrimaryCamera().SetPositionAndLookAt(
 		matrix.NewVec3(0, 4.0, 5.2),
 		matrix.NewVec3(0, 0, 0),
@@ -125,7 +125,7 @@ func addBasicDrawing(host *engine.Host, mesh *rendering.Mesh, sd rendering.DrawI
 	})
 }
 
-func assertSelectionOutlineOccluder(host *engine.Host, img *image.RGBA, sphereCenter matrix.Vec3, sphereRadius float32) error {
+func assertSelectionOutlineOccluder(host *engine.Host, img *image.RGBA, sphereCenter matrix.Vec3, sphereRadius matrix.Float) error {
 	outlinePixels := countOutlinePixels(img, img.Bounds())
 	if outlinePixels < 40 {
 		return fmt.Errorf("expected visible outline around selected floor, found %d outline pixels", outlinePixels)
@@ -143,7 +143,7 @@ func assertSelectionOutlineOccluder(host *engine.Host, img *image.RGBA, sphereCe
 	return nil
 }
 
-func assertSelectionOutlineSelectedPair(host *engine.Host, img *image.RGBA, sphereCenter matrix.Vec3, sphereRadius float32) error {
+func assertSelectionOutlineSelectedPair(host *engine.Host, img *image.RGBA, sphereCenter matrix.Vec3, sphereRadius matrix.Float) error {
 	outlinePixels := countOutlinePixels(img, img.Bounds())
 	if outlinePixels < 80 {
 		return fmt.Errorf("expected visible outline around selected objects, found %d outline pixels", outlinePixels)
@@ -161,7 +161,7 @@ func assertSelectionOutlineSelectedPair(host *engine.Host, img *image.RGBA, sphe
 	return nil
 }
 
-func projectedSphereBounds(host *engine.Host, img *image.RGBA, center matrix.Vec3, radius float32) (float64, float64, float64, bool) {
+func projectedSphereBounds(host *engine.Host, img *image.RGBA, center matrix.Vec3, radius matrix.Float) (float64, float64, float64, bool) {
 	cam := host.PrimaryCamera()
 	centerPx, ok := projectWorldToImage(host, img, center)
 	if !ok {
@@ -184,10 +184,10 @@ func projectWorldToImage(host *engine.Host, img *image.RGBA, pos matrix.Vec3) (m
 	if !ok {
 		return matrix.Vec2{}, false
 	}
-	scaleX := float32(img.Bounds().Dx()) / float32(host.Window.Width())
-	scaleY := float32(img.Bounds().Dy()) / float32(host.Window.Height())
-	x := float32(screen.X()) * scaleX
-	y := (float32(host.Window.Height()) - float32(screen.Y())) * scaleY
+	scaleX := matrix.Float(img.Bounds().Dx()) / matrix.Float(host.Window.Width())
+	scaleY := matrix.Float(img.Bounds().Dy()) / matrix.Float(host.Window.Height())
+	x := matrix.Float(screen.X()) * scaleX
+	y := (matrix.Float(host.Window.Height()) - matrix.Float(screen.Y())) * scaleY
 	return matrix.NewVec2(matrix.Float(x), matrix.Float(y)), true
 }
 
@@ -223,10 +223,10 @@ func countOutlinePixelsInAnnulus(img *image.RGBA, cx, cy, innerRadius, outerRadi
 
 func annulusBounds(imgBounds image.Rectangle, cx, cy, radius float64) image.Rectangle {
 	return image.Rect(
-		clampPixel(float32(cx-radius), float32(imgBounds.Dx())),
-		clampPixel(float32(cy-radius), float32(imgBounds.Dy())),
-		clampPixel(float32(cx+radius), float32(imgBounds.Dx()))+1,
-		clampPixel(float32(cy+radius), float32(imgBounds.Dy()))+1,
+		clampPixel(matrix.Float(cx-radius), matrix.Float(imgBounds.Dx())),
+		clampPixel(matrix.Float(cy-radius), matrix.Float(imgBounds.Dy())),
+		clampPixel(matrix.Float(cx+radius), matrix.Float(imgBounds.Dx()))+1,
+		clampPixel(matrix.Float(cy+radius), matrix.Float(imgBounds.Dy()))+1,
 	)
 }
 

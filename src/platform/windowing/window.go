@@ -424,7 +424,7 @@ func (w *Window) LockCursor(x, y int) {
 	debug.Assert(w.width > 0, "cannot lock cursor: window width must be greater than zero")
 	debug.Assert(w.height > 0, "cannot lock cursor: window height must be greater than zero")
 	w.lockCursor(x, y)
-	w.Mouse.SetPosition(float32(x), float32(y), float32(w.width), float32(w.height))
+	w.Mouse.SetPosition(matrix.Float(x), matrix.Float(y), matrix.Float(w.width), matrix.Float(w.height))
 }
 
 func (w *Window) SetFullscreen() {
@@ -554,7 +554,7 @@ func (w *Window) processWindowActivityEvent(evt *WindowActivityEvent) {
 
 func (w *Window) processMouseMoveEvent(evt *MouseMoveWindowEvent) {
 	defer tracing.NewRegion("Window.processMouseMoveEvent").End()
-	w.Mouse.SetPosition(float32(evt.x), float32(evt.y), float32(w.width), float32(w.height))
+	w.Mouse.SetPosition(matrix.Float(evt.x), matrix.Float(evt.y), matrix.Float(w.width), matrix.Float(w.height))
 	UpdateDragData(w, int(evt.x), int(evt.y))
 }
 
@@ -588,7 +588,7 @@ func (w *Window) processMouseButtonEvent(evt *MouseButtonWindowEvent) {
 func (w *Window) processMouseScrollEvent(evt *MouseScrollWindowEvent) {
 	defer tracing.NewRegion("Window.processMouseScrollEvent").End()
 	s := w.Mouse.Scroll()
-	w.Mouse.SetScroll(s.X()+float32(evt.deltaX), s.Y()+float32(evt.deltaY))
+	w.Mouse.SetScroll(s.X()+matrix.Float(evt.deltaX), s.Y()+matrix.Float(evt.deltaY))
 }
 
 func (w *Window) processKeyboardButtonEvent(evt *KeyboardButtonWindowEvent) {
@@ -629,21 +629,21 @@ func (w *Window) processControllerStateEvent(evt *ControllerStateWindowEvent) {
 		}
 	}
 	id := int(evt.controllerId)
-	w.Controller.SetAxis(id, hid.ControllerAxisLeftHorizontal, float32(evt.thumbLX)/math.MaxInt16)
-	w.Controller.SetAxis(id, hid.ControllerAxisLeftVertical, float32(evt.thumbLY)/math.MaxInt16)
-	w.Controller.SetAxis(id, hid.ControllerAxisRightHorizontal, float32(evt.thumbRX)/math.MaxInt16)
-	w.Controller.SetAxis(id, hid.ControllerAxisRightVertical, float32(evt.thumbRY)/math.MaxInt16)
-	w.Controller.SetAxis(id, hid.ControllerAxisLeftTrigger, float32(evt.leftTrigger)/math.MaxUint8)
-	w.Controller.SetAxis(id, hid.ControllerAxisRightTrigger, float32(evt.rightTrigger)/math.MaxUint8)
+	w.Controller.SetAxis(id, hid.ControllerAxisLeftHorizontal, matrix.Float(evt.thumbLX)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisLeftVertical, matrix.Float(evt.thumbLY)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisRightHorizontal, matrix.Float(evt.thumbRX)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisRightVertical, matrix.Float(evt.thumbRY)/math.MaxInt16)
+	w.Controller.SetAxis(id, hid.ControllerAxisLeftTrigger, matrix.Float(evt.leftTrigger)/math.MaxUint8)
+	w.Controller.SetAxis(id, hid.ControllerAxisRightTrigger, matrix.Float(evt.rightTrigger)/math.MaxUint8)
 }
 
 func (w *Window) processTouchStateEvent(evt *TouchStateWindowEvent) {
 	defer tracing.NewRegion("Window.processTouchStateEvent").End()
 	switch evt.actionState {
 	case touchActionStateUp:
-		w.Touch.SetUp(int64(evt.index), evt.x, evt.y, float32(w.height))
+		w.Touch.SetUp(int64(evt.index), evt.x, evt.y, matrix.Float(w.height))
 	case touchActionStateMove:
-		w.Touch.SetMoved(int64(evt.index), evt.x, evt.y, float32(w.height))
+		w.Touch.SetMoved(int64(evt.index), evt.x, evt.y, matrix.Float(w.height))
 	case touchActionStateCancel:
 		w.Touch.Cancel()
 	}
@@ -668,7 +668,7 @@ func (w *Window) processStylusStateEvent(evt *StylusStateWindowEvent) {
 	default:
 		w.Stylus.SetActionState(hid.StylusActionNone)
 	}
-	w.Stylus.Set(evt.x, evt.y, evt.pressure, evt.distance, float32(w.height))
+	w.Stylus.Set(evt.x, evt.y, evt.pressure, evt.distance, matrix.Float(w.height))
 }
 
 func (w *Window) removeFromActiveWindows() {

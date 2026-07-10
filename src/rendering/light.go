@@ -48,25 +48,25 @@ const (
 type GPULight struct {
 	Matrix    [cubeMapSides]matrix.Mat4
 	Position  matrix.Vec3
-	_         float32
+	_         matrix.Float
 	Direction matrix.Vec3
-	_         float32
+	_         matrix.Float
 }
 
 type GPULightInfo struct {
 	Position    matrix.Vec3
-	Intensity   float32
+	Intensity   matrix.Float
 	Direction   matrix.Vec3
-	Cutoff      float32
+	Cutoff      matrix.Float
 	Ambient     matrix.Vec3
-	OuterCutoff float32
+	OuterCutoff matrix.Float
 	Diffuse     matrix.Vec3
-	Constant    float32
+	Constant    matrix.Float
 	Specular    matrix.Vec3
-	Linear      float32
-	Quadratic   float32
-	NearPlane   float32
-	FarPlane    float32
+	Linear      matrix.Float
+	Quadratic   matrix.Float
+	NearPlane   matrix.Float
+	FarPlane    matrix.Float
 	Type        int32
 	ShadowIndex int32
 	_           [3]int32
@@ -87,12 +87,12 @@ type Light struct {
 	direction        matrix.Vec3
 	position         matrix.Vec3
 	lastFollowPos    matrix.Vec3
-	intensity        float32
-	constant         float32
-	linear           float32
-	quadratic        float32
-	cutoff           float32
-	outerCutoff      float32
+	intensity        matrix.Float
+	constant         matrix.Float
+	linear           matrix.Float
+	quadratic        matrix.Float
+	cutoff           matrix.Float
+	outerCutoff      matrix.Float
 	lightType        LightType
 	castsShadows     bool
 	reset            bool
@@ -150,8 +150,8 @@ func NewLight(device *GPUDevice, _ assets.Database, _ *MaterialCache, lightType 
 		quadratic:   0.000007,
 		direction:   matrix.Vec3Down(),
 		lightType:   lightType,
-		cutoff:      float32(matrix.Cos(matrix.Deg2Rad(32.5))),
-		outerCutoff: float32(matrix.Cos(matrix.Deg2Rad(50.5))),
+		cutoff:      matrix.Float(matrix.Cos(matrix.Deg2Rad(32.5))),
+		outerCutoff: matrix.Float(matrix.Cos(matrix.Deg2Rad(50.5))),
 		reset:       true,
 		device:      device,
 	}
@@ -295,8 +295,8 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 		Linear:      l.linear,
 		Specular:    l.specular,
 		Quadratic:   l.quadratic,
-		NearPlane:   float32(l.camera.NearPlane()),
-		FarPlane:    float32(l.camera.FarPlane()),
+		NearPlane:   matrix.Float(l.camera.NearPlane()),
+		FarPlane:    matrix.Float(l.camera.FarPlane()),
 		Type:        int32(l.lightType),
 		ShadowIndex: -1,
 	}
@@ -331,7 +331,7 @@ func (l *Light) SetDirection(dir matrix.Vec3) {
 	l.setDirty()
 }
 
-func (l *Light) SetIntensity(intensity float32) {
+func (l *Light) SetIntensity(intensity matrix.Float) {
 	if matrix.Approx(l.intensity, intensity) {
 		return
 	}
@@ -339,7 +339,7 @@ func (l *Light) SetIntensity(intensity float32) {
 	l.setDirty()
 }
 
-func (l *Light) SetConstant(constant float32) {
+func (l *Light) SetConstant(constant matrix.Float) {
 	if matrix.Approx(l.constant, constant) {
 		return
 	}
@@ -347,7 +347,7 @@ func (l *Light) SetConstant(constant float32) {
 	l.setDirty()
 }
 
-func (l *Light) SetLinear(linear float32) {
+func (l *Light) SetLinear(linear matrix.Float) {
 	if matrix.Approx(l.linear, linear) {
 		return
 	}
@@ -355,7 +355,7 @@ func (l *Light) SetLinear(linear float32) {
 	l.setDirty()
 }
 
-func (l *Light) SetQuadratic(quadratic float32) {
+func (l *Light) SetQuadratic(quadratic matrix.Float) {
 	if matrix.Approx(l.quadratic, quadratic) {
 		return
 	}
@@ -363,7 +363,7 @@ func (l *Light) SetQuadratic(quadratic float32) {
 	l.setDirty()
 }
 
-func (l *Light) SetCutoff(cutoff float32) {
+func (l *Light) SetCutoff(cutoff matrix.Float) {
 	if matrix.Approx(l.cutoff, cutoff) {
 		return
 	}
@@ -371,7 +371,7 @@ func (l *Light) SetCutoff(cutoff float32) {
 	l.setDirty()
 }
 
-func (l *Light) SetOuterCutoff(outerCutoff float32) {
+func (l *Light) SetOuterCutoff(outerCutoff matrix.Float) {
 	if matrix.Approx(l.outerCutoff, outerCutoff) {
 		return
 	}

@@ -87,7 +87,7 @@ type ContentWorkspace struct {
 	}
 	ftde struct {
 		arrow *document.Element
-		x     float32
+		x     matrix.Float
 	}
 }
 
@@ -1310,7 +1310,7 @@ func (w *ContentWorkspace) updateFtde(deltaTime float64) {
 	if w.ftde.arrow == nil {
 		return
 	}
-	w.ftde.x += float32(deltaTime) * 5
+	w.ftde.x += matrix.Float(deltaTime) * 5
 	w.ftde.arrow.UI.Layout().SetOffsetX(7 + (1+matrix.Cos(w.ftde.x))*10)
 }
 

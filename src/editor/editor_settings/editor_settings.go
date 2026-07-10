@@ -18,6 +18,7 @@ import (
 
 	"github.com/KaijuEngine/uuid"
 	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -36,8 +37,8 @@ type Settings struct {
 	ImageEditor           string
 	MeshEditor            string
 	AudioEditor           string
-	UIScrollSpeed         float32 `default:"20" label:"UI Scroll Speed"`
-	ShowGrid              bool    `default:"true" label:"Show Viewport Grid"`
+	UIScrollSpeed         matrix.Float `default:"20" label:"UI Scroll Speed"`
+	ShowGrid              bool         `default:"true" label:"Show Viewport Grid"`
 	EditorCamera          EditorCameraSettings
 	Snapping              SnapSettings
 	BuildTools            BuildToolSettings
@@ -64,17 +65,17 @@ type WorkspaceConfig struct {
 }
 
 type EditorCameraSettings struct {
-	ZoomSpeed          float32 `default:"120" label:"Zoom Speed"`
-	FlySpeed           float32 `default:"10"`
-	FlyBoostMultiplier float32 `default:"4" label:"Fly Boost Multiplier"`
-	FlyXSensitivity    float32 `default:"0.2"`
-	FlyYSensitivity    float32 `default:"0.2"`
+	ZoomSpeed          matrix.Float `default:"120" label:"Zoom Speed"`
+	FlySpeed           matrix.Float `default:"10"`
+	FlyBoostMultiplier matrix.Float `default:"4" label:"Fly Boost Multiplier"`
+	FlyXSensitivity    matrix.Float `default:"0.2"`
+	FlyYSensitivity    matrix.Float `default:"0.2"`
 }
 
 type SnapSettings struct {
-	TranslateIncrement float32
-	RotateIncrement    float32
-	ScaleIncrement     float32
+	TranslateIncrement matrix.Float
+	RotateIncrement    matrix.Float
+	ScaleIncrement     matrix.Float
 }
 
 type BuildToolSettings struct {

@@ -24,7 +24,7 @@ func PlaneCCW(a, b, c matrix.Vec3) Plane {
 }
 
 // SetFloatValue sets the value of the plane at the given index (X, Y, Z, Dot)
-func (p *Plane) SetFloatValue(value float32, index int) {
+func (p *Plane) SetFloatValue(value matrix.Float, index int) {
 	switch index {
 	case 0:
 		p.Normal.SetX(value)
@@ -38,8 +38,8 @@ func (p *Plane) SetFloatValue(value float32, index int) {
 }
 
 // ToArray converts the plane to an array of 4 floats
-func (p Plane) ToArray() [4]float32 {
-	return [4]float32{p.Normal.X(), p.Normal.Y(), p.Normal.Z(), p.Dot}
+func (p Plane) ToArray() [4]matrix.Float {
+	return [4]matrix.Float{p.Normal.X(), p.Normal.Y(), p.Normal.Z(), p.Dot}
 }
 
 // ToVec4 converts the plane to a Vec4 (analogous to ToArray)
@@ -55,7 +55,7 @@ func (p Plane) ClosestPoint(point matrix.Vec3) matrix.Vec3 {
 }
 
 // Distance returns the distance from the plane to the given point
-func (p Plane) Distance(point matrix.Vec3) float32 {
+func (p Plane) Distance(point matrix.Vec3) matrix.Float {
 	// If normalized, return matrix.Vec3Dot(p.Normal, point) - p.Dot
 	return (matrix.Vec3Dot(p.Normal, point) - p.Dot) / matrix.Vec3Dot(p.Normal, p.Normal)
 }

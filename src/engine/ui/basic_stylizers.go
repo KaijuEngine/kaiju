@@ -6,7 +6,11 @@
 
 package ui
 
-import "weak"
+import (
+	"weak"
+
+	"kaijuengine.com/matrix"
+)
 
 type BasicStylizer struct {
 	Parent weak.Pointer[UI]
@@ -65,7 +69,7 @@ func (l *Layout) stylizerControlsHeight() bool {
 }
 
 func (s RightStylizer) ProcessStyle(layout *Layout) []error {
-	width := float32(layout.ui.Host().Window.Width())
+	width := matrix.Float(layout.ui.Host().Window.Width())
 	parent := s.Parent.Value()
 	if parent != nil {
 		width = parent.Layout().PixelSize().X()
@@ -76,7 +80,7 @@ func (s RightStylizer) ProcessStyle(layout *Layout) []error {
 }
 
 func (s LeftStylizer) ProcessStyle(layout *Layout) []error {
-	height := float32(layout.ui.Host().Window.Height())
+	height := matrix.Float(layout.ui.Host().Window.Height())
 	parent := s.Parent.Value()
 	if parent != nil {
 		height = parent.Layout().PixelSize().Y()

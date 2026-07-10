@@ -109,7 +109,7 @@ func (a *SkinAnimation) Update(deltaTime float64) {
 	}
 }
 
-func (a *SkinAnimation) Interpolate(from, to SkinAnimationFrame) [4]float32 {
+func (a *SkinAnimation) Interpolate(from, to SkinAnimationFrame) [4]matrix.Float {
 	if matrix.Vec4Approx(from.Bone.Data, to.Bone.Data) {
 		return from.Bone.Data
 	}
@@ -123,15 +123,15 @@ func (a *SkinAnimation) Interpolate(from, to SkinAnimationFrame) [4]float32 {
 	case load_result.AnimPathRotation:
 		q0 := matrix.Quaternion(from.Bone.Data)
 		q1 := matrix.Quaternion(to.Bone.Data)
-		quat := matrix.QuaternionSlerp(q0, q1, float32(t))
+		quat := matrix.QuaternionSlerp(q0, q1, matrix.Float(t))
 		return quat
 	case load_result.AnimPathTranslation:
 		fallthrough
 	case load_result.AnimPathScale:
 		p0 := matrix.Vec3FromSlice(from.Bone.Data[:])
 		p1 := matrix.Vec3FromSlice(to.Bone.Data[:])
-		out := matrix.Vec3Lerp(p0, p1, float32(t))
-		return [4]float32{out.X(), out.Y(), out.Z(), 1}
+		out := matrix.Vec3Lerp(p0, p1, matrix.Float(t))
+		return [4]matrix.Float{out.X(), out.Y(), out.Z(), 1}
 	}
 	return from.Bone.Data
 }

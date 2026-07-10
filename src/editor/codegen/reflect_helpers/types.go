@@ -79,7 +79,7 @@ func StringToTypeValue(typeName, v string) any {
 		return klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint64]()))
 	case "float32":
 		v = klib.CleanNumString(v)
-		return float32(klib.ShouldReturn(strconv.ParseFloat(v, bitSize[float32]())))
+		return matrix.Float(klib.ShouldReturn(strconv.ParseFloat(v, bitSize[matrix.Float]())))
 	case "float64":
 		v = klib.CleanNumString(v)
 		return klib.ShouldReturn(strconv.ParseFloat(v, bitSize[float64]()))
@@ -97,7 +97,7 @@ func StringToTypeValue(typeName, v string) any {
 		parts := strings.Split(v, ",")
 		for i := range min(len(out), len(parts)) {
 			p := klib.CleanNumString(parts[i])
-			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[float32]())))
+			out[i] = matrix.Float(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[matrix.Float]())))
 		}
 		return out
 	case "Vec3":
@@ -105,7 +105,7 @@ func StringToTypeValue(typeName, v string) any {
 		parts := strings.Split(v, ",")
 		for i := range min(len(out), len(parts)) {
 			p := klib.CleanNumString(parts[i])
-			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[float32]())))
+			out[i] = matrix.Float(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[matrix.Float]())))
 		}
 		return out
 	case "Vec4":
@@ -113,7 +113,7 @@ func StringToTypeValue(typeName, v string) any {
 		parts := strings.Split(v, ",")
 		for i := range min(len(out), len(parts)) {
 			p := klib.CleanNumString(parts[i])
-			out[i] = float32(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[float32]())))
+			out[i] = matrix.Float(klib.ShouldReturn(strconv.ParseFloat(p, bitSize[matrix.Float]())))
 		}
 		return out
 	}

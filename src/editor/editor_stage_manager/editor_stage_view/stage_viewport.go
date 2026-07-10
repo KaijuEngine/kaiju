@@ -106,10 +106,10 @@ func (v stageRenderViewport) acceptsInput() bool {
 }
 
 type stageViewportBounds struct {
-	Left   float32
-	Top    float32
-	Width  float32
-	Height float32
+	Left   matrix.Float
+	Top    matrix.Float
+	Width  matrix.Float
+	Height matrix.Float
 }
 
 func (b stageViewportBounds) Valid() bool {
@@ -381,8 +381,8 @@ func (v *StageView) syncFullWindowViewport() {
 func (v *StageView) fullWindowViewportBounds() stageViewportBounds {
 	if v.host != nil && v.host.Window != nil {
 		return stageViewportBounds{
-			Width:  float32(v.host.Window.Width()),
-			Height: float32(v.host.Window.Height()),
+			Width:  matrix.Float(v.host.Window.Width()),
+			Height: matrix.Float(v.host.Window.Height()),
 		}
 	}
 	if viewport := v.activeStageViewport(); viewport != nil && viewport.bounds.Valid() {
@@ -476,8 +476,8 @@ func (v *StageView) currentViewportBoundsFor(viewport *stageRenderViewport) stag
 			return stageViewportBounds{}
 		}
 		return stageViewportBounds{
-			Width:  float32(v.host.Window.Width()),
-			Height: float32(v.host.Window.Height()),
+			Width:  matrix.Float(v.host.Window.Width()),
+			Height: matrix.Float(v.host.Window.Height()),
 		}
 	}
 	size := viewport.ui.Layout().PixelSize()
@@ -485,8 +485,8 @@ func (v *StageView) currentViewportBoundsFor(viewport *stageRenderViewport) stag
 		return stageViewportBounds{}
 	}
 	pos := viewport.ui.Entity().Transform.WorldPosition()
-	windowWidth := float32(v.host.Window.Width())
-	windowHeight := float32(v.host.Window.Height())
+	windowWidth := matrix.Float(v.host.Window.Width())
+	windowHeight := matrix.Float(v.host.Window.Height())
 	return stageViewportBounds{
 		Left:   windowWidth*0.5 + pos.X() - size.X()*0.5,
 		Top:    windowHeight*0.5 - pos.Y() - size.Y()*0.5,
@@ -646,7 +646,7 @@ func (v *StageView) PickIDAtViewportPoint(point matrix.Vec2) (uint32, bool) {
 }
 
 func (v *StageView) viewportReferenceBounds() stageViewportBounds {
-	var left, top, right, bottom float32
+	var left, top, right, bottom matrix.Float
 	found := false
 	for i := range v.stageViewports {
 		viewport := &v.stageViewports[i]

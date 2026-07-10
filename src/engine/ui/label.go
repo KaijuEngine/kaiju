@@ -28,10 +28,10 @@ type labelData struct {
 	colorRanges       []colorRange
 	text              string
 	textLength        int
-	fontSize          float32
-	lineHeight        float32
-	letterSpacing     float32
-	overrideMaxWidth  float32
+	fontSize          matrix.Float
+	lineHeight        matrix.Float
+	letterSpacing     matrix.Float
+	overrideMaxWidth  matrix.Float
 	fgColor           matrix.Color
 	bgColor           matrix.Color
 	justify           rendering.FontJustify
@@ -40,7 +40,7 @@ type labelData struct {
 	runeShaderData    []*rendering.TextShaderData
 	runeDrawings      []rendering.Drawing
 	fontFace          rendering.FontFace
-	lastRenderWidth   float32
+	lastRenderWidth   matrix.Float
 	unEnforcedFGColor matrix.Color
 	unEnforcedBGColor matrix.Color
 	isForcedFGColor   bool
@@ -165,7 +165,7 @@ func (label *Label) labelPostLayoutUpdate() {
 	label.updateHeight(maxWidth)
 }
 
-func (label *Label) updateHeight(maxWidth float32) {
+func (label *Label) updateHeight(maxWidth matrix.Float) {
 	if label.layout.stylizerControlsHeight() {
 		return
 	}
@@ -173,7 +173,7 @@ func (label *Label) updateHeight(maxWidth float32) {
 	label.layout.ScaleHeight(m.Y())
 }
 
-func (label *Label) measure(maxWidth float32) matrix.Vec2 {
+func (label *Label) measure(maxWidth matrix.Float) matrix.Vec2 {
 	ld := label.LabelData()
 	return label.man.Value().Host.FontCache().MeasureStringWithinWithLetterSpacing(ld.fontFace,
 		ld.text, ld.fontSize, maxWidth, ld.lineHeight, ld.letterSpacing)
@@ -346,9 +346,9 @@ func (label *Label) updateColors() {
 	}
 }
 
-func (label *Label) FontSize() float32 { return label.LabelData().fontSize }
+func (label *Label) FontSize() matrix.Float { return label.LabelData().fontSize }
 
-func (label *Label) SetFontSize(size float32) {
+func (label *Label) SetFontSize(size matrix.Float) {
 	ld := label.LabelData()
 	if ld.fontSize == size {
 		return
@@ -357,7 +357,7 @@ func (label *Label) SetFontSize(size float32) {
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (label *Label) SetLineHeight(height float32) {
+func (label *Label) SetLineHeight(height matrix.Float) {
 	ld := label.LabelData()
 	if ld.lineHeight == height {
 		return
@@ -366,9 +366,9 @@ func (label *Label) SetLineHeight(height float32) {
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (label *Label) LineHeight() float32 { return label.LabelData().lineHeight }
+func (label *Label) LineHeight() matrix.Float { return label.LabelData().lineHeight }
 
-func (label *Label) SetLetterSpacing(spacing float32) {
+func (label *Label) SetLetterSpacing(spacing matrix.Float) {
 	ld := label.LabelData()
 	if matrix.Approx(ld.letterSpacing, spacing) {
 		return
@@ -378,7 +378,7 @@ func (label *Label) SetLetterSpacing(spacing float32) {
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (label *Label) LetterSpacing() float32 { return label.LabelData().letterSpacing }
+func (label *Label) LetterSpacing() matrix.Float { return label.LabelData().letterSpacing }
 
 func (label *Label) Text() string { return label.LabelData().text }
 
@@ -508,11 +508,11 @@ func (label *Label) SetBaseline(baseline rendering.FontBaseline) {
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
-func (label *Label) SetMaxWidth(maxWidth float32) {
+func (label *Label) SetMaxWidth(maxWidth matrix.Float) {
 	label.LabelData().overrideMaxWidth = maxWidth
 }
 
-func (label *Label) nonOverrideMaxWidth() float32 {
+func (label *Label) nonOverrideMaxWidth() matrix.Float {
 	if label.entity.IsRoot() {
 		// TODO:  Return a the window width?
 		return matrix.FloatMax
@@ -523,7 +523,7 @@ func (label *Label) nonOverrideMaxWidth() float32 {
 	}
 }
 
-func (label *Label) MaxWidth() float32 {
+func (label *Label) MaxWidth() matrix.Float {
 	mw := label.LabelData().overrideMaxWidth
 	if mw <= 0 {
 		mw = label.nonOverrideMaxWidth()
@@ -531,7 +531,7 @@ func (label *Label) MaxWidth() float32 {
 	return mw
 }
 
-func (label *Label) SetWidthAutoHeight(width float32) {
+func (label *Label) SetWidthAutoHeight(width matrix.Float) {
 	defer tracing.NewRegion("Label.SetWidthAutoHeight").End()
 	ld := label.LabelData()
 	textSize := label.Base().man.Value().Host.FontCache().MeasureStringWithinWithLetterSpacing(
@@ -652,7 +652,7 @@ func (label *Label) SetFontStyle(style string) {
 	label.SetFontFace(face)
 }
 
-func (label *Label) CalculateMaxWidth() float32 {
+func (label *Label) CalculateMaxWidth() matrix.Float {
 	var maxWidth matrix.Float
 	parent := label.entity.Parent
 	//if parent == nil || (p.Base().layout.Positioning() == PositioningAbsolute && p.FittingContent()) {

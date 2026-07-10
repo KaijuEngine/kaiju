@@ -43,12 +43,12 @@ func (ShaderData) Size() int {
 		unsafe.Sizeof(ShaderData{}.OutlineSize))
 }
 
-func (s *ShaderData) setUVSize(width, height float32) {
+func (s *ShaderData) setUVSize(width, height matrix.Float) {
 	s.UVs.SetZ(width)
 	s.UVs.SetW(height)
 }
 
-func (s *ShaderData) setUVXY(x, pixelY, texSizeY float32) {
+func (s *ShaderData) setUVXY(x, pixelY, texSizeY matrix.Float) {
 	s.UVs.SetX(x)
 	s.UVs.SetY((texSizeY-pixelY)/texSizeY - s.UVs.W())
 }

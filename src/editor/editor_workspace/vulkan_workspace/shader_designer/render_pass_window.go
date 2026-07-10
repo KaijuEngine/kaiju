@@ -19,10 +19,11 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (win *ShaderDesigner) reloadRenderPassDoc() {
-	sy := float32(0)
+	sy := matrix.Float(0)
 	if win.renderPassDoc != nil {
 		content := win.renderPassDoc.GetElementsByClass("topFields")[0]
 		sy = content.UIPanel.ScrollY()

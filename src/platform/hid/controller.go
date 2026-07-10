@@ -58,7 +58,7 @@ const (
 
 type ControllerDevice struct {
 	buttons [ControllerButtonMax]int
-	axis    [ControllerAxisMax]float32
+	axis    [ControllerAxisMax]matrix.Float
 	id      int
 }
 
@@ -149,7 +149,7 @@ func (c *Controller) SetButtonUp(id int, button ControllerButton) {
 
 // SetAxis sets the axis on the given controller. This is called
 // automatically by the system and should not be called by the end-developer
-func (c *Controller) SetAxis(id, stick int, axis float32) {
+func (c *Controller) SetAxis(id, stick int, axis matrix.Float) {
 	if matrix.IsNaN(axis) {
 		return
 	}
@@ -157,7 +157,7 @@ func (c *Controller) SetAxis(id, stick int, axis float32) {
 }
 
 // Axis returns the axis value for the given controller and stick
-func (c *Controller) Axis(id, stick int) float32 {
+func (c *Controller) Axis(id, stick int) matrix.Float {
 	return c.devices[id].axis[stick]
 }
 
