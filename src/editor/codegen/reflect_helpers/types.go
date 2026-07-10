@@ -79,7 +79,7 @@ func StringToTypeValue(typeName, v string) any {
 		return klib.ShouldReturn(strconv.ParseUint(v, 0, bitSize[uint64]()))
 	case "float32":
 		v = klib.CleanNumString(v)
-		return matrix.Float(klib.ShouldReturn(strconv.ParseFloat(v, bitSize[matrix.Float]())))
+		return float32(klib.ShouldReturn(strconv.ParseFloat(v, bitSize[float32]())))
 	case "float64":
 		v = klib.CleanNumString(v)
 		return klib.ShouldReturn(strconv.ParseFloat(v, bitSize[float64]()))
