@@ -147,6 +147,7 @@ func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, cop
 			c.renderPass = p
 		} else {
 			slog.Error("failed to load the render pass for the material", "renderPass", rp.Name)
+			return c, err
 		}
 	} else {
 		c.renderPass = pass

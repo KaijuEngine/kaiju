@@ -245,7 +245,14 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []Ren
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
 		if !rp.Buffer.IsValid() {
-			rp.Recontstruct(device)
+			if err := rp.Recontstruct(device); err != nil {
+				slog.Error("failed to reconstruct render pass", "renderPass", rp.construction.Name, "error", err)
+				continue
+			}
+		}
+		if !rp.Buffer.IsValid() {
+			slog.Error("skipping render pass with invalid framebuffer", "renderPass", rp.construction.Name)
+			continue
 		}
 		passes = append(passes, rp)
 		if rp.IsShadowPass() {
