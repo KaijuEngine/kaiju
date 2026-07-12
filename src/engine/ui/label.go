@@ -47,6 +47,7 @@ type labelData struct {
 	isForcedBGColor   bool
 	wordWrap          bool
 	renderRequired    bool
+	transparentBG     bool
 }
 
 func (l *labelData) innerPanelData() *panelData { panic("label isn't a panel") }
@@ -60,9 +61,9 @@ func (l *Label) LabelData() *labelData { return l.elmData.(*labelData) }
 func (label *Label) Init(text string) {
 	defer tracing.NewRegion("Label.Init").End()
 	label.elmData = &labelData{
-		text:            text,
-		textLength:      utf8.RuneCountInString(text),
-		fgColor:         matrix.ColorWhite(),
+		text:       text,
+		textLength: utf8.RuneCountInString(text),
+		fgColor:    matrix.ColorWhite(),
 		// Transparent (alpha 0) by default so the font renderer blends glyph
 		// edges against the label's calculated surface (the real opaque color
 		// behind the text) instead of a fixed color, avoiding halos. An opaque
@@ -222,12 +223,12 @@ func (label *Label) renderText() {
 			rd := &ld.runeDrawings[i]
 			rd.Transform = &label.entity.Transform
 			rd.Layer = rendering.RenderLayerUI
-			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
-			if bg.A() < 1.0 {
-				transparent := ld.runeDrawings[i]
-				transparent.Material = host.FontCache().TransparentMaterial(
-					ld.runeDrawings[i].Material)
+			if ld.transparentBG {
+				// Use the opaque shader as a glyph cutout: it discards the
+				// transparent background and writes opaque foreground pixels.
+				rd.Material = host.FontCache().OpaqueMaterial(rd.Material)
 			}
+			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)
 		}
 		for i := 0; i < len(ld.colorRanges); i++ {
 			label.colorRange(ld.colorRanges[i])
@@ -294,6 +295,13 @@ func (label *Label) calculatedSurface() matrix.Color {
 // that fill is invisible and the anti-aliased edges blend toward the correct
 // color with no halo.
 func (label *Label) resolveFontColors(fg, bg matrix.Color) (matrix.Color, matrix.Color) {
+	if label.LabelData().transparentBG && bg.A() < 1.0 {
+		// The negative background alpha selects the opaque cutout branch in the
+		// text shader. RGB matches the foreground for consistency if this value is
+		// inspected before material selection.
+		// Negative alpha is the text shader's marker for opaque cutout mode.
+		return fg, matrix.NewColor(fg.R(), fg.G(), fg.B(), -1)
+	}
 	if bg.A() >= 1.0 {
 		return fg, bg
 	}
@@ -435,6 +443,20 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 	for i := range ld.colorRanges {
 		label.colorRange(ld.colorRanges[i])
 	}
+	label.Base().SetDirty(DirtyTypeGenerated)
+}
+
+// SetTransparentBackground enables opaque cutout text: pixels outside glyphs
+// are discarded while glyph pixels are written through the opaque text pass.
+// By default, transparent backgrounds are instead resolved to the parent's
+// calculated solid color to preserve smooth anti-aliased edges.
+func (label *Label) SetTransparentBackground(enabled bool) {
+	ld := label.LabelData()
+	if ld.transparentBG == enabled {
+		return
+	}
+	ld.transparentBG = enabled
+	ld.renderRequired = true
 	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
@@ -634,6 +656,7 @@ func (label *Label) Clone(to *Label) {
 	to.SetMaxWidth(ld.overrideMaxWidth)
 	to.SetColor(ld.fgColor)
 	to.SetBGColor(ld.bgColor)
+	to.SetTransparentBackground(ld.transparentBG)
 	to.SetJustify(ld.justify)
 	to.SetBaseline(ld.baseline)
 	// TODO:  Set font face?
