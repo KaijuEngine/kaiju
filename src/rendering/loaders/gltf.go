@@ -319,6 +319,9 @@ func gltfParse(doc *fullGLTF, workers int) (load_result.Result, error) {
 		task := meshResults[i].Task
 		res.Add(task.NodeName, task.Key, meshResults[i].Verts,
 			meshResults[i].Indices, meshResults[i].Textures, &res.Nodes[task.NodeIndex])
+		loadedMesh := &res.Meshes[len(res.Meshes)-1]
+		loadedMesh.MaterialAlphaMode, loadedMesh.MaterialAlphaCutoff, loadedMesh.MaterialDoubleSided =
+			gltfPrimitiveMaterial(doc, task.MeshIndex, task.PrimitiveIndex)
 	}
 	var err error
 	res.Animations, err = gltfReadAnimations(doc, workers)
@@ -340,6 +343,28 @@ func gltfParse(doc *fullGLTF, workers int) (load_result.Result, error) {
 		}
 	}
 	return res, nil
+}
+
+func gltfPrimitiveMaterial(doc *fullGLTF, meshIndex, primitiveIndex int) (string, matrix.Float, bool) {
+	const defaultAlphaCutoff = matrix.Float(0.5)
+	if meshIndex < 0 || meshIndex >= len(doc.glTF.Meshes) ||
+		primitiveIndex < 0 || primitiveIndex >= len(doc.glTF.Meshes[meshIndex].Primitives) {
+		return "OPAQUE", defaultAlphaCutoff, false
+	}
+	materialIndex := doc.glTF.Meshes[meshIndex].Primitives[primitiveIndex].Material
+	if materialIndex == nil || *materialIndex < 0 || int(*materialIndex) >= len(doc.glTF.Materials) {
+		return "OPAQUE", defaultAlphaCutoff, false
+	}
+	material := &doc.glTF.Materials[*materialIndex]
+	alphaMode := material.AlphaMode
+	if alphaMode == "" {
+		alphaMode = "OPAQUE"
+	}
+	alphaCutoff := defaultAlphaCutoff
+	if material.AlphaCutoff != nil {
+		alphaCutoff = matrix.Float(*material.AlphaCutoff)
+	}
+	return alphaMode, alphaCutoff, material.DoubleSided
 }
 
 func gltfAttr(primitive gltf.Primitive, cmp string) (uint32, bool) {
@@ -485,6 +510,24 @@ func (a gltfAccessorView) componentBytes(element, component int) []byte {
 func (a gltfAccessorView) float(element, component int) matrix.Float {
 	bytes := a.componentBytes(element, component)
 	return matrix.Float(math.Float32frombits(binary.LittleEndian.Uint32(bytes)))
+}
+
+func (a gltfAccessorView) normalizedFloat(element, component int) matrix.Float {
+	bytes := a.componentBytes(element, component)
+	switch a.accessor.ComponentType {
+	case gltf.BYTE:
+		return max(matrix.Float(int8(bytes[0]))/127, -1)
+	case gltf.UNSIGNED_BYTE:
+		return matrix.Float(bytes[0]) / 255
+	case gltf.SHORT:
+		return max(matrix.Float(int16(binary.LittleEndian.Uint16(bytes)))/32767, -1)
+	case gltf.UNSIGNED_SHORT:
+		return matrix.Float(binary.LittleEndian.Uint16(bytes)) / 65535
+	case gltf.FLOAT:
+		return matrix.Float(math.Float32frombits(binary.LittleEndian.Uint32(bytes)))
+	default:
+		return 0
+	}
 }
 
 func (a gltfAccessorView) int32(element, component int) int32 {
@@ -718,9 +761,14 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF, primitive int, workers in
 		}
 	}
 	if hasCol0 {
-		if col0.accessor.ComponentType != gltf.FLOAT ||
-			(col0.accessor.Type != gltf.VEC3 && col0.accessor.Type != gltf.VEC4) {
-			return []rendering.Vertex{}, errors.New("COLOR_0 must be FLOAT VEC3 or VEC4")
+		validComponent := col0.accessor.ComponentType == gltf.FLOAT ||
+			col0.accessor.ComponentType == gltf.UNSIGNED_BYTE ||
+			col0.accessor.ComponentType == gltf.UNSIGNED_SHORT
+		if !validComponent || (col0.accessor.Type != gltf.VEC3 && col0.accessor.Type != gltf.VEC4) {
+			return []rendering.Vertex{}, errors.New("COLOR_0 must be FLOAT, normalized UNSIGNED_BYTE, or normalized UNSIGNED_SHORT VEC3/VEC4")
+		}
+		if col0.accessor.ComponentType != gltf.FLOAT && !col0.accessor.Normalized {
+			return []rendering.Vertex{}, errors.New("integer COLOR_0 accessors must be normalized")
 		}
 		if err = gltfValidateAccessorCount(col0, vertCount, "color0"); err != nil {
 			return []rendering.Vertex{}, err
@@ -808,12 +856,12 @@ func gltfReadMeshVerts(mesh *gltf.Mesh, doc *fullGLTF, primitive int, workers in
 			if hasCol0 {
 				alpha := matrix.Float(1)
 				if col0.componentCount >= 4 {
-					alpha = col0.float(i, 3)
+					alpha = col0.normalizedFloat(i, 3)
 				}
 				vertData[i].Color = matrix.Color{
-					col0.float(i, 0),
-					col0.float(i, 1),
-					col0.float(i, 2),
+					col0.normalizedFloat(i, 0),
+					col0.normalizedFloat(i, 1),
+					col0.normalizedFloat(i, 2),
 					alpha,
 				}
 			}

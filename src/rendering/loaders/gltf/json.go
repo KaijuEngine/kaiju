@@ -103,6 +103,8 @@ type PBRMetallicRoughness struct {
 type Material struct {
 	Name                 string               `json:"name"`
 	DoubleSided          bool                 `json:"doubleSided"`
+	AlphaMode            string               `json:"alphaMode"`
+	AlphaCutoff          *float32             `json:"alphaCutoff"`
 	NormalTexture        *TextureId           `json:"normalTexture"`
 	OcclusionTexture     *TextureId           `json:"occlusionTexture"`
 	EmissiveTexture      *TextureId           `json:"emissiveTexture"`
@@ -157,6 +159,7 @@ type Accessor struct {
 	ByteOffset    int32         `json:"byteOffset"`
 	ComponentType ComponentType `json:"componentType"`
 	Count         int32         `json:"count"`
+	Normalized    bool          `json:"normalized"`
 	Max           matrix.Vec3   `json:"max"`
 	Min           matrix.Vec3   `json:"min"`
 	Type          AccessorType  `json:"type"`

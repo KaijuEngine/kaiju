@@ -32,12 +32,15 @@ const (
 )
 
 type Mesh struct {
-	Node     *Node
-	Name     string
-	MeshName string
-	Verts    []rendering.Vertex
-	Indexes  []uint32
-	Textures map[string]string
+	Node                *Node
+	Name                string
+	MeshName            string
+	Verts               []rendering.Vertex
+	Indexes             []uint32
+	Textures            map[string]string
+	MaterialAlphaMode   string
+	MaterialAlphaCutoff matrix.Float
+	MaterialDoubleSided bool
 }
 
 type AnimBone struct {
@@ -136,6 +139,10 @@ func (r *Result) Extract(names ...string) Result {
 					m := &r.Meshes[k]
 					if m.Node == &r.Nodes[j] {
 						res.Add(names[i], m.Name, m.Verts, m.Indexes, m.Textures, &res.Nodes[len(res.Nodes)-1])
+						added := &res.Meshes[len(res.Meshes)-1]
+						added.MaterialAlphaMode = m.MaterialAlphaMode
+						added.MaterialAlphaCutoff = m.MaterialAlphaCutoff
+						added.MaterialDoubleSided = m.MaterialDoubleSided
 					}
 				}
 			}
