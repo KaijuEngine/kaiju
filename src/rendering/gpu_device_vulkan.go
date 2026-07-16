@@ -47,7 +47,9 @@ func (g *GPUDevice) createBufferImpl(size uintptr, usage GPUBufferUsageFlags, pr
 	var buffer GPUBuffer
 	var bufferMemory GPUDeviceMemory
 	if size == 0 {
-		panic("Buffer size is 0")
+		// Soft-fail: a zero-length upload (empty texture/mesh staging) must not
+		// take down the process. Callers get an error and skip the resource.
+		return buffer, bufferMemory, fmt.Errorf("createBuffer: size is 0")
 	}
 	bufferInfo := vk.BufferCreateInfo{
 		SType:       vulkan_const.StructureTypeBufferCreateInfo,
