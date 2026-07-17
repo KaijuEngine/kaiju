@@ -104,7 +104,7 @@ func NewScriptVM(adb assets.Database, root string) (*LuaVM, error) {
 
 func reflectStructToLua(t reflect.Type, vm *LuaVM) {
 	defer tracing.NewRegion("plugins.reflectStructToLua").End()
-	name := t.Name()
+	name := reflectedTypeName(t)
 	vm.runtime.NewTable()
 	vm.runtime.PushGoFunction(func(state *lua.State) int {
 		to := reflect.Value{}
@@ -215,7 +215,7 @@ func wrapperTypeName(t reflect.Type) string {
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
-	return t.Name()
+	return reflectedTypeName(t)
 }
 
 func pushReflectValue(state *lua.State, v reflect.Value) error {

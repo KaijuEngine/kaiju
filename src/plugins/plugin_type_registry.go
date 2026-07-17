@@ -17,6 +17,19 @@ var (
 	GamePluginRegistry = []reflect.Type{}
 )
 
+func reflectedTypeName(t reflect.Type) string {
+	switch t {
+	case reflect.TypeFor[matrix.Vec2]():
+		return "Vec2"
+	case reflect.TypeFor[matrix.Vec3]():
+		return "Vec3"
+	case reflect.TypeFor[matrix.Vec4]():
+		return "Vec4"
+	default:
+		return t.Name()
+	}
+}
+
 func reflectedTypes() []reflect.Type {
 	defer tracing.NewRegion("plugins.reflectedTypes").End()
 	return append([]reflect.Type{

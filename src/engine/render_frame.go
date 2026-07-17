@@ -110,8 +110,8 @@ func (host *Host) ProcessPendingRenderResources() {
 	host.RenderTargets.ProcessPending(gpuDevice)
 	host.RenderViews.ProcessPending(gpuDevice, &host.Drawings)
 	host.shaderCache.CreatePending()
-	host.textureCache.CreatePending()
-	host.meshCache.CreatePending()
+	host.textureCache.ProcessPending()
+	host.meshCache.ProcessPending()
 }
 
 func (host *Host) renderCapturedFrame(frame RenderFrame) {

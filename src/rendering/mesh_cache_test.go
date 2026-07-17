@@ -42,6 +42,55 @@ func TestMeshCacheAddFindRemove(t *testing.T) {
 	}
 }
 
+func TestMeshCacheRemoveMeshQueuesCreatedHandleForFree(t *testing.T) {
+	cache := NewMeshCache(nil, nil)
+	mesh := NewMesh("mesh", testVerts(), []uint32{0, 1})
+	cache.AddMesh(mesh)
+	// Simulate a mesh whose GPU handle has already been created.
+	mesh.MeshId = testReadyMeshID()
+	// Drop it from the pending-create queue as CreatePending would have.
+	cache.pendingMeshes = cache.pendingMeshes[:0]
+
+	cache.RemoveMesh("mesh")
+
+	if _, ok := cache.FindMesh("mesh"); ok {
+		t.Fatalf("RemoveMesh did not remove mesh from cache")
+	}
+	if len(cache.pendingFree) != 1 {
+		t.Fatalf("pendingFree = %d, want 1", len(cache.pendingFree))
+	}
+	if !cache.pendingFree[0].IsValid() {
+		t.Fatalf("pendingFree handle is not valid")
+	}
+}
+
+func TestMeshCacheRemovePendingMeshDropsCreation(t *testing.T) {
+	cache := NewMeshCache(nil, nil)
+	mesh := NewMesh("mesh", testVerts(), []uint32{0, 1})
+	cache.AddMesh(mesh)
+	// Mesh was never created (no valid MeshId) and is still queued for creation.
+	if len(cache.pendingMeshes) != 1 {
+		t.Fatalf("pendingMeshes = %d, want 1 before remove", len(cache.pendingMeshes))
+	}
+
+	cache.RemoveMesh("mesh")
+
+	if len(cache.pendingMeshes) != 0 {
+		t.Fatalf("pendingMeshes = %d, want 0 after remove", len(cache.pendingMeshes))
+	}
+	if len(cache.pendingFree) != 0 {
+		t.Fatalf("pendingFree = %d, want 0 for a never-created mesh", len(cache.pendingFree))
+	}
+}
+
+func TestMeshCacheRemoveMissingMeshIsNoop(t *testing.T) {
+	cache := NewMeshCache(nil, nil)
+	cache.RemoveMesh("nope")
+	if len(cache.pendingFree) != 0 {
+		t.Fatalf("pendingFree = %d, want 0", len(cache.pendingFree))
+	}
+}
+
 func TestMeshCacheMeshReusesExistingKey(t *testing.T) {
 	cache := NewMeshCache(nil, nil)
 	first := cache.Mesh("mesh", testVerts(), []uint32{0, 1})

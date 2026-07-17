@@ -95,11 +95,67 @@ func TestGLTFAccessorsAndPrimitiveData(t *testing.T) {
 	if got, want := res.TextureBytes["embedded_0_baseColor"], []byte{1, 2, 3, 4}; !bytes.Equal(got, want) {
 		t.Fatalf("embedded texture bytes = %#v, want %#v", got, want)
 	}
+	if mesh := res.Meshes[0]; mesh.MaterialAlphaMode != "MASK" ||
+		!matrix.ApproxTo(mesh.MaterialAlphaCutoff, 0.33, matrix.Roughly) || !mesh.MaterialDoubleSided {
+		t.Fatalf("primitive material metadata = %q/%v/%v, want MASK/0.33/true",
+			mesh.MaterialAlphaMode, mesh.MaterialAlphaCutoff, mesh.MaterialDoubleSided)
+	}
+	if mesh := res.Meshes[1]; mesh.MaterialAlphaMode != "OPAQUE" ||
+		!matrix.ApproxTo(mesh.MaterialAlphaCutoff, 0.5, matrix.Roughly) || mesh.MaterialDoubleSided {
+		t.Fatalf("primitive default material metadata = %q/%v/%v, want OPAQUE/0.5/false",
+			mesh.MaterialAlphaMode, mesh.MaterialAlphaCutoff, mesh.MaterialDoubleSided)
+	}
 	if !res.Nodes[0].IsAnimated || !res.Nodes[1].IsAnimated {
 		t.Fatalf("expected animated child and parent nodes, got root=%v child=%v", res.Nodes[0].IsAnimated, res.Nodes[1].IsAnimated)
 	}
 	if res.Nodes[2].IsAnimated {
 		t.Fatal("unanimated sibling node was marked animated")
+	}
+}
+
+func TestGLTFNormalizedUnsignedByteVertexColors(t *testing.T) {
+	builder := &gltfTestBuilder{}
+	vertices := []gltfTestVertex{
+		{matrix.Vec3{0, 0, 0}, matrix.Vec3{0, 1, 0}, matrix.Vec2Zero()},
+		{matrix.Vec3{1, 0, 0}, matrix.Vec3{0, 1, 0}, matrix.Vec2Zero()},
+		{matrix.Vec3{0, 0, 1}, matrix.Vec3{0, 1, 0}, matrix.Vec2Zero()},
+	}
+	pos, nml, uv, idx := builder.addTightPrimitiveAccessors(vertices, []uint32{0, 1, 2})
+	colorView := builder.addBufferView([]byte{
+		255, 128, 0, 64,
+		0, 255, 128, 255,
+		32, 64, 255, 128,
+	}, 0)
+	color := builder.addAccessor(colorView, 0, 5121, len(vertices), "VEC4")
+	builder.accessors[color]["normalized"] = true
+	doc := map[string]any{
+		"asset":       map[string]any{"version": "2.0"},
+		"buffers":     []map[string]any{{"uri": "colors.bin", "byteLength": len(builder.data)}},
+		"bufferViews": builder.bufferViews,
+		"accessors":   builder.accessors,
+		"meshes": []map[string]any{{"name": "Colored", "primitives": []map[string]any{{
+			"attributes": map[string]any{
+				"POSITION": pos, "NORMAL": nml, "TEXCOORD_0": uv, "COLOR_0": color,
+			},
+			"indices": idx, "mode": 4,
+		}}}},
+		"nodes": []map[string]any{{"name": "Colored", "mesh": 0}},
+	}
+	jsonData, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db := assets.NewMockDB(map[string][]byte{"colors.gltf": jsonData, "colors.bin": builder.data})
+	result, err := GLTF("colors.gltf", db)
+	if err != nil {
+		t.Fatalf("GLTF returned error: %v", err)
+	}
+	got := result.Meshes[0].Verts[0].Color
+	want := matrix.NewColor(1, matrix.Float(128)/255, 0, matrix.Float(64)/255)
+	for i := range 4 {
+		if !matrix.ApproxTo(got[i], want[i], matrix.Roughly) {
+			t.Fatalf("normalized color = %v, want %v", got, want)
+		}
 	}
 }
 
@@ -200,7 +256,7 @@ func testGLTFFixture(t testing.TB, binPath string, firstPrimitiveVerts int) (str
 		"bufferViews": builder.bufferViews,
 		"accessors":   builder.accessors,
 		"materials": []map[string]any{
-			{"pbrMetallicRoughness": map[string]any{
+			{"alphaMode": "MASK", "alphaCutoff": 0.33, "doubleSided": true, "pbrMetallicRoughness": map[string]any{
 				"baseColorFactor":  []float32{1, 0, 0, 1},
 				"baseColorTexture": map[string]any{"index": 0},
 			}},

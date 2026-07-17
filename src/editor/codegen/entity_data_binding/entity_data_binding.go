@@ -113,7 +113,9 @@ func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *E
 			}
 			de.Fields = append(de.Fields, ef)
 			fv := v.Elem().Field(len(de.Fields) - 1)
-			fv.Set(reflect.ValueOf(ef.Value))
+			if ef.Value != nil {
+				fv.Set(reflect.ValueOf(ef.Value))
+			}
 		}
 	}
 	de.BoundData = v.Interface()

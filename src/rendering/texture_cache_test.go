@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
 	"kaijuengine.com/engine/assets"
 )
@@ -88,6 +89,64 @@ func testPendingTexture(key string, bytes int) *Texture {
 		pendingData: &TextureData{
 			Mem: make([]byte, bytes),
 		},
+	}
+}
+
+var testReadyTextureHandle byte
+
+func testReadyTextureID() TextureId {
+	ptr := unsafe.Pointer(&testReadyTextureHandle)
+	return TextureId{Image: GPUImage{GPUHandle{handle: ptr}}}
+}
+
+func TestTextureCacheForceRemoveQueuesUploadedTextureForFree(t *testing.T) {
+	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
+	tex := &Texture{Key: "tex", Filter: TextureFilterLinear, RenderId: testReadyTextureID()}
+	cache.mutex.Lock()
+	cache.textures[TextureFilterLinear][tex.Key] = tex
+	cache.mutex.Unlock()
+
+	cache.ForceRemoveTexture("tex", TextureFilterLinear)
+
+	if _, ok := cache.Find("tex", TextureFilterLinear); ok {
+		t.Fatalf("ForceRemoveTexture did not remove texture from cache")
+	}
+	if len(cache.pendingFree) != 1 {
+		t.Fatalf("pendingFree = %d, want 1", len(cache.pendingFree))
+	}
+	if !cache.pendingFree[0].IsValid() {
+		t.Fatalf("pendingFree handle is not valid")
+	}
+}
+
+func TestTextureCacheForceRemoveDropsPendingUpload(t *testing.T) {
+	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
+	// Texture inserted but not yet uploaded: no valid RenderId, still queued.
+	tex := testPendingTexture("tex", 1)
+	tex.Filter = TextureFilterLinear
+	cache.mutex.Lock()
+	cache.textures[TextureFilterLinear][tex.Key] = tex
+	cache.queuePendingLocked(tex, TextureUploadPriorityNormal)
+	cache.mutex.Unlock()
+
+	cache.ForceRemoveTexture("tex", TextureFilterLinear)
+
+	if _, ok := cache.Find("tex", TextureFilterLinear); ok {
+		t.Fatalf("ForceRemoveTexture did not remove texture from cache")
+	}
+	if len(cache.pendingTextures) != 0 {
+		t.Fatalf("pendingTextures = %d, want 0 after removal", len(cache.pendingTextures))
+	}
+	if len(cache.pendingFree) != 0 {
+		t.Fatalf("pendingFree = %d, want 0 for a never-uploaded texture", len(cache.pendingFree))
+	}
+}
+
+func TestTextureCacheForceRemoveMissingTextureIsNoop(t *testing.T) {
+	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
+	cache.ForceRemoveTexture("nope", TextureFilterLinear)
+	if len(cache.pendingFree) != 0 {
+		t.Fatalf("pendingFree = %d, want 0", len(cache.pendingFree))
 	}
 }
 

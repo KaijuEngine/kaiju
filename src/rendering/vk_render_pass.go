@@ -193,7 +193,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 	}
 	sp.sampledImages = append(sp.sampledImages, c.SampledImages...)
 	sp.renderQuad = NewMeshUnitQuad(device.Painter.caches.MeshCache())
-	device.Painter.caches.MeshCache().CreatePending()
+	device.Painter.caches.MeshCache().ProcessPending()
 	for i := range len(sp.cmd) {
 		if sp.cmd[i], err = NewCommandRecorderSecondary(device, r, index); err != nil {
 			return err
@@ -376,7 +376,11 @@ func NewRenderPass(device *GPUDevice, setup *RenderPassDataCompiled) (*RenderPas
 		}
 		p.textures = append(p.textures, Texture{Key: k})
 	}
-	return p, p.Recontstruct(device)
+	if err := p.Recontstruct(device); err != nil {
+		p.Destroy(device)
+		return p, err
+	}
+	return p, nil
 }
 
 func (p *RenderPass) Recontstruct(device *GPUDevice) error {
@@ -390,7 +394,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 	}
 	for i := range len(p.cmdSecondary) {
 		if p.cmdSecondary[i], err = NewCommandRecorderSecondary(device, p, 0); err != nil {
-			return nil
+			return err
 		}
 	}
 	{
@@ -548,18 +552,26 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 	p.Handle = handle
 	device.LogicalDevice.dbg.track(unsafe.Pointer(p.Handle))
 	for i := range r.Subpass {
-		p.setupSubpass(&r.Subpass[i], device, i+1)
+		if err := p.setupSubpass(&r.Subpass[i], device, i+1); err != nil {
+			return err
+		}
 	}
 	imageViews := make([]GPUImageView, 0, len(p.textures))
+	missingExistingImage := false
 	for i := range len(r.AttachmentDescriptions) {
 		a := &r.AttachmentDescriptions[i]
 		if a.Image.IsInvalid() {
 			if a.Image.ExistingImage != "" {
+				found := false
 				for _, v := range device.LogicalDevice.renderPassCache {
 					if t, ok := v.findTextureByName(a.Image.ExistingImage); ok {
 						imageViews = append(imageViews, t.RenderId.View)
+						found = true
 						break
 					}
+				}
+				if !found {
+					missingExistingImage = true
 				}
 			}
 		} else {
@@ -572,6 +584,11 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 			slog.Error("failed to create the frame buffer for the render pass", "error", err)
 			return err
 		}
+	} else if r.Name != swapChainRenderPassName {
+		if missingExistingImage {
+			return nil
+		}
+		return fmt.Errorf("render pass %q framebuffer has %d image views for %d attachments", r.Name, len(imageViews), len(attachments))
 	}
 	return nil
 }

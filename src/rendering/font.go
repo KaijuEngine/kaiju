@@ -131,6 +131,22 @@ func (cache *FontCache) TransparentMaterial(target *Material) *Material {
 	return nil
 }
 
+// OpaqueMaterial returns the opaque counterpart for a text material. This is
+// used by cutout text: the fragment shader discards pixels outside the glyph,
+// leaving a transparent background while writing fully opaque glyph pixels.
+func (cache *FontCache) OpaqueMaterial(target *Material) *Material {
+	defer tracing.NewRegion("FontCache.OpaqueMaterial").End()
+	root := target.SelectRoot()
+	if root == cache.textMaterial.SelectRoot() || root == cache.textMaterialTransparent.SelectRoot() {
+		return cache.textMaterial.CreateInstance(target.Textures)
+	}
+	if root == cache.textOrthoMaterial.SelectRoot() || root == cache.textOrthoMaterialTransparent.SelectRoot() {
+		return cache.textOrthoMaterial.CreateInstance(target.Textures)
+	}
+	slog.Error("invalid material used for getting opaque text material", "material", target.Id)
+	return nil
+}
+
 func (cache *FontCache) nextInstanceKey(key rune) string {
 	cache.instanceKey++
 	return fmt.Sprintf("font_%c_%d", key, cache.instanceKey)

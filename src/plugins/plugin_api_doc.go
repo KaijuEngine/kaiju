@@ -61,7 +61,7 @@ func reflectCommentDocCommonType(t reflect.Type) string {
 		//}
 		//return reflectCommentDocCommonType(t.Elem())
 	default:
-		return t.Name()
+		return reflectedTypeName(t)
 	}
 }
 
@@ -177,6 +177,7 @@ func readMethodDoc(methodName string, t reflect.Type, m reflect.Type, sources []
 
 func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 	defer tracing.NewRegion("plugins.reflectStructAPI").End()
+	typeName := reflectedTypeName(t)
 	pt := reflect.PointerTo(t)
 	sources, err := pullSourceForType(t)
 	if err != nil {
@@ -186,10 +187,10 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 	for i := range pt.NumMethod() {
 		methods = append(methods, pt.Method(i))
 	}
-	apiOut.WriteString(fmt.Sprintf("---@class %s\n", t.Name()))
-	apiOut.WriteString(fmt.Sprintf("%s = {}\n\n", t.Name()))
-	apiOut.WriteString(fmt.Sprintf("---@return %s\n", t.Name()))
-	apiOut.WriteString(fmt.Sprintf("function %s.New() return nil end\n", t.Name()))
+	apiOut.WriteString(fmt.Sprintf("---@class %s\n", typeName))
+	apiOut.WriteString(fmt.Sprintf("%s = {}\n\n", typeName))
+	apiOut.WriteString(fmt.Sprintf("---@return %s\n", typeName))
+	apiOut.WriteString(fmt.Sprintf("function %s.New() return nil end\n", typeName))
 	for _, m := range methods {
 		mt := m.Type
 		comment, args := readMethodDoc(m.Name, t, mt, sources)
@@ -216,7 +217,7 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 				outs[i] = "0"
 			case reflect.Array, reflect.Slice:
 				if o.Name() != "" {
-					outs[i] = o.Name() + ".New()"
+					outs[i] = reflectedTypeName(o) + ".New()"
 				} else {
 					outs[i] = "{}"
 				}
@@ -224,12 +225,12 @@ func reflectStructAPI(t reflect.Type, apiOut io.StringWriter) {
 				outs[i] = reflectCreateDefaultForTypeName(
 					reflectCommentDocCommonType(o))
 			default:
-				outs[i] = o.Name() + ".New();"
+				outs[i] = reflectedTypeName(o) + ".New();"
 			}
 		}
 		out := "return " + strings.Join(outs, ", ")
 		apiOut.WriteString(fmt.Sprintf("function %s:%s(%s) %s end\n",
-			t.Name(), m.Name, strings.Join(args, ", "), out))
+			typeName, m.Name, strings.Join(args, ", "), out))
 	}
 	apiOut.WriteString("\n")
 }

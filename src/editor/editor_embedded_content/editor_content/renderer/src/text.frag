@@ -29,6 +29,17 @@ void main() {
 	float dist = median(msdfColor.r, msdfColor.g, msdfColor.b) - 0.5;
 	float opacity = clamp(dist * screenPxRange() + 0.5, 0.0, 1.0);
 
+	// A negative background alpha marks opaque cutout text. Discard the quad
+	// outside the MSDF glyph boundary and write a fully opaque foreground pixel
+	// inside it. This keeps text opaque even when its parent is transparent.
+	if (fragBGColor.a < 0.0) {
+		if (opacity < 0.5) {
+			discard;
+		}
+		outColor = vec4(fragColor.rgb, 1.0);
+		return;
+	}
+
 	vec4 unWeightedColor = mix(fragBGColor, fragColor, opacity);
 #include "inc_fragment_oit_block.inl"
 }

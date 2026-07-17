@@ -114,7 +114,7 @@ func (g *GPUApplicationInstance) SetupCaches(caches RenderCaches, width, height 
 		return err
 	}
 	device.Painter.fallbackCubeShadowMap.SetPendingDataDimensions(TextureDimensionsCube)
-	caches.TextureCache().CreatePending()
+	caches.TextureCache().ProcessPending()
 	return err
 }
 

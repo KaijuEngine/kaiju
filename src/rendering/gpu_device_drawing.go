@@ -20,6 +20,12 @@ func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights L
 
 func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("GPUDevice.Draw").End()
+	if renderPass == nil || !renderPass.Buffer.IsValid() {
+		if renderPass != nil {
+			slog.Error("skipping draw for render pass with invalid framebuffer", "renderPass", renderPass.construction.Name)
+		}
+		return
+	}
 	if !g.LogicalDevice.SwapChain.IsValid() || len(drawings) == 0 {
 		return
 	}
