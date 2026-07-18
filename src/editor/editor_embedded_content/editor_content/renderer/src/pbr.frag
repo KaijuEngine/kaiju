@@ -88,14 +88,17 @@ float distanceAttenuation(LightInfo light, float dist) {
 
 float lightVisibility(int lightType, int lightIdx, vec3 n, vec3 l, vec4 lightSpace, LightInfo light) {
 	#ifdef SHADOW_SAMPLERS
+		if (light.shadowIndex < 0) {
+			return 1.0;
+		}
 		if (lightType == 0) {
-			return 1.0 - directShadowCalculation(n, l, lightIdx, light.farPlane);
+			return 1.0 - directShadowCalculation(n, l, lightIdx, light.shadowIndex, light.farPlane);
 		}
 		if (lightType == 1) {
-			return 1.0 - pointShadowCalculation(fragPos, light.position, light.farPlane, lightIdx, n);
+			return 1.0 - pointShadowCalculation(fragPos, light.position, light.farPlane, light.shadowIndex, n);
 		}
 		if (lightType == 2) {
-			return 1.0 - spotShadowCalculation(lightSpace, n, l, light.nearPlane, light.farPlane, lightIdx);
+			return 1.0 - spotShadowCalculation(lightSpace, n, l, light.nearPlane, light.farPlane, light.shadowIndex);
 		}
 	#endif
 	return 1.0;

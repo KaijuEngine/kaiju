@@ -28,6 +28,23 @@ func TestNewRenderPassData(t *testing.T) {
 	}
 }
 
+func TestShadowCascadeIndex(t *testing.T) {
+	tests := map[string]int{
+		"light_offscreen":      0,
+		"light_offscreen_csm1": 1,
+		"light_offscreen_csm2": 2,
+	}
+	for name, want := range tests {
+		got, ok := shadowCascadeIndex(name)
+		if !ok || got != want {
+			t.Fatalf("shadowCascadeIndex(%q) = %d, %v; want %d, true", name, got, ok, want)
+		}
+	}
+	if got, ok := shadowCascadeIndex("light_offscreen_unknown"); ok {
+		t.Fatalf("unknown shadow pass returned %d, true", got)
+	}
+}
+
 func TestRenderPassAttachmentImageInvalid(t *testing.T) {
 	if !(&RenderPassAttachmentImage{}).IsInvalid() {
 		t.Fatalf("empty source image should be invalid")

@@ -68,7 +68,8 @@ type GPULightInfo struct {
 	NearPlane   float32
 	FarPlane    float32
 	Type        int32
-	_           float32
+	ShadowIndex int32
+	_           [3]int32
 }
 
 type LightsForRender struct {
@@ -78,9 +79,7 @@ type LightsForRender struct {
 
 type Light struct {
 	device           *GPUDevice
-	texture          *Texture
 	camera           cameras.Camera
-	renderPass       *RenderPass
 	lightSpaceMatrix [cubeMapSides]matrix.Mat4
 	ambient          matrix.Vec3
 	diffuse          matrix.Vec3
@@ -137,7 +136,10 @@ func SetupLightMaterials(materialCache *MaterialCache) error {
 	return nil
 }
 
-func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *MaterialCache, lightType LightType) Light {
+// NewLight only initializes CPU-side light state. Shadow render passes are
+// renderer-owned shared resources and must never be constructed while an
+// editor entity is being attached.
+func NewLight(device *GPUDevice, _ assets.Database, _ *MaterialCache, lightType LightType) Light {
 	light := Light{
 		ambient:     matrix.NewVec3(0.1, 0.1, 0.1),
 		diffuse:     matrix.Vec3One(),
@@ -157,7 +159,6 @@ func NewLight(device *GPUDevice, assetDb assets.Database, materialCache *Materia
 		light.lightSpaceMatrix[i].Reset()
 	}
 	v30 := matrix.Vec3Zero()
-	light.setupRenderPass(assetDb)
 	switch light.lightType {
 	case LightTypeDirectional:
 		fallthrough
@@ -185,6 +186,26 @@ func (l *Light) FrameDirty() bool { return l.frameDirty || l.reset }
 
 func (l *Light) Type() LightType { return l.lightType }
 func (l *Light) IsValid() bool   { return l.device != nil }
+func (l *Light) CastsShadows() bool {
+	return l.castsShadows
+}
+
+// directionalShadowLightIndex returns the GPU light index that owns the shared
+// cascaded shadow maps. The current renderer has one set of directional CSM
+// render passes, so exactly one directional light can cast shadows per frame.
+func (l LightsForRender) directionalShadowLightIndex() int32 {
+	for i := range l.Lights {
+		light := &l.Lights[i]
+		if light.IsValid() && light.Type() == LightTypeDirectional && light.CastsShadows() {
+			return int32(i)
+		}
+	}
+	return -1
+}
+
+func (t *LightShadowShaderData) SelectLights(lights LightsForRender) {
+	t.LightIndex = lights.directionalShadowLightIndex()
+}
 
 func lightTransformDrawingToDepth(drawing *Drawing, cascades uint8) Drawing {
 	copy := *drawing
@@ -192,7 +213,10 @@ func lightTransformDrawingToDepth(drawing *Drawing, cascades uint8) Drawing {
 	copy.Material.IsLit = false
 	copy.Material.ReceivesShadows = false
 	copy.Material.CastsShadows = false
-	sd := &LightShadowShaderData{ShaderDataBase: NewShaderDataBase()}
+	sd := &LightShadowShaderData{
+		ShaderDataBase: NewShaderDataBase(),
+		LightIndex:     -1,
+	}
 	drawing.ShaderData.addShadow(sd)
 	copy.ShaderData = sd
 	return copy
@@ -274,26 +298,7 @@ func (l *Light) transformToGPULightInfo() GPULightInfo {
 		NearPlane:   float32(l.camera.NearPlane()),
 		FarPlane:    float32(l.camera.FarPlane()),
 		Type:        int32(l.lightType),
-	}
-}
-
-func (l *Light) setupRenderPass(assets assets.Database) {
-	rp := RenderPassData{}
-	if err := unmarshallJsonFile(assets, "light_depth.renderpass", &rp); err != nil {
-		slog.Error("failed to load light_depth.renderpass")
-		return
-	}
-	lp := l.device.LogicalDevice
-	if pass, ok := lp.renderPassCache[rp.Name]; !ok {
-		rpc := rp.Compile(l.device)
-		if p, err := rpc.ConstructRenderPass(l.device); err == nil {
-			lp.renderPassCache[rp.Name] = p
-			l.renderPass = p
-		} else {
-			slog.Error("failed to load the render pass for the light", "renderPass", rp.Name)
-		}
-	} else {
-		l.renderPass = pass
+		ShadowIndex: -1,
 	}
 }
 

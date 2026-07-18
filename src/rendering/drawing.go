@@ -180,9 +180,13 @@ func (d *Drawings) CaptureFrameData(lights LightsForRender, views []RenderViewFr
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	views = renderViewsForDraw(views)
+	shadowLightIndex := lights.directionalShadowLightIndex()
 	for i := range views {
 		layerMask := views[i].LayerMask()
 		for j := range d.renderPassGroups {
+			if d.renderPassGroups[j].renderPass.IsShadowPass() && shadowLightIndex < 0 {
+				continue
+			}
 			for k := range d.renderPassGroups[j].draws {
 				draw := &d.renderPassGroups[j].draws[k]
 				for g := range draw.instanceGroups {
@@ -241,9 +245,12 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []Ren
 	views = renderViewsForDraw(views)
 	passes := make([]*RenderPass, 0, len(d.renderPassGroups))
 	shadows := [MaxLocalLights]TextureId{}
-	shadowIdx := 0
+	shadowLightIndex := lights.directionalShadowLightIndex()
 	for i := range d.renderPassGroups {
 		rp := d.renderPassGroups[i].renderPass
+		if rp.IsShadowPass() && shadowLightIndex < 0 {
+			continue
+		}
 		if !rp.Buffer.IsValid() {
 			if err := rp.Recontstruct(device); err != nil {
 				slog.Error("failed to reconstruct render pass", "renderPass", rp.construction.Name, "error", err)
@@ -256,9 +263,8 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []Ren
 		}
 		passes = append(passes, rp)
 		if rp.IsShadowPass() {
-			if shadowIdx < len(shadows) {
-				shadows[shadowIdx] = rp.textures[0].RenderId
-				shadowIdx++
+			if cascade, ok := shadowCascadeIndex(rp.construction.Name); ok && cascade < len(shadows) {
+				shadows[cascade] = rp.textures[0].RenderId
 			}
 		}
 	}

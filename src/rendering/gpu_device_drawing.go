@@ -34,13 +34,8 @@ func (g *GPUDevice) DrawView(renderPass *RenderPass, drawings []ShaderDraw, ligh
 	// getting this shadow stuff working
 	if renderPass.IsShadowPass() {
 		lpc := struct{ CascadeIndex int }{}
-		switch renderPass.construction.Name[len(renderPass.construction.Name)-1] {
-		case '1':
-			lpc.CascadeIndex = 1
-		case '2':
-			lpc.CascadeIndex = 2
-		default:
-			lpc.CascadeIndex = 0
+		if cascade, ok := shadowCascadeIndex(renderPass.construction.Name); ok {
+			lpc.CascadeIndex = cascade
 		}
 		for i := range drawings {
 			drawings[i].pushConstantData = unsafe.Pointer(&lpc)

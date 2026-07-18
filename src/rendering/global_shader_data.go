@@ -70,11 +70,16 @@ func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, l
 		ubo.UICameraPosition = uiCamera.Position()
 	}
 	if camera != nil {
+		shadowLightIndex := lights.directionalShadowLightIndex()
 		for i := range lights.Lights {
 			if lights.Lights[i].IsValid() {
 				lights.Lights[i].recalculate(camera)
 				ubo.VertLights[i] = lights.Lights[i].transformToGPULight()
-				ubo.LightInfos[i] = lights.Lights[i].transformToGPULightInfo()
+				info := lights.Lights[i].transformToGPULightInfo()
+				if int32(i) == shadowLightIndex {
+					info.ShadowIndex = 0
+				}
+				ubo.LightInfos[i] = info
 			}
 		}
 	}

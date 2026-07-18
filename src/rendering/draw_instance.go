@@ -488,9 +488,7 @@ func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, ligh
 			continue
 		}
 		if instanceBase.UpdateModelForView(view, viewCuller, d.Mesh.Bounds()) {
-			if d.MaterialInstance.IsLit {
-				instance.SelectLights(lights)
-			}
+			instance.SelectLights(lights)
 			if state.generatedSets && len(state.boundInstanceData) > 0 {
 				for j := range state.boundInstanceData {
 					d.updateBoundData(state, instanceIndex, j, instance, frame)
@@ -582,9 +580,7 @@ func (d *DrawInstanceGroup) CaptureDataForView(lights LightsForRender, view Rend
 		if !instanceBase.UpdateModelForView(view.Key(), viewCuller, d.Mesh.Bounds()) {
 			continue
 		}
-		if d.MaterialInstance.IsLit {
-			instance.SelectLights(lights)
-		}
+		instance.SelectLights(lights)
 		if len(state.boundInstanceData) > 0 {
 			for binding := range state.boundInstanceData {
 				d.captureBoundData(state, binding, instance)

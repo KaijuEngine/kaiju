@@ -35,3 +35,36 @@ func TestGlobalShaderDataForCameraStoresPerViewData(t *testing.T) {
 		t.Fatalf("camera positions should differ between views")
 	}
 }
+
+func TestGlobalShaderDataAssignsOnlyOneDirectionalShadowSlot(t *testing.T) {
+	camera := cameras.NewStandardCamera(320, 240, 320, 240, matrix.Vec3{0, 2, -6})
+	device := &GPUDevice{}
+	first := NewLight(device, nil, nil, LightTypeDirectional)
+	first.SetCastsShadows(true)
+	second := NewLight(device, nil, nil, LightTypeDirectional)
+	second.SetCastsShadows(true)
+	point := NewLight(device, nil, nil, LightTypePoint)
+	point.SetCastsShadows(true)
+
+	data := globalShaderDataForCamera(camera, nil, LightsForRender{
+		Lights: []Light{first, second, point},
+	}, 0, matrix.Vec2{320, 240})
+	if data.LightInfos[0].ShadowIndex != 0 {
+		t.Fatalf("first directional shadow index = %d, want 0", data.LightInfos[0].ShadowIndex)
+	}
+	if data.LightInfos[1].ShadowIndex != -1 || data.LightInfos[2].ShadowIndex != -1 {
+		t.Fatalf("non-selected shadow indexes = %d, %d; want -1, -1",
+			data.LightInfos[1].ShadowIndex, data.LightInfos[2].ShadowIndex)
+	}
+
+	first.SetCastsShadows(false)
+	second.SetCastsShadows(false)
+	data = globalShaderDataForCamera(camera, nil, LightsForRender{
+		Lights: []Light{first, second, point},
+	}, 0, matrix.Vec2{320, 240})
+	for i := range 3 {
+		if data.LightInfos[i].ShadowIndex != -1 {
+			t.Fatalf("disabled light %d shadow index = %d, want -1", i, data.LightInfos[i].ShadowIndex)
+		}
+	}
+}

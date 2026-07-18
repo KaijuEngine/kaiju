@@ -80,6 +80,19 @@ func (r *RenderPass) IsShadowPass() bool {
 	return strings.HasPrefix(r.construction.Name, "light_offscreen")
 }
 
+func shadowCascadeIndex(renderPassName string) (int, bool) {
+	switch renderPassName {
+	case "light_offscreen":
+		return 0, true
+	case "light_offscreen_csm1":
+		return 1, true
+	case "light_offscreen_csm2":
+		return 2, true
+	default:
+		return 0, false
+	}
+}
+
 func (r *RenderPass) ExecuteSecondaryCommands() {
 	buffs := [1]vk.CommandBuffer{}
 	rec := r.activeSecondaryCommand()

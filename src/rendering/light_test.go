@@ -8,11 +8,58 @@ package rendering
 
 import (
 	"testing"
+	"unsafe"
 
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/matrix"
 )
+
+func TestNewLightDoesNotTouchRendererResources(t *testing.T) {
+	device := &GPUDevice{}
+	light := NewLight(device, nil, nil, LightTypeDirectional)
+	if !light.IsValid() || light.Type() != LightTypeDirectional {
+		t.Fatalf("unexpected light: %+v", light)
+	}
+}
+
+func TestDirectionalShadowLightIndex(t *testing.T) {
+	device := &GPUDevice{}
+	point := Light{device: device, lightType: LightTypePoint, castsShadows: true}
+	disabled := Light{device: device, lightType: LightTypeDirectional}
+	selected := Light{device: device, lightType: LightTypeDirectional, castsShadows: true}
+	later := Light{device: device, lightType: LightTypeDirectional, castsShadows: true}
+	lights := LightsForRender{Lights: []Light{point, disabled, selected, later}}
+
+	if got := lights.directionalShadowLightIndex(); got != 2 {
+		t.Fatalf("directionalShadowLightIndex = %d, want 2", got)
+	}
+	shadowData := LightShadowShaderData{LightIndex: -1}
+	shadowData.SelectLights(lights)
+	if shadowData.LightIndex != 2 {
+		t.Fatalf("shadow draw light index = %d, want 2", shadowData.LightIndex)
+	}
+
+	lights.Lights[2].castsShadows = false
+	lights.Lights[3].castsShadows = false
+	shadowData.SelectLights(lights)
+	if shadowData.LightIndex != -1 {
+		t.Fatalf("shadow draw light index = %d, want disabled sentinel", shadowData.LightIndex)
+	}
+}
+
+func TestGPULightInfoStd140Layout(t *testing.T) {
+	var info GPULightInfo
+	if got := unsafe.Offsetof(info.Type); got != 92 {
+		t.Fatalf("Type offset = %d, want 92", got)
+	}
+	if got := unsafe.Offsetof(info.ShadowIndex); got != 96 {
+		t.Fatalf("ShadowIndex offset = %d, want 96", got)
+	}
+	if got := unsafe.Sizeof(info); got != 112 {
+		t.Fatalf("GPULightInfo size = %d, want std140 array stride 112", got)
+	}
+}
 
 func TestLightDirtySetters(t *testing.T) {
 	light := Light{

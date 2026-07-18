@@ -85,6 +85,7 @@ struct LightInfo {
 	float nearPlane;
 	float farPlane;
 	int type;
+	int shadowIndex;
 };
 
 // cameraPosition.w = [0=perspective, 1=orthographic]
@@ -509,8 +510,9 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 			return layer;
 		}
 
-		float directShadowCalculation(vec3 normal, vec3 lightDir, int lightIdx, float farPlane) {
+		float directShadowCalculation(vec3 normal, vec3 lightDir, int lightIdx, int shadowIndex, float farPlane) {
 			int layer = selectCSMLayer();
+			int shadowMapIndex = shadowIndex + layer;
 			vec4 fragPosLightSpace = vertLights[lightIdx].matrix[layer] * vec4(fragPos, 1.0);
 			// Perform perspective divide
 			vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -518,7 +520,7 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 			projCoords.xy = projCoords.xy * 0.5 + 0.5;
 			// Get closest depth value from light's perspective
 			// (using [0,1] range fragPosLight as coords)
-			float closestDepth = texture(shadowMap[layer], projCoords.xy).r;
+			float closestDepth = texture(shadowMap[shadowMapIndex], projCoords.xy).r;
 			// Get depth of current fragment from light's perspective
 			float currentDepth = projCoords.z;
 			float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.001);
@@ -529,10 +531,10 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 			}
 			float shadow = 0.0;
 			int samples = 16;
-			vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[layer], 0));
+			vec2 texelSize = 1.0 / vec2(textureSize(shadowMap[shadowMapIndex], 0));
 			for(int i = 0; i < samples; ++i) {
 				vec2 offset = poissonDisk[i] * texelSize * 1.5;  // Tune radius (1.0-2.0) for penumbra
-				float pcfDepth = texture(shadowMap[layer], projCoords.xy + offset).r;
+				float pcfDepth = texture(shadowMap[shadowMapIndex], projCoords.xy + offset).r;
 				shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;
 			}
 			shadow /= float(samples);

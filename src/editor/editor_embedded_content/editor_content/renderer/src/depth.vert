@@ -10,6 +10,10 @@ layout(push_constant) uniform Push {
 layout(location = LOCATION_START) in int lightIndex;
 
 void main() {
-    mat4 fragLightSpaceMatrix = vertLights[lightIndex].matrix[CascadeIndex];
+	if (lightIndex < 0 || lightIndex >= MAX_LIGHTS) {
+		gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+		return;
+	}
+	mat4 fragLightSpaceMatrix = vertLights[lightIndex].matrix[CascadeIndex];
     gl_Position = fragLightSpaceMatrix * model * vec4(Position, 1.0);
 }
