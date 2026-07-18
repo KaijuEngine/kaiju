@@ -9,9 +9,11 @@ package rendering
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"sync"
 
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -39,27 +41,43 @@ type RenderViewOptions struct {
 }
 
 type RenderView struct {
-	options   RenderViewOptions
-	order     uint64
-	enabled   bool
-	destroyed bool
-	mutex     sync.RWMutex
+	options            RenderViewOptions
+	order              uint64
+	enabled            bool
+	destroyed          bool
+	previousView       matrix.Mat4
+	previousProjection matrix.Mat4
+	historyValid       bool
+	historyReset       bool
+	mutex              sync.RWMutex
 }
 
 type RenderViewFrame struct {
-	View      *RenderView
-	Options   RenderViewOptions
-	Order     uint64
-	Enabled   bool
-	Destroyed bool
+	View               *RenderView
+	Options            RenderViewOptions
+	Order              uint64
+	Enabled            bool
+	Destroyed          bool
+	CurrentView        matrix.Mat4
+	CurrentProjection  matrix.Mat4
+	PreviousView       matrix.Mat4
+	PreviousProjection matrix.Mat4
+	HistoryValid       bool
+	HistoryReset       bool
+}
+
+type renderViewMatrixCamera interface {
+	View() matrix.Mat4
+	Projection() matrix.Mat4
 }
 
 func newRenderView(options RenderViewOptions, order uint64) *RenderView {
 	options.LayerMask = normalizeRenderLayerMask(options.LayerMask)
 	return &RenderView{
-		options: options,
-		order:   order,
-		enabled: true,
+		options:      options,
+		order:        order,
+		enabled:      true,
+		historyReset: true,
 	}
 }
 
@@ -67,15 +85,35 @@ func newRenderViewFrame(view *RenderView) RenderViewFrame {
 	if view == nil {
 		return RenderViewFrame{}
 	}
-	view.mutex.RLock()
-	defer view.mutex.RUnlock()
-	return RenderViewFrame{
+	view.mutex.Lock()
+	defer view.mutex.Unlock()
+	frame := RenderViewFrame{
 		View:      view,
 		Options:   view.options,
 		Order:     view.order,
 		Enabled:   view.enabled,
 		Destroyed: view.destroyed,
 	}
+	if camera, ok := view.options.Camera.(renderViewMatrixCamera); ok {
+		frame.CurrentView = camera.View()
+		frame.CurrentProjection = camera.Projection()
+		frame.HistoryValid = view.historyValid && !view.historyReset
+		frame.HistoryReset = !frame.HistoryValid
+		if frame.HistoryValid {
+			frame.PreviousView = view.previousView
+			frame.PreviousProjection = view.previousProjection
+		} else {
+			frame.PreviousView = frame.CurrentView
+			frame.PreviousProjection = frame.CurrentProjection
+		}
+		view.previousView = frame.CurrentView
+		view.previousProjection = frame.CurrentProjection
+		view.historyValid = true
+		view.historyReset = false
+	} else {
+		frame.HistoryReset = true
+	}
+	return frame
 }
 
 func (v RenderViewFrame) Name() string {
@@ -96,6 +134,7 @@ func (v RenderViewFrame) ViewMode() RenderViewMode { return v.Options.ViewMode }
 func (v RenderViewFrame) IsDestroyed() bool        { return v.Destroyed || v.View == nil }
 func (v RenderViewFrame) IsEnabled() bool          { return v.Enabled && !v.IsDestroyed() }
 func (v RenderViewFrame) Key() *RenderView         { return v.View }
+func (v RenderViewFrame) ID() uint64               { return v.Order + 1 }
 
 func (v *RenderView) Name() string {
 	v.mutex.RLock()
@@ -124,7 +163,29 @@ func (v *RenderView) Camera() any {
 func (v *RenderView) SetCamera(camera any) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
+	if sameRenderViewCamera(v.options.Camera, camera) {
+		return
+	}
 	v.options.Camera = camera
+	v.historyReset = true
+}
+
+func sameRenderViewCamera(left, right any) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	lv := reflect.ValueOf(left)
+	rv := reflect.ValueOf(right)
+	return lv.IsValid() && rv.IsValid() && lv.Type() == rv.Type() &&
+		lv.Kind() == reflect.Pointer && lv.Pointer() == rv.Pointer()
+}
+
+// ResetHistory invalidates temporal data for this view. Call this after a
+// camera cut, teleporter, projection discontinuity, or render-target resize.
+func (v *RenderView) ResetHistory() {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.historyReset = true
 }
 
 func (v *RenderView) LayerMask() RenderLayerMask {
@@ -196,6 +257,7 @@ func (v *RenderView) setOptions(options RenderViewOptions) {
 	v.options = options
 	v.enabled = true
 	v.destroyed = false
+	v.historyReset = true
 }
 
 func (v *RenderView) markDestroyed() {
@@ -265,6 +327,15 @@ func (m *RenderViewManager) SetDefaultCamera(camera any) {
 	if view, ok := m.Default(); ok {
 		view.SetCamera(camera)
 	}
+}
+
+func (m *RenderViewManager) ResetHistory(name string) error {
+	view, ok := m.View(name)
+	if !ok {
+		return fmt.Errorf("render view %q not found", name)
+	}
+	view.ResetHistory()
+	return nil
 }
 
 func (m *RenderViewManager) ReplaceDefault(options RenderViewOptions) (*RenderView, error) {

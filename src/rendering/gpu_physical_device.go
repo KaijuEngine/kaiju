@@ -23,6 +23,7 @@ type GPUPhysicalDevice struct {
 	SurfaceFormats      []GPUSurfaceFormat
 	PresentModes        []GPUPresentMode
 	SurfaceCapabilities GPUSurfaceCapabilities
+	MemoryProperties    GPUPhysicalDeviceMemoryProperties
 }
 
 type GPUPhysicalDeviceMemoryProperties struct {
@@ -297,6 +298,17 @@ func (g *GPUPhysicalDevice) FindSupportedFormat(candidates []GPUFormat, tiling G
 func (g *GPUPhysicalDevice) FindMemoryType(typeFilter uint32, properties GPUMemoryPropertyFlags) int {
 	defer tracing.NewRegion("GPUPhysicalDevice.FindMemoryType").End()
 	return g.findMemoryTypeImpl(typeFilter, properties)
+}
+
+func (g *GPUPhysicalDevice) DeviceLocalMemoryBytes() uint64 {
+	var total uint64
+	for i := range g.MemoryProperties.MemoryHeaps {
+		heap := g.MemoryProperties.MemoryHeaps[i]
+		if heap.Flags&GPUMemoryHeapDeviceLocalBit != 0 {
+			total += uint64(heap.Size)
+		}
+	}
+	return total
 }
 
 func (g *GPUPhysicalDevice) PadBufferSize(size uintptr) uintptr {

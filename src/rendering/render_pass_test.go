@@ -325,3 +325,30 @@ func TestCombineShaderSamplesGBufferByTextureSize(t *testing.T) {
 		t.Fatalf("combine shader should not use screenSize for G-buffer sampling")
 	}
 }
+
+func TestSelectOutputAttachmentPrefersSemanticHDRColor(t *testing.T) {
+	device := &GPUDevice{}
+	device.LogicalDevice.SwapChain.Images = []TextureId{{Format: GPUFormatR8g8b8a8Unorm}}
+	pass := &RenderPass{
+		construction: RenderPassDataCompiled{AttachmentDescriptions: []RenderPassAttachmentDescriptionCompiled{
+			{
+				Format: GPUFormatR16g16b16a16Sfloat,
+				Image: RenderPassAttachmentImageCompiled{
+					Name:  "opaque.color",
+					Usage: GPUImageUsageColorAttachmentBit,
+				},
+			},
+			{
+				Format: GPUFormatR8g8b8a8Unorm,
+				Image: RenderPassAttachmentImageCompiled{
+					Name:  "opaque.albedo_metallic",
+					Usage: GPUImageUsageColorAttachmentBit,
+				},
+			},
+		}},
+		textures: []Texture{{Key: "hdr"}, {Key: "albedo"}},
+	}
+	if got := pass.SelectOutputAttachment(device); got == nil || got.Key != "hdr" {
+		t.Fatalf("selected output = %#v, want semantic HDR color", got)
+	}
+}

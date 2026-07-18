@@ -224,3 +224,23 @@ func TestEditorPickShaderPipelineAsset(t *testing.T) {
 			len(pipeline.ColorBlendAttachments), len(pass.SubpassDescriptions[0].ColorAttachmentReferences))
 	}
 }
+
+func TestShaderPipelinePadsBlendAttachmentsForExpandedGBuffer(t *testing.T) {
+	pipeline := ShaderPipelineDataCompiled{
+		ColorBlendAttachments: []ShaderPipelineColorBlendAttachmentsCompiled{{BlendEnable: true}},
+	}
+	pass := &RenderPass{construction: RenderPassDataCompiled{SubpassDescriptions: []RenderPassSubpassDescriptionCompiled{{
+		ColorAttachmentReferences: make([]RenderPassAttachmentReferenceCompiled, 5),
+	}}}}
+	attachments := pipeline.colorBlendAttachmentsForRenderPass(pass)
+	if len(attachments) != 5 {
+		t.Fatalf("blend attachment count = %d, want 5", len(attachments))
+	}
+	if !attachments[0].BlendEnable || attachments[4].BlendEnable {
+		t.Fatalf("blend attachment state was not preserved/defaulted: %+v", attachments)
+	}
+	wantMask := GPUColorComponentRBit | GPUColorComponentGBit | GPUColorComponentBBit | GPUColorComponentABit
+	if attachments[4].ColorWriteMask != wantMask {
+		t.Fatalf("padded color write mask = %v, want %v", attachments[4].ColorWriteMask, wantMask)
+	}
+}

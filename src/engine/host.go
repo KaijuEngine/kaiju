@@ -20,6 +20,7 @@ import (
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/engine/collision_system"
 	"kaijuengine.com/engine/lighting"
+	"kaijuengine.com/engine/lighting/gi"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/systems/logging"
 	"kaijuengine.com/engine/systems/tweening"
@@ -73,51 +74,52 @@ func (c *hostCameras) NewFrame() {
 // global state. You can have multiple hosts in a program to isolate things like
 // windows and game state.
 type Host struct {
-	name              string
-	game              any
-	destroyedEntities []*Entity
-	entitiesById      map[EntityId]*Entity
-	lighting          lighting.LightingInformation
-	timeRunner        []timeRun
-	frameRunner       []frameRun
-	preRenderRunner   []func()
-	postRenderRunner  []afterRenderRun
-	plugins           []*plugins.LuaVM
-	Window            *windowing.Window
-	LogStream         *logging.LogStream
-	workGroup         concurrent.WorkGroup
-	threads           concurrent.Threads
-	updateThreads     concurrent.Threads
-	uiThreads         concurrent.Threads
-	Cameras           hostCameras
-	collisionManager  collision_system.Manager
-	audio             *audio.Audio
-	shaderCache       rendering.ShaderCache
-	textureCache      rendering.TextureCache
-	meshCache         rendering.MeshCache
-	fontCache         rendering.FontCache
-	materialCache     rendering.MaterialCache
-	Drawings          rendering.Drawings
-	RenderTargets     rendering.RenderTargetManager
-	RenderViews       rendering.RenderViewManager
-	Localization      localization.Localization
-	frame             FrameId
-	frameTime         float64
-	Closing           bool
-	UIUpdater         Updater
-	UILateUpdater     Updater
-	Updater           Updater
-	LateUpdater       Updater
-	assetDatabase     assets.Database
-	physics           StagePhysics
-	OnClose           events.Event
-	CloseSignal       chan struct{}
-	frameRateLimit    *time.Ticker
-	runnerMutex       sync.Mutex
-	renderConfigMutex sync.RWMutex
-	swapChainClear    matrix.Color
-	hasSwapChainClear bool
-	renderThread      *RenderThread
+	name               string
+	game               any
+	destroyedEntities  []*Entity
+	entitiesById       map[EntityId]*Entity
+	lighting           lighting.LightingInformation
+	globalIllumination *gi.Manager
+	timeRunner         []timeRun
+	frameRunner        []frameRun
+	preRenderRunner    []func()
+	postRenderRunner   []afterRenderRun
+	plugins            []*plugins.LuaVM
+	Window             *windowing.Window
+	LogStream          *logging.LogStream
+	workGroup          concurrent.WorkGroup
+	threads            concurrent.Threads
+	updateThreads      concurrent.Threads
+	uiThreads          concurrent.Threads
+	Cameras            hostCameras
+	collisionManager   collision_system.Manager
+	audio              *audio.Audio
+	shaderCache        rendering.ShaderCache
+	textureCache       rendering.TextureCache
+	meshCache          rendering.MeshCache
+	fontCache          rendering.FontCache
+	materialCache      rendering.MaterialCache
+	Drawings           rendering.Drawings
+	RenderTargets      rendering.RenderTargetManager
+	RenderViews        rendering.RenderViewManager
+	Localization       localization.Localization
+	frame              FrameId
+	frameTime          float64
+	Closing            bool
+	UIUpdater          Updater
+	UILateUpdater      Updater
+	Updater            Updater
+	LateUpdater        Updater
+	assetDatabase      assets.Database
+	physics            StagePhysics
+	OnClose            events.Event
+	CloseSignal        chan struct{}
+	frameRateLimit     *time.Ticker
+	runnerMutex        sync.Mutex
+	renderConfigMutex  sync.RWMutex
+	swapChainClear     matrix.Color
+	hasSwapChainClear  bool
+	renderThread       *RenderThread
 }
 
 // NewHost creates a new host with the given name and log stream. The log stream
@@ -143,17 +145,19 @@ func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database)
 			LayerMask: rendering.RenderLayerAll,
 			Clear:     true,
 		}),
-		Localization: localization.Select(),
-		entitiesById: make(map[EntityId]*Entity),
-		CloseSignal:  make(chan struct{}, 1),
-		LogStream:    logStream,
-		lighting:     lighting.NewLightingInformation(rendering.MaxLocalLights),
+		Localization:       localization.Select(),
+		entitiesById:       make(map[EntityId]*Entity),
+		CloseSignal:        make(chan struct{}, 1),
+		LogStream:          logStream,
+		lighting:           lighting.NewLightingInformation(rendering.MaxLocalLights),
+		globalIllumination: gi.NewManager(gi.Capabilities{}),
 		Cameras: hostCameras{
 			Primary: cameras.NewContainer(primaryCamera),
 			UI:      cameras.NewContainer(uiCamera),
 		},
 	}
 	host.workGroup.Init()
+	host.globalIllumination.SetAssetReader(assetDb)
 	host.threads.Initialize()
 	host.updateThreads.Initialize()
 	host.uiThreads.Initialize()
@@ -220,6 +224,22 @@ func (host *Host) InitializeRenderer() error {
 	}
 	host.applySwapChainClearColorToRenderer()
 	gpuDevice := host.Window.GpuInstance.PrimaryDevice()
+	gpuCapabilities := gpuDevice.Capabilities()
+	if err := host.globalIllumination.SetCapabilities(gi.Capabilities{
+		VulkanMajor:            gpuCapabilities.VulkanMajor,
+		VulkanMinor:            gpuCapabilities.VulkanMinor,
+		DeviceLocalMemoryMB:    gpuCapabilities.DeviceLocalMemoryMB,
+		DedicatedComputeQueue:  gpuCapabilities.DedicatedComputeQueue,
+		Synchronization2:       gpuCapabilities.Synchronization2,
+		TimelineSemaphore:      gpuCapabilities.TimelineSemaphore,
+		DescriptorIndexing:     gpuCapabilities.DescriptorIndexing,
+		BufferDeviceAddress:    gpuCapabilities.BufferDeviceAddress,
+		AccelerationStructure:  gpuCapabilities.AccelerationStructure,
+		DeferredHostOperations: gpuCapabilities.DeferredHostOperations,
+		RayQuery:               gpuCapabilities.RayQuery,
+	}); err != nil {
+		slog.Warn("failed to reconfigure global illumination for GPU capabilities", "error", err)
+	}
 	host.shaderCache = rendering.NewShaderCache(gpuDevice, host.assetDatabase)
 	host.textureCache = rendering.NewTextureCache(gpuDevice, host.assetDatabase)
 	host.meshCache = rendering.NewMeshCache(gpuDevice, host.assetDatabase)
@@ -397,6 +417,11 @@ func (host *Host) Audio() *audio.Audio {
 // Lighting returns a pointer to the internal lighting information
 func (host *Host) Lighting() *lighting.LightingInformation {
 	return &host.lighting
+}
+
+// GlobalIllumination returns the provider-neutral global illumination manager.
+func (host *Host) GlobalIllumination() *gi.Manager {
+	return host.globalIllumination
 }
 
 // Update is the main update loop for the host. This will poll the window for

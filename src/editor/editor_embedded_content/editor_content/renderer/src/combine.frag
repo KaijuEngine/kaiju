@@ -16,6 +16,19 @@ const vec4 outlineColor = vec4(251.0/255.0, 84.0/255.0, 43.0/255.0, 1.0);
 const float selectedDepthEdgeThreshold = 0.02;
 const float selectedNormalEdgeThreshold = 0.92;
 
+vec3 linearToSrgb(vec3 color) {
+	return pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
+}
+
+vec3 acesTonemap(vec3 color) {
+	const float a = 2.51;
+	const float b = 0.03;
+	const float c = 2.43;
+	const float d = 0.59;
+	const float e = 0.14;
+	return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+}
+
 uint gBufferFlags(vec4 pos) {
 	return floatBitsToUint(pos.w);
 }
@@ -78,6 +91,13 @@ void main() {
 	if (outline) {
 		outColor = outlineColor;
 	} else {
-		outColor = texture(textures[0], fragTexCoords) * fragColor;
+		vec4 color = texture(textures[0], fragTexCoords) * fragColor;
+		// Only world passes carry full-size G-buffer textures. UI and other
+		// overlays use the small fallback textures and remain display-referred.
+		bool worldPass = all(equal(textureSize(textures[0], 0), textureSize(textures[1], 0)));
+		if (worldPass) {
+			color.rgb = linearToSrgb(acesTonemap(color.rgb));
+		}
+		outColor = color;
 	}
 }

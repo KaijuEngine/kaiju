@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -93,12 +94,50 @@ func TestMaterialPipelinesMatchRenderPassColorAttachments(t *testing.T) {
 			t.Fatalf("%s uses %s subpass %d, but %s has %d subpasses",
 				entry.Name(), material.ShaderPipeline, subpass, material.RenderPass, len(renderPass.SubpassDescriptions))
 		}
-		want := len(renderPass.SubpassDescriptions[subpass].ColorAttachmentReferences)
-		got := len(pipeline.ColorBlendAttachments)
-		if got != want {
-			t.Fatalf("%s uses %s with %d color blend attachments, but %s subpass %d has %d color attachments",
-				entry.Name(), material.ShaderPipeline, got, material.RenderPass, subpass, want)
+		colorAttachments := len(renderPass.SubpassDescriptions[subpass].ColorAttachmentReferences)
+		// Shared pipelines may target render passes with different G-buffer widths.
+		// The renderer preserves configured blend states, pads missing entries with
+		// opaque writes, and truncates extras to the selected subpass.
+		if colorAttachments > 0 && len(pipeline.ColorBlendAttachments) == 0 {
+			t.Fatalf("%s uses %s without a primary color blend attachment for %s subpass %d",
+				entry.Name(), material.ShaderPipeline, material.RenderPass, subpass)
 		}
+	}
+}
+
+func TestOpaquePassHasHDRAndGIInputs(t *testing.T) {
+	passes := filepath.FromSlash("editor_content/renderer/passes")
+	var opaque rendering.RenderPassData
+	readJSON(t, filepath.Join(passes, "opaque.renderpass"), &opaque)
+	if len(opaque.AttachmentDescriptions) != 6 {
+		t.Fatalf("opaque attachment count = %d, want five colors plus depth", len(opaque.AttachmentDescriptions))
+	}
+	want := []struct {
+		name   string
+		format string
+	}{
+		{"opaque.color", "R16g16b16a16Sfloat"},
+		{"opaque.position", "R32g32b32a32Sfloat"},
+		{"opaque.normal", "R16g16b16a16Sfloat"},
+		{"opaque.albedo_metallic", "R8g8b8a8Unorm"},
+		{"opaque.motion", "R16g16Sfloat"},
+	}
+	for i := range want {
+		attachment := opaque.AttachmentDescriptions[i]
+		if attachment.Image.Name != want[i].name || attachment.Format != want[i].format {
+			t.Fatalf("opaque attachment %d = %s/%s, want %s/%s", i,
+				attachment.Image.Name, attachment.Format, want[i].name, want[i].format)
+		}
+	}
+	depth := opaque.AttachmentDescriptions[5]
+	if depth.Image.Name != "opaque.depth" || !slices.Contains(depth.Image.Usage, "SampledBit") {
+		t.Fatalf("opaque depth is not sampleable: %+v", depth)
+	}
+	var transparent rendering.RenderPassData
+	readJSON(t, filepath.Join(passes, "transparent.renderpass"), &transparent)
+	compositeTarget := transparent.AttachmentDescriptions[2]
+	if compositeTarget.Image.ExistingImage != "opaque.color" || compositeTarget.Format != want[0].format {
+		t.Fatalf("transparent HDR composite target = %+v", compositeTarget)
 	}
 }
 

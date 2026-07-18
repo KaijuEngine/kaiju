@@ -8,10 +8,18 @@ package rendering
 
 import (
 	"testing"
+	"unsafe"
 
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/matrix"
 )
+
+func TestGlobalShaderDataFitsMinimumVulkanUniformBufferRange(t *testing.T) {
+	const minimumVulkanUniformBufferRange = uintptr(16 * 1024)
+	if size := unsafe.Sizeof(GlobalShaderData{}); size > minimumVulkanUniformBufferRange {
+		t.Fatalf("global shader data is %d bytes; Vulkan only guarantees %d", size, minimumVulkanUniformBufferRange)
+	}
+}
 
 func TestGlobalShaderDataForCameraStoresPerViewData(t *testing.T) {
 	uiCamera := cameras.NewStandardCameraOrthographic(800, 600, 800, 600, matrix.Vec3{0, 0, 250})

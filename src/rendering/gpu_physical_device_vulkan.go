@@ -85,6 +85,27 @@ func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevi
 		properties := vk.PhysicalDeviceProperties{}
 		vk.GetPhysicalDeviceProperties(vkDevices[i], &properties)
 		devices[i].Properties = mapPhysicalDeviceProperties(properties)
+		// Memory properties are cached for feature budgeting and diagnostics.
+		var memoryProperties vk.PhysicalDeviceMemoryProperties
+		vk.GetPhysicalDeviceMemoryProperties(vkDevices[i], &memoryProperties)
+		devices[i].MemoryProperties.MemoryTypes = make([]GPUMemoryType, memoryProperties.MemoryTypeCount)
+		for j := uint32(0); j < memoryProperties.MemoryTypeCount; j++ {
+			propertyFlags := GPUMemoryPropertyFlags(0)
+			propertyFlags.fromVulkan(memoryProperties.MemoryTypes[j].PropertyFlags)
+			devices[i].MemoryProperties.MemoryTypes[j] = GPUMemoryType{
+				PropertyFlags: propertyFlags,
+				HeapIndex:     memoryProperties.MemoryTypes[j].HeapIndex,
+			}
+		}
+		devices[i].MemoryProperties.MemoryHeaps = make([]GPUMemoryHeap, memoryProperties.MemoryHeapCount)
+		for j := uint32(0); j < memoryProperties.MemoryHeapCount; j++ {
+			flags := GPUMemoryHeapFlags(0)
+			flags.fromVulkan(memoryProperties.MemoryHeaps[j].Flags)
+			devices[i].MemoryProperties.MemoryHeaps[j] = GPUMemoryHeap{
+				Size:  uintptr(memoryProperties.MemoryHeaps[j].Size),
+				Flags: flags,
+			}
+		}
 		// Extensions
 		var extensionCount uint32
 		vk.EnumerateDeviceExtensionProperties(vkDevices[i], nil, &extensionCount, nil)

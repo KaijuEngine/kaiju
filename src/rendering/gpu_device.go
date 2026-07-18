@@ -342,7 +342,19 @@ func (g *GPUDevice) updateGlobalUniformBufferForView(view RenderViewFrame, camer
 		}
 	}
 	viewCamera := renderViewCameraForGlobals(view, camera)
-	ubo := globalShaderDataForCamera(viewCamera, uiCamera, lights, runtime, screenSize)
+	viewLights := lights
+	if lighting, ok := lights.GlobalIlluminationByView[view.ID()]; ok {
+		viewLights.GlobalIllumination = lighting
+	}
+	ubo := globalShaderDataForCamera(viewCamera, uiCamera, viewLights, runtime, screenSize)
+	if view.HistoryValid {
+		ubo.PreviousView = view.PreviousView
+		ubo.PreviousProjection = view.PreviousProjection
+		ubo.TemporalData[0] = 1
+	} else if viewCamera != nil {
+		ubo.PreviousView = viewCamera.View()
+		ubo.PreviousProjection = viewCamera.Projection()
+	}
 	frame := g.Painter.currentFrame
 	state, err := g.ensureGlobalUniformsForView(view.Key())
 	if err != nil {

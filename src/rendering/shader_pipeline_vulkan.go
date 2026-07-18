@@ -116,16 +116,17 @@ func (s *ShaderPipelineDataCompiled) ConstructPipeline(device *GPUDevice, shader
 		AlphaToCoverageEnable: boolToVkBool(s.Multisample.AlphaToCoverageEnable),
 		AlphaToOneEnable:      boolToVkBool(s.Multisample.AlphaToOneEnable),
 	}
-	colorBlendAttachment := make([]vk.PipelineColorBlendAttachmentState, len(s.ColorBlendAttachments))
-	for i := range s.ColorBlendAttachments {
-		colorBlendAttachment[i].BlendEnable = boolToVkBool(s.ColorBlendAttachments[i].BlendEnable)
-		colorBlendAttachment[i].SrcColorBlendFactor = s.ColorBlendAttachments[i].SrcColorBlendFactor.toVulkan()
-		colorBlendAttachment[i].DstColorBlendFactor = s.ColorBlendAttachments[i].DstColorBlendFactor.toVulkan()
-		colorBlendAttachment[i].ColorBlendOp = s.ColorBlendAttachments[i].ColorBlendOp.toVulkan()
-		colorBlendAttachment[i].SrcAlphaBlendFactor = s.ColorBlendAttachments[i].SrcAlphaBlendFactor.toVulkan()
-		colorBlendAttachment[i].DstAlphaBlendFactor = s.ColorBlendAttachments[i].DstAlphaBlendFactor.toVulkan()
-		colorBlendAttachment[i].AlphaBlendOp = s.ColorBlendAttachments[i].AlphaBlendOp.toVulkan()
-		colorBlendAttachment[i].ColorWriteMask = s.ColorBlendAttachments[i].ColorWriteMask.toVulkan()
+	compiledBlendAttachments := s.colorBlendAttachmentsForRenderPass(renderPass)
+	colorBlendAttachment := make([]vk.PipelineColorBlendAttachmentState, len(compiledBlendAttachments))
+	for i := range compiledBlendAttachments {
+		colorBlendAttachment[i].BlendEnable = boolToVkBool(compiledBlendAttachments[i].BlendEnable)
+		colorBlendAttachment[i].SrcColorBlendFactor = compiledBlendAttachments[i].SrcColorBlendFactor.toVulkan()
+		colorBlendAttachment[i].DstColorBlendFactor = compiledBlendAttachments[i].DstColorBlendFactor.toVulkan()
+		colorBlendAttachment[i].ColorBlendOp = compiledBlendAttachments[i].ColorBlendOp.toVulkan()
+		colorBlendAttachment[i].SrcAlphaBlendFactor = compiledBlendAttachments[i].SrcAlphaBlendFactor.toVulkan()
+		colorBlendAttachment[i].DstAlphaBlendFactor = compiledBlendAttachments[i].DstAlphaBlendFactor.toVulkan()
+		colorBlendAttachment[i].AlphaBlendOp = compiledBlendAttachments[i].AlphaBlendOp.toVulkan()
+		colorBlendAttachment[i].ColorWriteMask = compiledBlendAttachments[i].ColorWriteMask.toVulkan()
 	}
 	colorBlendAttachmentCount := len(colorBlendAttachment)
 	colorBlending := vk.PipelineColorBlendStateCreateInfo{

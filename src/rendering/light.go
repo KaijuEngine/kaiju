@@ -20,6 +20,7 @@ import (
 
 const (
 	MaxLocalLights           = 20
+	MaxGIShaderProbes        = 48
 	cubeMapSides             = 6
 	lightDepthMapWidth       = 4096
 	lightDepthMapHeight      = 4096
@@ -73,8 +74,22 @@ type GPULightInfo struct {
 }
 
 type LightsForRender struct {
-	Lights     []Light
-	HasChanges bool
+	Lights                   []Light
+	HasChanges               bool
+	GlobalIllumination       GlobalIlluminationForRender
+	GlobalIlluminationByView map[uint64]GlobalIlluminationForRender
+}
+
+type GlobalIlluminationProbe struct {
+	PositionValidity matrix.Vec4
+	DistanceMoments  matrix.Vec4
+	RadianceSH       [4]matrix.Vec4
+}
+
+type GlobalIlluminationForRender struct {
+	BoundsMinSpacing matrix.Vec4
+	DimensionsCount  [4]int32
+	Probes           [MaxGIShaderProbes]GlobalIlluminationProbe
 }
 
 type Light struct {

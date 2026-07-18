@@ -2,6 +2,7 @@
 #define LOCATION_START LOCATION_HEAD + 4
 #define PI             3.14159265359
 #define CUBEMAP_SIDES  6
+#define MAX_GI_PROBES  48
 
 #ifndef MAX_JOINTS
 	#define MAX_JOINTS 50
@@ -88,6 +89,12 @@ struct LightInfo {
 	int shadowIndex;
 };
 
+struct GlobalIlluminationProbe {
+	vec4 positionValidity;
+	vec4 distanceMoments;
+	vec4 radianceSH[4];
+};
+
 // cameraPosition.w = [0=perspective, 1=orthographic]
 layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	mat4 view;
@@ -102,7 +109,90 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	vec4 cascadePlaneDistances;
 	Light vertLights[MAX_LIGHTS];
 	LightInfo lightInfos[MAX_LIGHTS];
+	vec4 giBoundsMinSpacing;
+	ivec4 giDimensionsCount;
+	GlobalIlluminationProbe giProbes[MAX_GI_PROBES];
+	mat4 previousView;
+	mat4 previousProjection;
+	vec4 temporalData;
 };
+
+#ifdef FRAGMENT_SHADER
+vec2 calculateMotionVector(vec3 worldPosition) {
+	if (temporalData.x < 0.5) {
+		return vec2(0.0);
+	}
+	vec4 previousClip = previousProjection * previousView * vec4(worldPosition, 1.0);
+	if (abs(previousClip.w) < 0.00001) {
+		return vec2(0.0);
+	}
+	vec2 previousNDC = previousClip.xy / previousClip.w;
+	vec2 currentNDC = (gl_FragCoord.xy / screenSize) * 2.0 - 1.0;
+	return currentNDC - previousNDC;
+}
+#endif
+
+vec3 evaluateGlobalIlluminationProbe(GlobalIlluminationProbe probe, vec3 normal) {
+	vec3 n = normalize(normal);
+	float basis[4] = float[](
+		0.2820947918,
+		0.4886025119 * n.y,
+		0.4886025119 * n.z,
+		0.4886025119 * n.x
+	);
+	float convolution[4] = float[](
+		PI,
+		2.0 * PI / 3.0, 2.0 * PI / 3.0, 2.0 * PI / 3.0
+	);
+	vec3 irradiance = vec3(0.0);
+	for (int coefficient = 0; coefficient < 4; coefficient++) {
+		irradiance += probe.radianceSH[coefficient].rgb * basis[coefficient] * convolution[coefficient];
+	}
+	return max(irradiance, vec3(0.0));
+}
+
+vec3 sampleGlobalIllumination(vec3 position, vec3 normal) {
+	ivec3 dimensions = giDimensionsCount.xyz;
+	if (giDimensionsCount.w <= 0 || giBoundsMinSpacing.w <= 0.0 || any(lessThanEqual(dimensions, ivec3(0)))) {
+		return vec3(0.0);
+	}
+	vec3 grid = (position - giBoundsMinSpacing.xyz) / giBoundsMinSpacing.w;
+	ivec3 maxBase = max(dimensions - ivec3(2), ivec3(0));
+	ivec3 base = clamp(ivec3(floor(grid)), ivec3(0), maxBase);
+	vec3 fraction = clamp(grid - vec3(base), vec3(0.0), vec3(1.0));
+	float axisWeights[6] = float[](
+		1.0 - fraction.x, fraction.x,
+		1.0 - fraction.y, fraction.y,
+		1.0 - fraction.z, fraction.z
+	);
+	vec3 result = vec3(0.0);
+	float totalWeight = 0.0;
+	for (int z = 0; z < 2; z++) {
+		for (int y = 0; y < 2; y++) {
+			for (int x = 0; x < 2; x++) {
+				ivec3 coordinate = min(base + ivec3(x, y, z), dimensions - ivec3(1));
+				int probeIndex = coordinate.x + dimensions.x * (coordinate.y + dimensions.y * coordinate.z);
+				if (probeIndex < 0 || probeIndex >= giDimensionsCount.w || probeIndex >= MAX_GI_PROBES) {
+					continue;
+				}
+				GlobalIlluminationProbe probe = giProbes[probeIndex];
+				float weight = axisWeights[x] * axisWeights[2 + y] * axisWeights[4 + z];
+				float validity = clamp(probe.positionValidity.w, 0.0, 1.0);
+				float distanceToProbe = distance(position, probe.positionValidity.xyz);
+				float meanDistance = probe.distanceMoments.x;
+				if (meanDistance > 0.0 && distanceToProbe > meanDistance) {
+					float variance = max(probe.distanceMoments.y, 0.0001);
+					float delta = distanceToProbe - meanDistance;
+					weight *= variance / (variance + delta * delta);
+				}
+				weight *= validity;
+				result += evaluateGlobalIlluminationProbe(probe, normal) * weight;
+				totalWeight += weight;
+			}
+		}
+	}
+	return totalWeight > 0.00001 ? result / totalWeight : vec3(0.0);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Vertex shader layouts
@@ -268,6 +358,8 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	#elif defined(HAS_GBUFFER)
 		layout(location = 1) out vec4 outPosition;
 		layout(location = 2) out vec4 outNormal;
+		layout(location = 3) out vec4 outAlbedoMetallic;
+		layout(location = 4) out vec2 outMotion;
 	#endif
 #endif
 
@@ -433,11 +525,17 @@ layout(set = 0, binding = 0) readonly uniform UniformBufferObject {
 	);
 
 	#ifdef HAS_GBUFFER
-		void processGBuffer(vec3 nml) {
+		void processGBuffer(vec3 nml, float roughness, vec3 albedo, float metallic, vec2 motion) {
 		#ifndef OIT
 			outPosition = vec4(fragPos, uintBitsToFloat(fragFlags | 0x40000000u));
-			outNormal = vec4(nml, 0.0);
+			outNormal = vec4(nml, clamp(roughness, 0.0, 1.0));
+			outAlbedoMetallic = vec4(clamp(albedo, 0.0, 1.0), clamp(metallic, 0.0, 1.0));
+			outMotion = motion;
 		#endif
+		}
+
+		void processGBuffer(vec3 nml) {
+			processGBuffer(nml, 1.0, vec3(1.0), 0.0, vec2(0.0));
 		}
 	#endif
 

@@ -191,6 +191,29 @@ type ShaderPipelineColorBlendAttachmentsCompiled struct {
 	ColorWriteMask      GPUColorComponentFlags
 }
 
+func (s *ShaderPipelineDataCompiled) colorBlendAttachmentsForRenderPass(renderPass *RenderPass) []ShaderPipelineColorBlendAttachmentsCompiled {
+	attachments := append([]ShaderPipelineColorBlendAttachmentsCompiled(nil), s.ColorBlendAttachments...)
+	if renderPass == nil || int(s.GraphicsPipeline.Subpass) >= len(renderPass.construction.SubpassDescriptions) {
+		return attachments
+	}
+	required := len(renderPass.construction.SubpassDescriptions[s.GraphicsPipeline.Subpass].ColorAttachmentReferences)
+	for len(attachments) < required {
+		attachments = append(attachments, ShaderPipelineColorBlendAttachmentsCompiled{
+			SrcColorBlendFactor: GPUBlendFactorOne,
+			DstColorBlendFactor: GPUBlendFactorZero,
+			ColorBlendOp:        GPUBlendOpAdd,
+			SrcAlphaBlendFactor: GPUBlendFactorOne,
+			DstAlphaBlendFactor: GPUBlendFactorZero,
+			AlphaBlendOp:        GPUBlendOpAdd,
+			ColorWriteMask:      GPUColorComponentRBit | GPUColorComponentGBit | GPUColorComponentBBit | GPUColorComponentABit,
+		})
+	}
+	if len(attachments) > required {
+		attachments = attachments[:required]
+	}
+	return attachments
+}
+
 func (d *ShaderPipelineData) Compile(device *GPUPhysicalDevice) ShaderPipelineDataCompiled {
 	c := ShaderPipelineDataCompiled{
 		Name: d.Name,

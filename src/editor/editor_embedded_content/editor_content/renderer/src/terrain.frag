@@ -70,7 +70,7 @@ void main() {
 	vec4 texColor = terrainLayerColor() * fragColor;
 	vec3 terrainColor = terrainAlbedo(texColor.rgb, normal);
 	terrainColor = applyBrushOverlay(terrainColor);
-	processGBuffer(normal);
+	processGBuffer(normal, 1.0, terrainColor, 0.0, calculateMotionVector(fragPos));
 
 #ifdef TERRAIN_UNLIT_DEBUG
 	processFinalColor(vec4(terrainColor, texColor.a));
@@ -86,6 +86,7 @@ void main() {
 	float diff = max(dot(normal, -lightDir), 0.0) * diffuseStrength;
 	vec3 ambient = ambientStrength * lightColor * terrainColor;
 	vec3 diffuse = diff * lightColor * terrainColor;
-	processFinalColor(vec4(ambient + diffuse, texColor.a));
+	vec3 indirect = sampleGlobalIllumination(fragPos, normal) * terrainColor / PI;
+	processFinalColor(vec4(ambient + diffuse + indirect, texColor.a));
 #endif
 }

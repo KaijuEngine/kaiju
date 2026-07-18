@@ -27,7 +27,7 @@ const float ambientStrength = 0.5;
 void main() {
 	vec4 texColor = texture(textures[0], fragTexCoords) * fragColor;
 	vec3 normal = normalize(fragNormal);
-    processGBuffer(normal);
+	processGBuffer(normal, 1.0, texColor.rgb, 0.0, calculateMotionVector(fragPos));
 	// Ambient
     vec3 ambient = ambientStrength * sunLightColor * texColor.rgb;
     // Diffuse
@@ -40,6 +40,7 @@ void main() {
     vec3 specular = spec * sunLightColor * materialSpecular;
 	*/
     // Combine
-    vec3 result = ambient + diffuse/* + specular*/;
+    vec3 indirect = sampleGlobalIllumination(fragPos, normal) * texColor.rgb / PI;
+    vec3 result = ambient + diffuse + indirect/* + specular*/;
     processFinalColor(vec4(result, texColor.a));
 }

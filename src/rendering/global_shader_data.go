@@ -36,17 +36,24 @@ type GlobalShaderData struct {
 	CascadePlaneDistances [4]float32
 	VertLights            [MaxLocalLights]GPULight
 	LightInfos            [MaxLocalLights]GPULightInfo
+	GlobalIllumination    GlobalIlluminationForRender
+	PreviousView          matrix.Mat4
+	PreviousProjection    matrix.Mat4
+	TemporalData          matrix.Vec4
 }
 
 func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, screenSize matrix.Vec2) GlobalShaderData {
 	ubo := GlobalShaderData{
-		View:         matrix.Mat4Identity(),
-		Projection:   matrix.Mat4Identity(),
-		UIView:       matrix.Mat4Identity(),
-		UIProjection: matrix.Mat4Identity(),
-		Time:         runtime,
-		ScreenSize:   screenSize,
+		View:               matrix.Mat4Identity(),
+		Projection:         matrix.Mat4Identity(),
+		UIView:             matrix.Mat4Identity(),
+		UIProjection:       matrix.Mat4Identity(),
+		PreviousView:       matrix.Mat4Identity(),
+		PreviousProjection: matrix.Mat4Identity(),
+		Time:               runtime,
+		ScreenSize:         screenSize,
 	}
+	ubo.GlobalIllumination = lights.GlobalIllumination
 	if camera != nil {
 		camOrtho := matrix.Float(0)
 		if camera.IsOrthographic() {

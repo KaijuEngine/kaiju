@@ -115,6 +115,13 @@ func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture {
 				// First image is likely the better image to fall back to
 				fallback = &r.textures[i]
 			}
+			// A render pass may contain another attachment whose format happens
+			// to match the swap chain (for example an RGBA8 albedo G-buffer next
+			// to an FP16 HDR scene color). The semantic .color output must win
+			// over that coincidental format match.
+			if strings.HasSuffix(a.Image.Name, ".color") {
+				return &r.textures[i]
+			}
 			if a.Format == targetFormat {
 				return &r.textures[i]
 			}
@@ -185,6 +192,11 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 		if err := json.Unmarshal([]byte(shaderConfig), &rawSD); err != nil {
 			return err
 		}
+		// A graphics pipeline is created against a specific render pass and
+		// subpass. Reusing a cached subpass shader by asset name is invalid when
+		// two passes use different attachment formats (for example HDR world
+		// compositing and display-referred UI compositing).
+		rawSD.Name = fmt.Sprintf("%s@%s:%d", rawSD.Name, r.construction.Name, index)
 		sp.shaderPipeline = pipe.Compile(&device.PhysicalDevice)
 		shaderCache := device.Painter.caches.ShaderCache()
 		sp.shader, _ = shaderCache.Shader(rawSD.Compile())

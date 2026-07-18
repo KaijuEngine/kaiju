@@ -33,19 +33,6 @@ vec3 srgbToLinear(vec3 color) {
 	return pow(max(color, vec3(0.0)), vec3(2.2));
 }
 
-vec3 linearToSrgb(vec3 color) {
-	return pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
-}
-
-vec3 acesTonemap(vec3 color) {
-	const float a = 2.51;
-	const float b = 0.03;
-	const float c = 2.43;
-	const float d = 0.59;
-	const float e = 0.14;
-	return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
-}
-
 mat3 fallbackTBN(vec3 n) {
 	vec3 up = abs(n.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
 	vec3 t = normalize(cross(up, n));
@@ -120,11 +107,13 @@ void main() {
 	vec3 V = safeNormalize(cameraPosition.xyz - fragPos, geometricNormal);
 	float NdotV = max(dot(N, V), 0.0);
 
-	processGBuffer(N);
+	processGBuffer(N, roughness, albedo, metallic, calculateMotionVector(fragPos));
 
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 	vec3 Lo = vec3(0.0);
 	vec3 ambient = vec3(DEFAULT_AMBIENT_STRENGTH) * albedo * occlusion;
+	vec3 indirectIrradiance = sampleGlobalIllumination(fragPos, N);
+	ambient += indirectIrradiance * albedo * (1.0 - metallic) * occlusion / PI;
 
 	for (int i = 0; i < fragLightCount; ++i) {
 		int lightIdx = fragLightIndexes[i];
@@ -176,6 +165,5 @@ void main() {
 	}
 
 	vec3 color = ambient + Lo + emission;
-	color = linearToSrgb(acesTonemap(color));
 	processFinalColor(vec4(color, alpha));
 }
