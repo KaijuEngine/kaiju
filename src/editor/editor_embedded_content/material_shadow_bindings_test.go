@@ -10,10 +10,28 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"kaijuengine.com/rendering"
 )
+
+func TestPBRAmbientIsAppliedBeforeDirectLightFacingGuard(t *testing.T) {
+	path := filepath.FromSlash("editor_content/renderer/src/pbr.frag")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(data)
+	ambient := strings.Index(source, "ambient += max(light.ambient")
+	directGuard := strings.Index(source, "if (attenuation <= 0.0 || NdotL <= 0.0)")
+	if ambient < 0 || directGuard < 0 {
+		t.Fatalf("PBR shader is missing the ambient accumulation or direct-light guard")
+	}
+	if ambient > directGuard {
+		t.Fatalf("per-light ambient must be accumulated before the NdotL direct-light guard")
+	}
+}
 
 func TestShadowReceivingMaterialsDeclareShadowBindings(t *testing.T) {
 	root := filepath.FromSlash("editor_content/renderer")

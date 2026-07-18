@@ -18,7 +18,22 @@ import (
 
 func bitSize[T klib.Number]() int { return int(unsafe.Sizeof(T(0))) * 8 }
 
+// CanonicalTypeName maps the runtime names of the generic matrix vector
+// implementations back to the public aliases used in entity-data source.
+// reflect reports matrix.Vec3 as "Vec3T[float32]", for example, because Vec3
+// is an alias. The editor's field classification and default parser should
+// continue to treat that type as "Vec3".
+func CanonicalTypeName(typeName string) string {
+	for _, vectorName := range []string{"Vec2", "Vec3", "Vec4"} {
+		if strings.HasPrefix(typeName, vectorName+"T[") && strings.HasSuffix(typeName, "]") {
+			return vectorName
+		}
+	}
+	return typeName
+}
+
 func StringToTypeValue(typeName, v string) any {
+	typeName = CanonicalTypeName(typeName)
 	switch typeName {
 	case "string":
 		return v

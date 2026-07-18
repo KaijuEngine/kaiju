@@ -99,7 +99,7 @@ func (de *EntityDataEntry) ReadEntityDataBindingType(g codegen.GeneratedType) *E
 			ef := EntityDataField{
 				Idx:   i,
 				Name:  g.Fields[i].Name,
-				Type:  g.Fields[i].Type.Name(),
+				Type:  reflect_helpers.CanonicalTypeName(g.Fields[i].Type.Name()),
 				Pkg:   g.Fields[i].Type.PkgPath(),
 				Value: v.Elem().Field(i).Interface(),
 			}

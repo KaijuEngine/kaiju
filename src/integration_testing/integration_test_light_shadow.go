@@ -54,17 +54,21 @@ func IntegrationTestDirectionalShadowGate(host *engine.Host) {
 		ViewCuller: &host.Cameras.Primary,
 	})
 
-	lightEntity := engine.NewEntity(host.WorkGroup())
-	light := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
-		host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
-	light.SetDirection(matrix.NewVec3(-0.5, -1, -0.5).Normal())
-	light.SetCastsShadows(false)
-	lightEntry := host.Lighting().Lights.Add(&lightEntity.Transform, light)
-
 	host.RunAfterFrames(2, func() {
-		lightEntry.SetCastsShadows(true)
+		// Add the light after the PBR drawing has already rendered without one.
+		// This matches the editor workflow of importing/assigning a material and
+		// then spawning a light, and verifies that instance light IDs refresh.
+		lightEntity := engine.NewEntity(host.WorkGroup())
+		light := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
+			host.AssetDatabase(), host.MaterialCache(), rendering.LightTypeDirectional)
+		light.SetDirection(matrix.NewVec3(-0.5, -1, -0.5).Normal())
+		light.SetCastsShadows(false)
+		lightEntry := host.Lighting().Lights.Add(&lightEntity.Transform, light)
+		host.RunAfterFrames(2, func() {
+			lightEntry.SetCastsShadows(true)
+		})
 	})
-	host.RunAfterFrames(6, func() {
+	host.RunAfterFrames(8, func() {
 		takeScreenshotToFile(host, "integration_directional_shadow_gate.png")
 		os.Exit(0)
 	})

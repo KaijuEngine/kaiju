@@ -132,6 +132,10 @@ void main() {
 			continue;
 		}
 		LightInfo light = lightInfos[lightIdx];
+		// Ambient is a fill term and must not depend on whether the surface faces
+		// the direct light. Keeping this before the NdotL guard also makes the
+		// LightEntityData Ambient field effective on back-facing surfaces.
+		ambient += max(light.ambient, vec3(0.0)) * albedo * occlusion;
 		vec3 L = vec3(0.0);
 		float attenuation = 0.0;
 		if (light.type == 0) {
@@ -169,7 +173,6 @@ void main() {
 		vec3 radiance = max(light.diffuse, vec3(0.0)) * attenuation;
 		float visibility = lightVisibility(light.type, lightIdx, N, L, fragPosLightSpace[i], light);
 		Lo += (kD * albedo / PI + specular) * radiance * NdotL * visibility;
-		ambient += max(light.ambient, vec3(0.0)) * albedo * occlusion;
 	}
 
 	vec3 color = ambient + Lo + emission;

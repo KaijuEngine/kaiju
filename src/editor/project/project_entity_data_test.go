@@ -7,11 +7,55 @@
 package project
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/codegen/entity_data_binding"
+	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_physics"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
+	"kaijuengine.com/matrix"
 )
+
+func TestWalkedLightEntityDataAppliesVectorDefaults(t *testing.T) {
+	srcRoot, err := os.OpenRoot(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srcRoot.Close()
+	bindingsRoot, err := os.OpenRoot(filepath.Join("..", "..", "engine_entity_data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bindingsRoot.Close()
+
+	gens, err := codegen.Walk(srcRoot, bindingsRoot, "kaijuengine.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range gens {
+		if gens[i].RegisterKey != engine_entity_data_light.BindingKey() {
+			continue
+		}
+		entry := (&entity_data_binding.EntityDataEntry{}).ReadEntityDataBindingType(gens[i])
+		if !entry.Fields[0].IsVec3() {
+			t.Fatalf("Ambient field type %q was not classified as Vec3", entry.Fields[0].Type)
+		}
+		if got, want := entry.FieldValueByName("Ambient"), matrix.NewVec3(0.1, 0.1, 0.1); got != want {
+			t.Fatalf("Ambient default = %v, want %v", got, want)
+		}
+		if got, want := entry.FieldValueByName("Diffuse"), matrix.Vec3One(); got != want {
+			t.Fatalf("Diffuse default = %v, want %v", got, want)
+		}
+		if got, want := entry.FieldValueByName("Specular"), matrix.Vec3One(); got != want {
+			t.Fatalf("Specular default = %v, want %v", got, want)
+		}
+		return
+	}
+	t.Fatal("walked light entity data binding was not found")
+}
 
 func TestEnsureBuiltInEntityDataBindingsIncludesTerrainAndPhysics(t *testing.T) {
 	p := Project{}
