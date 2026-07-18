@@ -202,6 +202,9 @@ func (l *LogStream) writeLine(line string) {
 	if line == "" {
 		return
 	}
+	if l.File != nil {
+		l.File.WriteString(line + "\n")
+	}
 	if !strings.HasPrefix(line, "time=") {
 		ExtPlatformLogInfo(line)
 		println(line)
@@ -224,8 +227,5 @@ func (l *LogStream) writeLine(line string) {
 	}
 	if build.Debug && runtime.GOOS != "android" {
 		os.Stdout.WriteString(line + "\n")
-	}
-	if l.File != nil {
-		l.File.WriteString(line + "\n")
 	}
 }
