@@ -11,6 +11,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"sync"
 	"testing"
 
 	"kaijuengine.com/engine/assets"
@@ -135,6 +136,28 @@ func TestTextureReadPendingDataForTransparency(t *testing.T) {
 	tex = Texture{pendingData: &TextureData{Mem: []byte{0, 1, 1, 255}}}
 	if !tex.ReadPendingDataForTransparency() {
 		t.Fatalf("current transparency scan should find a non-255 first channel")
+	}
+}
+
+func TestTextureReadPendingDataForTransparencyConcurrentUpload(t *testing.T) {
+	const iterations = 100
+	for range iterations {
+		tex := Texture{pendingData: &TextureData{Mem: bytes.Repeat([]byte{0, 1, 1, 255}, 256)}}
+		start := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			<-start
+			tex.ReadPendingDataForTransparency()
+		}()
+		go func() {
+			defer wg.Done()
+			<-start
+			tex.takePendingData()
+		}()
+		close(start)
+		wg.Wait()
 	}
 }
 

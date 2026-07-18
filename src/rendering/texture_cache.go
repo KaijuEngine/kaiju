@@ -361,10 +361,10 @@ func (t *TextureCache) nextPendingUploadIndexLocked() int {
 }
 
 func pendingTextureUploadBytes(texture *Texture) uintptr {
-	if texture == nil || texture.pendingData == nil {
+	if texture == nil {
 		return 0
 	}
-	return uintptr(len(texture.pendingData.Mem))
+	return texture.pendingDataSize()
 }
 
 func textureUploadBudgetExceeded(budget TextureUploadBudget, selected int, bytes, uploadBytes uintptr) bool {

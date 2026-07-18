@@ -13,6 +13,7 @@ import (
 	"image/draw"
 	"image/png"
 	"strings"
+	"sync"
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
@@ -139,6 +140,7 @@ type Texture struct {
 	Width             int
 	Height            int
 	CacheInvalid      bool
+	pendingDataMutex  sync.Mutex
 	pendingData       *TextureData
 	hasTransparency   transparencyReadState
 }
@@ -248,7 +250,10 @@ func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, 
 
 func (t *Texture) create(imgBuff []byte) {
 	data := t.createData(imgBuff, 0, 0, t.Key)
+	t.pendingDataMutex.Lock()
 	t.pendingData = &data
+	t.hasTransparency = transparencyReadStateNone
+	t.pendingDataMutex.Unlock()
 	t.Width = data.Width
 	t.Height = data.Height
 }
@@ -286,15 +291,13 @@ func (t *Texture) Reload(assetDb assets.Database) error {
 	return errors.New("texture does not exist")
 }
 
-func (t *Texture) triedToReadTransparency() bool {
-	return t.hasTransparency != transparencyReadStateNone
-}
-
 func (t *Texture) ReadPendingDataForTransparency() bool {
+	t.pendingDataMutex.Lock()
+	defer t.pendingDataMutex.Unlock()
 	if t.hasTransparency == transparencyReadStateFound {
 		return true
 	}
-	if t.triedToReadTransparency() || t.pendingData == nil {
+	if t.hasTransparency != transparencyReadStateNone || t.pendingData == nil {
 		return false
 	}
 	t.hasTransparency = transparencyReadStateRead
@@ -321,12 +324,32 @@ func (t *Texture) delayedCreate(device *GPUDevice, batch *TextureUploadBatch) {
 	if t.RenderId.IsValid() {
 		return
 	}
-	if batch != nil {
-		device.SetupTextureInBatch(t, t.pendingData, batch)
-	} else {
-		device.SetupTexture(t, t.pendingData)
+	data := t.takePendingData()
+	if data == nil {
+		return
 	}
+	if batch != nil {
+		device.SetupTextureInBatch(t, data, batch)
+	} else {
+		device.SetupTexture(t, data)
+	}
+}
+
+func (t *Texture) takePendingData() *TextureData {
+	t.pendingDataMutex.Lock()
+	defer t.pendingDataMutex.Unlock()
+	data := t.pendingData
 	t.pendingData = nil
+	return data
+}
+
+func (t *Texture) pendingDataSize() uintptr {
+	t.pendingDataMutex.Lock()
+	defer t.pendingDataMutex.Unlock()
+	if t.pendingData == nil {
+		return 0
+	}
+	return uintptr(len(t.pendingData.Mem))
 }
 
 func NewTextureFromImage(key string, data []byte, filter TextureFilter) (*Texture, error) {
@@ -370,11 +393,13 @@ func (t *Texture) WritePixels(device *GPUDevice, requests []GPUImageWriteRequest
 	device.TextureWritePixels(t, requests)
 }
 
-func (t Texture) Size() matrix.Vec2 {
+func (t *Texture) Size() matrix.Vec2 {
 	return matrix.NewVec2(t.Width, t.Height)
 }
 
 func (t *Texture) SetPendingDataDimensions(dim TextureDimensions) {
+	t.pendingDataMutex.Lock()
+	defer t.pendingDataMutex.Unlock()
 	if t.pendingData != nil {
 		t.pendingData.Dimensions = dim
 	}
