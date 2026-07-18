@@ -1617,7 +1617,7 @@ func (textarea *TextArea) keyPressed(keyId int, keyState hid.KeyState) {
 	}
 	kb := &host.Window.Keyboard
 	switch keyState {
-	case hid.KeyStateDown:
+	case hid.KeyStateDown, hid.KeyStatePressedAndReleased:
 		if keyId == hid.KeyboardKeyEscape {
 			textarea.SetTextWithoutEvent(data.textOnFocus)
 			textarea.RemoveFocus()
