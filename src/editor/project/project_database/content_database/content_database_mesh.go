@@ -167,14 +167,8 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 	}
 	isAnimated := make([]bool, len(res.Meshes))
 	for i := range res.Meshes {
-		if res.Meshes[i].Node == nil {
-			slog.Warn("import mesh failure on node", "index", i, "name", res.Meshes[i].Name)
-			continue
-		}
 		if nodeIndex := meshNodeIndex(res, res.Meshes[i].Node); nodeIndex >= 0 {
 			isAnimated[i] = res.IsTreeAnimated(nodeIndex)
-		} else {
-			slog.Warn("import mesh failure on node index", "index", i, "name", res.Meshes[i].Name)
 		}
 	}
 	p.Variants = []ImportVariant{{
@@ -209,6 +203,9 @@ func (Mesh) Import(src string, _ *project_file_system.FileSystem) (ProcessedImpo
 }
 
 func meshNodeIndex(res load_result.Result, node *load_result.Node) int {
+	if node == nil {
+		return -1
+	}
 	id := int(node.Id)
 	if id >= 0 && id < len(res.Nodes) && &res.Nodes[id] == node {
 		return id
