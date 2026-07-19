@@ -249,7 +249,14 @@ func (*BakedProbeProvider) ResetHistory(ViewID)     {}
 
 func (p *BakedProbeProvider) SetScenario(assetKey string) error {
 	if assetKey == "" {
-		return errors.New("baked GI scenario asset key is empty")
+		p.mutex.Lock()
+		p.current = nil
+		p.previous = nil
+		p.transitionPending = false
+		clear(p.fields)
+		p.stats.ActiveProbes = 0
+		p.mutex.Unlock()
+		return nil
 	}
 	p.mutex.RLock()
 	reader := p.reader

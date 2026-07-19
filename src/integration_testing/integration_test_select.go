@@ -198,6 +198,10 @@ const selectHTML = `
 			body {
 				background-color: #252525;
 				color: #d2d2d2;
+				font-size: 16px;
+				font-style: normal;
+				font-weight: normal;
+				line-height: normal;
 				margin: 0px;
 			}
 			.caption {

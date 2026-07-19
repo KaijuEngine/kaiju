@@ -148,7 +148,7 @@ func singleStageViewportBounds(w *StageWorkspace, windowWidth, windowHeight floa
 		left = windowWidth * stageSidePanelWidthPercent
 		width -= left
 	}
-	if elementIsActive(w.detailsUI.detailsArea) {
+	if stageWorkspaceRightPanelActive(w) {
 		width -= windowWidth * stageSidePanelWidthPercent
 	}
 	heightPercent := float32(1)
@@ -187,7 +187,7 @@ func (v *stageWorkspaceStageViewport) quadViewportBounds(w *StageWorkspace, kind
 
 func quadViewportColumnBounds(w *StageWorkspace, windowWidth float32) (stageWorkspaceUIBounds, float32, float32) {
 	hierarchyOpen := elementIsActive(w.hierarchyUI.hierarchyArea)
-	detailsOpen := elementIsActive(w.detailsUI.detailsArea)
+	detailsOpen := stageWorkspaceRightPanelActive(w)
 	switch {
 	case hierarchyOpen && detailsOpen:
 		return stageWorkspaceUIBounds{left: windowWidth * stageSidePanelWidthPercent, width: windowWidth * 0.32}, windowWidth * 0.50, windowWidth * 0.32
@@ -198,6 +198,10 @@ func quadViewportColumnBounds(w *StageWorkspace, windowWidth float32) (stageWork
 	default:
 		return stageWorkspaceUIBounds{left: 0, width: windowWidth * 0.50}, windowWidth * 0.50, windowWidth * 0.50
 	}
+}
+
+func stageWorkspaceRightPanelActive(w *StageWorkspace) bool {
+	return elementIsActive(w.detailsUI.detailsArea) || elementIsActive(w.giUI.area)
 }
 
 func quadViewportRowBounds(w *StageWorkspace, windowHeight float32) (float32, float32, float32) {

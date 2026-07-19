@@ -16,21 +16,23 @@ import (
 )
 
 type Manager struct {
-	mutex          sync.RWMutex
-	capabilities   Capabilities
-	settings       Settings
-	factories      map[string]ProviderFactory
-	provider       Provider
-	lastError      error
-	assets         AssetReader
-	fallbackReason string
+	mutex           sync.RWMutex
+	capabilities    Capabilities
+	defaultSettings Settings
+	settings        Settings
+	factories       map[string]ProviderFactory
+	provider        Provider
+	lastError       error
+	assets          AssetReader
+	fallbackReason  string
 }
 
 func NewManager(capabilities Capabilities) *Manager {
 	m := &Manager{
-		capabilities: capabilities,
-		settings:     SettingsForPreset(QualityPresetOff),
-		factories:    make(map[string]ProviderFactory),
+		capabilities:    capabilities,
+		defaultSettings: SettingsForPreset(QualityPresetOff),
+		settings:        SettingsForPreset(QualityPresetOff),
+		factories:       make(map[string]ProviderFactory),
 	}
 	m.factories[ProviderNull] = func() Provider { return &NullProvider{} }
 	m.factories[ProviderBakedProbe] = func() Provider { return &BakedProbeProvider{} }
@@ -39,6 +41,70 @@ func NewManager(capabilities Capabilities) *Manager {
 	_ = provider.Configure(m.settings)
 	m.provider = provider
 	return m
+}
+
+// SetDefaultSettings stores the project-wide GI settings and applies them to
+// the active provider. Stages may temporarily replace these settings through
+// ApplyStageSettings without losing the project baseline.
+func (m *Manager) SetDefaultSettings(settings Settings) error {
+	if err := settings.Validate(); err != nil {
+		return err
+	}
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if err := m.configureLocked(settings); err != nil {
+		return err
+	}
+	m.defaultSettings = settings
+	return nil
+}
+
+func (m *Manager) DefaultSettings() Settings {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.defaultSettings
+}
+
+// ApplyStageSettings selects either a stage override or the project defaults,
+// clears the previous stage's scenario, and then loads the requested probe
+// asset. A scenario load failure therefore cannot leak lighting from the
+// previously loaded stage.
+func (m *Manager) ApplyStageSettings(override *Settings, scenarioAsset string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	settings := m.defaultSettings
+	if override != nil {
+		settings = *override
+	}
+	if err := settings.Validate(); err != nil {
+		return err
+	}
+	if err := m.configureLocked(settings); err != nil {
+		return err
+	}
+	if err := m.provider.SetScenario(""); err != nil {
+		m.lastError = err
+		return err
+	}
+	if scenarioAsset == "" || settings.Mode == ModeDisabled || settings.Preset == QualityPresetOff {
+		m.lastError = nil
+		return nil
+	}
+	if err := m.provider.SetScenario(scenarioAsset); err != nil {
+		m.lastError = err
+		return err
+	}
+	m.lastError = nil
+	return nil
+}
+
+func (m *Manager) ClearScenario() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if m.provider == nil {
+		return nil
+	}
+	return m.provider.SetScenario("")
 }
 
 // SetAssetReader supplies the content source used by asset-backed providers.

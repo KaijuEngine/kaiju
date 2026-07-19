@@ -21,7 +21,16 @@ func fontSizeFromStr(size string, host *engine.Host, emSize float32) float32 {
 }
 
 func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) {
+	if elm == nil {
+		return
+	}
 	if elm.Stylizer.HasRule("font-size") {
+		return
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildrenFontSize(child, size, host)
+		}
 		return
 	}
 	if elm.IsText() {
@@ -43,6 +52,15 @@ func setChildrenFontSize(elm *document.Element, size string, host *engine.Host) 
 func (p FontSize) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("FontSize requires exactly 1 value")
+	}
+	if elm == nil {
+		return nil
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildrenFontSize(child, values[0].Str, host)
+		}
+		return nil
 	}
 	if elm.UI.IsType(ui.ElementTypeInput) {
 		input := elm.UI.ToInput()

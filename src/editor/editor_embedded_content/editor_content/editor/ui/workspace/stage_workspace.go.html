@@ -36,11 +36,24 @@
 			#dimensionToggle:hover {
 				background-color: #AAA;
 			}
+			#giSettingsToggle {
+				position: absolute;
+				font-size: 0.7em;
+				top: 2.5em;
+				right: 19%;
+				padding: 0.25em 0.6em;
+				color: white;
+				background-color: #282828;
+				border: 2px solid #AAA;
+				z-index: 5;
+			}
+			#giSettingsToggle:hover { background-color: #AAA; }
 		</style>
 	</head>
 	<body>
 		<!-- Floating UI -->
 		<span id="dimensionToggle" onclick="toggleDimension">{{ .CameraMode }}</span>
+		<button id="giSettingsToggle" onclick="toggleGISettings">GI</button>
 		<!-- First time developer experience UI -->
 		<div id="ftdePrompt">
 			<div id="ftdeArrow">^</div>

@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
 	"kaijuengine.com/editor/editor_workspace_registry"
 	"kaijuengine.com/editor/project"
+	"kaijuengine.com/engine/lighting/gi"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
@@ -53,6 +54,7 @@ type editorWorkspaceController interface {
 type SettingsWorkspace struct {
 	common_workspace.CommonWorkspace
 	projectSettingsBox   *document.Element
+	giSettingsBox        *document.Element
 	editorSettingsBox    *document.Element
 	pluginSettingsBox    *document.Element
 	workspaceSettingsBox *document.Element
@@ -87,6 +89,7 @@ type settingsWorkspaceData struct {
 	Workspaces     []workspaceRowData
 	Shortcuts      []shortcutSectionData
 	ShortcutHeight float32
+	GI             common_workspace.GISettingsUIData
 }
 
 func (w *SettingsWorkspace) ID() string          { return ID }
@@ -132,6 +135,7 @@ func (w *SettingsWorkspace) Open() {
 	}
 	w.CommonOpen()
 	w.projectSettingsBox.UI.Show()
+	w.giSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
@@ -170,6 +174,7 @@ func (w *SettingsWorkspace) showProjectSettings(e *document.Element) {
 	w.resetLeftEntrySelection()
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Show()
+	w.giSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
@@ -181,6 +186,7 @@ func (w *SettingsWorkspace) showEditorSettings(e *document.Element) {
 	w.resetLeftEntrySelection()
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
+	w.giSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Show()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
@@ -192,6 +198,7 @@ func (w *SettingsWorkspace) showPluginSettings(e *document.Element) {
 	w.resetLeftEntrySelection()
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
+	w.giSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Show()
 	w.workspaceSettingsBox.UI.Hide()
@@ -203,6 +210,7 @@ func (w *SettingsWorkspace) showWorkspaceSettings(e *document.Element) {
 	w.resetLeftEntrySelection()
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
+	w.giSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Show()
@@ -214,11 +222,102 @@ func (w *SettingsWorkspace) showKeyboardSettings(e *document.Element) {
 	w.resetLeftEntrySelection()
 	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
 	w.projectSettingsBox.UI.Hide()
+	w.giSettingsBox.UI.Hide()
 	w.editorSettingsBox.UI.Hide()
 	w.pluginSettingsBox.UI.Hide()
 	w.workspaceSettingsBox.UI.Hide()
 	w.keyboardSettingsBox.UI.Show()
 	w.applyShortcutFilter()
+}
+
+func (w *SettingsWorkspace) showGISettings(e *document.Element) {
+	defer tracing.NewRegion("SettingsWorkspace.showGISettings").End()
+	w.resetLeftEntrySelection()
+	w.Doc.SetElementClasses(e, "edPanelBgHoverable", "selected")
+	w.projectSettingsBox.UI.Hide()
+	w.giSettingsBox.UI.Show()
+	w.editorSettingsBox.UI.Hide()
+	w.pluginSettingsBox.UI.Hide()
+	w.workspaceSettingsBox.UI.Hide()
+	w.keyboardSettingsBox.UI.Hide()
+	w.syncGIStatus("")
+}
+
+func (w *SettingsWorkspace) giValueChanged(e *document.Element) {
+	field := e.Attribute("data-field")
+	value := ""
+	checked := false
+	switch {
+	case e.UI.IsType(ui.ElementTypeSelect):
+		value = e.UI.ToSelect().Value()
+	case e.UI.IsType(ui.ElementTypeCheckbox):
+		checked = e.UI.ToCheckbox().IsChecked()
+	case e.UI.IsType(ui.ElementTypeInput):
+		value = e.UI.ToInput().Text()
+	}
+	next, err := common_workspace.ApplyGISettingsField(w.projectSettings.GlobalIllumination, field, value, checked)
+	if err != nil {
+		w.syncGIStatus(err.Error())
+		return
+	}
+	w.projectSettings.GlobalIllumination = next
+	if err := w.projectSettings.Save(w.editor.ProjectFileSystem()); err != nil {
+		w.syncGIStatus(err.Error())
+		return
+	}
+	previewErr := w.Host.GlobalIllumination().SetDefaultSettings(next)
+	stageGI := w.editor.StageView().Manager().GlobalIllumination()
+	var override *gi.Settings
+	if stageGI.OverrideProjectSettings {
+		override = &stageGI.Settings
+	}
+	if err := w.Host.GlobalIllumination().ApplyStageSettings(override, stageGI.ProbeAsset); err != nil {
+		previewErr = err
+	}
+	if previewErr != nil {
+		w.syncGIStatus("Saved, but preview failed: " + previewErr.Error())
+	} else {
+		w.syncGIStatus("")
+	}
+	if field == "Preset" {
+		w.reloadAndShowGI()
+	}
+}
+
+func (w *SettingsWorkspace) reloadAndShowGI() {
+	w.Host.RunNextFrame(func() {
+		w.ReloadUI(uiFile, w.uiData(), w.funcMap())
+		w.reloadedUI()
+		w.CommonOpen()
+		w.projectSettingsBox.UI.Hide()
+		w.giSettingsBox.UI.Show()
+		w.editorSettingsBox.UI.Hide()
+		w.pluginSettingsBox.UI.Hide()
+		w.workspaceSettingsBox.UI.Hide()
+		w.keyboardSettingsBox.UI.Hide()
+		for _, elm := range w.Doc.GetElementsByClass("edPanelBgHoverable") {
+			if elm.InnerLabel().Text() == "Global Illumination" {
+				w.Doc.SetElementClasses(elm, "edPanelBgHoverable", "selected")
+				break
+			}
+		}
+		w.syncGIStatus("")
+	})
+}
+
+func (w *SettingsWorkspace) syncGIStatus(message string) {
+	elm, ok := w.Doc.GetElementById("giProjectStatus")
+	if !ok || elm.InnerLabel() == nil {
+		return
+	}
+	if message == "" {
+		stats := w.Host.GlobalIllumination().Stats()
+		message = "Preview provider: " + stats.Provider
+		if stats.FallbackReason != "" {
+			message += " (" + stats.FallbackReason + ")"
+		}
+	}
+	elm.InnerLabel().SetText(message)
 }
 
 // toggleWorkspaceEnabled toggles a non-required workspace's enabled flag.
@@ -284,6 +383,7 @@ func (w *SettingsWorkspace) applyWorkspaceChanges(reloadUI bool) {
 			w.CommonOpen()
 			w.workspaceSettingsBox.UI.Show()
 			w.projectSettingsBox.UI.Hide()
+			w.giSettingsBox.UI.Hide()
 			w.editorSettingsBox.UI.Hide()
 			w.pluginSettingsBox.UI.Hide()
 			w.keyboardSettingsBox.UI.Hide()
@@ -529,6 +629,7 @@ func (w *SettingsWorkspace) uiData() settingsWorkspaceData {
 		Workspaces:     w.buildWorkspaceRows(),
 		Shortcuts:      shortcuts,
 		ShortcutHeight: shortcutKeyboardHeight(shortcuts),
+		GI:             common_workspace.NewGISettingsUIData(w.projectSettings.GlobalIllumination),
 	}
 }
 
@@ -566,11 +667,13 @@ func (w *SettingsWorkspace) buildWorkspaceRows() []workspaceRowData {
 func (w *SettingsWorkspace) funcMap() map[string]func(*document.Element) {
 	return map[string]func(*document.Element){
 		"showProjectSettings":    w.showProjectSettings,
+		"showGISettings":         w.showGISettings,
 		"showEditorSettings":     w.showEditorSettings,
 		"showPluginSettings":     w.showPluginSettings,
 		"showWorkspaceSettings":  w.showWorkspaceSettings,
 		"showKeyboardSettings":   w.showKeyboardSettings,
 		"valueChanged":           w.valueChanged,
+		"giValueChanged":         w.giValueChanged,
 		"openPluginWebsite":      w.openPluginWebsite,
 		"togglePlugin":           w.togglePlugin,
 		"clickOpenPlugins":       w.clickOpenPlugins,
@@ -594,6 +697,7 @@ func (w *SettingsWorkspace) reloadedUI() {
 	defer tracing.NewRegion("SettingsWorkspace.reloadedUI").End()
 	w.reloadRequested = false
 	w.projectSettingsBox, _ = w.Doc.GetElementById("projectSettingsBox")
+	w.giSettingsBox, _ = w.Doc.GetElementById("giSettingsBox")
 	w.editorSettingsBox, _ = w.Doc.GetElementById("editorSettingsBox")
 	w.pluginSettingsBox, _ = w.Doc.GetElementById("pluginSettingsBox")
 	w.workspaceSettingsBox, _ = w.Doc.GetElementById("workspaceSettingsBox")

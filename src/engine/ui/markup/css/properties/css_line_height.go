@@ -36,7 +36,16 @@ func lineHeightFromStr(str string, fontSize float32, host *engine.Host) float32 
 }
 
 func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host) {
+	if elm == nil {
+		return
+	}
 	if elm.Stylizer.HasRule("line-height") {
+		return
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildrenLineHeight(child, size, host)
+		}
 		return
 	}
 	if elm.IsText() {
@@ -58,6 +67,15 @@ func setChildrenLineHeight(elm *document.Element, size string, host *engine.Host
 func (p LineHeight) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
 	if len(values) != 1 {
 		return errors.New("LineHeight requires exactly 1 value")
+	}
+	if elm == nil {
+		return nil
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildrenLineHeight(child, values[0].Str, host)
+		}
+		return nil
 	}
 	if elm.UI.IsType(ui.ElementTypeInput) {
 		input := elm.UI.ToInput()

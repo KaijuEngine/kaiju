@@ -10,7 +10,31 @@ import (
 	"testing"
 
 	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/rendering"
 )
+
+func TestInheritedTextPropertiesSkipElementsWithoutUI(t *testing.T) {
+	// Select options are represented in the document tree but intentionally do
+	// not own a UI object. Inherited text properties must safely cross them.
+	optionText := &document.Element{}
+	option := &document.Element{Children: []*document.Element{optionText}}
+	root := &document.Element{Children: []*document.Element{option}}
+
+	setChildrenFontFace(root, rendering.FontRegular)
+	setChildrenFontSize(root, "12px", nil)
+	setChildrenFontStyle(root, "normal")
+	setChildrenFontWeight(root, "normal")
+	setChildrenLineHeight(root, "normal", nil)
+	setChildTextWordWrap(root, true)
+
+	if err := (FontSize{}).Process(nil, option, []rules.PropertyValue{{Str: "12px"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := (LineHeight{}).Process(nil, option, []rules.PropertyValue{{Str: "normal"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestParseFontShorthandFull(t *testing.T) {
 	values := []rules.PropertyValue{

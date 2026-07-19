@@ -153,6 +153,8 @@ type Provider interface {
 	ShaderData(matrix.Vec3, float32) rendering.GlobalIlluminationForRender
 	Invalidate(Invalidation)
 	ResetHistory(ViewID)
+	// SetScenario loads a provider-specific scenario. An empty id clears the
+	// current scenario and any transition state.
 	SetScenario(string) error
 	Stats() Stats
 	DebugViews() []DebugView

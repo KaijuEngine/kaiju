@@ -298,6 +298,7 @@ func (w *StageWorkspace) loadStage(id string) {
 			}
 		}
 		w.ed.History().Clear()
+		w.giUI.syncInputs()
 	}
 	w.ed.Project().Settings.EditorSettings.LatestOpenStage = id
 	w.ed.Project().Settings.Save(w.ed.ProjectFileSystem())

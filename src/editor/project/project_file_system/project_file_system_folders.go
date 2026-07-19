@@ -55,6 +55,7 @@ const (
 	ContentTemplateFolder        = "template"
 	ContentTerrainFolder         = "terrain"
 	ContentTextureFolder         = "texture"
+	ContentGIProbeFolder         = "lighting/gi"
 	ContentTableFolder           = "table"
 	ContentTableOfContentsFolder = ContentTableFolder + "/content"
 	ContentUiFolder              = "ui"

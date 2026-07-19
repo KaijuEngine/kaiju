@@ -96,6 +96,13 @@ func (p *Project) findReferencesStages(id string, onFound func(ref ContentRefere
 			}
 			s := stages.Stage{}
 			s.FromMinimized(ss)
+			if s.GlobalIllumination.ProbeAsset == id {
+				ref.SubReference = append(ref.SubReference, ContentReference{
+					Id:     id,
+					Name:   "Global Illumination Probes",
+					Source: content_database.GIProbe{}.TypeName(),
+				})
+			}
 			for i := range s.Entities {
 				subs := p.findEntityRefs(&s.Entities[i], id)
 				if len(subs) > 0 {

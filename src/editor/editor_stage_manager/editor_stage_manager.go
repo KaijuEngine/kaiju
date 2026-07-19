@@ -59,6 +59,7 @@ type StageManager struct {
 	nextPickID            uint32
 	pickIDToEntity        map[uint32]*StageEntity
 	worldBVH              *graviton.BVH
+	globalIllumination    stages.StageGlobalIllumination
 }
 
 // StageEntityEditorData is the structure holding all the uniquely identifiable
@@ -86,10 +87,24 @@ func (m *StageManager) NewStage() {
 	m.Clear()
 	m.history.Clear()
 	m.stageId = ""
+	m.globalIllumination = stages.StageGlobalIllumination{}
+	m.globalIllumination.Normalize(m.host.GlobalIllumination().DefaultSettings())
+	if err := m.host.GlobalIllumination().ApplyStageSettings(nil, ""); err != nil {
+		slog.Warn("failed to reset global illumination for new stage", "error", err)
+	}
 }
 
 func (m *StageManager) IsNew() bool     { return m.stageId == "" }
 func (m *StageManager) StageId() string { return m.stageId }
+
+func (m *StageManager) GlobalIllumination() stages.StageGlobalIllumination {
+	return m.globalIllumination
+}
+
+func (m *StageManager) SetGlobalIllumination(settings stages.StageGlobalIllumination) {
+	settings.Normalize(m.host.GlobalIllumination().DefaultSettings())
+	m.globalIllumination = settings
+}
 
 func (m *StageManager) Entities() []*StageEntity {
 	return slices.Clone(m.entities)
@@ -458,7 +473,7 @@ func (m *StageManager) entityToDescription(parent *StageEntity) stages.EntityDes
 
 func (m *StageManager) toStage() stages.Stage {
 	defer tracing.NewRegion("StageManager.toStage").End()
-	s := stages.Stage{Id: m.stageId}
+	s := stages.Stage{Id: m.stageId, GlobalIllumination: m.globalIllumination}
 	rootCount := 0
 	for i := range m.entities {
 		if m.entities[i].isDeleted {
@@ -535,6 +550,11 @@ func (m *StageManager) LoadStage(id string, host *engine.Host, cache *content_da
 	}
 	s := stages.Stage{}
 	s.FromMinimized(ss)
+	s.GlobalIllumination.Normalize(host.GlobalIllumination().DefaultSettings())
+	m.globalIllumination = s.GlobalIllumination
+	if err := s.ApplyGlobalIllumination(host); err != nil {
+		slog.Warn("failed to preview stage global illumination", "stage", id, "error", err)
+	}
 	for i := range s.Entities {
 		if _, err := m.importEntityByDescription(host, proj, nil, &s.Entities[i]); err != nil {
 			return err

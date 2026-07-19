@@ -12,6 +12,7 @@ import (
 
 	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/project/project_file_system"
+	"kaijuengine.com/engine/lighting/gi"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -21,7 +22,8 @@ type Settings struct {
 	ArchiveEncryptionKey string
 	EditorSettings       EditorSettings `visible:"false"`
 	Android              AndroidSettings
-	EditorVersion        float64 `visible:"false"`
+	GlobalIllumination   gi.Settings `visible:"false"`
+	EditorVersion        float64     `visible:"false"`
 }
 
 type EditorSettings struct {
@@ -56,6 +58,13 @@ func (c *Settings) load(fs *project_file_system.FileSystem) error {
 	if c.EditorSettings.CameraMode == 0 {
 		slog.Info("defaulting to 3D camera mode")
 		c.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
+	}
+	if c.GlobalIllumination == (gi.Settings{}) {
+		c.GlobalIllumination = gi.SettingsForPreset(gi.QualityPresetOff)
+	}
+	if err := c.GlobalIllumination.Validate(); err != nil {
+		slog.Warn("invalid project global illumination settings; disabling GI", "error", err)
+		c.GlobalIllumination = gi.SettingsForPreset(gi.QualityPresetOff)
 	}
 	return c.Save(fs)
 }

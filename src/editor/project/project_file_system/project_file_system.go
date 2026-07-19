@@ -61,6 +61,7 @@ var (
 		ContentTemplateFolder,
 		ContentTerrainFolder,
 		ContentTextureFolder,
+		ContentGIProbeFolder,
 	}
 	coreRequiredFolders = []string{
 		DatabaseFolder,
@@ -137,12 +138,12 @@ func (fs *FileSystem) SetupStructure() error {
 		}
 	}
 	for i := range contentStructure {
-		if err := fs.Mkdir(filepath.Join(ContentFolder, contentStructure[i]), os.ModePerm); err != nil {
+		if err := fs.MkdirAll(filepath.Join(ContentFolder, contentStructure[i]), os.ModePerm); err != nil {
 			return err
 		} else if err := fs.WriteFile(filepath.Join(ContentFolder, contentStructure[i], ".gitignore"), []byte(gitignoreStub), os.ModePerm); err != nil {
 			return err
 		}
-		if err := fs.Mkdir(filepath.Join(ContentConfigFolder, contentStructure[i]), os.ModePerm); err != nil {
+		if err := fs.MkdirAll(filepath.Join(ContentConfigFolder, contentStructure[i]), os.ModePerm); err != nil {
 			return err
 		} else if err := fs.WriteFile(filepath.Join(ContentConfigFolder, contentStructure[i], ".gitignore"), []byte(gitignoreStub), os.ModePerm); err != nil {
 			return err

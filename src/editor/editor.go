@@ -230,6 +230,9 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 func (ed *Editor) postProjectLoad() {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
+	if err := ed.host.GlobalIllumination().SetDefaultSettings(ed.project.Settings.GlobalIllumination); err != nil {
+		slog.Warn("failed to apply project global illumination defaults", "error", err)
+	}
 	slog.Info("compiling the project to get things ready")
 	{
 		// Read the project source synchronosly for now, if not, any stage loading

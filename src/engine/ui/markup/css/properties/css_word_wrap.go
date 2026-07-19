@@ -16,6 +16,15 @@ import (
 )
 
 func setChildTextWordWrap(elm *document.Element, wrap bool) {
+	if elm == nil {
+		return
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildTextWordWrap(child, wrap)
+		}
+		return
+	}
 	if elm.UI.IsType(ui.ElementTypeInput) {
 		elm.UI.ToInput().SetWrap(wrap)
 		return

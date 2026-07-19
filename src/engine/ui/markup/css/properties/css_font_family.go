@@ -21,6 +21,15 @@ import (
 
 func setChildrenFontFace(elm *document.Element, face rendering.FontFace) {
 	defer tracing.NewRegion("properties.setChildrenFontFace").End()
+	if elm == nil {
+		return
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildrenFontFace(child, face)
+		}
+		return
+	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
 		lbl.SetFontFace(face)

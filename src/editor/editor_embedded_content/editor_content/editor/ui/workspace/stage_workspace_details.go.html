@@ -29,6 +29,12 @@
 			<div>Material</div>
 			<div id="detailsMaterial" class="dataContentId" data-type="Material" onclick="clickSelectMaterial" ondrop="materialIdDrop" ondragenter="materialIdDragEnter" ondragleave="materialIdDragExit">empty &lpar;Material&rpar;</div>
 		</div>
+		<div id="detailsGIContributionBlock">
+			<div>Global illumination</div>
+			<select id="detailsGIContribution" class="dataInput" onchange="changeGIContribution">
+				<option value="0">Automatic</option><option value="1">Excluded</option><option value="2">Static</option><option value="3">Rigid</option><option value="4">Receives only</option>
+			</select>
+		</div>
 		<div id="shaderInstanceData" class="dataTable">
 			<div id="shaderInstanceDataList">
 				<div id="shaderInstanceDataTemplate" class="dataBindingBlock">

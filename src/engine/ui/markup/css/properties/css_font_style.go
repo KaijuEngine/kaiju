@@ -16,6 +16,15 @@ import (
 )
 
 func setChildrenFontStyle(elm *document.Element, style string) {
+	if elm == nil {
+		return
+	}
+	if elm.UI == nil {
+		for _, child := range elm.Children {
+			setChildrenFontStyle(child, style)
+		}
+		return
+	}
 	if elm.IsText() {
 		lbl := elm.UI.ToLabel()
 		lbl.SetFontStyle(style)

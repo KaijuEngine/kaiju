@@ -24,6 +24,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/engine/assets/content_archive"
+	"kaijuengine.com/engine/lighting/gi"
 	"kaijuengine.com/engine/stages"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
@@ -263,10 +264,19 @@ func (p *Project) packagePath() string {
 }
 
 func (p *Project) PackageDebug() {
+	giSettings, err := gi.MarshalSettings(p.Settings.GlobalIllumination)
+	if err != nil {
+		slog.Error("failed to serialize global illumination settings", "error", err)
+		giSettings, _ = gi.MarshalSettings(gi.SettingsForPreset(gi.QualityPresetOff))
+	}
 	files := []content_archive.SourceContent{
 		{
 			Key:     stages.EntryPointAssetKey,
 			RawData: []byte(p.Settings.EntryPointStage),
+		},
+		{
+			Key:     gi.SettingsAssetKey,
+			RawData: giSettings,
 		},
 	}
 	for i := range files {
@@ -312,6 +322,14 @@ func (p *Project) Package(reader content_archive.FileReader) error {
 	files = append(files, content_archive.SourceContent{
 		Key:     stages.EntryPointAssetKey,
 		RawData: []byte(p.Settings.EntryPointStage),
+	})
+	giSettings, err := gi.MarshalSettings(p.Settings.GlobalIllumination)
+	if err != nil {
+		return err
+	}
+	files = append(files, content_archive.SourceContent{
+		Key:     gi.SettingsAssetKey,
+		RawData: giSettings,
 	})
 	err = content_archive.CreateArchiveFromFiles(reader, outPath,
 		files, []byte(p.Settings.ArchiveEncryptionKey))

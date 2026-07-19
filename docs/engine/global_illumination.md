@@ -92,6 +92,34 @@ Build and invoke it from `src`:
 go run ./cmd/kaiju-gi-bake -input lighting/day.json -output game_content/lighting/day.kjgi
 ```
 
+## Editor authoring and preview
+
+Project-wide defaults are available under **Settings > Global Illumination**.
+The Stage workspace's **GI** button opens the live stage panel without hiding
+the viewport. A stage can inherit the project defaults or copy them into a
+complete override, select/import a `.kjgi` scenario, and inspect the provider,
+fallback reason, probe count, memory use, GPU time, and bake freshness.
+
+The stage panel can bake automatic scene bounds or a manual volume. It captures
+contributed static meshes, terrain, directional lights, point lights, spot
+lights, supported material tint/emissive values, and the configured environment
+radiance. Baking runs in the background and can be cancelled. The previously
+assigned asset is not changed unless the new bake validates and is written
+successfully. Geometry and lighting hashes identify stale scenarios after an
+author changes the stage.
+
+Each entity has a **Global illumination** contribution setting in Details:
+
+- **Automatic** treats ordinary meshes and terrain as static contributors.
+- **Excluded** omits the entity from GI.
+- **Static** explicitly includes its undeformed mesh in a bake.
+- **Rigid** and **Receives only** are excluded from baked geometry and retain
+  their meaning for a future dynamic DDGI provider.
+
+Project GI defaults and per-stage overrides are serialized into debug and
+release builds. Loading a stage with no scenario clears the previous stage's
+baked probes, so lighting never leaks between stages.
+
 Minimal input:
 
 ```json

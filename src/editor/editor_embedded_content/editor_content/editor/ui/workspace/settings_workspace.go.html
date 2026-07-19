@@ -338,6 +338,7 @@
 		<div class="content">
 			<div class="leftPanel edPanelBg">
 				<div class="edPanelBgHoverable" onclick="showProjectSettings">Project Settings</div>
+				<div class="edPanelBgHoverable" onclick="showGISettings">Global Illumination</div>
 				<div class="edPanelBgHoverable" onclick="showEditorSettings">Editor Settings</div>
 				<div class="edPanelBgHoverable" onclick="showWorkspaceSettings">Workspaces</div>
 				<div class="edPanelBgHoverable" onclick="showKeyboardSettings">Keyboard Shortcuts</div>
@@ -347,6 +348,35 @@
 				<div id="projectSettingsBox" class="settingsBox">
 					<h1>Project Settings</h1>
 					{{template "section" .Project}}
+				</div>
+				<div id="giSettingsBox" class="settingsBox">
+					<h1>Global Illumination</h1>
+					<p>These are the defaults for every stage. A stage may override them from the Stage workspace.</p>
+					<div class="inputItem"><div class="inputLabel">Preset:</div><select class="input" data-field="Preset" onchange="giValueChanged">
+						<option value="0" {{if eq .GI.Preset "0"}}selected{{end}}>Off</option><option value="1" {{if eq .GI.Preset "1"}}selected{{end}}>Low</option><option value="2" {{if eq .GI.Preset "2"}}selected{{end}}>Medium</option><option value="3" {{if eq .GI.Preset "3"}}selected{{end}}>High</option><option value="4" {{if eq .GI.Preset "4"}}selected{{end}}>Ultra</option><option value="5" {{if eq .GI.Preset "5"}}selected{{end}}>Custom</option>
+					</select></div>
+					<div class="inputItem"><div class="inputLabel">Mode:</div><select class="input" data-field="Mode" onchange="giValueChanged">
+						<option value="0" {{if eq .GI.Mode "0"}}selected{{end}}>Disabled</option><option value="1" {{if eq .GI.Mode "1"}}selected{{end}}>Auto</option><option value="2" {{if eq .GI.Mode "2"}}selected{{end}}>Baked Probes</option><option value="3" {{if eq .GI.Mode "3"}}selected{{end}}>Dynamic DDGI</option>
+					</select></div>
+					<div class="inputItem"><div class="inputLabel">Fallback:</div><select class="input" data-field="Fallback" onchange="giValueChanged"><option value="0" {{if eq .GI.Fallback "0"}}selected{{end}}>Allow fallback</option><option value="1" {{if eq .GI.Fallback "1"}}selected{{end}}>Require exact</option></select></div>
+					<h2>Budgets and coverage</h2>
+					<div class="inputItem"><div class="inputLabel">GPU time budget (ms):</div><input class="input" data-field="GPUTimeBudgetMS" type="number" value="{{.GI.GPUTimeBudgetMS}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Memory budget (MB):</div><input class="input" data-field="MemoryBudgetMB" type="number" value="{{.GI.MemoryBudgetMB}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Coverage distance:</div><input class="input" data-field="CoverageDistance" type="number" value="{{.GI.CoverageDistance}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Probe spacing:</div><input class="input" data-field="ProbeSpacing" type="number" value="{{.GI.ProbeSpacing}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<h2>Dynamic and resolve</h2>
+					<div class="inputItem"><div class="inputLabel">Cascade count:</div><input class="input" data-field="CascadeCount" type="number" value="{{.GI.CascadeCount}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Rays per probe:</div><input class="input" data-field="RaysPerProbe" type="number" value="{{.GI.RaysPerProbe}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Probe updates/frame:</div><input class="input" data-field="MaxProbeUpdatesPerFrame" type="number" value="{{.GI.MaxProbeUpdatesPerFrame}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Resolve scale:</div><input class="input" data-field="ResolveScale" type="number" value="{{.GI.ResolveScale}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Update rate (Hz):</div><input class="input" data-field="UpdateHz" type="number" value="{{.GI.UpdateHz}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">History weight:</div><input class="input" data-field="HistoryWeight" type="number" value="{{.GI.HistoryWeight}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Contact detail:</div><select class="input" data-field="ContactDetail" onchange="giValueChanged"><option value="0" {{if eq .GI.ContactDetail "0"}}selected{{end}}>Off</option><option value="1" {{if eq .GI.ContactDetail "1"}}selected{{end}}>GTAO</option></select></div>
+					<div class="inputItem"><div class="inputLabel">Dynamic geometry:</div><select class="input" data-field="DynamicGeometry" onchange="giValueChanged"><option value="0" {{if eq .GI.DynamicGeometry "0"}}selected{{end}}>Static only</option><option value="1" {{if eq .GI.DynamicGeometry "1"}}selected{{end}}>Static and rigid</option></select></div>
+					<div class="inputItem"><div class="inputLabel">Emissive participation:</div><select class="input" data-field="EmissiveParticipation" onchange="giValueChanged"><option value="0" {{if eq .GI.EmissiveParticipation "0"}}selected{{end}}>Off</option><option value="1" {{if eq .GI.EmissiveParticipation "1"}}selected{{end}}>Static</option><option value="2" {{if eq .GI.EmissiveParticipation "2"}}selected{{end}}>Dynamic</option></select></div>
+					<div class="inputItem"><div class="inputLabel">Scenario transition (s):</div><input class="input" data-field="ScenarioTransitionSeconds" type="number" value="{{.GI.ScenarioTransitionSeconds}}" onblur="giValueChanged" onsubmit="giValueChanged" /></div>
+					<div class="inputItem"><div class="inputLabel">Adaptive budget:</div><input class="inputCheck" data-field="AdaptiveBudget" type="checkbox" {{if .GI.AdaptiveBudget}}checked{{end}} onchange="giValueChanged" /></div>
+					<p id="giProjectStatus"></p>
 				</div>
 				<div id="editorSettingsBox" class="settingsBox">
 					<h1>Editor Settings</h1>

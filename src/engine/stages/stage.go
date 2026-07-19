@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/encoding/pod"
+	"kaijuengine.com/engine/lighting/gi"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
@@ -28,8 +29,102 @@ import (
 const EntryPointAssetKey = "entryPointStage"
 
 type Stage struct {
-	Id       string
-	Entities []EntityDescription
+	Id                 string
+	GlobalIllumination StageGlobalIllumination
+	Entities           []EntityDescription
+}
+
+type GIContribution uint8
+
+const (
+	GIContributionAutomatic GIContribution = iota
+	GIContributionExcluded
+	GIContributionStatic
+	GIContributionRigid
+	GIContributionReceivesOnly
+)
+
+type GIBakeBoundsMode uint8
+
+const (
+	GIBakeBoundsAutomatic GIBakeBoundsMode = iota
+	GIBakeBoundsManual
+)
+
+type StageGIBakeSettings struct {
+	BoundsMode       GIBakeBoundsMode
+	ManualCenter     matrix.Vec3
+	ManualSize       matrix.Vec3
+	BoundsPadding    matrix.Float
+	ProbeSpacing     matrix.Float
+	RaysPerProbe     uint32
+	MaxRayDistance   matrix.Float
+	EnvironmentColor matrix.Vec3
+}
+
+type StageGlobalIllumination struct {
+	OverrideProjectSettings bool
+	Settings                gi.Settings
+	ProbeAsset              string
+	BakeSettings            StageGIBakeSettings
+}
+
+func (s *StageGlobalIllumination) Normalize(projectDefaults gi.Settings) {
+	effective := projectDefaults
+	if s.OverrideProjectSettings {
+		effective = s.Settings
+	}
+	defaults := DefaultStageGIBakeSettings(effective)
+	uninitialized := s.BakeSettings.ProbeSpacing == 0 && s.BakeSettings.RaysPerProbe == 0 &&
+		s.BakeSettings.MaxRayDistance == 0 && s.BakeSettings.ManualSize.LengthSquared() == 0 &&
+		s.BakeSettings.BoundsPadding == 0 && s.BakeSettings.EnvironmentColor.LengthSquared() == 0
+	if uninitialized {
+		s.BakeSettings = defaults
+		return
+	}
+	if s.BakeSettings.ManualSize.X() <= 0 || s.BakeSettings.ManualSize.Y() <= 0 || s.BakeSettings.ManualSize.Z() <= 0 {
+		s.BakeSettings.ManualSize = defaults.ManualSize
+	}
+	if s.BakeSettings.BoundsPadding < 0 {
+		s.BakeSettings.BoundsPadding = defaults.BoundsPadding
+	}
+	if s.BakeSettings.ProbeSpacing <= 0 {
+		s.BakeSettings.ProbeSpacing = defaults.ProbeSpacing
+	}
+	if s.BakeSettings.RaysPerProbe < 32 {
+		s.BakeSettings.RaysPerProbe = defaults.RaysPerProbe
+	}
+	if s.BakeSettings.MaxRayDistance <= 0 {
+		s.BakeSettings.MaxRayDistance = defaults.MaxRayDistance
+	}
+}
+
+func DefaultStageGIBakeSettings(settings gi.Settings) StageGIBakeSettings {
+	spacing := matrix.Float(settings.ProbeSpacing)
+	if spacing <= 0 {
+		spacing = 2
+	}
+	maxDistance := matrix.Float(settings.CoverageDistance)
+	if maxDistance < 64 {
+		maxDistance = 64
+	}
+	return StageGIBakeSettings{
+		BoundsMode:       GIBakeBoundsAutomatic,
+		ManualSize:       matrix.NewVec3(32, 16, 32),
+		BoundsPadding:    1,
+		ProbeSpacing:     spacing,
+		RaysPerProbe:     64,
+		MaxRayDistance:   maxDistance,
+		EnvironmentColor: matrix.NewVec3(0.03, 0.03, 0.03),
+	}
+}
+
+func (s *Stage) ApplyGlobalIllumination(host *engine.Host) error {
+	var override *gi.Settings
+	if s.GlobalIllumination.OverrideProjectSettings {
+		override = &s.GlobalIllumination.Settings
+	}
+	return host.GlobalIllumination().ApplyStageSettings(override, s.GlobalIllumination.ProbeAsset)
 }
 
 type LoadResult struct {
@@ -39,11 +134,12 @@ type LoadResult struct {
 }
 
 type StageJson struct {
-	Id        string
-	Meshes    []string                `json:",omitempty"`
-	Materials []string                `json:",omitempty"`
-	Textures  []string                `json:",omitempty"`
-	Entities  []EntityDescriptionJson `json:",omitempty"`
+	Id                 string
+	GlobalIllumination StageGlobalIllumination `json:",omitempty"`
+	Meshes             []string                `json:",omitempty"`
+	Materials          []string                `json:",omitempty"`
+	Textures           []string                `json:",omitempty"`
+	Entities           []EntityDescriptionJson `json:",omitempty"`
 }
 
 type EntityDescriptionShaderDataField struct {
@@ -66,23 +162,25 @@ type EntityDescription struct {
 	DataBinding    []EntityDataBinding
 	Children       []EntityDescription
 	ShaderData     []EntityDescriptionShaderDataField
+	GIContribution GIContribution
 	RawDataBinding []any
 }
 
 type EntityDescriptionJson struct {
-	Id          string
-	TemplateId  string
-	Name        string
-	Locked      bool `json:"omitempty"`
-	Mesh        int
-	Material    int                     `json:"Mat"`
-	Textures    []int                   `json:"Tex,omitempty"`
-	Position    matrix.Vec3             `json:"P"`
-	Rotation    matrix.Vec3             `json:"R"`
-	Scale       matrix.Vec3             `json:"S"`
-	DataBinding []EntityDataBinding     `json:"Data,omitempty"`
-	Children    []EntityDescriptionJson `json:"Kids,omitempty"`
-	ShaderData  map[string]EntityDescriptionShaderDataField
+	Id             string
+	TemplateId     string
+	Name           string
+	Locked         bool `json:"omitempty"`
+	Mesh           int
+	Material       int                     `json:"Mat"`
+	Textures       []int                   `json:"Tex,omitempty"`
+	Position       matrix.Vec3             `json:"P"`
+	Rotation       matrix.Vec3             `json:"R"`
+	Scale          matrix.Vec3             `json:"S"`
+	DataBinding    []EntityDataBinding     `json:"Data,omitempty"`
+	Children       []EntityDescriptionJson `json:"Kids,omitempty"`
+	ShaderData     map[string]EntityDescriptionShaderDataField
+	GIContribution GIContribution `json:",omitempty"`
 }
 
 type EntityDataBinding struct {
@@ -95,6 +193,17 @@ func init() {
 	pod.Register(EntityDataBinding{})
 	pod.Register(EntityDescription{})
 	pod.Register(EntityDescriptionShaderDataField{})
+	pod.Register(StageGlobalIllumination{})
+	pod.Register(StageGIBakeSettings{})
+	pod.Register(GIContribution(0))
+	pod.Register(GIBakeBoundsMode(0))
+	pod.Register(gi.Settings{})
+	pod.Register(gi.Mode(0))
+	pod.Register(gi.QualityPreset(0))
+	pod.Register(gi.FallbackPolicy(0))
+	pod.Register(gi.ContactDetailMode(0))
+	pod.Register(gi.DynamicGeometryMode(0))
+	pod.Register(gi.EmissiveParticipationMode(0))
 }
 
 func debugEnsureStructsMatch() {
@@ -113,8 +222,9 @@ func debugEnsureStructsMatch() {
 func (s *Stage) ToMinimized() StageJson {
 	debugEnsureStructsMatch()
 	ss := StageJson{
-		Id:       s.Id,
-		Entities: make([]EntityDescriptionJson, len(s.Entities)),
+		Id:                 s.Id,
+		GlobalIllumination: s.GlobalIllumination,
+		Entities:           make([]EntityDescriptionJson, len(s.Entities)),
 	}
 	meshMap := map[string]int{}
 	matMap := map[string]int{}
@@ -159,6 +269,7 @@ func (s *Stage) ToMinimized() StageJson {
 		to.Rotation = from.Rotation
 		to.Scale = from.Scale
 		to.DataBinding = from.DataBinding
+		to.GIContribution = from.GIContribution
 		to.Mesh = meshMap[from.Mesh]
 		to.Material = matMap[from.Material]
 		to.Textures = make([]int, len(from.Textures))
@@ -183,6 +294,7 @@ func (s *Stage) ToMinimized() StageJson {
 func (s *Stage) FromMinimized(ss StageJson) {
 	debugEnsureStructsMatch()
 	s.Id = ss.Id
+	s.GlobalIllumination = ss.GlobalIllumination
 	s.Entities = make([]EntityDescription, len(ss.Entities))
 	var proc func(from *EntityDescriptionJson, to *EntityDescription)
 	proc = func(from *EntityDescriptionJson, to *EntityDescription) {
@@ -194,6 +306,7 @@ func (s *Stage) FromMinimized(ss StageJson) {
 		to.Rotation = from.Rotation
 		to.Scale = from.Scale
 		to.DataBinding = from.DataBinding
+		to.GIContribution = from.GIContribution
 		to.Mesh = ss.Meshes[from.Mesh]
 		to.Material = ss.Materials[from.Material]
 		to.Textures = make([]string, len(from.Textures))

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="editor/ui/workspace/stage_workspace_panels.css" />
+		<style>
+			#giArea { position: absolute; right: 0; top: var(--ed-menu-bar-height); width: calc(18% - 0.7em); padding: 0.35em; color: white; overflow-y: scroll; border-left: 2px solid black; z-index: 4; }
+			#giArea h2 { margin-top: 0.8em; margin-bottom: 0.2em; font-size: 1em; }
+			.giRow { width: 100%; min-height: 2.1em; margin-bottom: 0.2em; }
+			.giRow label { width: 45%; font-size: 0.78em; }
+			.giRow input, .giRow select { width: 52%; height: 1.8em; margin-left: 0; }
+			.giCheck { width: 1.5em !important; }
+			#giProbeAsset { width: calc(100% - 0.5em); min-height: 2em; padding: 0.25em; border: 2px solid black; background-color: #1c1c1c; color: #aaa; }
+			.giButtons button { width: 47%; margin: 0.1em; }
+			#giBakeProgressTrack { width: calc(100% - 0.5em); height: 0.8em; margin: 0.4em 0.25em; background-color: #111; border: 1px solid #777; }
+			#giBakeProgressFill { width: 1px; height: 100%; background-color: #22946E; }
+			#giStageStatus { font-size: 0.75em; color: #ccc; white-space: normal; }
+		</style>
+	</head>
+	<body>
+		<div id="giArea" class="edPanelBg sideBarStandard">
+			<h1>Stage GI</h1>
+				<div class="giRow"><label>Override project:</label><input id="giOverride" class="giCheck" type="checkbox" onchange="giOverrideChanged" /></div>
+				<h2>Runtime</h2>
+				<div class="giRow"><label>Preset:</label><select id="giPreset" data-field="Preset" onchange="giRuntimeChanged"><option value="0">Off</option><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option><option value="4">Ultra</option><option value="5">Custom</option></select></div>
+				<div class="giRow"><label>Mode:</label><select id="giMode" data-field="Mode" onchange="giRuntimeChanged"><option value="0">Disabled</option><option value="1">Auto</option><option value="2">Baked</option><option value="3">Dynamic DDGI</option></select></div>
+				<div class="giRow"><label>Fallback:</label><select id="giFallback" data-field="Fallback" onchange="giRuntimeChanged"><option value="0">Allow</option><option value="1">Require exact</option></select></div>
+				<div class="giRow"><label>GPU budget ms:</label><input id="giGPUTime" data-field="GPUTimeBudgetMS" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Memory MB:</label><input id="giMemory" data-field="MemoryBudgetMB" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Coverage:</label><input id="giCoverage" data-field="CoverageDistance" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Runtime spacing:</label><input id="giRuntimeSpacing" data-field="ProbeSpacing" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Resolve scale:</label><input id="giResolveScale" data-field="ResolveScale" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Update Hz:</label><input id="giUpdateHz" data-field="UpdateHz" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>History weight:</label><input id="giHistoryWeight" data-field="HistoryWeight" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Cascades:</label><input id="giCascades" data-field="CascadeCount" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Rays/probe:</label><input id="giRuntimeRays" data-field="RaysPerProbe" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Updates/frame:</label><input id="giProbeUpdates" data-field="MaxProbeUpdatesPerFrame" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Contact detail:</label><select id="giContactDetail" data-field="ContactDetail" onchange="giRuntimeChanged"><option value="0">Off</option><option value="1">GTAO</option></select></div>
+				<div class="giRow"><label>Dynamic geometry:</label><select id="giDynamicGeometry" data-field="DynamicGeometry" onchange="giRuntimeChanged"><option value="0">Static only</option><option value="1">Static + rigid</option></select></div>
+				<div class="giRow"><label>Emissive:</label><select id="giEmissive" data-field="EmissiveParticipation" onchange="giRuntimeChanged"><option value="0">Off</option><option value="1">Static</option><option value="2">Dynamic</option></select></div>
+				<div class="giRow"><label>Transition sec:</label><input id="giTransition" data-field="ScenarioTransitionSeconds" type="number" onblur="giRuntimeChanged" onsubmit="giRuntimeChanged" /></div>
+				<div class="giRow"><label>Adaptive:</label><input id="giAdaptive" class="giCheck" data-field="AdaptiveBudget" type="checkbox" onchange="giRuntimeChanged" /></div>
+				<h2>Probe scenario</h2>
+				<div id="giProbeAsset" data-type="GI Probe" onclick="selectGIProbe" ondrop="giProbeDrop" ondragenter="giProbeDragEnter" ondragleave="giProbeDragExit">None (GI Probe)</div>
+				<div class="giButtons"><button onclick="selectGIProbe">Select</button><button onclick="clearGIProbe">Clear</button></div>
+				<h2>Bake settings</h2>
+				<div class="giRow"><label>Bounds:</label><select id="giBakeBoundsMode" data-field="BoundsMode" onchange="giBakeSettingChanged"><option value="0">Automatic</option><option value="1">Manual</option></select></div>
+				<div class="giRow"><label>Padding:</label><input id="giBakePadding" data-field="BoundsPadding" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Bake spacing:</label><input id="giBakeSpacing" data-field="ProbeSpacing" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Rays/probe:</label><input id="giBakeRays" data-field="RaysPerProbe" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Max ray distance:</label><input id="giBakeDistance" data-field="MaxRayDistance" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Center X:</label><input id="giBakeCenterX" data-field="ManualCenterX" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Center Y:</label><input id="giBakeCenterY" data-field="ManualCenterY" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Center Z:</label><input id="giBakeCenterZ" data-field="ManualCenterZ" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Size X:</label><input id="giBakeSizeX" data-field="ManualSizeX" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Size Y:</label><input id="giBakeSizeY" data-field="ManualSizeY" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Size Z:</label><input id="giBakeSizeZ" data-field="ManualSizeZ" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Environment R:</label><input id="giBakeEnvR" data-field="EnvironmentR" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Environment G:</label><input id="giBakeEnvG" data-field="EnvironmentG" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giRow"><label>Environment B:</label><input id="giBakeEnvB" data-field="EnvironmentB" type="number" onblur="giBakeSettingChanged" onsubmit="giBakeSettingChanged" /></div>
+				<div class="giButtons"><button onclick="bakeGI">Bake</button><button onclick="bakeGIAs">Bake As</button><button onclick="cancelGIBake">Cancel Bake</button></div>
+				<div id="giBakeProgressTrack"><div id="giBakeProgressFill"></div></div>
+			<p id="giStageStatus">GI preview is ready.</p>
+		</div>
+	</body>
+</html>

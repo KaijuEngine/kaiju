@@ -28,6 +28,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/stages"
 	"kaijuengine.com/engine/terrain"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
@@ -94,6 +95,8 @@ type WorkspaceDetailsUI struct {
 	detailsMesh                *document.Element
 	detailsMaterialBlock       *document.Element
 	detailsMaterial            *document.Element
+	detailsGIContributionBlock *document.Element
+	detailsGIContribution      *document.Element
 	shaderInstanceData         *document.Element
 	detailsEntityDataTable     *document.Element
 	shaderInstanceDataList     *document.Element
@@ -146,6 +149,7 @@ func (dui *WorkspaceDetailsUI) setupFuncs() map[string]func(*document.Element) {
 		"materialIdDrop":          dui.materialIdDrop,
 		"materialIdDragEnter":     dui.materialIdDragEnter,
 		"materialIdDragExit":      dui.materialIdDragExit,
+		"changeGIContribution":    dui.changeGIContribution,
 		"clickSelectContentId":    dui.clickSelectContentId,
 		"contentIdDrop":           dui.contentIdDrop,
 		"contentIdDragEnter":      dui.contentIdDragEnter,
@@ -180,6 +184,8 @@ func (dui *WorkspaceDetailsUI) setup(w *StageWorkspace) {
 	dui.detailsMesh, _ = dui.doc.GetElementById("detailsMesh")
 	dui.detailsMaterialBlock, _ = dui.doc.GetElementById("detailsMaterialBlock")
 	dui.detailsMaterial, _ = dui.doc.GetElementById("detailsMaterial")
+	dui.detailsGIContributionBlock, _ = dui.doc.GetElementById("detailsGIContributionBlock")
+	dui.detailsGIContribution, _ = dui.doc.GetElementById("detailsGIContribution")
 	dui.shaderInstanceData, _ = dui.doc.GetElementById("shaderInstanceData")
 	dui.detailsEntityDataTable, _ = dui.doc.GetElementById("detailsEntityDataTable")
 	dui.shaderInstanceDataList, _ = dui.doc.GetElementById("shaderInstanceDataList")
@@ -865,6 +871,26 @@ func (dui *WorkspaceDetailsUI) changeData(e *document.Element) {
 	dui.commonChangeData(e, false)
 }
 
+func (dui *WorkspaceDetailsUI) changeGIContribution(e *document.Element) {
+	selection := dui.workspace.Value().stageView.Manager().Selection()
+	if len(selection) != 1 {
+		return
+	}
+	value, err := strconv.Atoi(e.UI.ToSelect().Value())
+	if err != nil || value < int(stages.GIContributionAutomatic) || value > int(stages.GIContributionReceivesOnly) {
+		dui.reload()
+		return
+	}
+	entity := selection[0]
+	previous := entity.StageData.Description.GIContribution
+	next := stages.GIContribution(value)
+	if previous == next {
+		return
+	}
+	entity.StageData.Description.GIContribution = next
+	dui.workspace.Value().ed.History().Add(&entityGIContributionHistory{ui: dui, entity: entity, from: previous, to: next})
+}
+
 func (dui *WorkspaceDetailsUI) showColorPicker(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.showColorPicker").End()
 	w := dui.workspace.Value()
@@ -1437,6 +1463,7 @@ func (dui *WorkspaceDetailsUI) reload() {
 		dui.detailsMultiSelect.UI.Show()
 		dui.detailsMeshBlock.UI.Hide()
 		dui.detailsMaterialBlock.UI.Hide()
+		dui.detailsGIContributionBlock.UI.Hide()
 		dui.shaderInstanceData.UI.Hide()
 		dui.detailsEntityDataTable.UI.Hide()
 		return
@@ -1449,8 +1476,10 @@ func (dui *WorkspaceDetailsUI) reload() {
 	dui.detailsName.UI.ToInput().SetTextWithoutEvent(e.Name())
 	dui.detailsMeshBlock.UI.Show()
 	dui.detailsMaterialBlock.UI.Show()
+	dui.detailsGIContributionBlock.UI.Show()
 	dui.setMeshInputValue(e.StageData.Description.Mesh)
 	dui.setMaterialInputValue(e.StageData.Description.Material)
+	dui.detailsGIContribution.UI.ToSelect().PickOptionWithoutEvent(int(e.StageData.Description.GIContribution))
 	dui.previousPosition = matrix.Vec3Inf(1)
 	dui.previousRotation = matrix.Vec3Inf(1)
 	dui.previousScale = matrix.Vec3Inf(1)

@@ -305,6 +305,26 @@ type TerrainRayHit struct {
 	Distance   matrix.Float
 }
 
+// BakeMeshSnapshot returns a detached copy of the terrain's current local-space
+// triangle mesh. It is safe to pass the returned slices to a background bake
+// after this call completes.
+func (t *Terrain) BakeMeshSnapshot() ([]rendering.Vertex, []uint32) {
+	if t == nil || t.HeightField == nil {
+		return nil, nil
+	}
+	vertices := make([]rendering.Vertex, 0)
+	indices := make([]uint32, 0)
+	for i := range t.MeshChunks {
+		chunkVertices, chunkIndices := t.buildChunkMeshData(&t.MeshChunks[i])
+		offset := uint32(len(vertices))
+		vertices = append(vertices, chunkVertices...)
+		for j := range chunkIndices {
+			indices = append(indices, chunkIndices[j]+offset)
+		}
+	}
+	return vertices, indices
+}
+
 func NewModel(config TerrainConfig) (*Terrain, error) {
 	return newTerrainWithHeights(config, nil, nil, nil, nil)
 }

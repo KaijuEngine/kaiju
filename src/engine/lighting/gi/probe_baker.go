@@ -32,6 +32,15 @@ type BakePointLight struct {
 	Range     matrix.Float
 }
 
+type BakeSpotLight struct {
+	Position    matrix.Vec3
+	Direction   matrix.Vec3
+	Intensity   matrix.Vec3
+	Range       matrix.Float
+	InnerCutoff matrix.Float
+	OuterCutoff matrix.Float
+}
+
 type BakeInput struct {
 	Bounds            graviton.AABB
 	ProbeSpacing      matrix.Float
@@ -42,6 +51,7 @@ type BakeInput struct {
 	Triangles         []BakeTriangle
 	DirectionalLights []BakeDirectionalLight
 	PointLights       []BakePointLight
+	SpotLights        []BakeSpotLight
 	GeometryHash      [32]byte
 	LightingHash      [32]byte
 	Progress          func(completed, total int)
@@ -230,6 +240,32 @@ func (s probeBakerScene) traceRadiance(origin, direction matrix.Vec3, input Bake
 			continue
 		}
 		incident := input.PointLights[i].Intensity.Scale(1 / max(distanceSquared, matrix.Float(0.01)))
+		radiance.AddAssign(triangle.material.Albedo.Multiply(incident).Scale(nDotL / pi))
+	}
+	for i := range input.SpotLights {
+		light := input.SpotLights[i]
+		toLight := light.Position.Subtract(point)
+		distanceSquared := toLight.LengthSquared()
+		if distanceSquared <= matrix.FloatSmallestNonzero {
+			continue
+		}
+		lightDistance := matrix.Sqrt(distanceSquared)
+		if light.Range > 0 && lightDistance > light.Range {
+			continue
+		}
+		lightDirection := toLight.Scale(1 / lightDistance)
+		spotDirection := light.Direction
+		if spotDirection.LengthSquared() == 0 {
+			continue
+		}
+		coneCosine := spotDirection.Normal().Dot(lightDirection.Negative())
+		coneRange := max(matrix.Float(0.0001), light.InnerCutoff-light.OuterCutoff)
+		cone := max(matrix.Float(0), min(matrix.Float(1), (coneCosine-light.OuterCutoff)/coneRange))
+		nDotL := max(matrix.Float(0), normal.Dot(lightDirection))
+		if cone == 0 || nDotL == 0 || s.occluded(originBias, lightDirection, lightDistance-0.002) {
+			continue
+		}
+		incident := light.Intensity.Scale(cone / max(distanceSquared, matrix.Float(0.01)))
 		radiance.AddAssign(triangle.material.Albedo.Multiply(incident).Scale(nDotL / pi))
 	}
 	return radiance, distance

@@ -47,9 +47,11 @@ type StageWorkspace struct {
 	hierarchyDoc  *document.Document
 	detailsDoc    *document.Document
 	contentDoc    *document.Document
+	giDoc         *document.Document
 	contentUI     WorkspaceContentUI
 	hierarchyUI   WorkspaceHierarchyUI
 	detailsUI     WorkspaceDetailsUI
+	giUI          WorkspaceGIUI
 	stageViewport stageWorkspaceStageViewport
 	cameraPreview stageWorkspaceCameraPreview
 	isOpen        bool
@@ -72,7 +74,8 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	w.stageView.Initialize(host, ed)
 	w.pageData.SetupUIData(w.ed.Cache(), ed.StageView().Camera().ModeString())
 	funcs := map[string]func(*document.Element){
-		"toggleDimension": w.toggleDimension,
+		"toggleDimension":  w.toggleDimension,
+		"toggleGISettings": w.toggleGISettings,
 	}
 	if err := w.CommonWorkspace.InitializeWithUI(host,
 		"editor/ui/workspace/stage_workspace.go.html", w.pageData, funcs); err != nil {
@@ -91,6 +94,7 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	w.contentUI.setup(w, w.ed.Events())
 	w.hierarchyUI.setup(w)
 	w.detailsUI.setup(w)
+	w.giUI.setup(w)
 	// Subscribe to cross-workspace requests. The content workspace publishes
 	// OnRequestOpenStage when the user picks a stage asset; we open it and
 	// switch ourselves active.
@@ -123,6 +127,12 @@ func (w *StageWorkspace) loadPanelDocuments() error {
 		return err
 	}
 	w.contentDoc.Deactivate()
+	w.giDoc, err = markup.DocumentFromHTMLAsset(&w.UiMan,
+		"editor/ui/workspace/stage_workspace_gi.go.html", nil, w.giUI.setupFuncs())
+	if err != nil {
+		return err
+	}
+	w.giDoc.Deactivate()
 	return nil
 }
 
@@ -161,10 +171,14 @@ func (w *StageWorkspace) destroyPanelDocuments() {
 		w.contentDoc.Destroy()
 		w.contentDoc = nil
 	}
+	if w.giDoc != nil {
+		w.giDoc.Destroy()
+		w.giDoc = nil
+	}
 }
 
 func (w *StageWorkspace) panelDocuments() []*document.Document {
-	docs := make([]*document.Document, 0, 3)
+	docs := make([]*document.Document, 0, 4)
 	if w.hierarchyDoc != nil {
 		docs = append(docs, w.hierarchyDoc)
 	}
@@ -173,6 +187,9 @@ func (w *StageWorkspace) panelDocuments() []*document.Document {
 	}
 	if w.contentDoc != nil {
 		docs = append(docs, w.contentDoc)
+	}
+	if w.giDoc != nil {
+		docs = append(docs, w.giDoc)
 	}
 	return docs
 }
@@ -204,6 +221,7 @@ func (w *StageWorkspace) Open() {
 	w.contentUI.open()
 	w.hierarchyUI.open()
 	w.detailsUI.open()
+	w.giUI.open()
 	w.stageViewport.bind(w.stageView)
 	w.applyViewportLayout()
 	w.stageView.Open()
@@ -253,6 +271,7 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 		w.hierarchyUI.updateKeyboardSelection()
 	}
 	w.detailsUI.update()
+	w.giUI.update(deltaTime)
 	w.stageView.Update(deltaTime, w.ed.Project())
 	w.cameraPreview.updatePlacement(w)
 }
@@ -278,10 +297,12 @@ func (w *StageWorkspace) ToggleContentPanel() bool {
 		w.contentUI.contentArea.UI.Hide()
 		w.hierarchyUI.extendHeight()
 		w.detailsUI.extendHeight()
+		w.giUI.extendHeight()
 	} else {
 		w.contentUI.contentArea.UI.Show()
 		w.hierarchyUI.standardHeight()
 		w.detailsUI.standardHeight()
+		w.giUI.standardHeight()
 	}
 	w.applyViewportLayout()
 	return true
@@ -313,6 +334,21 @@ func (w *StageWorkspace) ToggleDetailsPanel() bool {
 	}
 	w.applyViewportLayout()
 	return true
+}
+
+func (w *StageWorkspace) toggleGISettings(*document.Element) {
+	if w.giUI.area == nil || w.giUI.area.UI == nil {
+		return
+	}
+	if w.giUI.area.UI.Entity().IsActive() {
+		w.giUI.area.UI.Hide()
+		w.detailsUI.detailsArea.UI.Show()
+	} else {
+		w.detailsUI.detailsArea.UI.Hide()
+		w.giUI.area.UI.Show()
+		w.giUI.syncInputs()
+	}
+	w.applyViewportLayout()
 }
 
 func (w *StageWorkspace) applyViewportLayout() {

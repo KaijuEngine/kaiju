@@ -107,6 +107,7 @@ import (
 	"kaijuengine.com/build"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/lighting/gi"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/engine/stages"
 	"log/slog"
@@ -146,6 +147,14 @@ func (Game) ContentDatabase() (assets.Database, error) {
 }
 
 func (Game) Launch(host *engine.Host) {
+	giSettings, err := gi.ReadSettings(host.AssetDatabase())
+	if err != nil {
+		slog.Warn("failed to read project global illumination settings; GI will remain disabled", "error", err)
+		giSettings = gi.SettingsForPreset(gi.QualityPresetOff)
+	}
+	if err := host.GlobalIllumination().SetDefaultSettings(giSettings); err != nil {
+		slog.Error("failed to configure project global illumination", "error", err)
+	}
 	startStage := engine.LaunchParams.StartStage
 	if startStage == "" {
 		var err error
@@ -170,6 +179,9 @@ func (Game) Launch(host *engine.Host) {
 	}
 	gh := game_host.NewGameHost(host)
 	host.SetGame(gh)
+	if err := s.ApplyGlobalIllumination(host); err != nil {
+		slog.Error("failed to apply stage global illumination", "stage", startStage, "error", err)
+	}
 	loadResult := s.Load(host)
 	gh.MainLoaded(host, loadResult)
 }

@@ -55,12 +55,21 @@ func IntegrationTestStageHierarchyUI(host *engine.Host) {
 		},
 		CameraMode: "3D",
 	}
-	doc, err := markup.DocumentFromHTMLAsset(&uiMan,
+	shellDoc, err := markup.DocumentFromHTMLAsset(&uiMan,
 		"editor/ui/workspace/stage_workspace.go.html", pageData, stageHierarchyNoopFuncs())
 	if err != nil {
 		slog.Error("failed to load stage workspace UI", "error", err)
 		os.Exit(1)
 	}
+	doc, err := markup.DocumentFromHTMLAsset(&uiMan,
+		"editor/ui/workspace/stage_workspace_hierarchy.go.html", nil, stageHierarchyNoopFuncs())
+	if err != nil {
+		slog.Error("failed to load stage hierarchy UI", "error", err)
+		os.Exit(1)
+	}
+	hideStageHierarchyElement(shellDoc, "ftdePrompt")
+	hideStageHierarchyElement(shellDoc, "dimensionToggle")
+	hideStageHierarchyElement(shellDoc, "giSettingsToggle")
 	if err = populateStageHierarchyMock(doc); err != nil {
 		slog.Error("failed to populate stage hierarchy mock", "error", err)
 		os.Exit(1)
@@ -162,11 +171,12 @@ func addMockHierarchyRow(doc *document.Document, template, parent *document.Elem
 		doc.ChangeElementParent(row, parent)
 	}
 	header := stageHierarchyEntryHeader(row)
-	headerClasses := []string{"entryHeader"}
+	rowClasses := []string{"hierarchyEntry"}
 	if entity.selected {
-		headerClasses = append(headerClasses, "entryHeaderSelected")
+		rowClasses = append(rowClasses, "hierarchyEntrySelected")
 	}
-	doc.SetElementClasses(header, headerClasses...)
+	doc.SetElementClasses(row, rowClasses...)
+	doc.SetElementClasses(header, "entryHeader")
 	row.SetAttribute("data-collapsed", "false")
 	stageHierarchyActionLabel(row, 0).SetText(stageHierarchyEyeIcon(entity.hidden))
 	stageHierarchyActionLabel(row, 1).SetText(stageHierarchyLockIcon(entity.locked))
@@ -232,14 +242,14 @@ func stageHierarchyToggleIcon(hasChildren, isChild bool) string {
 func stageHierarchyNoopFuncs() map[string]func(*document.Element) {
 	noop := func(*document.Element) {}
 	names := []string{
-		"toggleDimension", "hierarchyDrop", "hierarchySearch", "selectEntity",
+		"toggleDimension", "toggleGISettings", "hierarchyDrop", "hierarchySearch", "selectEntity",
 		"entityContextMenu", "entityDragStart", "entityDrop", "entityDragEnter",
 		"entityDragExit", "entityToggleVisibility", "entityToggleLock",
 		"entityToggleChildren", "submitDetailsName", "onRightClick", "setPosX",
 		"setPosY", "setPosZ", "setRotX", "setRotY", "setRotZ", "setScaleX",
 		"setScaleY", "setScaleZ", "clickSelectMesh", "meshIdDrop",
 		"meshIdDragEnter", "meshIdDragExit", "clickSelectMaterial",
-		"materialIdDrop", "materialIdDragEnter", "materialIdDragExit",
+		"materialIdDrop", "materialIdDragEnter", "materialIdDragExit", "changeGIContribution",
 		"changeShaderData", "showColorPicker", "pasteEntityData",
 		"copyEntityData", "removeEntityData", "changeData", "clickSelectContentId",
 		"contentIdDrop", "contentIdDragEnter", "contentIdDragExit",

@@ -108,3 +108,51 @@ func TestNullProviderAddsBlackIrradiancePass(t *testing.T) {
 		t.Fatalf("null irradiance = %#v", got)
 	}
 }
+
+func TestManagerStageSettingsReturnToProjectDefaults(t *testing.T) {
+	manager := NewManager(Capabilities{})
+	project := SettingsForPreset(QualityPresetMedium)
+	if err := manager.SetDefaultSettings(project); err != nil {
+		t.Fatal(err)
+	}
+	override := SettingsForPreset(QualityPresetLow)
+	if err := manager.ApplyStageSettings(&override, ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := manager.Settings().Preset; got != QualityPresetLow {
+		t.Fatalf("stage preset = %v, want low", got)
+	}
+	if err := manager.ApplyStageSettings(nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := manager.Settings().Preset; got != QualityPresetMedium {
+		t.Fatalf("restored preset = %v, want medium", got)
+	}
+}
+
+func TestManagerClearsBakedScenarioBetweenStages(t *testing.T) {
+	asset := constantProbeAsset(matrix.NewVec3(1, 1, 1))
+	data, err := asset.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager := NewManager(Capabilities{})
+	manager.SetAssetReader(probeAssetReader{"day.kjgi": data})
+	settings := SettingsForPreset(QualityPresetMedium)
+	settings.Mode = ModeBaked
+	if err := manager.SetDefaultSettings(settings); err != nil {
+		t.Fatal(err)
+	}
+	if err := manager.ApplyStageSettings(nil, "day.kjgi"); err != nil {
+		t.Fatal(err)
+	}
+	if manager.Stats().ActiveProbes == 0 {
+		t.Fatal("expected loaded probes")
+	}
+	if err := manager.ApplyStageSettings(nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	if manager.Stats().ActiveProbes != 0 {
+		t.Fatal("previous stage probes leaked after clearing the scenario")
+	}
+}
