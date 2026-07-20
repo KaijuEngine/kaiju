@@ -4,19 +4,17 @@
 		<style>
 			body {
 				z-index: 20;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 			}
 			.panel {
 				position: absolute;
-				left: 14%;
-				top: 11%;
-				width: 72%;
-				height: 78%;
+				left: 15%;
+				top: 12%;
+				width: 70%;
+				height: 76%;
 				color: white;
 				background-color: #181818;
-				border: 6px solid #881E1E;
-				border-top: 1px solid #3A2224;
-				border-bottom: 1px solid #3A2224;
-				border-radius: 8px;
+				border: 1px solid #2A2A2A;
 				overflow: hidden;
 				z-index: 20;
 			}
@@ -25,19 +23,18 @@
 				left: 0;
 				top: 0;
 				width: 100%;
-				height: 6.5em;
+				height: 7em;
 				background-color: #202020;
-				border-bottom: 1px solid #3C3C3C;
+				border-bottom: 1px solid #2A2A2A;
 			}
 			.logoBadge {
 				position: absolute;
-				left: 1.6em;
-				top: 1.2em;
+				left: 2em;
+				top: 1.5em;
 				width: 4em;
 				height: 4em;
-				background-color: #2B1012;
-				border: 1px solid var(--ed-row-selected);
-				border-radius: 6px;
+				background-color: transparent;
+				border: none;
 			}
 			.logoBadge img {
 				width: 3.2em;
@@ -47,209 +44,301 @@
 			}
 			.titleBlock {
 				position: absolute;
-				left: 6.5em;
-				top: 1.05em;
-				width: calc(100% - 8em);
+				left: 7.5em;
+				top: 1.7em;
+				width: calc(100% - 9em);
 			}
 			h1 {
 				margin: 0;
-				font-size: 2.15em;
-				line-height: 1.15em;
-				color: #F5F5F5;
+				font-size: 1.8em;
+				font-weight: bold;
+				color: #FFFFFF;
+				line-height: 1.2em;
+				letter-spacing: -0.02em;
 			}
 			.subtitle {
-				color: #B8B8B8;
-				font-size: 0.92em;
-				margin-top: 0.25em;
+				color: #A0A0A0;
+				font-size: 0.95em;
+				margin-top: 0.4em;
+				line-height: 1.4em;
 			}
 			.content {
 				position: absolute;
-				left: 1.6em;
-				top: 7.7em;
-				width: calc(100% - 3.2em);
-				height: calc(100% - 9.2em);
+				left: 0;
+				top: 7em;
+				width: 100%;
+				height: calc(100% - 7em);
 			}
 			.leftColumn {
 				position: absolute;
 				left: 0;
 				top: 0;
-				width: 44%;
+				width: 38%;
 				height: 100%;
 				background-color: #202020;
-				border: 1px solid #333333;
-				border-radius: 6px;
-				overflow: hidden;
+				border-right: 1px solid #2A2A2A;
 			}
 			.rightColumn {
 				position: absolute;
 				right: 0;
 				top: 0;
-				width: calc(56% - 1em);
+				width: 62%;
 				height: 100%;
-				background-color: #202020;
-				border: 1px solid #333333;
-				border-radius: 6px;
-				overflow: hidden;
+				background-color: #181818;
 			}
 			.sectionHeader {
-				height: 2.6em;
+				height: 2.5em;
 				width: 100%;
 				background-color: #252525;
-				border-bottom: 1px solid #333333;
+				border-bottom: 1px solid #2A2A2A;
 			}
 			.sectionHeader span {
-				margin-left: 1em;
-				top: 0.65em;
-				height: 1.2em;
-				color: #F0F0F0;
+				position: absolute;
+				left: 1.5em;
+				top: 1em;
+				color: #FFFFFF;
+				font-size: 1em;
 				font-weight: bold;
-			}
-			.sectionHeader .accentText {
-				color: #D46A6A;
-				margin-left: 0.4em;
+				letter-spacing: 0.01em;
 			}
 			.recentProjects {
-				width: calc(100% - 1.4em);
-				height: calc(100% - 3.3em);
-				margin: 0.7em;
+				position: absolute;
+				top: 3.5em;
+				left: 1.5em;
+				width: calc(100% - 3em);
+				height: calc(100% - 8.5em);
 				overflow-y: scroll;
 			}
 			.recentProjectEntry {
+				position: relative;
 				width: 100%;
-				height: 2.65em;
-				margin-bottom: 0.45em;
-				color: #CFCFCF;
-				background-color: #171717;
-				border: 1px solid #343434;
-				border-radius: 5px;
-				text-align: left;
+				height: 3.8em;
+				background-color: #181818;
+				border-bottom: 1px solid #3A3A3D;
+				cursor: pointer;
+				transition: all 0.15s ease;
+			}
+			.recentProjectEntry:last-child {
+				border-bottom: none;
 			}
 			.recentProjectEntry:hover {
-				background-color: #322124;
-				border: 1px solid #7B2C31;
-				color: white;
+				background-color: #252528;
+			}
+			.recentProjectIcon {
+				position: absolute;
+				top: 1.1em;
+				left: 1em;
+				width: 1.6em;
+				height: 1.6em;
+				image-rendering: pixelated;
+			}
+			.recentProjectName {
+				position: absolute;
+				top: 0.6em;
+				left: 3em;
+				color: #E0E0E0;
+				font-size: 0.95em;
+				font-weight: bold;
+			}
+			.recentProjectPath {
+				position: absolute;
+				bottom: 0.6em;
+				left: 3.5em;
+				color: #808080;
+				font-size: 0.8em;
+				width: calc(100% - 4.5em);
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
 			}
 			.emptyRecent {
-				width: calc(100% - 2em);
-				margin: 1em;
+				position: absolute;
+				top: 4em;
+				width: 100%;
 				color: #9C9C9C;
 				text-align: center;
+				font-size: 0.9em;
 			}
+			.openExistingBtn {
+				position: absolute;
+				bottom: 1.5em;
+				left: 1.5em;
+				width: calc(100% - 3em);
+				height: 2.6em;
+				background-color: #2A2A2C;
+				border: 1px solid #3A3A3D;
+				color: #E0E0E0;
+				border-radius: 2px;
+				font-size: 0.95em;
+				font-weight: 500;
+				font-family: inherit;
+				cursor: pointer;
+				transition: all 0.15s ease;
+			}
+			.openExistingBtn:hover {
+				background-color: #353538;
+				border: 1px solid #5A5A5F;
+				color: #FFFFFF;
+			}
+			
+			/* Form styling */
 			.setupContent {
-				position: relative;
-				width: calc(100% - 2em);
-				height: calc(100% - 3.5em);
-				margin: 1em;
-			}
-			.actionRow {
+				position: absolute;
+				left: 0;
+				top: 0;
 				width: 100%;
-				height: 3em;
-				margin-bottom: 0.85em;
-			}
-			.divider {
-				width: 100%;
-				height: 1px;
-				background-color: #333333;
-				margin-top: 0.4em;
-				margin-bottom: 1em;
+				height: 100%;
 			}
 			.fieldLabel {
-				width: 100%;
-				height: 1.35em;
-				color: #BEBEBE;
-				font-size: 0.85em;
+				position: absolute;
+				left: 2.5em;
+				height: 1.2em;
+				color: #CCCCCC;
+				font-size: 0.9em;
+				font-weight: bold;
+				letter-spacing: 0.01em;
 			}
+			
 			.inputPanel {
-				position: relative;
-				width: 100%;
-				height: 2.35em;
-				margin-bottom: 0.75em;
+				position: absolute;
+				left: 2.5em;
+				width: calc(100% - 5em);
+				height: 2.6em;
 			}
 			input {
+				position: absolute;
+				top: 0;
+				left: 0;
 				height: 100%;
-				color: #F0F0F0;
+				color: #FFFFFF;
 				background-color: #121212;
-				border: 1px solid #3F3F3F;
-				border-radius: 4px;
-				padding-left: 0.65em;
-			}
-			input:focus {
-				border: 1px solid #9B3034;
+				font-size: 0.95em;
+				font-family: inherit;
+				transition: all 0.2s ease;
+				outline: none;
+				border: 1px solid #222224;
 			}
 			.fullWidth {
 				width: 100%;
 			}
 			.folderInput {
-				width: calc(100% - 8.8em);
+				width: calc(100% - 7.5em);
 			}
+			input:focus {
+				border: 1px solid #9B3034;
+			}
+			
 			.browseButton {
 				position: absolute;
 				right: 0;
-				width: 8em;
+				top: 0;
+				width: 6.5em;
 				height: 100%;
+				background-color: #2A2A2C;
+				border: 1px solid #3A3A3D;
+				color: #E0E0E0;
+				border-radius: 2px;
+				font-size: 0.95em;
+				font-weight: 500;
+				font-family: inherit;
+				cursor: pointer;
+				transition: all 0.15s ease;
 			}
-			button {
-				height: 2.45em;
-				color: #F0F0F0;
-				background-color: #303030;
-				border: 1px solid #4C4C4C;
-				border-radius: 5px;
-				text-align: center;
+			.browseButton:hover {
+				background-color: #353538;
+				border: 1px solid #5A5A5F;
+				color: #FFFFFF;
 			}
-			button:hover {
-				background-color: #3E3E3E;
-				border: 1px solid #777777;
-				color: white;
-			}
-			.recentProjects button {
-				text-align: left;
-			}
-			.fullButton {
-				width: 100%;
-				text-align: center;
-			}
-			.primary {
-				background-color: var(--ed-row-selected);
-				border: 1px solid #9B3034;
-			}
-			.primary:hover {
-				background-color: #881E1E;
-				border: 1px solid #C7655D;
-			}
+
 			.templateRow {
-				position: relative;
-				width: 100%;
-				height: 4.8em;
+				position: absolute;
+				left: 2.5em;
+				width: calc(100% - 5em);
+				height: 2.6em;
 			}
 			.templateButton {
 				position: absolute;
 				left: 0;
-				top: 1.55em;
-				width: 9.7em;
+				top: 0;
+				height: 100%;
+				width: 10em;
+				background-color: #2A2A2C;
+				border: 1px solid #3A3A3D;
+				color: #E0E0E0;
+				border-radius: 2px;
+				font-size: 0.95em;
+				font-weight: 500;
+				font-family: inherit;
+				cursor: pointer;
+				transition: all 0.15s ease;
+			}
+			.templateButton:hover {
+				background-color: #353538;
+				border: 1px solid #5A5A5F;
+				color: #FFFFFF;
 			}
 			.templatePath {
 				position: absolute;
-				left: 10.4em;
-				top: 1.85em;
-				width: calc(100% - 10.4em);
-				height: 1.2em;
-				color: #AFAFAF;
+				left: 11em;
+				top: 0.6em;
+				width: calc(100% - 11em);
+				height: 1.5em;
+				color: #A0A0A0;
+				font-size: 0.9em;
 				overflow: hidden;
+				white-space: nowrap;
 			}
+			
+			.pos1-label { top: 2em; }
+			.pos1-input { top: 3.8em; }
+			
+			.pos2-label { top: 7.5em; }
+			.pos2-input { top: 9.3em; }
+			
+			.pos3-label { top: 13em; }
+			.pos3-input { top: 14.8em; }
+			
+			.actionRow {
+				position: absolute;
+				bottom: 1.5em;
+				left: 2.5em;
+				width: calc(100% - 5em);
+				height: 2.8em;
+			}
+			
 			.createBtn {
 				position: absolute;
-				right: 0.85em;
-				bottom: 0.85em;
-				width: 9.5em;
+				right: 0;
+				top: 0;
+				width: 10em;
+				height: 100%;
+				background-color: var(--ed-row-selected);
+				border: 1px solid #822225;
+				color: #FFFFFF;
+				border-radius: 2px;
+				font-weight: bold;
+				font-size: 0.95em;
+				font-family: inherit;
+				letter-spacing: 0.02em;
+				cursor: pointer;
+				transition: all 0.15s ease;
 			}
+			.createBtn:hover {
+				background-color: #B53A3F;
+				border: 1px solid #D66D65;
+			}
+			
 			.error {
-				width: calc(100% - 2em);
-				margin: 1em;
+				position: absolute;
+				top: 0.5em;
+				left: 2.5em;
+				width: calc(100% - 5em);
 				color: #C7655D;
 				background-color: #2D1718;
 				border: 1px solid var(--ed-row-selected);
 				border-radius: 5px;
 				padding: 0.55em;
+				font-size: 0.9em;
 			}
 		</style>
 	</head>
@@ -260,7 +349,7 @@
 					<img src="kaiju-icon.png" />
 				</div>
 				<div class="titleBlock">
-					<h1>Kaiju Engine</h1>
+					<h1>Create New Project</h1>
 					<div class="subtitle">Start a project with the editor, renderer, content pipeline, and tools ready.</div>
 				</div>
 			</div>
@@ -270,39 +359,50 @@
 					{{if .RecentProjects}}
 					<div class="recentProjects">
 						{{range .RecentProjects}}
-						<button class="recentProjectEntry" data-path="{{.Path}}" onclick="openRecentProject">{{.Label}}</button>
+
+
+						<div class="recentProjectEntry" data-path="{{.Path}}" onclick="openRecentProject">
+							<img class="recentProjectIcon" src="editor/textures/icons/folder_small.png" />
+							<div class="recentProjectName">{{.Label}}</div>
+							<div class="recentProjectPath">{{.Path}}</div>
+						</div>
+
+
 						{{end}}
 					</div>
 					{{else}}
 					<div class="emptyRecent">No recent projects yet.</div>
 					{{end}}
+
+
+					<button class="openExistingBtn" onclick="openProject">Open Existing Project...</button>
 				</div>
 				<div class="rightColumn">
-					<div class="sectionHeader"><span>Project Setup</span></div>
 					<div class="setupContent">
 						{{if .Error}}
 						<div class="error">{{.Error}}</div>
 						{{end}}
-						<div class="fieldLabel">Open existing</div>
-						<div class="actionRow">
-							<button class="fullButton" onclick="openProject">Open Project</button>
+						
+						<div class="fieldLabel pos1-label">Project name</div>
+						<div class="inputPanel pos1-input">
+							<input id="nameInput" class="fullWidth" type="text" placeholder="Type here" />
 						</div>
-						<div class="divider"></div>
-						<div class="fieldLabel">New project name</div>
-						<div class="inputPanel">
-							<input id="nameInput" class="fullWidth" type="text" placeholder="Name..." />
-						</div>
-						<div class="fieldLabel">Project folder</div>
-						<div class="inputPanel">
-							<input id="folder" class="folderInput" type="text" placeholder="Folder..." />
+						
+						<div class="fieldLabel pos2-label">Project folder</div>
+						<div class="inputPanel pos2-input">
+							<input id="folder" class="folderInput" type="text" placeholder="Select folder path" />
 							<button class="browseButton" onclick="browse">Browse...</button>
 						</div>
-						<div class="templateRow">
-							<div class="fieldLabel">Template</div>
+						
+						<div class="fieldLabel pos3-label">Template</div>
+						<div class="templateRow pos3-input">
 							<button class="templateButton" onclick="selectTemplate">Select Template</button>
 							<span id="templatePath" class="templatePath">No template selected</span>
 						</div>
-						<button class="createBtn primary" onclick="createProject">Create Project</button>
+						
+						<div class="actionRow">
+							<button class="createBtn" onclick="createProject">Create Project</button>
+						</div>
 					</div>
 				</div>
 			</div>

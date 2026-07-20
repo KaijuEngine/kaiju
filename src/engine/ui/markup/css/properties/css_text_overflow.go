@@ -7,7 +7,7 @@
 package properties
 
 import (
-	"errors"
+	"fmt"
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
@@ -15,8 +15,26 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 )
 
-func (p TextOverflow) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	problems := []error{errors.New("TextOverflow not implemented")}
+func setChildTextOverflow(elm *document.Element, ellipsis bool) {
+	for _, c := range elm.Children {
+		if c.IsText() {
+			c.UI.ToLabel().SetTextOverflowEllipsis(ellipsis)
+		}
+		setChildTextOverflow(c, ellipsis)
+	}
+}
 
-	return problems[0]
+func (p TextOverflow) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
+	if len(values) != 1 {
+		return fmt.Errorf("expected exactly 1 value but got %d", len(values))
+	}
+
+	val := values[0].Str
+	if val == "ellipsis" {
+		setChildTextOverflow(elm, true)
+	} else if val == "clip" {
+		setChildTextOverflow(elm, false)
+	}
+	
+	return nil
 }
