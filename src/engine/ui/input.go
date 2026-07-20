@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	horizontalPadding      float32 = 5.0
+	horizontalPadding      float32 = 12.0
 	cursorWidth            float32 = 2.0
 	cursorBlinkRate        float32 = 0.75
 	verticalPadding        float32 = 3.0
@@ -110,6 +110,7 @@ func (input *Input) Init(placeholderText string) {
 	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
 	p.Init(tex, ElementTypeInput)
 	p.DontFitContent()
+	p.SetOverflow(OverflowHidden)
 
 	// Label
 	data.label = man.Add().ToLabel()
@@ -198,23 +199,25 @@ func (input *Input) onLayoutUpdating() {
 	ll.SetOffset(horizontalPadding+data.labelShift, 0)
 	pLayout := FirstOnEntity(ll.Ui().Entity().Parent).Layout()
 	contentSize := pLayout.ContentSize()
-	ll.ScaleWidth(max(0.001, contentSize.Width()))
+	labelWidth := contentSize.Width() - (horizontalPadding * 2.0)
+	ll.ScaleWidth(max(0.001, labelWidth))
 
 	// Placeholder
 	pl := &data.placeholder.layout
-	pl.SetOffset(horizontalPadding, 0)
-	pl.ScaleWidth(max(0.001, contentSize.Width()))
+	pl.SetOffset(horizontalPadding+cursorWidth+2.0, 0)
+	pl.ScaleWidth(max(0.001, labelWidth))
 
 	if data.highlight.entity.IsActive() {
 		startX := input.charX(data.selectStart)
 		endX := input.charX(data.selectEnd)
 		width := endX - startX
-		data.highlight.layout.Scale(width, input.layout.PixelSize().Height())
-		data.highlight.layout.SetOffset(startX+data.labelShift, 0)
+		h := data.label.FontSize() + 4.0
+		data.highlight.layout.Scale(width, h)
+		data.highlight.layout.SetOffset(startX+data.labelShift, (input.layout.PixelSize().Height()-h)*0.5)
 	}
 
 	// Cursor
-	data.cursor.layout.Scale(cursorWidth, max(0.001, pLayout.PixelSize().Height()-5))
+	data.cursor.layout.Scale(cursorWidth, data.label.FontSize())
 }
 
 func (input *Input) showCursor() {
@@ -557,13 +560,12 @@ func (input *Input) updateCursorPosition() {
 		}
 	}
 	x = x + data.labelShift
-	data.cursor.layout.SetOffset(x, cursorY)
+	bounds := input.layout.PixelSize()
+	cursorYPos := (bounds.Y() - data.label.FontSize()) * 0.5
+	data.cursor.layout.SetOffset(x, cursorYPos)
 }
 
 func (input *Input) onRebuild() {
-	data := input.InputData()
-	ws := input.entity.Transform.WorldScale()
-	data.cursor.layout.Scale(cursorWidth/ws.X(), 1.0-(verticalPadding/ws.Y()))
 	input.updateCursorPosition()
 }
 
@@ -846,7 +848,7 @@ func (input *Input) SetFGColor(newColor matrix.Color) {
 	data := input.InputData()
 	data.label.SetColor(newColor)
 	data.cursor.SetColor(newColor)
-	phColor := matrix.ColorMix(newColor, newColor.Inverted(), 0.5)
+	phColor := matrix.ColorMix(newColor, newColor.Inverted(), 0.4)
 	data.placeholder.SetColor(phColor)
 }
 
