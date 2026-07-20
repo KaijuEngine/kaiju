@@ -45,9 +45,10 @@ type labelData struct {
 	unEnforcedBGColor matrix.Color
 	isForcedFGColor   bool
 	isForcedBGColor   bool
-	wordWrap          bool
-	renderRequired    bool
-	transparentBG     bool
+	wordWrap             bool
+	renderRequired       bool
+	transparentBG        bool
+	textOverflowEllipsis bool
 }
 
 func (l *labelData) innerPanelData() *panelData { panic("label isn't a panel") }
@@ -158,6 +159,8 @@ func (label *Label) labelPostLayoutUpdate() {
 	l := label.LabelData()
 	if l.wordWrap && l.overrideMaxWidth <= 0 {
 		maxWidth = label.nonOverrideMaxWidth()
+	} else if !l.wordWrap {
+		maxWidth = matrix.FloatMax
 	}
 	label.updateHeight(maxWidth)
 }
@@ -205,17 +208,42 @@ func (label *Label) renderText() {
 				}
 			}
 		}
+		renderMaxWidth := maxWidth
+		if !ld.wordWrap {
+			renderMaxWidth = matrix.FloatMax
+		}
 		if !label.layout.stylizerControlsHeight() {
-			label.layout.ScaleHeight(label.measure(maxWidth).Height())
+			label.layout.ScaleHeight(label.measure(renderMaxWidth).Height())
 		}
 		host := label.man.Value().Host
+
+		renderText := ld.text
+		if ld.textOverflowEllipsis && !ld.wordWrap && maxWidth > 0 {
+			m := host.FontCache().MeasureStringWithinWithLetterSpacing(ld.fontFace, renderText, ld.fontSize, matrix.FloatMax, ld.lineHeight, ld.letterSpacing)
+			if m.Width() > maxWidth {
+				runes := []rune(renderText)
+				for len(runes) > 0 {
+					testText := string(runes) + "..."
+					m = host.FontCache().MeasureStringWithinWithLetterSpacing(ld.fontFace, testText, ld.fontSize, matrix.FloatMax, ld.lineHeight, ld.letterSpacing)
+					if m.Width() <= maxWidth {
+						renderText = testText
+						break
+					}
+					runes = runes[:len(runes)-1]
+				}
+				if len(runes) == 0 {
+					renderText = "..."
+				}
+			}
+		}
+
 		// Resolve against the calculated surface so the font cache picks the
 		// crisp non-OIT material (both colors opaque) instead of fringing the
 		// edges over solid backgrounds.
 		fg, bg := label.resolveFontColors(ld.fgColor, ld.bgColor)
 		ld.runeDrawings = host.FontCache().RenderMeshesWithLetterSpacing(
-			host, ld.text, 0, 0, 0, ld.fontSize,
-			maxWidth, fg, bg, ld.justify,
+			host, renderText, 0, 0, 0, ld.fontSize,
+			renderMaxWidth, fg, bg, ld.justify,
 			ld.baseline, label.entity.Transform.WorldScale(),
 			true, false, ld.fontFace, ld.lineHeight, ld.letterSpacing, &host.Cameras.UI)
 		ld.runeShaderData = make([]*rendering.TextShaderData, len(ld.runeDrawings))
@@ -579,6 +607,16 @@ func (label *Label) SetFontFace(face rendering.FontFace) {
 	ld.fontFace = face
 	label.Base().SetDirty(DirtyTypeGenerated)
 	ld.renderRequired = true
+}
+
+func (label *Label) SetTextOverflowEllipsis(ellipsis bool) {
+	defer tracing.NewRegion("Label.SetTextOverflowEllipsis").End()
+	ld := label.LabelData()
+	if ld.textOverflowEllipsis == ellipsis {
+		return
+	}
+	ld.textOverflowEllipsis = ellipsis
+	label.Base().SetDirty(DirtyTypeGenerated)
 }
 
 func (label *Label) SetFontWeight(weight string) {

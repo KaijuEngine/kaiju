@@ -19,7 +19,7 @@ layout(location = 0) out vec4 outColor;
 layout(location = 1) out float reveal;
 #endif
 
-const float edgeSoftness = 2.0;
+
 
 float processAxis(float coord, float border, float ratio) {
 	float len = border * ratio;
@@ -49,13 +49,15 @@ float edgeProximity(float edgeDistance, float borderWidth) {
 	return edgeDistance / borderWidth;
 }
 
-float sdfInsideAlpha(float dist) {
-	float aa = max(fwidth(dist), edgeSoftness);
-	return 1.0 - smoothstep(0.0, aa, dist);
+const float edgeSoftness = 0.4;
+
+float sdfInsideAlpha(float dist, float scale) {
+	float aa = scale * edgeSoftness;
+	return 1.0 - smoothstep(-aa, aa, dist);
 }
 
-float sdfOutsideAlpha(float dist) {
-	float aa = max(fwidth(dist), edgeSoftness);
+float sdfOutsideAlpha(float dist, float scale) {
+	float aa = scale * edgeSoftness;
 	return smoothstep(-aa, aa, dist);
 }
 
@@ -68,6 +70,7 @@ void main(void) {
 	vec2 expandedDimensions = dimensions + vec2(outlineOutset * 2.0);
 	vec2 expandedPixPos = normUV * expandedDimensions;
 	vec2 pixPos = expandedPixPos - vec2(outlineOutset);
+	float pixelScale = max(max(fwidth(pixPos.x), fwidth(pixPos.y)), 0.001);
 	vec4 unWeightedColor = vec4(0.0);
 	bool insidePanel = pixPos.x >= 0.0 && pixPos.y >= 0.0 && pixPos.x <= dimensions.x && pixPos.y <= dimensions.y;
 	if (insidePanel) {
@@ -106,7 +109,7 @@ void main(void) {
 		float dist = -1.0;
 		if (hasRoundedCorners) {
 			dist = roundedBoxSDF(centerPixPos, size, fragBorderRadius);
-			smoothedAlpha = sdfInsideAlpha(dist);
+			smoothedAlpha = sdfInsideAlpha(dist, pixelScale);
 		}
 
 		vec2 innerSize = size - vec2(
@@ -128,7 +131,7 @@ void main(void) {
 		if (fragBorderSize.x + fragBorderSize.y + fragBorderSize.z + fragBorderSize.w > 0.0) {
 			if (hasRoundedCorners) {
 				innerDist = roundedBoxSDF(innerCenterPixPos, innerSize, innerBorderRadius);
-				smoothedBorderAlpha = smoothedAlpha * sdfOutsideAlpha(innerDist);
+				smoothedBorderAlpha = smoothedAlpha * sdfOutsideAlpha(innerDist, pixelScale);
 			} else {
 				smoothedBorderAlpha = closestSide <= 1.0 ? 1.0 : 0.0;
 			}
@@ -140,8 +143,8 @@ void main(void) {
 	} else if (outlineWidth > 0.0 && fragOutlineColor.a > 0.0) {
 		vec2 outside = max(max(-pixPos, pixPos - dimensions), vec2(0.0));
 		float outsideDistance = max(outside.x, outside.y);
-		float outerAlpha = 1.0 - smoothstep(outlineOffset + outlineWidth, outlineOffset + outlineWidth + edgeSoftness, outsideDistance);
-		float innerAlpha = smoothstep(outlineOffset, outlineOffset + edgeSoftness, outsideDistance);
+		float outerAlpha = 1.0 - smoothstep(outlineOffset + outlineWidth, outlineOffset + outlineWidth + edgeSoftness * pixelScale, outsideDistance);
+		float innerAlpha = smoothstep(outlineOffset, outlineOffset + edgeSoftness * pixelScale, outsideDistance);
 		unWeightedColor = fragOutlineColor;
 		unWeightedColor.a *= outerAlpha * innerAlpha;
 	}
