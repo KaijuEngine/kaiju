@@ -101,6 +101,10 @@ func (w *Window) cursorStandard() {
 	C.window_cursor_standard(w.handle)
 }
 
+func (w *Window) cursorHand() {
+	C.window_cursor_standard(w.handle) // fallback
+}
+
 func (w *Window) cursorIbeam() {
 	C.window_cursor_ibeam(w.handle)
 }

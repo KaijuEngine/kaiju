@@ -50,6 +50,7 @@ void window_poll_controller(void* hwnd);
 void window_poll(void* hwnd);
 void window_destroy(void* hwnd);
 void window_cursor_standard(void* hwnd);
+void window_cursor_hand(void* hwnd);
 void window_cursor_ibeam(void* hwnd);
 void window_cursor_size_all(void* hwnd);
 void window_cursor_size_ns(void* hwnd);

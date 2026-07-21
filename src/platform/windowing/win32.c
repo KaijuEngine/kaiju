@@ -928,6 +928,10 @@ void window_cursor_standard(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_ARROW, 0);
 }
 
+void window_cursor_hand(void* hwnd) {
+	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_HAND, 0);
+}
+
 void window_cursor_ibeam(void* hwnd) {
 	PostMessageA(hwnd, UWM_SET_CURSOR, CURSOR_IBEAM, 0);
 }
