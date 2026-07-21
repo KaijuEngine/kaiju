@@ -2052,7 +2052,11 @@ func (p *Panel) SetOutline(width, offset float32, color matrix.Color) {
 	if width > 0 && color.A() > 0 {
 		p.ensureBGExists(nil)
 	}
-	p.shaderData.OutlineSize = matrix.NewVec2(width, offset)
+	outlineSize := matrix.NewVec2(width, offset)
+	if p.shaderData.OutlineSize.Equals(outlineSize) && p.shaderData.OutlineColor.Equals(color) {
+		return
+	}
+	p.shaderData.OutlineSize = outlineSize
 	p.shaderData.OutlineColor = color
 	p.Base().SetDirty(DirtyTypeLayout)
 }

@@ -1,6 +1,10 @@
 package ui
 
-import "testing"
+import (
+	"testing"
+
+	"kaijuengine.com/matrix"
+)
 
 func TestLabelDirtyRequiresRender(t *testing.T) {
 	renderDirtyTypes := []DirtyType{
@@ -26,5 +30,26 @@ func TestLabelDirtyRequiresRender(t *testing.T) {
 		if labelDirtyRequiresRender(dirtyType) {
 			t.Fatalf("labelDirtyRequiresRender(%d) = true, want false", dirtyType)
 		}
+	}
+}
+
+func TestSetOutlineDoesNotRedirtyWhenUnchanged(t *testing.T) {
+	t.Parallel()
+
+	target := testLayoutUI(10, 20)
+	target.shaderData = &ShaderData{}
+	target.cleanDirty()
+	panel := target.ToPanel()
+	color := matrix.ColorTransparent()
+
+	panel.SetOutline(0, 1, color)
+	if got := target.dirty(); got != DirtyTypeLayout {
+		t.Fatalf("dirty type after changed outline = %d, want %d", got, DirtyTypeLayout)
+	}
+
+	target.cleanDirty()
+	panel.SetOutline(0, 1, color)
+	if got := target.dirty(); got != DirtyTypeNone {
+		t.Fatalf("dirty type after unchanged outline = %d, want %d", got, DirtyTypeNone)
 	}
 }
