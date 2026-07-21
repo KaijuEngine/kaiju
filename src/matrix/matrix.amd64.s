@@ -74,8 +74,8 @@
 	INSERTPS  $48, m+start+56(FP), X3 \  // x3y2
 	INSERTPS  $48, m+start+60(FP), X4    // x3y3
 
-// func Mat4Multiply(a, b Mat4) Mat4
-TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
+// func Mat4fMultiply(a, b Mat4f) Mat4f
+TEXT   ·Mat4fMultiply(SB),NOSPLIT,$0-192
 	// Load b rows (contiguous)
 	MOVUPS b+64(FP), X1   // b row0
 	MOVUPS b+80(FP), X2   // b row1
@@ -155,8 +155,8 @@ TEXT   ·Mat4Multiply(SB),NOSPLIT,$0-192
 	MOVUPS X5, ret+176(FP)
 	RET
 
-// func Mat4MultiplyVec4(a Mat4, b Vec4) Vec4
-TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
+// func Mat4fMultiplyVec4f(a Mat4f, b Vec4f) Vec4f
+TEXT   ·Mat4fMultiplyVec4f(SB),NOSPLIT,$0-96
 	MOVUPS m+0(FP), X0
 	MOVUPS m+16(FP), X1
 	MOVUPS m+32(FP), X2
@@ -189,8 +189,8 @@ TEXT   ·Mat4MultiplyVec4(SB),NOSPLIT,$0-96
 	DOT(b+64(FP), X11, ret+92(FP))  // w
 	RET
 
-// func Vec4MultiplyMat4(a Vec4, b Mat4) Vec4
-TEXT   ·Vec4MultiplyMat4(SB),NOSPLIT,$0-96
+// func Vec4fMultiplyMat4f(a Vec4f, b Mat4f) Vec4f
+TEXT   ·Vec4fMultiplyMat4f(SB),NOSPLIT,$0-96
 	MOVUPS    b+16(FP), X1
 	MOVUPS    b+32(FP), X2
 	MOVUPS    b+48(FP), X3

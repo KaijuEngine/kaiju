@@ -1,3 +1,5 @@
+//go:build F64
+
 /******************************************************************************/
 /* mat4.go                                                                    */
 /******************************************************************************/
@@ -6,155 +8,16 @@
 
 package matrix
 
-const (
-	Mat4Row0 = iota
-	Mat4Row1
-	Mat4Row2
-	Mat4Row3
-)
+type Vec3f = Vec3T[float32]
+type Mat4f [16]float32
+type Vec4f = Vec4T[float32]
 
-const (
-	Mat4Col0 = iota
-	Mat4Col1
-	Mat4Col2
-	Mat4Col3
-)
-
-const (
-	x0y0 = iota
-	x1y0
-	x2y0
-	x3y0
-	x0y1
-	x1y1
-	x2y1
-	x3y1
-	x0y2
-	x1y2
-	x2y2
-	x3y2
-	x0y3
-	x1y3
-	x2y3
-	x3y3
-)
-
-const (
-	Mat4x0y0 = x0y0
-	Mat4x1y0 = x1y0
-	Mat4x2y0 = x2y0
-	Mat4x3y0 = x3y0
-	Mat4x0y1 = x0y1
-	Mat4x1y1 = x1y1
-	Mat4x2y1 = x2y1
-	Mat4x3y1 = x3y1
-	Mat4x0y2 = x0y2
-	Mat4x1y2 = x1y2
-	Mat4x2y2 = x2y2
-	Mat4x3y2 = x3y2
-	Mat4x0y3 = x0y3
-	Mat4x1y3 = x1y3
-	Mat4x2y3 = x2y3
-	Mat4x3y3 = x3y3
-)
-
-type Mat4 [16]Float
-
-func mat4MultiplyFallback(a, b Mat4) Mat4 {
-	var result Mat4
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			var sum Float = 0
-			for k := 0; k < 4; k++ {
-				sum += a[i*4+k] * b[k*4+j]
-			}
-			result[i*4+j] = sum
-		}
-	}
-	return result
+func NewMat4f() Mat4f {
+	return Mat4fIdentity()
 }
 
-func mat4fMultiplyFallback(a, b Mat4f) Mat4f {
-	var result Mat4f
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			var sum float32 = 0
-			for k := 0; k < 4; k++ {
-				sum += a[i*4+k] * b[k*4+j]
-			}
-			result[i*4+j] = sum
-		}
-	}
-	return result
-}
-
-func mat4MultiplyVec4Fallback(a Mat4, b Vec4) Vec4 {
-	var result Vec4
-	c := a.ColumnVector(0)
-	result[Vx] = Vec4Dot(c, b)
-	c = a.ColumnVector(1)
-	result[Vy] = Vec4Dot(c, b)
-	c = a.ColumnVector(2)
-	result[Vz] = Vec4Dot(c, b)
-	c = a.ColumnVector(3)
-	result[Vw] = Vec4Dot(c, b)
-	return result
-}
-
-func mat4fMultiplyVec4fFallback(a Mat4f, b Vec4f) Vec4f {
-	var result Vec4f
-	c := a.ColumnVector(0)
-	result[Vx] = Vec4Dot(c, b)
-	c = a.ColumnVector(1)
-	result[Vy] = Vec4Dot(c, b)
-	c = a.ColumnVector(2)
-	result[Vz] = Vec4Dot(c, b)
-	c = a.ColumnVector(3)
-	result[Vw] = Vec4Dot(c, b)
-	return result
-}
-
-func vec4MultiplyMat4Fallback(v Vec4, m Mat4) Vec4 {
-	var result Vec4
-	row := m.RowVector(0)
-	result[Vx] = Vec4Dot(row, v)
-	row = m.RowVector(1)
-	result[Vy] = Vec4Dot(row, v)
-	row = m.RowVector(2)
-	result[Vz] = Vec4Dot(row, v)
-	row = m.RowVector(3)
-	result[Vw] = Vec4Dot(row, v)
-	return result
-}
-
-func vec4fMultiplyMat4fFallback(v Vec4f, m Mat4f) Vec4f {
-	var result Vec4f
-	row := m.RowVector(0)
-	result[Vx] = Vec4Dot(row, v)
-	row = m.RowVector(1)
-	result[Vy] = Vec4Dot(row, v)
-	row = m.RowVector(2)
-	result[Vz] = Vec4Dot(row, v)
-	row = m.RowVector(3)
-	result[Vw] = Vec4Dot(row, v)
-	return result
-}
-
-func Mat4fIdentity() Mat4f {
+func Mat4fFromSlice(a []float32) Mat4f {
 	return Mat4f{
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
-	}
-}
-
-func NewMat4() Mat4 {
-	return Mat4Identity()
-}
-
-func Mat4FromSlice(a []Float) Mat4 {
-	return Mat4{
 		a[0], a[1], a[2], a[3],
 		a[4], a[5], a[6], a[7],
 		a[8], a[9], a[10], a[11],
@@ -162,28 +25,19 @@ func Mat4FromSlice(a []Float) Mat4 {
 	}
 }
 
-func Mat4Identity() Mat4 {
-	return Mat4{
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
-	}
+func Mat4fZero() Mat4f {
+	return Mat4f{}
 }
 
-func Mat4Zero() Mat4 {
-	return Mat4{}
-}
-
-func (m *Mat4) Mat3() Mat3 {
-	return Mat3{
+func (m *Mat4f) Mat3f() Mat3f {
+	return Mat3f{
 		m[x0y0], m[x1y0], m[x2y0],
 		m[x0y1], m[x1y1], m[x2y1],
 		m[x0y2], m[x1y2], m[x2y2],
 	}
 }
 
-func (m *Mat4) Reset() {
+func (m *Mat4f) Reset() {
 	m[x0y0] = 1
 	m[x1y0] = 0
 	m[x2y0] = 0
@@ -202,45 +56,45 @@ func (m *Mat4) Reset() {
 	m[x3y3] = 1
 }
 
-func (m *Mat4) Zero() {
+func (m *Mat4f) Zero() {
 	for i := 0; i < len(m); i++ {
 		m[i] = 0.0
 	}
 }
 
-func (m Mat4) Mat4ProjToVulkan() Mat4 {
+func (m Mat4f) Mat4fProjToVulkan() Mat4f {
 	res := m
 	res[x1y1] *= -1.0
 	return res
 }
 
-func (m Mat4) At(rowIndex, colIndex int) Float {
+func (m Mat4f) At(rowIndex, colIndex int) float32 {
 	return m[rowIndex*4+colIndex]
 }
 
-func (m Mat4) RowVector(row int) Vec4 {
-	return Vec4{m[row*4+0], m[row*4+1], m[row*4+2], m[row*4+3]}
+func (m Mat4f) RowVector(row int) Vec4f {
+	return Vec4f{m[row*4+0], m[row*4+1], m[row*4+2], m[row*4+3]}
 }
 
-func (m Mat4) ColumnVector(col int) Vec4 {
-	return Vec4{m[col+0], m[col+4], m[col+8], m[col+12]}
+func (m Mat4f) ColumnVector(col int) Vec4f {
+	return Vec4f{m[col+0], m[col+4], m[col+8], m[col+12]}
 }
 
-func (m Mat4) Mat4Project(pos Vec3, viewport Vec4) Vec3 {
-	pos4 := Vec4{pos.X(), pos.Y(), pos.Z(), 1.0}
-	pos4 = Mat4MultiplyVec4(m, pos4)
+func (m Mat4f) Mat4fProject(pos Vec3f, viewport Vec4f) Vec3f {
+	pos4 := Vec4f{pos.X(), pos.Y(), pos.Z(), 1.0}
+	pos4 = Mat4fMultiplyVec4f(m, pos4)
 	z := pos4.Z()
 	pos4.Shrink(pos4.W())
 	pos4.Scale(0.5)
-	pos4.Add(Vec4{0.5, 0.5, 0.5, 0.5})
-	return Vec3{pos4.X()*viewport.Z() + viewport.X(),
+	pos4.Add(Vec4f{0.5, 0.5, 0.5, 0.5})
+	return Vec3f{pos4.X()*viewport.Z() + viewport.X(),
 		pos4.Y()*viewport.W() + viewport.Y(), z}
 }
 
-func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) (Vec3, bool) {
-	clip := Mat4MultiplyVec4(projection, Mat4MultiplyVec4(view, pos.AsVec4()))
+func Mat4fToScreenSpace(pos Vec3f, view, projection Mat4f, viewport Vec4f) (Vec3f, bool) {
+	clip := Mat4fMultiplyVec4f(projection, Mat4fMultiplyVec4f(view, pos.AsVec4()))
 	if clip.W() <= 0.0001 {
-		return Vec3{}, false
+		return Vec3f{}, false
 	}
 	invW := 1.0 / clip.W()
 	ndcX := clip.X() * invW
@@ -248,24 +102,24 @@ func Mat4ToScreenSpace(pos Vec3, view, projection Mat4, viewport Vec4) (Vec3, bo
 	ndcZ := clip.Z() * invW
 	screenX := (ndcX+1.0)*0.5*viewport.Z() + viewport.X()
 	screenY := (ndcY+1.0)*0.5*viewport.W() + viewport.Y()
-	return Vec3{screenX, screenY, ndcZ}, true
+	return Vec3f{screenX, screenY, ndcZ}, true
 }
 
-func (m Mat4) Mat4UnProject(p Vec3, invViewProj Mat4, viewport Vec4) Vec3 {
-	var v Vec4
+func (m Mat4f) Mat4fUnProject(p Vec3f, invViewProj Mat4f, viewport Vec4f) Vec3f {
+	var v Vec4f
 	v.SetX((p.X()-viewport.X())/viewport.Z()*2.0 - 1.0)
 	v.SetY(-(p.Y()-viewport.Y())/viewport.W()*2.0 + 1.0)
 	v.SetZ(p.Z())
 	v.SetW(1.0)
-	v = Mat4MultiplyVec4(invViewProj, v)
+	v = Mat4fMultiplyVec4f(invViewProj, v)
 	if v.W() != 0 {
 		v.Scale(1.0 / v.W())
 	}
-	return Vec3{v.X(), v.Y(), v.Z()}
+	return Vec3f{v.X(), v.Y(), v.Z()}
 }
 
-func (m Mat4) Transpose() Mat4 {
-	var res Mat4
+func (m Mat4f) Transpose() Mat4f {
+	var res Mat4f
 	res[x0y0] = m[x0y0]
 	res[x1y0] = m[x0y1]
 	res[x2y0] = m[x0y2]
@@ -285,7 +139,7 @@ func (m Mat4) Transpose() Mat4 {
 	return res
 }
 
-func (m *Mat4) TransposeAssign() {
+func (m *Mat4f) TransposeAssign() {
 	result := *m
 	m[x0y1] = result[x1y0]
 	m[x0y2] = result[x2y0]
@@ -301,7 +155,7 @@ func (m *Mat4) TransposeAssign() {
 	m[x3y2] = result[x2y3]
 }
 
-func (m *Mat4) AddAssign(rhs Mat4) {
+func (m *Mat4f) AddAssign(rhs Mat4f) {
 	m[x0y0] += rhs[x0y0]
 	m[x1y0] += rhs[x1y0]
 	m[x2y0] += rhs[x2y0]
@@ -320,7 +174,7 @@ func (m *Mat4) AddAssign(rhs Mat4) {
 	m[x3y3] += rhs[x3y3]
 }
 
-func (m *Mat4) SubtractAssign(rhs Mat4) {
+func (m *Mat4f) SubtractAssign(rhs Mat4f) {
 	m[x0y0] -= rhs[x0y0]
 	m[x1y0] -= rhs[x1y0]
 	m[x2y0] -= rhs[x2y0]
@@ -339,17 +193,17 @@ func (m *Mat4) SubtractAssign(rhs Mat4) {
 	m[x3y3] -= rhs[x3y3]
 }
 
-func (m *Mat4) NegateAssign() {
+func (m *Mat4f) NegateAssign() {
 	for i := 0; i < len(m); i++ {
 		m[i] *= -1.0
 	}
 }
 
-func (a *Mat4) MultiplyAssign(b Mat4) {
-	*a = Mat4Multiply(*a, b)
+func (a *Mat4f) MultiplyAssign(b Mat4f) {
+	*a = Mat4fMultiply(*a, b)
 }
 
-func (m *Mat4) Orthographic(left, right, bottom, top, near, far Float) {
+func (m *Mat4f) Orthographic(left, right, bottom, top, near, far float32) {
 	m.Zero()
 	m[x0y0] = 2.0 / (right - left)
 	// Vulkan inverts x1y1 (see mat4_projection_gl2vulkan)
@@ -362,8 +216,8 @@ func (m *Mat4) Orthographic(left, right, bottom, top, near, far Float) {
 	m[x3y3] = 1.0
 }
 
-func (m *Mat4) Perspective(fovy, aspect, nearVal, farVal Float) {
-	var f, fn Float
+func (m *Mat4f) Perspective(fovy, aspect, nearVal, farVal float32) {
+	var f, fn float32
 	m.Zero()
 	f = 1.0 / Tan(fovy*0.5)
 	fn = 1.0 / (nearVal - farVal)
@@ -374,25 +228,25 @@ func (m *Mat4) Perspective(fovy, aspect, nearVal, farVal Float) {
 	m[x2y3] = 2.0 * nearVal * farVal * fn
 }
 
-func (m *Mat4) Translate(translation Vec3) {
+func (m *Mat4f) Translate(translation Vec3f) {
 	(*m)[x0y3] += translation.X()
 	(*m)[x1y3] += translation.Y()
 	(*m)[x2y3] += translation.Z()
 }
 
-func (m *Mat4) SetTranslation(translation Vec3) {
+func (m *Mat4f) SetTranslation(translation Vec3f) {
 	(*m)[x0y3] = translation.X()
 	(*m)[x1y3] = translation.Y()
 	(*m)[x2y3] = translation.Z()
 }
 
-func (m *Mat4) Scale(scale Vec3) {
+func (m *Mat4f) Scale(scale Vec3f) {
 	m[x0y0] *= scale.X()
 	m[x1y1] *= scale.Y()
 	m[x2y2] *= scale.Z()
 }
 
-func (m *Mat4) LookAt(eye, center, up Vec3) {
+func (m *Mat4f) LookAt(eye, center, up Vec3f) {
 	f := eye.Subtract(center)
 	f.Normalize()
 	s := Vec3Cross(up, f)
@@ -401,29 +255,29 @@ func (m *Mat4) LookAt(eye, center, up Vec3) {
 	ns := s.Negative()
 	nu := u.Negative()
 	nf := f.Negative()
-	*m = Mat4{
+	*m = Mat4f{
 		s.X(), u.X(), f.X(), 0.0,
 		s.Y(), u.Y(), f.Y(), 0.0,
 		s.Z(), u.Z(), f.Z(), 0.0,
 		Vec3Dot(ns, eye), Vec3Dot(nu, eye), Vec3Dot(nf, eye), 1.0}
 }
 
-func Mat4LookAt(eye, center, up Vec3) Mat4 {
-	m := Mat4Identity()
+func Mat4fLookAt(eye, center, up Vec3f) Mat4f {
+	m := Mat4fIdentity()
 	m.LookAt(eye, center, up)
 	return m
 }
 
-func (m *Mat4) Rotate(rotate Vec3) {
-	q := QuaternionFromEuler(rotate)
-	rm := q.ToMat4()
+func (m *Mat4f) Rotate(rotate Vec3f) {
+	q := QuaternionFromEuler(rotate.AsVec3())
+	rm := q.ToMat4f()
 	m.MultiplyAssign(rm)
 }
 
-func (m *Mat4) RotateX(angles Float) {
-	rot := Mat4Identity()
-	c := Cos(Deg2Rad(angles))
-	s := Sin(Deg2Rad(angles))
+func (m *Mat4f) RotateX(angles float32) {
+	rot := Mat4fIdentity()
+	c := float32(Cos(Deg2Rad(angles)))
+	s := float32(Sin(Deg2Rad(angles)))
 	rot[x1y1] = c
 	rot[x2y1] = -s
 	rot[x1y2] = s
@@ -431,10 +285,10 @@ func (m *Mat4) RotateX(angles Float) {
 	m.MultiplyAssign(rot)
 }
 
-func (m *Mat4) RotateY(angles Float) {
-	rot := Mat4{}
-	c := Cos(Deg2Rad(angles))
-	s := Sin(Deg2Rad(angles))
+func (m *Mat4f) RotateY(angles float32) {
+	rot := Mat4f{}
+	c := float32(Cos(Deg2Rad(angles)))
+	s := float32(Sin(Deg2Rad(angles)))
 	rot[x0y0] = c
 	rot[x2y0] = -s
 	rot[x0y2] = s
@@ -444,10 +298,10 @@ func (m *Mat4) RotateY(angles Float) {
 	m.MultiplyAssign(rot)
 }
 
-func (m *Mat4) RotateZ(angles Float) {
-	rot := Mat4Identity()
-	c := Cos(Deg2Rad(angles))
-	s := Sin(Deg2Rad(angles))
+func (m *Mat4f) RotateZ(angles float32) {
+	rot := Mat4fIdentity()
+	c := float32(Cos(Deg2Rad(angles)))
+	s := float32(Sin(Deg2Rad(angles)))
 	rot[x0y0] = c
 	rot[x1y0] = -s
 	rot[x0y1] = s
@@ -455,13 +309,13 @@ func (m *Mat4) RotateZ(angles Float) {
 	m.MultiplyAssign(rot)
 }
 
-func (m *Mat4) RotateAngles(axis Vec3, angle Float) {
+func (m *Mat4f) RotateAngles(axis Vec3f, angle float32) {
 	a := angle
-	c := Cos(Deg2Rad(a))
-	s := Sin(Deg2Rad(a))
+	c := float32(Cos(Deg2Rad(a)))
+	s := float32(Sin(Deg2Rad(a)))
 	axisNorm := axis.Normal()
 	temp := axisNorm.Scale(1.0 - c)
-	var rot Mat4
+	var rot Mat4f
 	rot[x0y0] = c + temp.X()*axisNorm.X()
 	rot[x0y1] = temp.X()*axisNorm.Y() + s*axisNorm.Z()
 	rot[x0y2] = temp.X()*axisNorm.Z() - s*axisNorm.Y()
@@ -471,11 +325,11 @@ func (m *Mat4) RotateAngles(axis Vec3, angle Float) {
 	rot[x2y0] = temp.Z()*axisNorm.X() + s*axisNorm.Y()
 	rot[x2y1] = temp.Z()*axisNorm.Y() - s*axisNorm.X()
 	rot[x2y2] = c + temp.Z()*axisNorm.Z()
-	v0 := Vec4{m[0], m[4], m[8], m[12]}
-	v1 := Vec4{m[1], m[5], m[9], m[13]}
-	v2 := Vec4{m[2], m[6], m[10], m[14]}
-	v3 := Vec4{m[3], m[7], m[11], m[15]}
-	var res Mat4
+	v0 := Vec4f{m[0], m[4], m[8], m[12]}
+	v1 := Vec4f{m[1], m[5], m[9], m[13]}
+	v2 := Vec4f{m[2], m[6], m[10], m[14]}
+	v3 := Vec4f{m[3], m[7], m[11], m[15]}
+	var res Mat4f
 	c0x0y0 := v0.Scale(rot[x0y0])
 	c0x1y0 := v0.Scale(rot[x1y0])
 	c0x2y0 := v0.Scale(rot[x2y0])
@@ -510,8 +364,8 @@ func (m *Mat4) RotateAngles(axis Vec3, angle Float) {
 	*m = res
 }
 
-func (m *Mat4) Inverse() {
-	t := [6]Float{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+func (m *Mat4f) Inverse() {
+	t := [6]float32{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 	a := m[x0y0]
 	b := m[x0y1]
 	c := m[x0y2]
@@ -581,36 +435,36 @@ func (m *Mat4) Inverse() {
 	m[x3y3] *= det
 }
 
-func (m Mat4) TransformPoint(point Vec3) Vec3 {
-	pt0 := Vec4{point.X(), point.Y(), point.Z(), 1.0}
-	res := Mat4MultiplyVec4(m, pt0)
-	v3 := Vec3{res.X(), res.Y(), res.Z()}
+func (m Mat4f) TransformPoint(point Vec3f) Vec3f {
+	pt0 := Vec4f{point.X(), point.Y(), point.Z(), 1.0}
+	res := Mat4fMultiplyVec4f(m, pt0)
+	v3 := Vec3f{res.X(), res.Y(), res.Z()}
 	v3.ShrinkAssign(res.W())
 	return v3
 }
 
-func (m Mat4) Right() Vec3 {
-	return Vec3{m[x0y0], m[x1y0], m[x2y0]}
+func (m Mat4f) Right() Vec3f {
+	return Vec3f{m[x0y0], m[x1y0], m[x2y0]}
 }
 
-func (m Mat4) Up() Vec3 {
-	return Vec3{m[x0y1], m[x1y1], m[x2y1]}
+func (m Mat4f) Up() Vec3f {
+	return Vec3f{m[x0y1], m[x1y1], m[x2y1]}
 }
 
-func (m Mat4) Forward() Vec3 {
-	return Vec3{m[x0y2], m[x1y2], m[x2y2]}
+func (m Mat4f) Forward() Vec3f {
+	return Vec3f{m[x0y2], m[x1y2], m[x2y2]}
 }
 
-func (m Mat4) ToQuaternion() Quaternion {
-	m00 := m[0]
-	m10 := m[1]
-	m20 := m[2]
-	m01 := m[4]
-	m11 := m[5]
-	m21 := m[6]
-	m02 := m[8]
-	m12 := m[9]
-	m22 := m[10]
+func (m Mat4f) ToQuaternion() Quaternion {
+	m00 := Float(m[0])
+	m10 := Float(m[1])
+	m20 := Float(m[2])
+	m01 := Float(m[4])
+	m11 := Float(m[5])
+	m21 := Float(m[6])
+	m02 := Float(m[8])
+	m12 := Float(m[9])
+	m22 := Float(m[10])
 	t := m00 + m11 + m22
 	if t > 0 {
 		s := 0.5 / Sqrt(t+1.0)
@@ -627,8 +481,8 @@ func (m Mat4) ToQuaternion() Quaternion {
 	}
 }
 
-func (m Mat4) Inverted() Mat4 {
-	res := Mat4{}
+func (m Mat4f) Inverted() Mat4f {
+	res := Mat4f{}
 	res[x0y0] = m[x0y0]
 	res[x1y0] = m[x0y1]
 	res[x2y0] = m[x0y2]
@@ -648,8 +502,8 @@ func (m Mat4) Inverted() Mat4 {
 	return res
 }
 
-func (m Mat4) IsIdentity() bool {
-	match := Mat4Identity()
+func (m Mat4f) IsIdentity() bool {
+	match := Mat4fIdentity()
 	success := true
 	for i := 0; i < len(match) && success; i++ {
 		success = match[i] == m[i]
@@ -657,15 +511,15 @@ func (m Mat4) IsIdentity() bool {
 	return success
 }
 
-func Mat4Approx(a, b Mat4) bool {
+func Mat4fApprox(a, b Mat4f) bool {
 	res := true
 	for i := range a {
-		res = res && Abs(a[i]-b[i]) < FloatSmallestNonzero
+		res = res && Abs(a[i]-b[i]) < float32(FloatSmallestNonzero)
 	}
 	return res
 }
 
-func Mat4ApproxTo(a, b Mat4, delta Float) bool {
+func Mat4fApproxTo(a, b Mat4f, delta float32) bool {
 	res := true
 	for i := range a {
 		res = res && Abs(a[i]-b[i]) < delta
@@ -673,15 +527,15 @@ func Mat4ApproxTo(a, b Mat4, delta Float) bool {
 	return res
 }
 
-func (m Mat4) Equals(other Mat4) bool {
-	return Mat4Approx(m, other)
+func (m Mat4f) Equals(other Mat4f) bool {
+	return Mat4fApprox(m, other)
 }
 
-func (m Mat4) ExtractPosition() Vec3 {
-	return Vec3{m[x0y3], m[x1y3], m[x2y3]}
+func (m Mat4f) ExtractPosition() Vec3f {
+	return Vec3f{m[x0y3], m[x1y3], m[x2y3]}
 }
 
-func (m Mat4) ExtractScale() Vec3 {
+func (m Mat4f) ExtractScale() Vec3f {
 	sx := Sqrt(m[x0y0]*m[x0y0] + m[x1y0]*m[x1y0] + m[x2y0]*m[x2y0])
 	sy := Sqrt(m[x0y1]*m[x0y1] + m[x1y1]*m[x1y1] + m[x2y1]*m[x2y1])
 	sz := Sqrt(m[x0y2]*m[x0y2] + m[x1y2]*m[x1y2] + m[x2y2]*m[x2y2])
@@ -697,13 +551,13 @@ func (m Mat4) ExtractScale() Vec3 {
 			sz = -sz
 		}
 	}
-	return Vec3{sx, sy, sz}
+	return Vec3f{sx, sy, sz}
 }
 
-func (m Mat4) ExtractRotation() Quaternion {
-	sx := Float(Sqrt(m[x0y0]*m[x0y0] + m[x1y0]*m[x1y0] + m[x2y0]*m[x2y0]))
-	sy := Float(Sqrt(m[x0y1]*m[x0y1] + m[x1y1]*m[x1y1] + m[x2y1]*m[x2y1]))
-	sz := Float(Sqrt(m[x0y2]*m[x0y2] + m[x1y2]*m[x1y2] + m[x2y2]*m[x2y2]))
+func (m Mat4f) ExtractRotation() Quaternion {
+	sx := float32(Sqrt(m[x0y0]*m[x0y0] + m[x1y0]*m[x1y0] + m[x2y0]*m[x2y0]))
+	sy := float32(Sqrt(m[x0y1]*m[x0y1] + m[x1y1]*m[x1y1] + m[x2y1]*m[x2y1]))
+	sz := float32(Sqrt(m[x0y2]*m[x0y2] + m[x1y2]*m[x1y2] + m[x2y2]*m[x2y2]))
 	if sx == 0 || sy == 0 || sz == 0 {
 		return Quaternion{0, 0, 0, 1}
 	}
@@ -747,28 +601,28 @@ func (m Mat4) ExtractRotation() Quaternion {
 	var q Quaternion
 	if trace > 0 {
 		t := Sqrt(trace+1) * 2
-		q[Qw] = 0.25 * t
-		q[Qx] = (r21 - r12) / t
-		q[Qy] = (r02 - r20) / t
-		q[Qz] = (r10 - r01) / t
+		q[Qw] = float64(0.25 * t)
+		q[Qx] = float64((r21 - r12) / t)
+		q[Qy] = float64((r02 - r20) / t)
+		q[Qz] = float64((r10 - r01) / t)
 	} else if r00 > r11 && r00 > r22 {
 		t := Sqrt(1+r00-r11-r22) * 2
-		q[Qx] = 0.25 * t
-		q[Qw] = (r21 - r12) / t
-		q[Qy] = (r01 + r10) / t
-		q[Qz] = (r02 + r20) / t
+		q[Qx] = float64(0.25 * t)
+		q[Qw] = float64((r21 - r12) / t)
+		q[Qy] = float64((r01 + r10) / t)
+		q[Qz] = float64((r02 + r20) / t)
 	} else if r11 > r22 {
 		t := Sqrt(1+r11-r00-r22) * 2
-		q[Qy] = 0.25 * t
-		q[Qw] = (r02 - r20) / t
-		q[Qx] = (r01 + r10) / t
-		q[Qz] = (r12 + r21) / t
+		q[Qy] = float64(0.25 * t)
+		q[Qw] = float64((r02 - r20) / t)
+		q[Qx] = float64((r01 + r10) / t)
+		q[Qz] = float64((r12 + r21) / t)
 	} else {
 		t := Sqrt(1+r22-r00-r11) * 2
-		q[Qz] = 0.25 * t
-		q[Qw] = (r10 - r01) / t
-		q[Qx] = (r02 + r20) / t
-		q[Qy] = (r12 + r21) / t
+		q[Qz] = float64(0.25 * t)
+		q[Qw] = float64((r10 - r01) / t)
+		q[Qx] = float64((r02 + r20) / t)
+		q[Qy] = float64((r12 + r21) / t)
 	}
 	return q
 }

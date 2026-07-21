@@ -103,6 +103,31 @@ func (q Quaternion) ToMat4() Mat4 {
 	return out
 }
 
+func (q Quaternion) ToMat4f() Mat4f {
+	out := Mat4fIdentity()
+	sqw := q.W() * q.W()
+	sqx := q.X() * q.X()
+	sqy := q.Y() * q.Y()
+	sqz := q.Z() * q.Z()
+	invs := 1.0 / (sqx + sqy + sqz + sqw)
+	out[x0y0] = float32((sqx - sqy - sqz + sqw) * invs)
+	out[x1y1] = float32((-sqx + sqy - sqz + sqw) * invs)
+	out[x2y2] = float32((-sqx - sqy + sqz + sqw) * invs)
+	tmp1 := q.X() * q.Y()
+	tmp2 := q.Z() * q.W()
+	out[x1y0] = 2.0 * float32((tmp1+tmp2)*invs)
+	out[x0y1] = 2.0 * float32((tmp1-tmp2)*invs)
+	tmp1 = q.X() * q.Z()
+	tmp2 = q.Y() * q.W()
+	out[x2y0] = 2.0 * float32((tmp1-tmp2)*invs)
+	out[x0y2] = 2.0 * float32((tmp1+tmp2)*invs)
+	tmp1 = q.Y() * q.Z()
+	tmp2 = q.X() * q.W()
+	out[x2y1] = 2.0 * float32((tmp1+tmp2)*invs)
+	out[x1y2] = 2.0 * float32((tmp1-tmp2)*invs)
+	return out
+}
+
 func QuaternionFromEuler(v Vec3) Quaternion {
 	x := Deg2Rad(v.X())
 	y := Deg2Rad(v.Y())

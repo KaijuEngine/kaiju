@@ -48,8 +48,12 @@ func (v Vec4T[T]) AsVec4i() Vec4i {
 	return Vec4i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz]), int32(v[Vw])}
 }
 
+func NewVec4T[T1, T2, T3, T4, T5 tNumber](x T2, y T3, z T4, w T5) Vec4T[T1] {
+	return Vec4T[T1]{T1(x), T1(y), T1(z), T1(w)}
+}
+
 func NewVec4[T1, T2, T3, T4 tNumber](x T1, y T2, z T3, w T4) Vec4 {
-	return Vec4{Float(x), Float(y), Float(z), Float(w)}
+	return NewVec4T[Float](x, y, z, w)
 }
 
 func Vec4FromArray[T tNumber](a [4]T) Vec4 {

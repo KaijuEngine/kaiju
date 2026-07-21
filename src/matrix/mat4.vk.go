@@ -6,6 +6,6 @@
 
 package matrix
 
-func mat4X1Y1(current Float) Float {
+func mat4X1Y1[T tFloatingPoint](current T) T {
 	return -current
 }
