@@ -43,6 +43,7 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 	if _, ok := c.Lights[target]; ok {
 		return
 	}
+	normalizeLegacyLightColors(data)
 	lightType := rendering.LightType(data.FieldValueByName("Type").(int))
 	l := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
 		host.AssetDatabase(), host.MaterialCache(), lightType)
@@ -83,6 +84,23 @@ func (c *LightEntityDataRenderer) Attached(host *engine.Host, manager *editor_st
 	target.OnDestroy.Add(func() {
 		c.Detatched(host, manager, target, data)
 	})
+}
+
+func normalizeLegacyLightColors(data *entity_data_binding.EntityDataEntry) {
+	original := engine_entity_data_light.LightEntityData{
+		Ambient:  data.FieldValueByName("Ambient").(matrix.Vec3),
+		Diffuse:  data.FieldValueByName("Diffuse").(matrix.Vec3),
+		Specular: data.FieldValueByName("Specular").(matrix.Vec3),
+	}
+	normalized := original.WithLegacyColorDefaults()
+	if normalized.Ambient == original.Ambient &&
+		normalized.Diffuse == original.Diffuse &&
+		normalized.Specular == original.Specular {
+		return
+	}
+	data.SetFieldByName("Ambient", normalized.Ambient)
+	data.SetFieldByName("Diffuse", normalized.Diffuse)
+	data.SetFieldByName("Specular", normalized.Specular)
 }
 
 func (c *LightEntityDataRenderer) Detatched(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {

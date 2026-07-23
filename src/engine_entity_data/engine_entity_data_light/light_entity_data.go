@@ -49,6 +49,20 @@ type LightEntityData struct {
 	CastsShadows bool
 }
 
+// WithLegacyColorDefaults repairs light bindings written by editor versions
+// that failed to apply matrix vector default tags. That defect serialized all
+// three color fields as zero, making the light permanently black after reload.
+// A partial zero value is left alone so authored color choices are preserved.
+func (c LightEntityData) WithLegacyColorDefaults() LightEntityData {
+	zero := matrix.Vec3Zero()
+	if c.Ambient == zero && c.Diffuse == zero && c.Specular == zero {
+		c.Ambient = matrix.NewVec3(0.1, 0.1, 0.1)
+		c.Diffuse = matrix.Vec3One()
+		c.Specular = matrix.Vec3One()
+	}
+	return c
+}
+
 type LightModule struct {
 	lightEntry *lighting.LightEntry
 	entity     *engine.Entity
@@ -58,6 +72,7 @@ type LightModule struct {
 }
 
 func (c LightEntityData) Init(e *engine.Entity, host *engine.Host) {
+	c = c.WithLegacyColorDefaults()
 	light := rendering.NewLight(host.Window.GpuInstance.PrimaryDevice(),
 		host.AssetDatabase(), host.MaterialCache(),
 		rendering.LightType(c.Type))

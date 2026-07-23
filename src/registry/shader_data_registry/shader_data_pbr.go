@@ -49,6 +49,17 @@ func selectPBRLights(base *rendering.ShaderDataBase, ids *[4]int32, lights rende
 	shouldUpdate := lights.HasChanges
 	t := base.Transform()
 	shouldUpdate = shouldUpdate || (t != nil && t.IsDirty())
+	if !shouldUpdate && len(lights.Lights) > 0 {
+		// A stage may finish attaching its lights before a deferred mesh drawing
+		// is added. The collection change has already been consumed in that case,
+		// but an all-disabled ID set shows that this PBR instance has never selected
+		// from the existing lights.
+		hasSelectedLight := false
+		for i := range ids {
+			hasSelectedLight = hasSelectedLight || ids[i] >= 0
+		}
+		shouldUpdate = !hasSelectedLight
+	}
 	if !shouldUpdate {
 		return
 	}
