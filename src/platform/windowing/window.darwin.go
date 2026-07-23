@@ -73,6 +73,7 @@ func (w *Window) poll() {
 
 // Cursor variants (private)
 func (w *Window) cursorStandard() { C.cocoa_cursor_standard() }
+func (w *Window) cursorHand()     { C.cocoa_cursor_standard() /* fallback */ }
 func (w *Window) cursorIbeam()    { C.cocoa_cursor_ibeam() }
 func (w *Window) cursorSizeAll()  { C.cocoa_cursor_size_all() }
 func (w *Window) cursorSizeNS()   { C.cocoa_cursor_size_ns() }

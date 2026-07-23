@@ -327,6 +327,13 @@ func (w *Window) CursorStandard() {
 	}
 }
 
+func (w *Window) CursorHand() {
+	if w.canChangeCursor() {
+		w.cursorHand()
+	}
+	w.cursorChangeCount++
+}
+
 func (w *Window) CursorIbeam() {
 	if w.canChangeCursor() {
 		w.cursorIbeam()

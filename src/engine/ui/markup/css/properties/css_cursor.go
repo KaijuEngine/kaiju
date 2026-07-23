@@ -32,7 +32,7 @@ func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		case "help":
 			fallthrough
 		case "pointer":
-			fallthrough
+			host.Window.CursorHand()
 		case "progress":
 			fallthrough
 		case "wait":

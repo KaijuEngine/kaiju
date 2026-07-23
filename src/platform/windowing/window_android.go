@@ -136,6 +136,7 @@ func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 
 func (w *Window) showWindow()                       {}
 func (w *Window) cursorStandard()                   {}
+func (w *Window) cursorHand()                       {}
 func (w *Window) cursorIbeam()                      {}
 func (w *Window) cursorSizeAll()                    {}
 func (w *Window) cursorSizeNS()                     {}
