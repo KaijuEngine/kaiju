@@ -1,0 +1,164 @@
+package render_graph_workspace // import "kaijuengine.com/editor/editor_workspace/render_graph_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "renderGraph"
+	DisplayName = "Render Graph"
+)
+const (
+	ActionRenderGraphShowCreateNodeMenu editor_action.ActionID = "renderGraph.showCreateNodeMenu"
+	ActionRenderGraphCreateNode         editor_action.ActionID = "renderGraph.createNode"
+	ActionRenderGraphCreateComment      editor_action.ActionID = "renderGraph.createComment"
+	ActionRenderGraphCenterView         editor_action.ActionID = "renderGraph.centerView"
+	ActionRenderGraphFocusSelection     editor_action.ActionID = "renderGraph.focusSelection"
+	ActionRenderGraphSave               editor_action.ActionID = "renderGraph.save"
+	ActionRenderGraphDeleteSelection    editor_action.ActionID = "renderGraph.deleteSelection"
+)
+
+FUNCTIONS
+
+func CreateNodeActionVariants() []editor_action.Variant
+func SerializeRenderGraphDocument(document RenderGraphDocument) ([]byte, error)
+
+TYPES
+
+type CreateCommentActionArgs struct {
+	Label       string  `json:"label,omitempty"`
+	X           float32 `json:"x,omitempty"`
+	Y           float32 `json:"y,omitempty"`
+	Width       float32 `json:"width,omitempty"`
+	Height      float32 `json:"height,omitempty"`
+	UsePosition bool    `json:"usePosition,omitempty"`
+	UseSize     bool    `json:"useSize,omitempty"`
+}
+
+func DefaultCreateCommentActionArgs() CreateCommentActionArgs
+
+type CreateNodeActionArgs struct {
+	NodeID            string  `json:"nodeId"`
+	X                 float32 `json:"x,omitempty"`
+	Y                 float32 `json:"y,omitempty"`
+	UsePosition       bool    `json:"usePosition,omitempty"`
+	UseConnection     bool    `json:"useConnection,omitempty"`
+	ConnectFromNodeID string  `json:"connectFromNodeId,omitempty"`
+	ConnectFromPort   int     `json:"connectFromPort,omitempty"`
+	ConnectFromOutput bool    `json:"connectFromOutput,omitempty"`
+	ConnectFromType   string  `json:"connectFromType,omitempty"`
+}
+
+func DefaultCreateNodeActionArgs() CreateNodeActionArgs
+
+type RenderGraphComment struct {
+	ID       string      `json:"id"`
+	Label    string      `json:"label,omitempty"`
+	Position matrix.Vec2 `json:"position"`
+	Size     matrix.Vec2 `json:"size"`
+}
+
+type RenderGraphConnection struct {
+	Output RenderGraphPortRef `json:"output"`
+	Input  RenderGraphPortRef `json:"input"`
+}
+
+type RenderGraphDocument struct {
+	Version     int                     `json:"version"`
+	Name        string                  `json:"name,omitempty"`
+	Pan         matrix.Vec2             `json:"pan,omitempty"`
+	Zoom        matrix.Float            `json:"zoom,omitempty"`
+	Generated   *RenderGraphGenerated   `json:"generated,omitempty"`
+	Nodes       []RenderGraphNode       `json:"nodes"`
+	Comments    []RenderGraphComment    `json:"comments,omitempty"`
+	Connections []RenderGraphConnection `json:"connections,omitempty"`
+}
+
+func DeserializeRenderGraphDocument(data []byte) (RenderGraphDocument, error)
+
+type RenderGraphFieldValue struct {
+	Text   string        `json:"text,omitempty"`
+	Parts  []string      `json:"parts,omitempty"`
+	Bool   *bool         `json:"bool,omitempty"`
+	Color  *matrix.Color `json:"color,omitempty"`
+	Option string        `json:"option,omitempty"`
+}
+
+type RenderGraphGenerated struct {
+	ShaderID           string `json:"shaderId,omitempty"`
+	MaterialID         string `json:"materialId,omitempty"`
+	VertexSpvID        string `json:"vertexSpvId,omitempty"`
+	VertexSourcePath   string `json:"vertexSourcePath,omitempty"`
+	FragmentSpvID      string `json:"fragmentSpvId,omitempty"`
+	FragmentSourcePath string `json:"fragmentSourcePath,omitempty"`
+}
+
+func (g RenderGraphGenerated) IsZero() bool
+
+type RenderGraphNode struct {
+	ID       string                           `json:"id"`
+	Type     string                           `json:"type"`
+	Position matrix.Vec2                      `json:"position"`
+	Values   map[string]RenderGraphFieldValue `json:"values,omitempty"`
+}
+
+type RenderGraphPortRef struct {
+	Node string `json:"node"`
+	Port int    `json:"port"`
+}
+
+type RenderGraphWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *RenderGraphWorkspace) CenterView()
+
+func (w *RenderGraphWorkspace) Close()
+
+func (w *RenderGraphWorkspace) CreateCommentFromAction(args CreateCommentActionArgs) (*renderGraphComment, bool)
+
+func (w *RenderGraphWorkspace) CreateNodeFromAction(args CreateNodeActionArgs) (*renderGraphNode, bool)
+
+func (w *RenderGraphWorkspace) DeleteSelectedNodes() bool
+
+func (w *RenderGraphWorkspace) DeserializeGraph(data []byte) error
+
+func (w *RenderGraphWorkspace) DisplayName() string
+
+func (w *RenderGraphWorkspace) FocusSelectedNodes() bool
+
+func (w *RenderGraphWorkspace) GraphDocument() RenderGraphDocument
+
+func (w *RenderGraphWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *RenderGraphWorkspace) ID() string
+
+func (w *RenderGraphWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *RenderGraphWorkspace) IsFocusedOnInput() bool
+
+func (w *RenderGraphWorkspace) IsRequired() bool
+
+func (w *RenderGraphWorkspace) LoadRenderGraphID(id string)
+
+func (w *RenderGraphWorkspace) Open()
+
+func (w *RenderGraphWorkspace) SaveCurrentGraph()
+
+func (w *RenderGraphWorkspace) SerializeGraph() ([]byte, error)
+
+func (w *RenderGraphWorkspace) ShowCreateNodeMenu()
+
+func (w *RenderGraphWorkspace) Shutdown()
+
+func (w *RenderGraphWorkspace) Update(deltaTime float64)
+
+func (w *RenderGraphWorkspace) UpdateViewportTool(view *editor_stage_view.StageView) bool
+
+type RenderGraphWorkspaceUIData struct {
+	CameraMode  string
+	CreateNodes []renderGraphNodeMenuData
+	GraphName   string
+}
+

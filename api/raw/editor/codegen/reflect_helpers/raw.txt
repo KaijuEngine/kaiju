@@ -1,0 +1,13 @@
+package reflect_helpers // import "kaijuengine.com/editor/codegen/reflect_helpers"
+
+
+FUNCTIONS
+
+func CanonicalTypeName(typeName string) string
+    CanonicalTypeName maps the runtime names of the generic matrix vector
+    implementations back to the public aliases used in entity-data source.
+    reflect reports matrix.Vec3 as "Vec3T[float32]", for example, because Vec3
+    is an alias. The editor's field classification and default parser should
+    continue to treat that type as "Vec3".
+
+func StringToTypeValue(typeName, v string) any

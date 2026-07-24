@@ -1,0 +1,139 @@
+package stage_workspace // import "kaijuengine.com/editor/editor_workspace/stage_workspace"
+
+
+CONSTANTS
+
+const (
+	// ID is the stable workspace identifier used for registration, settings
+	// persistence, and SelectWorkspace calls. Exported so other packages can
+	// reference the stage workspace without using a magic string.
+	ID = "stage"
+
+	// DisplayName is the label shown on the stage workspace's menu bar tab.
+	DisplayName = "Stage"
+)
+
+TYPES
+
+type EntityDataAttachHistory struct {
+	DetailsWorkspace *WorkspaceDetailsUI
+	Entity           *editor_stage_manager.StageEntity
+	Data             *entity_data_binding.EntityDataEntry
+}
+
+func (h *EntityDataAttachHistory) Delete()
+
+func (h *EntityDataAttachHistory) Exit()
+
+func (h *EntityDataAttachHistory) Redo()
+
+func (h *EntityDataAttachHistory) Undo()
+
+type EntityDataDetachHistory struct {
+	DetailsWorkspace *WorkspaceDetailsUI
+	Entity           *editor_stage_manager.StageEntity
+	Data             *entity_data_binding.EntityDataEntry
+}
+
+func (h *EntityDataDetachHistory) Delete()
+
+func (h *EntityDataDetachHistory) Exit()
+
+func (h *EntityDataDetachHistory) Redo()
+
+func (h *EntityDataDetachHistory) Undo()
+
+type HierarchyEntityDragData struct {
+	// Has unexported fields.
+}
+
+func (d HierarchyEntityDragData) DragUpdate()
+
+type StageDragContent struct {
+	// Has unexported fields.
+}
+
+func (d StageDragContent) DragUpdate()
+
+func (d StageDragContent) MeshRef() string
+
+type StageWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *StageWorkspace) AlignEntityWithView(entity *editor_stage_manager.StageEntity) bool
+
+func (w *StageWorkspace) AlignSelectedEntityWithView() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) Close()
+
+func (w *StageWorkspace) ConnectSelectedAsDistanceChain()
+
+func (w *StageWorkspace) ConnectSelectedAsHingeChain()
+
+func (w *StageWorkspace) ConnectSelectedAsRope()
+
+func (w *StageWorkspace) CreateNewCamera() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreateNewEntity() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreateNewLight() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) DisplayName() string
+
+func (w *StageWorkspace) FocusRename() bool
+
+func (w *StageWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *StageWorkspace) ID() string
+
+func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *StageWorkspace) IsRequired() bool
+
+func (w *StageWorkspace) Open()
+
+func (w *StageWorkspace) OpenStage(id string)
+
+func (w *StageWorkspace) RemoveEntityFromParent(entity *editor_stage_manager.StageEntity) bool
+
+func (w *StageWorkspace) RemoveSelectedEntityFromParent() (*editor_stage_manager.StageEntity, bool)
+
+func (w *StageWorkspace) Shutdown()
+
+func (w *StageWorkspace) ToggleContentPanel() bool
+
+func (w *StageWorkspace) ToggleDetailsPanel() bool
+
+func (w *StageWorkspace) ToggleHierarchyPanel() bool
+
+func (w *StageWorkspace) ToggleViewportSplitFocus() bool
+
+func (w *StageWorkspace) Update(deltaTime float64)
+
+type WorkspaceContentUI struct {
+	// Has unexported fields.
+}
+
+type WorkspaceDetailsUI struct {
+	TargetedElementValueReload map[reflect.Value]func()
+
+	// Has unexported fields.
+}
+
+type WorkspaceHierarchyUI struct {
+	// Has unexported fields.
+}
+
+type WorkspaceUIData struct {
+	Filters    map[string]int
+	Tags       map[string]int
+	CameraMode string
+}
+
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache, cm string) []string
+

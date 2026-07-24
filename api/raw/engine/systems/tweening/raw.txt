@@ -1,0 +1,65 @@
+package tweening // import "kaijuengine.com/engine/systems/tweening"
+
+
+CONSTANTS
+
+const (
+	EasingLinear = Easing(iota)
+	EasingIn
+	EasingOut
+	EasingInAndOut
+	EasingInSine
+	EasingOutSine
+	EasingInAndOutSine
+	EasingInQuad
+	EasingOutQuad
+	EasingInAndOutQuad
+	EasingInCubic
+	EasingOutCubic
+	EasingInAndOutCubic
+	EasingInQuart
+	EasingOutQuart
+	EasingInAndOutQuart
+	EasingInQuint
+	EasingOutQuint
+	EasingInAndOutQuint
+	EasingInExpo
+	EasingOutExpo
+	EasingInAndOutExpo
+	EasingInCirc
+	EasingOutCirc
+	EasingInAndOutCirc
+	EasingInBack
+	EasingOutBack
+	EasingInAndOutBack
+	EasingInElastic
+	EasingOutElastic
+	EasingInAndOutElastic
+	EasingInBounce
+	EasingOutBounce
+	EasingInAndOutBounce
+)
+
+FUNCTIONS
+
+func Clear()
+func DoTween(val *float32, target float32, time float64, easing Easing)
+func DoTweenExt(val *float32, target float32, time float64, easing Easing,
+	onChange func(val float32), onDone func())
+func Stop(val *float32, jumpToEnd, skipCallback bool)
+func Update(deltaTime float64)
+
+TYPES
+
+type Easing int
+
+func (e Easing) Apply(t float32) float32
+    Apply samples this easing curve at normalized time t (typically in [0,
+    1]) and returns the eased progress. Use it to shape a progress value you
+    compute yourself (e.g. a server-timestamp-derived fraction) without driving
+    a stateful Tween/Tweener.
+
+type Tween struct {
+	// Has unexported fields.
+}
+

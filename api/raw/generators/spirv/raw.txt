@@ -1,0 +1,10 @@
+
+
+TYPES
+
+type Prebuilt struct {
+	Src     string
+	Spv     string
+	Shaders []string
+}
+
