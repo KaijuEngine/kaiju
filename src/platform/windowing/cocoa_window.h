@@ -4,6 +4,11 @@
 #include <objc/objc.h>
 #include "shared_mem.h"
 
+typedef struct {
+	int width;
+	int height;
+} MonitorResolution;
+
 // Creates a Cocoa window with CAMetalLayer-backed NSView
 // Returns: NSView* (the view with Metal layer attached)
 // Also sets outWindow to the NSWindow* if needed
@@ -28,6 +33,7 @@ int cocoa_get_screen_pixel_height(void* nsWindow);
 double cocoa_get_backing_scale_factor(void* nsWindow);
 
 int cocoa_screen_count(void* nsWindow);
+int cocoa_screen_resolutions(void* nsWindow, MonitorResolution* resolutions, int capacity);
 
 // Window position and size
 void cocoa_get_position(void* nsWindow, int* x, int* y);

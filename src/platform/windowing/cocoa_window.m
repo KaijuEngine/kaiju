@@ -5,6 +5,7 @@
 // +build darwin
 
 #import <Cocoa/Cocoa.h>
+#import <CoreGraphics/CoreGraphics.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <objc/runtime.h>
 #include <string.h>
@@ -596,9 +597,50 @@ double cocoa_get_backing_scale_factor(void* nsWindow) {
 }
 
 int cocoa_screen_count(void* nsWindow) {
-    if(!nsWindow) return 0;
-	NSArray* screens = [NSScreen screens];
-    return (int)screens.count;
+	return cocoa_screen_resolutions(nsWindow, NULL, 0);
+}
+
+int cocoa_screen_resolutions(
+	void* nsWindow, MonitorResolution* resolutions, int capacity)
+{
+	if (!nsWindow) return 0;
+
+	__block int count = 0;
+	void (^collect)(void) = ^{
+		@autoreleasepool {
+			NSArray<NSScreen*>* screens = [NSScreen screens];
+			count = (int)screens.count;
+			int limit = MIN(count, capacity);
+			for (int i = 0; i < limit; i++) {
+				NSScreen* screen = screens[i];
+				NSNumber* screenNumber =
+					screen.deviceDescription[@"NSScreenNumber"];
+				CGDirectDisplayID displayID =
+					(CGDirectDisplayID)screenNumber.unsignedIntValue;
+				CGDisplayModeRef mode = CGDisplayCopyDisplayMode(displayID);
+				if (mode) {
+					resolutions[i].width =
+						(int)CGDisplayModeGetPixelWidth(mode);
+					resolutions[i].height =
+						(int)CGDisplayModeGetPixelHeight(mode);
+					CGDisplayModeRelease(mode);
+				} else {
+					NSRect frame = screen.frame;
+					CGFloat scale = screen.backingScaleFactor;
+					resolutions[i].width =
+						(int)(frame.size.width * scale);
+					resolutions[i].height =
+						(int)(frame.size.height * scale);
+				}
+			}
+		}
+	};
+	if ([NSThread isMainThread]) {
+		collect();
+	} else {
+		dispatch_sync(dispatch_get_main_queue(), collect);
+	}
+	return count;
 }
 
 void cocoa_get_position(void* nsWindow, int* x, int* y) {

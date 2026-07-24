@@ -76,6 +76,12 @@ type FileSearch struct {
 	Extension string
 }
 
+// MonitorResolution is the current pixel resolution of an active monitor.
+type MonitorResolution struct {
+	Width  int
+	Height int
+}
+
 type TitleBarMode uint8
 
 const (
@@ -275,13 +281,21 @@ func (w *Window) DotsPerMillimeter() float64 {
 	return v
 }
 
-// NOTE: currently only implemented on windows
 func (w *Window) MonitorCount() int {
 	count := w.monitorCount()
 	if count < 1 {
 		return 1
 	}
 	return count
+}
+
+// MonitorResolutions returns the current pixel resolution of each active
+// monitor. The number of connected, active monitors is len(result).
+func (w *Window) MonitorResolutions() []MonitorResolution {
+	if w == nil {
+		return nil
+	}
+	return w.monitorResolutions()
 }
 
 func (w *Window) SizeMM() (int, int, error) {

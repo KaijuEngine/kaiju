@@ -31,6 +31,7 @@ import (
 #cgo noescape screen_width_mm
 #cgo noescape screen_height_mm
 #cgo noescape screen_count
+#cgo noescape screen_resolutions
 #cgo noescape window_focus
 #cgo noescape window_position
 #cgo noescape window_set_position
@@ -145,7 +146,29 @@ func (w *Window) dotsPerMillimeter() float64 {
 }
 
 func (w *Window) monitorCount() int {
-	return int(C.screen_count(w.handle))
+	return int(C.screen_count())
+}
+
+func (w *Window) monitorResolutions() []MonitorResolution {
+	count := int(C.screen_resolutions(nil, 0))
+	if count <= 0 {
+		return nil
+	}
+	native := make([]C.MonitorResolution, count)
+	found := int(C.screen_resolutions(&native[0], C.int(len(native))))
+	if found > len(native) {
+		native = make([]C.MonitorResolution, found)
+		found = int(C.screen_resolutions(&native[0], C.int(len(native))))
+	}
+	found = min(found, len(native))
+	resolutions := make([]MonitorResolution, found)
+	for i := range found {
+		resolutions[i] = MonitorResolution{
+			Width:  int(native[i].width),
+			Height: int(native[i].height),
+		}
+	}
+	return resolutions
 }
 
 func (w *Window) sizeMM() (int, int, error) {

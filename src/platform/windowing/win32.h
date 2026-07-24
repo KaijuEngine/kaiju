@@ -42,6 +42,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct {
+	int width;
+	int height;
+} MonitorResolution;
+
 unsigned int get_toggle_key_state();
 void window_main(const wchar_t* windowTitle,
 	int width, int height, int x, int y, uint64_t goWindow);
@@ -58,7 +63,8 @@ void window_cursor_size_we(void* hwnd);
 float window_dpi(void* hwnd);
 int screen_width_mm(void* hwnd);
 int screen_height_mm(void* hwnd);
-int screen_count(void* hwnd);
+int screen_count();
+int screen_resolutions(MonitorResolution* resolutions, int capacity);
 void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void window_set_position(void* hwnd, int x, int y);

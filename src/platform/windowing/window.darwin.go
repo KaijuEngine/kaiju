@@ -10,7 +10,8 @@ package windowing
 
 /*
 #cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Cocoa -framework QuartzCore -framework Metal
+#cgo LDFLAGS: -framework Cocoa -framework CoreGraphics -framework QuartzCore -framework Metal
+#cgo noescape cocoa_screen_resolutions
 #include "cocoa_window.h"
 #include <stdlib.h>
 */
@@ -160,6 +161,32 @@ func (w *Window) invalidateMonitorCache() {}
 
 func (w *Window) monitorCount() int {
 	return int(C.cocoa_screen_count(w.instance))
+}
+
+func (w *Window) monitorResolutions() []MonitorResolution {
+	count := int(C.cocoa_screen_resolutions(w.instance, nil, 0))
+	if count <= 0 {
+		return nil
+	}
+
+	native := make([]C.MonitorResolution, count)
+	found := int(C.cocoa_screen_resolutions(
+		w.instance, &native[0], C.int(len(native))))
+	if found > len(native) {
+		native = make([]C.MonitorResolution, found)
+		found = int(C.cocoa_screen_resolutions(
+			w.instance, &native[0], C.int(len(native))))
+	}
+	found = min(found, len(native))
+
+	resolutions := make([]MonitorResolution, found)
+	for i := range found {
+		resolutions[i] = MonitorResolution{
+			Width:  int(native[i].width),
+			Height: int(native[i].height),
+		}
+	}
+	return resolutions
 }
 
 func (w *Window) dotsPerMillimeter() float64 {

@@ -952,9 +952,51 @@ float window_dpi(void* hwnd) {
 	return ((float)GetDpiForWindow(hwnd));
 }
 
-int screen_count(void* hwnd) {
-	(void)hwnd;
-	return GetSystemMetrics(SM_CMONITORS);
+typedef struct {
+	MonitorResolution* resolutions;
+	int capacity;
+	int count;
+} MonitorResolutionQuery;
+
+static BOOL CALLBACK collect_monitor_resolution(
+	HMONITOR monitor, HDC monitorDC, LPRECT monitorRect, LPARAM queryData)
+{
+	(void)monitorDC;
+	MonitorResolutionQuery* query = (MonitorResolutionQuery*)queryData;
+	int width = monitorRect->right - monitorRect->left;
+	int height = monitorRect->bottom - monitorRect->top;
+
+	MONITORINFOEXW monitorInfo = {0};
+	monitorInfo.cbSize = sizeof(monitorInfo);
+	if (GetMonitorInfoW(monitor, (MONITORINFO*)&monitorInfo)) {
+		DEVMODEW mode = {0};
+		mode.dmSize = sizeof(mode);
+		if (EnumDisplaySettingsW(
+			monitorInfo.szDevice, ENUM_CURRENT_SETTINGS, &mode))
+		{
+			width = (int)mode.dmPelsWidth;
+			height = (int)mode.dmPelsHeight;
+		}
+	}
+
+	if (query->count < query->capacity && query->resolutions != NULL) {
+		query->resolutions[query->count].width = width;
+		query->resolutions[query->count].height = height;
+	}
+	query->count++;
+	return TRUE;
+}
+
+int screen_resolutions(MonitorResolution* resolutions, int capacity) {
+	MonitorResolutionQuery query = {resolutions, capacity, 0};
+	if (!EnumDisplayMonitors(NULL, NULL, collect_monitor_resolution, (LPARAM)&query)) {
+		return 0;
+	}
+	return query.count;
+}
+
+int screen_count() {
+	return screen_resolutions(NULL, 0);
 }
 
 int screen_width_mm(void* hwnd) {

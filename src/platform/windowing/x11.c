@@ -640,9 +640,44 @@ int window_height_mm(void* state) {
 	return XDisplayHeightMM(s->d, sid);
 }
 
+int screen_resolutions(
+	void* state, MonitorResolution* resolutions, int capacity)
+{
+	if (!state) return 0;
+	X11State* s = state;
+	XRRScreenResources* resources =
+		XRRGetScreenResourcesCurrent(s->d, DefaultRootWindow(s->d));
+	if (!resources) return 0;
+
+	int count = 0;
+	for (int i = 0; i < resources->noutput; i++) {
+		XRROutputInfo* output =
+			XRRGetOutputInfo(s->d, resources, resources->outputs[i]);
+		if (!output || output->connection != RR_Connected ||
+			output->crtc == None)
+		{
+			if (output) XRRFreeOutputInfo(output);
+			continue;
+		}
+
+		XRRCrtcInfo* crtc = XRRGetCrtcInfo(s->d, resources, output->crtc);
+		if (crtc && crtc->width > 0 && crtc->height > 0) {
+			if (count < capacity && resolutions != NULL) {
+				resolutions[count].width = (int)crtc->width;
+				resolutions[count].height = (int)crtc->height;
+			}
+			count++;
+		}
+		if (crtc) XRRFreeCrtcInfo(crtc);
+		XRRFreeOutputInfo(output);
+	}
+
+	XRRFreeScreenResources(resources);
+	return count;
+}
+
 int screen_count(void* state) {
-	(void)state;
-	return 1; // TODO
+	return screen_resolutions(state, NULL, 0);
 }
 
 void window_cursor_standard(void* state) {

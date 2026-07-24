@@ -79,6 +79,11 @@ typedef struct {
 } MonitorInfo;
 
 typedef struct {
+	int width;
+	int height;
+} MonitorResolution;
+
+typedef struct {
 	SharedMem sm;
 	Window w;
 	Display* d;
@@ -108,6 +113,7 @@ void window_set_size(void* state, int width, int height);
 int window_width_mm(void* state);
 int window_height_mm(void* state);
 int screen_count(void* state);
+int screen_resolutions(void* state, MonitorResolution* resolutions, int capacity);
 void window_invalidate_monitor_cache(void* state);
 void window_cursor_standard(void* state);
 void window_cursor_ibeam(void* state);
