@@ -8,6 +8,7 @@ package windowing
 
 import (
 	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 )
 
@@ -43,8 +44,8 @@ func UpdateDragData(sender *Window, x, y int) {
 			if !w.Mouse.Held(hid.MouseButtonLeft) {
 				w.Mouse.ForceHeld(hid.MouseButtonLeft)
 			}
-			w.Mouse.SetPosition(float32(lx), float32(ly),
-				float32(w.width), float32(w.height))
+			w.Mouse.SetPosition(matrix.Float(lx), matrix.Float(ly),
+				matrix.Float(w.width), matrix.Float(w.height))
 		}
 	}
 }
@@ -59,8 +60,8 @@ func UpdateDragDrop(sender *Window, x, y int) {
 			w.requestSync()
 			<-w.windowSync
 			lx, ly := w.ToLocalPosition(sx, sy)
-			w.Mouse.SetPosition(float32(lx), float32(ly),
-				float32(w.width), float32(w.height))
+			w.Mouse.SetPosition(matrix.Float(lx), matrix.Float(ly),
+				matrix.Float(w.width), matrix.Float(w.height))
 			w.Mouse.SetUp(hid.MouseButtonLeft)
 			w.windowSync <- struct{}{}
 		}

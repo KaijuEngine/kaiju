@@ -63,7 +63,7 @@ func IntegrationTestStageViewportUI(host *engine.Host) {
 	}
 	viewport.UIPanel.AllowClickThrough()
 	viewport.UI.Layout().SetOffset(0, 0)
-	viewport.UI.Layout().Scale(float32(host.Window.Width()), float32(host.Window.Height()))
+	viewport.UI.Layout().Scale(matrix.Float(host.Window.Width()), matrix.Float(host.Window.Height()))
 	viewport.UI.Layout().SetZ(2)
 	createStageViewportSelectedSphere(host)
 

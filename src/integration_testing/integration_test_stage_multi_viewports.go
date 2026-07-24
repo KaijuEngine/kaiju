@@ -109,8 +109,8 @@ func createStageMultiViewportLayout(host *engine.Host, uiMan *ui.Manager, specs 
 		stageMultiViewportIntegrationFail(stageViewportFourWayScreenshotOutput,
 			"load viewport placeholder texture", err)
 	}
-	w := float32(host.Window.Width())
-	h := float32(host.Window.Height())
+	w := matrix.Float(host.Window.Width())
+	h := matrix.Float(host.Window.Height())
 	halfW := w * 0.5
 	halfH := h * 0.5
 	rects := []matrix.Vec4{
@@ -125,7 +125,7 @@ func createStageMultiViewportLayout(host *engine.Host, uiMan *ui.Manager, specs 
 	}
 }
 
-func createStageViewportImage(uiMan *ui.Manager, texture *rendering.Texture, rect matrix.Vec4, z float32) *ui.UI {
+func createStageViewportImage(uiMan *ui.Manager, texture *rendering.Texture, rect matrix.Vec4, z matrix.Float) *ui.UI {
 	img := uiMan.Add().ToImage()
 	img.Init(texture)
 	img.Base().ToPanel().AllowClickThrough()
@@ -137,7 +137,7 @@ func createStageViewportImage(uiMan *ui.Manager, texture *rendering.Texture, rec
 	return img.Base()
 }
 
-func createStageViewportLabel(uiMan *ui.Manager, text string, x, y float32) *ui.UI {
+func createStageViewportLabel(uiMan *ui.Manager, text string, x, y matrix.Float) *ui.UI {
 	label := uiMan.Add().ToLabel()
 	label.Init(text)
 	label.SetFontSize(14)
@@ -155,7 +155,7 @@ func createStageMultiViewportTarget(host *engine.Host, name string, mode editor_
 	width := max(1, int(size.X()))
 	height := max(1, int(size.Y()))
 	camera := &editor_controls.EditorCamera{}
-	camera.SetViewportBounds(0, 0, float32(width), float32(height))
+	camera.SetViewportBounds(0, 0, matrix.Float(width), matrix.Float(height))
 	camera.SetModeForRenderView(mode, host)
 	target, err := host.RenderTargets.Create(rendering.RenderTargetOptions{
 		Name:   name,
@@ -199,8 +199,8 @@ func assertStageMultiViewportScreenshot(host *engine.Host, img *image.RGBA, spec
 }
 
 func applyStageTwoWayViewportLayout(host *engine.Host, specs []stageViewportIntegrationSpec) {
-	windowWidth := float32(host.Window.Width())
-	windowHeight := float32(host.Window.Height())
+	windowWidth := matrix.Float(host.Window.Width())
+	windowHeight := matrix.Float(host.Window.Height())
 	halfWidth := windowWidth * 0.5
 	for i := range specs {
 		switch specs[i].id {

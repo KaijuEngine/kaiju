@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p ZIndex) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -21,7 +22,7 @@ func (p ZIndex) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		return errors.New("ZIndex requires exactly 1 value")
 	} else {
 		val, _ := strconv.ParseFloat(values[0].Str, 64)
-		z := float32(val)
+		z := matrix.Float(val)
 		p := elm.Parent.Value()
 		for p != nil && p.UI != nil {
 			z += p.UI.Layout().Z()

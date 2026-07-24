@@ -36,12 +36,12 @@ const (
 )
 
 const (
-	horizontalPadding      float32 = 12.0
-	cursorWidth            float32 = 2.0
-	cursorBlinkRate        float32 = 0.75
-	verticalPadding        float32 = 3.0
-	cursorY                float32 = 2
-	holdKeyPressedDuration int64   = 500
+	horizontalPadding      matrix.Float = 12.0
+	cursorWidth            matrix.Float = 2.0
+	cursorBlinkRate        matrix.Float = 0.75
+	verticalPadding        matrix.Float = 3.0
+	cursorY                matrix.Float = 2
+	holdKeyPressedDuration int64        = 500
 )
 
 type inputData struct {
@@ -55,7 +55,7 @@ type inputData struct {
 	description                       string
 	onUpDown                          events.Event
 	cursorOffset                      int
-	dragStartClick, cursorBlink       float32
+	dragStartClick, cursorBlink       matrix.Float
 	selectStart, selectEnd, dragStart int
 	inputType                         InputType
 	required                          bool
@@ -64,7 +64,7 @@ type inputData struct {
 	nextFocusInput                    weak.Pointer[Input]
 	prevFocusElement                  weak.Pointer[UI]
 	nextFocusElement                  weak.Pointer[UI]
-	labelShift                        float32
+	labelShift                        matrix.Float
 	textOnFocus                       string
 	lastClickTime                     time.Time
 	lastDownTime                      time.Time
@@ -285,10 +285,10 @@ func (input *Input) blur()   { (*UI)(input).requestEvent(EventTypeBlur) }
 func (input *Input) submit() { (*UI)(input).requestEvent(EventTypeSubmit) }
 func (input *Input) change() { (*UI)(input).requestEvent(EventTypeChange) }
 
-func (input *Input) charX(index int) float32 {
+func (input *Input) charX(index int) matrix.Float {
 	data := input.InputData()
 	left := horizontalPadding
-	strWidth := float32(0)
+	strWidth := matrix.Float(0)
 	tmp := editableTextSlice(data.label.LabelData().text, 0, index)
 	if len(tmp) == 0 {
 		strWidth = 0
@@ -511,7 +511,7 @@ func (input *Input) update(deltaTime float64) {
 			data.isActive = false
 			return
 		}
-		data.cursorBlink -= float32(deltaTime)
+		data.cursorBlink -= matrix.Float(deltaTime)
 		if data.cursorBlink <= 0 {
 			if data.cursor.entity.IsActive() {
 				input.hideCursor()
@@ -539,7 +539,7 @@ func (input *Input) update(deltaTime float64) {
 	}
 }
 
-func (input *Input) cursorWindow() (float32, float32) {
+func (input *Input) cursorWindow() (matrix.Float, matrix.Float) {
 	data := input.InputData()
 	bounds := input.layout.PixelSize()
 	return horizontalPadding - data.labelShift,
@@ -944,13 +944,13 @@ func (input *Input) RemoveFocus() {
 	}
 }
 
-func (input *Input) SetFontSize(fontSize float32) {
+func (input *Input) SetFontSize(fontSize matrix.Float) {
 	data := input.InputData()
 	data.label.SetFontSize(fontSize)
 	data.placeholder.SetFontSize(fontSize)
 }
 
-func (input *Input) FontSize() float32 {
+func (input *Input) FontSize() matrix.Float {
 	return input.InputData().label.FontSize()
 }
 
@@ -958,7 +958,7 @@ func (input *Input) FontFace() rendering.FontFace {
 	return input.InputData().label.FontFace()
 }
 
-func (input *Input) SetLineHeight(lineHeight float32) {
+func (input *Input) SetLineHeight(lineHeight matrix.Float) {
 	data := input.InputData()
 	data.label.SetLineHeight(lineHeight)
 	data.placeholder.SetLineHeight(lineHeight)

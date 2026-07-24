@@ -171,11 +171,11 @@ func (w *UIWorkspace) changeHeightRatio(*document.Element) { w.readRatio() }
 
 func (w *UIWorkspace) readRatio() {
 	if r, err := strconv.ParseFloat(w.ratioX.UI.ToInput().Text(), 64); err == nil {
-		w.ratio.SetX(float32(r))
+		w.ratio.SetX(matrix.Float(r))
 		w.applyRatio()
 	}
 	if r, err := strconv.ParseFloat(w.ratioY.UI.ToInput().Text(), 64); err == nil {
-		w.ratio.SetY(float32(r))
+		w.ratio.SetY(matrix.Float(r))
 		w.applyRatio()
 	}
 }
@@ -183,7 +183,7 @@ func (w *UIWorkspace) readRatio() {
 func (w *UIWorkspace) applyRatio() {
 	ww := matrix.Float(w.Host.Window.Width())
 	wh := matrix.Float(w.Host.Window.Height())
-	top := float32(24)
+	top := matrix.Float(24)
 	bottom := helpers.NumFromLength("3.3em", w.Host.Window)
 	drawArea := matrix.NewVec4(0, top, ww, wh-top-bottom)
 	drawW := drawArea.Z()

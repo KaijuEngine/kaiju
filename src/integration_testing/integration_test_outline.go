@@ -82,9 +82,9 @@ func assertOutline(host *engine.Host, doc *document.Document, img *image.RGBA) e
 func assertOutlinePixels(host *engine.Host, elm *document.Element, img *image.RGBA) error {
 	left, top, right, bottom := elementBoundsPixels(host, img.Bounds(), elm.UI)
 	centerY := (top + bottom) * 0.5
-	outlineSample := img.RGBAAt(clampPixel(left-5, float32(img.Bounds().Dx())), clampPixel(centerY, float32(img.Bounds().Dy())))
-	outsideSample := img.RGBAAt(clampPixel(left-13, float32(img.Bounds().Dx())), clampPixel(centerY, float32(img.Bounds().Dy())))
-	panelSample := img.RGBAAt(clampPixel((left+right)*0.5, float32(img.Bounds().Dx())), clampPixel((top+bottom)*0.5, float32(img.Bounds().Dy())))
+	outlineSample := img.RGBAAt(clampPixel(left-5, matrix.Float(img.Bounds().Dx())), clampPixel(centerY, matrix.Float(img.Bounds().Dy())))
+	outsideSample := img.RGBAAt(clampPixel(left-13, matrix.Float(img.Bounds().Dx())), clampPixel(centerY, matrix.Float(img.Bounds().Dy())))
+	panelSample := img.RGBAAt(clampPixel((left+right)*0.5, matrix.Float(img.Bounds().Dx())), clampPixel((top+bottom)*0.5, matrix.Float(img.Bounds().Dy())))
 
 	if !isColorNear(outlineSample, color.RGBA{R: 25, G: 169, B: 116, A: 255}, 28) {
 		return fmt.Errorf("expected green outline sample, got rgba(%d,%d,%d,%d)", outlineSample.R, outlineSample.G, outlineSample.B, outlineSample.A)

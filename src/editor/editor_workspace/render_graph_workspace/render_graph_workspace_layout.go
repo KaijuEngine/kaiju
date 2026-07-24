@@ -9,16 +9,17 @@ package render_graph_workspace
 import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
-const renderGraphSidePanelWidth = float32(260.0)
+const renderGraphSidePanelWidth = matrix.Float(260.0)
 
 func (w *RenderGraphWorkspace) applyLayout() {
 	if w.Host == nil || w.Host.Window == nil {
 		return
 	}
-	windowWidth := float32(w.Host.Window.Width())
-	windowHeight := float32(w.Host.Window.Height())
+	windowWidth := matrix.Float(w.Host.Window.Width())
+	windowHeight := matrix.Float(w.Host.Window.Height())
 	viewX := renderGraphSidePanelWidth
 	viewWidth := max(1, windowWidth-viewX)
 	contentHeight := max(1, windowHeight-renderGraphMenuBarHeight-renderGraphStatusBarHeight)
@@ -32,7 +33,7 @@ func (w *RenderGraphWorkspace) applyLayout() {
 	w.graph.SetViewport(viewX, graphTop, viewWidth, graphHeight)
 }
 
-func (w *RenderGraphWorkspace) applyPanelLayout(element *document.Element, x, y, width, height, z float32) {
+func (w *RenderGraphWorkspace) applyPanelLayout(element *document.Element, x, y, width, height, z matrix.Float) {
 	if element == nil || element.UI == nil {
 		return
 	}
@@ -43,11 +44,11 @@ func (w *RenderGraphWorkspace) applyPanelLayout(element *document.Element, x, y,
 	layout.SetZ(z)
 }
 
-func (w *RenderGraphWorkspace) applyStageViewportLayout(element *document.Element, left, top, width, height, z float32) {
+func (w *RenderGraphWorkspace) applyStageViewportLayout(element *document.Element, left, top, width, height, z matrix.Float) {
 	if element == nil || element.UI == nil || w.Host == nil || w.Host.Window == nil {
 		return
 	}
-	windowWidth := float32(w.Host.Window.Width())
+	windowWidth := matrix.Float(w.Host.Window.Width())
 	x := left - windowWidth*0.5 + width*0.5
 	y := top
 	layout := element.UI.Layout()

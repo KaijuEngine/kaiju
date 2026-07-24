@@ -10,6 +10,7 @@ import (
 	"math"
 	"testing"
 
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -25,12 +26,12 @@ func (w testWindow) Height() int                { return w.height }
 
 func TestNumFromLengthWithFont_Units(t *testing.T) {
 	w := testWindow{dpmm: 2, width: 1000, height: 500}
-	fontSize := float32(20)
+	fontSize := matrix.Float(20)
 
 	tests := []struct {
 		name string
 		in   string
-		want float32
+		want matrix.Float
 	}{
 		{name: "percent", in: "75%", want: 0.75},
 		{name: "px", in: "100px", want: 100},
@@ -63,7 +64,7 @@ func TestNumFromLength_DefaultFontContext(t *testing.T) {
 	w := testWindow{dpmm: 2, width: 1000, height: 500}
 
 	got := NumFromLength("2em", w)
-	want := float32(2) * rendering.DefaultFontEMSize
+	want := matrix.Float(2) * rendering.DefaultFontEMSize
 	if got != want {
 		t.Fatalf("NumFromLength(%q) = %v, want %v", "2em", got, want)
 	}
@@ -71,12 +72,12 @@ func TestNumFromLength_DefaultFontContext(t *testing.T) {
 
 func TestNumFromLengthWithFont_LeadingDecimalUnits(t *testing.T) {
 	w := testWindow{dpmm: 2, width: 1000, height: 500}
-	fontSize := float32(20)
+	fontSize := matrix.Float(20)
 
 	tests := []struct {
 		name string
 		in   string
-		want float32
+		want matrix.Float
 	}{
 		{name: "vw", in: ".2vw", want: 2},
 		{name: "rem", in: ".2rem", want: 0.2 * rendering.DefaultFontEMSize},
@@ -96,12 +97,12 @@ func TestNumFromLengthWithFont_LeadingDecimalUnits(t *testing.T) {
 
 func TestNumFromLengthWithFont_GarbageOrIllFormattedInput(t *testing.T) {
 	w := testWindow{dpmm: 2, width: 1000, height: 500}
-	fontSize := float32(20)
+	fontSize := matrix.Float(20)
 
 	tests := []struct {
 		name string
 		in   string
-		want float32
+		want matrix.Float
 	}{
 		{name: "empty string", in: "", want: 0},
 		{name: "only unit", in: "px", want: 0},
@@ -131,7 +132,7 @@ func TestNumFromLengthWithFont_GarbageOrIllFormattedInput(t *testing.T) {
 
 func TestNumFromLengthWithFont_NonFiniteInput(t *testing.T) {
 	w := testWindow{dpmm: 2, width: 1000, height: 500}
-	fontSize := float32(20)
+	fontSize := matrix.Float(20)
 
 	tests := []string{
 		"NaNpx",

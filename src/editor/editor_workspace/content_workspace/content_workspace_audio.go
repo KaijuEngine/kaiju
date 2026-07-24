@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/audio"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -119,7 +120,7 @@ func (v *ContentAudioView) playAudio(clip *audio.AudioClip) {
 	audioPlayButton(v.audioPlayer).Label().SetText("Stop")
 }
 
-func (v *ContentAudioView) setAudioPosition(position float32) {
+func (v *ContentAudioView) setAudioPosition(position matrix.Float) {
 	defer tracing.NewRegion("ContentAudioView.setAudioPosition").End()
 	v.seconds = v.duration * float64(position)
 	v.updateTimeLabel()
@@ -166,7 +167,7 @@ func (v *ContentAudioView) update(deltaTime float64) {
 
 func (v *ContentAudioView) setSliderPosition() {
 	defer tracing.NewRegion("ContentAudioView.setSliderPosition").End()
-	audioSlider(v.audioPlayer).SetValueWithoutEvent(float32(v.seconds / v.duration))
+	audioSlider(v.audioPlayer).SetValueWithoutEvent(matrix.Float(v.seconds / v.duration))
 }
 
 func (v *ContentAudioView) updateTimeLabel() {

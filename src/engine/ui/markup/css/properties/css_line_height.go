@@ -16,17 +16,18 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (LineHeight) Sort() int { return 1 }
 
-func lineHeightFromStr(str string, fontSize float32, host *engine.Host) float32 {
+func lineHeightFromStr(str string, fontSize matrix.Float, host *engine.Host) matrix.Float {
 	str = strings.TrimSpace(str)
 	if str == "normal" {
 		return 0
 	}
 	if v, err := strconv.ParseFloat(str, 32); err == nil {
-		return fontSize * float32(v)
+		return fontSize * matrix.Float(v)
 	}
 	height := helpers.NumFromLengthWithFont(str, host.Window, fontSize)
 	if strings.HasSuffix(str, "%") {

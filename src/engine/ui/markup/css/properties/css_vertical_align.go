@@ -13,6 +13,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -28,7 +29,7 @@ func directChildLabels(elm *document.Element) []*ui.Label {
 	return labels
 }
 
-func verticalAlignOffset(value string, elm *document.Element) (float32, bool, error) {
+func verticalAlignOffset(value string, elm *document.Element) (matrix.Float, bool, error) {
 	switch value {
 	case "auto", "baseline", "top", "text-top", "initial":
 		return 0, false, nil
@@ -52,7 +53,7 @@ func verticalAlignOffset(value string, elm *document.Element) (float32, bool, er
 	}
 }
 
-func labelVerticalAlignOffset(label *ui.Label) float32 {
+func labelVerticalAlignOffset(label *ui.Label) matrix.Float {
 	parent := label.Base().Entity().Parent
 	if parent == nil {
 		return 0
@@ -65,9 +66,9 @@ func labelVerticalAlignOffset(label *ui.Label) float32 {
 	return -label.Base().Layout().InnerOffset().Top() / available
 }
 
-func setLabelVerticalAlign(label *ui.Label, align float32, shifted bool, value string) {
+func setLabelVerticalAlign(label *ui.Label, align matrix.Float, shifted bool, value string) {
 	label.SetBaseline(rendering.FontBaselineTop)
-	alignOffset := float32(0)
+	alignOffset := matrix.Float(0)
 	if parent := label.Base().Entity().Parent; parent != nil {
 		parentLayout := ui.FirstOnEntity(parent).Layout()
 		contentHeight := parentLayout.ContentSize().Y()
@@ -79,7 +80,7 @@ func setLabelVerticalAlign(label *ui.Label, align float32, shifted bool, value s
 	layout := label.Base().Layout()
 	layout.SetInnerOffsetTop(-alignOffset)
 	local := layout.LocalInnerOffset()
-	offset := float32(0)
+	offset := matrix.Float(0)
 	if shifted {
 		offset = label.FontSize() * 0.35
 		if value == "sub" {

@@ -14,9 +14,10 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
-func fontSizeFromStr(size string, host *engine.Host, emSize float32) float32 {
+func fontSizeFromStr(size string, host *engine.Host, emSize matrix.Float) matrix.Float {
 	return helpers.NumFromLengthWithFont(size, host.Window, emSize)
 }
 

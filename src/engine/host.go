@@ -126,8 +126,8 @@ type Host struct {
 //
 // This is primarily called from #host_container/New
 func NewHost(name string, logStream *logging.LogStream, assetDb assets.Database) *Host {
-	w := float32(DefaultWindowWidth)
-	h := float32(DefaultWindowHeight)
+	w := matrix.Float(DefaultWindowWidth)
+	h := matrix.Float(DefaultWindowHeight)
 	primaryCamera := cameras.NewStandardCamera(w, h, w, h, matrix.Vec3Backward())
 	uiCamera := cameras.NewStandardCameraOrthographic(w, h, w, h, matrix.Vec3{0, 0, 250})
 	host := &Host{
@@ -197,8 +197,8 @@ func (host *Host) Initialize(width, height, x, y int, platformState any) error {
 	host.threads.Start()
 	host.updateThreads.Start()
 	host.uiThreads.Start()
-	host.Cameras.Primary.Camera.ViewportChanged(float32(width), float32(height))
-	host.Cameras.UI.Camera.ViewportChanged(float32(width), float32(height))
+	host.Cameras.Primary.Camera.ViewportChanged(matrix.Float(width), matrix.Float(height))
+	host.Cameras.UI.Camera.ViewportChanged(matrix.Float(width), matrix.Float(height))
 	w := weak.Make(host)
 	host.Window.OnResize.Add(func() { w.Value().resized() })
 	slog.Info("Host.Initialize", "window count", host.Window.MonitorCount())
@@ -636,7 +636,7 @@ func (host *Host) ImportPlugins(path string) error {
 }
 
 func (host *Host) resized() {
-	w, h := float32(host.Window.Width()), float32(host.Window.Height())
+	w, h := matrix.Float(host.Window.Width()), matrix.Float(host.Window.Height())
 	host.Cameras.Primary.Camera.ViewportChanged(w, h)
 	host.Cameras.UI.Camera.ViewportChanged(w, h)
 	host.RenderTargets.ResizeMatchingWindow(int(w), int(h))

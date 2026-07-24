@@ -60,7 +60,7 @@ type VirtualListDelegate interface {
 	UnbindRow(index int, row *UI)
 }
 
-const virtualListDefaultEstimate float32 = 20
+const virtualListDefaultEstimate matrix.Float = 20
 
 // virtualListParkOffset is where recycled rows are moved (well above-left of any
 // content) so they are scissor-clipped out of view while staying entity-active.
@@ -72,7 +72,7 @@ const virtualListDefaultEstimate float32 = 20
 // Content grows from origin (0,0) toward +x/+y, so a row parked at both
 // {-1e6,-1e6} is off-screen for every scroll axis (vertical, horizontal, grid,
 // masonry).
-const virtualListParkOffset float32 = -1_000_000
+const virtualListParkOffset matrix.Float = -1_000_000
 
 // warmingRow is a pooled row that has been created but not yet shown. bornFrame
 // records the frame it was created on; it becomes usable once the list has
@@ -114,11 +114,11 @@ type virtualListData struct {
 	lastWindowSize int
 
 	// reflow change-gate: skip the body when nothing affecting geometry moved.
-	lastScrollX   float32
-	lastScrollY   float32
-	lastViewportW float32
-	lastViewportH float32
-	lastTotal     float32
+	lastScrollX   matrix.Float
+	lastScrollY   matrix.Float
+	lastViewportW matrix.Float
+	lastViewportH matrix.Float
+	lastTotal     matrix.Float
 	haveLast      bool
 }
 
@@ -161,26 +161,30 @@ func (vl *VirtualList) Init() {
 func (vl *VirtualList) Content() *Panel { return vl.Data().content }
 
 // RowOffset is the y of the top of row index in content space (vertical layout).
-func (vl *VirtualList) RowOffset(index int) float32 { return vl.Data().linear.model.offsetOf(index) }
+func (vl *VirtualList) RowOffset(index int) matrix.Float {
+	return vl.Data().linear.model.offsetOf(index)
+}
 
 // RowHeight is the height of row index (vertical layout).
-func (vl *VirtualList) RowHeight(index int) float32 { return vl.Data().linear.model.heightOf(index) }
+func (vl *VirtualList) RowHeight(index int) matrix.Float {
+	return vl.Data().linear.model.heightOf(index)
+}
 
 // TotalHeight is the full scrollable content height (vertical layout).
-func (vl *VirtualList) TotalHeight() float32 { return vl.Data().linear.model.total() }
+func (vl *VirtualList) TotalHeight() matrix.Float { return vl.Data().linear.model.total() }
 
 // RowAt is the row index whose vertical span contains content-space y (vertical
 // layout).
-func (vl *VirtualList) RowAt(y float32) int { return vl.Data().linear.model.indexAt(y) }
+func (vl *VirtualList) RowAt(y matrix.Float) int { return vl.Data().linear.model.indexAt(y) }
 
 // ViewportHeight is the visible content height of the list.
-func (vl *VirtualList) ViewportHeight() float32 { return vl.viewportHeight() }
+func (vl *VirtualList) ViewportHeight() matrix.Float { return vl.viewportHeight() }
 
 // SetContentWidth sets a minimum content width; the content panel is sized to
 // max(viewportWidth, w). Used for horizontal scrolling of long, unwrapped rows
 // in the default vertical layout. Pass 0 to track the viewport width (no
 // horizontal scroll).
-func (vl *VirtualList) SetContentWidth(w float32) {
+func (vl *VirtualList) SetContentWidth(w matrix.Float) {
 	data := vl.Data()
 	if data.linear.minContentW == w {
 		return
@@ -206,7 +210,7 @@ func (vl *VirtualList) SetOverscan(rows int) {
 // SetFixedRowHeight switches the default vertical layout to fixed-height rows
 // (every row is h tall). This is the O(1) path used for code (no soft wrap, one
 // line per row).
-func (vl *VirtualList) SetFixedRowHeight(h float32) {
+func (vl *VirtualList) SetFixedRowHeight(h matrix.Float) {
 	data := vl.Data()
 	data.linear.setFixed(h)
 	data.layout = data.linear
@@ -216,7 +220,7 @@ func (vl *VirtualList) SetFixedRowHeight(h float32) {
 
 // SetRowHeightFunc switches the default vertical layout to variable-height rows,
 // measuring each row's height via fn. Used for wrapped / chat content.
-func (vl *VirtualList) SetRowHeightFunc(fn func(index int) float32) {
+func (vl *VirtualList) SetRowHeightFunc(fn func(index int) matrix.Float) {
 	data := vl.Data()
 	data.linear.setVariable(fn)
 	data.layout = data.linear
@@ -337,7 +341,7 @@ func (vl *VirtualList) ScrollToIndex(index int, align VirtualAlign) {
 	vp := vl.viewport()
 	rect := data.layout.RectOf(index, vp)
 	horizontal := data.layout.Axis() == VirtualAxisHorizontal
-	var top, size, vpMain, cur float32
+	var top, size, vpMain, cur matrix.Float
 	if horizontal {
 		top, size, vpMain, cur = rect.X, rect.W, vp.X(), p.ScrollX()
 	} else {
@@ -395,7 +399,7 @@ func (vl *VirtualList) rowCount() int {
 	return 0
 }
 
-func (vl *VirtualList) viewportHeight() float32 {
+func (vl *VirtualList) viewportHeight() matrix.Float {
 	return max(vl.layout.PixelSize().Y(), 0)
 }
 
@@ -491,7 +495,7 @@ func (vl *VirtualList) replenishPool(target int) {
 // [scrollY, scrollY+viewportH), expanded by overscan and clamped to [0,n).
 // Returns last < first when empty. The default linear strategy uses it so the
 // visible set stays identical to the pre-seam reflow.
-func virtualWindow(model virtualHeightModel, n, overscan int, viewportH, scrollY float32) (first, last int) {
+func virtualWindow(model virtualHeightModel, n, overscan int, viewportH, scrollY matrix.Float) (first, last int) {
 	if n == 0 {
 		return 0, -1
 	}
@@ -637,7 +641,7 @@ func (vl *VirtualList) reflow(force bool) {
 	}
 }
 
-func approxEqf(a, b float32) bool {
+func approxEqf(a, b matrix.Float) bool {
 	d := a - b
 	return d < 0.01 && d > -0.01
 }

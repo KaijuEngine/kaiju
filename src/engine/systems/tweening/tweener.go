@@ -8,6 +8,7 @@ package tweening
 
 import (
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -54,13 +55,13 @@ var (
 	tweens = make([]Tween, 0, 16)
 )
 
-func DoTween(val *float32, target float32, time float64, easing Easing) {
+func DoTween(val *matrix.Float, target matrix.Float, time float64, easing Easing) {
 	defer tracing.NewRegion("Tweener.DoTween").End()
 	DoTweenExt(val, target, time, easing, nil, nil)
 }
 
-func DoTweenExt(val *float32, target float32, time float64, easing Easing,
-	onChange func(val float32), onDone func()) {
+func DoTweenExt(val *matrix.Float, target matrix.Float, time float64, easing Easing,
+	onChange func(val matrix.Float), onDone func()) {
 	defer tracing.NewRegion("Tweener.DoTweenExt").End()
 	tween := Tween{
 		val:         val,
@@ -69,7 +70,7 @@ func DoTweenExt(val *float32, target float32, time float64, easing Easing,
 		time:        time,
 		onChange:    onChange,
 		onDone:      onDone,
-		scale:       (target - *val) / max(float32(time), 0.00001),
+		scale:       (target - *val) / max(matrix.Float(time), 0.00001),
 		totalUpdate: 0,
 	}
 	tween.easing = easingFunc(easing)
@@ -81,11 +82,11 @@ func DoTweenExt(val *float32, target float32, time float64, easing Easing,
 // Apply samples this easing curve at normalized time t (typically in [0, 1]) and
 // returns the eased progress. Use it to shape a progress value you compute yourself
 // (e.g. a server-timestamp-derived fraction) without driving a stateful Tween/Tweener.
-func (e Easing) Apply(t float32) float32 { return easingFunc(e)(t) }
+func (e Easing) Apply(t matrix.Float) matrix.Float { return easingFunc(e)(t) }
 
 // easingFunc maps an Easing to its curve function. An unrecognized value falls back to
 // linear so the result is always a usable (non-nil) function.
-func easingFunc(easing Easing) func(float32) float32 {
+func easingFunc(easing Easing) func(matrix.Float) matrix.Float {
 	switch easing {
 	case EasingLinear:
 		return easeLinear
@@ -189,7 +190,7 @@ func Clear() {
 	tweens = klib.WipeSlice(tweens)
 }
 
-func Stop(val *float32, jumpToEnd, skipCallback bool) {
+func Stop(val *matrix.Float, jumpToEnd, skipCallback bool) {
 	defer tracing.NewRegion("Tweener.Stop").End()
 	for i := range tweens {
 		t := &tweens[i]

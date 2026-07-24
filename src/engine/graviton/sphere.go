@@ -33,7 +33,7 @@ func (a Sphere) IntersectsSphere(b Sphere) bool {
 }
 
 func (s Sphere) IntersectsAABB(b AABB) bool {
-	var sqDist float32
+	var sqDist matrix.Float
 	minX := b.Center.X() - b.Extent.X()
 	maxX := b.Center.X() + b.Extent.X()
 	x := s.Center.X()
@@ -80,7 +80,7 @@ func (s Sphere) IntersectsOOBB(b OOBB) bool {
 	return distSq <= s.Radius*s.Radius
 }
 
-func (s Sphere) IntersectsRay(r Ray) (bool, float32) {
+func (s Sphere) IntersectsRay(r Ray) (bool, matrix.Float) {
 	m := r.Origin.Subtract(s.Center)
 	a := r.Direction.X()*r.Direction.X() +
 		r.Direction.Y()*r.Direction.Y() +
@@ -91,7 +91,7 @@ func (s Sphere) IntersectsRay(r Ray) (bool, float32) {
 	if discriminant < 0 {
 		return false, 0
 	}
-	sqrtDisc := float32(matrix.Sqrt(discriminant))
+	sqrtDisc := matrix.Float(matrix.Sqrt(discriminant))
 	t := (-b - sqrtDisc) / (2 * a)
 	if t < 0 {
 		t = (-b + sqrtDisc) / (2 * a)
@@ -102,7 +102,7 @@ func (s Sphere) IntersectsRay(r Ray) (bool, float32) {
 	return true, t
 }
 
-func (s Sphere) IntersectsPlane(p Plane) (bool, float32) {
+func (s Sphere) IntersectsPlane(p Plane) (bool, matrix.Float) {
 	dist := matrix.Vec3Dot(s.Center, p.Normal) + p.Dot
 	if dist < 0 {
 		dist = -dist

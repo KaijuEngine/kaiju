@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -65,9 +66,9 @@ func ArithmeticString(args []string) (int, error) {
 	}
 }
 
-func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32) float32 {
+func NumFromLengthWithFont(str string, window WindowDimensions, fontSize matrix.Float) matrix.Float {
 	dpmm := window.DotsPerMillimeter()
-	parse := func(raw string, cut int) float32 {
+	parse := func(raw string, cut int) matrix.Float {
 		// strconv.ParseFloat is orders of magnitude faster than fmt.Sscanf("%f"),
 		// which dominated CPU: this runs for every CSS length on every layout
 		// pass. Preserve fmt's leniency (take the longest leading numeric prefix,
@@ -79,7 +80,7 @@ func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32
 				if math.IsNaN(f) || math.IsInf(f, 0) {
 					return 0
 				}
-				return float32(f)
+				return matrix.Float(f)
 			}
 			s = s[:len(s)-1]
 		}
@@ -88,16 +89,16 @@ func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32
 	switch {
 	case strings.HasSuffix(str, "vmin"):
 		size := parse(str, 4)
-		w := float32(window.Width())
-		h := float32(window.Height())
+		w := matrix.Float(window.Width())
+		h := matrix.Float(window.Height())
 		if h < w {
 			w = h
 		}
 		return w * (size / 100)
 	case strings.HasSuffix(str, "vmax"):
 		size := parse(str, 4)
-		w := float32(window.Width())
-		h := float32(window.Height())
+		w := matrix.Float(window.Width())
+		h := matrix.Float(window.Height())
 		if h > w {
 			w = h
 		}
@@ -109,10 +110,10 @@ func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32
 		return size * rendering.DefaultFontEMSize
 	case strings.HasSuffix(str, "vw"):
 		size := parse(str, 2)
-		return float32(window.Width()) * (size / 100)
+		return matrix.Float(window.Width()) * (size / 100)
 	case strings.HasSuffix(str, "vh"):
 		size := parse(str, 2)
-		return float32(window.Height()) * (size / 100)
+		return matrix.Float(window.Height()) * (size / 100)
 	case strings.HasSuffix(str, "ch"):
 		size := parse(str, 2)
 		// Approximation until font metric support is available:
@@ -133,15 +134,15 @@ func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32
 		case "em", "ex":
 			return size * fontSize
 		case "cm":
-			return float32(dpmm) * float32(size*10)
+			return matrix.Float(dpmm) * matrix.Float(size*10)
 		case "mm":
-			return float32(dpmm) * size
+			return matrix.Float(dpmm) * size
 		case "in":
-			return float32(dpmm) * float32(size*25.4)
+			return matrix.Float(dpmm) * matrix.Float(size*25.4)
 		case "pt":
-			return float32(dpmm) * float32(size*25.4/72)
+			return matrix.Float(dpmm) * matrix.Float(size*25.4/72)
 		case "pc":
-			return float32(dpmm) * float32(size*25.4/6)
+			return matrix.Float(dpmm) * matrix.Float(size*25.4/6)
 		}
 	case strings.HasSuffix(str, "%"):
 		size := parse(str, 1)
@@ -152,6 +153,6 @@ func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32
 
 // NumFromLength resolves CSS lengths with the default font size context.
 // For properties that depend on the current element font, use NumFromLengthWithFont.
-func NumFromLength(str string, window WindowDimensions) float32 {
+func NumFromLength(str string, window WindowDimensions) matrix.Float {
 	return NumFromLengthWithFont(str, window, rendering.DefaultFontEMSize)
 }

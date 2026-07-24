@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"kaijuengine.com/engine/ui/markup/css/helpers"
+	"kaijuengine.com/matrix"
 
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/css"
@@ -308,7 +309,7 @@ func (s *StyleSheet) resolveRuleVars(r *Rule, window helpers.WindowDimensions) {
 	for i := range r.Values {
 		v := &r.Values[i]
 		if len(v.Args) > 0 {
-			v.ArgNums = make([]float32, len(v.Args))
+			v.ArgNums = make([]matrix.Float, len(v.Args))
 			for j := range v.Args {
 				v.ArgNums[j] = helpers.NumFromLength(v.Args[j], window)
 			}

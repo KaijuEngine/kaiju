@@ -141,8 +141,8 @@ func (v *stageWorkspaceStageViewport) viewportBounds(w *StageWorkspace, kind edi
 	return v.quadViewportBounds(w, kind, windowWidth, windowHeight)
 }
 
-func singleStageViewportBounds(w *StageWorkspace, windowWidth, windowHeight float32) stageWorkspaceUIBounds {
-	left := float32(0)
+func singleStageViewportBounds(w *StageWorkspace, windowWidth, windowHeight matrix.Float) stageWorkspaceUIBounds {
+	left := matrix.Float(0)
 	width := windowWidth
 	if elementIsActive(w.hierarchyUI.hierarchyArea) {
 		left = windowWidth * stageSidePanelWidthPercent
@@ -151,7 +151,7 @@ func singleStageViewportBounds(w *StageWorkspace, windowWidth, windowHeight floa
 	if elementIsActive(w.detailsUI.detailsArea) {
 		width -= windowWidth * stageSidePanelWidthPercent
 	}
-	heightPercent := float32(1)
+	heightPercent := matrix.Float(1)
 	if elementIsActive(w.contentUI.contentArea) {
 		heightPercent = stageContentOpenPercent
 	}
@@ -163,7 +163,7 @@ func singleStageViewportBounds(w *StageWorkspace, windowWidth, windowHeight floa
 	}
 }
 
-func (v *stageWorkspaceStageViewport) quadViewportBounds(w *StageWorkspace, kind editor_stage_view.StageViewportKind, windowWidth, windowHeight float32) stageWorkspaceUIBounds {
+func (v *stageWorkspaceStageViewport) quadViewportBounds(w *StageWorkspace, kind editor_stage_view.StageViewportKind, windowWidth, windowHeight matrix.Float) stageWorkspaceUIBounds {
 	leftColumn := kind == editor_stage_view.StageViewportPerspective || kind == editor_stage_view.StageViewportSide
 	topRow := kind == editor_stage_view.StageViewportPerspective || kind == editor_stage_view.StageViewportTop
 	leftWidth, rightLeft, rightWidth := quadViewportColumnBounds(w, windowWidth)
@@ -185,7 +185,7 @@ func (v *stageWorkspaceStageViewport) quadViewportBounds(w *StageWorkspace, kind
 	return bounds
 }
 
-func quadViewportColumnBounds(w *StageWorkspace, windowWidth float32) (stageWorkspaceUIBounds, float32, float32) {
+func quadViewportColumnBounds(w *StageWorkspace, windowWidth matrix.Float) (stageWorkspaceUIBounds, matrix.Float, matrix.Float) {
 	hierarchyOpen := elementIsActive(w.hierarchyUI.hierarchyArea)
 	detailsOpen := elementIsActive(w.detailsUI.detailsArea)
 	switch {
@@ -200,8 +200,8 @@ func quadViewportColumnBounds(w *StageWorkspace, windowWidth float32) (stageWork
 	}
 }
 
-func quadViewportRowBounds(w *StageWorkspace, windowHeight float32) (float32, float32, float32) {
-	heightPercent := float32(0.50)
+func quadViewportRowBounds(w *StageWorkspace, windowHeight matrix.Float) (matrix.Float, matrix.Float, matrix.Float) {
+	heightPercent := matrix.Float(0.50)
 	if elementIsActive(w.contentUI.contentArea) {
 		heightPercent = stageContentOpenPercent * 0.5
 	}
@@ -221,20 +221,20 @@ func (v *stageWorkspaceStageViewport) viewportLabelPosition(kind editor_stage_vi
 }
 
 type stageWorkspaceUIBounds struct {
-	left   float32
-	top    float32
-	width  float32
-	height float32
+	left   matrix.Float
+	top    matrix.Float
+	width  matrix.Float
+	height matrix.Float
 }
 
-func stageWorkspaceWindowSize(w *StageWorkspace) (float32, float32, bool) {
+func stageWorkspaceWindowSize(w *StageWorkspace) (matrix.Float, matrix.Float, bool) {
 	if w.Host == nil || w.Host.Window == nil {
 		return 0, 0, false
 	}
-	return float32(w.Host.Window.Width()), float32(w.Host.Window.Height()), true
+	return matrix.Float(w.Host.Window.Width()), matrix.Float(w.Host.Window.Height()), true
 }
 
-func applyStageWorkspaceUIBounds(target *ui.UI, bounds stageWorkspaceUIBounds, z float32) {
+func applyStageWorkspaceUIBounds(target *ui.UI, bounds stageWorkspaceUIBounds, z matrix.Float) {
 	if target == nil || bounds.width <= 0 || bounds.height <= 0 {
 		return
 	}
@@ -245,7 +245,7 @@ func applyStageWorkspaceUIBounds(target *ui.UI, bounds stageWorkspaceUIBounds, z
 	layout.SetZ(z)
 }
 
-func applyStageWorkspaceUILabelPosition(target *ui.Label, pos matrix.Vec2, z float32) {
+func applyStageWorkspaceUILabelPosition(target *ui.Label, pos matrix.Vec2, z matrix.Float) {
 	if target == nil {
 		return
 	}

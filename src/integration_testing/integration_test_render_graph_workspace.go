@@ -27,6 +27,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_previews"
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/matrix"
 )
 
 const (
@@ -487,7 +488,7 @@ func renderGraphWorkspaceGraphRect(host *engine.Host, workspace *render_graph_wo
 			}
 		}
 	}
-	graphTop := bounds.Min.Y + int(24+float32(bounds.Dy()-45)*0.5)
+	graphTop := bounds.Min.Y + int(24+matrix.Float(bounds.Dy()-45)*0.5)
 	return image.Rect(bounds.Min.X, graphTop, bounds.Max.X, bounds.Max.Y)
 }
 

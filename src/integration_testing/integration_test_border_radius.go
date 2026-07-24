@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 const borderRadiusScreenshotOutput = "integration_test_border_radius.png"
@@ -132,19 +133,19 @@ func cornerSampleIsWhite(host *engine.Host, img *image.RGBA, elm *document.Eleme
 func cornerSamplePixel(host *engine.Host, bounds image.Rectangle, elm *document.Element, corner borderCorner) (int, int) {
 	pos := elm.UI.Entity().Transform.WorldPosition()
 	size := elm.UI.Layout().PixelSize()
-	imgW := float32(bounds.Dx())
-	imgH := float32(bounds.Dy())
-	scaleX := imgW / float32(host.Window.Width())
-	scaleY := imgH / float32(host.Window.Height())
-	centerX := (float32(pos.X()) + float32(host.Window.Width())*0.5) * scaleX
-	centerY := (float32(host.Window.Height())*0.5 - float32(pos.Y())) * scaleY
-	halfW := float32(size.X()) * scaleX * 0.5
-	halfH := float32(size.Y()) * scaleY * 0.5
+	imgW := matrix.Float(bounds.Dx())
+	imgH := matrix.Float(bounds.Dy())
+	scaleX := imgW / matrix.Float(host.Window.Width())
+	scaleY := imgH / matrix.Float(host.Window.Height())
+	centerX := (matrix.Float(pos.X()) + matrix.Float(host.Window.Width())*0.5) * scaleX
+	centerY := (matrix.Float(host.Window.Height())*0.5 - matrix.Float(pos.Y())) * scaleY
+	halfW := matrix.Float(size.X()) * scaleX * 0.5
+	halfH := matrix.Float(size.Y()) * scaleY * 0.5
 	left := centerX - halfW
 	top := centerY - halfH
 	right := centerX + halfW
 	bottom := centerY + halfH
-	offset := float32(4)
+	offset := matrix.Float(4)
 
 	switch corner {
 	case borderCornerTopLeft:
@@ -160,7 +161,7 @@ func cornerSamplePixel(host *engine.Host, bounds image.Rectangle, elm *document.
 	}
 }
 
-func clampPixel(v, maxSize float32) int {
+func clampPixel(v, maxSize matrix.Float) int {
 	return int(math.Max(0, math.Min(float64(maxSize-1), math.Round(float64(v)))))
 }
 

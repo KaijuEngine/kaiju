@@ -42,10 +42,10 @@ var funcMap = template.FuncMap{
 	"mul":    func(a, b int) int { return a * b },
 	"div":    func(a, b int) int { return a / b },
 	"muladd": func(a, b, c int) int { return a*b + c },
-	"addf":   func(a, b float32) float32 { return a + b },
-	"subf":   func(a, b float32) float32 { return a - b },
-	"mulf":   func(a, b float32) float32 { return a * b },
-	"divf":   func(a, b float32) float32 { return a / b },
+	"addf":   func(a, b matrix.Float) matrix.Float { return a + b },
+	"subf":   func(a, b matrix.Float) matrix.Float { return a - b },
+	"mulf":   func(a, b matrix.Float) matrix.Float { return a * b },
+	"divf":   func(a, b matrix.Float) matrix.Float { return a / b },
 	"indexed": func(idx int, value any) TemplateIndexedAny {
 		return TemplateIndexedAny{idx, value}
 	},
@@ -356,7 +356,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				panel.DontFitContent()
 				if a := e.Attribute("value"); a != "" {
 					if f, err := strconv.ParseFloat(a, 32); err == nil {
-						slider.SetValueWithoutEvent(float32(f))
+						slider.SetValueWithoutEvent(matrix.Float(f))
 					}
 				}
 				slider.SetDisabled(e.HasAttribute("disabled"))

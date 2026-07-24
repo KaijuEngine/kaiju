@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p BorderWidth) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
@@ -74,7 +75,7 @@ func (p BorderWidth) Preprocess(values []rules.PropertyValue, ruleList []rules.R
 }
 
 func (p BorderWidth) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
-	b := [4]float32{}
+	b := [4]matrix.Float{}
 	if len(values) == 1 {
 		b[0] = helpers.NumFromLength(values[0].Str, host.Window)
 		b[1] = b[0]

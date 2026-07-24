@@ -249,7 +249,7 @@ func (s Cylinder) IntersectsOOBB(b OOBB) bool {
 	return false
 }
 
-func (s Cylinder) IntersectsRay(r Ray) (bool, float32) {
+func (s Cylinder) IntersectsRay(r Ray) (bool, matrix.Float) {
 	oc := r.Origin.Subtract(s.Center)
 	oe := matrix.Vec3Dot(oc, s.Direction)
 	re := matrix.Vec3Dot(r.Direction, s.Direction)
@@ -262,7 +262,7 @@ func (s Cylinder) IntersectsRay(r Ray) (bool, float32) {
 			if matrix.Approx(oh.Length()-s.Radius, 0) {
 				t := -oe / re
 				if t >= 0 && matrix.Abs(oe) <= he {
-					return true, float32(t)
+					return true, matrix.Float(t)
 				}
 			}
 			return false, 0
@@ -271,7 +271,7 @@ func (s Cylinder) IntersectsRay(r Ray) (bool, float32) {
 		if matrix.Approx(oo, 0) {
 			t := matrix.Float(oo) / (-rh.LengthSquared())
 			if t >= 0 && matrix.Abs(oe+re*t) <= he {
-				return true, float32(t)
+				return true, matrix.Float(t)
 			}
 		}
 		return false, 0
@@ -294,10 +294,10 @@ func (s Cylinder) IntersectsRay(r Ray) (bool, float32) {
 	if matrix.Abs(oe+re*t) > he {
 		return false, 0
 	}
-	return true, float32(t)
+	return true, matrix.Float(t)
 }
 
-func (s Cylinder) IntersectsPlane(p Plane) (bool, float32) {
+func (s Cylinder) IntersectsPlane(p Plane) (bool, matrix.Float) {
 	halfH := s.Height / 2
 	top := s.Center.Add(s.Direction.Scale(halfH))
 	bottom := s.Center.Subtract(s.Direction.Scale(halfH))
@@ -309,21 +309,21 @@ func (s Cylinder) IntersectsPlane(p Plane) (bool, float32) {
 		if centerDist < 0 {
 			centerDist = -centerDist
 		}
-		return true, float32(maxDist - centerDist)
+		return true, matrix.Float(maxDist - centerDist)
 	}
 	capDist := distTop
 	if capDist < 0 {
 		capDist = -capDist
 	}
 	if capDist <= s.Radius {
-		return true, float32(s.Radius - capDist)
+		return true, matrix.Float(s.Radius - capDist)
 	}
 	capDist = distBottom
 	if capDist < 0 {
 		capDist = -capDist
 	}
 	if capDist <= s.Radius {
-		return true, float32(s.Radius - capDist)
+		return true, matrix.Float(s.Radius - capDist)
 	}
 	ne := matrix.Vec3Dot(p.Normal, s.Direction)
 	if ne*ne < 1e-10 {
@@ -341,7 +341,7 @@ func (s Cylinder) IntersectsPlane(p Plane) (bool, float32) {
 		closestDist = -closestDist
 	}
 	if closestDist <= s.Radius {
-		return true, float32(s.Radius - closestDist)
+		return true, matrix.Float(s.Radius - closestDist)
 	}
 	return false, 0
 }

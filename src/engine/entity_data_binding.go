@@ -71,7 +71,7 @@ func ReflectValueFromJson(v any, f reflect.Value) {
 						slog.Error("invalid float in array of floats", "index", i)
 					}
 				}
-			} else if ivs, ok := v.([]float32); ok && len(ivs) == f.Len() {
+			} else if ivs, ok := v.([]matrix.Float); ok && len(ivs) == f.Len() {
 				for i := 0; i < f.Len(); i++ {
 					f.Index(i).SetFloat(float64(ivs[i]))
 				}

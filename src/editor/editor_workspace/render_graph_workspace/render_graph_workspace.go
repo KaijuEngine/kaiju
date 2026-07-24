@@ -359,8 +359,8 @@ func (w *RenderGraphWorkspace) runCreateNodeAction(nodeID string) {
 	connection := w.createNodeMenu.Connection()
 	args := CreateNodeActionArgs{
 		NodeID:      nodeID,
-		X:           float32(position.X()),
-		Y:           float32(position.Y()),
+		X:           matrix.Float(position.X()),
+		Y:           matrix.Float(position.Y()),
 		UsePosition: true,
 	}
 	if connection.Active {
@@ -381,8 +381,8 @@ func (w *RenderGraphWorkspace) runCreateCommentAction() {
 	position := w.createNodeMenu.CreatePosition()
 	args := CreateCommentActionArgs{
 		Label:       "Comment",
-		X:           float32(position.X()),
-		Y:           float32(position.Y()),
+		X:           matrix.Float(position.X()),
+		Y:           matrix.Float(position.Y()),
 		Width:       renderGraphCommentDefaultWidth,
 		Height:      renderGraphCommentDefaultHeight,
 		UsePosition: true,

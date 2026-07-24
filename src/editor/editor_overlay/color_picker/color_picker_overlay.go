@@ -37,13 +37,13 @@ type ColorPicker struct {
 	hue            matrix.Color
 	value          matrix.Color
 	cPanelLastPos  matrix.Vec2
-	lastHuePercent float32
+	lastHuePercent matrix.Float
 }
 
 type HSV struct {
-	h float32
-	s float32
-	v float32
+	h matrix.Float
+	s matrix.Float
+	v matrix.Float
 }
 
 type Config struct {
@@ -113,7 +113,7 @@ func (p *ColorPicker) updateValueColor() {
 	p.colorValue.UI.ToPanel().SetColor(p.hue)
 }
 
-func (p *ColorPicker) updateValuePreviewBox(percentX, percentY float32) {
+func (p *ColorPicker) updateValuePreviewBox(percentX, percentY matrix.Float) {
 	cScale := p.valueCursor.UI.Entity().Transform.WorldScale()
 	wScale := p.colorValue.UI.Entity().Transform.WorldScale()
 	p.valueCursor.UI.Layout().SetOffset(percentX*wScale.X()-(cScale.X()*0.5),
@@ -152,16 +152,16 @@ func (p *ColorPicker) onSelectedColorValue(pos matrix.Vec2) {
 	p.updateValuePreviewBox(percentX, percentY)
 }
 
-func (p *ColorPicker) updateHuePreviewBox(percentX float32) {
+func (p *ColorPicker) updateHuePreviewBox(percentX matrix.Float) {
 	p.lastHuePercent = percentX
 	wScale := p.colorHue.UI.Entity().Transform.WorldScale()
 	xOffset := percentX * wScale.X()
-	r := float32(0)
-	g := float32(0)
-	b := float32(0)
-	full := float32(0.3333)
-	half := float32(full * 0.5)
-	iFull := float32(1.0 - full)
+	r := matrix.Float(0)
+	g := matrix.Float(0)
+	b := matrix.Float(0)
+	full := matrix.Float(0.3333)
+	half := matrix.Float(full * 0.5)
+	iFull := matrix.Float(1.0 - full)
 	if percentX <= full {
 		if percentX < half {
 			r = 1
@@ -308,10 +308,10 @@ func (p *ColorPicker) cursorCenteredPosition() matrix.Vec2 {
 	defer tracing.NewRegion("ColorPicker.cursorCenteredPosition").End()
 	win := p.uiMan.Host.Window
 	cursor := &win.Cursor
-	return cursor.Position().Subtract(matrix.NewVec2(float32(win.Width()/2), float32(win.Height()/2)))
+	return cursor.Position().Subtract(matrix.NewVec2(matrix.Float(win.Width()/2), matrix.Float(win.Height()/2)))
 }
 
-func rgb2hsv(r, g, b float32) HSV {
+func rgb2hsv(r, g, b matrix.Float) HSV {
 	const eps = 1e-6
 	lo := r
 	if g < lo {
@@ -332,13 +332,13 @@ func rgb2hsv(r, g, b float32) HSV {
 	if delta <= eps {
 		return HSV{h: -1, s: 0, v: v}
 	}
-	var s float32
+	var s matrix.Float
 	if hi > eps {
 		s = delta / hi
 	} else {
 		s = 0
 	}
-	var h float32
+	var h matrix.Float
 	switch {
 	case math.Abs(float64(r-hi)) < eps:
 		h = (g - b) / delta

@@ -98,7 +98,7 @@ type tweenData struct {
 	repeat           Repeat
 	delay            float64
 	repeatCount      int
-	t                float32
+	t                matrix.Float
 	e                weak.Pointer[engine.Entity]
 	isGoingTo        bool
 }
@@ -123,7 +123,7 @@ func (d TweenTransformEntityData) Init(e *engine.Entity, host *engine.Host) {
 		tween.targetRotation.AddAssign(wr)
 		tween.targetScale.AddAssign(ws)
 	}
-	tweenTo := func(float32) {
+	tweenTo := func(matrix.Float) {
 		se := tween.e.Value()
 		if se == nil {
 			return
@@ -135,7 +135,7 @@ func (d TweenTransformEntityData) Init(e *engine.Entity, host *engine.Host) {
 		se.Transform.SetWorldRotation(r)
 		se.Transform.SetWorldScale(s)
 	}
-	var runTween func(to float32)
+	var runTween func(to matrix.Float)
 	tweenDone := func() {
 		switch tween.repeat {
 		case RepeatLoop:
@@ -162,7 +162,7 @@ func (d TweenTransformEntityData) Init(e *engine.Entity, host *engine.Host) {
 		}
 	}
 	wh := weak.Make(host)
-	runTween = func(to float32) {
+	runTween = func(to matrix.Float) {
 		h := wh.Value()
 		if h == nil {
 			return

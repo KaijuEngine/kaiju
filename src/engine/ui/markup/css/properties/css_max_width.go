@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p MaxWidth) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -29,7 +30,7 @@ func (p MaxWidth) Process(panel *ui.Panel, elm *document.Element, values []rules
 	if strings.HasSuffix(values[0].Str, "%") {
 		layout := panel.Base().Layout()
 		if layout.Ui().Entity().IsRoot() {
-			maxW = float32(host.Window.Width()) * maxW
+			maxW = matrix.Float(host.Window.Width()) * maxW
 		} else if pUI := ui.FirstOnEntity(layout.Ui().Entity().Parent); pUI != nil {
 			pLayout := pUI.Layout()
 			s := pLayout.PixelSize().X() - pLayout.Padding().Horizontal() - pLayout.Border().Horizontal()

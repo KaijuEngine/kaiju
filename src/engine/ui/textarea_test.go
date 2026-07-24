@@ -12,7 +12,7 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func assertCaret(t *testing.T, got textareaCaretGeometry, line int, x, y, height float32) {
+func assertCaret(t *testing.T, got textareaCaretGeometry, line int, x, y, height matrix.Float) {
 	t.Helper()
 	if got.line != line || got.x != x || got.y != y || got.height != height {
 		t.Fatalf("caret = {line:%d x:%v y:%v height:%v}, want {line:%d x:%v y:%v height:%v}",

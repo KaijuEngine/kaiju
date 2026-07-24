@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	textareaPadding       float32 = 5.0
-	textareaDefaultWidth  float32 = 320.0
-	textareaDefaultHeight float32 = 96.0
+	textareaPadding       matrix.Float = 5.0
+	textareaDefaultWidth  matrix.Float = 320.0
+	textareaDefaultHeight matrix.Float = 96.0
 )
 
 // TextColorSpan colors a [Start,End) rune range WITHIN a single line. It is a
@@ -55,20 +55,20 @@ type textareaData struct {
 	bgColor          matrix.Color
 	currentLineColor matrix.Color
 	fontFace         rendering.FontFace
-	fontSize         float32
+	fontSize         matrix.Float
 	fontWeight       string
 	fontStyle        string
-	lineHeight       float32
-	letterSpacing    float32
+	lineHeight       matrix.Float
+	letterSpacing    matrix.Float
 	wrap             bool
 
 	lineSpans map[int][]TextColorSpan
 
-	cursorBlink         float32
-	preferredCursorX    float32
+	cursorBlink         matrix.Float
+	preferredCursorX    matrix.Float
 	hasPreferredCursorX bool
 	ensureVisibleNext   bool
-	maxLineWidth        float32
+	maxLineWidth        matrix.Float
 	dragAnchor          textPos
 
 	required             bool
@@ -85,12 +85,12 @@ type textareaData struct {
 	lastVisLast           int
 
 	onScroll           func()
-	lastScrollNotified float32
+	lastScrollNotified matrix.Float
 }
 
 func (t *textareaData) innerPanelData() *panelData { return &t.panelData }
 
-func (t *textareaData) effectiveFontSize() float32 {
+func (t *textareaData) effectiveFontSize() matrix.Float {
 	if t.fontSize > 0 {
 		return t.fontSize
 	}
@@ -101,16 +101,16 @@ func (t *textareaData) effectiveFontSize() float32 {
 // helpers below (which are exercised directly by the tests).
 type textareaCaretGeometry struct {
 	line   int
-	x      float32
-	y      float32
-	height float32
+	x      matrix.Float
+	y      matrix.Float
+	height matrix.Float
 }
 
 type textareaLineRange struct {
 	start  int
 	end    int
-	y      float32
-	height float32
+	y      matrix.Float
+	height matrix.Float
 }
 
 type TextArea Panel
@@ -285,7 +285,7 @@ func (textarea *TextArea) applyLabelStyle(lbl *Label) {
 	}
 }
 
-func (textarea *TextArea) resolvedLineHeight() float32 {
+func (textarea *TextArea) resolvedLineHeight() matrix.Float {
 	d := textarea.Data()
 	if d.lineHeight > 0 {
 		return d.lineHeight
@@ -308,7 +308,7 @@ func (textarea *TextArea) applyHeightMode() {
 
 // singleLineHeight is the rendered height of one line of text in the current
 // font, used as the fixed row height in no-wrap mode (and for the gutter).
-func (textarea *TextArea) singleLineHeight() float32 {
+func (textarea *TextArea) singleLineHeight() matrix.Float {
 	data := textarea.Data()
 	host := textarea.man.Value().Host
 	sz := host.FontCache().MeasureStringWithinWithLetterSpacing(
@@ -319,7 +319,7 @@ func (textarea *TextArea) singleLineHeight() float32 {
 	return textarea.resolvedLineHeight()
 }
 
-func (textarea *TextArea) measureLineHeight(index int) float32 {
+func (textarea *TextArea) measureLineHeight(index int) matrix.Float {
 	data := textarea.Data()
 	lh := textarea.singleLineHeight()
 	if !data.wrap {
@@ -338,14 +338,14 @@ func (textarea *TextArea) measureLineHeight(index int) float32 {
 
 // --- geometry ---------------------------------------------------------------
 
-func (textarea *TextArea) textContentWidth() float32 {
+func (textarea *TextArea) textContentWidth() matrix.Float {
 	ps := textarea.layout.PixelSize()
 	return max(ps.Width()-textareaPadding*2, 1)
 }
 
 func (textarea *TextArea) lineRects(line int) []matrix.Vec4 {
 	d := textarea.Data()
-	maxW := float32(0)
+	maxW := matrix.Float(0)
 	if d.wrap {
 		maxW = textarea.textContentWidth()
 	}
@@ -364,7 +364,7 @@ func (textarea *TextArea) caretPixel(pos textPos) textareaCaretGeometry {
 
 // colAtX returns the rune column on line nearest content-space x, on the first
 // visual row (sufficient for no-wrap; an approximation for wrapped lines).
-func (textarea *TextArea) colAtX(line int, x float32) int {
+func (textarea *TextArea) colAtX(line int, x matrix.Float) int {
 	rects := textarea.lineRects(line)
 	ranges := textareaLineRanges(textarea.Data().doc.line(line), rects, textarea.resolvedLineHeight())
 	return textareaLineOffsetForX(ranges, rects, 0, x)
@@ -374,7 +374,7 @@ func (textarea *TextArea) colAtX(line int, x float32) int {
 // These are storage-agnostic and exercised directly by the tests; the rewritten
 // TextArea applies them per line.
 
-func textareaCaretFromRuneRects(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) textareaCaretGeometry {
+func textareaCaretFromRuneRects(text string, rects []matrix.Vec4, offset int, fallbackHeight matrix.Float) textareaCaretGeometry {
 	offset = editableTextClampOffset(text, offset)
 	if fallbackHeight <= 0 {
 		fallbackHeight = LabelFontSize
@@ -435,7 +435,7 @@ func textareaLineIndex(rects []matrix.Vec4, rectIndex int) int {
 	return line
 }
 
-func textareaLineRanges(text string, rects []matrix.Vec4, fallbackHeight float32) []textareaLineRange {
+func textareaLineRanges(text string, rects []matrix.Vec4, fallbackHeight matrix.Float) []textareaLineRange {
 	count := editableTextRuneCount(text)
 	if fallbackHeight <= 0 {
 		fallbackHeight = LabelFontSize
@@ -479,12 +479,12 @@ func textareaLineRanges(text string, rects []matrix.Vec4, fallbackHeight float32
 	return ranges
 }
 
-func textareaLineForOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) int {
+func textareaLineForOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight matrix.Float) int {
 	caret := textareaCaretFromRuneRects(text, rects, offset, fallbackHeight)
 	return caret.line
 }
 
-func textareaLineOffsetForX(ranges []textareaLineRange, rects []matrix.Vec4, line int, x float32) int {
+func textareaLineOffsetForX(ranges []textareaLineRange, rects []matrix.Vec4, line int, x matrix.Float) int {
 	if len(ranges) == 0 {
 		return 0
 	}
@@ -499,7 +499,7 @@ func textareaLineOffsetForX(ranges []textareaLineRange, rects []matrix.Vec4, lin
 	return r.end
 }
 
-func textareaMoveVerticalOffset(text string, rects []matrix.Vec4, offset, dir int, preferredX, fallbackHeight float32) int {
+func textareaMoveVerticalOffset(text string, rects []matrix.Vec4, offset, dir int, preferredX, fallbackHeight matrix.Float) int {
 	ranges := textareaLineRanges(text, rects, fallbackHeight)
 	if len(ranges) == 0 || dir == 0 {
 		return editableTextClampOffset(text, offset)
@@ -509,7 +509,7 @@ func textareaMoveVerticalOffset(text string, rects []matrix.Vec4, offset, dir in
 	return textareaLineOffsetForX(ranges, rects, target, preferredX)
 }
 
-func textareaLineStartOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) int {
+func textareaLineStartOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight matrix.Float) int {
 	ranges := textareaLineRanges(text, rects, fallbackHeight)
 	line := textareaLineForOffset(text, rects, offset, fallbackHeight)
 	if len(ranges) == 0 {
@@ -518,7 +518,7 @@ func textareaLineStartOffset(text string, rects []matrix.Vec4, offset int, fallb
 	return ranges[editableTextClamp(line, 0, len(ranges)-1)].start
 }
 
-func textareaLineEndOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight float32) int {
+func textareaLineEndOffset(text string, rects []matrix.Vec4, offset int, fallbackHeight matrix.Float) int {
 	ranges := textareaLineRanges(text, rects, fallbackHeight)
 	line := textareaLineForOffset(text, rects, offset, fallbackHeight)
 	if len(ranges) == 0 {
@@ -531,7 +531,7 @@ func textareaSelectedText(text string, start, end int) string {
 	return editableTextSlice(text, start, end)
 }
 
-func textareaSelectionLineEndX(line textareaLineRange, rects []matrix.Vec4, contentWidth float32) float32 {
+func textareaSelectionLineEndX(line textareaLineRange, rects []matrix.Vec4, contentWidth matrix.Float) matrix.Float {
 	if line.end > line.start && line.end-1 < len(rects) {
 		rect := rects[line.end-1]
 		return rect.X() + rect.Z()
@@ -539,7 +539,7 @@ func textareaSelectionLineEndX(line textareaLineRange, rects []matrix.Vec4, cont
 	return contentWidth
 }
 
-func textareaSelectionPanelRects(text string, rects []matrix.Vec4, start, end int, contentWidth, fallbackHeight float32) []matrix.Vec4 {
+func textareaSelectionPanelRects(text string, rects []matrix.Vec4, start, end int, contentWidth, fallbackHeight matrix.Float) []matrix.Vec4 {
 	start, end = editableTextNormalizeSelection(text, start, end)
 	if start == end {
 		return nil
@@ -560,7 +560,7 @@ func textareaSelectionPanelRects(text string, rects []matrix.Vec4, start, end in
 		if line.start == line.end && (start > line.start || end < line.end) {
 			continue
 		}
-		startX := float32(0)
+		startX := matrix.Float(0)
 		if start > line.start {
 			if start >= line.end && lineEndsWithNewline {
 				startX = textareaSelectionLineEndX(line, rects, contentWidth)
@@ -574,7 +574,7 @@ func textareaSelectionPanelRects(text string, rects []matrix.Vec4, start, end in
 		} else if line.end > line.start {
 			endX = textareaSelectionLineEndX(line, rects, contentWidth)
 		}
-		out = append(out, matrix.Vec4{startX, line.y, max(float32(0.001), endX-startX), line.height})
+		out = append(out, matrix.Vec4{startX, line.y, max(matrix.Float(0.001), endX-startX), line.height})
 	}
 	return out
 }
@@ -717,7 +717,7 @@ func (textarea *TextArea) update(deltaTime float64) {
 		data.isActive = false
 		return
 	}
-	data.cursorBlink -= float32(deltaTime)
+	data.cursorBlink -= matrix.Float(deltaTime)
 	if data.cursorBlink <= 0 {
 		if data.cursor.entity.IsActive() {
 			textarea.hideCursor()
@@ -776,7 +776,7 @@ func (textarea *TextArea) hideCursor() {
 func (textarea *TextArea) updateCursorPosition() {
 	data := textarea.Data()
 	caret := textarea.caretPixel(data.doc.cursorPos())
-	data.cursor.layout.Scale(cursorWidth, max(float32(0.001), caret.height))
+	data.cursor.layout.Scale(cursorWidth, max(matrix.Float(0.001), caret.height))
 	data.cursor.layout.SetOffset(caret.x, caret.y)
 }
 
@@ -1477,19 +1477,19 @@ func (textarea *TextArea) SetOnVisibleRangeChanged(fn func(first, last int)) {
 func (textarea *TextArea) SetOnScroll(fn func()) { textarea.Data().onScroll = fn }
 
 // ScrollY is the current vertical scroll offset (pixels from the top).
-func (textarea *TextArea) ScrollY() float32 { return (*Panel)(textarea.Data().list).ScrollY() }
+func (textarea *TextArea) ScrollY() matrix.Float { return (*Panel)(textarea.Data().list).ScrollY() }
 
 // SetScrollY sets the vertical scroll offset (clamped to the content).
-func (textarea *TextArea) SetScrollY(y float32) { (*Panel)(textarea.Data().list).SetScrollY(y) }
+func (textarea *TextArea) SetScrollY(y matrix.Float) { (*Panel)(textarea.Data().list).SetScrollY(y) }
 
 // MaxScrollY is the maximum vertical scroll offset.
-func (textarea *TextArea) MaxScrollY() float32 {
+func (textarea *TextArea) MaxScrollY() matrix.Float {
 	return (*Panel)(textarea.Data().list).MaxScroll().Y()
 }
 
 // ViewportHeight is the visible height of the scrolling text area (excluding the
 // internal padding), i.e. how much of the document is on screen at once.
-func (textarea *TextArea) ViewportHeight() float32 {
+func (textarea *TextArea) ViewportHeight() matrix.Float {
 	return textarea.Data().list.ViewportHeight()
 }
 
@@ -1502,7 +1502,7 @@ func (textarea *TextArea) SetScrollbarsVisible(visible bool) {
 
 // LineHeight is the rendered height of a single line (the fixed row height in
 // no-wrap mode), which a companion gutter should match.
-func (textarea *TextArea) LineHeight() float32 { return textarea.singleLineHeight() }
+func (textarea *TextArea) LineHeight() matrix.Float { return textarea.singleLineHeight() }
 
 // VisibleLineRange returns the first and last line indices currently realized.
 func (textarea *TextArea) VisibleLineRange() (first, last int) {
@@ -1532,7 +1532,7 @@ func (textarea *TextArea) SetFontStyle(style string) {
 	textarea.refreshRowStyle()
 }
 
-func (textarea *TextArea) SetFontSize(fontSize float32) {
+func (textarea *TextArea) SetFontSize(fontSize matrix.Float) {
 	data := textarea.Data()
 	data.fontSize = fontSize
 	data.placeholder.SetFontSize(fontSize)
@@ -1540,10 +1540,10 @@ func (textarea *TextArea) SetFontSize(fontSize float32) {
 	textarea.refreshRowStyle()
 }
 
-func (textarea *TextArea) FontSize() float32            { return textarea.Data().effectiveFontSize() }
+func (textarea *TextArea) FontSize() matrix.Float       { return textarea.Data().effectiveFontSize() }
 func (textarea *TextArea) FontFace() rendering.FontFace { return textarea.Data().fontFace }
 
-func (textarea *TextArea) SetLineHeight(lineHeight float32) {
+func (textarea *TextArea) SetLineHeight(lineHeight matrix.Float) {
 	data := textarea.Data()
 	data.lineHeight = lineHeight
 	data.placeholder.SetLineHeight(lineHeight)
@@ -1551,7 +1551,7 @@ func (textarea *TextArea) SetLineHeight(lineHeight float32) {
 	textarea.refreshRowStyle()
 }
 
-func (textarea *TextArea) SetLetterSpacing(spacing float32) {
+func (textarea *TextArea) SetLetterSpacing(spacing matrix.Float) {
 	textarea.Data().letterSpacing = spacing
 	textarea.refreshRowStyle()
 }

@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 type calcOp int
@@ -27,7 +28,7 @@ const (
 )
 
 type calcEntry struct {
-	value float32
+	value matrix.Float
 	op    calcOp
 }
 
