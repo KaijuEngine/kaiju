@@ -57,7 +57,7 @@ func (s StretchCenterStylizer) ProcessStyle(layout *Layout) []error {
 func (l *Layout) stylizerControlsHeight() bool {
 	switch l.Stylizer.(type) {
 	case StretchHeightStylizer, StretchCenterStylizer,
-		SelectOptionCheckStylizer, SelectOptionTextStylizer:
+		SelectOptionArrowStylizer, SelectOptionTextStylizer:
 		return true
 	default:
 		return false

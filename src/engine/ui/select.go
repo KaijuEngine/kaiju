@@ -23,9 +23,9 @@ const (
 	selectTriangleRightPadding = 6
 	selectTextPaddingLeft      = 8
 	selectTextPaddingRight     = triangleTexSize + (selectTriangleRightPadding * 2)
-	selectOptionCheckWidth     = 28
+	selectOptionArrowColumn    = 28
+	selectOptionArrowInset     = 4
 	selectOptionTextPadding    = 36
-	selectOptionCheckIcon      = '\ue5ca'
 	selectPopupZ               = 120
 )
 
@@ -47,7 +47,7 @@ type SelectOption struct {
 	Value  string
 	target *UI
 	label  *Label
-	check  *Label
+	arrow  *Image
 }
 
 func (s *selectData) innerPanelData() *panelData { return &s.panelData }
@@ -56,7 +56,7 @@ type Select Panel
 
 type SelectTextStylizer struct{ BasicStylizer }
 type SelectOptionStylizer struct{ BasicStylizer }
-type SelectOptionCheckStylizer struct{ BasicStylizer }
+type SelectOptionArrowStylizer struct{ BasicStylizer }
 type SelectOptionTextStylizer struct{ BasicStylizer }
 type TriangleStylizer struct{ BasicStylizer }
 
@@ -81,14 +81,16 @@ func (s SelectOptionStylizer) ProcessStyle(layout *Layout) []error {
 	return []error{}
 }
 
-func (s SelectOptionCheckStylizer) ProcessStyle(layout *Layout) []error {
+func (s SelectOptionArrowStylizer) ProcessStyle(layout *Layout) []error {
 	parent := s.Parent.Value()
 	if parent == nil || !parent.IsValid() {
 		return []error{}
 	}
 	size := parent.layout.PixelSize()
-	layout.Scale(selectOptionCheckWidth, max(1, size.Y()))
-	layout.SetOffset(4, 0)
+	layout.Scale(triangleTexSize, triangleTexSize)
+	layout.SetOffset(
+		selectOptionArrowInset+(selectOptionArrowColumn-triangleTexSize)*0.5,
+		max(0, (size.Y()-triangleTexSize)*0.5))
 	return []error{}
 }
 
@@ -121,6 +123,20 @@ func (s *Select) Base() *UI     { return (*UI)(s) }
 
 func (s *Select) SelectData() *selectData {
 	return s.elmData.(*selectData)
+}
+
+func initSelectArrow(img *Image, texture *rendering.Texture) {
+	img.Init(texture)
+	img.shaderData.Size2D.SetZ(triangleTexSize)
+	img.shaderData.Size2D.SetW(triangleTexSize)
+	textureSize := img.textureSize
+	img.shaderData.setUVSize(
+		triangleTexSize/textureSize.X(),
+		triangleTexSize/textureSize.Y())
+	img.shaderData.setUVXY(
+		triangleUVX/textureSize.X(),
+		triangleUVY,
+		textureSize.Y())
 }
 
 func (s *Select) Init(text string, options []SelectOption) {
@@ -183,12 +199,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 		triTex, _ := host.TextureCache().Texture(inputAtlas, rendering.TextureFilterLinear)
 		tri := man.Add()
 		img := tri.ToImage()
-		img.Init(triTex)
-		img.shaderData.Size2D.SetZ(triangleTexSize)
-		img.shaderData.Size2D.SetW(triangleTexSize)
-		imgTSize := img.textureSize
-		img.shaderData.setUVSize(triangleTexSize/imgTSize.X(), triangleTexSize/imgTSize.Y())
-		img.shaderData.setUVXY(triangleUVX/imgTSize.X(), triangleUVY, imgTSize.Y())
+		initSelectArrow(img, triTex)
 		tri.layout.Stylizer = TriangleStylizer{BasicStylizer{weak.Make(p.Base())}}
 		tri.ToPanel().SetColor(data.textColor)
 		tri.layout.SetPositioning(PositioningAbsolute)
@@ -225,22 +236,30 @@ func (s *Select) AddOption(name, value string) {
 	p.entity.SetName(name)
 	optionIndex := len(data.options)
 	{
-		// Create the selected option check icon
-		checkUI := man.Add()
-		check := checkUI.ToLabel()
-		check.Init(string(selectOptionCheckIcon))
-		check.layout.Stylizer = SelectOptionCheckStylizer{BasicStylizer{weak.Make(panel)}}
-		check.layout.SetPositioning(PositioningAbsolute)
-		check.SetJustify(rendering.FontJustifyCenter)
-		check.SetBaseline(rendering.FontBaselineCenter)
-		check.SetFontSize(18)
-		check.SetFontFace(rendering.FontFace("MaterialIcons-Regular"))
-		check.SetWrap(false)
-		check.SetColor(matrix.ColorWhite())
-		check.SetBGColor(p.Color())
-		p.AddChild(checkUI)
-		check.Base().Hide()
-		data.options = append(data.options, SelectOption{Name: name, Value: value, target: panel, check: check})
+		// Create the selected option arrow from the shared input atlas.
+		arrowTexture, _ := s.Base().Host().TextureCache().Texture(
+			inputAtlas, rendering.TextureFilterLinear)
+		arrowHolderUI := man.Add()
+		arrowHolder := arrowHolderUI.ToPanel()
+		arrowHolder.Init(nil, ElementTypePanel)
+		arrowHolder.DontFitContent()
+		arrowHolder.layout.Stylizer = SelectOptionArrowStylizer{BasicStylizer{weak.Make(panel)}}
+		arrowHolder.layout.SetPositioning(PositioningAbsolute)
+		arrowHolder.layout.SetZ(1)
+		p.AddChild(arrowHolderUI)
+
+		arrowUI := man.Add()
+		arrow := arrowUI.ToImage()
+		initSelectArrow(arrow, arrowTexture)
+		arrow.layout.Stylizer = StretchCenterStylizer{BasicStylizer{weak.Make(arrowHolderUI)}}
+		arrow.layout.SetPositioning(PositioningAbsolute)
+		arrowUI.ToPanel().SetColor(data.textColor)
+		arrowHolder.AddChild(arrowUI)
+		arrowUI.entity.Transform.SetRotation(matrix.NewVec3(0, 0, -90))
+		arrow.Base().Hide()
+		data.options = append(data.options, SelectOption{
+			Name: name, Value: value, target: panel, arrow: arrow,
+		})
 	}
 	// Create the label
 	label := man.Add()
@@ -410,8 +429,8 @@ func (s *Select) applyOptionVisual(index int) {
 	p := option.target.ToPanel()
 	p.SetColor(bgColor)
 	s.setOptionTextColors(index, textColor, p.Color())
-	if option.check != nil {
-		option.check.Base().SetVisibility(checkVisible)
+	if option.arrow != nil {
+		option.arrow.Base().SetVisibility(checkVisible)
 	}
 }
 
@@ -425,9 +444,8 @@ func (s *Select) setOptionTextColors(index int, textColor, bgColor matrix.Color)
 		option.label.SetColor(textColor)
 		option.label.SetBGColor(bgColor)
 	}
-	if option.check != nil {
-		option.check.SetColor(textColor)
-		option.check.SetBGColor(bgColor)
+	if option.arrow != nil {
+		option.arrow.Base().ToPanel().SetColor(textColor)
 	}
 }
 
