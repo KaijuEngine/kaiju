@@ -54,3 +54,4 @@ game_content/
 
 # Toolings
 package-lock.json
+*.ps1
