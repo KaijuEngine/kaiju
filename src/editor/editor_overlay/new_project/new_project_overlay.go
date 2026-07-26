@@ -140,9 +140,6 @@ func (np *NewProject) clearTemplate(e *document.Element) {
 	np.templatePath = ""
 	np.templatePathElm.InnerLabel().SetText("No template selected")
 	np.doc.SetElementClasses(np.clearTemplateBtn, "clearTemplateBtn", "hidden")
-	if np.uiMan.Host != nil {
-		np.uiMan.Host.Window.CursorStandard()
-	}
 }
 
 func (np *NewProject) browse(e *document.Element) {
