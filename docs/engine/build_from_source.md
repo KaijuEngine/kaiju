@@ -74,8 +74,7 @@ Currently the engine uses Soloud for playing music and sound effects. Below are 
 ### Soloud Windows
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
-cd soloud
-cd contrib
+cd soloud/contrib
 mkdir build
 cd build
 cmake .. -G "MinGW Makefiles" .. -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_WASAPI=ON -DSOLOUD_C_API=ON
@@ -85,13 +84,29 @@ cmake --build . --config Release
 ### Soloud Linux
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
-cd soloud
-cd contrib
+cd soloud/contrib
 mkdir build
 cd build
 cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_ALSA=ON -DSOLOUD_C_API=ON
 cmake --build . --config Release
 ```
+
+### Soloud Steam Deck
+```sh
+git clone https://github.com/jarikomppa/soloud.git
+cd soloud/build
+nano genie.lua
+```
+Now, find the project "SoloudStatic", and locate `files` in that project. Add the following file:
+```lua
+"../src/c_api/soloud_c.cpp"
+```
+Then run:
+```
+genie --with-miniaudio-only gmake
+make -C gmake config=release -j"$(nproc)"
+```
+You can then copy `soloud/lib/libsoloud_static.a`,
 
 ### Soloud MacOS
 ```sh
