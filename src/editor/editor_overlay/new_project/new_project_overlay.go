@@ -19,13 +19,15 @@ import (
 )
 
 type NewProject struct {
-	doc             *document.Document
-	uiMan           ui.Manager
-	nameInput       *document.Element
-	folder          *document.Element
-	templatePathElm *document.Element
-	config          Config
-	templatePath    string
+	doc              *document.Document
+	uiMan            ui.Manager
+	nameInput        *document.Element
+	folder           *document.Element
+	templatePathElm  *document.Element
+	clearTemplateBtn *document.Element
+	errorBox         *document.Element
+	config           Config
+	templatePath     string
 }
 
 type Config struct {
@@ -72,9 +74,11 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 		data, map[string]func(*document.Element){
 			"openProject":       np.openProject,
 			"selectTemplate":    np.selectTemplate,
+			"clearTemplate":     np.clearTemplate,
 			"browse":            np.browse,
 			"createProject":     np.createProject,
 			"openRecentProject": np.openRecentProject,
+			"backgroundClick":   np.backgroundClick,
 		})
 	if err != nil {
 		return np, err
@@ -82,6 +86,24 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np.nameInput, _ = np.doc.GetElementById("nameInput")
 	np.folder, _ = np.doc.GetElementById("folder")
 	np.templatePathElm, _ = np.doc.GetElementById("templatePath")
+	np.clearTemplateBtn, _ = np.doc.GetElementById("clearTemplateBtn")
+	np.errorBox, _ = np.doc.GetElementById("errorBox")
+	
+	if np.nameInput != nil && np.nameInput.UI != nil {
+		np.nameInput.UI.ToInput().Focus()
+		np.nameInput.UI.AddEvent(ui.EventTypeFocus, func() {
+			np.doc.SetElementClasses(np.nameInput, "fullWidth")
+			np.hideError()
+		})
+	}
+	
+	if np.folder != nil && np.folder.UI != nil {
+		np.folder.UI.AddEvent(ui.EventTypeFocus, func() {
+			np.doc.SetElementClasses(np.folder, "folderInput")
+			np.hideError()
+		})
+	}
+	
 	return np, err
 }
 
@@ -105,8 +127,19 @@ func (np *NewProject) selectTemplate(e *document.Element) {
 			np.uiMan.EnableUpdate()
 			np.templatePath = paths[0]
 			np.templatePathElm.InnerLabel().SetText(np.templatePath)
+			np.doc.SetElementClasses(np.clearTemplateBtn, "clearTemplateBtn")
+			if np.clearTemplateBtn != nil && np.clearTemplateBtn.UI != nil {
+				np.clearTemplateBtn.UI.Show()
+			}
 		}, OnCancel: np.uiMan.EnableUpdate,
 	})
+}
+
+func (np *NewProject) clearTemplate(e *document.Element) {
+	defer tracing.NewRegion("NewProject.clearTemplate").End()
+	np.templatePath = ""
+	np.templatePathElm.InnerLabel().SetText("No template selected")
+	np.doc.SetElementClasses(np.clearTemplateBtn, "clearTemplateBtn", "hidden")
 }
 
 func (np *NewProject) browse(e *document.Element) {
@@ -132,14 +165,27 @@ func (np *NewProject) showFolderPick(isOpen bool) {
 
 func (np *NewProject) createProject(e *document.Element) {
 	defer tracing.NewRegion("NewProject.createProject").End()
+
+	np.doc.SetElementClasses(np.nameInput, "fullWidth")
+	np.doc.SetElementClasses(np.folder, "folderInput")
+
 	name := np.nameInput.UI.ToInput().Text()
-	path := np.folder.UI.ToInput().Text()
-	if name == "" {
-		slog.Error("project name was not set")
+	folder := np.folder.UI.ToInput().Text()
+
+	if name == "" && folder == "" {
+		np.doc.SetElementClasses(np.nameInput, "fullWidth", "invalid")
+		np.doc.SetElementClasses(np.folder, "folderInput", "invalid")
+		np.showError("Project name and folder cannot be empty.")
 		return
 	}
-	if path == "" {
-		slog.Error("project path was not set")
+	if name == "" {
+		np.doc.SetElementClasses(np.nameInput, "fullWidth", "invalid")
+		np.showError("Project name was not set.")
+		return
+	}
+	if folder == "" {
+		np.doc.SetElementClasses(np.folder, "folderInput", "invalid")
+		np.showError("Project folder was not set.")
 		return
 	}
 	np.Close()
@@ -147,7 +193,35 @@ func (np *NewProject) createProject(e *document.Element) {
 		slog.Error("nothing bound to OnCreate, doing nothing")
 		return
 	}
-	np.config.OnCreate(name, path, np.templatePath)
+	np.config.OnCreate(name, folder, np.templatePath)
+}
+
+func (np *NewProject) showError(msg string) {
+	if np.errorBox != nil {
+		np.doc.SetElementClasses(np.errorBox, "error")
+		np.errorBox.UI.Show()
+		if lbl := np.errorBox.InnerLabel(); lbl != nil {
+			lbl.SetText(msg)
+		}
+	}
+}
+
+func (np *NewProject) hideError() {
+	if np.errorBox != nil {
+		np.doc.SetElementClasses(np.errorBox, "error", "hidden")
+	}
+}
+
+func (np *NewProject) backgroundClick(e *document.Element) {
+	if np.nameInput != nil && np.nameInput.UI != nil {
+		np.nameInput.UI.ToInput().RemoveFocus()
+		np.doc.SetElementClasses(np.nameInput, "fullWidth")
+	}
+	if np.folder != nil && np.folder.UI != nil {
+		np.folder.UI.ToInput().RemoveFocus()
+		np.doc.SetElementClasses(np.folder, "folderInput")
+	}
+	np.hideError()
 }
 
 func (np *NewProject) openRecentProject(e *document.Element) {

@@ -224,8 +224,15 @@
 			.folderInput {
 				width: calc(100% - 7.5em);
 			}
+			input:hover {
+				border: 1px solid #3A3A3D;
+			}
 			input:focus {
 				border: 1px solid #9B3034;
+			}
+			
+			input.invalid {
+				border: 1px solid #C7655D;
 			}
 			
 			.browseButton {
@@ -281,7 +288,7 @@
 				position: absolute;
 				left: 11em;
 				top: 0.6em;
-				width: calc(100% - 11em);
+				width: calc(100% - 13.5em);
 				height: 1.5em;
 				color: #A0A0A0;
 				font-size: 0.9em;
@@ -289,14 +296,39 @@
 				white-space: nowrap;
 			}
 			
-			.pos1-label { top: 2em; }
-			.pos1-input { top: 3.8em; }
+			.clearTemplateBtn {
+				display: block;
+				position: absolute;
+				right: 0.5em;
+				top: 0.55em;
+				height: 1.5em;
+				width: 1.5em;
+				border-radius: 50%;
+				background-color: transparent;
+				border: none;
+				color: #808080;
+				font-size: 1.1em;
+				font-weight: bold;
+				text-align: center;
+				line-height: 1.3em;
+				padding: 0;
+				cursor: pointer;
+				transition: all 0.15s ease;
+			}
+			.clearTemplateBtn:hover {
+				color: #FFFFFF;
+				background-color: #353538;
+			}
+
 			
-			.pos2-label { top: 7.5em; }
-			.pos2-input { top: 9.3em; }
+			.pos1-label { top: 3.5em; }
+			.pos1-input { top: 5.3em; }
 			
-			.pos3-label { top: 13em; }
-			.pos3-input { top: 14.8em; }
+			.pos2-label { top: 9em; }
+			.pos2-input { top: 10.8em; }
+			
+			.pos3-label { top: 14.5em; }
+			.pos3-input { top: 16.3em; }
 			
 			.actionRow {
 				position: absolute;
@@ -329,21 +361,25 @@
 			}
 			
 			.error {
+				display: block;
 				position: absolute;
 				top: 0.5em;
 				left: 2.5em;
 				width: calc(100% - 5em);
 				color: #C7655D;
 				background-color: #2D1718;
-				border: 1px solid var(--ed-row-selected);
-				border-radius: 5px;
+				border-radius: 2px;
 				padding: 0.55em;
 				font-size: 0.9em;
+			}
+			
+			.hidden {
+				display: none;
 			}
 		</style>
 	</head>
 	<body>
-		<div class="panel">
+		<div class="panel" onclick="backgroundClick">
 			<div class="header">
 				<div class="logoBadge">
 					<img src="kaiju-icon.png" />
@@ -371,7 +407,11 @@
 						{{end}}
 					</div>
 					{{else}}
-					<div class="emptyRecent">No recent projects yet.</div>
+					<div class="emptyRecent">
+						<img src="editor/textures/icons/folder.png" style="width: 3.5em; height: 3.5em; opacity: 0.4; margin-bottom: 0.5em; image-rendering: pixelated;" />
+						<br/>
+						No recent projects yet.
+					</div>
 					{{end}}
 
 
@@ -379,9 +419,7 @@
 				</div>
 				<div class="rightColumn">
 					<div class="setupContent">
-						{{if .Error}}
-						<div class="error">{{.Error}}</div>
-						{{end}}
+						<div id="errorBox" class="error{{if not .Error}} hidden{{end}}">{{if .Error}}{{.Error}}{{else}}Placeholder{{end}}</div>
 						
 						<div class="fieldLabel pos1-label">Project name</div>
 						<div class="inputPanel pos1-input">
@@ -398,6 +436,7 @@
 						<div class="templateRow pos3-input">
 							<button class="templateButton" onclick="selectTemplate">Select Template</button>
 							<span id="templatePath" class="templatePath">No template selected</span>
+							<button id="clearTemplateBtn" class="clearTemplateBtn hidden" onclick="clearTemplate">×</button>
 						</div>
 						
 						<div class="actionRow">

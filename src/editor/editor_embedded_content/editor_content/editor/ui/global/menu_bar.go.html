@@ -39,17 +39,39 @@
 			}
 			.popup {
 				position: absolute;
-				top: var(--ed-menu-bar-height);
-				color: #AAA;
+				top: calc(var(--ed-menu-bar-height) + 2px);
+				color: #CCCCCC;
 				width: 270px;
-				background-color: #121212;
-				border: 2px solid #AAA;
+				background-color: #252526;
+				border: 1px solid #454545;
+				border-radius: 3px;
+				padding: 4px;
 				z-index: 90;
 			}
-			.popupEntry { background-color: #121212; width: 100%; }
-			.popupEntry:hover { color: white; background-color: #575757; }
+			.popupEntry {
+				background-color: #252526;
+				width: 100%;
+				padding: 4px 16px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 0.9em;
+				position: relative;
+			}
+			.popupEntry:hover {
+				color: #FFFFFF;
+				background-color: #3A3A3D;
+			}
+			.shortcut {
+				opacity: 0.6;
+				position: absolute;
+				right: 20px;
+			}
 			hr {
-				background-color: #AAA;
+				background-color: #454545;
+				height: 1px;
+				border: none;
+				width: 100%;
+				margin: 4px 0;
 			}
 		</style>
 	</head>
@@ -90,15 +112,15 @@
 			<div class="popupEntry" onclick="clickExportProject">Export project template...</div>
 		</div>
 		<div id="editPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickUndo">Undo (ctrl + z)</div>
-			<div class="popupEntry" onclick="clickRedo">Redo (ctrl + y)</div>
-			<div class="popupEntry" onclick="clickDuplicate">Duplicate (ctrl + d)</div>
+			<div class="popupEntry" onclick="clickUndo">Undo <span class="shortcut">Ctrl+Z</span></div>
+			<div class="popupEntry" onclick="clickRedo">Redo <span class="shortcut">Ctrl+Y</span></div>
+			<div class="popupEntry" onclick="clickDuplicate">Duplicate <span class="shortcut">Ctrl+D</span></div>
 		</div>
 		<div id="createPopup" class="popup" onmiss="popupMiss">
-			<div class="popupEntry" onclick="clickCreateTemplate">Template selected (ctrl + t)</div>
+			<div class="popupEntry" onclick="clickCreateTemplate">Template selected <span class="shortcut">Ctrl+T</span></div>
 			<div class="popupEntry" onclick="clickCreateEntityData">Entity Data</div>
 			<div class="popupEntry" onclick="clickCreateHtmlUi">HTML UI</div>
-			<div class="popupEntry" onclick="clickCreateCssStylesheet">Css Stylesheet</div>
+			<div class="popupEntry" onclick="clickCreateCssStylesheet">CSS Stylesheet</div>
 			<hr />
 			<div class="popupEntry" onclick="clickDistanceChain">Connect selected as distance chain</div>
 			<div class="popupEntry" onclick="clickRope">Connect selected as rope</div>

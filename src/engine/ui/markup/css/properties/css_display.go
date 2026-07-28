@@ -25,12 +25,15 @@ func (p Display) Process(panel *ui.Panel, elm *document.Element, values []rules.
 		panel.Base().Hide()
 		return nil
 	case "flex", "inline-flex", "block flex", "inline flex":
+		panel.Base().Show()
 		panel.SetFlex()
 		return nil
 	case "grid", "inline-grid", "block grid", "inline grid":
+		panel.Base().Show()
 		panel.SetGrid(0)
 		return nil
 	case "block", "inline", "inline-block", "flow-root", "block flow", "inline flow":
+		panel.Base().Show()
 		panel.SetFlowLayout()
 		return nil
 	default:
