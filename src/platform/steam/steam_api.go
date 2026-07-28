@@ -10,8 +10,8 @@ package steam
 #cgo CPPFLAGS: -DBUILD_STEAM_API=1 -I${SRCDIR}/../../../publishing/steam_sdk/public
 #cgo CXXFLAGS: -std=c++11
 #cgo windows LDFLAGS: -L../../libs -lsteam_api64 -lstdc++
-#cgo steamdeck LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=./
-#cgo linux LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=./
+#cgo steamdeck LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=../../libs
+#cgo linux LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=../../libs
 #include "steam_wrapper.h"
 
 #cgo noescape   c_SteamAPI_Init
@@ -42,6 +42,7 @@ var (
 	SteamUser      steamUser
 	SteamUserStats steamUserStats
 	SteamUtils     steamUtils
+	SteamInput     = newInputSystem()
 	Callbacks      steamCallbacks
 )
 
@@ -70,6 +71,9 @@ func Initialize() {
 	}
 	if bool(C.c_SteamAPI_Init()) {
 		initialized = true
+		if !SteamInput.initialize() {
+			slog.Warn("Steam initialized without Steam Input support")
+		}
 	} else {
 		slog.Error(`Failed to initialize the Steam API, possible reasons are:
 - The Steam client isn't running
@@ -84,6 +88,7 @@ func Shutdown() {
 		return
 	}
 	C.c_SteamAPI_Shutdown()
+	SteamInput.reset()
 	initialized = false
 }
 
@@ -91,7 +96,13 @@ func RestartAppIfNecessary(unOwnAppID uint32) bool {
 	return bool(C.c_SteamAPI_RestartAppIfNecessary(C.uint32_t(unOwnAppID)))
 }
 
-func RunCallbacks() { C.c_SteamAPI_RunCallbacks() }
+func RunCallbacks() {
+	if !IsInitialized() {
+		return
+	}
+	C.c_SteamAPI_RunCallbacks()
+	SteamInput.poll()
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Steam Friends                                                              //
