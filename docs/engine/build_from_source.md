@@ -91,7 +91,7 @@ cmake .. -G "Unix Makefiles" -DSOLOUD_BACKEND_SDL2=OFF -DSOLOUD_BACKEND_ALSA=ON 
 cmake --build . --config Release
 ```
 
-### Soloud Steam Deck
+### Soloud Steam OS
 ```sh
 git clone https://github.com/jarikomppa/soloud.git
 cd soloud/build
@@ -106,7 +106,7 @@ Then run:
 genie --with-miniaudio-only gmake
 make -C gmake config=release -j"$(nproc)"
 ```
-You can then copy `soloud/lib/libsoloud_static.a`,
+You can then copy `soloud/lib/libsoloud_static.a` as `libsoloud_steamos.a`
 
 ### Soloud MacOS
 ```sh
