@@ -1,0 +1,26 @@
+package aidriver // import "kaijuengine.com/engine/aidriver"
+
+Package aidriver exposes a localhost HTTP control surface that lets an external
+process (e.g. an AI agent driving the game through curl) capture a screenshot of
+the rendered frame and inject mouse/keyboard input.
+
+The package is a plain library: it is only linked into a binary that is wired
+up from the bootstrap layer under the `ai_driver` build tag, so default builds
+carry none of this code. See bootstrap/bootstrap_aidriver*.go.
+
+Threading model: the HTTP server runs on its own goroutine and only ever
+enqueues commands onto a buffered channel. Every command is executed on
+the game-loop thread by a drain that re-registers itself each frame via
+host.RunNextFrame, running right after Window.Poll and before the UI update —
+the same point at which real OS input is applied. This keeps all engine state
+mutation single-threaded with no locks.
+
+FUNCTIONS
+
+func Start(host *engine.Host)
+    Start brings up the localhost AI-driver control server for the given host
+    and registers the per-frame command drain. It is invoked from the bootstrap
+    layer only under the `ai_driver` build tag, on the game-loop thread.
+    Failures (e.g. the port already being in use) are logged and leave the game
+    running normally, just without a control surface.
+

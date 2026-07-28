@@ -1,0 +1,67 @@
+package menu_bar // import "kaijuengine.com/editor/global_interface/menu_bar"
+
+
+TYPES
+
+type MenuBar struct {
+	// Has unexported fields.
+}
+
+func (b *MenuBar) Blur()
+
+func (b *MenuBar) Focus()
+
+func (b *MenuBar) Initialize(host *engine.Host, handler MenuBarHandler) error
+
+func (b *MenuBar) IsFocusedOnInput() bool
+
+func (b *MenuBar) RebuildWorkspaceTabs(tabs []WorkspaceTab, activeID string)
+    RebuildWorkspaceTabs replaces the menu bar's workspace tab strip with the
+    given ordered list and marks activeID as selected. Called by the editor
+    after workspace registration / settings changes. Re-renders the document
+    (popup state is rebuilt; this is rare enough that the cost is acceptable).
+
+func (b *MenuBar) SetActiveTab(id string)
+    SetActiveTab updates the selected tab styling without rebuilding the
+    document. Used on every workspace switch.
+
+type MenuBarHandler interface {
+	BlurInterface()
+	FocusInterface()
+	Settings() *editor_settings.Settings
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	// WorkspaceSelected is invoked when the user clicks a tab. The id is
+	// the workspace id supplied via WorkspaceTab.ID, which is the same id
+	// the workspace itself registered under.
+	WorkspaceSelected(id string)
+	StageView() *editor_stage_view.StageView
+	Build(buildMode project.GameBuildMode)
+	BuildAndRun(buildMode project.GameBuildMode)
+	BuildAndRunCurrentStage()
+	OpenCodeEditor()
+	CreateNewStage()
+	SaveCurrentStage()
+	CreateNewCamera()
+	CreateNewEntity()
+	CreateNewLight()
+	CreatePrimitive(primitive rendering.PrimitiveMesh)
+	ConnectSelectedAsDistanceChain()
+	ConnectSelectedAsRope()
+	ConnectSelectedAsHingeChain()
+	CreatePluginProject(path string)
+	CreateHtmlUiFile(name string)
+	CreateCssStylesheetFile(name string)
+	SetGridVisible(visible bool)
+}
+
+type WorkspaceTab struct {
+	ID          string
+	DisplayName string
+}
+    WorkspaceTab is the data the menu bar template needs to render one tab in
+    the workspace tab strip. The list is supplied by the editor on initial load
+    and again after workspace registration / settings changes.
+

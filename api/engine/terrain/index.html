@@ -1,0 +1,2003 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The official documentation for the Kaiju game engine">
+      
+      
+        <meta name="author" content="Brent Farris">
+      
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.17">
+    
+    
+      
+        <title>package terrain - Kaiju Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.bcfcd587.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-12 6 6-6-6-6-1.4 1.4 4.6 4.6-4.6 4.6L10 18Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/style.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#package-terrain" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Kaiju Engine" class="md-header__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kaiju Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              package terrain
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8v2m9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.71-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Kaiju Engine" class="md-nav__button md-logo" aria-label="Kaiju Engine" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Kaiju Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KaijuEngine/kaiju" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    KaijuEngine/kaiju
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blog/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Getting started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/start_with_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    With editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting_started/start_without_editor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Without editor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Editor
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Editor
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/stage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Stage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Content
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Content
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/workspace/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Content workspace
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/reference_viewer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reference viewer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/content/table_of_contents/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Table of contents
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/shading/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shading
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/vfx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    VFX (particles)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/settings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Settings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_7" id="__nav_4_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Programming
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_7">
+            <span class="md-nav__icon md-icon"></span>
+            Programming
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/programming/data_binding/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Binding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../editor/plugins/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plugins
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Kaiju Engine
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Kaiju Engine
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/design_goals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design goals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_from_source/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build from source
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/build_tags/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Build tags
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/render_targets/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Render targets and views
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/fbx_importer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FBX importer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/physics_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Physics constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/performance_profiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance profiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/vulkan_validation_layers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Vulkan validation layers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/fonts/building_fonts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Building new fonts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    UI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_10">
+            <span class="md-nav__icon md-icon"></span>
+            UI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/writing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/preview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Preview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/go_access/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go access
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../engine/ui/html_attributes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTML attributes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/KaijuEngine/kaiju" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GitHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://twitter.com/ShieldCrush" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creator X
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://discord.gg/8rFPEu8U52" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Discord
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/sponsors/BrentFarris" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sponsor Kaiju
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="package-terrain">package terrain</h1>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="s">&quot;kaijuengine.com/engine/terrain&quot;</span>
+</span></code></pre></div>
+<h2 id="constants">Constants</h2>
+<h4 id="assetversion">AssetVersion</h4>
+<p><code>2</code></p>
+<h4 id="heightencodinguint16">HeightEncodingUint16</h4>
+<h4 id="heightencoding">HeightEncoding</h4>
+<p><code>"uint16-normalized"</code></p>
+<h4 id="weightencodinguint16">WeightEncodingUint16</h4>
+<h4 id="weightencoding">WeightEncoding</h4>
+<p><code>"uint16-normalized"</code></p>
+<h2 id="types">Types</h2>
+<h3 id="automaterialrule">AutoMaterialRule</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">AutoMaterialRule</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">          </span><span class="kt">string</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nx">Layer</span><span class="w">         </span><span class="kt">int</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nx">TargetWeight</span><span class="w">  </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nx">Constraints</span><span class="w">   </span><span class="nx">TexturePaintConstraints</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nx">NoiseStrength</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nx">NoiseScale</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nx">NoiseSeed</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="terrainautomaterialrules">TerrainAutoMaterialRules</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">TerrainAutoMaterialRules</span><span class="p">(</span><span class="nx">preset</span><span class="w"> </span><span class="nx">TerrainAutoMaterialPreset</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">AutoMaterialRule</span>
+</span></code></pre></div>
+<h3 id="brushfalloff">BrushFalloff</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">BrushFalloff</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<p>const (
+FalloffLinear BrushFalloff = iota
+FalloffSmooth
+FalloffConstant
+)</p>
+<h3 id="brushmode">BrushMode</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">BrushMode</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<p>const (
+BrushRaise BrushMode = iota
+BrushLower
+BrushSmooth
+)</p>
+<h3 id="dirtyregion">DirtyRegion</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nx">MinX</span><span class="p">,</span><span class="w"> </span><span class="nx">MinZ</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nx">MaxX</span><span class="p">,</span><span class="w"> </span><span class="nx">MaxZ</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nx">Valid</span><span class="w">      </span><span class="kt">bool</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="dirtyregionexpand">DirtyRegion.Expand</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="nx">Expand</span><span class="p">(</span><span class="nx">padding</span><span class="p">,</span><span class="w"> </span><span class="nx">resolution</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="dirtyregionintersects">DirtyRegion.Intersects</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="nx">Intersects</span><span class="p">(</span><span class="nx">other</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h3 id="heightencoding_1">HeightEncoding</h3>
+<p><a href="#string">string</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">HeightEncoding</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div></p>
+<h3 id="heightfield">HeightField</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">HeightField</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="nx">Resolution</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nx">Heights</span><span class="w">    </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nx">MinHeight</span><span class="w">  </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nx">MaxHeight</span><span class="w">  </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="newheightfield">NewHeightField</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewHeightField</span><span class="p">(</span><span class="nx">resolution</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">minHeight</span><span class="p">,</span><span class="w"> </span><span class="nx">maxHeight</span><span class="p">,</span><span class="w"> </span><span class="nx">initialHeight</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">HeightField</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="heightfieldaddheight">HeightField.AddHeight</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">AddHeight</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">delta</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="heightfieldcleardirty">HeightField.ClearDirty</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">ClearDirty</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="heightfieldcopyregion">HeightField.CopyRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">CopyRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="heightfielddirtyregion">HeightField.DirtyRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">()</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="heightfieldheight">HeightField.Height</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">Height</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="heightfieldpaint">HeightField.Paint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">Paint</span><span class="p">(</span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="heightfieldsample">HeightField.Sample</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">Sample</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="heightfieldsetheight">HeightField.SetHeight</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">SetHeight</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">height</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="heightfieldsetregion">HeightField.SetRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">h</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="nx">SetRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">,</span><span class="w"> </span><span class="nx">heights</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h3 id="paintstroke">PaintStroke</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">    </span><span class="nx">Mode</span><span class="w">     </span><span class="nx">BrushMode</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="nx">Center</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">    </span><span class="nx">Radius</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">    </span><span class="nx">Strength</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">    </span><span class="nx">Falloff</span><span class="w">  </span><span class="nx">BrushFalloff</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="w">    </span><span class="nx">Spacing</span><span class="w">  </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="splatlayerchannel">SplatLayerChannel</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">SplatLayerChannel</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span><span class="nx">Texture</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="nx">Channel</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terrain">Terrain</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">Terrain</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">    </span><span class="nx">Config</span><span class="w">        </span><span class="nx">TerrainConfig</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="nx">Entity</span><span class="w">        </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Entity</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">    </span><span class="nx">Transform</span><span class="w">     </span><span class="o">*</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Transform</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span><span class="nx">HeightField</span><span class="w">   </span><span class="o">*</span><span class="nx">HeightField</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="nx">LayerSet</span><span class="w">      </span><span class="o">*</span><span class="nx">TerrainLayerSet</span>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">    </span><span class="nx">SplatTextures</span><span class="w"> </span><span class="p">[]</span><span class="nx">TerrainSplatTexture</span>
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">    </span><span class="nx">MeshChunks</span><span class="w">    </span><span class="p">[]</span><span class="nx">TerrainChunk</span>
+</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">    </span><span class="nx">Material</span><span class="w">      </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Material</span>
+</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">    </span><span class="nx">ShaderData</span><span class="w">    </span><span class="p">[]</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">DrawInstance</span>
+</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>
+</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="load">Load</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">Load</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="loadforentity">LoadForEntity</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">LoadForEntity</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">entity</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Entity</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="new">New</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">New</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">TerrainConfig</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newfromasset">NewFromAsset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewFromAsset</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">asset</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newfromassetforentity">NewFromAssetForEntity</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewFromAssetForEntity</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">,</span><span class="w"> </span><span class="nx">asset</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="nx">entity</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Entity</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newmodel">NewModel</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewModel</span><span class="p">(</span><span class="nx">config</span><span class="w"> </span><span class="nx">TerrainConfig</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newmodelfromasset">NewModelFromAsset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewModelFromAsset</span><span class="p">(</span><span class="nx">asset</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Terrain</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainaddlayer">Terrain.AddLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">AddLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="nx">TerrainLayer</span><span class="p">)</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="terrainapplyautomaterialrules">Terrain.ApplyAutoMaterialRules</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyAutoMaterialRules</span><span class="p">(</span><span class="nx">rules</span><span class="w"> </span><span class="p">[]</span><span class="nx">AutoMaterialRule</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainapplydirty">Terrain.ApplyDirty</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyDirty</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="terrainapplyheightregion">Terrain.ApplyHeightRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyHeightRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">,</span><span class="w"> </span><span class="nx">heights</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainapplylayersetstate">Terrain.ApplyLayerSetState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyLayerSetState</span><span class="p">(</span><span class="nx">state</span><span class="w"> </span><span class="nx">TerrainLayerSetState</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainapplytexturedirty">Terrain.ApplyTextureDirty</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyTextureDirty</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainapplytextureweightregion">Terrain.ApplyTextureWeightRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyTextureWeightRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">,</span><span class="w"> </span><span class="nx">weights</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainclearbrushpreview">Terrain.ClearBrushPreview</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ClearBrushPreview</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="terrainclearlayer">Terrain.ClearLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">ClearLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terraincollision">Terrain.Collision</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">Collision</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">graviton</span><span class="p">.</span><span class="nx">TerrainCollision</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terraincollisionbounds">Terrain.CollisionBounds</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">CollisionBounds</span><span class="p">()</span><span class="w"> </span><span class="nx">graviton</span><span class="p">.</span><span class="nx">AABB</span>
+</span></code></pre></div>
+<p>CollisionBounds returns the local-space bounds used by terrain collision.</p>
+<h4 id="terraincopytextureweightregion">Terrain.CopyTextureWeightRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">CopyTextureWeightRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terraindestroy">Terrain.Destroy</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">Destroy</span><span class="p">(</span><span class="nx">host</span><span class="w"> </span><span class="o">*</span><span class="nx">engine</span><span class="p">.</span><span class="nx">Host</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terraineraselayer">Terrain.EraseLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">EraseLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainfilllayer">Terrain.FillLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">FillLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainheightatlocal">Terrain.HeightAtLocal</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">HeightAtLocal</span><span class="p">(</span><span class="nx">localXZ</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainheightatworld">Terrain.HeightAtWorld</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">HeightAtWorld</span><span class="p">(</span><span class="nx">point</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainlayercount">Terrain.LayerCount</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">LayerCount</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetstate">Terrain.LayerSetState</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">LayerSetState</span><span class="p">()</span><span class="w"> </span><span class="nx">TerrainLayerSetState</span>
+</span></code></pre></div>
+<h4 id="terrainlayerweightat">Terrain.LayerWeightAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">LayerWeightAt</span><span class="p">(</span><span class="nx">layer</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainmarktexturedirty">Terrain.MarkTextureDirty</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">MarkTextureDirty</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainmarktextureregiondirty">Terrain.MarkTextureRegionDirty</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">MarkTextureRegionDirty</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainmovelayer">Terrain.MoveLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">MoveLayer</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainnewcollision">Terrain.NewCollision</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">NewCollision</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">graviton</span><span class="p">.</span><span class="nx">TerrainCollision</span>
+</span></code></pre></div>
+<p>NewCollision creates a Graviton terrain collider backed by the terrain
+height storage. Height edits are visible to the collider immediately;
+do not mutate terrain heights concurrently with a physics step.</p>
+<h4 id="terrainnormalizeweightsat">Terrain.NormalizeWeightsAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">NormalizeWeightsAt</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainpaint">Terrain.Paint</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">Paint</span><span class="p">(</span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainpaintlayer">Terrain.PaintLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-56-1"><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainpaintline">Terrain.PaintLine</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-57-1"><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintLine</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainpainttexturelayer">Terrain.PaintTextureLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-58-1"><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintTextureLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">TexturePaintResult</span>
+</span></code></pre></div>
+<h4 id="terrainpainttextureline">Terrain.PaintTextureLine</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-59-1"><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintTextureLine</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">TexturePaintResult</span>
+</span></code></pre></div>
+<h4 id="terrainrayhit">Terrain.RayHit</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-60-1"><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">RayHit</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">graviton</span><span class="p">.</span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainRayHit</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainrayhitlocal">Terrain.RayHitLocal</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-61-1"><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">RayHitLocal</span><span class="p">(</span><span class="nx">ray</span><span class="w"> </span><span class="nx">graviton</span><span class="p">.</span><span class="nx">Ray</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainRayHit</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainrefreshtexturepreview">Terrain.RefreshTexturePreview</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-62-1"><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">RefreshTexturePreview</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="terrainremovelayer">Terrain.RemoveLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-63-1"><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainsamplelayerweightatlocal">Terrain.SampleLayerWeightAtLocal</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-64-1"><a id="__codelineno-64-1" name="__codelineno-64-1" href="#__codelineno-64-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SampleLayerWeightAtLocal</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">localXZ</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainsampletexturelayeratlocal">Terrain.SampleTextureLayerAtLocal</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-65-1"><a id="__codelineno-65-1" name="__codelineno-65-1" href="#__codelineno-65-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SampleTextureLayerAtLocal</span><span class="p">(</span><span class="nx">localXZ</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">)</span><span class="w"> </span><span class="nx">TexturePaintResult</span>
+</span></code></pre></div>
+<h4 id="terrainsetbrushpreview">Terrain.SetBrushPreview</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-66-1"><a id="__codelineno-66-1" name="__codelineno-66-1" href="#__codelineno-66-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SetBrushPreview</span><span class="p">(</span><span class="nx">centerXZ</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">,</span><span class="w"> </span><span class="nx">radius</span><span class="p">,</span><span class="w"> </span><span class="nx">ringWidth</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">,</span><span class="w"> </span><span class="nx">color</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainsetlayer">Terrain.SetLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-67-1"><a id="__codelineno-67-1" name="__codelineno-67-1" href="#__codelineno-67-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SetLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="nx">TerrainLayer</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainsplatlayerchannel">Terrain.SplatLayerChannel</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-68-1"><a id="__codelineno-68-1" name="__codelineno-68-1" href="#__codelineno-68-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SplatLayerChannel</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">SplatLayerChannel</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainsplattexturecount">Terrain.SplatTextureCount</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-69-1"><a id="__codelineno-69-1" name="__codelineno-69-1" href="#__codelineno-69-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SplatTextureCount</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="terrainsplattexturewriterequest">Terrain.SplatTextureWriteRequest</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-70-1"><a id="__codelineno-70-1" name="__codelineno-70-1" href="#__codelineno-70-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">SplatTextureWriteRequest</span><span class="p">(</span><span class="nx">texture</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">GPUImageWriteRequest</span>
+</span></code></pre></div>
+<h4 id="terrainstrokeregion">Terrain.StrokeRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-71-1"><a id="__codelineno-71-1" name="__codelineno-71-1" href="#__codelineno-71-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">StrokeRegion</span><span class="p">(</span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terraintexturestrokeregion">Terrain.TextureStrokeRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-72-1"><a id="__codelineno-72-1" name="__codelineno-72-1" href="#__codelineno-72-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">TextureStrokeRegion</span><span class="p">(</span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainvisitpaintlinestamps">Terrain.VisitPaintLineStamps</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-73-1"><a id="__codelineno-73-1" name="__codelineno-73-1" href="#__codelineno-73-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">VisitPaintLineStamps</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">,</span><span class="w"> </span><span class="nx">visit</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainvisittexturepaintlinestamps">Terrain.VisitTexturePaintLineStamps</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-74-1"><a id="__codelineno-74-1" name="__codelineno-74-1" href="#__codelineno-74-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">VisitTexturePaintLineStamps</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">,</span><span class="w"> </span><span class="nx">visit</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">TexturePaintStroke</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainweightdebugrgba">Terrain.WeightDebugRGBA</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-75-1"><a id="__codelineno-75-1" name="__codelineno-75-1" href="#__codelineno-75-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="nx">WeightDebugRGBA</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+</span></code></pre></div>
+<h3 id="terrainasset">TerrainAsset</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-76-1"><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-76-2"><a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a><span class="w">    </span><span class="nx">Version</span><span class="w">             </span><span class="kt">int</span>
+</span><span id="__span-76-3"><a id="__codelineno-76-3" name="__codelineno-76-3" href="#__codelineno-76-3"></a><span class="w">    </span><span class="nx">Config</span><span class="w">              </span><span class="nx">TerrainConfig</span>
+</span><span id="__span-76-4"><a id="__codelineno-76-4" name="__codelineno-76-4" href="#__codelineno-76-4"></a><span class="w">    </span><span class="nx">Heights</span><span class="w">             </span><span class="p">[]</span><span class="kt">uint16</span>
+</span><span id="__span-76-5"><a id="__codelineno-76-5" name="__codelineno-76-5" href="#__codelineno-76-5"></a><span class="w">    </span><span class="nx">Layers</span><span class="w">              </span><span class="p">[]</span><span class="nx">TerrainLayer</span>
+</span><span id="__span-76-6"><a id="__codelineno-76-6" name="__codelineno-76-6" href="#__codelineno-76-6"></a><span class="w">    </span><span class="nx">WeightMapResolution</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-76-7"><a id="__codelineno-76-7" name="__codelineno-76-7" href="#__codelineno-76-7"></a><span class="w">    </span><span class="nx">Weights</span><span class="w">             </span><span class="p">[]</span><span class="kt">uint16</span>
+</span><span id="__span-76-8"><a id="__codelineno-76-8" name="__codelineno-76-8" href="#__codelineno-76-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="deserializeasset">DeserializeAsset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-77-1"><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">DeserializeAsset</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="loadasset">LoadAsset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-78-1"><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">LoadAsset</span><span class="p">(</span><span class="nx">assetDb</span><span class="w"> </span><span class="nx">assets</span><span class="p">.</span><span class="nx">Database</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newasset">NewAsset</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-79-1"><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewAsset</span><span class="p">(</span><span class="nx">config</span><span class="w"> </span><span class="nx">TerrainConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">heights</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newassetfromheightfield">NewAssetFromHeightField</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-80-1"><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewAssetFromHeightField</span><span class="p">(</span><span class="nx">config</span><span class="w"> </span><span class="nx">TerrainConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">field</span><span class="w"> </span><span class="o">*</span><span class="nx">HeightField</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newassetfromterrain">NewAssetFromTerrain</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-81-1"><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewAssetFromTerrain</span><span class="p">(</span><span class="nx">model</span><span class="w"> </span><span class="o">*</span><span class="nx">Terrain</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="newassetwithlayerset">NewAssetWithLayerSet</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-82-1"><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewAssetWithLayerSet</span><span class="p">(</span><span class="nx">config</span><span class="w"> </span><span class="nx">TerrainConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">heights</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">,</span><span class="w"> </span><span class="nx">layerSet</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">TerrainAsset</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainassetfloatheights">TerrainAsset.FloatHeights</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-83-1"><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">)</span><span class="w"> </span><span class="nx">FloatHeights</span><span class="p">()</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainassetheight">TerrainAsset.Height</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-84-1"><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">)</span><span class="w"> </span><span class="nx">Height</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainassetlayerset">TerrainAsset.LayerSet</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-85-1"><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">)</span><span class="w"> </span><span class="nx">LayerSet</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainassetserialize">TerrainAsset.Serialize</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-86-1"><a id="__codelineno-86-1" name="__codelineno-86-1" href="#__codelineno-86-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">a</span><span class="w"> </span><span class="nx">TerrainAsset</span><span class="p">)</span><span class="w"> </span><span class="nx">Serialize</span><span class="p">()</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="terrainautomaterialpreset">TerrainAutoMaterialPreset</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-87-1"><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainAutoMaterialPreset</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-87-2"><a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a><span class="w">    </span><span class="nx">GrassLayer</span><span class="w">    </span><span class="kt">int</span>
+</span><span id="__span-87-3"><a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a><span class="w">    </span><span class="nx">RockLayer</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-87-4"><a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a><span class="w">    </span><span class="nx">SnowLayer</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-87-5"><a id="__codelineno-87-5" name="__codelineno-87-5" href="#__codelineno-87-5"></a><span class="w">    </span><span class="nx">FlatSlopeMax</span><span class="w">  </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-87-6"><a id="__codelineno-87-6" name="__codelineno-87-6" href="#__codelineno-87-6"></a><span class="w">    </span><span class="nx">CliffSlopeMin</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-87-7"><a id="__codelineno-87-7" name="__codelineno-87-7" href="#__codelineno-87-7"></a><span class="w">    </span><span class="nx">SnowHeightMin</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-87-8"><a id="__codelineno-87-8" name="__codelineno-87-8" href="#__codelineno-87-8"></a><span class="w">    </span><span class="nx">NoiseStrength</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-87-9"><a id="__codelineno-87-9" name="__codelineno-87-9" href="#__codelineno-87-9"></a><span class="w">    </span><span class="nx">NoiseScale</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-87-10"><a id="__codelineno-87-10" name="__codelineno-87-10" href="#__codelineno-87-10"></a><span class="w">    </span><span class="nx">NoiseSeed</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-87-11"><a id="__codelineno-87-11" name="__codelineno-87-11" href="#__codelineno-87-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terrainchunk">TerrainChunk</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-88-1"><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainChunk</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-88-2"><a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a><span class="w">    </span><span class="nx">Key</span><span class="w">        </span><span class="kt">string</span>
+</span><span id="__span-88-3"><a id="__codelineno-88-3" name="__codelineno-88-3" href="#__codelineno-88-3"></a><span class="w">    </span><span class="nx">StartX</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-88-4"><a id="__codelineno-88-4" name="__codelineno-88-4" href="#__codelineno-88-4"></a><span class="w">    </span><span class="nx">StartZ</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-88-5"><a id="__codelineno-88-5" name="__codelineno-88-5" href="#__codelineno-88-5"></a><span class="w">    </span><span class="nx">EndX</span><span class="w">       </span><span class="kt">int</span>
+</span><span id="__span-88-6"><a id="__codelineno-88-6" name="__codelineno-88-6" href="#__codelineno-88-6"></a><span class="w">    </span><span class="nx">EndZ</span><span class="w">       </span><span class="kt">int</span>
+</span><span id="__span-88-7"><a id="__codelineno-88-7" name="__codelineno-88-7" href="#__codelineno-88-7"></a><span class="w">    </span><span class="nx">Mesh</span><span class="w">       </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Mesh</span>
+</span><span id="__span-88-8"><a id="__codelineno-88-8" name="__codelineno-88-8" href="#__codelineno-88-8"></a><span class="w">    </span><span class="nx">Drawing</span><span class="w">    </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Drawing</span>
+</span><span id="__span-88-9"><a id="__codelineno-88-9" name="__codelineno-88-9" href="#__codelineno-88-9"></a><span class="w">    </span><span class="nx">ShaderData</span><span class="w"> </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">DrawInstance</span>
+</span><span id="__span-88-10"><a id="__codelineno-88-10" name="__codelineno-88-10" href="#__codelineno-88-10"></a><span class="w">    </span><span class="nx">Indexes</span><span class="w">    </span><span class="p">[]</span><span class="kt">uint32</span>
+</span><span id="__span-88-11"><a id="__codelineno-88-11" name="__codelineno-88-11" href="#__codelineno-88-11"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terrainconfig">TerrainConfig</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-89-1"><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-89-2"><a id="__codelineno-89-2" name="__codelineno-89-2" href="#__codelineno-89-2"></a><span class="w">    </span><span class="nx">Resolution</span><span class="w">      </span><span class="kt">int</span>
+</span><span id="__span-89-3"><a id="__codelineno-89-3" name="__codelineno-89-3" href="#__codelineno-89-3"></a><span class="w">    </span><span class="nx">PaintResolution</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-89-4"><a id="__codelineno-89-4" name="__codelineno-89-4" href="#__codelineno-89-4"></a><span class="w">    </span><span class="nx">WorldSize</span><span class="w">       </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span><span id="__span-89-5"><a id="__codelineno-89-5" name="__codelineno-89-5" href="#__codelineno-89-5"></a><span class="w">    </span><span class="nx">MinHeight</span><span class="w">       </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-89-6"><a id="__codelineno-89-6" name="__codelineno-89-6" href="#__codelineno-89-6"></a><span class="w">    </span><span class="nx">MaxHeight</span><span class="w">       </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-89-7"><a id="__codelineno-89-7" name="__codelineno-89-7" href="#__codelineno-89-7"></a><span class="w">    </span><span class="nx">InitialHeight</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-89-8"><a id="__codelineno-89-8" name="__codelineno-89-8" href="#__codelineno-89-8"></a><span class="w">    </span><span class="nx">ChunkSize</span><span class="w">       </span><span class="kt">int</span>
+</span><span id="__span-89-9"><a id="__codelineno-89-9" name="__codelineno-89-9" href="#__codelineno-89-9"></a><span class="w">    </span><span class="nx">Material</span><span class="w">        </span><span class="kt">string</span>
+</span><span id="__span-89-10"><a id="__codelineno-89-10" name="__codelineno-89-10" href="#__codelineno-89-10"></a><span class="w">    </span><span class="nx">Textures</span><span class="w">        </span><span class="p">[]</span><span class="nx">TerrainTexture</span>
+</span><span id="__span-89-11"><a id="__codelineno-89-11" name="__codelineno-89-11" href="#__codelineno-89-11"></a><span class="w">    </span><span class="nx">ShaderData</span><span class="w">      </span><span class="kt">string</span>
+</span><span id="__span-89-12"><a id="__codelineno-89-12" name="__codelineno-89-12" href="#__codelineno-89-12"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terrainlayer">TerrainLayer</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-90-1"><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainLayer</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-90-2"><a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a><span class="w">    </span><span class="nx">Name</span><span class="w">               </span><span class="kt">string</span>
+</span><span id="__span-90-3"><a id="__codelineno-90-3" name="__codelineno-90-3" href="#__codelineno-90-3"></a><span class="w">    </span><span class="nx">TextureContentID</span><span class="w">   </span><span class="kt">string</span>
+</span><span id="__span-90-4"><a id="__codelineno-90-4" name="__codelineno-90-4" href="#__codelineno-90-4"></a><span class="w">    </span><span class="nx">NormalContentID</span><span class="w">    </span><span class="kt">string</span>
+</span><span id="__span-90-5"><a id="__codelineno-90-5" name="__codelineno-90-5" href="#__codelineno-90-5"></a><span class="w">    </span><span class="nx">RoughnessContentID</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-90-6"><a id="__codelineno-90-6" name="__codelineno-90-6" href="#__codelineno-90-6"></a><span class="w">    </span><span class="nx">Filter</span><span class="w">             </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">TextureFilter</span>
+</span><span id="__span-90-7"><a id="__codelineno-90-7" name="__codelineno-90-7" href="#__codelineno-90-7"></a><span class="w">    </span><span class="nx">Tiling</span><span class="w">             </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span><span id="__span-90-8"><a id="__codelineno-90-8" name="__codelineno-90-8" href="#__codelineno-90-8"></a><span class="w">    </span><span class="nx">Offset</span><span class="w">             </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span><span id="__span-90-9"><a id="__codelineno-90-9" name="__codelineno-90-9" href="#__codelineno-90-9"></a><span class="w">    </span><span class="nx">Rotation</span><span class="w">           </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-90-10"><a id="__codelineno-90-10" name="__codelineno-90-10" href="#__codelineno-90-10"></a><span class="w">    </span><span class="nx">Tint</span><span class="w">               </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Color</span>
+</span><span id="__span-90-11"><a id="__codelineno-90-11" name="__codelineno-90-11" href="#__codelineno-90-11"></a><span class="w">    </span><span class="nx">TextureWorldSize</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span><span id="__span-90-12"><a id="__codelineno-90-12" name="__codelineno-90-12" href="#__codelineno-90-12"></a><span class="w">    </span><span class="nx">Locked</span><span class="w">             </span><span class="kt">bool</span>
+</span><span id="__span-90-13"><a id="__codelineno-90-13" name="__codelineno-90-13" href="#__codelineno-90-13"></a><span class="w">    </span><span class="nx">Hidden</span><span class="w">             </span><span class="kt">bool</span>
+</span><span id="__span-90-14"><a id="__codelineno-90-14" name="__codelineno-90-14" href="#__codelineno-90-14"></a><span class="w">    </span><span class="nx">Solo</span><span class="w">               </span><span class="kt">bool</span>
+</span><span id="__span-90-15"><a id="__codelineno-90-15" name="__codelineno-90-15" href="#__codelineno-90-15"></a><span class="w">    </span><span class="nx">TriplanarCliffs</span><span class="w">    </span><span class="kt">bool</span>
+</span><span id="__span-90-16"><a id="__codelineno-90-16" name="__codelineno-90-16" href="#__codelineno-90-16"></a><span class="w">    </span><span class="nx">TriplanarSlope</span><span class="w">     </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-90-17"><a id="__codelineno-90-17" name="__codelineno-90-17" href="#__codelineno-90-17"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>TerrainLayer describes one paintable material layer on a terrain.</p>
+<p>TextureContentID is the albedo texture currently consumed by the terrain
+material. NormalContentID and RoughnessContentID are stored for authoring
+and future material expansion. Locked layers preserve their current
+contribution during painting, while Hidden and Solo only affect preview
+packing.</p>
+<h4 id="newterrainlayer">NewTerrainLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-91-1"><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewTerrainLayer</span><span class="p">(</span><span class="nx">textureContentID</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="nx">TerrainLayer</span>
+</span></code></pre></div>
+<h3 id="terrainlayerset">TerrainLayerSet</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-92-1"><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainLayerSet</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-92-2"><a id="__codelineno-92-2" name="__codelineno-92-2" href="#__codelineno-92-2"></a><span class="w">    </span><span class="nx">Layers</span><span class="w">    </span><span class="p">[]</span><span class="nx">TerrainLayer</span>
+</span><span id="__span-92-3"><a id="__codelineno-92-3" name="__codelineno-92-3" href="#__codelineno-92-3"></a><span class="w">    </span><span class="nx">WeightMap</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span>
+</span><span id="__span-92-4"><a id="__codelineno-92-4" name="__codelineno-92-4" href="#__codelineno-92-4"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-92-5"><a id="__codelineno-92-5" name="__codelineno-92-5" href="#__codelineno-92-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>TerrainLayerSet owns the ordered TerrainLayer list and the normalized weight
+map with matching layer indexes.</p>
+<p>Mutate layers through this type when possible. Add, remove, move, fill,
+clear, and paint operations keep the TextureWeightMap shape aligned with
+Layers and preserve per-texel normalization.</p>
+<h4 id="newterrainlayerset">NewTerrainLayerSet</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-93-1"><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewTerrainLayerSet</span><span class="p">(</span><span class="nx">resolution</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetaddlayer">TerrainLayerSet.AddLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-94-1"><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">AddLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="nx">TerrainLayer</span><span class="p">)</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetclearlayer">TerrainLayerSet.ClearLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-95-1"><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">ClearLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainlayerseteffectiveweightmapforpreview">TerrainLayerSet.EffectiveWeightMapForPreview</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-96-1"><a id="__codelineno-96-1" name="__codelineno-96-1" href="#__codelineno-96-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">EffectiveWeightMapForPreview</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span>
+</span></code></pre></div>
+<h4 id="terrainlayerseteraselayer">TerrainLayerSet.EraseLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-97-1"><a id="__codelineno-97-1" name="__codelineno-97-1" href="#__codelineno-97-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">EraseLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetfilllayer">TerrainLayerSet.FillLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-98-1"><a id="__codelineno-98-1" name="__codelineno-98-1" href="#__codelineno-98-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">FillLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetlayercount">TerrainLayerSet.LayerCount</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-99-1"><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">LayerCount</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetlayerweightat">TerrainLayerSet.LayerWeightAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-100-1"><a id="__codelineno-100-1" name="__codelineno-100-1" href="#__codelineno-100-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">LayerWeightAt</span><span class="p">(</span><span class="nx">layer</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetmovelayer">TerrainLayerSet.MoveLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-101-1"><a id="__codelineno-101-1" name="__codelineno-101-1" href="#__codelineno-101-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">MoveLayer</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetnormalizeweightsat">TerrainLayerSet.NormalizeWeightsAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-102-1"><a id="__codelineno-102-1" name="__codelineno-102-1" href="#__codelineno-102-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">NormalizeWeightsAt</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetpaintlayer">TerrainLayerSet.PaintLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-103-1"><a id="__codelineno-103-1" name="__codelineno-103-1" href="#__codelineno-103-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetpainttexturelayer">TerrainLayerSet.PaintTextureLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-104-1"><a id="__codelineno-104-1" name="__codelineno-104-1" href="#__codelineno-104-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintTextureLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">TexturePaintResult</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetremovelayer">TerrainLayerSet.RemoveLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-105-1"><a id="__codelineno-105-1" name="__codelineno-105-1" href="#__codelineno-105-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetsetlayer">TerrainLayerSet.SetLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-106-1"><a id="__codelineno-106-1" name="__codelineno-106-1" href="#__codelineno-106-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">SetLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="nx">TerrainLayer</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetsetlayerweightat">TerrainLayerSet.SetLayerWeightAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-107-1"><a id="__codelineno-107-1" name="__codelineno-107-1" href="#__codelineno-107-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">SetLayerWeightAt</span><span class="p">(</span><span class="nx">layer</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">weight</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="terrainlayersetweightdebugrgba">TerrainLayerSet.WeightDebugRGBA</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-108-1"><a id="__codelineno-108-1" name="__codelineno-108-1" href="#__codelineno-108-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TerrainLayerSet</span><span class="p">)</span><span class="w"> </span><span class="nx">WeightDebugRGBA</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+</span></code></pre></div>
+<h3 id="terrainlayersetstate_1">TerrainLayerSetState</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-109-1"><a id="__codelineno-109-1" name="__codelineno-109-1" href="#__codelineno-109-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainLayerSetState</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-109-2"><a id="__codelineno-109-2" name="__codelineno-109-2" href="#__codelineno-109-2"></a><span class="w">    </span><span class="nx">Layers</span><span class="w">              </span><span class="p">[]</span><span class="nx">TerrainLayer</span>
+</span><span id="__span-109-3"><a id="__codelineno-109-3" name="__codelineno-109-3" href="#__codelineno-109-3"></a><span class="w">    </span><span class="nx">WeightMapResolution</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-109-4"><a id="__codelineno-109-4" name="__codelineno-109-4" href="#__codelineno-109-4"></a><span class="w">    </span><span class="nx">Weights</span><span class="w">             </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-109-5"><a id="__codelineno-109-5" name="__codelineno-109-5" href="#__codelineno-109-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terrainlayertexturediagnostic">TerrainLayerTextureDiagnostic</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-110-1"><a id="__codelineno-110-1" name="__codelineno-110-1" href="#__codelineno-110-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainLayerTextureDiagnostic</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-110-2"><a id="__codelineno-110-2" name="__codelineno-110-2" href="#__codelineno-110-2"></a><span class="w">    </span><span class="nx">Layer</span><span class="w">            </span><span class="kt">int</span>
+</span><span id="__span-110-3"><a id="__codelineno-110-3" name="__codelineno-110-3" href="#__codelineno-110-3"></a><span class="w">    </span><span class="nx">Name</span><span class="w">             </span><span class="kt">string</span>
+</span><span id="__span-110-4"><a id="__codelineno-110-4" name="__codelineno-110-4" href="#__codelineno-110-4"></a><span class="w">    </span><span class="nx">TextureContentID</span><span class="w"> </span><span class="kt">string</span>
+</span><span id="__span-110-5"><a id="__codelineno-110-5" name="__codelineno-110-5" href="#__codelineno-110-5"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="missingterrainlayertextures">MissingTerrainLayerTextures</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-111-1"><a id="__codelineno-111-1" name="__codelineno-111-1" href="#__codelineno-111-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">MissingTerrainLayerTextures</span><span class="p">(</span><span class="nx">layers</span><span class="w"> </span><span class="p">[]</span><span class="nx">TerrainLayer</span><span class="p">,</span><span class="w"> </span><span class="nx">textureExists</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">TerrainLayerTextureDiagnostic</span>
+</span></code></pre></div>
+<h3 id="terrainrayhit_1">TerrainRayHit</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-112-1"><a id="__codelineno-112-1" name="__codelineno-112-1" href="#__codelineno-112-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainRayHit</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-112-2"><a id="__codelineno-112-2" name="__codelineno-112-2" href="#__codelineno-112-2"></a><span class="w">    </span><span class="nx">Point</span><span class="w">      </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-112-3"><a id="__codelineno-112-3" name="__codelineno-112-3" href="#__codelineno-112-3"></a><span class="w">    </span><span class="nx">LocalPoint</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-112-4"><a id="__codelineno-112-4" name="__codelineno-112-4" href="#__codelineno-112-4"></a><span class="w">    </span><span class="nx">Normal</span><span class="w">     </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-112-5"><a id="__codelineno-112-5" name="__codelineno-112-5" href="#__codelineno-112-5"></a><span class="w">    </span><span class="nx">Distance</span><span class="w">   </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-112-6"><a id="__codelineno-112-6" name="__codelineno-112-6" href="#__codelineno-112-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terrainshaderdata">TerrainShaderData</h3>
+<p><a href="../shader_data_registry">shader_data_registry</a>.<a href="../shader_data_registry#ShaderDataTerrain">ShaderDataTerrain</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-113-1"><a id="__codelineno-113-1" name="__codelineno-113-1" href="#__codelineno-113-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainShaderData</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">shader_data_registry</span><span class="p">.</span><span class="nx">ShaderDataTerrain</span>
+</span></code></pre></div></p>
+<h3 id="terrainsplattexture">TerrainSplatTexture</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-114-1"><a id="__codelineno-114-1" name="__codelineno-114-1" href="#__codelineno-114-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainSplatTexture</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-114-2"><a id="__codelineno-114-2" name="__codelineno-114-2" href="#__codelineno-114-2"></a><span class="w">    </span><span class="nx">Key</span><span class="w">        </span><span class="kt">string</span>
+</span><span id="__span-114-3"><a id="__codelineno-114-3" name="__codelineno-114-3" href="#__codelineno-114-3"></a><span class="w">    </span><span class="nx">Texture</span><span class="w">    </span><span class="o">*</span><span class="nx">rendering</span><span class="p">.</span><span class="nx">Texture</span>
+</span><span id="__span-114-4"><a id="__codelineno-114-4" name="__codelineno-114-4" href="#__codelineno-114-4"></a><span class="w">    </span><span class="nx">LayerStart</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-114-5"><a id="__codelineno-114-5" name="__codelineno-114-5" href="#__codelineno-114-5"></a><span class="w">    </span><span class="nx">LayerCount</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-114-6"><a id="__codelineno-114-6" name="__codelineno-114-6" href="#__codelineno-114-6"></a><span class="w">    </span><span class="nx">Pixels</span><span class="w">     </span><span class="p">[]</span><span class="kt">byte</span>
+</span><span id="__span-114-7"><a id="__codelineno-114-7" name="__codelineno-114-7" href="#__codelineno-114-7"></a><span class="w">    </span><span class="nx">Dirty</span><span class="w">      </span><span class="nx">DirtyRegion</span>
+</span><span id="__span-114-8"><a id="__codelineno-114-8" name="__codelineno-114-8" href="#__codelineno-114-8"></a>
+</span><span id="__span-114-9"><a id="__codelineno-114-9" name="__codelineno-114-9" href="#__codelineno-114-9"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-114-10"><a id="__codelineno-114-10" name="__codelineno-114-10" href="#__codelineno-114-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="terraintexture">TerrainTexture</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-115-1"><a id="__codelineno-115-1" name="__codelineno-115-1" href="#__codelineno-115-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TerrainTexture</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-115-2"><a id="__codelineno-115-2" name="__codelineno-115-2" href="#__codelineno-115-2"></a><span class="w">    </span><span class="nx">Key</span><span class="w">    </span><span class="kt">string</span>
+</span><span id="__span-115-3"><a id="__codelineno-115-3" name="__codelineno-115-3" href="#__codelineno-115-3"></a><span class="w">    </span><span class="nx">Filter</span><span class="w"> </span><span class="nx">rendering</span><span class="p">.</span><span class="nx">TextureFilter</span>
+</span><span id="__span-115-4"><a id="__codelineno-115-4" name="__codelineno-115-4" href="#__codelineno-115-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="texturebrushmode">TextureBrushMode</h3>
+<p><a href="#int">int</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-116-1"><a id="__codelineno-116-1" name="__codelineno-116-1" href="#__codelineno-116-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TextureBrushMode</span><span class="w"> </span><span class="kt">int</span>
+</span></code></pre></div></p>
+<p>const (
+TextureBrushPaint TextureBrushMode = iota
+TextureBrushErase
+TextureBrushSmoothWeights
+TextureBrushFill
+TextureBrushReplace
+TextureBrushSample
+)</p>
+<h3 id="texturebrushstamp">TextureBrushStamp</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-117-1"><a id="__codelineno-117-1" name="__codelineno-117-1" href="#__codelineno-117-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TextureBrushStamp</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-117-2"><a id="__codelineno-117-2" name="__codelineno-117-2" href="#__codelineno-117-2"></a><span class="w">    </span><span class="nx">Resolution</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-117-3"><a id="__codelineno-117-3" name="__codelineno-117-3" href="#__codelineno-117-3"></a><span class="w">    </span><span class="nx">Alpha</span><span class="w">      </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-117-4"><a id="__codelineno-117-4" name="__codelineno-117-4" href="#__codelineno-117-4"></a><span class="p">}</span>
+</span></code></pre></div>
+<h4 id="texturebrushstampsample">TextureBrushStamp.Sample</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-118-1"><a id="__codelineno-118-1" name="__codelineno-118-1" href="#__codelineno-118-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureBrushStamp</span><span class="p">)</span><span class="w"> </span><span class="nx">Sample</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="p">,</span><span class="w"> </span><span class="nx">scale</span><span class="p">,</span><span class="w"> </span><span class="nx">rotation</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h3 id="texturepaintconstraints">TexturePaintConstraints</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-119-1"><a id="__codelineno-119-1" name="__codelineno-119-1" href="#__codelineno-119-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TexturePaintConstraints</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-119-2"><a id="__codelineno-119-2" name="__codelineno-119-2" href="#__codelineno-119-2"></a><span class="w">    </span><span class="nx">UseSlope</span><span class="w">     </span><span class="kt">bool</span>
+</span><span id="__span-119-3"><a id="__codelineno-119-3" name="__codelineno-119-3" href="#__codelineno-119-3"></a><span class="w">    </span><span class="nx">SlopeMin</span><span class="w">     </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-119-4"><a id="__codelineno-119-4" name="__codelineno-119-4" href="#__codelineno-119-4"></a><span class="w">    </span><span class="nx">SlopeMax</span><span class="w">     </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-119-5"><a id="__codelineno-119-5" name="__codelineno-119-5" href="#__codelineno-119-5"></a><span class="w">    </span><span class="nx">UseHeight</span><span class="w">    </span><span class="kt">bool</span>
+</span><span id="__span-119-6"><a id="__codelineno-119-6" name="__codelineno-119-6" href="#__codelineno-119-6"></a><span class="w">    </span><span class="nx">HeightMin</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-119-7"><a id="__codelineno-119-7" name="__codelineno-119-7" href="#__codelineno-119-7"></a><span class="w">    </span><span class="nx">HeightMax</span><span class="w">    </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-119-8"><a id="__codelineno-119-8" name="__codelineno-119-8" href="#__codelineno-119-8"></a><span class="w">    </span><span class="nx">AngleCutoff</span><span class="w">  </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-119-9"><a id="__codelineno-119-9" name="__codelineno-119-9" href="#__codelineno-119-9"></a><span class="w">    </span><span class="nx">NormalFacing</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec3</span>
+</span><span id="__span-119-10"><a id="__codelineno-119-10" name="__codelineno-119-10" href="#__codelineno-119-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="texturepaintresult">TexturePaintResult</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-120-1"><a id="__codelineno-120-1" name="__codelineno-120-1" href="#__codelineno-120-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TexturePaintResult</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-120-2"><a id="__codelineno-120-2" name="__codelineno-120-2" href="#__codelineno-120-2"></a><span class="w">    </span><span class="nx">Dirty</span><span class="w">         </span><span class="nx">DirtyRegion</span>
+</span><span id="__span-120-3"><a id="__codelineno-120-3" name="__codelineno-120-3" href="#__codelineno-120-3"></a><span class="w">    </span><span class="nx">Sampled</span><span class="w">       </span><span class="kt">bool</span>
+</span><span id="__span-120-4"><a id="__codelineno-120-4" name="__codelineno-120-4" href="#__codelineno-120-4"></a><span class="w">    </span><span class="nx">SampledLayer</span><span class="w">  </span><span class="kt">int</span>
+</span><span id="__span-120-5"><a id="__codelineno-120-5" name="__codelineno-120-5" href="#__codelineno-120-5"></a><span class="w">    </span><span class="nx">SampledWeight</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-120-6"><a id="__codelineno-120-6" name="__codelineno-120-6" href="#__codelineno-120-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="texturepaintstroke">TexturePaintStroke</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-121-1"><a id="__codelineno-121-1" name="__codelineno-121-1" href="#__codelineno-121-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-121-2"><a id="__codelineno-121-2" name="__codelineno-121-2" href="#__codelineno-121-2"></a><span class="w">    </span><span class="nx">Mode</span><span class="w">                </span><span class="nx">TextureBrushMode</span>
+</span><span id="__span-121-3"><a id="__codelineno-121-3" name="__codelineno-121-3" href="#__codelineno-121-3"></a><span class="w">    </span><span class="nx">Center</span><span class="w">              </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Vec2</span>
+</span><span id="__span-121-4"><a id="__codelineno-121-4" name="__codelineno-121-4" href="#__codelineno-121-4"></a><span class="w">    </span><span class="nx">Radius</span><span class="w">              </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-5"><a id="__codelineno-121-5" name="__codelineno-121-5" href="#__codelineno-121-5"></a><span class="w">    </span><span class="nx">Strength</span><span class="w">            </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-6"><a id="__codelineno-121-6" name="__codelineno-121-6" href="#__codelineno-121-6"></a><span class="w">    </span><span class="nx">Falloff</span><span class="w">             </span><span class="nx">BrushFalloff</span>
+</span><span id="__span-121-7"><a id="__codelineno-121-7" name="__codelineno-121-7" href="#__codelineno-121-7"></a><span class="w">    </span><span class="nx">Opacity</span><span class="w">             </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-8"><a id="__codelineno-121-8" name="__codelineno-121-8" href="#__codelineno-121-8"></a><span class="w">    </span><span class="nx">TargetWeight</span><span class="w">        </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-9"><a id="__codelineno-121-9" name="__codelineno-121-9" href="#__codelineno-121-9"></a><span class="w">    </span><span class="nx">Spacing</span><span class="w">             </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-10"><a id="__codelineno-121-10" name="__codelineno-121-10" href="#__codelineno-121-10"></a><span class="w">    </span><span class="nx">ReplaceLayer</span><span class="w">        </span><span class="kt">int</span>
+</span><span id="__span-121-11"><a id="__codelineno-121-11" name="__codelineno-121-11" href="#__codelineno-121-11"></a><span class="w">    </span><span class="nx">PreserveOtherLayers</span><span class="w"> </span><span class="kt">bool</span>
+</span><span id="__span-121-12"><a id="__codelineno-121-12" name="__codelineno-121-12" href="#__codelineno-121-12"></a><span class="w">    </span><span class="nx">Constraints</span><span class="w">         </span><span class="nx">TexturePaintConstraints</span>
+</span><span id="__span-121-13"><a id="__codelineno-121-13" name="__codelineno-121-13" href="#__codelineno-121-13"></a><span class="w">    </span><span class="nx">NoiseStrength</span><span class="w">       </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-14"><a id="__codelineno-121-14" name="__codelineno-121-14" href="#__codelineno-121-14"></a><span class="w">    </span><span class="nx">NoiseScale</span><span class="w">          </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-15"><a id="__codelineno-121-15" name="__codelineno-121-15" href="#__codelineno-121-15"></a><span class="w">    </span><span class="nx">NoiseSeed</span><span class="w">           </span><span class="kt">int</span>
+</span><span id="__span-121-16"><a id="__codelineno-121-16" name="__codelineno-121-16" href="#__codelineno-121-16"></a><span class="w">    </span><span class="nx">Jitter</span><span class="w">              </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-17"><a id="__codelineno-121-17" name="__codelineno-121-17" href="#__codelineno-121-17"></a><span class="w">    </span><span class="nx">Stamp</span><span class="w">               </span><span class="o">*</span><span class="nx">TextureBrushStamp</span>
+</span><span id="__span-121-18"><a id="__codelineno-121-18" name="__codelineno-121-18" href="#__codelineno-121-18"></a><span class="w">    </span><span class="nx">StampScale</span><span class="w">          </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-19"><a id="__codelineno-121-19" name="__codelineno-121-19" href="#__codelineno-121-19"></a><span class="w">    </span><span class="nx">StampRotation</span><span class="w">       </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-121-20"><a id="__codelineno-121-20" name="__codelineno-121-20" href="#__codelineno-121-20"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="textureweightmap">TextureWeightMap</h3>
+<p><code>struct</code></p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-122-1"><a id="__codelineno-122-1" name="__codelineno-122-1" href="#__codelineno-122-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">TextureWeightMap</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-122-2"><a id="__codelineno-122-2" name="__codelineno-122-2" href="#__codelineno-122-2"></a><span class="w">    </span><span class="nx">Resolution</span><span class="w"> </span><span class="kt">int</span>
+</span><span id="__span-122-3"><a id="__codelineno-122-3" name="__codelineno-122-3" href="#__codelineno-122-3"></a><span class="w">    </span><span class="nx">Layers</span><span class="w">     </span><span class="kt">int</span>
+</span><span id="__span-122-4"><a id="__codelineno-122-4" name="__codelineno-122-4" href="#__codelineno-122-4"></a><span class="w">    </span><span class="nx">Weights</span><span class="w">    </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span><span id="__span-122-5"><a id="__codelineno-122-5" name="__codelineno-122-5" href="#__codelineno-122-5"></a>
+</span><span id="__span-122-6"><a id="__codelineno-122-6" name="__codelineno-122-6" href="#__codelineno-122-6"></a><span class="w">    </span><span class="c1">// Has unexported fields.</span>
+</span><span id="__span-122-7"><a id="__codelineno-122-7" name="__codelineno-122-7" href="#__codelineno-122-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>TextureWeightMap stores terrain texture blend weights in cell-major order.</p>
+<p>The backing layout is ((x + z*Resolution) * Layers) + layer. Every texel
+is expected to normalize across all layers. Use SetWeightAt followed by
+NormalizeWeightsAt for direct edits, or prefer PaintTextureLayer for editor
+brush behavior with falloff, locks, smoothing, replace, sampling, and fill
+modes.</p>
+<h4 id="newtextureweightmap">NewTextureWeightMap</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-123-1"><a id="__codelineno-123-1" name="__codelineno-123-1" href="#__codelineno-123-1"></a><span class="kd">func</span><span class="w"> </span><span class="nx">NewTextureWeightMap</span><span class="p">(</span><span class="nx">resolution</span><span class="p">,</span><span class="w"> </span><span class="nx">layers</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="textureweightmapaddlayer">TextureWeightMap.AddLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-124-1"><a id="__codelineno-124-1" name="__codelineno-124-1" href="#__codelineno-124-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">AddLayer</span><span class="p">(</span><span class="nx">defaultWeight</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span>
+</span></code></pre></div>
+<h4 id="textureweightmapclearlayer">TextureWeightMap.ClearLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-125-1"><a id="__codelineno-125-1" name="__codelineno-125-1" href="#__codelineno-125-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">ClearLayer</span><span class="p">(</span><span class="nx">clearLayer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmapclearlayerwithlocks">TextureWeightMap.ClearLayerWithLocks</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-126-1"><a id="__codelineno-126-1" name="__codelineno-126-1" href="#__codelineno-126-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">ClearLayerWithLocks</span><span class="p">(</span><span class="nx">clearLayer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">locked</span><span class="w"> </span><span class="p">[]</span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmapcopyregion">TextureWeightMap.CopyRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-127-1"><a id="__codelineno-127-1" name="__codelineno-127-1" href="#__codelineno-127-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">CopyRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="textureweightmaperaselayer">TextureWeightMap.EraseLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-128-1"><a id="__codelineno-128-1" name="__codelineno-128-1" href="#__codelineno-128-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">EraseLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmapfilllayer">TextureWeightMap.FillLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-129-1"><a id="__codelineno-129-1" name="__codelineno-129-1" href="#__codelineno-129-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">FillLayer</span><span class="p">(</span><span class="nx">fillLayer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmapfilllayerwithlocks">TextureWeightMap.FillLayerWithLocks</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-130-1"><a id="__codelineno-130-1" name="__codelineno-130-1" href="#__codelineno-130-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">FillLayerWithLocks</span><span class="p">(</span><span class="nx">fillLayer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">locked</span><span class="w"> </span><span class="p">[]</span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmapmovelayer">TextureWeightMap.MoveLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-131-1"><a id="__codelineno-131-1" name="__codelineno-131-1" href="#__codelineno-131-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">MoveLayer</span><span class="p">(</span><span class="nx">from</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="textureweightmapnormalizeall">TextureWeightMap.NormalizeAll</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-132-1"><a id="__codelineno-132-1" name="__codelineno-132-1" href="#__codelineno-132-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">NormalizeAll</span><span class="p">()</span>
+</span></code></pre></div>
+<h4 id="textureweightmapnormalizeweightsat">TextureWeightMap.NormalizeWeightsAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-133-1"><a id="__codelineno-133-1" name="__codelineno-133-1" href="#__codelineno-133-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">NormalizeWeightsAt</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="textureweightmappaintlayer">TextureWeightMap.PaintLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-134-1"><a id="__codelineno-134-1" name="__codelineno-134-1" href="#__codelineno-134-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">PaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmappainttexturelayer">TextureWeightMap.PaintTextureLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-135-1"><a id="__codelineno-135-1" name="__codelineno-135-1" href="#__codelineno-135-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintTextureLayer</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">)</span><span class="w"> </span><span class="nx">TexturePaintResult</span>
+</span></code></pre></div>
+<h4 id="textureweightmappainttexturelayerwithlocks">TextureWeightMap.PaintTextureLayerWithLocks</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-136-1"><a id="__codelineno-136-1" name="__codelineno-136-1" href="#__codelineno-136-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">PaintTextureLayerWithLocks</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">stroke</span><span class="w"> </span><span class="nx">TexturePaintStroke</span><span class="p">,</span><span class="w"> </span><span class="nx">locked</span><span class="w"> </span><span class="p">[]</span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="nx">TexturePaintResult</span>
+</span></code></pre></div>
+<h4 id="textureweightmapremovelayer">TextureWeightMap.RemoveLayer</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-137-1"><a id="__codelineno-137-1" name="__codelineno-137-1" href="#__codelineno-137-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">RemoveLayer</span><span class="p">(</span><span class="nx">removeLayer</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="textureweightmapsample">TextureWeightMap.Sample</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-138-1"><a id="__codelineno-138-1" name="__codelineno-138-1" href="#__codelineno-138-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">Sample</span><span class="p">(</span><span class="nx">layer</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h4 id="textureweightmapsetregion">TextureWeightMap.SetRegion</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-139-1"><a id="__codelineno-139-1" name="__codelineno-139-1" href="#__codelineno-139-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">SetRegion</span><span class="p">(</span><span class="nx">region</span><span class="w"> </span><span class="nx">DirtyRegion</span><span class="p">,</span><span class="w"> </span><span class="nx">weights</span><span class="w"> </span><span class="p">[]</span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="nx">DirtyRegion</span>
+</span></code></pre></div>
+<h4 id="textureweightmapsetweightat">TextureWeightMap.SetWeightAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-140-1"><a id="__codelineno-140-1" name="__codelineno-140-1" href="#__codelineno-140-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">SetWeightAt</span><span class="p">(</span><span class="nx">layer</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">weight</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span>
+</span></code></pre></div>
+<h4 id="textureweightmapweightat">TextureWeightMap.WeightAt</h4>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-141-1"><a id="__codelineno-141-1" name="__codelineno-141-1" href="#__codelineno-141-1"></a><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">TextureWeightMap</span><span class="p">)</span><span class="w"> </span><span class="nx">WeightAt</span><span class="p">(</span><span class="nx">layer</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">z</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">matrix</span><span class="p">.</span><span class="nx">Float</span>
+</span></code></pre></div>
+<h3 id="weightencoding_1">WeightEncoding</h3>
+<p><a href="#string">string</a>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-142-1"><a id="__codelineno-142-1" name="__codelineno-142-1" href="#__codelineno-142-1"></a><span class="kd">type</span><span class="w"> </span><span class="nx">WeightEncoding</span><span class="w"> </span><span class="kt">string</span>
+</span></code></pre></div></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.instant", "toc.integrate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.1e8ae164.min.js"></script>
+      
+        <script src="../../../javascripts/script.js"></script>
+      
+    
+  </body>
+</html>

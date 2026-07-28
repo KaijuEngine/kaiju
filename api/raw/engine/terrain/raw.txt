@@ -1,0 +1,520 @@
+package terrain // import "kaijuengine.com/engine/terrain"
+
+Package terrain contains editable heightfield terrain, texture-layer painting,
+and the CPU-side weight maps that back terrain splat textures.
+
+Terrain height data and texture weights are intentionally separate. Height
+strokes dirty mesh vertices through HeightField, while texture strokes dirty
+TextureWeightMap regions that are repacked into TerrainSplatTexture RGBA
+channels. This lets the editor paint material weights without rebuilding terrain
+geometry.
+
+Layer weights are normalized per texel: the weights for all layers at a
+weight map coordinate should sum to one after mutation. Use TerrainLayerSet or
+TextureWeightMap helpers instead of editing WeightMap.Weights directly so locked
+layers, dirty regions, undo captures, and splat texture uploads stay coherent.
+
+CONSTANTS
+
+const (
+	AssetVersion = 2
+)
+const (
+	HeightEncodingUint16 HeightEncoding = "uint16-normalized"
+	WeightEncodingUint16 WeightEncoding = "uint16-normalized"
+)
+
+TYPES
+
+type AutoMaterialRule struct {
+	Name          string
+	Layer         int
+	TargetWeight  matrix.Float
+	Constraints   TexturePaintConstraints
+	NoiseStrength matrix.Float
+	NoiseScale    matrix.Float
+	NoiseSeed     int
+}
+
+func TerrainAutoMaterialRules(preset TerrainAutoMaterialPreset) []AutoMaterialRule
+
+type BrushFalloff int
+
+const (
+	FalloffLinear BrushFalloff = iota
+	FalloffSmooth
+	FalloffConstant
+)
+type BrushMode int
+
+const (
+	BrushRaise BrushMode = iota
+	BrushLower
+	BrushSmooth
+)
+type DirtyRegion struct {
+	MinX, MinZ int
+	MaxX, MaxZ int
+	Valid      bool
+}
+
+func (r DirtyRegion) Expand(padding, resolution int) DirtyRegion
+
+func (r DirtyRegion) Intersects(other DirtyRegion) bool
+
+type HeightEncoding string
+
+type HeightField struct {
+	Resolution int
+	Heights    []matrix.Float
+	MinHeight  matrix.Float
+	MaxHeight  matrix.Float
+
+	// Has unexported fields.
+}
+
+func NewHeightField(resolution int, minHeight, maxHeight, initialHeight matrix.Float) (*HeightField, error)
+
+func (h *HeightField) AddHeight(x, z int, delta matrix.Float) bool
+
+func (h *HeightField) ClearDirty()
+
+func (h *HeightField) CopyRegion(region DirtyRegion) []matrix.Float
+
+func (h *HeightField) DirtyRegion() DirtyRegion
+
+func (h *HeightField) Height(x, z int) matrix.Float
+
+func (h *HeightField) Paint(stroke PaintStroke) DirtyRegion
+
+func (h *HeightField) Sample(x, z matrix.Float) matrix.Float
+
+func (h *HeightField) SetHeight(x, z int, height matrix.Float) bool
+
+func (h *HeightField) SetRegion(region DirtyRegion, heights []matrix.Float) DirtyRegion
+
+type PaintStroke struct {
+	Mode     BrushMode
+	Center   matrix.Vec2
+	Radius   matrix.Float
+	Strength matrix.Float
+	Falloff  BrushFalloff
+	Spacing  matrix.Float
+}
+
+type SplatLayerChannel struct {
+	Texture int
+	Channel int
+}
+
+type Terrain struct {
+	Config        TerrainConfig
+	Entity        *engine.Entity
+	Transform     *matrix.Transform
+	HeightField   *HeightField
+	LayerSet      *TerrainLayerSet
+	SplatTextures []TerrainSplatTexture
+	MeshChunks    []TerrainChunk
+	Material      *rendering.Material
+	ShaderData    []rendering.DrawInstance
+
+	// Has unexported fields.
+}
+
+func Load(host *engine.Host, id string) (*Terrain, error)
+
+func LoadForEntity(host *engine.Host, id string, entity *engine.Entity) (*Terrain, error)
+
+func New(host *engine.Host, config TerrainConfig) (*Terrain, error)
+
+func NewFromAsset(host *engine.Host, asset TerrainAsset) (*Terrain, error)
+
+func NewFromAssetForEntity(host *engine.Host, asset TerrainAsset, entity *engine.Entity) (*Terrain, error)
+
+func NewModel(config TerrainConfig) (*Terrain, error)
+
+func NewModelFromAsset(asset TerrainAsset) (*Terrain, error)
+
+func (t *Terrain) AddLayer(layer TerrainLayer) int
+
+func (t *Terrain) ApplyAutoMaterialRules(rules []AutoMaterialRule) DirtyRegion
+
+func (t *Terrain) ApplyDirty()
+
+func (t *Terrain) ApplyHeightRegion(region DirtyRegion, heights []matrix.Float) DirtyRegion
+
+func (t *Terrain) ApplyLayerSetState(state TerrainLayerSetState) bool
+
+func (t *Terrain) ApplyTextureDirty(region DirtyRegion)
+
+func (t *Terrain) ApplyTextureWeightRegion(region DirtyRegion, weights []matrix.Float) DirtyRegion
+
+func (t *Terrain) ClearBrushPreview()
+
+func (t *Terrain) ClearLayer(layer int) DirtyRegion
+
+func (t *Terrain) Collision() (*graviton.TerrainCollision, error)
+
+func (t *Terrain) CollisionBounds() graviton.AABB
+    CollisionBounds returns the local-space bounds used by terrain collision.
+
+func (t *Terrain) CopyTextureWeightRegion(region DirtyRegion) []matrix.Float
+
+func (t *Terrain) Destroy(host *engine.Host)
+
+func (t *Terrain) EraseLayer(layer int, stroke PaintStroke) DirtyRegion
+
+func (t *Terrain) FillLayer(layer int) DirtyRegion
+
+func (t *Terrain) HeightAtLocal(localXZ matrix.Vec2) matrix.Float
+
+func (t *Terrain) HeightAtWorld(point matrix.Vec3) matrix.Float
+
+func (t *Terrain) LayerCount() int
+
+func (t *Terrain) LayerSetState() TerrainLayerSetState
+
+func (t *Terrain) LayerWeightAt(layer, x, z int) matrix.Float
+
+func (t *Terrain) MarkTextureDirty(layer int, region DirtyRegion)
+
+func (t *Terrain) MarkTextureRegionDirty(region DirtyRegion)
+
+func (t *Terrain) MoveLayer(from, to int) bool
+
+func (t *Terrain) NewCollision() *graviton.TerrainCollision
+    NewCollision creates a Graviton terrain collider backed by the terrain
+    height storage. Height edits are visible to the collider immediately;
+    do not mutate terrain heights concurrently with a physics step.
+
+func (t *Terrain) NormalizeWeightsAt(x, z int) bool
+
+func (t *Terrain) Paint(stroke PaintStroke) DirtyRegion
+
+func (t *Terrain) PaintLayer(layer int, stroke PaintStroke) DirtyRegion
+
+func (t *Terrain) PaintLine(from, to matrix.Vec2, stroke PaintStroke) DirtyRegion
+
+func (t *Terrain) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult
+
+func (t *Terrain) PaintTextureLine(layer int, from, to matrix.Vec2, stroke TexturePaintStroke) TexturePaintResult
+
+func (t *Terrain) RayHit(ray graviton.Ray) (TerrainRayHit, bool)
+
+func (t *Terrain) RayHitLocal(ray graviton.Ray) (TerrainRayHit, bool)
+
+func (t *Terrain) RefreshTexturePreview()
+
+func (t *Terrain) RemoveLayer(layer int) bool
+
+func (t *Terrain) SampleLayerWeightAtLocal(layer int, localXZ matrix.Vec2) matrix.Float
+
+func (t *Terrain) SampleTextureLayerAtLocal(localXZ matrix.Vec2) TexturePaintResult
+
+func (t *Terrain) SetBrushPreview(centerXZ matrix.Vec2, radius, ringWidth matrix.Float, color matrix.Color)
+
+func (t *Terrain) SetLayer(layer int, value TerrainLayer) bool
+
+func (t *Terrain) SplatLayerChannel(layer int) (SplatLayerChannel, bool)
+
+func (t *Terrain) SplatTextureCount() int
+
+func (t *Terrain) SplatTextureWriteRequest(texture int, region DirtyRegion) rendering.GPUImageWriteRequest
+
+func (t *Terrain) StrokeRegion(stroke PaintStroke) DirtyRegion
+
+func (t *Terrain) TextureStrokeRegion(stroke TexturePaintStroke) DirtyRegion
+
+func (t *Terrain) VisitPaintLineStamps(from, to matrix.Vec2, stroke PaintStroke, visit func(PaintStroke) bool)
+
+func (t *Terrain) VisitTexturePaintLineStamps(from, to matrix.Vec2, stroke TexturePaintStroke, visit func(TexturePaintStroke) bool)
+
+func (t *Terrain) WeightDebugRGBA(layer int) []byte
+
+type TerrainAsset struct {
+	Version             int
+	Config              TerrainConfig
+	Heights             []uint16
+	Layers              []TerrainLayer
+	WeightMapResolution int
+	Weights             []uint16
+}
+
+func DeserializeAsset(data []byte) (TerrainAsset, error)
+
+func LoadAsset(assetDb assets.Database, id string) (TerrainAsset, error)
+
+func NewAsset(config TerrainConfig, heights []matrix.Float) (TerrainAsset, error)
+
+func NewAssetFromHeightField(config TerrainConfig, field *HeightField) (TerrainAsset, error)
+
+func NewAssetFromTerrain(model *Terrain) (TerrainAsset, error)
+
+func NewAssetWithLayerSet(config TerrainConfig, heights []matrix.Float, layerSet *TerrainLayerSet) (TerrainAsset, error)
+
+func (a TerrainAsset) FloatHeights() []matrix.Float
+
+func (a TerrainAsset) Height(x, z int) matrix.Float
+
+func (a TerrainAsset) LayerSet() (*TerrainLayerSet, error)
+
+func (a TerrainAsset) Serialize() ([]byte, error)
+
+type TerrainAutoMaterialPreset struct {
+	GrassLayer    int
+	RockLayer     int
+	SnowLayer     int
+	FlatSlopeMax  matrix.Float
+	CliffSlopeMin matrix.Float
+	SnowHeightMin matrix.Float
+	NoiseStrength matrix.Float
+	NoiseScale    matrix.Float
+	NoiseSeed     int
+}
+
+type TerrainChunk struct {
+	Key        string
+	StartX     int
+	StartZ     int
+	EndX       int
+	EndZ       int
+	Mesh       *rendering.Mesh
+	Drawing    rendering.Drawing
+	ShaderData rendering.DrawInstance
+	Indexes    []uint32
+}
+
+type TerrainConfig struct {
+	Resolution      int
+	PaintResolution int
+	WorldSize       matrix.Vec2
+	MinHeight       matrix.Float
+	MaxHeight       matrix.Float
+	InitialHeight   matrix.Float
+	ChunkSize       int
+	Material        string
+	Textures        []TerrainTexture
+	ShaderData      string
+}
+
+type TerrainLayer struct {
+	Name               string
+	TextureContentID   string
+	NormalContentID    string
+	RoughnessContentID string
+	Filter             rendering.TextureFilter
+	Tiling             matrix.Vec2
+	Offset             matrix.Vec2
+	Rotation           matrix.Float
+	Tint               matrix.Color
+	TextureWorldSize   matrix.Vec2
+	Locked             bool
+	Hidden             bool
+	Solo               bool
+	TriplanarCliffs    bool
+	TriplanarSlope     matrix.Float
+}
+    TerrainLayer describes one paintable material layer on a terrain.
+
+    TextureContentID is the albedo texture currently consumed by the terrain
+    material. NormalContentID and RoughnessContentID are stored for authoring
+    and future material expansion. Locked layers preserve their current
+    contribution during painting, while Hidden and Solo only affect preview
+    packing.
+
+func NewTerrainLayer(textureContentID string) TerrainLayer
+
+type TerrainLayerSet struct {
+	Layers    []TerrainLayer
+	WeightMap *TextureWeightMap
+	// Has unexported fields.
+}
+    TerrainLayerSet owns the ordered TerrainLayer list and the normalized weight
+    map with matching layer indexes.
+
+    Mutate layers through this type when possible. Add, remove, move, fill,
+    clear, and paint operations keep the TextureWeightMap shape aligned with
+    Layers and preserve per-texel normalization.
+
+func NewTerrainLayerSet(resolution int) (*TerrainLayerSet, error)
+
+func (s *TerrainLayerSet) AddLayer(layer TerrainLayer) int
+
+func (s *TerrainLayerSet) ClearLayer(layer int) DirtyRegion
+
+func (s *TerrainLayerSet) EffectiveWeightMapForPreview() *TextureWeightMap
+
+func (s *TerrainLayerSet) EraseLayer(layer int, stroke PaintStroke) DirtyRegion
+
+func (s *TerrainLayerSet) FillLayer(layer int) DirtyRegion
+
+func (s *TerrainLayerSet) LayerCount() int
+
+func (s *TerrainLayerSet) LayerWeightAt(layer, x, z int) matrix.Float
+
+func (s *TerrainLayerSet) MoveLayer(from, to int) bool
+
+func (s *TerrainLayerSet) NormalizeWeightsAt(x, z int) bool
+
+func (s *TerrainLayerSet) PaintLayer(layer int, stroke PaintStroke) DirtyRegion
+
+func (s *TerrainLayerSet) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult
+
+func (s *TerrainLayerSet) RemoveLayer(layer int) bool
+
+func (s *TerrainLayerSet) SetLayer(layer int, value TerrainLayer) bool
+
+func (s *TerrainLayerSet) SetLayerWeightAt(layer, x, z int, weight matrix.Float) bool
+
+func (s *TerrainLayerSet) WeightDebugRGBA(layer int) []byte
+
+type TerrainLayerSetState struct {
+	Layers              []TerrainLayer
+	WeightMapResolution int
+	Weights             []matrix.Float
+}
+
+type TerrainLayerTextureDiagnostic struct {
+	Layer            int
+	Name             string
+	TextureContentID string
+}
+
+func MissingTerrainLayerTextures(layers []TerrainLayer, textureExists func(string) bool) []TerrainLayerTextureDiagnostic
+
+type TerrainRayHit struct {
+	Point      matrix.Vec3
+	LocalPoint matrix.Vec3
+	Normal     matrix.Vec3
+	Distance   matrix.Float
+}
+
+type TerrainShaderData = shader_data_registry.ShaderDataTerrain
+
+type TerrainSplatTexture struct {
+	Key        string
+	Texture    *rendering.Texture
+	LayerStart int
+	LayerCount int
+	Pixels     []byte
+	Dirty      DirtyRegion
+
+	// Has unexported fields.
+}
+
+type TerrainTexture struct {
+	Key    string
+	Filter rendering.TextureFilter
+}
+
+type TextureBrushMode int
+
+const (
+	TextureBrushPaint TextureBrushMode = iota
+	TextureBrushErase
+	TextureBrushSmoothWeights
+	TextureBrushFill
+	TextureBrushReplace
+	TextureBrushSample
+)
+type TextureBrushStamp struct {
+	Resolution int
+	Alpha      []matrix.Float
+}
+
+func (s *TextureBrushStamp) Sample(x, z, scale, rotation matrix.Float) matrix.Float
+
+type TexturePaintConstraints struct {
+	UseSlope     bool
+	SlopeMin     matrix.Float
+	SlopeMax     matrix.Float
+	UseHeight    bool
+	HeightMin    matrix.Float
+	HeightMax    matrix.Float
+	AngleCutoff  matrix.Float
+	NormalFacing matrix.Vec3
+}
+
+type TexturePaintResult struct {
+	Dirty         DirtyRegion
+	Sampled       bool
+	SampledLayer  int
+	SampledWeight matrix.Float
+}
+
+type TexturePaintStroke struct {
+	Mode                TextureBrushMode
+	Center              matrix.Vec2
+	Radius              matrix.Float
+	Strength            matrix.Float
+	Falloff             BrushFalloff
+	Opacity             matrix.Float
+	TargetWeight        matrix.Float
+	Spacing             matrix.Float
+	ReplaceLayer        int
+	PreserveOtherLayers bool
+	Constraints         TexturePaintConstraints
+	NoiseStrength       matrix.Float
+	NoiseScale          matrix.Float
+	NoiseSeed           int
+	Jitter              matrix.Float
+	Stamp               *TextureBrushStamp
+	StampScale          matrix.Float
+	StampRotation       matrix.Float
+}
+
+type TextureWeightMap struct {
+	Resolution int
+	Layers     int
+	Weights    []matrix.Float
+
+	// Has unexported fields.
+}
+    TextureWeightMap stores terrain texture blend weights in cell-major order.
+
+    The backing layout is ((x + z*Resolution) * Layers) + layer. Every texel
+    is expected to normalize across all layers. Use SetWeightAt followed by
+    NormalizeWeightsAt for direct edits, or prefer PaintTextureLayer for editor
+    brush behavior with falloff, locks, smoothing, replace, sampling, and fill
+    modes.
+
+func NewTextureWeightMap(resolution, layers int) (*TextureWeightMap, error)
+
+func (m *TextureWeightMap) AddLayer(defaultWeight matrix.Float)
+
+func (m *TextureWeightMap) ClearLayer(clearLayer int) DirtyRegion
+
+func (m *TextureWeightMap) ClearLayerWithLocks(clearLayer int, locked []bool) DirtyRegion
+
+func (m *TextureWeightMap) CopyRegion(region DirtyRegion) []matrix.Float
+
+func (m *TextureWeightMap) EraseLayer(layer int, stroke PaintStroke) DirtyRegion
+
+func (m *TextureWeightMap) FillLayer(fillLayer int) DirtyRegion
+
+func (m *TextureWeightMap) FillLayerWithLocks(fillLayer int, locked []bool) DirtyRegion
+
+func (m *TextureWeightMap) MoveLayer(from, to int) bool
+
+func (m *TextureWeightMap) NormalizeAll()
+
+func (m *TextureWeightMap) NormalizeWeightsAt(x, z int) bool
+
+func (m *TextureWeightMap) PaintLayer(layer int, stroke PaintStroke) DirtyRegion
+
+func (m *TextureWeightMap) PaintTextureLayer(layer int, stroke TexturePaintStroke) TexturePaintResult
+
+func (m *TextureWeightMap) PaintTextureLayerWithLocks(layer int, stroke TexturePaintStroke, locked []bool) TexturePaintResult
+
+func (m *TextureWeightMap) RemoveLayer(removeLayer int) bool
+
+func (m *TextureWeightMap) Sample(layer int, x, z matrix.Float) matrix.Float
+
+func (m *TextureWeightMap) SetRegion(region DirtyRegion, weights []matrix.Float) DirtyRegion
+
+func (m *TextureWeightMap) SetWeightAt(layer, x, z int, weight matrix.Float) bool
+
+func (m *TextureWeightMap) WeightAt(layer, x, z int) matrix.Float
+
+type WeightEncoding string
+

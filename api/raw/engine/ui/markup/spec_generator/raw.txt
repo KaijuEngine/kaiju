@@ -1,0 +1,2 @@
+package spec_generator // import "kaijuengine.com/engine/ui/markup/spec_generator"
+
