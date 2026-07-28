@@ -34,6 +34,7 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 	container := host_container.New(build.Title.String(), logStream, adb)
 	container.RunFunction(func() {
 		container.Host.Window.EnableRawMouseInput()
+		initExternalGameService()
 		initExternalGameServiceRuntime(container.Host)
 		if build.Ai_driver {
 			startAIDriver(container.Host)
@@ -64,7 +65,6 @@ func bootstrapLoop(logStream *logging.LogStream, game GameInterface, platformSta
 		go container.Run(engine.DefaultWindowWidth, engine.DefaultWindowHeight,
 			-1, -1, platformState)
 		<-container.PrepLock
-		initExternalGameService()
 		<-container.Host.Done()
 	}
 	terminateExternalGameService()
