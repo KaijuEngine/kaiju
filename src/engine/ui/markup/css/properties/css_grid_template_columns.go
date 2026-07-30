@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p GridTemplateColumns) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -30,7 +31,7 @@ func (p GridTemplateColumns) Process(panel *ui.Panel, elm *document.Element, val
 
 	// Explicit template, e.g. "8rem 1fr"
 	if len(values) > 1 {
-		cols := make([]float32, 0, len(values))
+		cols := make([]matrix.Float, 0, len(values))
 		for i := range values {
 			s := strings.TrimSpace(values[i].Str)
 			if strings.HasSuffix(s, "fr") {
@@ -39,7 +40,7 @@ func (p GridTemplateColumns) Process(panel *ui.Panel, elm *document.Element, val
 					n = "1"
 				}
 				if f, err := strconv.ParseFloat(n, 32); err == nil && f > 0 {
-					cols = append(cols, -float32(f))
+					cols = append(cols, -matrix.Float(f))
 					continue
 				}
 				cols = cols[:0]

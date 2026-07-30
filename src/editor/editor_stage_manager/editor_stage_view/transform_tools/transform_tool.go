@@ -421,7 +421,7 @@ func (t *TransformTool) updateDrag(host *engine.Host) {
 	}
 }
 
-func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapScale matrix.Float) matrix.Vec3 {
 	defer tracing.NewRegion("TransformTool.translate").End()
 	p := t.unsnapped[idx].Add(delta)
 	t.unsnapped[idx] = p
@@ -440,10 +440,10 @@ func (t *TransformTool) translate(idx int, delta matrix.Vec3, snap bool, snapSca
 	return p
 }
 
-func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale matrix.Float) matrix.Vec3 {
 	defer tracing.NewRegion("TransformTool.rotate").End()
 	var axis matrix.Vec3
-	var angle float32
+	var angle matrix.Float
 	camera := t.stage.WorkspaceHost().PrimaryCamera()
 	forward := camera.Forward()
 	switch t.axis {
@@ -495,7 +495,7 @@ func (t *TransformTool) rotate(idx int, delta matrix.Vec3, snap bool, snapScale 
 	return newEuler
 }
 
-func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale float32) matrix.Vec3 {
+func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale matrix.Float) matrix.Vec3 {
 	defer tracing.NewRegion("TransformTool.scale").End()
 	scale := matrix.Vec3Zero()
 	target := delta.LargestAxisDelta()
@@ -530,7 +530,7 @@ func (t *TransformTool) scale(idx int, delta matrix.Vec3, snap bool, snapScale f
 
 func (t *TransformTool) transform(delta matrix.Vec3, snap bool) {
 	defer tracing.NewRegion("TransformTool.transform").End()
-	snapScale := float32(1)
+	snapScale := matrix.Float(1)
 	if snap {
 		switch t.state {
 		case ToolStateMove:

@@ -245,7 +245,7 @@ func (dui *WorkspaceDetailsUI) submitDetailsName(e *document.Element) {
 	w.ed.History().Add(h)
 }
 
-func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v float32) {
+func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v matrix.Float) {
 	man := dui.workspace.Value().stageView.Manager()
 	sel := man.HierarchyRespectiveSelection()
 	typ := transformHistoryTypePosition
@@ -306,55 +306,55 @@ func (dui *WorkspaceDetailsUI) applyTransform(kind transformKind, axis int, v fl
 func (dui *WorkspaceDetailsUI) setPosX(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setPosX").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformPos, 0, float32(v))
+	dui.applyTransform(transformPos, 0, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setPosY(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setPosY").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformPos, 1, float32(v))
+	dui.applyTransform(transformPos, 1, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setPosZ(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setPosZ").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformPos, 2, float32(v))
+	dui.applyTransform(transformPos, 2, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotX(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setRotX").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformRot, 0, float32(v))
+	dui.applyTransform(transformRot, 0, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotY(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setRotY").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformRot, 1, float32(v))
+	dui.applyTransform(transformRot, 1, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setRotZ(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setRotZ").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformRot, 2, float32(v))
+	dui.applyTransform(transformRot, 2, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleX(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setScaleX").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformScale, 0, float32(v))
+	dui.applyTransform(transformScale, 0, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleY(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setScaleY").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformScale, 1, float32(v))
+	dui.applyTransform(transformScale, 1, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) setScaleZ(e *document.Element) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.setScaleZ").End()
 	v := toFloat(e.UI.ToInput().Text())
-	dui.applyTransform(transformScale, 2, float32(v))
+	dui.applyTransform(transformScale, 2, matrix.Float(v))
 }
 
 func (dui *WorkspaceDetailsUI) showEntityDataSelector(e *document.Element) {

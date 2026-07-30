@@ -23,10 +23,10 @@ import (
 
 const (
 	stageCameraPreviewRenderName = "stage-camera-preview"
-	cameraPreviewMaxWidth        = float32(260)
-	cameraPreviewMaxHeight       = float32(160)
-	cameraPreviewFallbackWidth   = float32(16)
-	cameraPreviewFallbackHeight  = float32(9)
+	cameraPreviewMaxWidth        = matrix.Float(260)
+	cameraPreviewMaxHeight       = matrix.Float(160)
+	cameraPreviewFallbackWidth   = matrix.Float(16)
+	cameraPreviewFallbackHeight  = matrix.Float(9)
 )
 
 type stageCameraPreview struct {
@@ -107,25 +107,25 @@ func (v *StageView) updateCameraPreview(entity *editor_stage_manager.StageEntity
 	v.cameraPreview.ui.Show()
 }
 
-func (v *StageView) cameraPreviewProjectionSize(data *entity_data_binding.EntityDataEntry) (float32, float32) {
+func (v *StageView) cameraPreviewProjectionSize(data *entity_data_binding.EntityDataEntry) (matrix.Float, matrix.Float) {
 	width := cameraPreviewFieldFloat(data, "Width", 0)
 	height := cameraPreviewFieldFloat(data, "Height", 0)
 	if width <= 0 {
 		width = cameraPreviewFallbackWidth
 		if v.host != nil && v.host.Window != nil && v.host.Window.Width() > 0 {
-			width = float32(v.host.Window.Width())
+			width = matrix.Float(v.host.Window.Width())
 		}
 	}
 	if height <= 0 {
 		height = cameraPreviewFallbackHeight
 		if v.host != nil && v.host.Window != nil && v.host.Window.Height() > 0 {
-			height = float32(v.host.Window.Height())
+			height = matrix.Float(v.host.Window.Height())
 		}
 	}
 	return max(width, 0.1), max(height, 0.1)
 }
 
-func cameraPreviewDisplaySize(width, height float32) (float32, float32) {
+func cameraPreviewDisplaySize(width, height matrix.Float) (matrix.Float, matrix.Float) {
 	if width <= 0 || height <= 0 {
 		width = cameraPreviewFallbackWidth
 		height = cameraPreviewFallbackHeight
@@ -184,7 +184,7 @@ func (v *StageView) ensureCameraPreviewRenderView() {
 	v.cameraPreview.renderView = view
 }
 
-func cameraPreviewCameraFromBinding(entity *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry, width, height, viewWidth, viewHeight float32) cameras.Camera {
+func cameraPreviewCameraFromBinding(entity *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry, width, height, viewWidth, viewHeight matrix.Float) cameras.Camera {
 	position := entity.Transform.WorldPosition()
 	camType := engine_entity_data_camera.CameraType(cameraPreviewFieldInt(data, "Type", int(engine_entity_data_camera.CameraTypePerspective)))
 	var camera cameras.Camera

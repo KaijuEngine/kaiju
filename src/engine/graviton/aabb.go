@@ -364,7 +364,7 @@ func (a AABB) Transform(m matrix.Mat4) AABB {
 // Satisfying BVH HitObject interface
 func (box AABB) Bounds() AABB { return box }
 
-func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool) {
+func (box AABB) RayIntersectTest(ray Ray, length matrix.Float, transform *matrix.Transform) (matrix.Vec3, bool) {
 	tBox := box
 	if transform != nil {
 		tBox = box.Transform(transform.WorldMatrix())

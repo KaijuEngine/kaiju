@@ -6,7 +6,11 @@
 
 package windowing
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"kaijuengine.com/matrix"
+)
 
 type WindowEventType = uint8
 type WindowEventActivityType = uint32
@@ -145,18 +149,18 @@ type ControllerStateWindowEvent struct {
 }
 
 type TouchStateWindowEvent struct {
-	x           float32
-	y           float32
-	pressure    float32
+	x           matrix.Float
+	y           matrix.Float
+	pressure    matrix.Float
 	index       int32
 	actionState TouchActionState
 }
 
 type StylusStateWindowEvent struct {
-	x           float32
-	y           float32
-	pressure    float32
-	distance    float32
+	x           matrix.Float
+	y           matrix.Float
+	pressure    matrix.Float
+	distance    matrix.Float
 	actionState StylusActionState
 }
 

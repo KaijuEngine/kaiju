@@ -24,7 +24,7 @@ func collectVisible(l VirtualLayout, scroll, vp matrix.Vec2, overscan int) []int
 	return got
 }
 
-func windowSlice(m virtualHeightModel, n, overscan int, vpH, scrollY float32) []int {
+func windowSlice(m virtualHeightModel, n, overscan int, vpH, scrollY matrix.Float) []int {
 	first, last := virtualWindow(m, n, overscan, vpH, scrollY)
 	var out []int
 	for i := first; i <= last; i++ {
@@ -46,7 +46,7 @@ func assertIntSlice(t *testing.T, got, want []int, name string) {
 }
 
 func TestLinearVerticalGoldenFixed(t *testing.T) {
-	const h float32 = 20
+	const h matrix.Float = 20
 	const n = 1000
 
 	ref := newFixedHeightModel(h)
@@ -76,7 +76,7 @@ func TestLinearVerticalGoldenFixed(t *testing.T) {
 
 	// VisibleAt must equal virtualWindow for a spread of scroll/overscan.
 	cases := []struct {
-		scrollY  float32
+		scrollY  matrix.Float
 		overscan int
 	}{
 		{0, 0}, {0, 2}, {1000, 2}, {ref.total() - 200, 2}, {123.5, 4},
@@ -90,7 +90,7 @@ func TestLinearVerticalGoldenFixed(t *testing.T) {
 
 func TestLinearVerticalGoldenVariable(t *testing.T) {
 	const n = 500
-	fn := func(i int) float32 { return float32(10 + (i%5)*7) }
+	fn := func(i int) matrix.Float { return matrix.Float(10 + (i%5)*7) }
 
 	ref := newPrefixHeightModel(virtualListDefaultEstimate)
 	ref.setCount(n)
@@ -113,7 +113,7 @@ func TestLinearVerticalGoldenVariable(t *testing.T) {
 		assertEqualF(t, r.H, ref.heightOf(i), "rectH")
 	}
 
-	for _, scrollY := range []float32{0, 200, 1500, ref.total() - 180} {
+	for _, scrollY := range []matrix.Float{0, 200, 1500, ref.total() - 180} {
 		got := collectVisible(l, matrix.Vec2{0, scrollY}, vp, 2)
 		want := windowSlice(ref, n, 2, vp.Y(), scrollY)
 		assertIntSlice(t, got, want, "visible(variable)")

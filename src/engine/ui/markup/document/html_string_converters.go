@@ -14,12 +14,12 @@ import (
 	"kaijuengine.com/matrix"
 )
 
-func asFloat(valStr string) float32 {
+func asFloat(valStr string) matrix.Float {
 	if len(valStr) == 0 {
 		valStr = "0"
 	}
 	v, _ := strconv.ParseFloat(valStr, 32)
-	return float32(v)
+	return matrix.Float(v)
 }
 
 func convertHex(hex string) [4]int {

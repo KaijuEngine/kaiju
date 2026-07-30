@@ -445,11 +445,11 @@ func (ui *UI) Clean() {
 	// rather than converging.
 	const settleEpsilon = 1.0
 	const minGuardIterations = 10 // 10% of maxIterations
-	prevMaxDelta := float32(-1)
+	prevMaxDelta := matrix.Float(-1)
 	stalls := 0
 	for !stabilized && maxIterations > 0 {
 		stabilized = true
-		maxDelta := float32(0)
+		maxDelta := matrix.Float(0)
 		for i := range tree {
 			if !tree[i].IsActive() {
 				continue
@@ -674,7 +674,7 @@ func (ui *UI) eventUpdates() {
 			h := ui.Host().Window.Height()
 			wmm, hmm, _ := host.Window.SizeMM()
 			threshold := max(windowing.DPI2PX(w, wmm, 1), windowing.DPI2PX(h, hmm, 1))
-			if ui.downPos.Distance(pos) > float32(threshold) {
+			if ui.downPos.Distance(pos) > matrix.Float(threshold) {
 				ui.dragStartPos = ui.entity.Transform.WorldPosition()
 				ui.flags.setDrag()
 				ui.requestEvent(EventTypeDragStart)

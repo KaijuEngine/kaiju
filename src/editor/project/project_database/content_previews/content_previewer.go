@@ -53,8 +53,8 @@ func (p *ContentPreviewer) Initialize(ed EditorInterface) error {
 	rp := p.mat.RenderPass()
 	lookAt := matrix.NewVec3(0, 0.67, -matrix.Vec3Forward().Z())
 	pos := lookAt.Scale(2)
-	p.cam = cameras.NewStandardCamera(float32(rp.Width()), float32(rp.Height()),
-		float32(rp.Width()), float32(rp.Height()), matrix.Vec3Zero())
+	p.cam = cameras.NewStandardCamera(matrix.Float(rp.Width()), matrix.Float(rp.Height()),
+		matrix.Float(rp.Width()), matrix.Float(rp.Height()), matrix.Vec3Zero())
 	p.cam.SetPositionAndLookAt(pos, matrix.Vec3Zero())
 	p.sphereTransform.Initialize(p.ed.Host().WorkGroup())
 	return nil

@@ -131,7 +131,7 @@ func (g *Game) update(deltaTime float64) {
 	x := math.Sin(g.host.Runtime())
 	console.For(g.host).Write(g.ball.Transform.Position().String()) // Open console in game (debug flag) with F1
 	g.ball.Transform.SetPosition(matrix.NewVec3(matrix.Float(x), 0, -3))
-	g.cube.Transform.SetRotation(g.cube.Transform.Rotation().Add(matrix.NewVec3(0, 0, 10).Scale(float32(deltaTime))))
+	g.cube.Transform.SetRotation(g.cube.Transform.Rotation().Add(matrix.NewVec3(0, 0, 10).Scale(matrix.Float(deltaTime))))
 }
 
 func getGame() bootstrap.GameInterface { return &Game{} }

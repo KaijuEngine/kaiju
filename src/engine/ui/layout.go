@@ -38,7 +38,7 @@ type Layout struct {
 	rowLayoutOffset  matrix.Vec2
 	innerOffset      matrix.Vec4
 	localInnerOffset matrix.Vec4
-	z                float32
+	z                matrix.Float
 	ui               *UI
 	border           matrix.Vec4
 	padding          matrix.Vec4
@@ -47,9 +47,9 @@ type Layout struct {
 	gridRowEnd       int
 	gridColumnStart  int
 	gridColumnEnd    int
-	flexGrow         float32
-	flexShrink       float32
-	flexBasis        float32
+	flexGrow         matrix.Float
+	flexShrink       matrix.Float
+	flexBasis        matrix.Float
 	flexBasisAuto    bool
 	flexBasisPercent bool
 	flexOrder        int
@@ -102,7 +102,7 @@ func (l *Layout) CalcOffset() matrix.Vec2 {
 	return l.rowLayoutOffset.Add(l.offset)
 }
 
-func (l *Layout) SetOffset(x, y float32) {
+func (l *Layout) SetOffset(x, y matrix.Float) {
 	if matrix.Vec2ApproxTo(l.offset, matrix.Vec2{x, y}, fractionOfPixel) {
 		return
 	}
@@ -111,7 +111,7 @@ func (l *Layout) SetOffset(x, y float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetOffsetX(x float32) {
+func (l *Layout) SetOffsetX(x matrix.Float) {
 	if matrix.ApproxTo(l.offset.X(), x, fractionOfPixel) {
 		return
 	}
@@ -119,7 +119,7 @@ func (l *Layout) SetOffsetX(x float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetOffsetY(y float32) {
+func (l *Layout) SetOffsetY(y matrix.Float) {
 	if matrix.ApproxTo(l.offset.Y(), y, fractionOfPixel) {
 		return
 	}
@@ -127,7 +127,7 @@ func (l *Layout) SetOffsetY(y float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetInnerOffset(left, top, right, bottom float32) {
+func (l *Layout) SetInnerOffset(left, top, right, bottom matrix.Float) {
 	io := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(l.innerOffset, io, fractionOfPixel) {
 		return
@@ -136,7 +136,7 @@ func (l *Layout) SetInnerOffset(left, top, right, bottom float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetInnerOffsetLeft(offset float32) {
+func (l *Layout) SetInnerOffsetLeft(offset matrix.Float) {
 	if matrix.Approx(l.innerOffset.X(), offset) {
 		return
 	}
@@ -144,7 +144,7 @@ func (l *Layout) SetInnerOffsetLeft(offset float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetInnerOffsetTop(offset float32) {
+func (l *Layout) SetInnerOffsetTop(offset matrix.Float) {
 	if matrix.Approx(l.innerOffset[matrix.Vy], offset) {
 		return
 	}
@@ -152,7 +152,7 @@ func (l *Layout) SetInnerOffsetTop(offset float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetInnerOffsetRight(offset float32) {
+func (l *Layout) SetInnerOffsetRight(offset matrix.Float) {
 	if matrix.Approx(l.innerOffset.Right(), offset) {
 		return
 	}
@@ -160,7 +160,7 @@ func (l *Layout) SetInnerOffsetRight(offset float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetInnerOffsetBottom(offset float32) {
+func (l *Layout) SetInnerOffsetBottom(offset matrix.Float) {
 	if matrix.Approx(l.innerOffset.Bottom(), offset) {
 		return
 	}
@@ -172,7 +172,7 @@ func (l *Layout) LocalInnerOffset() matrix.Vec4 {
 	return l.localInnerOffset
 }
 
-func (l *Layout) SetLocalInnerOffset(left, top, right, bottom float32) {
+func (l *Layout) SetLocalInnerOffset(left, top, right, bottom matrix.Float) {
 	if matrix.Vec4ApproxTo(l.localInnerOffset, matrix.NewVec4(left, top, right, bottom), fractionOfPixel) {
 		return
 	}
@@ -189,7 +189,7 @@ func (l *Layout) InnerOffset() matrix.Vec4 {
 	}
 }
 
-func (l *Layout) Scale(width, height float32) bool {
+func (l *Layout) Scale(width, height matrix.Float) bool {
 	ps := l.PixelSize()
 	if matrix.Vec2ApproxTo(ps, matrix.NewVec2(width, height), fractionOfPixel) {
 		return false
@@ -210,7 +210,7 @@ func (l *Layout) Scale(width, height float32) bool {
 	return true
 }
 
-func (l *Layout) ScaleWidth(width float32) bool {
+func (l *Layout) ScaleWidth(width matrix.Float) bool {
 	ps := l.PixelSize()
 	if matrix.ApproxTo(ps[matrix.Vx], width, fractionOfPixel) {
 		return false
@@ -232,7 +232,7 @@ func (l *Layout) ScaleWidth(width float32) bool {
 	return true
 }
 
-func (l *Layout) ScaleHeight(height float32) bool {
+func (l *Layout) ScaleHeight(height matrix.Float) bool {
 	ps := l.PixelSize()
 	if matrix.ApproxTo(ps.Y(), height, fractionOfPixel) {
 		return false
@@ -263,15 +263,15 @@ func (l *Layout) GridRowStart() int        { return l.gridRowStart }
 func (l *Layout) GridRowEnd() int          { return l.gridRowEnd }
 func (l *Layout) GridColumnStart() int     { return l.gridColumnStart }
 func (l *Layout) GridColumnEnd() int       { return l.gridColumnEnd }
-func (l *Layout) FlexGrow() float32        { return l.flexGrow }
-func (l *Layout) FlexShrink() float32      { return l.flexShrink }
-func (l *Layout) FlexBasis() float32       { return l.flexBasis }
+func (l *Layout) FlexGrow() matrix.Float   { return l.flexGrow }
+func (l *Layout) FlexShrink() matrix.Float { return l.flexShrink }
+func (l *Layout) FlexBasis() matrix.Float  { return l.flexBasis }
 func (l *Layout) FlexBasisAuto() bool      { return l.flexBasisAuto }
 func (l *Layout) FlexBasisPercent() bool   { return l.flexBasisPercent }
 func (l *Layout) FlexOrder() int           { return l.flexOrder }
 func (l *Layout) AlignSelf() FlexAlign     { return l.alignSelf }
 
-func (l *Layout) SetFlexGrow(grow float32) {
+func (l *Layout) SetFlexGrow(grow matrix.Float) {
 	if grow < 0 {
 		grow = 0
 	}
@@ -282,7 +282,7 @@ func (l *Layout) SetFlexGrow(grow float32) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetFlexShrink(shrink float32) {
+func (l *Layout) SetFlexShrink(shrink matrix.Float) {
 	if shrink < 0 {
 		shrink = 0
 	}
@@ -303,7 +303,7 @@ func (l *Layout) SetFlexBasisAuto() {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetFlexBasis(basis float32, percent bool) {
+func (l *Layout) SetFlexBasis(basis matrix.Float, percent bool) {
 	if basis < 0 {
 		basis = 0
 	}
@@ -362,7 +362,7 @@ func (l *Layout) SetGridColumn(start, end int) {
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
-func (l *Layout) SetBorder(left, top, right, bottom float32) {
+func (l *Layout) SetBorder(left, top, right, bottom matrix.Float) {
 	b := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(l.border, b, fractionOfPixel) {
 		return
@@ -378,7 +378,7 @@ func (l *Layout) SetBorder(left, top, right, bottom float32) {
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
-func (l *Layout) SetPadding(left, top, right, bottom float32) {
+func (l *Layout) SetPadding(left, top, right, bottom matrix.Float) {
 	newPadding := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(l.padding, newPadding, fractionOfPixel) {
 		return
@@ -394,7 +394,7 @@ func (l *Layout) SetPadding(left, top, right, bottom float32) {
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
-func (l *Layout) SetMargin(left, top, right, bottom float32) {
+func (l *Layout) SetMargin(left, top, right, bottom matrix.Float) {
 	m := matrix.NewVec4(left, top, right, bottom)
 	if matrix.Vec4ApproxTo(m, l.margin, fractionOfPixel) {
 		return
@@ -403,11 +403,11 @@ func (l *Layout) SetMargin(left, top, right, bottom float32) {
 	l.ui.layoutChanged(DirtyTypeResize)
 }
 
-func (l *Layout) Z() float32 {
+func (l *Layout) Z() matrix.Float {
 	return l.z
 }
 
-func (l *Layout) SetZ(z float32) {
+func (l *Layout) SetZ(z matrix.Float) {
 	l.z = z
 }
 
@@ -456,15 +456,15 @@ func (l *Layout) totalOffsetBounds() matrix.Vec4 {
 	}
 }
 
-func al(edges matrix.Vec4, w float32, size matrix.Vec2) float32 {
+func al(edges matrix.Vec4, w matrix.Float, size matrix.Vec2) matrix.Float {
 	return -w*0.5 + size.X()*0.5 + edges.Left()
 }
 
-func at(edges matrix.Vec4, h float32, size matrix.Vec2) float32 {
+func at(edges matrix.Vec4, h matrix.Float, size matrix.Vec2) matrix.Float {
 	return h*0.5 - size.Y()*0.5 - edges.Top()
 }
 
-func anchorTopLeft(self *Layout, w, h float32, size matrix.Vec2) matrix.Vec4 {
+func anchorTopLeft(self *Layout, w, h matrix.Float, size matrix.Vec2) matrix.Vec4 {
 	edges := self.totalOffsetBounds()
 	inner := self.InnerOffset()
 	return matrix.Vec4{al(edges, w, size) + inner.Left(), at(edges, h, size) + inner.Top(), 0, 0}

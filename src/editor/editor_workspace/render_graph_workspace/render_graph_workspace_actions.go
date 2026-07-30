@@ -22,25 +22,25 @@ const (
 )
 
 type CreateNodeActionArgs struct {
-	NodeID            string  `json:"nodeId"`
-	X                 float32 `json:"x,omitempty"`
-	Y                 float32 `json:"y,omitempty"`
-	UsePosition       bool    `json:"usePosition,omitempty"`
-	UseConnection     bool    `json:"useConnection,omitempty"`
-	ConnectFromNodeID string  `json:"connectFromNodeId,omitempty"`
-	ConnectFromPort   int     `json:"connectFromPort,omitempty"`
-	ConnectFromOutput bool    `json:"connectFromOutput,omitempty"`
-	ConnectFromType   string  `json:"connectFromType,omitempty"`
+	NodeID            string       `json:"nodeId"`
+	X                 matrix.Float `json:"x,omitempty"`
+	Y                 matrix.Float `json:"y,omitempty"`
+	UsePosition       bool         `json:"usePosition,omitempty"`
+	UseConnection     bool         `json:"useConnection,omitempty"`
+	ConnectFromNodeID string       `json:"connectFromNodeId,omitempty"`
+	ConnectFromPort   int          `json:"connectFromPort,omitempty"`
+	ConnectFromOutput bool         `json:"connectFromOutput,omitempty"`
+	ConnectFromType   string       `json:"connectFromType,omitempty"`
 }
 
 type CreateCommentActionArgs struct {
-	Label       string  `json:"label,omitempty"`
-	X           float32 `json:"x,omitempty"`
-	Y           float32 `json:"y,omitempty"`
-	Width       float32 `json:"width,omitempty"`
-	Height      float32 `json:"height,omitempty"`
-	UsePosition bool    `json:"usePosition,omitempty"`
-	UseSize     bool    `json:"useSize,omitempty"`
+	Label       string       `json:"label,omitempty"`
+	X           matrix.Float `json:"x,omitempty"`
+	Y           matrix.Float `json:"y,omitempty"`
+	Width       matrix.Float `json:"width,omitempty"`
+	Height      matrix.Float `json:"height,omitempty"`
+	UsePosition bool         `json:"usePosition,omitempty"`
+	UseSize     bool         `json:"useSize,omitempty"`
 }
 
 func DefaultCreateNodeActionArgs() CreateNodeActionArgs {

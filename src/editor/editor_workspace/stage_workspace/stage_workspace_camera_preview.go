@@ -52,11 +52,11 @@ func (p *stageWorkspaceCameraPreview) updatePlacement(w *StageWorkspace) {
 	if size.X() <= 0 || size.Y() <= 0 {
 		size = matrix.NewVec2(260, 146)
 	}
-	right := float32(stageCameraPreviewInsetX)
+	right := matrix.Float(stageCameraPreviewInsetX)
 	if elementIsActive(w.detailsUI.detailsArea) {
 		right += windowWidth * stageSidePanelWidthPercent
 	}
-	bottom := float32(stageCameraPreviewInsetY)
+	bottom := matrix.Float(stageCameraPreviewInsetY)
 	if elementIsActive(w.contentUI.contentArea) {
 		bottom += windowHeight * (1 - stageContentOpenPercent)
 	}

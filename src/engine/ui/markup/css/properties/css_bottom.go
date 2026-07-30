@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 // auto|length|initial|inherit
@@ -26,7 +27,7 @@ func (p Bottom) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 
 	offset := panel.Base().Layout().InnerOffset().Bottom()
 	parent := elm.Parent.Value()
-	height := float32(host.Window.Height())
+	height := matrix.Float(host.Window.Height())
 	if parent != nil {
 		parentLayout := parent.UI.Layout()
 		height = parentLayout.PixelSize().Y() - parentLayout.Border().Vertical()

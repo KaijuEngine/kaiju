@@ -13,6 +13,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p Flex) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -52,7 +53,7 @@ func (p Flex) Process(panel *ui.Panel, elm *document.Element, values []rules.Pro
 		setFlexBasis(panel, values[0].Str, host)
 		return nil
 	}
-	var grow float32
+	var grow matrix.Float
 	if g, ok := parseFlexFloat(values[0].Str); ok {
 		grow = g
 		layout.SetFlexGrow(g)

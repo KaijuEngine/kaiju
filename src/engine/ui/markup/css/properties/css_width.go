@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -39,7 +40,7 @@ func (p Width) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 	c := currentSizingConstraints(panel)
 	if strings.HasSuffix(values[0].Str, "%") {
 		if l.Ui().Entity().IsRoot() {
-			finalW := applyWidthConstraints(panel, float32(host.Window.Width())*width)
+			finalW := applyWidthConstraints(panel, matrix.Float(host.Window.Width())*width)
 			l.ScaleWidth(finalW)
 			if c.HasAspectRatio() && c.AspectRatio > 0 {
 				l.ScaleHeight(applyHeightConstraints(panel, finalW/c.AspectRatio))

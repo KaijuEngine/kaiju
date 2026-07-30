@@ -74,10 +74,10 @@ func createRenderViewModePreviewLayout(host *engine.Host, uiMan *ui.Manager) (*u
 	if err != nil {
 		renderViewModesIntegrationFail("load preview placeholder texture", err)
 	}
-	w := float32(host.Window.Width())
-	h := float32(host.Window.Height())
-	gap := float32(16)
-	top := float32(24)
+	w := matrix.Float(host.Window.Width())
+	h := matrix.Float(host.Window.Height())
+	gap := matrix.Float(16)
+	top := matrix.Float(24)
 	previewW := (w - gap*3) * 0.5
 	previewH := h - top*2
 	normal := createRenderViewModeImage(uiMan, blank, matrix.NewVec4(gap, top, gap+previewW, top+previewH))
@@ -99,7 +99,7 @@ func createRenderViewModeImage(uiMan *ui.Manager, texture *rendering.Texture, re
 	return img.Base()
 }
 
-func createRenderViewModeLabel(uiMan *ui.Manager, text string, x, y float32) {
+func createRenderViewModeLabel(uiMan *ui.Manager, text string, x, y matrix.Float) {
 	label := uiMan.Add().ToLabel()
 	label.Init(text)
 	label.SetFontSize(14)

@@ -43,7 +43,7 @@ func IntegrationTestLineHeight(host *engine.Host) {
 func assertLineHeightValues(doc *document.Document) error {
 	tests := []struct {
 		id   string
-		want float32
+		want matrix.Float
 	}{
 		{"normal", 0},
 		{"tight", 18},

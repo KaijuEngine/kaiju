@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/windowing"
 )
 
@@ -28,13 +29,13 @@ const (
 	borderSideBottom
 )
 
-var borderSizes = map[string]float32{
+var borderSizes = map[string]matrix.Float{
 	"medium": 2,
 	"thin":   1,
 	"thick":  4,
 }
 
-func borderSizeFromStr(str string, window *windowing.Window, fallback float32) float32 {
+func borderSizeFromStr(str string, window *windowing.Window, fallback matrix.Float) matrix.Float {
 	if val, ok := borderSizes[str]; ok {
 		return val
 	} else if strings.HasSuffix(str, "px") {
@@ -126,7 +127,7 @@ func (Border) Preprocess(values []rules.PropertyValue, ruleList []rules.Rule) ([
 	if merged {
 		values = []rules.PropertyValue{{Str: mergedBorderSidesSentinel}}
 		for i := range sides {
-			values = append(values, rules.PropertyValue{Num: float32(len(sides[i]))})
+			values = append(values, rules.PropertyValue{Num: matrix.Float(len(sides[i]))})
 			values = append(values, sides[i]...)
 		}
 		ruleList[0].Values = values

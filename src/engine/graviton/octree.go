@@ -25,7 +25,7 @@ func NewOctree(center matrix.Vec3, halfWidth matrix.Float, maxDepth int) *Octree
 		Objects:   make([]HitObject, 0),
 	}
 	offset := matrix.Vec3{}
-	step := float32(halfWidth * 0.5)
+	step := matrix.Float(halfWidth * 0.5)
 	for i := 0; i < 8; i++ {
 		offset = matrix.Vec3{step, step, step}
 		if i&1 == 1 {

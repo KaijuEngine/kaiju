@@ -112,17 +112,17 @@ const (
 	panelBitsWasDirtied
 )
 
-var UIScrollSpeed float32 = 20
+var UIScrollSpeed matrix.Float = 20
 
 type requestScroll struct {
-	to        float32
+	to        matrix.Float
 	requested bool
 }
 
 type panelData struct {
 	scrollBarX, scrollBarY    *Panel
 	scrollBarsHidden          bool
-	scrollBarStart            float32
+	scrollBarStart            matrix.Float
 	scrollBarDrag             matrix.Vec2
 	scroll, offset, maxScroll matrix.Vec2
 	scrollDirection           PanelScrollDirection
@@ -134,9 +134,9 @@ type panelData struct {
 	gridColumns               int
 	gridGap                   matrix.Vec2
 	// Positive values are fixed pixel widths, negative values are fr units.
-	gridTemplateColumns []float32
-	gridAutoColumns     float32
-	gridAutoRows        float32
+	gridTemplateColumns []matrix.Float
+	gridAutoColumns     matrix.Float
+	gridAutoRows        matrix.Float
 	requestScrollX      requestScroll
 	requestScrollY      requestScroll
 	overflow            Overflow
@@ -150,7 +150,7 @@ type panelData struct {
 	flags               panelBits
 	minSize             matrix.Vec2
 	maxSize             matrix.Vec2
-	aspectRatio         float32
+	aspectRatio         matrix.Float
 	usesBorderBox       bool
 }
 
@@ -231,21 +231,21 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	panel.entity.OnDeactivate.Add(func() { panel.shaderData.Deactivate() })
 }
 
-func (p *Panel) MaxScroll() matrix.Vec2   { return p.PanelData().maxScroll }
-func (p *Panel) ScrollX() float32         { return p.PanelData().scroll.X() }
-func (p *Panel) ScrollY() float32         { return -p.PanelData().scroll.Y() }
-func (p *Panel) EnableDragScroll()        { p.PanelData().flags.setAllowDragScroll() }
-func (p *Panel) DisableDragScroll()       { p.PanelData().flags.resetAllowDragScroll() }
-func (p *Panel) GetMinSize() matrix.Vec2  { return p.PanelData().minSize }
-func (p *Panel) GetMaxSize() matrix.Vec2  { return p.PanelData().maxSize }
-func (p *Panel) SetMinWidth(w float32)    { p.PanelData().minSize.SetX(w) }
-func (p *Panel) SetMaxWidth(w float32)    { p.PanelData().maxSize.SetX(w) }
-func (p *Panel) SetMinHeight(h float32)   { p.PanelData().minSize.SetY(h) }
-func (p *Panel) SetMaxHeight(h float32)   { p.PanelData().maxSize.SetY(h) }
-func (p *Panel) GetAspectRatio() float32  { return p.PanelData().aspectRatio }
-func (p *Panel) SetAspectRatio(r float32) { p.PanelData().aspectRatio = r }
-func (p *Panel) GetUsesBorderBox() bool   { return p.PanelData().usesBorderBox }
-func (p *Panel) SetUsesBorderBox(v bool)  { p.PanelData().usesBorderBox = v }
+func (p *Panel) MaxScroll() matrix.Vec2        { return p.PanelData().maxScroll }
+func (p *Panel) ScrollX() matrix.Float         { return p.PanelData().scroll.X() }
+func (p *Panel) ScrollY() matrix.Float         { return -p.PanelData().scroll.Y() }
+func (p *Panel) EnableDragScroll()             { p.PanelData().flags.setAllowDragScroll() }
+func (p *Panel) DisableDragScroll()            { p.PanelData().flags.resetAllowDragScroll() }
+func (p *Panel) GetMinSize() matrix.Vec2       { return p.PanelData().minSize }
+func (p *Panel) GetMaxSize() matrix.Vec2       { return p.PanelData().maxSize }
+func (p *Panel) SetMinWidth(w matrix.Float)    { p.PanelData().minSize.SetX(w) }
+func (p *Panel) SetMaxWidth(w matrix.Float)    { p.PanelData().maxSize.SetX(w) }
+func (p *Panel) SetMinHeight(h matrix.Float)   { p.PanelData().minSize.SetY(h) }
+func (p *Panel) SetMaxHeight(h matrix.Float)   { p.PanelData().maxSize.SetY(h) }
+func (p *Panel) GetAspectRatio() matrix.Float  { return p.PanelData().aspectRatio }
+func (p *Panel) SetAspectRatio(r matrix.Float) { p.PanelData().aspectRatio = r }
+func (p *Panel) GetUsesBorderBox() bool        { return p.PanelData().usesBorderBox }
+func (p *Panel) SetUsesBorderBox(v bool)       { p.PanelData().usesBorderBox = v }
 
 func (p *Panel) DontFitContentWidth() {
 	pd := p.PanelData()
@@ -409,13 +409,13 @@ func (p *Panel) update(deltaTime float64) {
 
 type rowBuilder struct {
 	elements        []*UI
-	maxMarginTop    float32
-	maxMarginBottom float32
-	x               float32
-	height          float32
+	maxMarginTop    matrix.Float
+	maxMarginBottom matrix.Float
+	x               matrix.Float
+	height          matrix.Float
 }
 
-func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
+func (rb *rowBuilder) addElement(areaWidth matrix.Float, e *UI) bool {
 	eSize := e.Layout().PixelSize()
 	h := eSize.Height()
 	w := eSize.Width() + e.layout.margin.Horizontal()
@@ -430,7 +430,7 @@ func (rb *rowBuilder) addElement(areaWidth float32, e *UI) bool {
 	return true
 }
 
-func (rb rowBuilder) Width() float32 {
+func (rb rowBuilder) Width() matrix.Float {
 	return rb.x
 }
 
@@ -442,11 +442,11 @@ type gridLayoutItem struct {
 	colSpan int
 }
 
-func (rb rowBuilder) Height() float32 {
+func (rb rowBuilder) Height() matrix.Float {
 	return rb.height + rb.maxMarginTop + rb.maxMarginBottom
 }
 
-func (rb rowBuilder) setElements(offsetX, offsetY float32) {
+func (rb rowBuilder) setElements(offsetX, offsetY matrix.Float) {
 	defer tracing.NewRegion("Panel.Init").End()
 	for _, e := range rb.elements {
 		layout := e.Layout()
@@ -803,14 +803,14 @@ func (p *Panel) SetColor(bgColor matrix.Color) {
 	p.setColorInternal(bgColor)
 }
 
-func (p *Panel) SetScrollX(value float32) {
+func (p *Panel) SetScrollX(value matrix.Float) {
 	pd := p.PanelData()
 	pd.requestScrollX.to = value
 	pd.requestScrollX.requested = true
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) SetScrollY(value float32) {
+func (p *Panel) SetScrollY(value matrix.Float) {
 	pd := p.PanelData()
 	pd.requestScrollY.to = value
 	pd.requestScrollY.requested = true
@@ -925,7 +925,7 @@ func (p *Panel) SetBackground(tex *rendering.Texture) {
 		t := []*rendering.Texture{tex}
 		// TODO:  Should this setting of mips be here?
 		tex.MipLevels = 1
-		p.textureSize = matrix.NewVec2(float32(tex.Width), float32(tex.Height))
+		p.textureSize = matrix.NewVec2(matrix.Float(tex.Width), matrix.Float(tex.Height))
 		p.shaderData.resetSize2D(p.Base())
 		pd.drawing.Material = pd.drawing.Material.SelectRoot().CreateInstance(t)
 		host := p.man.Value().Host
@@ -1028,7 +1028,7 @@ func (p *Panel) GridGap() matrix.Vec2 { return p.PanelData().gridGap }
 // GridCellWidth returns the computed width of a single grid column (based on current
 // panel dimensions, column count, and gap). Used by CSS width % processing so
 // children (e.g. div{width:100%}) fit their grid cell instead of full parent.
-func (p *Panel) GridCellWidth() float32 {
+func (p *Panel) GridCellWidth() matrix.Float {
 	pd := p.PanelData()
 	if !p.IsGrid() || pd.gridColumns <= 0 {
 		return p.layout.PixelSize().X()
@@ -1039,15 +1039,15 @@ func (p *Panel) GridCellWidth() float32 {
 	if gapX < 0 {
 		gapX = 0
 	}
-	colW := (innerW - float32(pd.gridColumns-1)*gapX) / float32(pd.gridColumns)
+	colW := (innerW - matrix.Float(pd.gridColumns-1)*gapX) / matrix.Float(pd.gridColumns)
 	if len(pd.gridTemplateColumns) == pd.gridColumns {
 		widths := p.computeGridColumnWidths(innerW, gapX)
 		if len(widths) > 0 {
-			sum := float32(0)
+			sum := matrix.Float(0)
 			for i := range widths {
 				sum += widths[i]
 			}
-			colW = sum / float32(len(widths))
+			colW = sum / matrix.Float(len(widths))
 		}
 	}
 	if colW < 1 {
@@ -1082,7 +1082,7 @@ func (p *Panel) SetGrid(columns int) {
 
 // SetGridTemplateColumns configures explicit grid column widths.
 // Positive values are fixed pixels, negative values are fr units.
-func (p *Panel) SetGridTemplateColumns(columns []float32) {
+func (p *Panel) SetGridTemplateColumns(columns []matrix.Float) {
 	pd := p.PanelData()
 	if len(columns) == 0 {
 		pd.gridTemplateColumns = nil
@@ -1098,7 +1098,7 @@ func (p *Panel) SetGridTemplateColumns(columns []float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) SetGridAutoColumns(width float32) {
+func (p *Panel) SetGridAutoColumns(width matrix.Float) {
 	if width < 0 {
 		width = 0
 	}
@@ -1110,7 +1110,7 @@ func (p *Panel) SetGridAutoColumns(width float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) SetGridAutoRows(height float32) {
+func (p *Panel) SetGridAutoRows(height matrix.Float) {
 	if height < 0 {
 		height = 0
 	}
@@ -1122,7 +1122,7 @@ func (p *Panel) SetGridAutoRows(height float32) {
 	p.Base().SetDirty(DirtyTypeLayout)
 }
 
-func (p *Panel) SetGridGap(x, y float32) {
+func (p *Panel) SetGridGap(x, y matrix.Float) {
 	pd := p.PanelData()
 	if matrix.Approx(pd.gridGap.X(), x) && matrix.Approx(pd.gridGap.Y(), y) {
 		return
@@ -1192,16 +1192,16 @@ func (p *Panel) SetFlexAlignContent(align FlexAlignContent) {
 type flexLayoutItem struct {
 	ui        *UI
 	order     int
-	baseMain  float32
-	finalMain float32
-	cross     float32
+	baseMain  matrix.Float
+	finalMain matrix.Float
+	cross     matrix.Float
 	margin    matrix.Vec4
 }
 
 type flexLayoutLine struct {
 	items []*flexLayoutItem
-	main  float32
-	cross float32
+	main  matrix.Float
+	cross matrix.Float
 }
 
 func flexItemSize(kui *UI) matrix.Vec2 {
@@ -1213,35 +1213,35 @@ func flexItemSize(kui *UI) matrix.Vec2 {
 	return kui.Layout().PixelSize()
 }
 
-func flexMainSize(size matrix.Vec2, row bool) float32 {
+func flexMainSize(size matrix.Vec2, row bool) matrix.Float {
 	if row {
 		return size.X()
 	}
 	return size.Y()
 }
 
-func flexCrossSize(size matrix.Vec2, row bool) float32 {
+func flexCrossSize(size matrix.Vec2, row bool) matrix.Float {
 	if row {
 		return size.Y()
 	}
 	return size.X()
 }
 
-func flexMainMargin(margin matrix.Vec4, row bool) float32 {
+func flexMainMargin(margin matrix.Vec4, row bool) matrix.Float {
 	if row {
 		return margin.Horizontal()
 	}
 	return margin.Vertical()
 }
 
-func flexCrossMargin(margin matrix.Vec4, row bool) float32 {
+func flexCrossMargin(margin matrix.Vec4, row bool) matrix.Float {
 	if row {
 		return margin.Vertical()
 	}
 	return margin.Horizontal()
 }
 
-func flexSetMainSize(kui *UI, row bool, size float32) {
+func flexSetMainSize(kui *UI, row bool, size matrix.Float) {
 	if size < 1 {
 		size = 1
 	}
@@ -1252,7 +1252,7 @@ func flexSetMainSize(kui *UI, row bool, size float32) {
 	}
 }
 
-func flexSetCrossSize(kui *UI, row bool, size float32) {
+func flexSetCrossSize(kui *UI, row bool, size matrix.Float) {
 	if size < 1 {
 		size = 1
 	}
@@ -1263,7 +1263,7 @@ func flexSetCrossSize(kui *UI, row bool, size float32) {
 	}
 }
 
-func clampFlexItemSize(kui *UI, row bool, size float32) float32 {
+func clampFlexItemSize(kui *UI, row bool, size matrix.Float) matrix.Float {
 	if kui.IsType(ElementTypeLabel) {
 		return size
 	}
@@ -1287,7 +1287,7 @@ func clampFlexItemSize(kui *UI, row bool, size float32) float32 {
 	return size
 }
 
-func (p *Panel) collectFlexItems(pd *panelData, row bool, containerMain float32) []*flexLayoutItem {
+func (p *Panel) collectFlexItems(pd *panelData, row bool, containerMain matrix.Float) []*flexLayoutItem {
 	items := make([]*flexLayoutItem, 0, len(p.entity.Children))
 	for _, kid := range p.entity.Children {
 		if !kid.IsActive() || kid.IsDestroyed() {
@@ -1338,7 +1338,7 @@ func appendFlexLine(lines *[]flexLayoutLine, line flexLayoutLine) {
 	}
 }
 
-func buildFlexLines(items []*flexLayoutItem, row, wrap bool, containerMain, gapMain float32) []flexLayoutLine {
+func buildFlexLines(items []*flexLayoutItem, row, wrap bool, containerMain, gapMain matrix.Float) []flexLayoutLine {
 	lines := make([]flexLayoutLine, 0, 1)
 	line := flexLayoutLine{}
 	for i := range items {
@@ -1363,10 +1363,10 @@ func buildFlexLines(items []*flexLayoutItem, row, wrap bool, containerMain, gapM
 	return lines
 }
 
-func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain float32) {
-	totalOuter := float32(0)
-	totalGrow := float32(0)
-	totalShrink := float32(0)
+func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain matrix.Float) {
+	totalOuter := matrix.Float(0)
+	totalGrow := matrix.Float(0)
+	totalShrink := matrix.Float(0)
 	for i := range line.items {
 		item := line.items[i]
 		totalOuter += item.baseMain + flexMainMargin(item.margin, row)
@@ -1374,7 +1374,7 @@ func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain f
 		totalShrink += item.ui.Layout().FlexShrink() * item.baseMain
 	}
 	if len(line.items) > 1 {
-		totalOuter += float32(len(line.items)-1) * gapMain
+		totalOuter += matrix.Float(len(line.items)-1) * gapMain
 	}
 	free := containerMain - totalOuter
 	for i := range line.items {
@@ -1399,11 +1399,11 @@ func distributeFlexLine(line *flexLayoutLine, row bool, containerMain, gapMain f
 		line.cross = max(line.cross, item.cross+flexCrossMargin(item.margin, row))
 	}
 	if len(line.items) > 1 {
-		line.main += float32(len(line.items)-1) * gapMain
+		line.main += matrix.Float(len(line.items)-1) * gapMain
 	}
 }
 
-func flexDistributedStart(free float32, count int, justify FlexJustify) (float32, float32) {
+func flexDistributedStart(free matrix.Float, count int, justify FlexJustify) (matrix.Float, matrix.Float) {
 	if free < 0 {
 		free = 0
 	}
@@ -1414,23 +1414,23 @@ func flexDistributedStart(free float32, count int, justify FlexJustify) (float32
 		return free * 0.5, 0
 	case FlexJustifySpaceBetween:
 		if count > 1 {
-			return 0, free / float32(count-1)
+			return 0, free / matrix.Float(count-1)
 		}
 	case FlexJustifySpaceAround:
 		if count > 0 {
-			gap := free / float32(count)
+			gap := free / matrix.Float(count)
 			return gap * 0.5, gap
 		}
 	case FlexJustifySpaceEvenly:
 		if count > 0 {
-			gap := free / float32(count+1)
+			gap := free / matrix.Float(count+1)
 			return gap, gap
 		}
 	}
 	return 0, 0
 }
 
-func flexAlignContentStart(free float32, count int, align FlexAlignContent) (float32, float32) {
+func flexAlignContentStart(free matrix.Float, count int, align FlexAlignContent) (matrix.Float, matrix.Float) {
 	if free < 0 {
 		free = 0
 	}
@@ -1441,23 +1441,23 @@ func flexAlignContentStart(free float32, count int, align FlexAlignContent) (flo
 		return free * 0.5, 0
 	case FlexAlignContentSpaceBetween:
 		if count > 1 {
-			return 0, free / float32(count-1)
+			return 0, free / matrix.Float(count-1)
 		}
 	case FlexAlignContentSpaceAround:
 		if count > 0 {
-			gap := free / float32(count)
+			gap := free / matrix.Float(count)
 			return gap * 0.5, gap
 		}
 	case FlexAlignContentSpaceEvenly:
 		if count > 0 {
-			gap := free / float32(count+1)
+			gap := free / matrix.Float(count+1)
 			return gap, gap
 		}
 	}
 	return 0, 0
 }
 
-func flexItemCrossOffset(lineCross, itemCross float32, margin matrix.Vec4, row bool, align FlexAlign) float32 {
+func flexItemCrossOffset(lineCross, itemCross matrix.Float, margin matrix.Vec4, row bool, align FlexAlign) matrix.Float {
 	outerCross := itemCross + flexCrossMargin(margin, row)
 	switch align {
 	case FlexAlignEnd:
@@ -1524,12 +1524,12 @@ func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 			lines[i], lines[j] = lines[j], lines[i]
 		}
 	}
-	totalCross := float32(0)
+	totalCross := matrix.Float(0)
 	for i := range lines {
 		totalCross += lines[i].cross
 	}
 	if len(lines) > 1 {
-		totalCross += float32(len(lines)-1) * gapCross
+		totalCross += matrix.Float(len(lines)-1) * gapCross
 	}
 	fittingCrossContent := (row && p.FittingContentHeight()) || (!row && p.FittingContentWidth())
 	if fittingCrossContent {
@@ -1540,15 +1540,15 @@ func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		extraCross = 0
 	}
 	if pd.flexAlignContent == FlexAlignContentStretch && len(lines) > 0 {
-		add := extraCross / float32(len(lines))
+		add := extraCross / matrix.Float(len(lines))
 		for i := range lines {
 			lines[i].cross += add
 		}
 		extraCross = 0
 	}
 	lineStart, lineExtraGap := flexAlignContentStart(extraCross, len(lines), pd.flexAlignContent)
-	maxMainUsed := float32(0)
-	maxCrossUsed := float32(0)
+	maxMainUsed := matrix.Float(0)
+	maxCrossUsed := matrix.Float(0)
 	crossPos := lineStart
 	for lineIdx := range lines {
 		line := &lines[lineIdx]
@@ -1592,22 +1592,22 @@ func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		maxMainUsed+innerTop+p.layout.padding.Bottom()+p.layout.border.Bottom())
 }
 
-func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int) []float32 {
+func (p *Panel) computeGridColumnWidths(innerWidth, gapX matrix.Float, columns ...int) []matrix.Float {
 	pd := p.PanelData()
 	cols := pd.gridColumns
 	if len(columns) > 0 && columns[0] > cols {
 		cols = columns[0]
 	}
 	if cols <= 0 {
-		return []float32{}
+		return []matrix.Float{}
 	}
-	out := make([]float32, cols)
+	out := make([]matrix.Float, cols)
 	explicitCols := pd.gridColumns
 	if explicitCols <= 0 {
 		explicitCols = cols
 	}
 	if len(pd.gridTemplateColumns) != explicitCols {
-		colW := (innerWidth - float32(explicitCols-1)*gapX) / float32(explicitCols)
+		colW := (innerWidth - matrix.Float(explicitCols-1)*gapX) / matrix.Float(explicitCols)
 		if colW < 1 {
 			colW = 1
 		}
@@ -1620,8 +1620,8 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int
 		}
 		return out
 	}
-	totalFixed := float32(0)
-	totalFr := float32(0)
+	totalFixed := matrix.Float(0)
+	totalFr := matrix.Float(0)
 	for i := 0; i < explicitCols; i++ {
 		v := pd.gridTemplateColumns[i]
 		if v >= 0 {
@@ -1630,7 +1630,7 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int
 			totalFr += -v
 		}
 	}
-	remaining := innerWidth - totalFixed - float32(cols-1)*gapX
+	remaining := innerWidth - totalFixed - matrix.Float(cols-1)*gapX
 	if remaining < 0 {
 		remaining = 0
 	}
@@ -1639,7 +1639,7 @@ func (p *Panel) computeGridColumnWidths(innerWidth, gapX float32, columns ...int
 			if pd.gridAutoColumns > 0 {
 				out[i] = pd.gridAutoColumns
 			} else {
-				out[i] = innerWidth / float32(explicitCols)
+				out[i] = innerWidth / matrix.Float(explicitCols)
 			}
 			if out[i] < 1 {
 				out[i] = 1
@@ -1825,7 +1825,7 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 	if rowCount == 0 {
 		return matrix.Vec2{innerWidth, innerTop + p.layout.padding.Bottom() + p.layout.border.Bottom()}
 	}
-	rowHeights := make([]float32, rowCount)
+	rowHeights := make([]matrix.Float, rowCount)
 	if pd.gridAutoRows > 0 {
 		for i := range rowHeights {
 			rowHeights[i] = pd.gridAutoRows
@@ -1837,7 +1837,7 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		margin := kLayout.Margin()
 		rowHeights[items[i].row] = max(rowHeights[items[i].row], kSize.Y()+margin.Vertical())
 	}
-	rowOffsets := make([]float32, rowCount)
+	rowOffsets := make([]matrix.Float, rowCount)
 	y := startY
 	for i := 0; i < rowCount; i++ {
 		rowOffsets[i] = y
@@ -2007,21 +2007,21 @@ func (p *Panel) BorderColor() [4]matrix.Color {
 	return p.shaderData.BorderColor
 }
 
-func (p *Panel) OutlineOutset() float32 {
+func (p *Panel) OutlineOutset() matrix.Float {
 	return p.shaderData.OutlineSize.X() + p.shaderData.OutlineSize.Y()
 }
 
-func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft float32) {
+func (p *Panel) SetBorderRadius(topLeft, topRight, bottomRight, bottomLeft matrix.Float) {
 	p.shaderData.BorderRadius = matrix.NewVec4(
 		bottomLeft, bottomRight, topRight, topLeft)
 }
 
-func (p *Panel) SetBorderRadiusTopLeft(r float32)     { p.shaderData.BorderRadius.SetW(r) }
-func (p *Panel) SetBorderRadiusTopRight(r float32)    { p.shaderData.BorderRadius.SetZ(r) }
-func (p *Panel) SetBorderRadiusBottomRight(r float32) { p.shaderData.BorderRadius.SetY(r) }
-func (p *Panel) SetBorderRadiusBottomLeft(r float32)  { p.shaderData.BorderRadius.SetX(r) }
+func (p *Panel) SetBorderRadiusTopLeft(r matrix.Float)     { p.shaderData.BorderRadius.SetW(r) }
+func (p *Panel) SetBorderRadiusTopRight(r matrix.Float)    { p.shaderData.BorderRadius.SetZ(r) }
+func (p *Panel) SetBorderRadiusBottomRight(r matrix.Float) { p.shaderData.BorderRadius.SetY(r) }
+func (p *Panel) SetBorderRadiusBottomLeft(r matrix.Float)  { p.shaderData.BorderRadius.SetX(r) }
 
-func (p *Panel) SetBorderSize(left, top, right, bottom float32) {
+func (p *Panel) SetBorderSize(left, top, right, bottom matrix.Float) {
 	p.layout.SetBorder(left, top, right, bottom)
 	// TODO:  If there isn't a border, it should be transparent when created
 	p.ensureBGExists(nil)
@@ -2038,11 +2038,11 @@ func (p *Panel) SetBorderColor(left, top, right, bottom matrix.Color) {
 
 func (p *Panel) OutlineColor() matrix.Color { return p.shaderData.OutlineColor }
 
-func (p *Panel) OutlineWidth() float32 { return p.shaderData.OutlineSize.X() }
+func (p *Panel) OutlineWidth() matrix.Float { return p.shaderData.OutlineSize.X() }
 
-func (p *Panel) OutlineOffset() float32 { return p.shaderData.OutlineSize.Y() }
+func (p *Panel) OutlineOffset() matrix.Float { return p.shaderData.OutlineSize.Y() }
 
-func (p *Panel) SetOutline(width, offset float32, color matrix.Color) {
+func (p *Panel) SetOutline(width, offset matrix.Float, color matrix.Color) {
 	if width < 0 {
 		width = 0
 	}

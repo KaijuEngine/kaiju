@@ -6,7 +6,11 @@
 
 package rules
 
-import "slices"
+import (
+	"slices"
+
+	"kaijuengine.com/matrix"
+)
 
 type RuleInvoke uint16
 
@@ -30,9 +34,9 @@ func (r RuleInvoke) With(state RuleInvoke) RuleInvoke {
 
 type PropertyValue struct {
 	Str     string
-	Num     float32
+	Num     matrix.Float
 	Args    []string
-	ArgNums []float32
+	ArgNums []matrix.Float
 }
 
 func (p *PropertyValue) Clone() PropertyValue {

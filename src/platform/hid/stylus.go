@@ -6,6 +6,8 @@
 
 package hid
 
+import "kaijuengine.com/matrix"
+
 type StylusActionState = int
 
 const (
@@ -21,12 +23,12 @@ const (
 )
 
 type Stylus struct {
-	X           float32
-	Y           float32
-	SX          float32
-	SY          float32
-	Pressure    float32
-	Distance    float32
+	X           matrix.Float
+	Y           matrix.Float
+	SX          matrix.Float
+	SY          matrix.Float
+	Pressure    matrix.Float
+	Distance    matrix.Float
 	actionState StylusActionState
 }
 
@@ -60,7 +62,7 @@ func (s *Stylus) SetActionState(state StylusActionState) {
 	s.actionState = state
 }
 
-func (s *Stylus) Set(x, y, pressure, distance, windowHeight float32) {
+func (s *Stylus) Set(x, y, pressure, distance, windowHeight matrix.Float) {
 	s.X = x
 	s.Y = windowHeight - y
 	s.SX = x

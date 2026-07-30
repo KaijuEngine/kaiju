@@ -56,13 +56,13 @@ const (
 )
 
 type fontBinMetrics struct {
-	EMSize, LineHeight, Ascender, Descender, UnderlineY, UnderlineThickness float32
+	EMSize, LineHeight, Ascender, Descender, UnderlineY, UnderlineThickness matrix.Float
 }
 
 type fontBinChar struct {
 	letter                   rune
-	advance                  float32
-	planeBounds, atlasBounds [4]float32
+	advance                  matrix.Float
+	planeBounds, atlasBounds [4]matrix.Float
 }
 
 type fontBin struct {
@@ -170,7 +170,7 @@ func (cache *FontCache) PreloadFace(face FontFace) {
 	cache.requireFace(face)
 }
 
-func (cache *FontCache) EMSize(face FontFace) float32 {
+func (cache *FontCache) EMSize(face FontFace) matrix.Float {
 	cache.requireFace(face)
 	return cache.fontFaces[face.string()].metrics.EMSize * DefaultFontEMSize
 }
@@ -185,19 +185,19 @@ func NewFontCache(device *GPUDevice, assetDb assets.Database) FontCache {
 	// TODO:  Deal with the freeing of mesh/shaders/textures
 }
 
-func (c fontBinChar) Width() float32 {
+func (c fontBinChar) Width() matrix.Float {
 	return c.planeBounds[2] - c.planeBounds[0]
 }
 
-func (c fontBinChar) Height() float32 {
+func (c fontBinChar) Height() matrix.Float {
 	return c.planeBounds[3] - c.planeBounds[1]
 }
 
-func (c fontBinChar) AtlasWidth() float32 {
+func (c fontBinChar) AtlasWidth() matrix.Float {
 	return c.atlasBounds[2] - c.atlasBounds[0]
 }
 
-func (c fontBinChar) AtlasHeight() float32 {
+func (c fontBinChar) AtlasHeight() matrix.Float {
 	return c.atlasBounds[3] - c.atlasBounds[1]
 }
 
@@ -209,10 +209,10 @@ func findBinChar(font fontBin, letter rune) fontBinChar {
 	return cached
 }
 
-func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale, letterSpacing float32) int {
+func (cache *FontCache) charCountInWidth(font fontBin, runes []rune, maxWidth, scale, letterSpacing matrix.Float) int {
 	wrap := false
 	spaceIndex := 0
-	wx := float32(0.0)
+	wx := matrix.Float(0.0)
 	textLen := len(runes)
 	for i, r := range runes {
 		if r == '\n' {
@@ -280,8 +280,8 @@ func (cache *FontCache) createLetterMesh(font fontBin, key rune, c fontBinChar, 
 	uvw := c.atlasBounds[2] - c.atlasBounds[0]
 	uvh := c.atlasBounds[1] - c.atlasBounds[3]
 	clm.uvs = matrix.NewVec4(
-		uvx/float32(font.width), uvy/float32(font.height),
-		uvw/float32(font.width), uvh/float32(font.height))
+		uvx/matrix.Float(font.width), uvy/matrix.Float(font.height),
+		uvw/matrix.Float(font.width), uvh/matrix.Float(font.height))
 	clm.pxRange = msdfAtlasPxRange()
 	font.cachedLetters[key] = &clm
 
@@ -339,14 +339,14 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 		letter:      ' ',
 		advance:     sample.advance,
 		planeBounds: sample.planeBounds,
-		atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0},
+		atlasBounds: [4]matrix.Float{0.999, 0.001, 1.0, 0.0},
 	}
 	const tabRune = '\t'
 	const tabSize = 4
 	cTab := fontBinChar{
 		letter:  tabRune,
 		advance: cSpace.advance * 4,
-		planeBounds: [4]float32{
+		planeBounds: [4]matrix.Float{
 			cSpace.planeBounds[0] * tabSize / 2,
 			cSpace.planeBounds[1],
 			cSpace.planeBounds[2] * tabSize / 2,
@@ -357,7 +357,7 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	bin.letters[' '] = cSpace
 	bin.letters[tabRune] = cTab
 	cReturn := fontBinChar{letter: '\r', advance: 0.0,
-		planeBounds: [4]float32{0, 0, 0, 0}, atlasBounds: [4]float32{0.999, 0.001, 1.0, 0.0}}
+		planeBounds: [4]matrix.Float{0, 0, 0, 0}, atlasBounds: [4]matrix.Float{0.999, 0.001, 1.0, 0.0}}
 	bin.letters['\r'] = cReturn
 	// bin.letters is keyed by codepoint (not a dense 0..count-1 array), so range
 	// over its values to pre-create a mesh for every glyph. Indexing by i would
@@ -395,18 +395,18 @@ func (cache *FontCache) Init(caches RenderCaches) error {
 }
 
 func (cache *FontCache) RenderMeshes(caches RenderCaches,
-	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
+	text string, x, y, z, scale, maxWidth matrix.Float, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
-	is3D bool, face FontFace, lineHeight float32, cam *cameras.Container) []Drawing {
+	is3D bool, face FontFace, lineHeight matrix.Float, cam *cameras.Container) []Drawing {
 	return cache.RenderMeshesWithLetterSpacing(caches, text, x, y, z, scale, maxWidth,
 		fgColor, bgColor, justify, baseline, rootScale, instanced, is3D, face,
 		lineHeight, 0, cam)
 }
 
 func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
-	text string, x, y, z, scale, maxWidth float32, fgColor, bgColor matrix.Color,
+	text string, x, y, z, scale, maxWidth matrix.Float, fgColor, bgColor matrix.Color,
 	justify FontJustify, baseline FontBaseline, rootScale matrix.Vec3, instanced,
-	is3D bool, face FontFace, lineHeight, letterSpacing float32, cam *cameras.Container) []Drawing {
+	is3D bool, face FontFace, lineHeight, letterSpacing matrix.Float, cam *cameras.Container) []Drawing {
 	defer tracing.NewRegion("FontCache.RenderMeshes").End()
 	cache.requireFace(face)
 	es := rootScale
@@ -447,7 +447,7 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 		if maxWidth > 0 {
 			charLen = cache.charCountInWidth(fontFace, runes[current:], maxWidth, scale, letterSpacing)
 		}
-		lineWidth := float32(0.0)
+		lineWidth := matrix.Float(0.0)
 		if charLen > 0 || unicode.IsSpace(runes[current]) {
 			for i, c := range runes[current : current+charLen] {
 				if c != '\n' {
@@ -459,7 +459,7 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 				}
 			}
 		}
-		var xOffset, yOffset float32
+		var xOffset, yOffset matrix.Float
 		switch justify {
 		case FontJustifyRight:
 			xOffset = left + (maxWidth - lineWidth)
@@ -484,7 +484,7 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 		xOffset *= inverseWidth
 		yOffset -= fontFace.metrics.Descender * scale
 		yOffset *= inverseHeight
-		justifySpaceAdvance := float32(0)
+		justifySpaceAdvance := matrix.Float(0)
 		if justify == FontJustifyJustify && current+charLen < textLen && maxWidth > lineWidth {
 			spaceCount := 0
 			for _, c := range runes[current : current+charLen] {
@@ -493,7 +493,7 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 				}
 			}
 			if spaceCount > 0 {
-				justifySpaceAdvance = (maxWidth - lineWidth) / float32(spaceCount)
+				justifySpaceAdvance = (maxWidth - lineWidth) / matrix.Float(spaceCount)
 			}
 		}
 		if charLen > 0 || (unicode.IsSpace(runes[current]) && runes[current] != '\n') {
@@ -550,8 +550,8 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 					uvw := ch.atlasBounds[2] - ch.atlasBounds[0]
 					uvh := ch.atlasBounds[3] - ch.atlasBounds[1]
 					uvs = matrix.NewVec4(
-						uvx/float32(fontFace.width), uvy/float32(fontFace.height),
-						uvw/float32(fontFace.width), uvh/float32(fontFace.height))
+						uvx/matrix.Float(fontFace.width), uvy/matrix.Float(fontFace.height),
+						uvw/matrix.Float(fontFace.width), uvh/matrix.Float(fontFace.height))
 				} else {
 					// TODO:  Scale and place the mesh based on justify, baseline, etc.
 					model.MultiplyAssign(clm.transformation)
@@ -594,13 +594,13 @@ func (cache *FontCache) RenderMeshesWithLetterSpacing(caches RenderCaches,
 	return fontMeshes
 }
 
-func (cache *FontCache) MeasureString(face FontFace, text string, scale float32) float32 {
+func (cache *FontCache) MeasureString(face FontFace, text string, scale matrix.Float) matrix.Float {
 	return cache.MeasureStringWithLetterSpacing(face, text, scale, 0)
 }
 
-func (cache *FontCache) MeasureStringWithLetterSpacing(face FontFace, text string, scale, letterSpacing float32) float32 {
+func (cache *FontCache) MeasureStringWithLetterSpacing(face FontFace, text string, scale, letterSpacing matrix.Float) matrix.Float {
 	cache.requireFace(face)
-	x, maxX := float32(0.0), float32(0.0)
+	x, maxX := matrix.Float(0.0), matrix.Float(0.0)
 	runes := []rune(text)
 	for i, r := range runes {
 		if r == '\n' {
@@ -617,18 +617,18 @@ func (cache *FontCache) MeasureStringWithLetterSpacing(face FontFace, text strin
 	return maxX
 }
 
-func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth float32, lineHeight float32) matrix.Vec2 {
+func (cache *FontCache) MeasureStringWithin(face FontFace, text string, scale, maxWidth matrix.Float, lineHeight matrix.Float) matrix.Vec2 {
 	return cache.MeasureStringWithinWithLetterSpacing(face, text, scale, maxWidth, lineHeight, 0)
 }
 
-func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text string, scale, maxWidth float32, lineHeight float32, letterSpacing float32) matrix.Vec2 {
+func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text string, scale, maxWidth matrix.Float, lineHeight matrix.Float, letterSpacing matrix.Float) matrix.Vec2 {
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	maxHeight := fontFace.metrics.LineHeight * scale
 	if lineHeight != 0 {
 		maxHeight = lineHeight
 	}
-	var x, y float32 = 0.0, 0.0
+	var x, y matrix.Float = 0.0, 0.0
 	clip := []rune(text)
 	for len(clip) > 0 {
 		count := klib.Clamp(cache.charCountInWidth(fontFace, clip, maxWidth, scale, letterSpacing), 0, len(clip))
@@ -639,17 +639,17 @@ func (cache *FontCache) MeasureStringWithinWithLetterSpacing(face FontFace, text
 	return matrix.NewVec2(x, y)
 }
 
-func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth float32) []matrix.Vec4 {
+func (cache *FontCache) StringRectsWithinNew(face FontFace, text string, scale, maxWidth matrix.Float) []matrix.Vec4 {
 	return cache.StringRectsWithinWithLetterSpacing(face, text, scale, maxWidth, 0, 0)
 }
 
-func (cache *FontCache) StringRectsWithinWithLetterSpacing(face FontFace, text string, scale, maxWidth, lineHeight, letterSpacing float32) []matrix.Vec4 {
+func (cache *FontCache) StringRectsWithinWithLetterSpacing(face FontFace, text string, scale, maxWidth, lineHeight, letterSpacing matrix.Float) []matrix.Vec4 {
 	defer tracing.NewRegion("FontCache.StringRectsWithinNew").End()
 	cache.requireFace(face)
 	fontFace := cache.fontFaces[face.string()]
 	rects := make([]matrix.Vec4, 0)
 	current := 0
-	var x, y float32 = 0.0, 0.0
+	var x, y matrix.Float = 0.0, 0.0
 	height := fontFace.metrics.LineHeight * scale
 	if lineHeight > 0 {
 		height = lineHeight
@@ -663,7 +663,7 @@ func (cache *FontCache) StringRectsWithinWithLetterSpacing(face FontFace, text s
 		}
 		x = 0.0
 		for i, r := range runes[offset : offset+count] {
-			w := float32(0)
+			w := matrix.Float(0)
 			if r != '\n' {
 				ch := findBinChar(fontFace, r)
 				w = ch.advance * scale
@@ -683,7 +683,7 @@ func (cache *FontCache) StringRectsWithinWithLetterSpacing(face FontFace, text s
 	return rects
 }
 
-func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth float32) int {
+func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWidth matrix.Float) int {
 	defer tracing.NewRegion("FontCache.LineCountWithin").End()
 	cache.requireFace(face)
 	lines := 0
@@ -698,16 +698,16 @@ func (cache *FontCache) LineCountWithin(face FontFace, text string, scale, maxWi
 	return max(1, lines)
 }
 
-func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize float32) matrix.Vec2 {
+func (cache *FontCache) MeasureCharacter(face string, r rune, pixelSize matrix.Float) matrix.Vec2 {
 	ch := findBinChar(cache.fontFaces[face], r)
 	return matrix.NewVec2(ch.Width()*pixelSize, ch.Height()*pixelSize)
 }
 
-func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth float32) int {
+func (cache *FontCache) PointOffsetWithin(face FontFace, text string, point matrix.Vec2, scale, maxWidth matrix.Float) int {
 	return cache.PointOffsetWithinWithLetterSpacing(face, text, point, scale, maxWidth, 0, 0)
 }
 
-func (cache *FontCache) PointOffsetWithinWithLetterSpacing(face FontFace, text string, point matrix.Vec2, scale, maxWidth, lineHeight, letterSpacing float32) int {
+func (cache *FontCache) PointOffsetWithinWithLetterSpacing(face FontFace, text string, point matrix.Vec2, scale, maxWidth, lineHeight, letterSpacing matrix.Float) int {
 	defer tracing.NewRegion("FontCache.PointOffsetWithin").End()
 	cache.requireFace(face)
 	textLen := utf8.RuneCountInString(text)

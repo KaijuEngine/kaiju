@@ -56,15 +56,15 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 		c.Detatched(host, manager, target, data)
 	}
 
-	var w, h float32 = minimumCameraWidth, minimumCameraHeight
+	var w, h matrix.Float = minimumCameraWidth, minimumCameraHeight
 	if val := data.FieldValueByName("Width"); val != nil {
-		if f, ok := val.(float32); ok && f >= minimumCameraWidth {
+		if f, ok := val.(matrix.Float); ok && f >= minimumCameraWidth {
 			w = f
 		}
 	}
 
 	if val := data.FieldValueByName("Height"); val != nil {
-		if f, ok := val.(float32); ok && f > minimumCameraHeight {
+		if f, ok := val.(matrix.Float); ok && f > minimumCameraHeight {
 			h = f
 		}
 	}
@@ -111,9 +111,9 @@ func (c *CameraEntityDataRenderer) Attached(host *engine.Host, manager *editor_s
 	}
 
 	cam.SetProperties(
-		data.FieldValueByName("FOV").(float32),
-		data.FieldValueByName("NearPlane").(float32),
-		data.FieldValueByName("FarPlane").(float32),
+		data.FieldValueByName("FOV").(matrix.Float),
+		data.FieldValueByName("NearPlane").(matrix.Float),
+		data.FieldValueByName("FarPlane").(matrix.Float),
 		w, h,
 	)
 	frustum := rendering.NewMeshFrustumBox(host.MeshCache(), cam.InverseProjection())
@@ -184,8 +184,8 @@ func (c *CameraEntityDataRenderer) Hide(host *engine.Host, target *editor_stage_
 func (c *CameraEntityDataRenderer) Update(host *engine.Host, target *editor_stage_manager.StageEntity, data *entity_data_binding.EntityDataEntry) {
 	if t, ok := c.Frustums[target]; ok {
 		// Assumption: width and height field will be present on the cameraEntityData
-		w := data.FieldValueByName("Width").(float32)
-		h := data.FieldValueByName("Height").(float32)
+		w := data.FieldValueByName("Width").(matrix.Float)
+		h := data.FieldValueByName("Height").(matrix.Float)
 
 		if w < minimumCameraWidth {
 			w = minimumCameraWidth
@@ -209,9 +209,9 @@ func (c *CameraEntityDataRenderer) Update(host *engine.Host, target *editor_stag
 			cam = cameras.NewStandardCamera(w, h, w, h, target.Transform.Position())
 		}
 		cam.SetProperties(
-			data.FieldValueByName("FOV").(float32),
-			data.FieldValueByName("NearPlane").(float32),
-			data.FieldValueByName("FarPlane").(float32),
+			data.FieldValueByName("FOV").(matrix.Float),
+			data.FieldValueByName("NearPlane").(matrix.Float),
+			data.FieldValueByName("FarPlane").(matrix.Float),
 			w, h,
 		)
 		t.sd.(*shader_data_registry.ShaderDataEdFrustumWire).FrustumProjection = cam.InverseProjection()

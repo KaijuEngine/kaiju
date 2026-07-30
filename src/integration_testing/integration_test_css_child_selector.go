@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 const cssChildSelectorScreenshotOutput = "integration_test_css_child_selector.png"
@@ -83,8 +84,8 @@ const (
 
 func sampleCSSChildSelectorColor(host *engine.Host, img *image.RGBA, elm *document.Element) cssChildSelectorColor {
 	left, top, right, bottom := elementBoundsPixels(host, img.Bounds(), elm.UI)
-	x := clampPixel((left+right)*0.5, float32(img.Bounds().Dx()))
-	y := clampPixel((top+bottom)*0.5, float32(img.Bounds().Dy()))
+	x := clampPixel((left+right)*0.5, matrix.Float(img.Bounds().Dx()))
+	y := clampPixel((top+bottom)*0.5, matrix.Float(img.Bounds().Dy()))
 	c := img.RGBAAt(x, y)
 	switch {
 	case c.R > 180 && c.G < 90 && c.B < 90:

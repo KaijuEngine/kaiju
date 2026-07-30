@@ -17,8 +17,8 @@ type Cursor struct {
 	stylus   *Stylus
 	pos      matrix.Vec2
 	lastPos  matrix.Vec2
-	pressure float32
-	distance float32
+	pressure matrix.Float
+	distance matrix.Float
 }
 
 func NewCursor(mouse *Mouse, touch *Touch, stylus *Stylus) Cursor {

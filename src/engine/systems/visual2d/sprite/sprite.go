@@ -35,7 +35,7 @@ type Sprite struct {
 	currentClip     SpriteSheetClip
 	uvAnimation     []AnimatedUV
 	frameDelay      float64
-	fps             float32
+	fps             matrix.Float
 	frameCount      int
 	currentFrame    int
 	spriteSheet     SpriteSheet
@@ -51,7 +51,7 @@ type Sprite struct {
 
 func (s *Sprite) IsValid() bool { return len(s.drawings) > 0 }
 
-func (s *Sprite) Init(x, y, width, height float32, host *engine.Host, texture string, color matrix.Color) {
+func (s *Sprite) Init(x, y, width, height matrix.Float, host *engine.Host, texture string, color matrix.Color) {
 	tex, err := host.TextureCache().Texture(texture, sFilter)
 	if err != nil {
 		slog.Error("failed to find the requested texture", "texture", texture)
@@ -65,21 +65,21 @@ func (s *Sprite) Init(x, y, width, height float32, host *engine.Host, texture st
 	})
 }
 
-func (s *Sprite) InitFromTexture(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, color matrix.Color) {
+func (s *Sprite) InitFromTexture(x, y, width, height matrix.Float, host *engine.Host, texture *rendering.Texture, color matrix.Color) {
 	s.baseInit(x, y, width, height, host)
 	s.drawings = klib.SliceSetLen(s.drawings, 1)
 	s.drawings[0], _ = s.buildDrawing(host, color, texture)
 	host.Drawings.AddDrawing(s.drawings[0])
 }
 
-func (s *Sprite) InitUVAnimation(x, y, width, height float32, host *engine.Host, texture *rendering.Texture, color matrix.Color, inUVAnimation []AnimatedUV) {
+func (s *Sprite) InitUVAnimation(x, y, width, height matrix.Float, host *engine.Host, texture *rendering.Texture, color matrix.Color, inUVAnimation []AnimatedUV) {
 	s.InitFromTexture(x, y, width, height, host, texture, color)
 	s.uvAnimation = inUVAnimation
 	s.updateId = host.Updater.AddUpdate(s.update)
 	s.frameCount = len(s.uvAnimation)
 }
 
-func (s *Sprite) InitFlipBook(x, y, width, height float32, host *engine.Host, textures []*rendering.Texture, inFPS float32) {
+func (s *Sprite) InitFlipBook(x, y, width, height matrix.Float, host *engine.Host, textures []*rendering.Texture, inFPS matrix.Float) {
 	s.baseInit(x, y, width, height, host)
 	s.drawings = klib.SliceSetLen(s.drawings, len(textures))
 	for i := range len(textures) {
@@ -96,7 +96,7 @@ func (s *Sprite) InitFlipBook(x, y, width, height float32, host *engine.Host, te
 	s.updateId = host.UILateUpdater.AddUpdate(s.update)
 }
 
-func (s *Sprite) InitSheet(x, y, width, height float32, host *engine.Host, textureKey, sheetDataKey string, inFPS float32, initialClip string) error {
+func (s *Sprite) InitSheet(x, y, width, height matrix.Float, host *engine.Host, textureKey, sheetDataKey string, inFPS matrix.Float, initialClip string) error {
 	data, err := host.AssetDatabase().Read(sheetDataKey)
 	if err != nil {
 		return err
@@ -125,11 +125,11 @@ func (s *Sprite) ContainsPoint(point matrix.Vec2) bool {
 	return s.Entity.Transform.ContainsPoint(point.AsVec3())
 }
 
-func (s *Sprite) SetSize(width, height float32) {
+func (s *Sprite) SetSize(width, height matrix.Float) {
 	s.Entity.Transform.SetScale(matrix.NewVec3(width, height, 1))
 }
 
-func (s *Sprite) Move(x, y float32) {
+func (s *Sprite) Move(x, y matrix.Float) {
 	if matrix.Approx(x, 0) && matrix.Approx(y, 0) {
 		return
 	}
@@ -141,7 +141,7 @@ func (s *Sprite) Move(x, y float32) {
 	s.Entity.Transform.SetPosition(matrix.NewVec3(p.X()+x, p.Y()+y, p.Z()))
 }
 
-func (s *Sprite) Move3D(x, y, z float32) {
+func (s *Sprite) Move3D(x, y, z matrix.Float) {
 	if matrix.Approx(x, 0) && matrix.Approx(y, 0) && matrix.Approx(z, 0) {
 		return
 	}
@@ -166,7 +166,7 @@ func (s *Sprite) FlipHorizontal() {
 	}
 }
 
-func (s *Sprite) SetPosition(x, y float32) {
+func (s *Sprite) SetPosition(x, y matrix.Float) {
 	p := s.Entity.Transform.Position()
 	if sPixelPositioning {
 		x = matrix.Round(x)
@@ -175,7 +175,7 @@ func (s *Sprite) SetPosition(x, y float32) {
 	s.Entity.Transform.SetPosition(matrix.NewVec3(x, y, p.Z()))
 }
 
-func (s *Sprite) SetPosition3D(x, y, z float32) {
+func (s *Sprite) SetPosition3D(x, y, z matrix.Float) {
 	if sPixelPositioning {
 		x = matrix.Round(x)
 		y = matrix.Round(y)
@@ -188,7 +188,7 @@ func (s *Sprite) SetPosition3D(x, y, z float32) {
 	}
 }
 
-func (s *Sprite) SetPositionZ(z float32) {
+func (s *Sprite) SetPositionZ(z matrix.Float) {
 	p := s.Entity.Transform.Position()
 	s.SetPosition3D(p.X(), p.Y(), z)
 }
@@ -213,7 +213,7 @@ func (s *Sprite) SetTexture(texture *rendering.Texture) {
 	}
 }
 
-func (s *Sprite) SetFlipBookAnimation(inFPS float32, textures []*rendering.Texture) {
+func (s *Sprite) SetFlipBookAnimation(inFPS matrix.Float, textures []*rendering.Texture) {
 	count := len(textures)
 	for i := range s.drawings {
 		s.drawings[i].ShaderData.Destroy()
@@ -287,7 +287,7 @@ func (s *Sprite) SwapMaterial(mat *rendering.Material) {
 
 func (s *Sprite) PlayAnimation()                             { s.paused = false }
 func (s *Sprite) StopAnimation()                             { s.paused = true }
-func (s *Sprite) SetFrameRate(inFPS float32)                 { s.fps = inFPS }
+func (s *Sprite) SetFrameRate(inFPS matrix.Float)            { s.fps = inFPS }
 func SetDefaultTextureFilter(filter rendering.TextureFilter) { sFilter = filter }
 func SetPixelPositioning(pixelPositioning bool)              { sPixelPositioning = pixelPositioning }
 
@@ -335,15 +335,15 @@ func (s *Sprite) setSheetFrame(frame int) {
 	s.clipIdx = frame
 	f := s.currentClip.Frames[frame]
 	texture := s.drawings[0].Material.Textures[0]
-	h := float32(f.Rectangle.Height()) / float32(texture.Height)
+	h := matrix.Float(f.Rectangle.Height()) / matrix.Float(texture.Height)
 	for i := range s.drawings {
-		x := float32(f.Rectangle.X()) / float32(texture.Width)
-		z := float32(f.Rectangle.Width()) / float32(texture.Width)
+		x := matrix.Float(f.Rectangle.X()) / matrix.Float(texture.Width)
+		z := matrix.Float(f.Rectangle.Width()) / matrix.Float(texture.Width)
 		if s.flipHorizontal {
 			x += z
 			z *= -1
 		}
-		y := 1.0 - h - float32(f.Rectangle.Y())/float32(texture.Height)
+		y := 1.0 - h - matrix.Float(f.Rectangle.Y())/matrix.Float(texture.Height)
 		s.ShaderData(i).UVs = matrix.NewVec4(x, y, z, h)
 	}
 }
@@ -373,7 +373,7 @@ func (s *Sprite) update(deltaTime float64) {
 	}
 }
 
-func (s *Sprite) baseInit(x, y, width, height float32, host *engine.Host) {
+func (s *Sprite) baseInit(x, y, width, height matrix.Float, host *engine.Host) {
 	if sPixelPositioning {
 		x = matrix.Round(x)
 		y = matrix.Round(y)

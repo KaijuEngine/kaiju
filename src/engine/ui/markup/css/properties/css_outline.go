@@ -23,7 +23,7 @@ func (p Outline) Process(panel *ui.Panel, elm *document.Element, values []rules.
 		return errors.New("Outline requires 1-3 values")
 	}
 
-	width := float32(2)
+	width := matrix.Float(2)
 	offset := panel.OutlineOffset()
 	color := matrix.ColorBlack()
 	style := ui.BorderStyle(ui.BorderStyleSolid)

@@ -36,15 +36,15 @@ func BindingKey() string {
 }
 
 type LightEntityData struct {
-	Ambient      matrix.Vec3 `default:"0.1,0.1,0.1"`
-	Diffuse      matrix.Vec3 `default:"1,1,1"`
-	Specular     matrix.Vec3 `default:"1,1,1"`
-	Intensity    float32     `default:"5"`
-	Constant     float32     `default:"1"`
-	Linear       float32     `default:"0.0014"`
-	Quadratic    float32     `default:"0.000007"`
-	Cutoff       float32     `default:"0.8433914458128857"` // matrix.Cos(matrix.Deg2Rad(32.5))
-	OuterCutoff  float32     `default:"0.636078220277764"`  // matrix.Cos(matrix.Deg2Rad(50.5))
+	Ambient      matrix.Vec3  `default:"0.1,0.1,0.1"`
+	Diffuse      matrix.Vec3  `default:"1,1,1"`
+	Specular     matrix.Vec3  `default:"1,1,1"`
+	Intensity    matrix.Float `default:"5"`
+	Constant     matrix.Float `default:"1"`
+	Linear       matrix.Float `default:"0.0014"`
+	Quadratic    matrix.Float `default:"0.000007"`
+	Cutoff       matrix.Float `default:"0.8433914458128857"` // matrix.Cos(matrix.Deg2Rad(32.5))
+	OuterCutoff  matrix.Float `default:"0.636078220277764"`  // matrix.Cos(matrix.Deg2Rad(50.5))
 	Type         LightType
 	CastsShadows bool
 }

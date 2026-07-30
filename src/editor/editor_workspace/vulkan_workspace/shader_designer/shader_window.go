@@ -23,6 +23,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/glsl"
@@ -80,7 +81,7 @@ func collectFileOptions(pfs *project_file_system.FileSystem) map[string][]ui.Sel
 func (win *ShaderDesigner) reloadShaderDoc() {
 	defer tracing.NewRegion("ShaderDesigner.reloadShaderDoc").End()
 	win.liveShader = false
-	sy := float32(0)
+	sy := matrix.Float(0)
 	if win.shaderDoc != nil {
 		content := win.shaderDoc.GetElementsByClass("topFields")[0]
 		sy = content.UIPanel.ScrollY()

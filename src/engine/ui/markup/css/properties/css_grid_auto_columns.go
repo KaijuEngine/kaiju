@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p GridAutoColumns) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -25,7 +26,7 @@ func (p GridAutoColumns) Process(panel *ui.Panel, elm *document.Element, values 
 	return nil
 }
 
-func gridAutoTrackSize(property string, values []rules.PropertyValue, host *engine.Host) (float32, error) {
+func gridAutoTrackSize(property string, values []rules.PropertyValue, host *engine.Host) (matrix.Float, error) {
 	if len(values) == 0 {
 		return 0, nil
 	}
