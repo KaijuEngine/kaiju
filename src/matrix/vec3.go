@@ -20,33 +20,37 @@ type Vec3MinMax struct {
 	Max Vec3
 }
 
-func (v Vec3T[T]) X() T                 { return v[Vx] }
-func (v Vec3T[T]) Y() T                 { return v[Vy] }
-func (v Vec3T[T]) Z() T                 { return v[Vz] }
-func (v *Vec3T[T]) PX() *T              { return &v[Vx] }
-func (v *Vec3T[T]) PY() *T              { return &v[Vy] }
-func (v *Vec3T[T]) PZ() *T              { return &v[Vz] }
-func (v *Vec3T[T]) SetX(x T)            { v[Vx] = x }
-func (v *Vec3T[T]) SetY(y T)            { v[Vy] = y }
-func (v *Vec3T[T]) SetZ(z T)            { v[Vz] = z }
-func (v Vec3T[T]) AsVec2() Vec2         { return Vec2{Float(v[Vx]), Float(v[Vy])} }
-func (v Vec3T[T]) AsVec4() Vec4         { return NewVec4(v[Vx], v[Vy], v[Vz], 1) }
-func (v Vec3T[T]) AsVec4WithW(w T) Vec4 { return NewVec4(v[Vx], v[Vy], v[Vz], w) }
-func (v Vec3T[T]) XYZ() (T, T, T)       { return v[Vx], v[Vy], v[Vz] }
-func (v Vec3T[T]) XY() Vec2             { return Vec2{Float(v[Vx]), Float(v[Vy])} }
-func (v Vec3T[T]) XZ() Vec2             { return Vec2{Float(v[Vx]), Float(v[Vz])} }
-func (v Vec3T[T]) Width() T             { return v[Vx] }
-func (v Vec3T[T]) Height() T            { return v[Vy] }
-func (v Vec3T[T]) Depth() T             { return v[Vz] }
-func (v *Vec3T[T]) AddX(x T)            { v[Vx] += x }
-func (v *Vec3T[T]) AddY(y T)            { v[Vy] += y }
-func (v *Vec3T[T]) AddZ(z T)            { v[Vz] += z }
-func (v *Vec3T[T]) ScaleX(s T)          { v[Vx] *= s }
-func (v *Vec3T[T]) ScaleY(s T)          { v[Vy] *= s }
-func (v *Vec3T[T]) ScaleZ(s T)          { v[Vz] *= s }
+func (v Vec3T[T]) X() T                     { return v[Vx] }
+func (v Vec3T[T]) Y() T                     { return v[Vy] }
+func (v Vec3T[T]) Z() T                     { return v[Vz] }
+func (v *Vec3T[T]) PX() *T                  { return &v[Vx] }
+func (v *Vec3T[T]) PY() *T                  { return &v[Vy] }
+func (v *Vec3T[T]) PZ() *T                  { return &v[Vz] }
+func (v *Vec3T[T]) SetX(x T)                { v[Vx] = x }
+func (v *Vec3T[T]) SetY(y T)                { v[Vy] = y }
+func (v *Vec3T[T]) SetZ(z T)                { v[Vz] = z }
+func (v Vec3T[T]) AsVec2() Vec2             { return Vec2{Float(v[Vx]), Float(v[Vy])} }
+func (v Vec3T[T]) AsVec4() Vec4T[T]         { return NewVec4T[T](v[Vx], v[Vy], v[Vz], 1) }
+func (v Vec3T[T]) AsVec4WithW(w T) Vec4T[T] { return NewVec4T[T](v[Vx], v[Vy], v[Vz], w) }
+func (v Vec3T[T]) XYZ() (T, T, T)           { return v[Vx], v[Vy], v[Vz] }
+func (v Vec3T[T]) XY() Vec2                 { return Vec2{Float(v[Vx]), Float(v[Vy])} }
+func (v Vec3T[T]) XZ() Vec2                 { return Vec2{Float(v[Vx]), Float(v[Vz])} }
+func (v Vec3T[T]) Width() T                 { return v[Vx] }
+func (v Vec3T[T]) Height() T                { return v[Vy] }
+func (v Vec3T[T]) Depth() T                 { return v[Vz] }
+func (v *Vec3T[T]) AddX(x T)                { v[Vx] += x }
+func (v *Vec3T[T]) AddY(y T)                { v[Vy] += y }
+func (v *Vec3T[T]) AddZ(z T)                { v[Vz] += z }
+func (v *Vec3T[T]) ScaleX(s T)              { v[Vx] *= s }
+func (v *Vec3T[T]) ScaleY(s T)              { v[Vy] *= s }
+func (v *Vec3T[T]) ScaleZ(s T)              { v[Vz] *= s }
 
 func (v Vec3T[T]) AsVec3i() Vec3i {
 	return Vec3i{int32(v[Vx]), int32(v[Vy]), int32(v[Vz])}
+}
+
+func (v Vec3T[T]) AsVec3() Vec3 {
+	return Vec3{Float(v[Vx]), Float(v[Vy]), Float(v[Vz])}
 }
 
 func NewVec3[T1, T2, T3 tNumber](x T1, y T2, z T3) Vec3 {
