@@ -18,6 +18,8 @@ func main() {
 	runtime.LockOSThread()
 	go func() {
 		_main(nil)
+		// Teardown (including Vulkan destroy) is done; leave [NSApp run].
+		windowing.CocoaStopApp()
 	}()
-	windowing.CocoaRunApp() // blocks forever
+	windowing.CocoaRunApp()
 }

@@ -10,5 +10,8 @@ import "kaijuengine.com/platform/profiler/tracing"
 
 func (g *GPUDevice) DestroyShaderHandle(id ShaderId) {
 	defer tracing.NewRegion("GPUDevice.DestroyShaderHandle").End()
+	if !id.IsValid() {
+		return
+	}
 	g.destroyShaderHandleImpl(id)
 }
