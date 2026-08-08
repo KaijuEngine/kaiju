@@ -86,6 +86,9 @@ bool cocoa_get_caps_lock_toggle_key_state(void);
 
 void cocoa_run_app(void);
 
+// Stop the NSApp run loop (call after Host.Teardown on the Go side).
+void cocoa_stop_app(void);
+
 // Render/resize serialization. AppKit mutates the view's CAMetalLayer on the main
 // thread during a live resize while the render goroutine submits/presents to it
 // via MoltenVK on another thread. CAMetalLayer is not safe for that concurrent

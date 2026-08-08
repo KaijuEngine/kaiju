@@ -179,7 +179,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 	}
 	runtime.AddCleanup(texture, func(state TextureCleanup) {
 		d := state.device.Value()
-		if d == nil {
+		if d == nil || !d.LogicalDevice.IsValid() {
 			return
 		}
 		ld := &d.LogicalDevice

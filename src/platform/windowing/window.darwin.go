@@ -322,3 +322,9 @@ func (w *Window) cInstance() unsafe.Pointer { return w.instance }
 func CocoaRunApp() {
 	C.cocoa_run_app()
 }
+
+// CocoaStopApp ends the NSApp run loop. Call after Host.Teardown so Vulkan
+// cleanup finishes before process exit. Safe from non-main goroutines.
+func CocoaStopApp() {
+	C.cocoa_stop_app()
+}
