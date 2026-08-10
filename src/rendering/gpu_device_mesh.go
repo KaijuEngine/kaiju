@@ -65,7 +65,7 @@ func (g *GPUDevice) CreateDynamicMesh(mesh *Mesh, verts []Vertex, indices []uint
 	id.indexBuffer, id.indexBufferMemory, _ = g.CreateIndexBuffer(indices)
 	runtime.AddCleanup(mesh, func(state MeshCleanup) {
 		d := state.device.Value()
-		if d == nil {
+		if d == nil || !d.LogicalDevice.IsValid() {
 			return
 		}
 		d.Painter.preRuns = append(d.Painter.preRuns, func() {
@@ -95,7 +95,7 @@ func (g *GPUDevice) CreateMesh(mesh *Mesh, verts []Vertex, indices []uint32) {
 	id.indexBuffer, id.indexBufferMemory, _ = g.CreateIndexBuffer(indices)  // TODO:  Don't discard
 	runtime.AddCleanup(mesh, func(state MeshCleanup) {
 		d := state.device.Value()
-		if d == nil {
+		if d == nil || !d.LogicalDevice.IsValid() {
 			return
 		}
 		d.Painter.preRuns = append(d.Painter.preRuns, func() {

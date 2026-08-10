@@ -120,5 +120,8 @@ func (s *ShaderCache) destroyShaderTree(shader *Shader) {
 	for _, sub := range shader.subShaders {
 		s.destroyShaderTree(sub)
 	}
-	s.device.DestroyShaderHandle(shader.RenderId)
+	if shader.RenderId.IsValid() {
+		s.device.DestroyShaderHandle(shader.RenderId)
+		shader.RenderId = ShaderId{}
+	}
 }
