@@ -21,6 +21,7 @@ func TestShaderLayoutFieldSize(t *testing.T) {
 		{"mat4", "model", mat4Size},
 		{"mat3", "normal", vec4Size},
 		{"vec4", "color", vec4Size},
+		{"ivec4", "indexes", vec4Size},
 		{"vec3", "position", vec4Size},
 		{"vec2", "uv", vec2Size},
 		{"float", "weight", floatSize},
@@ -52,6 +53,7 @@ func TestShaderLayoutIsBuffer(t *testing.T) {
 		want   bool
 	}{
 		{ShaderLayout{Type: "StorageBuffer"}, true},
+		{ShaderLayout{Type: "TerrainLayerBuffer", Source: "buffer", Binding: 4, Fields: []ShaderLayoutStructField{{Type: "vec4", Name: "data[24]"}}}, true},
 		{ShaderLayout{Type: "UniformBufferObject", Location: 0, Fields: []ShaderLayoutStructField{{Type: "vec4"}}}, false},
 		{ShaderLayout{Type: "Custom", Location: -1, Fields: []ShaderLayoutStructField{{Type: "vec4"}}}, false},
 		{ShaderLayout{Type: "Custom", Location: 2}, false},

@@ -14,6 +14,7 @@ var (
 		"vec2":   {uint32(floatSize) * 2, vulkan_const.FormatR32g32Sfloat, 1},
 		"vec3":   {uint32(floatSize) * 3, vulkan_const.FormatR32g32b32Sfloat, 1},
 		"vec4":   {uint32(vec4Size), vulkan_const.FormatR32g32b32a32Sfloat, 1},
+		"ivec4":  {uint32(vec4Size), vulkan_const.FormatR32g32b32a32Sint, 1},
 		"mat4":   {uint32(vec4Size), vulkan_const.FormatR32g32b32a32Sfloat, 4},
 		"int":    {uint32(int32Size), vulkan_const.FormatR32Sint, 1},
 		"int32":  {uint32(int32Size), vulkan_const.FormatR32Sint, 1},
