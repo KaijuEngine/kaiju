@@ -25,6 +25,7 @@ const (
 	MaterialDefinitionPBR                 = "pbr.material"
 	MaterialDefinitionTerrain             = "terrain.material"
 	MaterialDefinitionTerrainUnlit        = "terrain_unlit.material"
+	MaterialDefinitionOcean               = "ocean.material"
 	MaterialDefinitionBasicSkinned        = "basic_skinned.material"
 	MaterialDefinitionText3D              = "text3d.material"
 	MaterialDefinitionText3DTransparent   = "text3d_transparent.material"
