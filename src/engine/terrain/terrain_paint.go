@@ -71,10 +71,10 @@ type TexturePaintResult struct {
 
 // TerrainLayer describes one paintable material layer on a terrain.
 //
-// TextureContentID is the albedo texture currently consumed by the terrain
-// material. NormalContentID and RoughnessContentID are stored for authoring and
-// future material expansion. Locked layers preserve their current contribution
-// during painting, while Hidden and Solo only affect preview packing.
+// TextureContentID, NormalContentID, and RoughnessContentID provide the layer's
+// PBR inputs. Tiling, world size, offset, rotation, and tint control its atlas
+// sampling. Locked layers preserve their current contribution during painting,
+// while Hidden and Solo only affect preview packing.
 type TerrainLayer struct {
 	Name               string
 	TextureContentID   string

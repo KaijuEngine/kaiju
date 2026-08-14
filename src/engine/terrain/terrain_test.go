@@ -294,7 +294,7 @@ func TestTerrainAssetBuildsModelFromStoredHeights(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	model, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), nil, nil, nil)
+	model, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

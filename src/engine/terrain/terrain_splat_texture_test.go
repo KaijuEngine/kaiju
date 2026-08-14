@@ -39,6 +39,21 @@ func TestSplatLayerChannelSelection(t *testing.T) {
 	}
 }
 
+func TestStockTerrainRendererSupportsEightLayers(t *testing.T) {
+	if terrainWeightMapSlots != 2 {
+		t.Fatalf("terrain weight-map slots = %d, want 2", terrainWeightMapSlots)
+	}
+	if MaxRenderedLayers != 8 {
+		t.Fatalf("terrain rendered layer limit = %d, want 8", MaxRenderedLayers)
+	}
+	if terrainMaterialMapSlots != 2 {
+		t.Fatalf("terrain material atlas slots = %d, want 2", terrainMaterialMapSlots)
+	}
+	if got := splatTextureCount(8); got != 2 {
+		t.Fatalf("eight layers use %d splat textures, want 2", got)
+	}
+}
+
 func TestPackSplatTextureRegionUsesLayerChannels(t *testing.T) {
 	weights, err := NewTextureWeightMap(4, 6)
 	if err != nil {
@@ -193,7 +208,7 @@ func TestTerrainTexturePaintLongStrokeManyLayersStress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 16; i++ {
+	for i := 0; i < MaxRenderedLayers; i++ {
 		model.AddLayer(NewTerrainLayer("layer"))
 	}
 	for i := range model.SplatTextures {
@@ -201,7 +216,7 @@ func TestTerrainTexturePaintLongStrokeManyLayersStress(t *testing.T) {
 	}
 	model.HeightField.ClearDirty()
 	result := model.PaintTextureLine(
-		12,
+		7,
 		matrix.NewVec2(-120, -120),
 		matrix.NewVec2(120, 120),
 		TexturePaintStroke{
@@ -215,8 +230,8 @@ func TestTerrainTexturePaintLongStrokeManyLayersStress(t *testing.T) {
 	if !result.Dirty.Valid {
 		t.Fatal("expected long many-layer stroke to dirty weights")
 	}
-	if got := model.SplatTextureCount(); got != 4 {
-		t.Fatalf("expected sixteen layers to use four splat textures, got %d", got)
+	if got := model.SplatTextureCount(); got != 2 {
+		t.Fatalf("expected eight layers to use two splat textures, got %d", got)
 	}
 	if model.HeightField.DirtyRegion().Valid {
 		t.Fatal("many-layer texture stroke should not dirty terrain mesh vertices")

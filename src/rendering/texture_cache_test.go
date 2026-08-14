@@ -54,6 +54,22 @@ func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
 	}
 }
 
+func TestTextureCacheTexturePixelsReadsPendingCachedImage(t *testing.T) {
+	cache := NewTextureCache(nil, assets.NewMockDB(nil))
+	pngData := testPNG(t, []color.RGBA{{R: 11, G: 22, B: 33, A: 255}}, 1, 1)
+	if _, err := cache.InsertImageTexture("generated.png", pngData, TextureFilterLinear); err != nil {
+		t.Fatal(err)
+	}
+	data, err := cache.TexturePixels("generated.png", TextureFilterLinear)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.Width != 1 || data.Height != 1 || len(data.Mem) < 4 ||
+		data.Mem[0] != 11 || data.Mem[1] != 22 || data.Mem[2] != 33 || data.Mem[3] != 255 {
+		t.Fatalf("unexpected pending texture pixels: %+v", data)
+	}
+}
+
 func TestTextureCacheUploadBudgetPrioritizesHighPriority(t *testing.T) {
 	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
 	cache.SetUploadBudget(TextureUploadBudget{MaxCreatesPerFrame: 2})

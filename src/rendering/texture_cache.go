@@ -79,6 +79,21 @@ func (t *TextureCache) Find(textureKey string, filter TextureFilter) (*Texture, 
 	return texture, ok
 }
 
+// TexturePixels returns decoded CPU pixels from a pending cached texture when
+// available, falling back to the cache's asset database. This allows generated
+// textures such as terrain atlases to consume content before its GPU upload.
+func (t *TextureCache) TexturePixels(textureKey string, filter TextureFilter) (TextureData, error) {
+	textureKey = selectKey(textureKey)
+	t.mutex.Lock()
+	if texture, ok := t.textures[filter][textureKey]; ok && texture.pendingData != nil {
+		data := *texture.pendingData
+		t.mutex.Unlock()
+		return data, nil
+	}
+	t.mutex.Unlock()
+	return TexturePixelsFromAsset(t.assetDatabase, textureKey)
+}
+
 func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error) {
 	return t.TextureWithPriority(textureKey, filter, TextureUploadPriorityNormal)
 }

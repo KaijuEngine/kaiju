@@ -70,6 +70,8 @@ func fieldSize(fieldType, fieldName string) int {
 		size = mat4Size
 	case "vec4":
 		size = vec4Size
+	case "ivec4":
+		size = vec4Size
 	case "vec3":
 		size = vec4Size // Using vec4Size for alignment
 	case "vec2":
@@ -104,7 +106,7 @@ func (l *ShaderLayout) FullName() string {
 
 func (l *ShaderLayout) IsBuffer() bool {
 	// Ignore the global uniform buffer for now
-	if l.Type == "StorageBuffer" {
+	if l.Type == "StorageBuffer" || l.Source == "buffer" {
 		return true
 	}
 	if l.Location < 0 || l.Type == "UniformBufferObject" {

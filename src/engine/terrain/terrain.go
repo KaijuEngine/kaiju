@@ -30,10 +30,14 @@ const (
 	defaultRayStep           = matrix.Float(0.5)
 	defaultBrushSpacingScale = matrix.Float(0.25)
 
-	terrainWeightMapSlots    = 1
-	terrainAlbedoLayerSlots  = 4
+	terrainWeightMapSlots    = 2
+	terrainMaterialMapSlots  = 2
 	terrainBaseWeightMapName = "terrain_base_weight_map"
 )
+
+// MaxRenderedLayers is the maximum number of terrain layers represented by
+// the two RGBA splat maps and the terrain material atlases.
+const MaxRenderedLayers = 8
 
 type TerrainTexture struct {
 	Key    string
@@ -306,7 +310,7 @@ type TerrainRayHit struct {
 }
 
 func NewModel(config TerrainConfig) (*Terrain, error) {
-	return newTerrainWithHeights(config, nil, nil, nil, nil)
+	return newTerrainWithHeights(config, nil, nil, nil, nil, nil)
 }
 
 func New(host *engine.Host, config TerrainConfig) (*Terrain, error) {
@@ -314,7 +318,21 @@ func New(host *engine.Host, config TerrainConfig) (*Terrain, error) {
 	if host == nil {
 		return NewModel(config)
 	}
-	return newTerrainWithHeights(config, nil, host.WorkGroup(), host, nil)
+	return newTerrainWithHeights(config, nil, nil, host.WorkGroup(), host, nil)
+}
+
+// NewWithLayers constructs terrain with its complete material layer set before
+// allocating render resources. This avoids rebuilding material atlases once
+// per layer during initialization.
+func NewWithLayers(host *engine.Host, config TerrainConfig, layers []TerrainLayer) (*Terrain, error) {
+	defer tracing.NewRegion("terrain.NewWithLayers").End()
+	if len(layers) > MaxRenderedLayers {
+		return nil, fmt.Errorf("terrain supports at most %d rendered layers, got %d", MaxRenderedLayers, len(layers))
+	}
+	if host == nil {
+		return newTerrainWithHeights(config, nil, layers, nil, nil, nil)
+	}
+	return newTerrainWithHeights(config, nil, layers, host.WorkGroup(), host, nil)
 }
 
 func (t *Terrain) Destroy(host *engine.Host) {
@@ -567,6 +585,7 @@ func (t *Terrain) ApplyLayerSetState(state TerrainLayerSetState) bool {
 	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
+	t.refreshShaderLayerData()
 	if t.LayerSet.WeightMap != nil {
 		full := DirtyRegion{
 			MinX:  0,
@@ -744,10 +763,15 @@ func (t *Terrain) AddLayer(layer TerrainLayer) int {
 	if t == nil || t.LayerSet == nil {
 		return -1
 	}
+	if t.LayerSet.LayerCount() >= MaxRenderedLayers {
+		slog.Warn("terrain rendered layer limit reached", "limit", MaxRenderedLayers)
+		return -1
+	}
 	layerIndex := t.LayerSet.AddLayer(layer)
 	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
+	t.refreshShaderLayerData()
 	if layerIndex >= 0 {
 		t.MarkTextureDirty(layerIndex, DirtyRegion{
 			MinX:  0,
@@ -769,6 +793,7 @@ func (t *Terrain) SetLayer(layer int, value TerrainLayer) bool {
 	}
 	t.syncConfigTexturesFromLayers()
 	_ = t.refreshMaterialTextures()
+	t.refreshShaderLayerData()
 	return true
 }
 
@@ -782,6 +807,7 @@ func (t *Terrain) RemoveLayer(layer int) bool {
 	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
+	t.refreshShaderLayerData()
 	if t.LayerSet.WeightMap != nil && len(t.SplatTextures) > 0 {
 		full := DirtyRegion{
 			MinX:  0,
@@ -807,6 +833,7 @@ func (t *Terrain) MoveLayer(from, to int) bool {
 	t.syncConfigTexturesFromLayers()
 	_ = t.createSplatTextures(t.host)
 	_ = t.refreshMaterialTextures()
+	t.refreshShaderLayerData()
 	if t.LayerSet.WeightMap != nil {
 		full := DirtyRegion{
 			MinX:  0,
@@ -985,8 +1012,14 @@ func (t *Terrain) normalAtLocal(localXZ matrix.Vec2) matrix.Vec3 {
 	return matrix.NewVec3(-dx, 1, -dz).Normal()
 }
 
-func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGroup *concurrent.WorkGroup, host *engine.Host, entity *engine.Entity) (*Terrain, error) {
+func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, layers []TerrainLayer, workGroup *concurrent.WorkGroup, host *engine.Host, entity *engine.Entity) (*Terrain, error) {
 	config = normalizeConfig(config)
+	if len(layers) == 0 && len(config.Textures) > MaxRenderedLayers {
+		return nil, fmt.Errorf("terrain supports at most %d rendered layers, got %d", MaxRenderedLayers, len(config.Textures))
+	}
+	if len(layers) > MaxRenderedLayers {
+		return nil, fmt.Errorf("terrain supports at most %d rendered layers, got %d", MaxRenderedLayers, len(layers))
+	}
 	hf, err := NewHeightField(config.Resolution, config.MinHeight, config.MaxHeight, config.InitialHeight)
 	if err != nil {
 		return nil, err
@@ -1003,6 +1036,9 @@ func newTerrainWithHeights(config TerrainConfig, heights []matrix.Float, workGro
 	layerSet, err := NewTerrainLayerSet(config.PaintResolution)
 	if err != nil {
 		return nil, err
+	}
+	for i := range layers {
+		layerSet.AddLayer(layers[i])
 	}
 	if entity == nil {
 		entity = engine.NewEntity(workGroup)
@@ -1130,7 +1166,7 @@ func (t *Terrain) terrainMaterialTextures(host *engine.Host) ([]*rendering.Textu
 	if err := t.createSplatTextures(host); err != nil {
 		return nil, err
 	}
-	count := terrainWeightMapSlots + terrainAlbedoLayerSlots
+	count := terrainWeightMapSlots + terrainMaterialMapSlots
 	textures := make([]*rendering.Texture, count)
 	baseWeight, err := host.TextureCache().InsertRawTexture(
 		terrainBaseWeightMapName,
@@ -1142,37 +1178,31 @@ func (t *Terrain) terrainMaterialTextures(host *engine.Host) ([]*rendering.Textu
 	if err != nil {
 		return nil, err
 	}
+	emptyWeight, err := host.TextureCache().InsertRawTexture(
+		terrainBaseWeightMapName+"_empty",
+		[]byte{0, 0, 0, 0},
+		1,
+		1,
+		rendering.TextureFilterNearest,
+	)
+	if err != nil {
+		return nil, err
+	}
 	for i := 0; i < terrainWeightMapSlots; i++ {
-		textures[i] = baseWeight
+		textures[i] = emptyWeight
+		if i == 0 {
+			textures[i] = baseWeight
+		}
 		if i < len(t.SplatTextures) && t.SplatTextures[i].Texture != nil {
 			textures[i] = t.SplatTextures[i].Texture
 		}
 	}
-	fallbackLayer, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	materialAtlas, normalAtlas, err := t.terrainMaterialAtlases(host)
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < terrainAlbedoLayerSlots; i++ {
-		textures[terrainWeightMapSlots+i] = fallbackLayer
-		if t.LayerSet != nil && i < len(t.LayerSet.Layers) {
-			layer := t.LayerSet.Layers[i]
-			tex, err := host.TextureCache().Texture(layer.TextureContentID, layer.Filter)
-			if err != nil {
-				slog.Warn("terrain layer texture missing; using fallback texture",
-					"texture", layer.TextureContentID, "fallback", assets.TextureSquare, "error", err)
-				continue
-			}
-			textures[terrainWeightMapSlots+i] = tex
-		} else if i < len(t.Config.Textures) {
-			tex, err := host.TextureCache().Texture(t.Config.Textures[i].Key, t.Config.Textures[i].Filter)
-			if err != nil {
-				slog.Warn("terrain config texture missing; using fallback texture",
-					"texture", t.Config.Textures[i].Key, "fallback", assets.TextureSquare, "error", err)
-				continue
-			}
-			textures[terrainWeightMapSlots+i] = tex
-		}
-	}
+	textures[terrainWeightMapSlots] = materialAtlas
+	textures[terrainWeightMapSlots+1] = normalAtlas
 	return textures, nil
 }
 
@@ -1211,6 +1241,9 @@ func (t *Terrain) createChunks(host *engine.Host) {
 			chunk.Indexes = indexes
 			chunk.Mesh = host.MeshCache().DynamicMesh(chunk.Key, verts, indexes)
 			chunk.ShaderData = shader_data_registry.Create(t.Config.ShaderData)
+			if data, ok := chunk.ShaderData.(*shader_data_registry.ShaderDataTerrain); ok {
+				data.SetLayerParameters(t.shaderLayerData())
+			}
 			chunk.Drawing = rendering.Drawing{
 				Material:   t.Material,
 				Mesh:       chunk.Mesh,

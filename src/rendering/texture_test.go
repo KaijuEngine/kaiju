@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"sync"
 	"testing"
@@ -61,6 +62,37 @@ func TestReadRawTextureDataPNG(t *testing.T) {
 	}
 	if got := data.Mem[:8]; !bytes.Equal(got, []byte{10, 20, 30, 255, 50, 60, 70, 255}) {
 		t.Fatalf("decoded pixels = %v", got)
+	}
+}
+
+func TestReadRawTextureDataJPEG(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 2, 1))
+	img.SetRGBA(0, 0, color.RGBA{R: 200, G: 40, B: 20, A: 255})
+	img.SetRGBA(1, 0, color.RGBA{R: 20, G: 80, B: 200, A: 255})
+	var buff bytes.Buffer
+	if err := jpeg.Encode(&buff, img, &jpeg.Options{Quality: 100}); err != nil {
+		t.Fatal(err)
+	}
+	data := ReadRawTextureData(buff.Bytes(), TextureFileFormatJpeg)
+	if data.Width != 2 || data.Height != 1 {
+		t.Fatalf("JPEG dimensions = %dx%d, want 2x1", data.Width, data.Height)
+	}
+	if data.InputType != TextureFileFormatJpeg || data.InternalFormat != TextureInputTypeRgba8 || len(data.Mem) != 8 {
+		t.Fatalf("unexpected JPEG metadata: %+v", data)
+	}
+	for pixel := 0; pixel < 2; pixel++ {
+		if data.Mem[pixel*4+3] != 255 {
+			t.Fatalf("JPEG pixel %d alpha = %d, want 255", pixel, data.Mem[pixel*4+3])
+		}
+	}
+}
+
+func TestTextureFileFormatDetectsJPEGByNameAndSignature(t *testing.T) {
+	if got := textureFileFormat("terrain.JPG", nil); got != TextureFileFormatJpeg {
+		t.Fatalf("JPG extension format = %d, want JPEG", got)
+	}
+	if got := textureFileFormat("terrain", []byte{0xff, 0xd8, 0xff, 0xe0}); got != TextureFileFormatJpeg {
+		t.Fatalf("JPEG signature format = %d, want JPEG", got)
 	}
 }
 

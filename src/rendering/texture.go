@@ -11,7 +11,9 @@ import (
 	"errors"
 	"image"
 	"image/draw"
+	"image/jpeg"
 	"image/png"
+	"io"
 	"strings"
 	"sync"
 
@@ -87,6 +89,7 @@ const (
 const (
 	TextureFileFormatAstc TextureFileFormat = iota
 	TextureFileFormatPng
+	TextureFileFormatJpeg
 	TextureFileFormatRaw
 )
 
@@ -194,27 +197,10 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 		res.Type = TextureMemTypeUnsignedByte
 
 	case TextureFileFormatPng:
-		img, err := png.Decode(bytes.NewReader(mem))
-		if err != nil {
-			return res
-		}
+		return readImageTextureData(mem, inputType, png.Decode)
 
-		b := img.Bounds()
-		w, h := b.Dx(), b.Dy()
-
-		if rgba, ok := img.(*image.RGBA); ok {
-			res.Mem = rgba.Pix
-		} else {
-			dst := image.NewRGBA(image.Rect(0, 0, w, h))
-			draw.Draw(dst, dst.Bounds(), img, b.Min, draw.Src)
-			res.Mem = dst.Pix
-		}
-
-		res.Width = w
-		res.Height = h
-		res.InternalFormat = TextureInputTypeRgba8
-		res.Format = TextureColorFormatRgbaUnorm
-		res.Type = TextureMemTypeUnsignedByte
+	case TextureFileFormatJpeg:
+		return readImageTextureData(mem, inputType, jpeg.Decode)
 
 	case TextureFileFormatRaw:
 		res.Mem = mem
@@ -228,16 +214,47 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 	return res
 }
 
-func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, key string) TextureData {
-	inputType := TextureFileFormatRaw
-	// TODO:  Use the content system to pull the type from the key
-	if strings.HasSuffix(key, ".astc") {
-		inputType = TextureFileFormatAstc
-	} else if strings.HasSuffix(key, ".png") {
-		inputType = TextureFileFormatPng
-	} else if len(imgBuff) > 4 && imgBuff[0] == '\x89' && imgBuff[1] == 'P' && imgBuff[2] == 'N' && imgBuff[3] == 'G' {
-		inputType = TextureFileFormatPng
+func readImageTextureData(mem []byte, inputType TextureFileFormat, decode func(io.Reader) (image.Image, error)) TextureData {
+	res := TextureData{InputType: inputType}
+	img, err := decode(bytes.NewReader(mem))
+	if err != nil {
+		return res
 	}
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	if rgba, ok := img.(*image.RGBA); ok {
+		res.Mem = rgba.Pix
+	} else {
+		dst := image.NewRGBA(image.Rect(0, 0, width, height))
+		draw.Draw(dst, dst.Bounds(), img, bounds.Min, draw.Src)
+		res.Mem = dst.Pix
+	}
+	res.Width = width
+	res.Height = height
+	res.InternalFormat = TextureInputTypeRgba8
+	res.Format = TextureColorFormatRgbaUnorm
+	res.Type = TextureMemTypeUnsignedByte
+	return res
+}
+
+func textureFileFormat(key string, mem []byte) TextureFileFormat {
+	lowerKey := strings.ToLower(key)
+	if strings.HasSuffix(lowerKey, ".astc") {
+		return TextureFileFormatAstc
+	}
+	if strings.HasSuffix(lowerKey, ".png") ||
+		(len(mem) > 4 && mem[0] == '\x89' && mem[1] == 'P' && mem[2] == 'N' && mem[3] == 'G') {
+		return TextureFileFormatPng
+	}
+	if strings.HasSuffix(lowerKey, ".jpg") || strings.HasSuffix(lowerKey, ".jpeg") ||
+		(len(mem) > 3 && mem[0] == 0xff && mem[1] == 0xd8 && mem[2] == 0xff) {
+		return TextureFileFormatJpeg
+	}
+	return TextureFileFormatRaw
+}
+
+func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, key string) TextureData {
+	inputType := textureFileFormat(key, imgBuff)
 	data := ReadRawTextureData(imgBuff, inputType)
 	if data.Width == 0 {
 		data.Width = overrideWidth
@@ -414,7 +431,7 @@ func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, e
 		} else if len(imgBuff) == 0 {
 			return TextureData{}, errors.New("no data in texture")
 		} else {
-			return ReadRawTextureData(imgBuff, TextureFileFormatPng), nil
+			return ReadRawTextureData(imgBuff, textureFileFormat(key, imgBuff)), nil
 		}
 	} else {
 		return TextureData{}, errors.New("texture does not exist")

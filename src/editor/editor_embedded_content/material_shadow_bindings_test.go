@@ -17,16 +17,16 @@ import (
 )
 
 func TestPBRAmbientIsAppliedBeforeDirectLightFacingGuard(t *testing.T) {
-	path := filepath.FromSlash("editor_content/renderer/src/pbr.frag")
+	path := filepath.FromSlash("editor_content/renderer/src/pbr_lighting.glsl")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	source := string(data)
-	ambient := strings.Index(source, "ambient += max(light.ambient")
-	directGuard := strings.Index(source, "if (attenuation <= 0.0 || NdotL <= 0.0)")
+	ambient := strings.Index(source, "ambientLighting += max(light.ambient")
+	directGuard := strings.Index(source, "if (attenuation <= 0.0 || nDotL <= 0.0)")
 	if ambient < 0 || directGuard < 0 {
-		t.Fatalf("PBR shader is missing the ambient accumulation or direct-light guard")
+		t.Fatalf("shared PBR lighting is missing the ambient accumulation or direct-light guard")
 	}
 	if ambient > directGuard {
 		t.Fatalf("per-light ambient must be accumulated before the NdotL direct-light guard")

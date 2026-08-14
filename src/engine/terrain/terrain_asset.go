@@ -319,6 +319,9 @@ func (a TerrainAsset) validate() error {
 	if len(a.Layers) == 0 {
 		return errors.New("terrain asset requires at least one paint layer")
 	}
+	if len(a.Layers) > MaxRenderedLayers {
+		return fmt.Errorf("terrain asset supports at most %d rendered layers, got %d", MaxRenderedLayers, len(a.Layers))
+	}
 	if a.WeightMapResolution < 2 {
 		return errors.New("terrain asset weight-map resolution must be at least 2")
 	}
@@ -366,7 +369,7 @@ func newTerrainFromAsset(host *engine.Host, asset TerrainAsset, entity *engine.E
 	if host != nil {
 		workGroup = host.WorkGroup()
 	}
-	t, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), workGroup, nil, entity)
+	t, err := newTerrainWithHeights(asset.Config, asset.FloatHeights(), asset.Layers, workGroup, nil, entity)
 	if err != nil {
 		return nil, err
 	}
