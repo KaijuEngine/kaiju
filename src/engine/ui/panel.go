@@ -618,6 +618,16 @@ func (p *Panel) panelPostLayoutUpdate() {
 				ps := pl.PixelSize()
 				availW := ps.X() - pl.Padding().Horizontal() - pl.Border().Horizontal()
 				availH := ps.Y() - pl.Padding().Vertical() - pl.Border().Vertical()
+				// A fit-content element must not grow past a container with a
+				// DEFINITE size (the container scrolls, or the window resizes).
+				// But when the parent is itself fit-content, its "available"
+				// height is derived from its children (stale during a pass), so
+				// clamping to it creates a circular dependency that collapses
+				// nested fit-content panels to a fixed point of the wrong size.
+				// In that case the parent's size is content-derived and will
+				// grow to fit this child on the next convergence pass.
+				parentFitsHeight := pu.ToPanel().FittingContentHeight()
+				parentFitsWidth := pu.ToPanel().FittingContentWidth()
 				// A flex container with align-items:stretch fills its parent on the
 				// CROSS axis (column -> width, row -> height). When it is ALSO
 				// fit-content on that axis, make the cross size DEFINITE (= parent
@@ -633,13 +643,13 @@ func (p *Panel) panelPostLayoutUpdate() {
 				switch {
 				case stretch && colCross && availW > 0 && !(pd.HasMinWidth() && pd.minSize.X() > availW):
 					w = availW // cross = width: fill definitely
-				case availW > 0 && w > availW && !(pd.HasMinWidth() && pd.minSize.X() > availW):
+				case !parentFitsWidth && availW > 0 && w > availW && !(pd.HasMinWidth() && pd.minSize.X() > availW):
 					w = availW // clamp to container
 				}
 				switch {
 				case stretch && !colCross && availH > 0 && !(pd.HasMinHeight() && pd.minSize.Y() > availH):
 					h = availH // cross = height: fill definitely
-				case availH > 0 && h > availH && !(pd.HasMinHeight() && pd.minSize.Y() > availH):
+				case !parentFitsHeight && availH > 0 && h > availH && !(pd.HasMinHeight() && pd.minSize.Y() > availH):
 					h = availH // clamp to container
 				}
 			}
