@@ -313,12 +313,6 @@ go build -tags="debug,editor,filedrop" -o ../ ./
 				<p>If you like what you see, please consider supporting Kaiju's continued development.</p>
 				<iframe src="https://github.com/sponsors/BrentFarris/button" title="Sponsor BrentFarris" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
 			</div>
-			<table id="sponsors" class="kl-sponsor-table">
-				<tr>
-					<th>Name</th>
-					<th>GitHub</th>
-				</tr>
-			</table>
 		</div>
 	</section>
 </div>

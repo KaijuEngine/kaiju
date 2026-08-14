@@ -19,7 +19,6 @@ import (
 	"kaijuengine.com/editor/editor_overlay/create_entity_data"
 	"kaijuengine.com/editor/editor_overlay/file_browser"
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
-	"kaijuengine.com/editor/editor_overlay/sponsors"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/systems/logging"
@@ -154,7 +153,6 @@ func (b *MenuBar) renderDocument() error {
 			"clickMailArchives":        b.clickMailArchives,
 			"clickCreatePluginProject": b.clickCreatePluginProject,
 			"clickCloseEditor":         b.clickCloseEditor,
-			"clickSponsors":            b.clickSponsors,
 			"popupMiss":                b.popupMiss,
 		})
 	if err != nil {
@@ -573,13 +571,6 @@ func (b *MenuBar) clickCloseEditor(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickCloseEditor").End()
 	b.hidePopups()
 	b.uiMan.Host.Close()
-}
-
-func (b *MenuBar) clickSponsors(*document.Element) {
-	defer tracing.NewRegion("MenuBar.clickSupporters").End()
-	b.hidePopups()
-	b.handler.BlurInterface()
-	sponsors.Show(b.uiMan.Host, b.handler.FocusInterface)
 }
 
 func (b *MenuBar) clickToggleGrid(e *document.Element) {

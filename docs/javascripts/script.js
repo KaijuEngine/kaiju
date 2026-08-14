@@ -1,50 +1,3 @@
-async function listSponsors() {
-	const box = document.getElementById("sponsors");
-	if (!box) {
-		return;
-	}
-
-	box.querySelectorAll("[data-sponsor-row]").forEach(row => row.remove());
-
-	try {
-		const list = await fetch("https://raw.githubusercontent.com/KaijuEngine/kaiju/refs/heads/master/sponsors.json");
-		if (!list.ok) {
-			throw new Error("Unable to load sponsors");
-		}
-
-		const sponsors = await list.json();
-		sponsors.sort((a, b) => b.Support - a.Support);
-
-		for (const sponsor of sponsors) {
-			const tr = document.createElement("tr");
-			tr.dataset.sponsorRow = "true";
-
-			const tdName = document.createElement("td");
-			tdName.textContent = sponsor.Name;
-			tr.appendChild(tdName);
-
-			const tdGit = document.createElement("td");
-			const a = document.createElement("a");
-			a.href = `${sponsor.GitHub}`;
-			a.textContent = sponsor.GitHub;
-			a.target = "_blank";
-			a.rel = "noopener";
-			tdGit.appendChild(a);
-			tr.appendChild(tdGit);
-
-			box.appendChild(tr);
-		}
-	} catch {
-		const tr = document.createElement("tr");
-		tr.dataset.sponsorRow = "true";
-		const td = document.createElement("td");
-		td.colSpan = 2;
-		td.textContent = "Sponsors could not be loaded right now.";
-		tr.appendChild(td);
-		box.appendChild(tr);
-	}
-}
-
 function formatPostDate(value) {
 	if (!value) {
 		return "";
@@ -179,7 +132,6 @@ async function processIndex() {
 	}
 
 	setupShowcase();
-	await Promise.all([listSponsors(), loadNews()]);
 }
 
 function onReady(callback) {
