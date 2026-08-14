@@ -28,18 +28,44 @@
 			.confirm { left: 2em; }
 			.cancel { right: 2em; }
 			.inputPanel {
+				position: relative;
 				width: 100%;
 				height: 2em;
 				margin-bottom: 5px;
 			}
-			input { height: 100%; }
+			input {
+				position: relative;
+				height: 100%;
+				color: #FFFFFF;
+				background-color: #121212;
+				font-size: 0.95em;
+				font-family: inherit;
+				outline: none;
+				border: 1px solid #222224;
+			}
 			.fullWidth { width: 100%; }
-			.inputPanel {
-				width: 100%;
-				height: 2em;
-				margin-bottom: 5px;
+			.folderInput { width: calc(100% - 7.5em); }
+			.browseButton {
+				position: absolute;
+				right: 0;
+				top: 0;
+				width: 6.5em;
+				height: 100%;
+				background-color: #2A2A2C;
+				border: 1px solid #3A3A3D;
+				color: #E0E0E0;
+				border-radius: 2px;
+				font-size: 0.95em;
+				font-weight: 500;
+				font-family: inherit;
+				cursor: pointer;
+				transition: all 0.15s ease;
 			}
-			.folderInput { width: calc(100% - 7em); }
+			.browseButton:hover {
+				background-color: #353538;
+				border: 1px solid #5A5A5F;
+				color: #FFFFFF;
+			}
 			#error { color: #C7655D; }
 		</style>
 	</head>
@@ -48,13 +74,13 @@
 			<h1>Create entity data</h1>
 			<p>Create a POD entity data structure to bind to entities.</p>
 			<div id="error">Error message...</div>
-			<div>
+			<div class="fullWidth">
 				<div class="inputPanel">
 					<input id="nameInput" class="fullWidth" type="text" placeholder="Struct name..." />
 				</div>
 				<div class="inputPanel">
 					<input id="folder" class="folderInput" type="text" placeholder="Folder..." />
-					<button onclick="browse">Browse...</button>
+					<button class="browseButton" onclick="browse">Browse...</button>
 				</div>
 			</div>
 			<div class="btns">
