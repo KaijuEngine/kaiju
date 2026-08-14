@@ -30,8 +30,13 @@ external/bin
 interpreter/kaiju-*
 *.zip
 .gocache
+
+# Echo
 .echo/file-database
 .echo/autosave.json
+.echo/tasks.json
+.echo/tasks_done.json
+.echo/workspace.json
 
 # Go pprof files
 heap.prof

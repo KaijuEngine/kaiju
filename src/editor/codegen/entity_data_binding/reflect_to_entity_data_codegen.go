@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"kaijuengine.com/editor/codegen"
+	"kaijuengine.com/editor/codegen/reflect_helpers"
 )
 
 func ToDataBinding(name string, target any) EntityDataEntry {
@@ -28,7 +29,7 @@ func ToDataBinding(name string, target any) EntityDataEntry {
 		g.Fields[i] = EntityDataField{
 			Idx:  i,
 			Name: f.Name,
-			Type: f.Type.Name(),
+			Type: reflect_helpers.CanonicalTypeName(f.Type.Name()),
 			Pkg:  f.Type.PkgPath(),
 		}
 		if fieldValue.IsValid() && fieldValue.CanInterface() {
