@@ -644,5 +644,4 @@ func (b *MenuBar) hidePopups() {
 	b.selectedPopup = nil
 	b.menuOpen = false
 	b.handler.FocusInterface()
-	b.uiMan.Host.RunOnMainThread(b.handler.FocusInterface)
 }
