@@ -1,0 +1,1 @@
+{"Name":"ocean","Shader":"ocean.shader","RenderPass":"opaque.renderpass","ShaderPipeline":"basic.shaderpipeline","Textures":[],"IsLit":true,"ReceivesShadows":false,"CastsShadows":false}

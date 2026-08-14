@@ -16,15 +16,11 @@ layout(location = 2) in vec3 inPos[];
 layout(location = 3) in vec2 inTexCoords[];
 layout(location = 4) in vec3 inNormal[];
 layout(location = 5) in vec3 inViewDir[];
-layout(location = 6) in vec4 inSlopeParams[];
-layout(location = 7) in vec4 inGrassTint[];
-layout(location = 8) in vec4 inRockTint[];
-layout(location = 9) in vec4 inLightDirectionAmbient[];
-layout(location = 10) in vec4 inLightColorDiffuse[];
-layout(location = 11) in vec4 inMaterialParams[];
-layout(location = 12) in vec4 inBrushCenterRadius[];
-layout(location = 13) in vec4 inBrushParams[];
-layout(location = 14) in vec4 inBrushColor[];
+layout(location = 6) in vec4 inBrushCenterRadius[];
+layout(location = 7) in vec4 inBrushParams[];
+layout(location = 8) in vec4 inBrushColor[];
+layout(location = 9) flat in ivec4 inTerrainLightIds[];
+layout(location = 10) flat in int inTerrainInstance[];
 
 layout(location = 0) out vec4 tcColor[];
 layout(location = 1) flat out uint tcFlags[];
@@ -32,15 +28,11 @@ layout(location = 2) out vec3 tcPos[];
 layout(location = 3) out vec2 tcTexCoords[];
 layout(location = 4) out vec3 tcNormal[];
 layout(location = 5) out vec3 tcViewDir[];
-layout(location = 6) out vec4 tcSlopeParams[];
-layout(location = 7) out vec4 tcGrassTint[];
-layout(location = 8) out vec4 tcRockTint[];
-layout(location = 9) out vec4 tcLightDirectionAmbient[];
-layout(location = 10) out vec4 tcLightColorDiffuse[];
-layout(location = 11) out vec4 tcMaterialParams[];
-layout(location = 12) out vec4 tcBrushCenterRadius[];
-layout(location = 13) out vec4 tcBrushParams[];
-layout(location = 14) out vec4 tcBrushColor[];
+layout(location = 6) out vec4 tcBrushCenterRadius[];
+layout(location = 7) out vec4 tcBrushParams[];
+layout(location = 8) out vec4 tcBrushColor[];
+layout(location = 9) flat out ivec4 tcTerrainLightIds[];
+layout(location = 10) flat out int tcTerrainInstance[];
 
 float terrainTessFactor(vec3 a, vec3 b) {
 	vec3 edgeCenter = (a + b) * 0.5;
@@ -58,15 +50,11 @@ void main() {
 	tcTexCoords[gl_InvocationID] = inTexCoords[gl_InvocationID];
 	tcNormal[gl_InvocationID] = inNormal[gl_InvocationID];
 	tcViewDir[gl_InvocationID] = inViewDir[gl_InvocationID];
-	tcSlopeParams[gl_InvocationID] = inSlopeParams[gl_InvocationID];
-	tcGrassTint[gl_InvocationID] = inGrassTint[gl_InvocationID];
-	tcRockTint[gl_InvocationID] = inRockTint[gl_InvocationID];
-	tcLightDirectionAmbient[gl_InvocationID] = inLightDirectionAmbient[gl_InvocationID];
-	tcLightColorDiffuse[gl_InvocationID] = inLightColorDiffuse[gl_InvocationID];
-	tcMaterialParams[gl_InvocationID] = inMaterialParams[gl_InvocationID];
 	tcBrushCenterRadius[gl_InvocationID] = inBrushCenterRadius[gl_InvocationID];
 	tcBrushParams[gl_InvocationID] = inBrushParams[gl_InvocationID];
 	tcBrushColor[gl_InvocationID] = inBrushColor[gl_InvocationID];
+	tcTerrainLightIds[gl_InvocationID] = inTerrainLightIds[gl_InvocationID];
+	tcTerrainInstance[gl_InvocationID] = inTerrainInstance[gl_InvocationID];
 
 	if (gl_InvocationID == 0) {
 		float e0 = terrainTessFactor(inPos[1], inPos[2]);

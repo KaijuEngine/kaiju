@@ -17,34 +17,7 @@
 #define LAYOUT_ALL_LIGHT_REQUIREMENTS 8
 
 #include "kaiju.glsl"
-
-const float MIN_ROUGHNESS = 0.045;
-const float DEFAULT_AMBIENT_STRENGTH = 0.03;
-
-vec3 safeNormalize(vec3 v, vec3 fallback) {
-	float len2 = dot(v, v);
-	if (len2 <= 0.00000001) {
-		return fallback;
-	}
-	return v * inversesqrt(len2);
-}
-
-vec3 srgbToLinear(vec3 color) {
-	return pow(max(color, vec3(0.0)), vec3(2.2));
-}
-
-vec3 linearToSrgb(vec3 color) {
-	return pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
-}
-
-vec3 acesTonemap(vec3 color) {
-	const float a = 2.51;
-	const float b = 0.03;
-	const float c = 2.43;
-	const float d = 0.59;
-	const float e = 0.14;
-	return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
-}
+#include "pbr_lighting.glsl"
 
 mat3 fallbackTBN(vec3 n) {
 	vec3 up = abs(n.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
@@ -81,101 +54,32 @@ vec3 pbrNormal(vec3 geometricNormal) {
 	return normalize(tbn * normalize(tangentNormal));
 }
 
-float distanceAttenuation(LightInfo light, float dist) {
-	float denom = light.constant + light.linear * dist + light.quadratic * dist * dist;
-	return max(light.intensity, 0.0) / max(denom, 0.0001);
-}
-
-float lightVisibility(int lightType, int lightIdx, vec3 n, vec3 l, vec4 lightSpace, LightInfo light) {
-	#ifdef SHADOW_SAMPLERS
-		if (light.shadowIndex < 0) {
-			return 1.0;
-		}
-		if (lightType == 0) {
-			return 1.0 - directShadowCalculation(n, l, lightIdx, light.shadowIndex, light.farPlane);
-		}
-		if (lightType == 1) {
-			return 1.0 - pointShadowCalculation(fragPos, light.position, light.farPlane, light.shadowIndex, n);
-		}
-		if (lightType == 2) {
-			return 1.0 - spotShadowCalculation(lightSpace, n, l, light.nearPlane, light.farPlane, light.shadowIndex);
-		}
-	#endif
-	return 1.0;
-}
-
 void main() {
 	vec4 baseSample = texture(textures[0], fragTexCoords);
-	vec3 albedo = srgbToLinear(baseSample.rgb) * max(fragColor.rgb, vec3(0.0));
+	vec3 albedo = pbrSrgbToLinear(baseSample.rgb) * max(fragColor.rgb, vec3(0.0));
 	float alpha = baseSample.a * fragColor.a;
 
 	vec4 mrSample = texture(textures[2], fragTexCoords);
 	float metallic = clamp(mrSample.b * max(fragMetallic, 0.0), 0.0, 1.0);
-	float roughness = clamp(mrSample.g * max(fragRoughness, MIN_ROUGHNESS), MIN_ROUGHNESS, 1.0);
+	float roughness = clamp(mrSample.g * max(fragRoughness, PBR_MIN_ROUGHNESS), PBR_MIN_ROUGHNESS, 1.0);
 	float occlusion = clamp(mrSample.r, 0.0, 1.0);
-	vec3 emission = srgbToLinear(texture(textures[3], fragTexCoords).rgb) * max(fragEmissive, 0.0);
+	vec3 emission = pbrSrgbToLinear(texture(textures[3], fragTexCoords).rgb) * max(fragEmissive, 0.0);
 
-	vec3 geometricNormal = safeNormalize(fragNormal, vec3(0.0, 1.0, 0.0));
+	vec3 geometricNormal = pbrSafeNormalize(fragNormal, vec3(0.0, 1.0, 0.0));
 	vec3 N = pbrNormal(geometricNormal);
-	vec3 V = safeNormalize(cameraPosition.xyz - fragPos, geometricNormal);
-	float NdotV = max(dot(N, V), 0.0);
+	vec3 V = pbrSafeNormalize(cameraPosition.xyz - fragPos, geometricNormal);
 
 	processGBuffer(N);
 
-	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 	vec3 Lo = vec3(0.0);
-	vec3 ambient = vec3(DEFAULT_AMBIENT_STRENGTH) * albedo * occlusion;
+	vec3 ambient = vec3(PBR_DEFAULT_AMBIENT_STRENGTH) * albedo * occlusion;
 
 	for (int i = 0; i < fragLightCount; ++i) {
 		int lightIdx = fragLightIndexes[i];
-		if (lightIdx < 0 || lightIdx >= MAX_LIGHTS) {
-			continue;
-		}
-		LightInfo light = lightInfos[lightIdx];
-		// Ambient is a fill term and must not depend on whether the surface faces
-		// the direct light. Keeping this before the NdotL guard also makes the
-		// LightEntityData Ambient field effective on back-facing surfaces.
-		ambient += max(light.ambient, vec3(0.0)) * albedo * occlusion;
-		vec3 L = vec3(0.0);
-		float attenuation = 0.0;
-		if (light.type == 0) {
-			L = safeNormalize(-light.direction, geometricNormal);
-			attenuation = max(light.intensity, 0.0);
-		} else if (light.type == 1) {
-			vec3 toLight = light.position - fragPos;
-			float dist = length(toLight);
-			L = safeNormalize(toLight, geometricNormal);
-			attenuation = distanceAttenuation(light, dist);
-		} else if (light.type == 2) {
-			vec3 toLight = light.position - fragPos;
-			float dist = length(toLight);
-			L = safeNormalize(toLight, geometricNormal);
-			attenuation = distanceAttenuation(light, dist);
-			vec3 lightToFrag = safeNormalize(fragPos - light.position, -L);
-			float theta = dot(safeNormalize(light.direction, -L), lightToFrag);
-			float epsilon = max(light.cutoff - light.outerCutoff, 0.0001);
-			attenuation *= clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
-		} else {
-			continue;
-		}
-
-		float NdotL = max(dot(N, L), 0.0);
-		if (attenuation <= 0.0 || NdotL <= 0.0) {
-			continue;
-		}
-
-		vec3 H = safeNormalize(V + L, N);
-		float NDF = distributionGGX(N, H, roughness);
-		float G = geometrySmith(N, V, L, roughness);
-		vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-		vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
-		vec3 specular = (NDF * G * F) / max(4.0 * NdotV * NdotL, 0.001);
-		vec3 radiance = max(light.diffuse, vec3(0.0)) * attenuation;
-		float visibility = lightVisibility(light.type, lightIdx, N, L, fragPosLightSpace[i], light);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL * visibility;
+		pbrAccumulateLight(lightIdx, fragPosLightSpace[i], albedo, N, V,
+			metallic, roughness, occlusion, Lo, ambient);
 	}
 
-	vec3 color = ambient + Lo + emission;
-	color = linearToSrgb(acesTonemap(color));
+	vec3 color = pbrFinalColor(ambient, Lo, emission);
 	processFinalColor(vec4(color, alpha));
 }
