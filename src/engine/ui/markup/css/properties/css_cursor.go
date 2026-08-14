@@ -96,9 +96,14 @@ func (p Cursor) Process(panel *ui.Panel, elm *document.Element, values []rules.P
 		}
 	})
 
-	panel.Base().AddEvent(ui.EventTypeExit, func() {
-		host.Window.CursorStandard()
-	})
+	resetCursor := func() {
+		if host != nil && host.Window != nil {
+			host.Window.CursorStandard()
+		}
+	}
+	panel.Base().AddEvent(ui.EventTypeExit, resetCursor)
+	panel.Base().Entity().OnDeactivate.Add(resetCursor)
+	panel.Base().Entity().OnDestroy.Add(resetCursor)
 
 	return nil
 }

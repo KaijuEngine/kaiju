@@ -7,11 +7,11 @@
 package steam
 
 /*
+#cgo CPPFLAGS: -DBUILD_STEAM_API=1 -I${SRCDIR}/../../../publishing/steam_sdk/public
 #cgo CXXFLAGS: -std=c++11
-#cgo CFLAGS: -DBUILD_STEAM_API=1
 #cgo windows LDFLAGS: -L../../libs -lsteam_api64 -lstdc++
-#cgo steamdeck LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=../../libs
-#cgo linux LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=../../libs
+#cgo steamdeck LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=./
+#cgo linux LDFLAGS: -L../../libs -lsteam_api -lstdc++ -Wl,-rpath=./
 #include "steam_wrapper.h"
 
 #cgo noescape   c_SteamAPI_Init

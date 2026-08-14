@@ -159,9 +159,13 @@ int cocoa_in_live_resize(void) { return g_inLiveResize; }
 	return YES;
 }
 
+// Returning YES would terminate the process as soon as the last window
+// closes. The game loop runs on another thread and still needs to finish
+// Host.Teardown (Vulkan destroy). Window close is delivered to Go via
+// windowWillClose; main.darwin.go stops the run loop after teardown.
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
 	(void)sender;
-	return YES;
+	return NO;
 }
 @end
 
@@ -379,6 +383,25 @@ void cocoa_run_app(void) {
 
 		[NSApp run];
 	}
+}
+
+// Ends [NSApp run] after Go has finished Host.Teardown. Always hops to the
+// main queue so it is safe to call from the game-loop goroutine.
+void cocoa_stop_app(void) {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[NSApp stop:nil];
+		// stop: only applies after the next event is processed.
+		NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+											location:NSMakePoint(0, 0)
+									   modifierFlags:0
+										   timestamp:0
+										windowNumber:0
+											 context:nil
+											 subtype:0
+											   data1:0
+											   data2:0];
+		[NSApp postEvent:event atStart:YES];
+	});
 }
 
 #pragma mark - Public API (unchanged)

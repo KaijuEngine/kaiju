@@ -20,7 +20,7 @@ func initExternalGameService() {
 func initExternalGameServiceRuntime(host *engine.Host) {
 	if steam.IsInitialized() {
 		sid := host.Updater.AddUpdate(func(f float64) { steam.RunCallbacks() })
-		host.OnClose.Add(func() { host.Updater.RemoveUpdate(sid) })
+		host.OnClose.Add(func() { host.Updater.RemoveUpdate(&sid) })
 	}
 }
 

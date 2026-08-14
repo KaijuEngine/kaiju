@@ -157,7 +157,7 @@ func (g *GPUDevice) createGraphicsShader(shader *Shader, assetDB assets.Database
 	shader.pipelineInfo.ConstructPipeline(g, shader, shader.renderPass.Value(), stages)
 	runtime.AddCleanup(shader, func(state ShaderCleanup) {
 		d := state.device.Value()
-		if d == nil {
+		if d == nil || !d.LogicalDevice.IsValid() {
 			return
 		}
 		d.Painter.preRuns = append(d.Painter.preRuns, func() {
