@@ -1,6 +1,9 @@
 package render_graph_workspace
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -18,11 +21,43 @@ func TestRenderGraphCompilerDefaultGraphGeneratesPBRFragment(t *testing.T) {
 		"vec4 graphBaseColor = fragColor;",
 		"float roughness = clamp(mrSample.g * max(fragRoughness, MIN_ROUGHNESS), MIN_ROUGHNESS, 1.0);",
 		"vec3 N = pbrNormal(geometricNormal);",
+		"if (light.shadowIndex < 0)",
+		"directShadowCalculation(n, l, lightIdx, light.shadowIndex, light.farPlane)",
+		"pointShadowCalculation(fragPos, light.position, light.farPlane, light.shadowIndex, n)",
+		"spotShadowCalculation(lightSpace, n, l, light.nearPlane, light.farPlane, light.shadowIndex)",
 		"processFinalColor(vec4(color, alpha));",
 	} {
 		if !strings.Contains(source, want) {
 			t.Fatalf("generated fragment missing %q", want)
 		}
+	}
+}
+
+func TestRenderGraphCompilerDefaultFragmentCompiles(t *testing.T) {
+	glslc, err := exec.LookPath("glslc")
+	if err != nil {
+		t.Skip("glslc is not available")
+	}
+	out, err := compileRenderGraphDocumentOutput(defaultRenderGraphCompilerDocument())
+	if err != nil {
+		t.Fatalf("compileRenderGraphDocumentOutput() error = %v", err)
+	}
+	include, err := os.ReadFile(filepath.Join("..", "..", "editor_embedded_content",
+		"editor_content", "renderer", "src", "kaiju.glsl"))
+	if err != nil {
+		t.Fatalf("read embedded kaiju.glsl: %v", err)
+	}
+	dir := t.TempDir()
+	fragmentPath := filepath.Join(dir, "render_graph_test.frag")
+	if err = os.WriteFile(fragmentPath, []byte(out.FragmentSource), 0o600); err != nil {
+		t.Fatalf("write generated fragment: %v", err)
+	}
+	if err = os.WriteFile(filepath.Join(dir, "kaiju.glsl"), include, 0o600); err != nil {
+		t.Fatalf("write kaiju.glsl: %v", err)
+	}
+	spvPath := filepath.Join(dir, "render_graph_test.frag.spv")
+	if output, compileErr := exec.Command(glslc, fragmentPath, "-o", spvPath).CombinedOutput(); compileErr != nil {
+		t.Fatalf("glslc generated fragment: %v\n%s", compileErr, output)
 	}
 }
 
