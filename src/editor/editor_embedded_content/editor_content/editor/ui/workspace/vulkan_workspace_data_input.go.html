@@ -188,7 +188,7 @@
 				{{if eq .Name "Material Editor"}}
 				<div class="inputItem">
 					<div class="inputLabel">Name:</div>
-					<input id="nameInput" class="input" type="text" placeholder="Name..." value="{{.GroupName}}" />
+					<input id="nameInput" class="input" type="text" placeholder="Name..." value="{{.GroupName}}" onchange="nameChanged" />
 				</div>
 				{{end}}
 				{{template "section" .}}

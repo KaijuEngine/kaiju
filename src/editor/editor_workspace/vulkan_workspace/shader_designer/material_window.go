@@ -104,6 +104,7 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 	win.materialDoc, _ = markup.DocumentFromHTMLAsset(win.uiMan, dataInputHTML,
 		data, map[string]func(*document.Element){
 			"showTooltip":          showMaterialTooltip,
+			"nameChanged":          win.materialNameChanged,
 			"valueChanged":         win.materialValueChanged,
 			"addToSlice":           win.materialAddToSlice,
 			"removeFromSlice":      win.materialRemoveFromSlice,
@@ -122,7 +123,21 @@ func (win *ShaderDesigner) reloadMaterialDoc() {
 
 func showMaterialTooltip(e *document.Element) { showTooltip(materialTooltips, e) }
 
+func (win *ShaderDesigner) syncMaterialNameFromInput() {
+	input := win.nameInputField.Value()
+	if input != nil && input.UI != nil {
+		win.material.name = input.UI.ToInput().Text()
+	}
+}
+
+func (win *ShaderDesigner) materialNameChanged(e *document.Element) {
+	win.material.name = e.UI.ToInput().Text()
+}
+
 func (win *ShaderDesigner) materialAddToSlice(e *document.Element) {
+	// Adding a row rebuilds the material document. Capture the name first so
+	// the new document is populated with the text the user has entered.
+	win.syncMaterialNameFromInput()
 	common_workspace.ReflectAddToSlice(&win.material, e)
 	win.reloadMaterialDoc()
 }
@@ -146,6 +161,8 @@ func (win *ShaderDesigner) clickSelectContentId(e *document.Element) {
 }
 
 func (win *ShaderDesigner) materialRemoveFromSlice(e *document.Element) {
+	// Removing a row rebuilds the material document just like adding one does.
+	win.syncMaterialNameFromInput()
 	common_workspace.ReflectRemoveFromSlice(&win.material, e)
 	win.reloadMaterialDoc()
 }
@@ -169,7 +186,7 @@ func loadMaterialData(path string) (rendering.MaterialData, bool) {
 }
 
 func (win *ShaderDesigner) materialSave(e *document.Element) {
-	win.material.name = win.nameInputField.Value().UI.ToInput().Text()
+	win.syncMaterialNameFromInput()
 	win.material.RenderPass = filepath.ToSlash(win.material.RenderPass)
 	win.material.Shader = filepath.ToSlash(win.material.Shader)
 	win.material.ShaderPipeline = filepath.ToSlash(win.material.ShaderPipeline)
