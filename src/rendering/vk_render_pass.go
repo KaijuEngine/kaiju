@@ -56,6 +56,10 @@ type RenderPassCommandSet struct {
 	cmd          CommandRecorder
 	cmdSecondary CommandRecorderSecondary
 	subpassCmds  []CommandRecorderSecondary
+	// A target view records commands before the swapchain view. Its subpass
+	// descriptors must remain unchanged until that command buffer is submitted.
+	subpassDescriptorSets  [][maxFramesInFlight]GPUDescriptorSet
+	subpassDescriptorPools []GPUDescriptorPool
 }
 
 func (r *RenderPass) Width() int  { return r.construction.Width }
@@ -304,13 +308,28 @@ func (r *RenderPass) createViewCommandSet(device *GPUDevice) (RenderPassCommandS
 		return RenderPassCommandSet{}, err
 	}
 	set.subpassCmds = make([]CommandRecorderSecondary, len(r.subpasses))
+	set.subpassDescriptorSets = make([][maxFramesInFlight]GPUDescriptorSet, len(r.subpasses))
+	set.subpassDescriptorPools = make([]GPUDescriptorPool, len(r.subpasses))
 	for i := range r.subpasses {
 		if set.subpassCmds[i], err = NewCommandRecorderSecondary(device, r, i+1); err != nil {
 			set.destroy(device)
 			return RenderPassCommandSet{}, err
 		}
+		set.subpassDescriptorSets[i], set.subpassDescriptorPools[i], err =
+			device.createDescriptorSet(r.subpasses[i].shader.RenderId.descriptorSetLayout, 0)
+		if err != nil {
+			set.destroy(device)
+			return RenderPassCommandSet{}, err
+		}
 	}
 	return set, nil
+}
+
+func (r *RenderPass) activeSubpassDescriptorSet(index, frame int) GPUDescriptorSet {
+	if r.activeCmds != nil {
+		return r.activeCmds.subpassDescriptorSets[index][frame]
+	}
+	return r.subpasses[index].descriptorSets[frame]
 }
 
 func (r *RenderPass) activePrimaryCommand() *CommandRecorder {
@@ -354,7 +373,23 @@ func (s *RenderPassCommandSet) destroy(device *GPUDevice) {
 			s.subpassCmds[i].Destroy(device)
 		}
 	}
+	for i := range s.subpassDescriptorSets {
+		pool := GPUDescriptorPool{}
+		if i < len(s.subpassDescriptorPools) {
+			pool = s.subpassDescriptorPools[i]
+		}
+		if pool.IsValid() ||
+			len(validDescriptorSets(s.subpassDescriptorSets[i])) > 0 {
+			device.LogicalDevice.bufferTrash.Add(bufferTrash{
+				delay: maxFramesInFlight,
+				pool:  pool,
+				sets:  s.subpassDescriptorSets[i],
+			})
+		}
+	}
 	s.subpassCmds = nil
+	s.subpassDescriptorSets = nil
+	s.subpassDescriptorPools = nil
 }
 
 func isDepthFormat(format vulkan_const.Format) bool {

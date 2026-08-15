@@ -99,7 +99,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
 		descriptorWrites := [10]vk.WriteDescriptorSet{}
 		//descriptorWrites := make([]vk.WriteDescriptorSet, len(s.sampledImages))
-		set := s.descriptorSets[g.Painter.currentFrame]
+		set := renderPass.activeSubpassDescriptorSet(i, g.Painter.currentFrame)
 		for j := range s.sampledImages {
 			if j >= len(descriptorWrites) {
 				slog.Error("not enough descriptor writes for this action")
@@ -110,7 +110,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 			descriptorWrites[j] = prepareSetWriteImage(vk.DescriptorSet(set.handle), imageInfos[j:j+1], uint32(j), true)
 		}
 		vk.UpdateDescriptorSets(vk.Device(g.LogicalDevice.handle), uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
-		ds := [...]vk.DescriptorSet{vk.DescriptorSet(s.descriptorSets[g.Painter.currentFrame].handle)}
+		ds := [...]vk.DescriptorSet{vk.DescriptorSet(set.handle)}
 		dsOffsets := [...]uint32{0}
 		vk.CmdBindDescriptorSets(cmd.buffer, vulkan_const.PipelineBindPointGraphics,
 			vk.PipelineLayout(s.shader.RenderId.pipelineLayout.handle), 0, uint32(len(ds)), &ds[0], 0, &dsOffsets[0])
