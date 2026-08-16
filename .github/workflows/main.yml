@@ -35,5 +35,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CUSTOM_DOMAIN: kaijuengine.com
-          #EXTRA_PACKAGES: build-base
+          EXTRA_PACKAGES: git-lfs
           #REQUIREMENTS: folder/requirements.txt
