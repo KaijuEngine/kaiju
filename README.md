@@ -1,7 +1,7 @@
 ![kaiju-engine-logo](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/index.md/kaiju_engine_text_wide_logo.png)
 
 # Kaiju Engine
-Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal of the engine is to use a modern, easy, systems level programming language, with a focus on simplicity, to create a new kind of game engine.
+Kaiju is a traditionally designed and coded, 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal of the engine is to use a modern, easy, systems level programming language, with a focus on simplicity, to create a new kind of game engine.
 
 - 📄 2D / 🧊 3D Game Engine
 - 🖥️ Built-in editor 
@@ -15,8 +15,6 @@ Kaiju is a 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal o
 - 🚚 Faster builds than other game engines
 - 🔥 Better performance than other game engines
 - ⚠️🚧🏗️👷‍♂️ Work in progress, under heavy development
-
-Check out our [project board](https://github.com/orgs/KaijuEngine/projects/1) for things we're workin' on.
 
 ## Sponsor the project
 If you like the project, and would like to support it, please consider [becomming a sponsor on GitHub](https://github.com/sponsors/BrentFarris).
@@ -61,11 +59,6 @@ git clone https://github.com/KaijuEngine/kaiju.git
 ```
 
 If you clone in this way, you'll need to manually build the library dependencies yourself. Please view [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine/build_from_source.md#building-soloud) for how to build Soloud and [this doc](https://github.com/KaijuEngine/kaiju/blob/master/docs/engine/build_from_source.md#building-bullet3) for how to build Bullet3.
-
-
-
-
-
 
 ## Documentation
 To run the documentation locally, you need to install `mkdocs` and `mkdocs-material`.
