@@ -1,153 +1,49 @@
-function formatPostDate(value) {
-	if (!value) {
-		return "";
-	}
-
-	const date = new Date(`${value}T00:00:00`);
-	if (Number.isNaN(date.getTime())) {
-		return value;
-	}
-
-	return new Intl.DateTimeFormat(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric"
-	}).format(date);
-}
-
-function createNewsCard(post, newsUrl) {
-	const article = document.createElement("a");
-	article.className = "kl-card kl-blog-card";
-	article.href = new URL(post.url || "../blog/", newsUrl).pathname;
-	article.setAttribute("aria-label", `Read ${post.title || "Kaiju update"}`);
-
-	const category = document.createElement("span");
-	category.textContent = post.category || "Update";
-	article.appendChild(category);
-
-	const title = document.createElement("h3");
-	title.textContent = post.title || "Kaiju update";
-	article.appendChild(title);
-
-	const time = document.createElement("time");
-	time.dateTime = post.date || "";
-	time.textContent = formatPostDate(post.date);
-	article.appendChild(time);
-
-	const description = document.createElement("p");
-	description.textContent = post.description || "";
-	article.appendChild(description);
-
-	const link = document.createElement("span");
-	link.className = "kl-text-link";
-	link.innerHTML = 'Read post <span aria-hidden="true">-&gt;</span>';
-	article.appendChild(link);
-
-	return article;
-}
-
-async function loadNews() {
-	const list = document.getElementById("kaiju-news-list");
-	if (!list) {
+async function listSponsors() {
+	const table = document.getElementById("sponsors");
+	if (!table || table.dataset.loaded === "true") {
 		return;
 	}
 
-	const source = list.dataset.newsSrc || "blog/posts.json";
-	const newsUrl = new URL(source, document.baseURI);
+	table.dataset.loaded = "true";
 
 	try {
-		const response = await fetch(newsUrl);
+		const response = await fetch("https://raw.githubusercontent.com/KaijuEngine/kaiju/refs/heads/master/sponsors.json");
 		if (!response.ok) {
-			throw new Error("Unable to load news");
+			throw new Error("Unable to load sponsors");
 		}
 
-		const posts = await response.json();
-		const sortedPosts = posts
-			.slice()
-			.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
-			.slice(0, 3);
+		const sponsors = await response.json();
+		sponsors.sort((a, b) => b.Support - a.Support);
 
-		list.replaceChildren(...sortedPosts.map(post => createNewsCard(post, newsUrl)));
+		for (const sponsor of sponsors) {
+			const row = document.createElement("tr");
+			const name = document.createElement("td");
+			name.textContent = sponsor.Name;
+			row.appendChild(name);
+
+			const github = document.createElement("td");
+			const link = document.createElement("a");
+			link.href = `https://github.com/${sponsor.GitHub}`;
+			link.textContent = sponsor.GitHub;
+			link.target = "_blank";
+			link.rel = "noopener";
+			github.appendChild(link);
+			row.appendChild(github);
+			table.appendChild(row);
+		}
 	} catch {
-		const fallback = document.createElement("p");
-		fallback.className = "kl-news-loading";
-		fallback.innerHTML = 'News could not be loaded right now. <a class="kl-text-link" href="blog/">Open the blog <span aria-hidden="true">-&gt;</span></a>';
-		list.replaceChildren(fallback);
+		table.dataset.loaded = "false";
 	}
 }
 
-function setupShowcase() {
-	const video = document.getElementById("kaiju-showcase-video");
-	const title = document.getElementById("kaiju-showcase-title");
-	const description = document.getElementById("kaiju-showcase-description");
-	const buttons = document.querySelectorAll(".kl-showcase-thumb");
-	const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-	buttons.forEach(button => {
-		if (button.dataset.showcaseReady === "true") {
-			return;
-		}
-
-		button.dataset.showcaseReady = "true";
-		button.addEventListener("click", () => {
-			buttons.forEach(item => {
-				item.classList.remove("is-active");
-				item.setAttribute("aria-pressed", "false");
-			});
-
-			button.classList.add("is-active");
-			button.setAttribute("aria-pressed", "true");
-
-			if (title) {
-				title.textContent = button.dataset.title || "";
-			}
-
-			if (description) {
-				description.textContent = button.dataset.description || "";
-			}
-
-			if (video instanceof HTMLVideoElement && button.dataset.video) {
-				const source = video.querySelector("source");
-				if (source) {
-					source.src = button.dataset.video;
-				}
-
-				if (button.dataset.poster) {
-					video.poster = button.dataset.poster;
-				}
-
-				video.load();
-
-				if (!prefersReducedMotion) {
-					video.play().catch(() => {});
-				}
-			}
-		});
-	});
-}
-
-async function processIndex() {
-	if (!document.querySelector(".kaiju-landing")) {
-		return;
-	}
-
-	setupShowcase();
-}
-
-function onReady(callback) {
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", callback, { once: true });
-	} else {
-		callback();
-	}
+function processPage() {
+	listSponsors();
 }
 
 if (typeof document$ !== "undefined") {
-	document$.subscribe(() => {
-		processIndex();
-	});
+	document$.subscribe(processPage);
+} else if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", processPage, { once: true });
 } else {
-	onReady(() => {
-		processIndex();
-	});
+	processPage();
 }
