@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	renderGraphNodeZBase = float32(5)
-	renderGraphNodeZStep = float32(0.5)
+	renderGraphNodeZBase = matrix.Float(5)
+	renderGraphNodeZStep = matrix.Float(0.5)
 )
 
 func (g *renderGraph) assignNodeZSlot(node *renderGraphNode) {
@@ -79,14 +79,14 @@ func (g *renderGraph) applySelectionZOrder() {
 	}
 }
 
-func (g *renderGraph) nodeZDepthForSlot(slot int) float32 {
+func (g *renderGraph) nodeZDepthForSlot(slot int) matrix.Float {
 	if slot < 0 {
 		slot = 0
 	}
-	return renderGraphNodeZBase + float32(slot)*renderGraphNodeZStep
+	return renderGraphNodeZBase + matrix.Float(slot)*renderGraphNodeZStep
 }
 
-func (n *renderGraphNode) setZDepth(z float32) {
+func (n *renderGraphNode) setZDepth(z matrix.Float) {
 	if n == nil || matrix.Approx(n.zDepth, z) {
 		return
 	}

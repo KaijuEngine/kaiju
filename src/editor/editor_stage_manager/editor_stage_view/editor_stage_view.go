@@ -270,7 +270,7 @@ func (v *StageView) createViewportGrid() {
 	}
 	points := make([]matrix.Vec3, 0, gridCount*4)
 	for i := -halfGridCount; i <= halfGridCount; i++ {
-		fi := float32(i)
+		fi := matrix.Float(i)
 		points = append(points, matrix.NewVec3(fi, 0, -halfGridCount))
 		points = append(points, matrix.NewVec3(fi, 0, halfGridCount))
 		points = append(points, matrix.NewVec3(-halfGridCount, 0, fi))

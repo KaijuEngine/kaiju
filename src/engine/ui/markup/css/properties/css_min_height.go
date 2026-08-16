@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p MinHeight) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -31,7 +32,7 @@ func (p MinHeight) Process(panel *ui.Panel, elm *document.Element, values []rule
 	if strings.HasSuffix(values[0].Str, "%") {
 		layout := panel.Base().Layout()
 		if layout.Ui().Entity().IsRoot() {
-			minH = float32(host.Window.Height()) * minH
+			minH = matrix.Float(host.Window.Height()) * minH
 		} else if pUI := ui.FirstOnEntity(layout.Ui().Entity().Parent); pUI != nil {
 			pLayout := pUI.Layout()
 			s := pLayout.PixelSize().Y() - pLayout.Padding().Vertical() - pLayout.Border().Vertical()

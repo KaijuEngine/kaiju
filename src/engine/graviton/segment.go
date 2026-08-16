@@ -14,7 +14,7 @@ type Segment struct {
 }
 
 // LineSegmentFromRay creates a line segment from a ray
-func LineSegmentFromRay(ray Ray, length float32) Segment {
+func LineSegmentFromRay(ray Ray, length matrix.Float) Segment {
 	return Segment{ray.Origin, ray.Point(length)}
 }
 

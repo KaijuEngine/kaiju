@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 const inputRequiredScreenshotOutput = "integration_test_input_required.png"
@@ -109,8 +110,8 @@ const (
 
 func sampleInputRequiredColor(host *engine.Host, img *image.RGBA, elm *document.Element) inputRequiredColor {
 	left, top, right, bottom := elementBoundsPixels(host, img.Bounds(), elm.UI)
-	x := clampPixel((left+right)*0.5, float32(img.Bounds().Dx()))
-	y := clampPixel((top+bottom)*0.5, float32(img.Bounds().Dy()))
+	x := clampPixel((left+right)*0.5, matrix.Float(img.Bounds().Dx()))
+	y := clampPixel((top+bottom)*0.5, matrix.Float(img.Bounds().Dy()))
 	c := img.RGBAAt(x, y)
 	switch {
 	case c.R > 170 && c.G < 90 && c.B < 100:

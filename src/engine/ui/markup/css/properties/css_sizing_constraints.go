@@ -11,14 +11,15 @@ import (
 	"strings"
 
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/matrix"
 )
 
 type cssSizingConstraints struct {
-	MinWidth      float32
-	MaxWidth      float32
-	MinHeight     float32
-	MaxHeight     float32
-	AspectRatio   float32
+	MinWidth      matrix.Float
+	MaxWidth      matrix.Float
+	MinHeight     matrix.Float
+	MaxHeight     matrix.Float
+	AspectRatio   matrix.Float
 	UsesBoxSizing bool
 }
 
@@ -61,7 +62,7 @@ func currentSizingConstraints(panel *ui.Panel) cssSizingConstraints {
 	}
 }
 
-func enableMinWidth(panel *ui.Panel, v float32) {
+func enableMinWidth(panel *ui.Panel, v matrix.Float) {
 	panel.SetMinWidth(v)
 }
 
@@ -69,7 +70,7 @@ func disableMinWidth(panel *ui.Panel) {
 	panel.SetMinWidth(0)
 }
 
-func enableMaxWidth(panel *ui.Panel, v float32) {
+func enableMaxWidth(panel *ui.Panel, v matrix.Float) {
 	panel.SetMaxWidth(v)
 }
 
@@ -77,7 +78,7 @@ func disableMaxWidth(panel *ui.Panel) {
 	panel.SetMaxWidth(-1)
 }
 
-func enableMinHeight(panel *ui.Panel, v float32) {
+func enableMinHeight(panel *ui.Panel, v matrix.Float) {
 	panel.SetMinHeight(v)
 }
 
@@ -85,7 +86,7 @@ func disableMinHeight(panel *ui.Panel) {
 	panel.SetMinHeight(0)
 }
 
-func enableMaxHeight(panel *ui.Panel, v float32) {
+func enableMaxHeight(panel *ui.Panel, v matrix.Float) {
 	panel.SetMaxHeight(v)
 }
 
@@ -93,7 +94,7 @@ func disableMaxHeight(panel *ui.Panel) {
 	panel.SetMaxHeight(-1)
 }
 
-func enableAspectRatio(panel *ui.Panel, ratio float32) {
+func enableAspectRatio(panel *ui.Panel, ratio matrix.Float) {
 	panel.SetAspectRatio(ratio)
 }
 
@@ -109,7 +110,7 @@ func enableContentBoxSizing(panel *ui.Panel) {
 	panel.SetUsesBorderBox(false)
 }
 
-func applyWidthConstraints(panel *ui.Panel, width float32) float32 {
+func applyWidthConstraints(panel *ui.Panel, width matrix.Float) matrix.Float {
 	c := currentSizingConstraints(panel)
 	if c.HasMinWidth() && width < c.MinWidth {
 		return c.MinWidth
@@ -120,7 +121,7 @@ func applyWidthConstraints(panel *ui.Panel, width float32) float32 {
 	return width
 }
 
-func applyHeightConstraints(panel *ui.Panel, height float32) float32 {
+func applyHeightConstraints(panel *ui.Panel, height matrix.Float) matrix.Float {
 	c := currentSizingConstraints(panel)
 	if c.HasMinHeight() && height < c.MinHeight {
 		return c.MinHeight
@@ -131,7 +132,7 @@ func applyHeightConstraints(panel *ui.Panel, height float32) float32 {
 	return height
 }
 
-func parseRatio(values []string) (float32, bool) {
+func parseRatio(values []string) (matrix.Float, bool) {
 	if len(values) == 1 {
 		r := strings.TrimSpace(values[0])
 		if r == "auto" || r == "initial" {
@@ -160,7 +161,7 @@ func parseRatio(values []string) (float32, bool) {
 	return 0, false
 }
 
-func parseSimpleFloat(v string) float32 {
+func parseSimpleFloat(v string) matrix.Float {
 	v = strings.TrimSpace(v)
 	if v == "" {
 		return 0
@@ -169,5 +170,5 @@ func parseSimpleFloat(v string) float32 {
 	if err != nil {
 		return 0
 	}
-	return float32(out)
+	return matrix.Float(out)
 }

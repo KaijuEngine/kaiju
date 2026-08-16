@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
@@ -638,7 +639,7 @@ func (hui *WorkspaceHierarchyUI) setIndent(row *document.Element) {
 		parentCount++
 		parent = parent.Parent.Value()
 	}
-	entryNameSpan(row).Base().Layout().SetPadding(float32(parentCount*10), 0, 0, 0)
+	entryNameSpan(row).Base().Layout().SetPadding(matrix.Float(parentCount*10), 0, 0, 0)
 }
 
 func (hui *WorkspaceHierarchyUI) refreshHierarchyToggle(row *document.Element) {

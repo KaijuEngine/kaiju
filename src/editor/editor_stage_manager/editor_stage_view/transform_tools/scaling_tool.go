@@ -131,7 +131,7 @@ func (t *ScalingTool) Hide() {
 	t.dragging = false
 }
 
-func (t *ScalingTool) Update(host *engine.Host, snap bool, snapScale float32) bool {
+func (t *ScalingTool) Update(host *engine.Host, snap bool, snapScale matrix.Float) bool {
 	if !t.visible {
 		return false
 	}
@@ -239,7 +239,7 @@ func (t *ScalingTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	}
 }
 
-func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
+func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale matrix.Float) {
 	if t.currentAxis == -1 {
 		return
 	}
@@ -279,7 +279,7 @@ func (t *ScalingTool) processDrag(host *engine.Host, cam cameras.Camera, snap bo
 	}
 }
 
-func (t *ScalingTool) procRayOnAxis(c *hid.Cursor, cam cameras.Camera, snap bool, snapScale float32) matrix.Vec3 {
+func (t *ScalingTool) procRayOnAxis(c *hid.Cursor, cam cameras.Camera, snap bool, snapScale matrix.Float) matrix.Vec3 {
 	dragPos := t.root.Position()
 	cp := cam.Position()
 	switch t.currentAxis {

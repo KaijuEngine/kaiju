@@ -81,7 +81,7 @@ const (
 // on a hot path like ColorSpan, so strategies return it by value with no
 // allocation.
 type VirtualRect struct {
-	X, Y, W, H float32
+	X, Y, W, H matrix.Float
 }
 
 // VirtualVisitor receives each visible item index during a VisibleAt

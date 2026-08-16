@@ -216,7 +216,7 @@ func (c *TerrainCollision) Raycast(ray Ray, length matrix.Float, transform *matr
 	if transform != nil {
 		inv := transform.InverseWorldMatrix()
 		localOrigin := inv.TransformPoint(ray.Origin)
-		localEnd := inv.TransformPoint(ray.Point(float32(length)))
+		localEnd := inv.TransformPoint(ray.Point(matrix.Float(length)))
 		localDelta := localEnd.Subtract(localOrigin)
 		localLength = localDelta.Length()
 		if localLength <= contactEpsilon {
@@ -279,12 +279,12 @@ func (c *TerrainCollision) raycastLocal(ray Ray, length matrix.Float) (matrix.Ve
 		entry = 0
 	}
 	lastDistance := entry
-	lastPoint := ray.Point(float32(lastDistance))
+	lastPoint := ray.Point(matrix.Float(lastDistance))
 	if lastPoint.Y() <= c.HeightAtLocal(lastPoint.XZ()) {
 		return lastPoint, true
 	}
 	for distance := entry + step; distance <= exit+matrix.Tiny; distance += step {
-		point := ray.Point(float32(min(distance, exit)))
+		point := ray.Point(matrix.Float(min(distance, exit)))
 		if point.Y() <= c.HeightAtLocal(point.XZ()) {
 			return c.refineRayHit(ray, lastDistance, min(distance, exit)), true
 		}
@@ -296,14 +296,14 @@ func (c *TerrainCollision) raycastLocal(ray Ray, length matrix.Float) (matrix.Ve
 func (c *TerrainCollision) refineRayHit(ray Ray, low, high matrix.Float) matrix.Vec3 {
 	for i := 0; i < 12; i++ {
 		mid := (low + high) * 0.5
-		point := ray.Point(float32(mid))
+		point := ray.Point(matrix.Float(mid))
 		if point.Y() > c.HeightAtLocal(point.XZ()) {
 			low = mid
 		} else {
 			high = mid
 		}
 	}
-	return ray.Point(float32(high))
+	return ray.Point(matrix.Float(high))
 }
 
 func terrainRayBounds(ray Ray, minBounds, maxBounds matrix.Vec3) (matrix.Float, matrix.Float, bool) {

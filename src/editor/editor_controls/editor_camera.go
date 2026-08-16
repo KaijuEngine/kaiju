@@ -26,12 +26,12 @@ import (
 
 const (
 	rotScale                = 0.005
-	zoomScale3DScroll       = float32(0.05)
-	zoomScale2DScroll       = float32(1.0)
+	zoomScale3DScroll       = matrix.Float(0.05)
+	zoomScale2DScroll       = matrix.Float(1.0)
 	zoomScale3D             = zoomScale3DScroll * 0.1
 	zoomScale2D             = zoomScale2DScroll * 0.1
-	defaultFlySpeed         = float32(10)
-	defaultFlyBoost         = float32(4)
+	defaultFlySpeed         = matrix.Float(10)
+	defaultFlyBoost         = matrix.Float(4)
 	flySpeedScrollIncrement = 0.1
 	flySpeedModifierMin     = 0.1
 	flySpeedModifierMax     = 10
@@ -53,10 +53,10 @@ const (
 var cameraModeStrings = []string{"None", "3D", "2D", "Top", "Front", "Side", "Left", "Right"}
 
 type EditorCameraViewport struct {
-	Left    float32
-	Top     float32
-	Width   float32
-	Height  float32
+	Left    matrix.Float
+	Top     matrix.Float
+	Width   matrix.Float
+	Height  matrix.Float
 	Enabled bool
 }
 
@@ -74,7 +74,7 @@ type EditorCamera struct {
 	mode             EditorCameraMode
 	resizeId         events.Id
 	flyCamStarted    bool
-	flySpeedModifier float32
+	flySpeedModifier matrix.Float
 }
 
 func (e *EditorCamera) Mode() EditorCameraMode  { return e.mode }
@@ -109,7 +109,7 @@ Height: %f`, p.X(), p.Y(), p.Z(), l.X(), l.Y(), l.Z(), c.NearPlane(), c.FarPlane
 	}
 }
 
-func (e *EditorCamera) SetViewportBounds(left, top, width, height float32) {
+func (e *EditorCamera) SetViewportBounds(left, top, width, height matrix.Float) {
 	if width <= 0 || height <= 0 {
 		return
 	}
@@ -131,11 +131,11 @@ func (e *EditorCamera) LookAtPoint() matrix.Vec3 {
 	return e.camera.LookAt()
 }
 
-func (e *EditorCamera) viewportSize(host *engine.Host) (float32, float32) {
+func (e *EditorCamera) viewportSize(host *engine.Host) (matrix.Float, matrix.Float) {
 	if e.viewport.Enabled {
 		return e.viewport.Width, e.viewport.Height
 	}
-	return float32(host.Window.Width()), float32(host.Window.Height())
+	return matrix.Float(host.Window.Width()), matrix.Float(host.Window.Height())
 }
 
 func (e *EditorCamera) viewportCenter(host *engine.Host) (int, int) {
@@ -169,7 +169,7 @@ func (e *EditorCamera) localScreenPosition(pos matrix.Vec2) matrix.Vec2 {
 
 func (e *EditorCamera) localPositionFromScreen(host *engine.Host, pos matrix.Vec2) matrix.Vec2 {
 	if !e.viewport.Enabled {
-		return matrix.NewVec2(pos.X(), float32(host.Window.Height())-pos.Y())
+		return matrix.NewVec2(pos.X(), matrix.Float(host.Window.Height())-pos.Y())
 	}
 	return matrix.NewVec2(pos.X()-e.viewport.Left, e.viewport.Height-(pos.Y()-e.viewport.Top))
 }
@@ -414,14 +414,14 @@ func (e *EditorCamera) update3dFly(host *engine.Host, deltaTime float64) (change
 	return changed
 }
 
-func (e *EditorCamera) flySpeed() float32 {
+func (e *EditorCamera) flySpeed() matrix.Float {
 	if e.Settings == nil || e.Settings.FlySpeed <= 0 {
 		return defaultFlySpeed
 	}
 	return e.Settings.FlySpeed
 }
 
-func (e *EditorCamera) flyBoostMultiplier() float32 {
+func (e *EditorCamera) flyBoostMultiplier() matrix.Float {
 	if e.Settings == nil || e.Settings.FlyBoostMultiplier <= 0 {
 		return defaultFlyBoost
 	}
@@ -655,21 +655,21 @@ func (e *EditorCamera) panFixedOrthographic(oc *cameras.StandardCamera, from, to
 	oc.SetPositionAndLookAt(oc.Position().Add(delta), oc.LookAt().Add(delta))
 }
 
-func (e *EditorCamera) zoomSpeed() float32 {
+func (e *EditorCamera) zoomSpeed() matrix.Float {
 	if e.Settings == nil || e.Settings.ZoomSpeed <= 0 {
 		return 120
 	}
 	return e.Settings.ZoomSpeed
 }
 
-func newFixedOrthographicStageCamera(mode EditorCameraMode, viewWidth, viewHeight float32) cameras.Camera {
+func newFixedOrthographicStageCamera(mode EditorCameraMode, viewWidth, viewHeight matrix.Float) cameras.Camera {
 	if viewWidth <= 0 {
 		viewWidth = 1
 	}
 	if viewHeight <= 0 {
 		viewHeight = 1
 	}
-	const size float32 = 20
+	const size matrix.Float = 20
 	width := size * (viewWidth / viewHeight)
 	height := size
 	const distance matrix.Float = 50

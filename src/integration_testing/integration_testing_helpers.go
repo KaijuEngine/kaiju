@@ -84,17 +84,17 @@ func writeScreenshotImage(img image.Image, path string) error {
 	return os.WriteFile(path, buf.Bytes(), os.ModePerm)
 }
 
-func elementBoundsPixels(host *engine.Host, bounds image.Rectangle, elmUI *ui.UI) (float32, float32, float32, float32) {
+func elementBoundsPixels(host *engine.Host, bounds image.Rectangle, elmUI *ui.UI) (matrix.Float, matrix.Float, matrix.Float, matrix.Float) {
 	pos := elmUI.Entity().Transform.WorldPosition()
 	size := elmUI.Layout().PixelSize()
-	imgW := float32(bounds.Dx())
-	imgH := float32(bounds.Dy())
-	scaleX := imgW / float32(host.Window.Width())
-	scaleY := imgH / float32(host.Window.Height())
-	centerX := (float32(pos.X()) + float32(host.Window.Width())*0.5) * scaleX
-	centerY := (float32(host.Window.Height())*0.5 - float32(pos.Y())) * scaleY
-	halfW := float32(size.X()) * scaleX * 0.5
-	halfH := float32(size.Y()) * scaleY * 0.5
+	imgW := matrix.Float(bounds.Dx())
+	imgH := matrix.Float(bounds.Dy())
+	scaleX := imgW / matrix.Float(host.Window.Width())
+	scaleY := imgH / matrix.Float(host.Window.Height())
+	centerX := (matrix.Float(pos.X()) + matrix.Float(host.Window.Width())*0.5) * scaleX
+	centerY := (matrix.Float(host.Window.Height())*0.5 - matrix.Float(pos.Y())) * scaleY
+	halfW := matrix.Float(size.X()) * scaleX * 0.5
+	halfH := matrix.Float(size.Y()) * scaleY * 0.5
 	return centerX - halfW, centerY - halfH, centerX + halfW, centerY + halfH
 }
 

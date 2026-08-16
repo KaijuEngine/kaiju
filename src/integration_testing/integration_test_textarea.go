@@ -121,7 +121,7 @@ func IntegrationTestTextAreaDefault(host *engine.Host) {
 	})
 }
 
-func assertTextAreaDefaultStable(textarea *ui.TextArea, initialHeight float32) error {
+func assertTextAreaDefaultStable(textarea *ui.TextArea, initialHeight matrix.Float) error {
 	panel := textarea.Base().ToPanel()
 	size := textarea.Base().Layout().PixelSize()
 	if size.X() < 300 || size.Y() < 90 {
@@ -170,10 +170,10 @@ func assertTextAreaCaretAfterFinalLine(host *engine.Host, textarea *ui.TextArea,
 	if !ok {
 		return fmt.Errorf("expected visible yellow caret in textarea screenshot")
 	}
-	if float32(caret.Min.X) < minX {
+	if matrix.Float(caret.Min.X) < minX {
 		return fmt.Errorf("expected caret after final line marker near x >= %.2f, got bounds %v", minX, caret)
 	}
-	if float32(caret.Min.Y) < minY {
+	if matrix.Float(caret.Min.Y) < minY {
 		return fmt.Errorf("expected caret in lower half of scrolled textarea, got bounds %v", caret)
 	}
 	return nil

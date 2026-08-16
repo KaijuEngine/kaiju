@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	renderGraphMenuBarHeight   = float32(24.0)
-	renderGraphStatusBarHeight = float32(20.8)
+	renderGraphMenuBarHeight   = matrix.Float(24.0)
+	renderGraphStatusBarHeight = matrix.Float(20.8)
 	renderGraphMinZoom         = matrix.Float(0.35)
 	renderGraphMaxZoom         = matrix.Float(1.0)
 	renderGraphZoomStep        = matrix.Float(0.1)
@@ -55,7 +55,7 @@ type renderGraph struct {
 }
 
 type renderGraphViewport struct {
-	x, y, width, height float32
+	x, y, width, height matrix.Float
 }
 
 func (g *renderGraph) Initialize(host *engine.Host, history *memento.History) {
@@ -583,7 +583,7 @@ func (g *renderGraph) portByRef(nodeID string, portIndex int, output bool) *rend
 	return node.Input(portIndex)
 }
 
-func (g *renderGraph) SetViewport(x, y, width, height float32) {
+func (g *renderGraph) SetViewport(x, y, width, height matrix.Float) {
 	g.viewport = renderGraphViewport{
 		x:      x,
 		y:      y,
@@ -729,8 +729,8 @@ func (g *renderGraph) applyLayout() bool {
 	}
 	viewport := g.viewport
 	if viewport.width <= 0 || viewport.height <= 0 {
-		windowWidth := float32(g.host.Window.Width())
-		windowHeight := float32(g.host.Window.Height())
+		windowWidth := matrix.Float(g.host.Window.Width())
+		windowHeight := matrix.Float(g.host.Window.Height())
 		contentHeight := max(1, windowHeight-renderGraphMenuBarHeight-renderGraphStatusBarHeight)
 		stageHeight := max(1, contentHeight*0.5)
 		viewport = renderGraphViewport{

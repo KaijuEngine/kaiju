@@ -14,11 +14,12 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/matrix"
 )
 
-func parseFlexFloat(value string) (float32, bool) {
+func parseFlexFloat(value string) (matrix.Float, bool) {
 	f, err := strconv.ParseFloat(strings.TrimSpace(value), 32)
-	return float32(f), err == nil
+	return matrix.Float(f), err == nil
 }
 
 func setFlexBasis(panel *ui.Panel, value string, host *engine.Host) {

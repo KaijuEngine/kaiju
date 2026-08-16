@@ -103,7 +103,7 @@ func addGizmoPickDrawing(host *engine.Host, material *rendering.Material, mesh *
 	return sd
 }
 
-func newRotationGizmoPickMesh(cache *rendering.MeshCache, radius, thickness float32, segments int) *rendering.Mesh {
+func newRotationGizmoPickMesh(cache *rendering.MeshCache, radius, thickness matrix.Float, segments int) *rendering.Mesh {
 	if segments < 3 {
 		segments = 3
 	}
@@ -121,7 +121,7 @@ func newRotationGizmoPickMesh(cache *rendering.MeshCache, radius, thickness floa
 	}
 	verts := make([]rendering.Vertex, segments*2)
 	for i := 0; i < segments; i++ {
-		phi := float32(i) * 2.0 * float32(math.Pi) / float32(segments)
+		phi := matrix.Float(i) * 2.0 * matrix.Float(math.Pi) / matrix.Float(segments)
 		cosPhi := matrix.Cos(phi)
 		sinPhi := matrix.Sin(phi)
 		verts[i*2].Position = matrix.Vec3{inner * cosPhi, 0, inner * sinPhi}

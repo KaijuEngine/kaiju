@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 // auto|length|initial|inherit
@@ -26,7 +27,7 @@ func (p Right) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 
 	offset := panel.Base().Layout().InnerOffset().Right()
 	parent := elm.Parent.Value()
-	width := float32(host.Window.Width())
+	width := matrix.Float(host.Window.Width())
 	if parent != nil {
 		parentLayout := parent.UI.Layout()
 		width = parentLayout.PixelSize().X() - parentLayout.Border().Horizontal()

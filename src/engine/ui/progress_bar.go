@@ -18,7 +18,7 @@ type ProgressBar Panel
 type progressBarData struct {
 	panelData
 	fgPanel *Panel
-	value   float32
+	value   matrix.Float
 }
 
 func (u *UI) ToProgressBar() *ProgressBar { return (*ProgressBar)(u) }
@@ -43,14 +43,14 @@ func (p *ProgressBar) Init(fgTexture, bgTexture *rendering.Texture) {
 	pd.fgPanel = fgPanel
 }
 
-func (b *ProgressBar) SetValue(value float32) {
+func (b *ProgressBar) SetValue(value matrix.Float) {
 	data := b.data()
 	data.value = value
 	w := b.entity.Transform.WorldScale().X()
 	data.fgPanel.layout.ScaleWidth(w*data.value + 1)
 }
 
-func (b *ProgressBar) Value() float32 {
+func (b *ProgressBar) Value() matrix.Float {
 	return b.data().value
 }
 

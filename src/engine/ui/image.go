@@ -22,7 +22,7 @@ type imageData struct {
 	panelData
 	flipBook                 []*rendering.Texture
 	spriteSheet              sprite.SpriteSheet
-	frameDelay, fps          float32
+	frameDelay, fps          matrix.Float
 	frameCount, currentFrame int
 	paused                   bool
 }
@@ -47,7 +47,7 @@ func (s *Image) Init(texture *rendering.Texture) {
 	}
 }
 
-func (s *Image) InitFlipbook(framesPerSecond float32, textures []*rendering.Texture) {
+func (s *Image) InitFlipbook(framesPerSecond matrix.Float, textures []*rendering.Texture) {
 	s.elmData = &imageData{}
 	p := s.Base().ToPanel()
 	p.Init(nil, ElementTypeImage)
@@ -57,7 +57,7 @@ func (s *Image) InitFlipbook(framesPerSecond float32, textures []*rendering.Text
 	}
 }
 
-func (s *Image) InitSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string) {
+func (s *Image) InitSpriteSheet(framesPerSecond matrix.Float, texture *rendering.Texture, jsonStr string) {
 	s.elmData = &imageData{}
 	p := s.Base().ToPanel()
 	p.Init(nil, ElementTypeImage)
@@ -77,7 +77,7 @@ func (img *Image) update(deltaTime float64) {
 	img.Base().ToPanel().update(deltaTime)
 	data := img.ImageData()
 	if !data.paused {
-		data.frameDelay -= float32(deltaTime)
+		data.frameDelay -= matrix.Float(deltaTime)
 	}
 	if data.frameCount > 0 && data.frameDelay <= 0.0 {
 		next := data.currentFrame + 1
@@ -96,7 +96,7 @@ func (img *Image) SetTexture(texture *rendering.Texture) {
 	(*Panel)(img).SetBackground(texture)
 }
 
-func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*rendering.Texture) {
+func (img *Image) SetFlipBookAnimation(framesPerSecond matrix.Float, textures ...*rendering.Texture) {
 	data := img.ImageData()
 	count := len(textures)
 	data.flipBook = slices.Clone(textures)
@@ -107,7 +107,7 @@ func (img *Image) SetFlipBookAnimation(framesPerSecond float32, textures ...*ren
 	img.SetTexture(data.flipBook[data.currentFrame])
 }
 
-func (img *Image) SetSpriteSheet(framesPerSecond float32, texture *rendering.Texture, jsonStr string) {
+func (img *Image) SetSpriteSheet(framesPerSecond matrix.Float, texture *rendering.Texture, jsonStr string) {
 	data := img.ImageData()
 	var err error
 	data.spriteSheet, err = sprite.NewSheetFromJson(jsonStr)
@@ -139,7 +139,7 @@ func (img *Image) SetFrame(index int) {
 	}
 }
 
-func (img *Image) SetFrameRate(framesPerSecond float32) {
+func (img *Image) SetFrameRate(framesPerSecond matrix.Float) {
 	img.ImageData().fps = framesPerSecond
 }
 

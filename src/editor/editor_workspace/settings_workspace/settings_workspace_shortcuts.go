@@ -22,6 +22,7 @@ import (
 	"kaijuengine.com/editor/editor_overlay/input_prompt"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -725,11 +726,11 @@ func shortcutRowSearchText(row *document.Element) string {
 	return strings.Join(parts, " ")
 }
 
-func shortcutSectionHeight(rows int) float32 {
-	return float32(shortcutSectionHeaderHeight + rows*shortcutSectionRowHeight)
+func shortcutSectionHeight(rows int) matrix.Float {
+	return matrix.Float(shortcutSectionHeaderHeight + rows*shortcutSectionRowHeight)
 }
 
-func shortcutKeyboardHeight(sections []shortcutSectionData) float32 {
+func shortcutKeyboardHeight(sections []shortcutSectionData) matrix.Float {
 	visibleSections := 0
 	rows := 0
 	for _, section := range sections {
@@ -742,10 +743,10 @@ func shortcutKeyboardHeight(sections []shortcutSectionData) float32 {
 	return shortcutKeyboardHeightForCounts(rows, visibleSections, visibleSections == 0)
 }
 
-func shortcutKeyboardHeightForCounts(rows, sections int, noResults bool) float32 {
-	height := float32(shortcutKeyboardBaseHeight)
+func shortcutKeyboardHeightForCounts(rows, sections int, noResults bool) matrix.Float {
+	height := matrix.Float(shortcutKeyboardBaseHeight)
 	if sections > 0 {
-		height += float32(sections*shortcutSectionHeaderHeight + rows*shortcutSectionRowHeight)
+		height += matrix.Float(sections*shortcutSectionHeaderHeight + rows*shortcutSectionRowHeight)
 	} else if noResults {
 		height += shortcutNoResultsHeight
 	}

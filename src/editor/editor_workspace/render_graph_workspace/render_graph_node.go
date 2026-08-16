@@ -17,15 +17,15 @@ import (
 )
 
 const (
-	renderGraphNodeWidth        = float32(210)
-	renderGraphNodeBaseHeight   = float32(82)
-	renderGraphNodePortHeight   = float32(20)
-	renderGraphNodeHeaderH      = float32(24)
-	renderGraphNodePadding      = float32(12)
-	renderGraphNodePortLabelGap = float32(8)
+	renderGraphNodeWidth        = matrix.Float(210)
+	renderGraphNodeBaseHeight   = matrix.Float(82)
+	renderGraphNodePortHeight   = matrix.Float(20)
+	renderGraphNodeHeaderH      = matrix.Float(24)
+	renderGraphNodePadding      = matrix.Float(12)
+	renderGraphNodePortLabelGap = matrix.Float(8)
 	renderGraphNodeFieldStartY  = renderGraphNodeHeaderH + 38
 	renderGraphNodePortStartY   = renderGraphNodeHeaderH + 42
-	renderGraphNodePortDotSize  = float32(10)
+	renderGraphNodePortDotSize  = matrix.Float(10)
 )
 
 var (
@@ -50,8 +50,8 @@ type renderGraphNode struct {
 	outputs        []*renderGraphPort
 	values         map[string]renderGraphNodeFieldValue
 	position       matrix.Vec2
-	height         float32
-	zDepth         float32
+	height         matrix.Float
+	zDepth         matrix.Float
 	zSlot          int
 	zSlotAssigned  bool
 	selected       bool
@@ -280,7 +280,7 @@ func (n *renderGraphNode) addDragHistory() {
 	}
 }
 
-func (n *renderGraphNode) createBodyDragSurface(uiMan *ui.Manager, height float32) {
+func (n *renderGraphNode) createBodyDragSurface(uiMan *ui.Manager, height matrix.Float) {
 	n.bodyDrag = uiMan.Add().ToPanel()
 	n.bodyDrag.Init(nil, ui.ElementTypePanel)
 	n.bodyDrag.DontFitContent()
@@ -318,7 +318,7 @@ func (n *renderGraphNode) createHeader(uiMan *ui.Manager, name string) {
 	header.AddChild(n.title.Base())
 }
 
-func (n *renderGraphNode) createSelectionFrame(uiMan *ui.Manager, height float32) {
+func (n *renderGraphNode) createSelectionFrame(uiMan *ui.Manager, height matrix.Float) {
 	n.selectionFrame = uiMan.Add().ToPanel()
 	n.selectionFrame.Init(nil, ui.ElementTypePanel)
 	n.selectionFrame.AllowClickThrough()
@@ -358,7 +358,7 @@ func (n *renderGraphNode) createPorts(uiMan *ui.Manager, spec renderGraphNodeSpe
 	rowCount := max(len(inputs), len(outputs))
 	startY := renderGraphNodePortStartY + renderGraphNodeFieldsHeight(spec.Fields)
 	for i := range rowCount {
-		y := startY + float32(i)*renderGraphNodePortHeight
+		y := startY + matrix.Float(i)*renderGraphNodePortHeight
 		if i < len(inputs) {
 			n.inputs = append(n.inputs, n.createPort(uiMan, inputs[i], false, i, y, i < len(outputs)))
 		}
@@ -368,7 +368,7 @@ func (n *renderGraphNode) createPorts(uiMan *ui.Manager, spec renderGraphNodeSpe
 	}
 }
 
-func (n *renderGraphNode) createPort(uiMan *ui.Manager, port renderGraphPortSpec, output bool, index int, y float32, paired bool) *renderGraphPort {
+func (n *renderGraphNode) createPort(uiMan *ui.Manager, port renderGraphPortSpec, output bool, index int, y matrix.Float, paired bool) *renderGraphPort {
 	const dotSize = renderGraphNodePortDotSize
 	dotX := renderGraphNodePadding
 	dotY := y + (renderGraphNodePortHeight-dotSize)*0.5
@@ -445,17 +445,17 @@ func (n *renderGraphNode) createPort(uiMan *ui.Manager, port renderGraphPortSpec
 	return graphPort
 }
 
-func renderGraphNodeHeight(spec renderGraphNodeSpec) float32 {
+func renderGraphNodeHeight(spec renderGraphNodeSpec) matrix.Float {
 	ports := max(len(spec.Inputs), len(spec.Outputs))
 	return renderGraphNodeBaseHeight + renderGraphNodeFieldsHeight(spec.Fields) +
-		float32(ports)*renderGraphNodePortHeight
+		matrix.Float(ports)*renderGraphNodePortHeight
 }
 
-func renderGraphNodeFieldsHeight(fields []renderGraphNodeFieldSpec) float32 {
+func renderGraphNodeFieldsHeight(fields []renderGraphNodeFieldSpec) matrix.Float {
 	if len(fields) == 0 {
 		return 0
 	}
-	height := float32(4)
+	height := matrix.Float(4)
 	for i := range fields {
 		height += renderGraphNodeFieldHeight(fields[i]) + renderGraphFieldGap
 	}

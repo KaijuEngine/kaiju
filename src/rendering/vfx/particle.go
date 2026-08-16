@@ -17,12 +17,12 @@ type particleTransformation struct {
 type Particle struct {
 	Transform       particleTransformation
 	Velocity        particleTransformation
-	OpacityVelocity float32
-	LifeSpan        float32
+	OpacityVelocity matrix.Float
+	LifeSpan        matrix.Float
 }
 
 func (p *Particle) update(deltaTime float64) {
-	p.LifeSpan -= float32(deltaTime)
+	p.LifeSpan -= matrix.Float(deltaTime)
 	t := &p.Transform
 	v := &p.Velocity
 	t.Position.AddAssign(v.Position.Scale(matrix.Float(deltaTime)))

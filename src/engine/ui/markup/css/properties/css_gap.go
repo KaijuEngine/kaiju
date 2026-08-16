@@ -12,6 +12,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 func (p Gap) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -19,8 +20,8 @@ func (p Gap) Process(panel *ui.Panel, elm *document.Element, values []rules.Prop
 		return nil
 	}
 
-	gapX := float32(8)
-	gapY := float32(8)
+	gapX := matrix.Float(8)
+	gapY := matrix.Float(8)
 	if len(values) > 0 {
 		gapY = helpers.NumFromLength(values[0].Str, host.Window) // row-gap
 		if len(values) > 1 {

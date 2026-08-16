@@ -7,6 +7,7 @@
 package ui
 
 import (
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
 )
 
@@ -183,6 +184,6 @@ func (cb *Checkbox) SetDisabled(disabled bool) {
 	}
 }
 
-func (cb *Checkbox) setAtlas(x, y float32) {
+func (cb *Checkbox) setAtlas(x, y matrix.Float) {
 	cb.shaderData.setUVXY(x/cb.textureSize.X(), y, cb.textureSize.Y())
 }

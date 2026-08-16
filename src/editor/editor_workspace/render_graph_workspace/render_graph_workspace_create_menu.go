@@ -194,7 +194,7 @@ func (m *renderGraphCreateNodeMenu) positionRoot(position matrix.Vec2) {
 	y := matrix.Clamp(position.Y(), 8, max(8, areaSize.Y()-renderGraphCreateMenuHeight-8))
 	layout := m.root.UI.Layout()
 	layout.SetPositioning(ui.PositioningAbsolute)
-	layout.SetOffset(float32(areaOffset.X()+x), float32(areaOffset.Y()+y))
+	layout.SetOffset(matrix.Float(areaOffset.X()+x), matrix.Float(areaOffset.Y()+y))
 	layout.SetZ(40)
 }
 

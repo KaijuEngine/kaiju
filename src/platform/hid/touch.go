@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
 )
 
 const (
@@ -35,11 +36,11 @@ const (
 )
 
 type TouchPointer struct {
-	Pressure float32
-	X        float32
-	Y        float32
-	SX       float32
-	SY       float32
+	Pressure matrix.Float
+	X        matrix.Float
+	Y        matrix.Float
+	SX       matrix.Float
+	SY       matrix.Float
 	State    TouchAction
 	Id       int64
 }
@@ -83,14 +84,14 @@ func (t *Touch) point(id int64) *TouchPointer {
 	return p
 }
 
-func (p *TouchPointer) setPosition(x, y, windowHeight float32) {
+func (p *TouchPointer) setPosition(x, y, windowHeight matrix.Float) {
 	p.X = x
 	p.Y = windowHeight - y
 	p.SX = x
 	p.SY = y
 }
 
-func (t *Touch) SetDown(id int64, x, y, windowHeight float32) {
+func (t *Touch) SetDown(id int64, x, y, windowHeight matrix.Float) {
 	if p, found := t.newPointer(id); found {
 		p.State = TouchActionDown
 		t.Pointers = append(t.Pointers, p)
@@ -98,14 +99,14 @@ func (t *Touch) SetDown(id int64, x, y, windowHeight float32) {
 	}
 }
 
-func (t *Touch) SetUp(id int64, x, y, windowHeight float32) {
+func (t *Touch) SetUp(id int64, x, y, windowHeight matrix.Float) {
 	if p := t.point(id); p != nil {
 		p.State = TouchActionUp
 		p.setPosition(x, y, windowHeight)
 	}
 }
 
-func (t *Touch) SetMoved(id int64, x, y, windowHeight float32) {
+func (t *Touch) SetMoved(id int64, x, y, windowHeight matrix.Float) {
 	if p := t.point(id); p != nil {
 		p.setPosition(x, y, windowHeight)
 	} else {
@@ -113,7 +114,7 @@ func (t *Touch) SetMoved(id int64, x, y, windowHeight float32) {
 	}
 }
 
-func (t *Touch) SetPressure(id int64, pressure float32) {
+func (t *Touch) SetPressure(id int64, pressure matrix.Float) {
 	if p := t.point(id); p != nil {
 		p.Pressure = pressure
 	}

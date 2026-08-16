@@ -19,17 +19,17 @@ import (
 )
 
 const (
-	flexRowScreenshotOutput               = "integration_test_flex_row_basic.png"
-	flexColumnScreenshotOutput            = "integration_test_flex_column_basic.png"
-	flexJustifyScreenshotOutput           = "integration_test_flex_justify_align.png"
-	flexGrowScreenshotOutput              = "integration_test_flex_grow_shrink_basis.png"
-	flexWrapScreenshotOutput              = "integration_test_flex_wrap_align_content.png"
-	flexOrderScreenshotOutput             = "integration_test_flex_order_align_self.png"
-	flexReverseScreenshotOutput           = "integration_test_flex_reverse.png"
-	flexScrollFitScreenshotOutput         = "integration_test_flex_scroll_fit.png"
-	flexAssertionFrameWait                = 10
-	flexOffsetTolerance           float32 = 2
-	flexSizeTolerance             float32 = 3
+	flexRowScreenshotOutput                    = "integration_test_flex_row_basic.png"
+	flexColumnScreenshotOutput                 = "integration_test_flex_column_basic.png"
+	flexJustifyScreenshotOutput                = "integration_test_flex_justify_align.png"
+	flexGrowScreenshotOutput                   = "integration_test_flex_grow_shrink_basis.png"
+	flexWrapScreenshotOutput                   = "integration_test_flex_wrap_align_content.png"
+	flexOrderScreenshotOutput                  = "integration_test_flex_order_align_self.png"
+	flexReverseScreenshotOutput                = "integration_test_flex_reverse.png"
+	flexScrollFitScreenshotOutput              = "integration_test_flex_scroll_fit.png"
+	flexAssertionFrameWait                     = 10
+	flexOffsetTolerance           matrix.Float = 2
+	flexSizeTolerance             matrix.Float = 3
 )
 
 func init() {
@@ -99,7 +99,7 @@ func flexPanel(doc *document.Document, id string) (*ui.Panel, error) {
 	return elm.UI.ToPanel(), nil
 }
 
-func roughlyEqual(a, b, tolerance float32) bool {
+func roughlyEqual(a, b, tolerance matrix.Float) bool {
 	if a > b {
 		return a-b <= tolerance
 	}

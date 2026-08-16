@@ -201,7 +201,7 @@ func (t *TranslationTool) Hide() {
 	t.dragging = false
 }
 
-func (t *TranslationTool) Update(host *engine.Host, snap bool, snapScale float32) bool {
+func (t *TranslationTool) Update(host *engine.Host, snap bool, snapScale matrix.Float) bool {
 	if !t.visible {
 		return false
 	}
@@ -362,7 +362,7 @@ func (t *TranslationTool) hitCheck(host *engine.Host, cam cameras.Camera) {
 	}
 }
 
-func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale float32) {
+func (t *TranslationTool) processDrag(host *engine.Host, cam cameras.Camera, snap bool, snapScale matrix.Float) {
 	if t.currentAxis == -1 {
 		return
 	}

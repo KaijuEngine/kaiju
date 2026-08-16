@@ -28,9 +28,9 @@ import (
 type rigidBodyGizmo struct {
 	ShaderData rendering.DrawInstance
 	Extent     matrix.Vec3
-	Mass       float32
-	Radius     float32
-	Height     float32
+	Mass       matrix.Float
+	Radius     matrix.Float
+	Height     matrix.Float
 	IsStatic   bool
 	Shape      engine_entity_data_physics.Shape
 	AssetKey   content_id.Mesh
@@ -209,9 +209,9 @@ func (g *rigidBodyGizmo) reloadData(data *entity_data_binding.EntityDataEntry, t
 	}
 	assetKey := data.FieldValueByName("AssetKey").(content_id.Mesh)
 	e := data.FieldValueByName("Extent").(matrix.Vec3)
-	m := data.FieldValueByName("Mass").(float32)
-	r := data.FieldValueByName("Radius").(float32)
-	height := data.FieldValueByName("Height").(float32)
+	m := data.FieldValueByName("Mass").(matrix.Float)
+	r := data.FieldValueByName("Radius").(matrix.Float)
+	height := data.FieldValueByName("Height").(matrix.Float)
 	i := data.FieldValueByName("IsStatic").(bool)
 	s := engine_entity_data_physics.Shape(data.FieldValueByName("Shape").(int))
 	meshBounds, hasMesh := graviton.NewAABB(matrix.Vec3Zero(), matrix.NewVec3XYZ(0.5)), false

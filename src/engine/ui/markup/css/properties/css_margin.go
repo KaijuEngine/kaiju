@@ -15,10 +15,11 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/windowing"
 )
 
-func marginSizeFromStr(str string, window *windowing.Window) float32 {
+func marginSizeFromStr(str string, window *windowing.Window) matrix.Float {
 	if val, ok := borderSizes[str]; ok {
 		return val
 	}

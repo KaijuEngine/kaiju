@@ -343,7 +343,7 @@ func (p *StagePhysics) AddHingeJointToWorld(
 	return p.AddHingeJoint(entity, nil, localAnchor, worldAnchor, localAxis, worldAxis)
 }
 
-func (p *StagePhysics) AddEntityShape(entity *Entity, mass float32, shape graviton.Shape) {
+func (p *StagePhysics) AddEntityShape(entity *Entity, mass matrix.Float, shape graviton.Shape) {
 	defer tracing.NewRegion("StagePhysics.AddEntityShape").End()
 	t := &entity.Transform
 	inertia := graviton.CalculateLocalInertia(shape, matrix.Float(mass))

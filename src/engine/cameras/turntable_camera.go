@@ -14,9 +14,9 @@ import (
 
 type TurntableCamera struct {
 	StandardCamera
-	pitch float32
-	yaw   float32
-	zoom  float32
+	pitch matrix.Float
+	yaw   matrix.Float
+	zoom  matrix.Float
 }
 
 // ToTurntable converts a standard camera to a turntable camera.
@@ -33,13 +33,13 @@ func ToTurntable(camera *StandardCamera) *TurntableCamera {
 }
 
 // Yaw returns the yaw of the camera.
-func (c *TurntableCamera) Yaw() float32 { return c.yaw }
+func (c *TurntableCamera) Yaw() matrix.Float { return c.yaw }
 
 // Pitch returns the pitch of the camera.
-func (c *TurntableCamera) Pitch() float32 { return c.pitch }
+func (c *TurntableCamera) Pitch() matrix.Float { return c.pitch }
 
 // Zoom returns the zoom of the camera.
-func (c *TurntableCamera) Zoom() float32 { return c.zoom }
+func (c *TurntableCamera) Zoom() matrix.Float { return c.zoom }
 
 // SetPosition sets the position of the camera.
 func (c *TurntableCamera) SetPosition(position matrix.Vec3) {
@@ -78,7 +78,7 @@ func (c *TurntableCamera) Pan(delta matrix.Vec3) {
 }
 
 // Dolly moves the camera closer/further from the look at point by the given delta.
-func (c *TurntableCamera) Dolly(delta float32) {
+func (c *TurntableCamera) Dolly(delta matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.Dolly").End()
 	zoom := c.zoom
 	diff := c.position.Subtract(c.lookAt)
@@ -91,7 +91,7 @@ func (c *TurntableCamera) Dolly(delta float32) {
 }
 
 // Dolly moves the camera closer/further from a target point by the given delta
-func (c *TurntableCamera) DollyTo(delta float32, targetPoint matrix.Vec3) {
+func (c *TurntableCamera) DollyTo(delta matrix.Float, targetPoint matrix.Vec3) {
 	defer tracing.NewRegion("TurntableCamera.Dolly").End()
 	newZoom := c.zoom
 	oldZoom := c.zoom
@@ -119,7 +119,7 @@ func (c *TurntableCamera) Orbit(delta matrix.Vec3) {
 	c.updateViewAndPosition()
 }
 
-func (c *TurntableCamera) FlyRotate(yawDelta, pitchDelta float32) {
+func (c *TurntableCamera) FlyRotate(yawDelta, pitchDelta matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.FlyRotate").End()
 	c.yaw += matrix.Deg2Rad(yawDelta)
 	c.pitch += matrix.Deg2Rad(pitchDelta)
@@ -151,21 +151,21 @@ func (c *TurntableCamera) FlyUpdateView() {
 }
 
 // SetYaw sets the yaw of the camera.
-func (c *TurntableCamera) SetYaw(yaw float32) {
+func (c *TurntableCamera) SetYaw(yaw matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.SetYaw").End()
 	c.setYaw(yaw)
 	c.updateViewAndPosition()
 }
 
 // SetPitch sets the pitch of the camera.
-func (c *TurntableCamera) SetPitch(pitch float32) {
+func (c *TurntableCamera) SetPitch(pitch matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.SetPitch").End()
 	c.setPitch(pitch)
 	c.updateViewAndPosition()
 }
 
 // SetZoom sets the zoom of the camera.
-func (c *TurntableCamera) SetZoom(zoom float32) {
+func (c *TurntableCamera) SetZoom(zoom matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.SetZoom").End()
 	c.setZoom(zoom)
 	c.updateViewAndPosition()
@@ -173,7 +173,7 @@ func (c *TurntableCamera) SetZoom(zoom float32) {
 
 // SetYawAndPitch sets the yaw and pitch of the camera. This helps skip
 // needless view matrix calculations by setting both before updating the view.
-func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
+func (c *TurntableCamera) SetYawAndPitch(yaw, pitch matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.SetYawAndPitch").End()
 	c.setYaw(yaw)
 	c.setPitch(pitch)
@@ -182,7 +182,7 @@ func (c *TurntableCamera) SetYawAndPitch(yaw, pitch float32) {
 
 // SetYawPitchZoom sets the yaw, pitch, and zoom of the camera. This helps skip
 // needless view matrix calculations by setting all three before updating the view.
-func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom float32) {
+func (c *TurntableCamera) SetYawPitchZoom(yaw, pitch, zoom matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.SetYawPitchZoom").End()
 	c.setYaw(yaw)
 	c.setPitch(pitch)
@@ -205,11 +205,11 @@ func (c *TurntableCamera) internalUpdateView() {
 	tz := c.lookAt.Z()
 	rx := c.pitch
 	ry := c.yaw
-	rz := float32(0.0)
+	rz := matrix.Float(0.0)
 	di := c.zoom
-	a := rx * float32(0.5)
-	b := ry * float32(0.5)
-	cc := rz * float32(0.5)
+	a := rx * matrix.Float(0.5)
+	b := ry * matrix.Float(0.5)
+	cc := rz * matrix.Float(0.5)
 	d := matrix.Cos(a)
 	e := matrix.Sin(a)
 	f := matrix.Cos(b)
@@ -271,7 +271,7 @@ func (c *TurntableCamera) updateViewAndPosition() {
 	c.position = c.iView.ExtractPosition()
 }
 
-func (c *TurntableCamera) setYaw(yaw float32) {
+func (c *TurntableCamera) setYaw(yaw matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.setYaw").End()
 	c.yaw = matrix.Deg2Rad(yaw)
 	direction := matrix.Vec3{
@@ -283,7 +283,7 @@ func (c *TurntableCamera) setYaw(yaw float32) {
 	c.lookAt = c.position.Add(direction)
 }
 
-func (c *TurntableCamera) setPitch(pitch float32) {
+func (c *TurntableCamera) setPitch(pitch matrix.Float) {
 	defer tracing.NewRegion("TurntableCamera.setPitch").End()
 	c.pitch = matrix.Deg2Rad(pitch)
 	direction := matrix.Vec3{
@@ -295,6 +295,6 @@ func (c *TurntableCamera) setPitch(pitch float32) {
 	c.lookAt = c.position.Add(direction)
 }
 
-func (c *TurntableCamera) setZoom(zoom float32) {
+func (c *TurntableCamera) setZoom(zoom matrix.Float) {
 	c.zoom = zoom
 }

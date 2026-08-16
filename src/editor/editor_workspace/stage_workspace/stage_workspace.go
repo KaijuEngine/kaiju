@@ -55,7 +55,7 @@ type StageWorkspace struct {
 	isOpen        bool
 	ftde          struct {
 		arrow *document.Element
-		y     float32
+		y     matrix.Float
 	}
 	openStageSubID events.Id
 }
@@ -348,7 +348,7 @@ func (w *StageWorkspace) updateFtde(deltaTime float64) {
 	if w.ftde.arrow == nil {
 		return
 	}
-	w.ftde.y += float32(deltaTime) * 5
+	w.ftde.y += matrix.Float(deltaTime) * 5
 	w.ftde.arrow.UI.Layout().SetOffsetY((1 + matrix.Cos(w.ftde.y)) * 10)
 }
 

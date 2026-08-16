@@ -13,13 +13,13 @@ import (
 
 type Camera interface {
 	SetPosition(position matrix.Vec3)
-	SetFOV(fov float32)
-	SetNearPlane(near float32)
-	SetFarPlane(far float32)
-	SetWidth(width float32)
-	SetHeight(height float32)
-	ViewportChanged(width, height float32)
-	SetProperties(fov, nearPlane, farPlane, width, height float32)
+	SetFOV(fov matrix.Float)
+	SetNearPlane(near matrix.Float)
+	SetFarPlane(far matrix.Float)
+	SetWidth(width matrix.Float)
+	SetHeight(height matrix.Float)
+	ViewportChanged(width, height matrix.Float)
+	SetProperties(fov, nearPlane, farPlane, width, height matrix.Float)
 	Forward() matrix.Vec3
 	Right() matrix.Vec3
 	Up() matrix.Vec3
@@ -30,20 +30,20 @@ type Camera interface {
 	TryPlaneHit(cursorPosition matrix.Vec2, planePos, planeNml matrix.Vec3) (hit matrix.Vec3, success bool)
 	ForwardPlaneHit(cursorPosition matrix.Vec2, planePos matrix.Vec3) (matrix.Vec3, bool)
 	Position() matrix.Vec3
-	Width() float32
-	Height() float32
+	Width() matrix.Float
+	Height() matrix.Float
 	View() matrix.Mat4
 	Projection() matrix.Mat4
 	InverseProjection() matrix.Mat4
 	LookAt() matrix.Vec3
-	NearPlane() float32
-	FarPlane() float32
+	NearPlane() matrix.Float
+	FarPlane() matrix.Float
 	IsOrthographic() bool
 	Viewport() matrix.Vec4
 	Frustum() graviton.Frustum
 	LightFrustumCSMProjections() []matrix.Mat4
 	NumCSMCascades() uint8
-	CSMCascadeDistances() [4]float32
+	CSMCascadeDistances() [4]matrix.Float
 	IsDirty() bool
 	NewFrame()
 }

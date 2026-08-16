@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/matrix"
 )
 
 const positionScreenshotOutput = "integration_test_position.png"
@@ -118,13 +119,13 @@ func positionElement(doc *document.Document, id string) (*document.Element, erro
 	return elm, nil
 }
 
-func elementWorldBounds(elm *document.Element) (left, top, right, bottom float32) {
+func elementWorldBounds(elm *document.Element) (left, top, right, bottom matrix.Float) {
 	pos := elm.UI.Entity().Transform.WorldPosition()
 	size := elm.UI.Layout().PixelSize()
-	halfW := float32(size.X()) * 0.5
-	halfH := float32(size.Y()) * 0.5
-	x := float32(pos.X())
-	y := float32(pos.Y())
+	halfW := matrix.Float(size.X()) * 0.5
+	halfH := matrix.Float(size.Y()) * 0.5
+	x := matrix.Float(pos.X())
+	y := matrix.Float(pos.Y())
 	return x - halfW, y + halfH, x + halfW, y - halfH
 }
 

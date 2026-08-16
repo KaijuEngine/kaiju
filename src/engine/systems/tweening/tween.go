@@ -6,18 +6,21 @@
 
 package tweening
 
-import "kaijuengine.com/platform/profiler/tracing"
+import (
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+)
 
 type Tween struct {
-	val         *float32
+	val         *matrix.Float
 	totalUpdate float64
 	time        float64
-	initial     float32
-	target      float32
-	easing      func(t float32) float32
-	onChange    func(val float32)
+	initial     matrix.Float
+	target      matrix.Float
+	easing      func(t matrix.Float) matrix.Float
+	onChange    func(val matrix.Float)
 	onDone      func()
-	scale       float32
+	scale       matrix.Float
 }
 
 func (t *Tween) update(deltaTime float64) bool {
@@ -35,8 +38,8 @@ func (t *Tween) update(deltaTime float64) bool {
 	return false
 }
 
-func (t *Tween) calculate() float32 {
-	time := float32(1 - ((t.time - t.totalUpdate) / t.time))
+func (t *Tween) calculate() matrix.Float {
+	time := matrix.Float(1 - ((t.time - t.totalUpdate) / t.time))
 	return t.initial + (t.target-t.initial)*t.easing(time)
 }
 
