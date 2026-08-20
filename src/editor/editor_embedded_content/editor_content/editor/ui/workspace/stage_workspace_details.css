@@ -4,8 +4,12 @@
 	top: var(--ed-menu-bar-height);
 	width: 18%;
 	color: white;
-	overflow-y: scroll;
 	border-left: 2px solid black;
+}
+.detailsBody {
+	width: 100%;
+	height: 100%;
+	overflow-y: scroll;
 }
 #detailsName {
 	margin-top: 0.5em;

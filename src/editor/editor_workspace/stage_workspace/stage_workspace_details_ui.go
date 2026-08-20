@@ -213,7 +213,11 @@ func (dui *WorkspaceDetailsUI) open() {
 func (dui *WorkspaceDetailsUI) entitySelected(e *editor_stage_manager.StageEntity) {
 	defer tracing.NewRegion("WorkspaceDetailsUI.entitySelected").End()
 	dui.reload()
-	dui.detailsArea.UI.ToPanel().SetScrollY(0)
+	// Scrolling happens on the detailsBody content wrapper (the overflow-y
+	// scroll container), not on detailsArea itself.
+	if len(dui.detailsArea.Children) > 0 {
+		dui.detailsArea.Children[0].UI.ToPanel().SetScrollY(0)
+	}
 }
 
 func (dui *WorkspaceDetailsUI) entityDeselected(e *editor_stage_manager.StageEntity) {
