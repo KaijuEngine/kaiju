@@ -156,4 +156,4 @@ Coincidentally, the overall design I have for the engine plays very well with th
 I'll be the first to admit, I think the developers of Go can create a better GC than I can, and probably better than Unreal and Unity too.
 
 ## Star history
-[![Star History Chart](https://api.star-history.com/svg?repos=KaijuEngine/kaiju&type=Date)](https://star-history.com/#KaijuEngine/kaiju&Date)   
+[![Star History Chart](https://star-history.dera.page/svg?repos=KaijuEngine/kaiju&type=Date)](https://star-history.dera.page/#KaijuEngine/kaiju&Date)   
