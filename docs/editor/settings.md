@@ -45,6 +45,30 @@ Settings for the editor's camera controls:
 - **Fly Speed**: Movement speed when flying (default: 10).
 - **Fly X/Y Sensitivity**: Mouse sensitivity for camera rotation (default: 0.2).
 
+#### Tuning camera movement
+If the viewport camera feels too fast, too slow, or difficult to aim, start by
+adjusting these values before changing project content or input devices:
+
+1. Open the Settings workspace from the main editor menu.
+2. Select **Editor Settings** in the left panel.
+3. Find the **Camera** group.
+4. Lower **Fly Speed** when the camera jumps past small objects or when working
+   on tightly scaled scenes.
+5. Raise **Fly Speed** when navigating large stages, terrain, or imported meshes.
+6. Lower **Fly X/Y Sensitivity** when small mouse movements rotate the viewport
+   too aggressively.
+7. Raise **Fly X/Y Sensitivity** when the viewport requires excessive mouse
+   movement to turn.
+8. Use **Zoom Speed** to tune scroll-wheel and zoom-drag behavior separately
+   from free-flight movement.
+9. Close the Settings workspace after editing; editor settings are saved when
+   the workspace closes.
+
+For repeatable troubleshooting, change one camera value at a time and relaunch
+or reopen the editor workspace if the current viewport still feels stale. This
+makes it easier to distinguish a persisted editor preference from a scene scale,
+mouse DPI, or platform input issue.
+
 ### Snapping
 Grid snapping increments for precise placement:
 
