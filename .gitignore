@@ -32,10 +32,8 @@ interpreter/kaiju-*
 .gocache
 
 # Echo
-.echo/file-database
-.echo/autosave.json
-.echo/tasks.json
-.echo/tasks_done.json
+.echo/chat-*.json
+.echo/trajectories/
 .echo/workspace.json
 
 # Go pprof files
