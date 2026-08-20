@@ -34,6 +34,7 @@ interpreter/kaiju-*
 # Echo
 .echo/chat-*.json
 .echo/trajectories/
+.echo/icon.png
 .echo/workspace.json
 
 # Go pprof files
