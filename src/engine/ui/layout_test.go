@@ -23,6 +23,7 @@ func testLayoutUI(width, height float32) *UI {
 			maxSize: matrix.NewVec2(-1, -1),
 		},
 	}
+	target.entity.AddNamedData(EntityDataName, target)
 	target.layout.initialize(target)
 	target.layout.Scale(width, height)
 	return target
@@ -67,5 +68,39 @@ func TestLayoutPaddingReapplyDoesNotAccumulateAfterClearStyles(t *testing.T) {
 
 	if got := layout.PixelSize(); got.X() != 13 || got.Y() != 20 {
 		t.Fatalf("reapplied padded size = %v, want [13 20]", got)
+	}
+}
+
+func TestCSSFacingPanelSettersOnlyDirtyOnChange(t *testing.T) {
+	t.Parallel()
+
+	target := testLayoutUI(10, 20)
+	panel := target.ToPanel()
+	tests := []struct {
+		name string
+		set  func()
+	}{
+		{"min width", func() { panel.SetMinWidth(5) }},
+		{"max width", func() { panel.SetMaxWidth(50) }},
+		{"min height", func() { panel.SetMinHeight(6) }},
+		{"max height", func() { panel.SetMaxHeight(60) }},
+		{"aspect ratio", func() { panel.SetAspectRatio(2) }},
+		{"border box", func() { panel.SetUsesBorderBox(true) }},
+		{"grid template", func() { panel.SetGridTemplateColumns([]float32{10, -1}) }},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			target.cleanDirty()
+			test.set()
+			if target.dirty() == DirtyTypeNone {
+				t.Fatal("changed value did not dirty layout")
+			}
+			target.cleanDirty()
+			test.set()
+			if got := target.dirty(); got != DirtyTypeNone {
+				t.Fatalf("unchanged value dirtied UI with type %d", got)
+			}
+		})
 	}
 }

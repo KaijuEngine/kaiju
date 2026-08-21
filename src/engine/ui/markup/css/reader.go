@@ -109,21 +109,12 @@ func (m CSSMap) add(elm *ui.UI, inRules []rules.Rule) {
 	}
 }
 
-func applyToElement(inRules []rules.Rule, elm *document.Element) {
-	for i := range inRules {
-		elm.Stylizer.AddRule(inRules[i].Clone())
-	}
-	elm.UI.Layout().Stylizer = &elm.Stylizer
-	elm.UI.SetDirty(ui.DirtyTypeGenerated)
-}
-
 func applyMappings(doc *document.Document, cssMap map[*ui.UI][]rules.Rule) {
 	for _, e := range doc.Elements {
 		// TODO:  Make sure this is applying in order from parent to child
 		// Since this array is intrinsically ordered, it should be fine
-		if rules, ok := cssMap[e.UI]; ok {
-			applyToElement(rules, e)
-		}
+		e.Stylizer.ReplaceRules(cssMap[e.UI])
+		e.UI.Layout().Stylizer = &e.Stylizer
 	}
 }
 
@@ -296,16 +287,6 @@ type Stylizer struct {
 }
 
 func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
-	for i := range doc.Elements {
-		e := doc.Elements[i]
-		e.Stylizer.ClearRules()
-		for j := range e.UIEventIds {
-			for k := range e.UIEventIds[j] {
-				e.UI.RemoveEvent(j, e.UIEventIds[j][k])
-			}
-			e.UIEventIds[j] = e.UIEventIds[j][:0]
-		}
-	}
 	cssMap := CSSMap(make(map[*ui.UI][]rules.Rule))
 	for _, group := range s.Groups {
 		if group.MediaQuery.IsValid() {
@@ -332,12 +313,12 @@ func (z Stylizer) ApplyStyles(s rules.StyleSheet, doc *document.Document) {
 			}
 		}
 	}
-	cleanMapDuplicates(cssMap)
-	applyMappings(doc, cssMap)
 	for _, elm := range doc.Elements {
 		if inlineStyle := elm.Attribute("style"); inlineStyle != "" {
 			group := s.ParseInline(inlineStyle, z.Window)
-			applyToElement(group.Rules, elm)
+			cssMap.add(elm.UI, group.Rules)
 		}
 	}
+	cleanMapDuplicates(cssMap)
+	applyMappings(doc, cssMap)
 }

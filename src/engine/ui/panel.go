@@ -8,6 +8,7 @@ package ui
 
 import (
 	"log/slog"
+	"slices"
 	"sort"
 
 	"kaijuengine.com/engine/assets"
@@ -231,44 +232,99 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	panel.entity.OnDeactivate.Add(func() { panel.shaderData.Deactivate() })
 }
 
-func (p *Panel) MaxScroll() matrix.Vec2   { return p.PanelData().maxScroll }
-func (p *Panel) ScrollX() float32         { return p.PanelData().scroll.X() }
-func (p *Panel) ScrollY() float32         { return -p.PanelData().scroll.Y() }
-func (p *Panel) EnableDragScroll()        { p.PanelData().flags.setAllowDragScroll() }
-func (p *Panel) DisableDragScroll()       { p.PanelData().flags.resetAllowDragScroll() }
-func (p *Panel) GetMinSize() matrix.Vec2  { return p.PanelData().minSize }
-func (p *Panel) GetMaxSize() matrix.Vec2  { return p.PanelData().maxSize }
-func (p *Panel) SetMinWidth(w float32)    { p.PanelData().minSize.SetX(w) }
-func (p *Panel) SetMaxWidth(w float32)    { p.PanelData().maxSize.SetX(w) }
-func (p *Panel) SetMinHeight(h float32)   { p.PanelData().minSize.SetY(h) }
-func (p *Panel) SetMaxHeight(h float32)   { p.PanelData().maxSize.SetY(h) }
-func (p *Panel) GetAspectRatio() float32  { return p.PanelData().aspectRatio }
-func (p *Panel) SetAspectRatio(r float32) { p.PanelData().aspectRatio = r }
-func (p *Panel) GetUsesBorderBox() bool   { return p.PanelData().usesBorderBox }
-func (p *Panel) SetUsesBorderBox(v bool)  { p.PanelData().usesBorderBox = v }
+func (p *Panel) MaxScroll() matrix.Vec2  { return p.PanelData().maxScroll }
+func (p *Panel) ScrollX() float32        { return p.PanelData().scroll.X() }
+func (p *Panel) ScrollY() float32        { return -p.PanelData().scroll.Y() }
+func (p *Panel) EnableDragScroll()       { p.PanelData().flags.setAllowDragScroll() }
+func (p *Panel) DisableDragScroll()      { p.PanelData().flags.resetAllowDragScroll() }
+func (p *Panel) GetMinSize() matrix.Vec2 { return p.PanelData().minSize }
+func (p *Panel) GetMaxSize() matrix.Vec2 { return p.PanelData().maxSize }
+func (p *Panel) SetMinWidth(w float32) {
+	pd := p.PanelData()
+	if matrix.Approx(pd.minSize.X(), w) {
+		return
+	}
+	pd.minSize.SetX(w)
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+func (p *Panel) SetMaxWidth(w float32) {
+	pd := p.PanelData()
+	if matrix.Approx(pd.maxSize.X(), w) {
+		return
+	}
+	pd.maxSize.SetX(w)
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+func (p *Panel) SetMinHeight(h float32) {
+	pd := p.PanelData()
+	if matrix.Approx(pd.minSize.Y(), h) {
+		return
+	}
+	pd.minSize.SetY(h)
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+func (p *Panel) SetMaxHeight(h float32) {
+	pd := p.PanelData()
+	if matrix.Approx(pd.maxSize.Y(), h) {
+		return
+	}
+	pd.maxSize.SetY(h)
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+func (p *Panel) GetAspectRatio() float32 { return p.PanelData().aspectRatio }
+func (p *Panel) SetAspectRatio(r float32) {
+	pd := p.PanelData()
+	if matrix.Approx(pd.aspectRatio, r) {
+		return
+	}
+	pd.aspectRatio = r
+	p.Base().SetDirty(DirtyTypeLayout)
+}
+func (p *Panel) GetUsesBorderBox() bool { return p.PanelData().usesBorderBox }
+func (p *Panel) SetUsesBorderBox(v bool) {
+	pd := p.PanelData()
+	if pd.usesBorderBox == v {
+		return
+	}
+	pd.usesBorderBox = v
+	p.Base().SetDirty(DirtyTypeLayout)
+}
 
 func (p *Panel) DontFitContentWidth() {
 	pd := p.PanelData()
+	old := pd.fitContent
 	switch pd.fitContent {
 	case ContentFitBoth:
 		pd.fitContent = ContentFitHeight
 	case ContentFitWidth:
 		pd.fitContent = ContentFitNone
 	}
+	if pd.fitContent != old {
+		p.Base().SetDirty(DirtyTypeLayout)
+	}
 }
 
 func (p *Panel) DontFitContentHeight() {
 	pd := p.PanelData()
+	old := pd.fitContent
 	switch pd.fitContent {
 	case ContentFitBoth:
 		pd.fitContent = ContentFitWidth
 	case ContentFitHeight:
 		pd.fitContent = ContentFitNone
 	}
+	if pd.fitContent != old {
+		p.Base().SetDirty(DirtyTypeLayout)
+	}
 }
 
 func (p *Panel) DontFitContent() {
-	p.PanelData().fitContent = ContentFitNone
+	pd := p.PanelData()
+	if pd.fitContent == ContentFitNone {
+		return
+	}
+	pd.fitContent = ContentFitNone
+	p.Base().SetDirty(DirtyTypeLayout)
 }
 
 func (p *Panel) FittingContent() bool {
@@ -1095,8 +1151,15 @@ func (p *Panel) SetGrid(columns int) {
 func (p *Panel) SetGridTemplateColumns(columns []float32) {
 	pd := p.PanelData()
 	if len(columns) == 0 {
+		if len(pd.gridTemplateColumns) == 0 {
+			return
+		}
 		pd.gridTemplateColumns = nil
 		p.Base().SetDirty(DirtyTypeLayout)
+		return
+	}
+	if pd.layoutMode == LayoutModeGrid && pd.gridColumns == len(columns) &&
+		slices.Equal(pd.gridTemplateColumns, columns) {
 		return
 	}
 	pd.gridTemplateColumns = append(pd.gridTemplateColumns[:0], columns...)
@@ -2063,12 +2126,18 @@ func (p *Panel) SetOutline(width, offset float32, color matrix.Color) {
 		p.ensureBGExists(nil)
 	}
 	outlineSize := matrix.NewVec2(width, offset)
-	if p.shaderData.OutlineSize.Equals(outlineSize) && p.shaderData.OutlineColor.Equals(color) {
+	sizeChanged := !p.shaderData.OutlineSize.Equals(outlineSize)
+	colorChanged := !p.shaderData.OutlineColor.Equals(color)
+	if !sizeChanged && !colorChanged {
 		return
 	}
 	p.shaderData.OutlineSize = outlineSize
 	p.shaderData.OutlineColor = color
-	p.Base().SetDirty(DirtyTypeLayout)
+	if sizeChanged {
+		p.Base().SetDirty(DirtyTypeLayout)
+	} else {
+		p.Base().SetDirty(DirtyTypeColorChange)
+	}
 }
 
 func (p *Panel) SetUseBlending(useBlending bool) {

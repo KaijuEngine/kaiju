@@ -747,9 +747,9 @@ func (d *Document) RemoveElementWithoutApplyStyles(elm *Element) {
 }
 
 // SetElementClassesWithoutApply updates the class list of the given element
-// without applying styles. It removes the element from its previous class
-// lists, sets the new classes, and updates the document's classElements map
-// to reflect the new class assignments.
+// without applying styles or dirtying live UI. It removes the element from its
+// previous class lists, sets the new classes, and updates the document's
+// classElements map. Call ApplyStyles after batching changes.
 //
 // Parameters:
 //   - elm: pointer to the Element whose classes will be updated
@@ -786,7 +786,6 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 			d.classElements[c] = []*Element{elm}
 		}
 	}
-	elm.UI.SetDirty(ui.DirtyTypeLayout)
 }
 
 // SetElementClasses updates the class list of the given element and applies
@@ -798,13 +797,13 @@ func (d *Document) SetElementClassesWithoutApply(elm *Element, classes ...string
 //   - classes: variadic string parameters representing the new class names
 func (d *Document) SetElementClasses(elm *Element, classes ...string) {
 	d.SetElementClassesWithoutApply(elm, classes...)
-	elm.UI.Layout().ClearStyles()
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
 // SetElementStylePropertyWithoutApply adds or overwrites a single inline CSS
-// property on the given element without applying styles. This is useful when
-// changing several runtime style values before calling ApplyStyles once.
+// property on the given element without applying styles or dirtying live UI.
+// This is useful when changing several runtime style values before calling
+// ApplyStyles once.
 func (d *Document) SetElementStylePropertyWithoutApply(elm *Element, property, value string) {
 	property = strings.TrimSpace(property)
 	value = strings.TrimSpace(value)
@@ -818,18 +817,12 @@ func (d *Document) SetElementStylePropertyWithoutApply(elm *Element, property, v
 		return
 	}
 	elm.SetAttribute("style", next)
-	if elm.UI != nil {
-		elm.UI.SetDirty(ui.DirtyTypeGenerated)
-	}
 }
 
 // SetElementStyleProperty adds or overwrites a single inline CSS property on
 // the given element and reapplies document styles.
 func (d *Document) SetElementStyleProperty(elm *Element, property, value string) {
 	d.SetElementStylePropertyWithoutApply(elm, property, value)
-	if elm.UI != nil {
-		elm.UI.Layout().ClearStyles()
-	}
 	d.stylizer.ApplyStyles(d.style, d)
 }
 
@@ -843,10 +836,6 @@ func (d *Document) SetElementDisabled(elm *Element, disabled bool) {
 		elm.RemoveAttribute("disabled")
 	}
 	syncElementDisabledState(elm)
-	if elm.UI != nil {
-		elm.UI.Layout().ClearStyles()
-		elm.UI.SetDirty(ui.DirtyTypeGenerated)
-	}
 	if d.stylizer != nil {
 		d.stylizer.ApplyStyles(d.style, d)
 	}

@@ -6,7 +6,10 @@
 
 package properties
 
-import "kaijuengine.com/engine/ui/markup/css/rules"
+import (
+	"kaijuengine.com/engine/ui/markup/css/rules"
+	"kaijuengine.com/engine/ui/markup/document"
+)
 
 type PropertyBase struct{}
 
@@ -16,6 +19,13 @@ func (PropertyBase) Sort() int {
 
 func (PropertyBase) Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule) {
 	return values, rules
+}
+
+// StyleImpact defaults to layout so new or partially implemented properties
+// cannot accidentally skip necessary layout work. Paint-only properties opt in
+// explicitly in css_property_impacts.go.
+func (PropertyBase) StyleImpact() document.StyleImpact {
+	return document.StyleImpactLayout
 }
 
 // Specifies an accent color for user-interface controls

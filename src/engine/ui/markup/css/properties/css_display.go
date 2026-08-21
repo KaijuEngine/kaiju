@@ -22,18 +22,18 @@ func (p Display) Process(panel *ui.Panel, elm *document.Element, values []rules.
 	}
 	switch values[0].Str {
 	case "none":
-		panel.Base().Hide()
+		panel.Base().SetCSSDisplayVisible(false)
 		return nil
 	case "flex", "inline-flex", "block flex", "inline flex":
-		panel.Base().Show()
+		panel.Base().SetCSSDisplayVisible(true)
 		panel.SetFlex()
 		return nil
 	case "grid", "inline-grid", "block grid", "inline grid":
-		panel.Base().Show()
+		panel.Base().SetCSSDisplayVisible(true)
 		panel.SetGrid(0)
 		return nil
 	case "block", "inline", "inline-block", "flow-root", "block flow", "inline flow":
-		panel.Base().Show()
+		panel.Base().SetCSSDisplayVisible(true)
 		panel.SetFlowLayout()
 		return nil
 	default:

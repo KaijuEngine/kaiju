@@ -25,26 +25,26 @@ type colorRange struct {
 }
 
 type labelData struct {
-	colorRanges       []colorRange
-	text              string
-	textLength        int
-	fontSize          float32
-	lineHeight        float32
-	letterSpacing     float32
-	overrideMaxWidth  float32
-	fgColor           matrix.Color
-	bgColor           matrix.Color
-	justify           rendering.FontJustify
-	baseline          rendering.FontBaseline
-	diffScore         int
-	runeShaderData    []*rendering.TextShaderData
-	runeDrawings      []rendering.Drawing
-	fontFace          rendering.FontFace
-	lastRenderWidth   float32
-	unEnforcedFGColor matrix.Color
-	unEnforcedBGColor matrix.Color
-	isForcedFGColor   bool
-	isForcedBGColor   bool
+	colorRanges          []colorRange
+	text                 string
+	textLength           int
+	fontSize             float32
+	lineHeight           float32
+	letterSpacing        float32
+	overrideMaxWidth     float32
+	fgColor              matrix.Color
+	bgColor              matrix.Color
+	justify              rendering.FontJustify
+	baseline             rendering.FontBaseline
+	diffScore            int
+	runeShaderData       []*rendering.TextShaderData
+	runeDrawings         []rendering.Drawing
+	fontFace             rendering.FontFace
+	lastRenderWidth      float32
+	unEnforcedFGColor    matrix.Color
+	unEnforcedBGColor    matrix.Color
+	isForcedFGColor      bool
+	isForcedBGColor      bool
 	wordWrap             bool
 	renderRequired       bool
 	transparentBG        bool
@@ -102,17 +102,11 @@ func (label *Label) Init(text string) {
 }
 
 func (label *Label) Show() {
-	if !label.entity.IsActive() {
-		label.entity.Activate()
-		label.activateDrawings()
-	}
+	label.Base().Show()
 }
 
 func (label *Label) Hide() {
-	if label.entity.IsActive() {
-		label.entity.Deactivate()
-		label.deactivateDrawings()
-	}
+	label.Base().Hide()
 }
 
 func (label *Label) activateDrawings() {
@@ -471,7 +465,7 @@ func (label *Label) SetBGColor(newColor matrix.Color) {
 	for i := range ld.colorRanges {
 		label.colorRange(ld.colorRanges[i])
 	}
-	label.Base().SetDirty(DirtyTypeGenerated)
+	label.Base().SetDirty(DirtyTypeColorChange)
 }
 
 // SetTransparentBackground enables opaque cutout text: pixels outside glyphs

@@ -9,3 +9,12 @@ package ui
 type LayoutStylizer interface {
 	ProcessStyle(layout *Layout) []error
 }
+
+// PendingLayoutStylizer separates a stylesheet refresh from a layout refresh.
+// Markup stylizers use this to apply changed paint properties before UI.Clean
+// decides whether the tree actually needs layout stabilization.
+type PendingLayoutStylizer interface {
+	LayoutStylizer
+	HasPendingStyle() bool
+	ProcessPendingStyle(layout *Layout) []error
+}

@@ -137,6 +137,9 @@ const (
 	uiBitsLastActive
 	uiBitsDontClean
 	uiBitsDisabled
+	uiBitsHidden
+	uiBitsCSSDisplayHidden
+	uiBitsCSSVisibilityHidden
 )
 
 type UIElementData interface {
@@ -163,22 +166,36 @@ type UI struct {
 	flags            uiBits
 }
 
-func (b uiBits) hovering() bool     { return b&uiBitsHovering != 0 }
-func (b uiBits) cantMiss() bool     { return b&uiBitsCantMiss != 0 }
-func (b uiBits) isDown() bool       { return b&uiBitsIsDown != 0 }
-func (b uiBits) isRightDown() bool  { return b&uiBitsIsRightDown != 0 }
-func (b uiBits) drag() bool         { return b&uiBitsDrag != 0 }
-func (b uiBits) lastActive() bool   { return b&uiBitsLastActive != 0 }
-func (b uiBits) dontClean() bool    { return b&uiBitsDontClean != 0 }
-func (b uiBits) disabled() bool     { return b&uiBitsDisabled != 0 }
-func (b *uiBits) setHovering()      { *b |= uiBitsHovering }
-func (b *uiBits) setCantMiss()      { *b |= uiBitsCantMiss }
-func (b *uiBits) setIsDown()        { *b |= uiBitsIsDown }
-func (b *uiBits) setIsRightDown()   { *b |= uiBitsIsRightDown }
-func (b *uiBits) setDrag()          { *b |= uiBitsDrag }
-func (b *uiBits) setLastActive()    { *b |= uiBitsLastActive }
-func (b *uiBits) setDontClean()     { *b |= uiBitsDontClean }
-func (b *uiBits) setDisabled()      { *b |= uiBitsDisabled }
+func (b uiBits) hovering() bool    { return b&uiBitsHovering != 0 }
+func (b uiBits) cantMiss() bool    { return b&uiBitsCantMiss != 0 }
+func (b uiBits) isDown() bool      { return b&uiBitsIsDown != 0 }
+func (b uiBits) isRightDown() bool { return b&uiBitsIsRightDown != 0 }
+func (b uiBits) drag() bool        { return b&uiBitsDrag != 0 }
+func (b uiBits) lastActive() bool  { return b&uiBitsLastActive != 0 }
+func (b uiBits) dontClean() bool   { return b&uiBitsDontClean != 0 }
+func (b uiBits) disabled() bool    { return b&uiBitsDisabled != 0 }
+func (b uiBits) hidden() bool      { return b&uiBitsHidden != 0 }
+func (b uiBits) cssDisplayHidden() bool {
+	return b&uiBitsCSSDisplayHidden != 0
+}
+func (b uiBits) cssVisibilityHidden() bool {
+	return b&uiBitsCSSVisibilityHidden != 0
+}
+func (b *uiBits) setHovering()    { *b |= uiBitsHovering }
+func (b *uiBits) setCantMiss()    { *b |= uiBitsCantMiss }
+func (b *uiBits) setIsDown()      { *b |= uiBitsIsDown }
+func (b *uiBits) setIsRightDown() { *b |= uiBitsIsRightDown }
+func (b *uiBits) setDrag()        { *b |= uiBitsDrag }
+func (b *uiBits) setLastActive()  { *b |= uiBitsLastActive }
+func (b *uiBits) setDontClean()   { *b |= uiBitsDontClean }
+func (b *uiBits) setDisabled()    { *b |= uiBitsDisabled }
+func (b *uiBits) setHidden()      { *b |= uiBitsHidden }
+func (b *uiBits) setCSSDisplayHidden() {
+	*b |= uiBitsCSSDisplayHidden
+}
+func (b *uiBits) setCSSVisibilityHidden() {
+	*b |= uiBitsCSSVisibilityHidden
+}
 func (b *uiBits) resetHovering()    { *b &= ^uiBitsHovering }
 func (b *uiBits) resetCantMiss()    { *b &= ^uiBitsCantMiss }
 func (b *uiBits) resetIsDown()      { *b &= ^uiBitsIsDown }
@@ -187,6 +204,13 @@ func (b *uiBits) resetDrag()        { *b &= ^uiBitsDrag }
 func (b *uiBits) resetLastActive()  { *b &= ^uiBitsLastActive }
 func (b *uiBits) resetDontClean()   { *b &= ^uiBitsDontClean }
 func (b *uiBits) resetDisabled()    { *b &= ^uiBitsDisabled }
+func (b *uiBits) resetHidden()      { *b &= ^uiBitsHidden }
+func (b *uiBits) resetCSSDisplayHidden() {
+	*b &= ^uiBitsCSSDisplayHidden
+}
+func (b *uiBits) resetCSSVisibilityHidden() {
+	*b &= ^uiBitsCSSVisibilityHidden
+}
 
 func (ui *UI) IsActive() bool { return ui.entity.IsActive() }
 func (ui *UI) IsDown() bool   { return ui.flags.isDown() }
@@ -203,6 +227,16 @@ func (ui *UI) init(textureSize matrix.Vec2) {
 	ui.shaderData = &ShaderData{
 		ShaderDataBase: rendering.NewShaderDataBase(),
 	}
+	// Entity activation remains public and some callers use it directly. Keep
+	// that path represented in the UI visibility layer so a later CSS refresh
+	// cannot accidentally undo an application-requested deactivation.
+	ui.entity.OnActivate.Add(func() { ui.flags.resetHidden() })
+	ui.entity.OnDeactivate.Add(func() {
+		if !ui.flags.hidden() && !ui.flags.cssDisplayHidden() &&
+			!ui.flags.cssVisibilityHidden() && !ui.hasInactiveParent() {
+			ui.flags.setHidden()
+		}
+	})
 	ui.shaderData.Scissor = matrix.Vec4{-matrix.FloatMax, -matrix.FloatMax, matrix.FloatMax, matrix.FloatMax}
 	ui.entity.AddNamedData(EntityDataName, ui)
 	ui.textureSize = textureSize
@@ -290,7 +324,7 @@ func (ui *UI) SetDisabled(disabled bool) {
 		ui.flags.resetDisabled()
 	}
 	if ui.IsValid() {
-		ui.SetDirty(DirtyTypeGenerated)
+		ui.SetDirty(DirtyTypeColorChange)
 	}
 }
 
@@ -356,6 +390,20 @@ func labelDirtyRequiresRender(dirtyType DirtyType) bool {
 	default:
 		return false
 	}
+}
+
+func dirtyRequiresLayout(dirtyType DirtyType) bool {
+	switch dirtyType {
+	case DirtyTypeNone, DirtyTypeColorChange, DirtyTypeParentColorChange:
+		return false
+	default:
+		return true
+	}
+}
+
+func (ui *UI) pendingStylizer() (PendingLayoutStylizer, bool) {
+	stylizer, ok := ui.layout.Stylizer.(PendingLayoutStylizer)
+	return stylizer, ok && stylizer.HasPendingStyle()
 }
 
 func (ui *UI) setDirtyInternal(dirtyType DirtyType) {
@@ -431,6 +479,31 @@ func (ui *UI) Clean() {
 		}
 	}
 	createTree(root.Entity())
+	paintTargets := make(map[*UI]struct{})
+	for i := range tree {
+		if stylizer, ok := tree[i].pendingStylizer(); ok {
+			stylizer.ProcessPendingStyle(tree[i].Layout())
+			paintTargets[tree[i]] = struct{}{}
+		}
+	}
+	requiresLayout := false
+	for i := range tree {
+		if tree[i].dirty() != DirtyTypeNone {
+			paintTargets[tree[i]] = struct{}{}
+			requiresLayout = requiresLayout || dirtyRequiresLayout(tree[i].dirty())
+		}
+	}
+	if !requiresLayout {
+		for i := range tree {
+			tree[i].cleanDirty()
+		}
+		for i := range tree {
+			if _, ok := paintTargets[tree[i]]; ok && tree[i].IsActive() {
+				tree[i].render()
+			}
+		}
+		return
+	}
 	stabilized := false
 	maxIterations := 100
 	iterations := 0
@@ -855,7 +928,13 @@ func (ui *UI) cleanIfNeeded() {
 
 func (ui *UI) anyChildDirty() bool {
 	defer tracing.NewRegion("UI.anyChildDirty").End()
-	if !ui.IsActive() || ui.entity.IsDestroyed() {
+	if ui.entity.IsDestroyed() {
+		return false
+	}
+	if _, ok := ui.pendingStylizer(); ok {
+		return true
+	}
+	if !ui.IsActive() {
 		return false
 	}
 	if ui.dirtyType != DirtyTypeNone {
@@ -899,22 +978,101 @@ func (ui *UI) updateFromManager(deltaTime float64) {
 	}
 }
 
+func (ui *UI) hasInactiveParent() bool {
+	for parent := ui.entity.Parent; parent != nil; parent = parent.Parent {
+		if !parent.IsActive() {
+			return true
+		}
+	}
+	return false
+}
+
+func (ui *UI) captureExternalDeactivation() {
+	if !ui.IsActive() && !ui.hasInactiveParent() && !ui.flags.hidden() &&
+		!ui.flags.cssDisplayHidden() && !ui.flags.cssVisibilityHidden() {
+		ui.flags.setHidden()
+	}
+}
+
+func (ui *UI) syncVisibility() {
+	if ui.flags.hidden() || ui.flags.cssDisplayHidden() || ui.flags.cssVisibilityHidden() {
+		// SetActive(false), unlike Deactivate on an already-inactive entity,
+		// clears the inherited activation marker. A locally hidden child must
+		// stay hidden when its parent is shown again.
+		ui.entity.SetActive(false)
+		return
+	}
+	if !ui.hasInactiveParent() {
+		ui.entity.Activate()
+	}
+}
+
+func (ui *UI) syncVisibilitySubtree() {
+	ui.syncVisibility()
+	if !ui.IsActive() {
+		return
+	}
+	for _, child := range ui.entity.Children {
+		if childUI := FirstOnEntity(child); childUI != nil {
+			childUI.syncVisibilitySubtree()
+		}
+	}
+}
+
+// SetCSSDisplayVisible updates only the CSS display layer. Application Hide
+// state remains authoritative until Show is called by the application.
+func (ui *UI) SetCSSDisplayVisible(visible bool) {
+	ui.captureExternalDeactivation()
+	if visible == !ui.flags.cssDisplayHidden() {
+		return
+	}
+	if visible {
+		ui.flags.resetCSSDisplayHidden()
+	} else {
+		ui.flags.setCSSDisplayHidden()
+	}
+	ui.syncVisibilitySubtree()
+}
+
+// SetCSSVisibilityVisible updates only the CSS visibility layer. It is kept
+// separate from display so either property can independently hide an element.
+func (ui *UI) SetCSSVisibilityVisible(visible bool) {
+	ui.captureExternalDeactivation()
+	if visible == !ui.flags.cssVisibilityHidden() {
+		return
+	}
+	if visible {
+		ui.flags.resetCSSVisibilityHidden()
+	} else {
+		ui.flags.setCSSVisibilityHidden()
+	}
+	ui.syncVisibilitySubtree()
+}
+
 func (ui *UI) Show() {
 	defer tracing.NewRegion("UI.Show").End()
-	ui.entity.Activate()
+	if !ui.flags.hidden() {
+		return
+	}
+	ui.flags.resetHidden()
+	ui.syncVisibilitySubtree()
 }
 
 func (ui *UI) Hide() {
 	defer tracing.NewRegion("UI.Hide").End()
-	ui.entity.Deactivate()
+	if ui.flags.hidden() {
+		return
+	}
+	ui.flags.setHidden()
+	ui.syncVisibility()
 }
 
 func (ui *UI) SetVisibility(visible bool) {
 	defer tracing.NewRegion("UI.ShowToggle").End()
 	if visible {
-		ui.entity.Activate()
+		ui.Show()
 	} else {
-		ui.entity.Deactivate()
+		ui.Hide()
 	}
 }
 

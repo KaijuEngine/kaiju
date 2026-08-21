@@ -9,6 +9,7 @@ package document
 import (
 	"errors"
 	"slices"
+	"strings"
 	"weak"
 
 	"kaijuengine.com/engine"
@@ -46,7 +47,19 @@ type CSSProperty interface {
 	Process(panel *ui.Panel, elm *Element, values []rules.PropertyValue, host *engine.Host) error
 	Sort() int
 	Preprocess(values []rules.PropertyValue, rules []rules.Rule) ([]rules.PropertyValue, []rules.Rule)
+	StyleImpact() StyleImpact
 }
+
+type CSSPropertyResetter interface {
+	Reset(panel *ui.Panel, elm *Element, host *engine.Host) error
+}
+
+type StyleImpact uint8
+
+const (
+	StyleImpactLayout StyleImpact = iota
+	StyleImpactPaint
+)
 
 type ElementLayoutStylizer struct {
 	element         weak.Pointer[Element]
@@ -69,6 +82,9 @@ type ElementLayoutStylizer struct {
 	}
 	currentState     rules.RuleInvoke
 	interestedStates rules.RuleInvoke
+	appliedRules     []rules.Rule
+	pendingLayout    bool
+	pendingPaint     bool
 }
 
 func (s *ElementLayoutStylizer) HasRule(rule string) bool {
@@ -80,8 +96,7 @@ func (s *ElementLayoutStylizer) HasRule(rule string) bool {
 	return false
 }
 
-func (s *ElementLayoutStylizer) ClearRules() {
-	s.styleRules = s.styleRules[:0]
+func (s *ElementLayoutStylizer) clearRuleBindings() {
 	e := s.element.Value()
 	if e == nil {
 		return
@@ -96,8 +111,11 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	e.UI.RemoveEvent(ui.EventTypeExit, s.activeEvt.exitId)
 	e.UI.RemoveEvent(ui.EventTypeDown, s.activeEvt.downId)
 	e.UI.RemoveEvent(ui.EventTypeUp, s.activeEvt.upId)
-	if !e.UI.IsType(ui.ElementTypeLabel) {
-		e.UI.ToPanel().ClearLayoutStyles()
+	for evtType := range e.UIEventIds {
+		for _, evtId := range e.UIEventIds[evtType] {
+			e.UI.RemoveEvent(evtType, evtId)
+		}
+		e.UIEventIds[evtType] = e.UIEventIds[evtType][:0]
 	}
 	entity := e.UI.Entity()
 	entity.OnActivate.Remove(s.activateEvtId)
@@ -115,6 +133,40 @@ func (s *ElementLayoutStylizer) ClearRules() {
 	s.activateEvtId = 0
 	s.deactivateEvtId = 0
 	s.interestedStates = rules.RuleInvokeImmediate
+}
+
+// ClearRules queues removal of all CSS rules. It intentionally does not clear
+// live layout state; that happens only if the computed layout rules differ.
+func (s *ElementLayoutStylizer) ClearRules() {
+	s.ReplaceRules(nil)
+}
+
+// ReplaceRules installs the next cascaded rule set and compares it with the
+// last successfully applied computed rules. No UI dirty flag is set here.
+func (s *ElementLayoutStylizer) ReplaceRules(next []rules.Rule) {
+	if sourceRuleListsEqual(s.styleRules, next) {
+		s.queueComputedDiff(s.computedRules())
+		return
+	}
+	s.clearRuleBindings()
+	s.styleRules = s.styleRules[:0]
+	for i := range next {
+		s.AddRule(next[i].Clone())
+	}
+	s.queueComputedDiff(s.computedRules())
+}
+
+func sourceRuleListsEqual(a, b []rules.Rule) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Property != b[i].Property || a[i].Invocation != b[i].Invocation ||
+			!propertyValuesEqual(a[i].Values, b[i].Values) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ElementLayoutStylizer) AddRule(rule rules.Rule) {
@@ -197,7 +249,7 @@ func (s *ElementLayoutStylizer) setState(state rules.RuleInvoke, enabled bool) {
 	}
 	if next != s.currentState {
 		s.currentState = next
-		elm.UI.SetDirty(ui.DirtyTypeGenerated)
+		s.queueComputedDiff(s.computedRules())
 	}
 }
 
@@ -228,28 +280,92 @@ func (s *ElementLayoutStylizer) syncValidationState() {
 }
 
 func (s *ElementLayoutStylizer) ProcessStyle(layout *ui.Layout) []error {
-	return s.processRules(layout)
+	computed := s.computedRules()
+	problems := s.processRuleList(layout, computed)
+	s.appliedRules = rules.CloneRules(computed)
+	s.pendingLayout = false
+	s.pendingPaint = false
+	return problems
 }
 
-func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
+func (s *ElementLayoutStylizer) HasPendingStyle() bool {
+	return s.pendingLayout || s.pendingPaint
+}
+
+func (s *ElementLayoutStylizer) ProcessPendingStyle(layout *ui.Layout) []error {
+	computed := s.computedRules()
+	s.queueComputedDiff(computed)
+	if !s.HasPendingStyle() {
+		return nil
+	}
 	problems := make([]error, 0)
+	if s.pendingLayout {
+		problems = append(problems, s.resetRemovedRules(layout, computed)...)
+		if !layout.Ui().IsType(ui.ElementTypeLabel) {
+			layout.Ui().ToPanel().ClearLayoutStyles()
+		}
+		problems = append(problems, s.processRuleList(layout, computed)...)
+	} else {
+		changed, removed := changedPaintRules(s.appliedRules, computed)
+		elm := s.element.Value()
+		if elm != nil {
+			for _, property := range removed {
+				if p, ok := LinkedPropertyMap[property]; ok {
+					if resetter, ok := p.(CSSPropertyResetter); ok {
+						if err := resetter.Reset(layout.Ui().ToPanel(), elm, elm.UI.Host()); err != nil {
+							problems = append(problems, err)
+						}
+					}
+				}
+			}
+		}
+		problems = append(problems, s.processRuleList(layout, changed)...)
+	}
+	s.appliedRules = rules.CloneRules(computed)
+	s.pendingLayout = false
+	s.pendingPaint = false
+	return problems
+}
+
+func (s *ElementLayoutStylizer) resetRemovedRules(layout *ui.Layout, computed []rules.Rule) []error {
+	nextProperties := make(map[string]struct{}, len(computed))
+	for i := range computed {
+		nextProperties[computed[i].Property] = struct{}{}
+	}
 	elm := s.element.Value()
 	if elm == nil {
-		return []error{errors.New("missing element when processing rules")}
+		return []error{errors.New("missing element when resetting rules")}
+	}
+	problems := make([]error, 0)
+	for i := range s.appliedRules {
+		property := s.appliedRules[i].Property
+		if _, stillPresent := nextProperties[property]; stillPresent {
+			continue
+		}
+		if p, ok := LinkedPropertyMap[property]; ok {
+			if resetter, ok := p.(CSSPropertyResetter); ok {
+				if err := resetter.Reset(layout.Ui().ToPanel(), elm, elm.UI.Host()); err != nil {
+					problems = append(problems, err)
+				}
+			}
+		}
+	}
+	return problems
+}
+
+func (s *ElementLayoutStylizer) computedRules() []rules.Rule {
+	elm := s.element.Value()
+	if elm == nil {
+		return nil
 	}
 	s.syncValidationState()
-	host := elm.UI.Host()
 	a := make([]rules.Rule, 0, len(s.styleRules))
 	b := make([]rules.Rule, 0, len(s.styleRules))
-	for i := 0; i < len(s.styleRules); i++ {
+	for i := range s.styleRules {
 		if s.currentState != rules.RuleInvokeImmediate && s.styleRules[i].Invocation == rules.RuleInvokeImmediate {
-			a = append(a, s.styleRules[i])
+			a = append(a, s.styleRules[i].Clone())
 		} else if s.styleRules[i].Invocation.Matches(s.currentState) {
-			b = append(b, s.styleRules[i])
-		}
-		if s.styleRules[i].SelfDestruct {
-			s.styleRules = slices.Delete(s.styleRules, i, i+1)
-			i--
+			b = append(b, s.styleRules[i].Clone())
 		}
 	}
 	for j := 0; j < len(a); j++ {
@@ -274,6 +390,20 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
 		}
 	}
 	slices.SortStableFunc(all, func(x, y rules.Rule) int { return x.Sort - y.Sort })
+	for i := range all {
+		all[i].Invocation = rules.RuleInvokeImmediate
+		all[i].SelfDestruct = false
+	}
+	return all
+}
+
+func (s *ElementLayoutStylizer) processRuleList(layout *ui.Layout, all []rules.Rule) []error {
+	problems := make([]error, 0)
+	elm := s.element.Value()
+	if elm == nil {
+		return []error{errors.New("missing element when processing rules")}
+	}
+	host := elm.UI.Host()
 	isLabel := layout.Ui().IsType(ui.ElementTypeLabel)
 	for i := range all {
 		if isLabel && isPanelOnlyProperty(all[i].Property) {
@@ -288,12 +418,153 @@ func (s *ElementLayoutStylizer) processRules(layout *ui.Layout) []error {
 	return problems
 }
 
+func (s *ElementLayoutStylizer) queueComputedDiff(next []rules.Rule) {
+	layoutChanged, paintChanged := computedRuleDiff(s.appliedRules, next)
+	s.pendingLayout = layoutChanged
+	s.pendingPaint = paintChanged
+}
+
+func computedRuleDiff(previous, next []rules.Rule) (layoutChanged, paintChanged bool) {
+	previousByProperty := make(map[string]rules.Rule, len(previous))
+	nextByProperty := make(map[string]rules.Rule, len(next))
+	for i := range previous {
+		previousByProperty[previous[i].Property] = previous[i]
+	}
+	for i := range next {
+		nextByProperty[next[i].Property] = next[i]
+	}
+	allProperties := make(map[string]struct{}, len(previousByProperty)+len(nextByProperty))
+	for property := range previousByProperty {
+		allProperties[property] = struct{}{}
+	}
+	for property := range nextByProperty {
+		allProperties[property] = struct{}{}
+	}
+	for property := range allProperties {
+		before, hadBefore := previousByProperty[property]
+		after, hasAfter := nextByProperty[property]
+		if hadBefore && hasAfter && ruleComputedEqual(before, after) {
+			continue
+		}
+		impact := propertyChangeImpact(property, before, hadBefore, after, hasAfter)
+		if impact == StyleImpactLayout {
+			layoutChanged = true
+		} else {
+			paintChanged = true
+		}
+	}
+	return
+}
+
+func changedPaintRules(previous, next []rules.Rule) (changed []rules.Rule, removed []string) {
+	previousByProperty := make(map[string]rules.Rule, len(previous))
+	nextByProperty := make(map[string]rules.Rule, len(next))
+	for i := range previous {
+		previousByProperty[previous[i].Property] = previous[i]
+	}
+	for i := range next {
+		nextByProperty[next[i].Property] = next[i]
+	}
+	for property, after := range nextByProperty {
+		before, hadBefore := previousByProperty[property]
+		if propertyChangeImpact(property, before, hadBefore, after, true) == StyleImpactPaint &&
+			(!hadBefore || !ruleComputedEqual(before, after)) {
+			changed = append(changed, after.Clone())
+		}
+	}
+	for property := range previousByProperty {
+		if _, stillPresent := nextByProperty[property]; stillPresent {
+			continue
+		}
+		if p, ok := LinkedPropertyMap[property]; ok && p.StyleImpact() == StyleImpactPaint {
+			removed = append(removed, property)
+		}
+	}
+	if len(removed) > 0 {
+		changed = changed[:0]
+		for property, after := range nextByProperty {
+			if p, ok := LinkedPropertyMap[property]; ok && p.StyleImpact() == StyleImpactPaint {
+				changed = append(changed, after.Clone())
+			}
+		}
+	}
+	slices.SortStableFunc(changed, func(x, y rules.Rule) int { return x.Sort - y.Sort })
+	return
+}
+
+func propertyChangeImpact(property string, before rules.Rule, hadBefore bool, after rules.Rule, hasAfter bool) StyleImpact {
+	p, ok := LinkedPropertyMap[property]
+	if !ok {
+		return StyleImpactLayout
+	}
+	if hadBefore && hasAfter && isBorderShorthand(property) &&
+		propertyValuesEqual(borderLayoutValues(before.Values), borderLayoutValues(after.Values)) {
+		return StyleImpactPaint
+	}
+	return p.StyleImpact()
+}
+
+func isBorderShorthand(property string) bool {
+	switch property {
+	case "border", "border-left", "border-top", "border-right", "border-bottom":
+		return true
+	default:
+		return false
+	}
+}
+
+// The implemented border shorthands only let width tokens affect layout.
+// Comparing that normalized subset lets `border: 1px solid red` transition to
+// `border: 1px solid blue` through the paint-only path.
+func borderLayoutValues(values []rules.PropertyValue) []rules.PropertyValue {
+	out := make([]rules.PropertyValue, 0, len(values))
+	for i := range values {
+		v := values[i]
+		switch v.Str {
+		case "thin", "medium", "thick", "initial", "inherit":
+			out = append(out, v)
+		default:
+			if strings.HasSuffix(v.Str, "px") {
+				out = append(out, v)
+			}
+		}
+	}
+	return out
+}
+
+func propertyValuesEqual(a, b []rules.PropertyValue) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !propertyValueEqual(a[i], b[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func ruleComputedEqual(a, b rules.Rule) bool {
+	if a.Property != b.Property || len(a.Values) != len(b.Values) {
+		return false
+	}
+	for i := range a.Values {
+		if !propertyValueEqual(a.Values[i], b.Values[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func propertyValueEqual(a, b rules.PropertyValue) bool {
+	return a.Str == b.Str && a.Num == b.Num &&
+		slices.Equal(a.Args, b.Args) && slices.Equal(a.ArgNums, b.ArgNums)
+}
+
 func (s *ElementLayoutStylizer) clone(newElm *Element) ElementLayoutStylizer {
 	out := ElementLayoutStylizer{
 		element: weak.Make(newElm),
 	}
-	for i := range s.styleRules {
-		out.AddRule(s.styleRules[i].Clone())
-	}
+	out.ReplaceRules(s.styleRules)
 	return out
 }

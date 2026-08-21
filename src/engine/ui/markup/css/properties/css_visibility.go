@@ -27,13 +27,14 @@ func (p Visibility) Process(panel *ui.Panel, elm *document.Element, values []rul
 	case "initial":
 		fallthrough
 	case "visible":
-		panel.Base().Entity().Activate()
+		panel.Base().SetCSSVisibilityVisible(true)
 	case "hidden":
-		panel.Base().Entity().Deactivate()
+		panel.Base().SetCSSVisibilityVisible(false)
 	case "collapse": //Meant for table rows (<tr>), row groups (<tbody>), columns (<col>), column groups (<colgroup>)
 		return errors.New("Not implemented [collapse]")
 	case "inherit":
-		panel.Base().Entity().SetActive(panel.Base().Entity().Parent.IsActive())
+		parent := panel.Base().Entity().Parent
+		panel.Base().SetCSSVisibilityVisible(parent == nil || parent.IsActive())
 	}
 
 	return nil
