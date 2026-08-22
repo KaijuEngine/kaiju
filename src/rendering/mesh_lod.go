@@ -14,6 +14,14 @@ const (
 	// processing stays short enough to run at load/runtime without a perceptible
 	// hitch.
 	meshQemChunkTargetVerts = 4096
+
+	// meshLodMinTriangles is the triangle-count floor below which a mesh is
+	// considered "already low poly enough" to skip further simplification.
+	// Meshes at or below this count (e.g. cubes = 12 tris, quads = 2 tris, and
+	// other small primitives) reuse the source mesh for every LOD level, and a
+	// generated LOD that reaches this floor becomes the final LOD for all
+	// remaining levels.
+	meshLodMinTriangles = 32
 )
 
 type MeshLODInstance struct {
@@ -103,7 +111,7 @@ type qemEdgeHeap []*qemEdge
 
 func (l MeshLod) IsValid() bool { return len(l.Levels) > 0 }
 
-// GenerateMeshLOD builds a set of level-of-detail meshes for the given source
+// generateMeshLOD builds a set of level-of-detail meshes for the given source
 // mesh using Quadric Error Metric (QEM) simplification.
 //
 // The result is a MeshLod whose Level 0 is always the full-resolution source
@@ -120,7 +128,7 @@ func (l MeshLod) IsValid() bool { return len(l.Levels) > 0 }
 // The computed LODs are cached on mesh so repeated calls return the same set.
 // verts and indices describe the full-resolution geometry; if a level cannot
 // be reduced, that level falls back to reusing the source mesh itself.
-func GenerateMeshLOD(mesh *Mesh, verts []Vertex, indices []uint32, levels int) (MeshLod, error) {
+func generateMeshLOD(mesh *Mesh, meshCache *MeshCache, verts []Vertex, indices []uint32, levels int) (MeshLod, error) {
 	if levels <= 0 {
 		return MeshLod{}, errors.New("GenerateMeshLOD: levels must be greater than 0")
 	}
@@ -134,12 +142,23 @@ func GenerateMeshLOD(mesh *Mesh, verts []Vertex, indices []uint32, levels int) (
 	// Level 0 is always the full-resolution mesh itself.
 	lods.Levels[0] = MeshLODInstance{Mesh: mesh, Ratio: 1}
 	ratios := selectMeshLodRatios(levels)
+	lastLod := mesh
+	// If the source mesh is already low poly enough, there is nothing to
+	// simplify. Every level reuses the source mesh itself and we skip the
+	// (pointless) chunking/simplification work entirely.
+	if len(indices)/3 <= meshLodMinTriangles {
+		for i := 1; i < levels; i++ {
+			lods.Levels[i] = MeshLODInstance{Mesh: mesh, Ratio: ratios[i]}
+		}
+		mesh.lods = lods
+		return lods, nil
+	}
 	for i := 1; i < levels; i++ {
 		ratio := ratios[i]
 		chunks := quadricErrorMetricChunkify(verts, indices, ratio)
 		if len(chunks) == 0 {
 			// Nothing to simplify; reuse the full mesh for this level.
-			lods.Levels[i] = MeshLODInstance{Mesh: mesh, Ratio: ratio}
+			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
 			continue
 		}
 		// Simplify each chunk. This can be parallelized across chunks; each one
@@ -149,11 +168,20 @@ func GenerateMeshLOD(mesh *Mesh, verts []Vertex, indices []uint32, levels int) (
 		}
 		lodVerts, lodIndices := stitchQemChunks(verts, chunks)
 		if len(lodVerts) == 0 || len(lodIndices) == 0 {
-			lods.Levels[i] = MeshLODInstance{Mesh: mesh, Ratio: ratio}
+			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
 			continue
 		}
-		lodMesh := NewMesh(fmt.Sprintf("%s_lod_%d", mesh.Key(), i), lodVerts, lodIndices)
-		lods.Levels[i] = MeshLODInstance{Mesh: lodMesh, Ratio: ratio}
+		lastLod = meshCache.meshLod(fmt.Sprintf("%s_lod_%d", mesh.Key(), i), lodVerts, lodIndices)
+		lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
+		// Once a generated LOD reaches the low-poly floor, it is the coarsest
+		// useful representation. Make every remaining level reuse this same LOD
+		// rather than continuing to simplify.
+		if len(lodIndices)/3 <= meshLodMinTriangles {
+			for j := i + 1; j < levels; j++ {
+				lods.Levels[j] = MeshLODInstance{Mesh: lastLod, Ratio: ratios[j]}
+			}
+			break
+		}
 	}
 	// Remember the computed LODs so we don't redo them next call.
 	mesh.lods = lods

@@ -93,11 +93,28 @@ func (m *MeshCache) removePendingMeshLocked(mesh *Mesh) {
 func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	defer tracing.NewRegion("MeshCache.Mesh").End()
 	m.mutex.Lock()
+	if mesh, ok := m.meshes[key]; ok {
+		m.mutex.Unlock()
+		return mesh
+	} else {
+		mesh := NewMesh(key, verts, indexes)
+		m.pendingMeshes = append(m.pendingMeshes, mesh)
+		m.meshes[key] = mesh
+		m.mutex.Unlock()
+		mesh.GenerateLODs(m)
+		return mesh
+	}
+}
+
+func (m *MeshCache) meshLod(key string, verts []Vertex, indexes []uint32) *Mesh {
+	defer tracing.NewRegion("MeshCache.meshLod").End()
+	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if mesh, ok := m.meshes[key]; ok {
 		return mesh
 	} else {
 		mesh := NewMesh(key, verts, indexes)
+		mesh.isLod = true
 		m.pendingMeshes = append(m.pendingMeshes, mesh)
 		m.meshes[key] = mesh
 		return mesh

@@ -64,6 +64,7 @@ type Mesh struct {
 	bounds         graviton.AABB
 	lods           MeshLod
 	dynamic        bool
+	isLod          bool
 }
 
 func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
@@ -82,6 +83,15 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 		m.bounds = graviton.AABBFromMinMax(low, high)
 	}
 	return m
+}
+
+func (m *Mesh) GenerateLODs(cache *MeshCache) error {
+	if m.isLod || m.lods.IsValid() {
+		return nil
+	}
+	var err error
+	m.lods, err = generateMeshLOD(m, cache, m.pendingVerts, m.pendingIndexes, 5)
+	return err
 }
 
 func NewDynamicMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
