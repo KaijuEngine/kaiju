@@ -62,6 +62,7 @@ type Mesh struct {
 	pendingVerts   []Vertex
 	pendingIndexes []uint32
 	bounds         graviton.AABB
+	lods           MeshLod
 	dynamic        bool
 }
 
