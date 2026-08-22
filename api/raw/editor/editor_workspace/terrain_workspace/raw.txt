@@ -1,0 +1,50 @@
+package terrain_workspace // import "kaijuengine.com/editor/editor_workspace/terrain_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "terrain"
+	DisplayName = "Terrain"
+)
+
+TYPES
+
+type TerrainToolMode int
+
+const (
+	TerrainToolHeightSculpt TerrainToolMode = iota
+	TerrainToolTexturePaint
+	TerrainToolSelection
+	TerrainToolSettings
+)
+type TerrainWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *TerrainWorkspace) AdjustBrushRadius(direction int)
+
+func (w *TerrainWorkspace) AdjustBrushStrength(direction int)
+
+func (w *TerrainWorkspace) Close()
+
+func (w *TerrainWorkspace) DisplayName() string
+
+func (w *TerrainWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *TerrainWorkspace) ID() string
+
+func (w *TerrainWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *TerrainWorkspace) IsRequired() bool
+
+func (w *TerrainWorkspace) Open()
+
+func (w *TerrainWorkspace) Shutdown()
+
+func (w *TerrainWorkspace) Update(deltaTime float64)
+
+func (w *TerrainWorkspace) UpdateViewportTool(view *editor_stage_view.StageView) bool
+
