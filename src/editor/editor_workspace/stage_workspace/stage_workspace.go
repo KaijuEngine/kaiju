@@ -58,6 +58,7 @@ type StageWorkspace struct {
 		y     float32
 	}
 	openStageSubID events.Id
+	resizeSubID    events.Id
 }
 
 func (w *StageWorkspace) ID() string          { return ID }
@@ -85,6 +86,11 @@ func (w *StageWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface
 	}
 	w.stageViewport.init(&w.UiMan, w.stageView)
 	w.cameraPreview.init(&w.UiMan, w.stageView, w)
+	w.resizeSubID = w.Host.Window.OnResize.Add(func() {
+		if w.isOpen {
+			w.applyViewportLayout()
+		}
+	})
 	w.applyViewportLayout()
 	w.hideManualRenderTargetUI()
 	w.ftde.arrow, _ = w.Doc.GetElementById("ftdeArrow")
@@ -182,6 +188,9 @@ func (w *StageWorkspace) Shutdown() {
 	w.contentUI.contentLoader.Stop()
 	if w.ed != nil {
 		w.ed.Events().OnRequestOpenStage.Remove(w.openStageSubID)
+	}
+	if w.Host != nil && w.Host.Window != nil {
+		w.Host.Window.OnResize.Remove(w.resizeSubID)
 	}
 	w.destroyPanelDocuments()
 	w.CommonShutdown()
