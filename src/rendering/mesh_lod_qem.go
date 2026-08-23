@@ -9,6 +9,7 @@ import (
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/concurrent"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 const (
@@ -151,6 +152,7 @@ func NewMeshLodGeneratorQem(threads *concurrent.Threads) *MeshLodGeneratorQem {
 // verts and indices describe the full-resolution geometry; if a level cannot
 // be reduced, that level falls back to reusing the source mesh itself.
 func (g *MeshLodGeneratorQem) GenerateLods(mesh *Mesh, cache *MeshCache, verts []Vertex, indices []uint32, levels int) (MeshLod, error) {
+	defer tracing.NewRegion("MeshLodGeneratorQem.GenerateLods").End()
 	if levels <= 0 {
 		return MeshLod{}, errors.New("generateMeshLOD: levels must be greater than 0")
 	}
@@ -215,6 +217,7 @@ func (g *MeshLodGeneratorQem) GenerateLods(mesh *Mesh, cache *MeshCache, verts [
 // without sharing state. When no worker threads are configured, the chunks are
 // processed inline.
 func (g *MeshLodGeneratorQem) processQemChunks(chunks []MeshQemChunk) {
+	defer tracing.NewRegion("MeshLodGeneratorQem.processQemChunks").End()
 	threads := g.Threads
 	if threads == nil || threads.ThreadCount() == 0 || len(chunks) <= 1 {
 		for i := range chunks {
@@ -243,6 +246,7 @@ func (g *MeshLodGeneratorQem) processQemChunks(chunks []MeshQemChunk) {
 // UV, normal, tangent, or color seams. The collapsed position from each
 // geometric representative is applied to every attribute variant.
 func stitchQemChunks(verts []Vertex, chunks []MeshQemChunk) ([]Vertex, []uint32) {
+	defer tracing.NewRegion("stitchQemChunks").End()
 	type stitchVertexKey struct {
 		source   int
 		geometry int
@@ -307,6 +311,7 @@ func (h *qemEdgeHeap) Pop() any {
 // it joins duplicated attribute vertices without merging visibly distinct
 // geometry.
 func buildMeshQemWeldData(verts []Vertex) meshQemWeldData {
+	defer tracing.NewRegion("buildMeshQemWeldData").End()
 	result := meshQemWeldData{sourceToWeld: make([]int, len(verts))}
 	if len(verts) == 0 {
 		return result
@@ -401,6 +406,7 @@ func qemVerticesDeformTogether(a, b Vertex) bool {
 // each chunk (e.g. in parallel) and stitch the per-chunk resultIndices back
 // together.
 func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32) []MeshQemChunk {
+	defer tracing.NewRegion("quadricErrorMetricChunkify").End()
 	if len(indices) == 0 || len(verts) == 0 || ratio <= 0 {
 		return nil
 	}
@@ -477,6 +483,7 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 // vertexSlots (so boundary membership can be resolved later) and computes the
 // chunk's targetTriangles from its own triangle count and the requested ratio.
 func emitQemChunk(chunks *[]MeshQemChunk, chunk *MeshQemChunk, localToGlobal []int, vertexSlots [][]meshQemSlot, ratio float32) {
+	defer tracing.NewRegion("emitQemChunk").End()
 	chunkIndex := len(*chunks)
 	for li, g := range localToGlobal {
 		vertexSlots[g] = append(vertexSlots[g], meshQemSlot{chunk: chunkIndex, local: li})
@@ -497,6 +504,7 @@ func emitQemChunk(chunks *[]MeshQemChunk, chunk *MeshQemChunk, localToGlobal []i
 // variants, and boundary flags. A vertex is on the boundary iff it appears in
 // more than one chunk.
 func buildQemChunkGeometry(welded meshQemWeldData, chunks []MeshQemChunk, vertexSlots [][]meshQemSlot) {
+	defer tracing.NewRegion("buildQemChunkGeometry").End()
 	// Determine the size of each chunk (max local index + 1) so the position
 	// and boundary arrays are allocated large enough before indexing them.
 	chunkSizes := make([]int, len(chunks))
@@ -541,6 +549,7 @@ func buildQemChunkGeometry(welded meshQemWeldData, chunks []MeshQemChunk, vertex
 // This provides progressively coarser meshes as the object gets smaller on screen.
 // The count 0 or negative is treated as no levels, returning an empty slice.
 func selectMeshLodRatios(count int) []float32 {
+	defer tracing.NewRegion("selectMeshLodRatios").End()
 	if count <= 0 {
 		return []float32{}
 	}
@@ -552,6 +561,7 @@ func selectMeshLodRatios(count int) []float32 {
 }
 
 func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
+	defer tracing.NewRegion("quadricErrorMetricProcessChunk").End()
 	tris := len(chunk.indices) / 3
 	if tris < 1 || len(chunk.positions) == 0 {
 		chunk.resultIndices = chunk.indices
