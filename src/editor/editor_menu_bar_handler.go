@@ -240,6 +240,12 @@ func (ed *Editor) CreatePrimitive(primitive rendering.PrimitiveMesh) {
 	ed.StageWorkspace().CreatePrimitive(primitive)
 }
 
+// SpawnSphereWithLODs is a temporary debug action that spawns a sphere and all
+// of its generated LOD meshes side by side. See StageWorkspace.SpawnSphereWithLODs.
+func (ed *Editor) SpawnSphereWithLODs() {
+	ed.StageWorkspace().SpawnSphereWithLODs()
+}
+
 func (ed *Editor) ConnectSelectedAsDistanceChain() {
 	ed.StageWorkspace().ConnectSelectedAsDistanceChain()
 }

@@ -139,6 +139,7 @@ func (b *MenuBar) renderDocument() error {
 			"clickNewEntity":           b.clickNewEntity,
 			"clickNewLight":            b.clickNewLight,
 			"clickCreateSphere":        b.clickCreateSphere,
+			"clickSpawnSphereLODs":     b.clickSpawnSphereLODs,
 			"clickCreateCube":          b.clickCreateCube,
 			"clickCreateCapsule":       b.clickCreateCapsule,
 			"clickCreatePlane":         b.clickCreatePlane,
@@ -459,6 +460,14 @@ func (b *MenuBar) clickNewLight(*document.Element) {
 func (b *MenuBar) clickCreateSphere(*document.Element) {
 	defer tracing.NewRegion("MenuBar.clickCreateSphere").End()
 	b.createPrimitive(rendering.PrimitiveMeshSphere)
+}
+
+// clickSpawnSphereLODs is a temporary debug action that spawns a sphere and
+// all of its generated LOD meshes side by side for geometry inspection.
+func (b *MenuBar) clickSpawnSphereLODs(*document.Element) {
+	defer tracing.NewRegion("MenuBar.clickSpawnSphereLODs").End()
+	b.hidePopups()
+	b.handler.SpawnSphereWithLODs()
 }
 
 func (b *MenuBar) clickCreateCube(*document.Element) {

@@ -7,6 +7,7 @@
 package stage_workspace
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 	"weak"
@@ -18,6 +19,7 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine_entity_data/content_id"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
@@ -128,6 +130,78 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 	man.ClearSelection()
 	man.SelectEntity(e)
 	return e, true
+}
+
+// SpawnSphereWithLODs is a temporary debug helper that spawns a sphere and
+// each of its generated LOD meshes side by side so the geometry can be
+// inspected (e.g. with RenderDoc). It is wired to a temporary menu bar button
+// and is not intended to remain in the codebase.
+func (w *StageWorkspace) SpawnSphereWithLODs() {
+	defer tracing.NewRegion("StageWorkspace.SpawnSphereWithLODs").End()
+	base := w.stageView.LookAtPoint()
+	mesh := rendering.NewMeshPrimitive(w.Host.MeshCache(), rendering.PrimitiveMeshSphere)
+	if mesh == nil {
+		slog.Error("failed to create the sphere primitive mesh")
+		return
+	}
+	// LOD level 0 is the source mesh itself; levels 1..4 are the generated LOD
+	// meshes cached under "<key>_lod_<n>" (see mesh_lod.go generateMeshLOD).
+	const spacing = 2.5
+	meshes := []*rendering.Mesh{mesh}
+	for i := 1; i <= 4; i++ {
+		key := fmt.Sprintf("%s_lod_%d", mesh.Key(), i)
+		lod, ok := w.Host.MeshCache().FindMesh(key)
+		if !ok {
+			slog.Warn("failed to find generated LOD mesh", "key", key)
+			continue
+		}
+		meshes = append(meshes, lod)
+	}
+	for i, m := range meshes {
+		pos := base.Add(matrix.NewVec3(float32(i)*spacing, 0, 0))
+		w.spawnDebugMeshEntity(m, fmt.Sprintf("Sphere LOD %d", i), pos)
+	}
+}
+
+func (w *StageWorkspace) spawnDebugMeshEntity(mesh *rendering.Mesh, name string, position matrix.Vec3) {
+	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
+	if err != nil {
+		slog.Error("failed to find the basic material", "error", err)
+		return
+	}
+	tex, err := w.Host.TextureCache().Texture(assets.TextureSquare,
+		rendering.TextureFilterLinear)
+	if err != nil {
+		slog.Error("failed to create the default texture", "error", err)
+		return
+	}
+	mat = mat.CreateInstance([]*rendering.Texture{tex})
+	man := w.stageView.Manager()
+	e := man.AddEntity(name, position)
+	e.StageData.Mesh = mesh
+	e.StageData.Description.Mesh = mesh.Key()
+	e.StageData.Description.Material = mat.Id
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
+	// Simple AABB-based BVH so the entity is pickable in the editor.
+	box := graviton.AABB{}
+	box.Extent = matrix.NewVec3XYZ(0.5)
+	e.StageData.Bvh = graviton.NewBVH([]graviton.HitObject{box}, &e.Transform, e)
+	man.AddBVH(e)
+	man.RefitBVH(e)
+	w.Host.RunOnMainThread(func() {
+		w.Host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			tex.DelayedCreate(device)
+		})
+		draw := rendering.Drawing{
+			Material:   mat,
+			Mesh:       e.StageData.Mesh,
+			ShaderData: e.StageData.ShaderData,
+			Transform:  &e.Transform,
+			ViewCuller: &w.Host.Cameras.Primary,
+		}
+		w.Host.Drawings.AddDrawing(draw)
+		man.AddPickingDrawing(e)
+	})
 }
 
 func primitiveName(primitive rendering.PrimitiveMesh) string {
