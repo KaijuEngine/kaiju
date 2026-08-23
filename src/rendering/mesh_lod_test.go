@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"math"
 	"testing"
 
 	"kaijuengine.com/matrix"
@@ -147,7 +148,7 @@ func TestGenerateMeshLODClampsRemainingLevels(t *testing.T) {
 	}
 }
 
-func TestGenerateMeshLODSphereHasNoDegenerateTriangles(t *testing.T) {
+func TestGenerateMeshLODSphereStaysClosedAndValid(t *testing.T) {
 	cache := NewMeshCache(nil, nil)
 	sphere := NewMeshSphere(&cache, 1, 32, 32)
 	if !sphere.lods.IsValid() {
@@ -175,6 +176,58 @@ func TestGenerateMeshLODSphereHasNoDegenerateTriangles(t *testing.T) {
 				t.Fatalf("LOD %d triangle %d faces inward: indices=%v positions=%v,%v,%v face=%v centroid=%v", level, i/3,
 					[]uint32{a, b, c}, p0, p1, p2, face, centroid)
 			}
+		}
+		assertMeshClosedByPosition(t, lod.pendingVerts, lod.pendingIndexes)
+		assertMeshHasUVSeam(t, lod.pendingVerts)
+	}
+}
+
+func assertMeshHasUVSeam(t *testing.T, verts []Vertex) {
+	t.Helper()
+	const weldDistanceSquared = matrix.Float(1e-10)
+	for i := 0; i < len(verts); i++ {
+		for j := i + 1; j < len(verts); j++ {
+			if verts[i].Position.SquareDistance(verts[j].Position) <= weldDistanceSquared &&
+				matrix.Abs(verts[i].UV0.X()-verts[j].UV0.X()) > 0.5 {
+				return
+			}
+		}
+	}
+	t.Fatal("expected a duplicated-position UV seam in simplified mesh")
+}
+
+func assertMeshClosedByPosition(t *testing.T, verts []Vertex, indices []uint32) {
+	t.Helper()
+	const weldDistanceSquared = matrix.Float(1e-10)
+	welded := make([]int, len(verts))
+	representatives := make([]matrix.Vec3, 0, len(verts))
+	for i := range verts {
+		welded[i] = -1
+		for j := range representatives {
+			if verts[i].Position.SquareDistance(representatives[j]) <= weldDistanceSquared {
+				welded[i] = j
+				break
+			}
+		}
+		if welded[i] < 0 {
+			welded[i] = len(representatives)
+			representatives = append(representatives, verts[i].Position)
+		}
+	}
+	edgeUses := make(map[[2]int]int)
+	for i := 0; i < len(indices); i += 3 {
+		tri := [3]int{welded[indices[i]], welded[indices[i+1]], welded[indices[i+2]]}
+		for e := 0; e < 3; e++ {
+			a, b := tri[e], tri[(e+1)%3]
+			if a > b {
+				a, b = b, a
+			}
+			edgeUses[[2]int{a, b}]++
+		}
+	}
+	for edge, uses := range edgeUses {
+		if uses != 2 {
+			t.Fatalf("position-welded edge %v is used by %d triangles, want 2", edge, uses)
 		}
 	}
 }
@@ -222,4 +275,68 @@ func TestQuadricErrorMetricChunkifyDoesNotDuplicateSplitTriangle(t *testing.T) {
 	if wantTriangles := len(indices) / 3; gotTriangles != wantTriangles {
 		t.Fatalf("chunking produced %d triangles, want %d", gotTriangles, wantTriangles)
 	}
+}
+
+func TestQuadricErrorMetricMultiChunkMeshStaysClosed(t *testing.T) {
+	verts, indices := buildUVTorus(65, 65)
+	chunks := quadricErrorMetricChunkify(verts, indices, 0.999)
+	if len(chunks) < 2 {
+		t.Fatalf("expected a multi-chunk mesh, got %d chunk", len(chunks))
+	}
+	processQemChunks(chunks)
+	resultVerts, resultIndices := stitchQemChunks(verts, chunks)
+	if len(resultIndices) >= len(indices) {
+		t.Fatalf("expected simplification, got %d source and %d result indices", len(indices), len(resultIndices))
+	}
+	assertMeshClosedByPosition(t, resultVerts, resultIndices)
+}
+
+func TestMeshQemWeldsAttributeSeamsButNotDeformationSeams(t *testing.T) {
+	verts := []Vertex{
+		{Position: matrix.Vec3{1, 2, 3}, Normal: matrix.Vec3Right(), UV0: matrix.Vec2{0, 0}},
+		{Position: matrix.Vec3{1, 2, 3}, Normal: matrix.Vec3Left(), UV0: matrix.Vec2{1, 0}},
+		{Position: matrix.Vec3{1, 2, 3}, JointIds: matrix.Vec4i{1, 0, 0, 0}},
+	}
+	welded := buildMeshQemWeldData(verts)
+	if welded.sourceToWeld[0] != welded.sourceToWeld[1] {
+		t.Fatal("expected UV/normal variants to share one geometric vertex")
+	}
+	if welded.sourceToWeld[0] == welded.sourceToWeld[2] {
+		t.Fatal("vertices with different skinning data must not be welded")
+	}
+	if got := len(welded.variants[welded.sourceToWeld[0]]); got != 2 {
+		t.Fatalf("attribute seam has %d source variants, want 2", got)
+	}
+}
+
+func buildUVTorus(majorSegments, minorSegments int) ([]Vertex, []uint32) {
+	const majorRadius = matrix.Float(2)
+	const minorRadius = matrix.Float(0.5)
+	verts := make([]Vertex, 0, (majorSegments+1)*(minorSegments+1))
+	for major := 0; major <= majorSegments; major++ {
+		u := matrix.Float(major) * 2 * math.Pi / matrix.Float(majorSegments)
+		cu, su := matrix.Cos(u), matrix.Sin(u)
+		for minor := 0; minor <= minorSegments; minor++ {
+			v := matrix.Float(minor) * 2 * math.Pi / matrix.Float(minorSegments)
+			cv, sv := matrix.Cos(v), matrix.Sin(v)
+			normal := matrix.Vec3{cv * cu, sv, cv * su}
+			verts = append(verts, Vertex{
+				Position: matrix.Vec3{(majorRadius + minorRadius*cv) * cu, minorRadius * sv, (majorRadius + minorRadius*cv) * su},
+				Normal:   normal,
+				UV0:      matrix.Vec2{matrix.Float(major) / matrix.Float(majorSegments), matrix.Float(minor) / matrix.Float(minorSegments)},
+			})
+		}
+	}
+	row := minorSegments + 1
+	indices := make([]uint32, 0, majorSegments*minorSegments*6)
+	for major := 0; major < majorSegments; major++ {
+		for minor := 0; minor < minorSegments; minor++ {
+			a := uint32(major*row + minor)
+			b := a + 1
+			c := uint32((major+1)*row + minor)
+			d := c + 1
+			indices = append(indices, a, b, c, c, b, d)
+		}
+	}
+	return verts, indices
 }

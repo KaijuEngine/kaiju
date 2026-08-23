@@ -4,6 +4,9 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"math"
+	"runtime"
+	"sync"
 
 	"kaijuengine.com/matrix"
 )
@@ -74,12 +77,13 @@ type MeshQem struct {
 //   - normals:         the corresponding source normals, used to preserve face
 //     orientation while validating collapses.
 //   - indices:         the chunk's triangles, remapped into local position space.
+//   - sourceIndices:   the original attribute vertex for each triangle corner.
 //   - boundary:        for each local position, whether it lies on the chunk's
 //     outer border. Border vertices are shared with neighboring chunks and MUST
 //     be held fixed during simplification so adjacent chunks stay watertight
 //     and no seams appear when the results are stitched back together.
-//   - globalIndices:   for each local position, the original vertex index it
-//     came from in the full mesh. Used to weld chunks back together.
+//   - globalIndices:   for each local position, its welded geometry index in
+//     the full mesh. Used to weld chunks back together.
 //   - targetTriangles: the triangle budget this chunk should collapse down to,
 //     derived from the requested simplification ratio.
 //
@@ -87,11 +91,14 @@ type MeshQem struct {
 //   - quadrics:      the per-vertex QEM matrices (len == len(positions)).
 //   - resultIndices: the simplified triangle list, referencing local position
 //     indices, ready to be merged with the other chunks' results.
+//   - resultSources: the original attribute vertex for each result corner.
 type MeshQemChunk struct {
 	// Inputs
 	positions       []matrix.Vec3
 	normals         []matrix.Vec3
 	indices         []uint32
+	sourceIndices   []int
+	sourceVariants  [][]int
 	boundary        []bool
 	globalIndices   []int
 	targetTriangles int
@@ -99,6 +106,18 @@ type MeshQemChunk struct {
 	// Outputs
 	quadrics      []matrix.Mat4
 	resultIndices []uint32
+	resultSources []int
+}
+
+// meshQemWeldData separates geometric vertices from attribute vertices. OBJ,
+// FBX, glTF, and generated UV meshes commonly duplicate a position at UV or
+// hard-normal seams. QEM operates on the welded geometry while sourceVariants
+// retain every original vertex needed to reconstruct those attributes later.
+type meshQemWeldData struct {
+	sourceToWeld []int
+	positions    []matrix.Vec3
+	normals      []matrix.Vec3
+	variants     [][]int
 }
 
 // meshQemSlot records where a global vertex lives: in which chunk and at which
@@ -123,7 +142,7 @@ func (l MeshLod) IsValid() bool { return len(l.Levels) > 0 }
 // Generation happens at runtime (rather than being pre-baked offline) so that
 // content loaded from player mods can be simplified on demand. The algorithm
 // chunks the mesh (quadricErrorMetricChunkify), simplifies each chunk
-// independently (quadricErrorMetricProcessChunk — parallelizable because
+// independently in parallel (quadricErrorMetricProcessChunk — safe because
 // boundary vertices are held fixed), and welds the chunk results back into a
 // single watertight mesh (stitchQemChunks).
 //
@@ -163,11 +182,9 @@ func generateMeshLOD(mesh *Mesh, meshCache *MeshCache, verts []Vertex, indices [
 			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
 			continue
 		}
-		// Simplify each chunk. This can be parallelized across chunks; each one
-		// is fully independent because boundary vertices are held fixed.
-		for ci := range chunks {
-			chunks[ci] = quadricErrorMetricProcessChunk(chunks[ci])
-		}
+		// Chunks are independent after geometric seam welding and boundary
+		// locking, so simplification can use all available Go workers.
+		processQemChunks(chunks)
 		lodVerts, lodIndices := stitchQemChunks(verts, chunks)
 		if len(lodVerts) == 0 || len(lodIndices) == 0 {
 			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
@@ -190,25 +207,67 @@ func generateMeshLOD(mesh *Mesh, meshCache *MeshCache, verts []Vertex, indices [
 	return lods, nil
 }
 
+func processQemChunks(chunks []MeshQemChunk) {
+	workers := min(runtime.GOMAXPROCS(0), len(chunks))
+	if workers <= 1 {
+		for i := range chunks {
+			chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
+		}
+		return
+	}
+	jobs := make(chan int)
+	group := sync.WaitGroup{}
+	group.Add(workers)
+	for range workers {
+		go func() {
+			defer group.Done()
+			for i := range jobs {
+				chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
+			}
+		}()
+	}
+	for i := range chunks {
+		jobs <- i
+	}
+	close(jobs)
+	group.Wait()
+}
+
 // stitchQemChunks welds the per-chunk simplified results back into a single
-// mesh. Vertices are de-duplicated by their original global index, so vertices
-// shared across chunk boundaries (the fixed border vertices) map to a single
-// output vertex and the result stays watertight. The collapsed (optimal)
-// position from each representative is used.
+// mesh. Geometry shared across chunk boundaries uses the same fixed position,
+// while the source+geometry key intentionally recreates duplicate vertices for
+// UV, normal, tangent, or color seams. The collapsed position from each
+// geometric representative is applied to every attribute variant.
 func stitchQemChunks(verts []Vertex, chunks []MeshQemChunk) ([]Vertex, []uint32) {
-	globalToNew := make(map[int]int, len(verts))
+	type stitchVertexKey struct {
+		source   int
+		geometry int
+	}
+	globalToNew := make(map[stitchVertexKey]int, len(verts))
 	outVerts := make([]Vertex, 0, len(verts))
 	outIndices := make([]uint32, 0, len(verts))
 	for ci := range chunks {
 		chunk := &chunks[ci]
-		for _, li := range chunk.resultIndices {
+		for corner, li := range chunk.resultIndices {
 			local := int(li)
-			g := chunk.globalIndices[local]
-			newIdx, ok := globalToNew[g]
+			source := -1
+			if corner < len(chunk.resultSources) {
+				source = chunk.resultSources[corner]
+			}
+			if (source < 0 || source >= len(verts)) && local < len(chunk.sourceVariants) && len(chunk.sourceVariants[local]) > 0 {
+				source = chunk.sourceVariants[local][0]
+			}
+			if source < 0 || source >= len(verts) {
+				// Chunkified production data always has a source variant. Returning
+				// no mesh is safer than emitting an index list with a missing corner.
+				return nil, nil
+			}
+			key := stitchVertexKey{source: source, geometry: chunk.globalIndices[local]}
+			newIdx, ok := globalToNew[key]
 			if !ok {
 				newIdx = len(outVerts)
-				globalToNew[g] = newIdx
-				v := verts[g]
+				globalToNew[key] = newIdx
+				v := verts[source]
 				// Use the optimal collapse position from this chunk's result.
 				v.Position = chunk.positions[local]
 				outVerts = append(outVerts, v)
@@ -239,6 +298,81 @@ func (h *qemEdgeHeap) Pop() any {
 	return item
 }
 
+// buildMeshQemWeldData groups positions that differ only by floating-point seam
+// noise. The tolerance is relative to the mesh diagonal and deliberately small:
+// it joins duplicated attribute vertices without merging visibly distinct
+// geometry.
+func buildMeshQemWeldData(verts []Vertex) meshQemWeldData {
+	result := meshQemWeldData{sourceToWeld: make([]int, len(verts))}
+	if len(verts) == 0 {
+		return result
+	}
+	low, high := verts[0].Position, verts[0].Position
+	for i := 1; i < len(verts); i++ {
+		low = matrix.Vec3Min(low, verts[i].Position)
+		high = matrix.Vec3Max(high, verts[i].Position)
+	}
+	tolerance := float64(high.Subtract(low).Length()) * 1e-6
+	if tolerance == 0 {
+		tolerance = 1e-6
+	}
+	toleranceSquared := matrix.Float(tolerance * tolerance)
+	type cellKey [3]int64
+	cellFor := func(p matrix.Vec3) cellKey {
+		return cellKey{
+			int64(math.Floor(float64(p.X()) / tolerance)),
+			int64(math.Floor(float64(p.Y()) / tolerance)),
+			int64(math.Floor(float64(p.Z()) / tolerance)),
+		}
+	}
+	cells := make(map[cellKey][]int, len(verts))
+	for source := range verts {
+		position := verts[source].Position
+		cell := cellFor(position)
+		weld := -1
+		for z := int64(-1); z <= 1 && weld < 0; z++ {
+			for y := int64(-1); y <= 1 && weld < 0; y++ {
+				for x := int64(-1); x <= 1 && weld < 0; x++ {
+					for _, candidate := range cells[cellKey{cell[0] + x, cell[1] + y, cell[2] + z}] {
+						representative := result.variants[candidate][0]
+						if position.SquareDistance(result.positions[candidate]) <= toleranceSquared &&
+							qemVerticesDeformTogether(verts[source], verts[representative]) {
+							weld = candidate
+							break
+						}
+					}
+				}
+			}
+		}
+		if weld < 0 {
+			weld = len(result.positions)
+			result.positions = append(result.positions, position)
+			result.normals = append(result.normals, matrix.Vec3Zero())
+			result.variants = append(result.variants, nil)
+			cells[cell] = append(cells[cell], weld)
+		}
+		result.sourceToWeld[source] = weld
+		result.normals[weld] = result.normals[weld].Add(verts[source].Normal)
+		result.variants[weld] = append(result.variants[weld], source)
+	}
+	for i := range result.normals {
+		if !result.normals[i].IsZero() {
+			result.normals[i].Normalize()
+		}
+	}
+	return result
+}
+
+// qemVerticesDeformTogether prevents a geometric weld from joining vertices
+// that only coincide in the bind pose. UVs, normals, tangents, and colors may
+// differ across an attribute seam, but skinning and morph data must agree or
+// the reconstructed duplicates could separate again while animating.
+func qemVerticesDeformTogether(a, b Vertex) bool {
+	return a.JointIds == b.JointIds &&
+		a.JointWeights == b.JointWeights &&
+		a.MorphTarget == b.MorphTarget
+}
+
 // quadricErrorMetricChunkify splits a mesh (vertices + indices) into a slice of
 // spatially-local MeshQemChunks for future parallel QEM simplification. Chunking is
 // performed at runtime (rather than offline) to support player mods that ship
@@ -250,6 +384,10 @@ func (h *qemEdgeHeap) Pop() any {
 // than one group is duplicated into each chunk it belongs to and flagged as
 // boundary, keeping the shared seams watertight. Those boundary vertices must
 // be held fixed by processChunk.
+//
+// Before partitioning, position-equivalent attribute vertices are welded into
+// one geometric topology. This closes UV/hard-normal seams for simplification;
+// sourceIndices retain the original per-corner attributes for reconstruction.
 //
 // The ratio parameter (0, 1] is the target fraction of triangles to keep, so
 // each chunk's targetTriangles is derived from ratio and its own triangle
@@ -265,9 +403,10 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 	if ratio > 1 {
 		ratio = 1
 	}
-	// Maps a global vertex index to the (chunk index, local index) pairs it
+	welded := buildMeshQemWeldData(verts)
+	// Maps a global welded vertex index to the (chunk index, local index) pairs it
 	// occupies. A boundary vertex appears in more than one chunk.
-	vertexSlots := make([][]meshQemSlot, len(verts))
+	vertexSlots := make([][]meshQemSlot, len(welded.positions))
 	chunks := make([]MeshQemChunk, 0, 8)
 	current := MeshQemChunk{}
 	localToGlobal := make([]int, 0, meshQemChunkTargetVerts)
@@ -278,15 +417,17 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 	cornerLocal := [3]int{}
 	addTriangle := func(base int) {
 		for c := 0; c < 3; c++ {
-			g := int(indices[base+c])
+			source := int(indices[base+c])
+			g := welded.sourceToWeld[source]
 			if li, ok := globalToLocal[g]; ok {
 				cornerLocal[c] = li
-				continue
+			} else {
+				li := len(localToGlobal)
+				localToGlobal = append(localToGlobal, g)
+				globalToLocal[g] = li
+				cornerLocal[c] = li
 			}
-			li := len(localToGlobal)
-			localToGlobal = append(localToGlobal, g)
-			globalToLocal[g] = li
-			cornerLocal[c] = li
+			current.sourceIndices = append(current.sourceIndices, source)
 		}
 		current.indices = append(current.indices,
 			uint32(cornerLocal[0]), uint32(cornerLocal[1]), uint32(cornerLocal[2]))
@@ -294,8 +435,18 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 	for t := 0; t < tris; t++ {
 		base := t * 3
 		newVerts := 0
+		triangleWelds := [3]int{-1, -1, -1}
 		for c := 0; c < 3; c++ {
-			if _, ok := globalToLocal[int(indices[base+c])]; !ok {
+			g := welded.sourceToWeld[int(indices[base+c])]
+			alreadyCounted := false
+			for p := 0; p < c; p++ {
+				if triangleWelds[p] == g {
+					alreadyCounted = true
+					break
+				}
+			}
+			triangleWelds[c] = g
+			if _, ok := globalToLocal[g]; !ok && !alreadyCounted {
 				newVerts++
 			}
 		}
@@ -314,7 +465,7 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 	if len(localToGlobal) > 0 {
 		emitQemChunk(&chunks, &current, localToGlobal, vertexSlots, ratio)
 	}
-	buildQemChunkGeometry(verts, chunks, vertexSlots)
+	buildQemChunkGeometry(welded, chunks, vertexSlots)
 	return chunks
 }
 
@@ -338,9 +489,10 @@ func emitQemChunk(chunks *[]MeshQemChunk, chunk *MeshQemChunk, localToGlobal []i
 	*chunks = append(*chunks, *chunk)
 }
 
-// buildQemChunkGeometry fills in each chunk's local position list and boundary
-// flags. A vertex is on the boundary iff it appears in more than one chunk.
-func buildQemChunkGeometry(verts []Vertex, chunks []MeshQemChunk, vertexSlots [][]meshQemSlot) {
+// buildQemChunkGeometry fills in each chunk's local welded positions, source
+// variants, and boundary flags. A vertex is on the boundary iff it appears in
+// more than one chunk.
+func buildQemChunkGeometry(welded meshQemWeldData, chunks []MeshQemChunk, vertexSlots [][]meshQemSlot) {
 	// Determine the size of each chunk (max local index + 1) so the position
 	// and boundary arrays are allocated large enough before indexing them.
 	chunkSizes := make([]int, len(chunks))
@@ -354,6 +506,7 @@ func buildQemChunkGeometry(verts []Vertex, chunks []MeshQemChunk, vertexSlots []
 	for ci := range chunks {
 		chunks[ci].positions = make([]matrix.Vec3, chunkSizes[ci])
 		chunks[ci].normals = make([]matrix.Vec3, chunkSizes[ci])
+		chunks[ci].sourceVariants = make([][]int, chunkSizes[ci])
 		chunks[ci].boundary = make([]bool, chunkSizes[ci])
 		chunks[ci].globalIndices = make([]int, chunkSizes[ci])
 	}
@@ -361,8 +514,9 @@ func buildQemChunkGeometry(verts []Vertex, chunks []MeshQemChunk, vertexSlots []
 	// source vertices.
 	for g, slots := range vertexSlots {
 		for _, s := range slots {
-			chunks[s.chunk].positions[s.local] = verts[g].Position
-			chunks[s.chunk].normals[s.local] = verts[g].Normal
+			chunks[s.chunk].positions[s.local] = welded.positions[g]
+			chunks[s.chunk].normals[s.local] = welded.normals[g]
+			chunks[s.chunk].sourceVariants[s.local] = welded.variants[g]
 			chunks[s.chunk].globalIndices[s.local] = g
 		}
 	}
@@ -404,6 +558,7 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 	normals := make([]matrix.Vec3, len(positions))
 	copy(normals, chunk.normals)
 	triangles := make([][3]int, tris)
+	triangleSources := make([][3]int, tris)
 	liveTris := make([]bool, tris)
 	referenceFaces := make([]matrix.Vec3, tris)
 	quadrics := make([]matrix.Mat4, len(positions))
@@ -414,6 +569,16 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 		b := int(chunk.indices[t*3+1])
 		c := int(chunk.indices[t*3+2])
 		triangles[t] = [3]int{a, b, c}
+		for corner, local := range triangles[t] {
+			source := -1
+			inputCorner := t*3 + corner
+			if inputCorner < len(chunk.sourceIndices) {
+				source = chunk.sourceIndices[inputCorner]
+			} else if local >= 0 && local < len(chunk.sourceVariants) && len(chunk.sourceVariants[local]) > 0 {
+				source = chunk.sourceVariants[local][0]
+			}
+			triangleSources[t][corner] = source
+		}
 		if a < 0 || b < 0 || c < 0 || a >= len(positions) || b >= len(positions) || c >= len(positions) ||
 			a == b || b == c || a == c {
 			continue
@@ -492,12 +657,15 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 	}
 
 	chunk.resultIndices = chunk.resultIndices[:0]
+	chunk.resultSources = chunk.resultSources[:0]
 	for t := range triangles {
 		if !liveTris[t] {
 			continue
 		}
 		chunk.resultIndices = append(chunk.resultIndices,
 			uint32(triangles[t][0]), uint32(triangles[t][1]), uint32(triangles[t][2]))
+		chunk.resultSources = append(chunk.resultSources,
+			triangleSources[t][0], triangleSources[t][1], triangleSources[t][2])
 	}
 	copy(chunk.positions, positions)
 	chunk.quadrics = quadrics
