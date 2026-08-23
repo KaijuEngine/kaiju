@@ -85,12 +85,12 @@ func NewMesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 	return m
 }
 
-func (m *Mesh) GenerateLODs(cache *MeshCache) error {
+func (m *Mesh) GenerateLODs(cache *MeshCache, g MeshLodGenerator) error {
 	if m.isLod || m.lods.IsValid() {
 		return nil
 	}
 	var err error
-	m.lods, err = generateMeshLOD(m, cache, m.pendingVerts, m.pendingIndexes, 5)
+	m.lods, err = g.GenerateLods(m, cache, m.pendingVerts, m.pendingIndexes, 5)
 	return err
 }
 

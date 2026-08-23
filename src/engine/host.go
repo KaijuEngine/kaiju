@@ -225,6 +225,7 @@ func (host *Host) InitializeRenderer() error {
 	host.meshCache = rendering.NewMeshCache(gpuDevice, host.assetDatabase)
 	host.fontCache = rendering.NewFontCache(gpuDevice, host.assetDatabase)
 	host.materialCache = rendering.NewMaterialCache(gpuDevice, host.assetDatabase)
+	host.meshCache.SetLodGenerator(rendering.NewMeshLodGeneratorQem(&host.threads))
 	if host.renderThread != nil {
 		host.materialCache.SetDeviceCall(host.RunOnRenderThread)
 	}

@@ -163,30 +163,26 @@ func (w *StageWorkspace) ShowLODs() string {
 			continue
 		}
 		pos := base.Add(matrix.NewVec3(float32(i)*spacing, 0, 0))
-		w.spawnLODMeshEntity(lod, fmt.Sprintf("%s LOD %d", e.Name(), i), pos)
+		w.spawnLODMeshEntity(lod, fmt.Sprintf("%s LOD %d", e.Name(), i), pos, e)
 		spawned++
 	}
 	return fmt.Sprintf("spawned %d LOD mesh(es) for %s", spawned, e.Name())
 }
 
-func (w *StageWorkspace) spawnLODMeshEntity(mesh *rendering.Mesh, name string, position matrix.Vec3) {
-	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
-	if err != nil {
-		slog.Error("failed to find the basic material", "error", err)
+func (w *StageWorkspace) spawnLODMeshEntity(mesh *rendering.Mesh, name string, position matrix.Vec3, source *editor_stage_manager.StageEntity) {
+	// Reuse the source mesh's material (including its textures) so the LOD
+	// meshes render with the same setup as the selected entity.
+	mat, ok := w.materialForEntity(source)
+	if !ok {
+		slog.Error("failed to build the entity material for LOD spawn")
 		return
 	}
-	tex, err := w.Host.TextureCache().Texture(assets.TextureSquare,
-		rendering.TextureFilterLinear)
-	if err != nil {
-		slog.Error("failed to create the default texture", "error", err)
-		return
-	}
-	mat = mat.CreateInstance([]*rendering.Texture{tex})
 	man := w.stageView.Manager()
 	e := man.AddEntity(name, position)
 	e.StageData.Mesh = mesh
 	e.StageData.Description.Mesh = mesh.Key()
-	e.StageData.Description.Material = mat.Id
+	e.StageData.Description.Material = source.StageData.Description.Material
+	e.StageData.Description.Textures = cloneTextureIDs(source.StageData.Description.Textures)
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
 	// Use the mesh bounds as a pickable BVH so the entity can be selected in
 	// the editor.
@@ -199,7 +195,9 @@ func (w *StageWorkspace) spawnLODMeshEntity(mesh *rendering.Mesh, name string, p
 	man.RefitBVH(e)
 	w.Host.RunOnMainThread(func() {
 		w.Host.RunOnRenderThread(func(device *rendering.GPUDevice) {
-			tex.DelayedCreate(device)
+			for _, t := range mat.Textures {
+				t.DelayedCreate(device)
+			}
 		})
 		draw := rendering.Drawing{
 			Material:   mat,

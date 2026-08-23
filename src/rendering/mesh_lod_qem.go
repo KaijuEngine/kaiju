@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"runtime"
 	"sync"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/concurrent"
 )
 
 const (
@@ -27,13 +27,8 @@ const (
 	meshLodMinTriangles = 32
 )
 
-type MeshLODInstance struct {
-	Mesh  *Mesh
-	Ratio float32
-}
-
-type MeshLod struct {
-	Levels []MeshLODInstance
+type MeshLodGeneratorQem struct {
+	Threads *concurrent.Threads
 }
 
 // I'm too stupid to know this stuff off of the top of my head, so I'm going
@@ -132,6 +127,12 @@ type qemEdgeHeap []*qemEdge
 
 func (l MeshLod) IsValid() bool { return len(l.Levels) > 0 }
 
+func NewMeshLodGeneratorQem(threads *concurrent.Threads) *MeshLodGeneratorQem {
+	return &MeshLodGeneratorQem{
+		Threads: threads,
+	}
+}
+
 // generateMeshLOD builds a set of level-of-detail meshes for the given source
 // mesh using Quadric Error Metric (QEM) simplification.
 //
@@ -149,9 +150,9 @@ func (l MeshLod) IsValid() bool { return len(l.Levels) > 0 }
 // The computed LODs are cached on mesh so repeated calls return the same set.
 // verts and indices describe the full-resolution geometry; if a level cannot
 // be reduced, that level falls back to reusing the source mesh itself.
-func generateMeshLOD(mesh *Mesh, meshCache *MeshCache, verts []Vertex, indices []uint32, levels int) (MeshLod, error) {
+func (g *MeshLodGeneratorQem) GenerateLods(mesh *Mesh, cache *MeshCache, verts []Vertex, indices []uint32, levels int) (MeshLod, error) {
 	if levels <= 0 {
-		return MeshLod{}, errors.New("GenerateMeshLOD: levels must be greater than 0")
+		return MeshLod{}, errors.New("generateMeshLOD: levels must be greater than 0")
 	}
 	if mesh.lods.IsValid() {
 		// Mesh has already been processed
@@ -183,14 +184,15 @@ func generateMeshLOD(mesh *Mesh, meshCache *MeshCache, verts []Vertex, indices [
 			continue
 		}
 		// Chunks are independent after geometric seam welding and boundary
-		// locking, so simplification can use all available Go workers.
-		processQemChunks(chunks)
+		// locking, so simplification can be distributed across the generator's
+		// worker threads.
+		g.processQemChunks(chunks)
 		lodVerts, lodIndices := stitchQemChunks(verts, chunks)
 		if len(lodVerts) == 0 || len(lodIndices) == 0 {
 			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
 			continue
 		}
-		lastLod = meshCache.meshLod(fmt.Sprintf("%s_lod_%d", mesh.Key(), i), lodVerts, lodIndices)
+		lastLod = cache.meshLod(fmt.Sprintf("%s_lod_%d", mesh.Key(), i), lodVerts, lodIndices)
 		lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
 		// Once a generated LOD reaches the low-poly floor, it is the coarsest
 		// useful representation. Make every remaining level reuse this same LOD
@@ -207,29 +209,31 @@ func generateMeshLOD(mesh *Mesh, meshCache *MeshCache, verts []Vertex, indices [
 	return lods, nil
 }
 
-func processQemChunks(chunks []MeshQemChunk) {
-	workers := min(runtime.GOMAXPROCS(0), len(chunks))
-	if workers <= 1 {
+// processQemChunks simplifies every chunk, dispatching the work to the
+// generator's worker threads when they are available. Each chunk is processed
+// independently (boundary vertices are held fixed), so they can run in parallel
+// without sharing state. When no worker threads are configured, the chunks are
+// processed inline.
+func (g *MeshLodGeneratorQem) processQemChunks(chunks []MeshQemChunk) {
+	threads := g.Threads
+	if threads == nil || threads.ThreadCount() == 0 || len(chunks) <= 1 {
 		for i := range chunks {
 			chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
 		}
 		return
 	}
-	jobs := make(chan int)
 	group := sync.WaitGroup{}
-	group.Add(workers)
-	for range workers {
-		go func() {
-			defer group.Done()
-			for i := range jobs {
-				chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
-			}
-		}()
-	}
+	group.Add(len(chunks))
+	work := make([]func(int), len(chunks))
 	for i := range chunks {
-		jobs <- i
+		// Capture i to avoid the classic loop-variable aliasing bug.
+		i := i
+		work[i] = func(int) {
+			chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
+			group.Done()
+		}
 	}
-	close(jobs)
+	threads.AddWork(work)
 	group.Wait()
 }
 
@@ -553,7 +557,6 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 		chunk.resultIndices = chunk.indices
 		return chunk
 	}
-
 	positions := append([]matrix.Vec3(nil), chunk.positions...)
 	normals := make([]matrix.Vec3, len(positions))
 	copy(normals, chunk.normals)
@@ -594,7 +597,6 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 		addPlaneQuadric(&quadrics[b], positions[a], positions[b], positions[c])
 		addPlaneQuadric(&quadrics[c], positions[a], positions[b], positions[c])
 	}
-
 	// Inter-chunk vertices remain fixed so independently processed chunks stitch
 	// to the same position. Real topological boundary vertices may collapse only
 	// along other boundary vertices; this preserves the boundary without freezing
@@ -609,7 +611,6 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 			topologyBoundary[edge[1]] = true
 		}
 	}
-
 	for liveCount > chunk.targetTriangles {
 		neighbors, edgeUses, edges := qemTopology(triangles, liveTris, len(positions))
 		pq := &qemEdgeHeap{}
@@ -635,7 +636,6 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 			}
 			heap.Push(pq, &qemEdge{v0: v0, v1: v1, cost: cost, pos: pos})
 		}
-
 		collapsed := false
 		for pq.Len() > 0 {
 			e := heap.Pop(pq).(*qemEdge)
@@ -655,7 +655,6 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 			break
 		}
 	}
-
 	chunk.resultIndices = chunk.resultIndices[:0]
 	chunk.resultSources = chunk.resultSources[:0]
 	for t := range triangles {

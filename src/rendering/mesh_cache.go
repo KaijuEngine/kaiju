@@ -20,6 +20,7 @@ type MeshCache struct {
 	meshes        map[string]*Mesh
 	pendingMeshes []*Mesh
 	pendingFree   []MeshId
+	lodGenerator  MeshLodGenerator
 	mutex         sync.Mutex
 }
 
@@ -33,6 +34,8 @@ func NewMeshCache(device *GPUDevice, assetDatabase assets.Database) MeshCache {
 		mutex:         sync.Mutex{},
 	}
 }
+
+func (m *MeshCache) SetLodGenerator(generator MeshLodGenerator) { m.lodGenerator = generator }
 
 // Try to add the mesh to the cache, if it already exists,
 // return the existing mesh
@@ -101,7 +104,9 @@ func (m *MeshCache) Mesh(key string, verts []Vertex, indexes []uint32) *Mesh {
 		m.pendingMeshes = append(m.pendingMeshes, mesh)
 		m.meshes[key] = mesh
 		m.mutex.Unlock()
-		mesh.GenerateLODs(m)
+		if m.lodGenerator != nil {
+			mesh.GenerateLODs(m, m.lodGenerator)
+		}
 		return mesh
 	}
 }
