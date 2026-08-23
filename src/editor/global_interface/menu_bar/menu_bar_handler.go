@@ -47,7 +47,6 @@ type MenuBarHandler interface {
 	CreateNewEntity()
 	CreateNewLight()
 	CreatePrimitive(primitive rendering.PrimitiveMesh)
-	SpawnSphereWithLODs()
 	ConnectSelectedAsDistanceChain()
 	ConnectSelectedAsRope()
 	ConnectSelectedAsHingeChain()

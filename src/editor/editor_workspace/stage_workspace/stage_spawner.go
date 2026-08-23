@@ -132,38 +132,44 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 	return e, true
 }
 
-// SpawnSphereWithLODs is a temporary debug helper that spawns a sphere and
-// each of its generated LOD meshes side by side so the geometry can be
-// inspected (e.g. with RenderDoc). It is wired to a temporary menu bar button
-// and is not intended to remain in the codebase.
-func (w *StageWorkspace) SpawnSphereWithLODs() {
-	defer tracing.NewRegion("StageWorkspace.SpawnSphereWithLODs").End()
-	base := w.stageView.LookAtPoint()
-	mesh := rendering.NewMeshPrimitive(w.Host.MeshCache(), rendering.PrimitiveMeshSphere)
-	if mesh == nil {
-		slog.Error("failed to create the sphere primitive mesh")
-		return
+// ShowLODs spawns the generated LOD meshes of the currently selected entity
+// beside it so the geometry can be inspected (e.g. with RenderDoc). It is
+// exposed as the editor console command "showlods". LOD level 0 is the source
+// mesh itself and levels 1..4 are the generated LOD meshes cached under
+// "<key>_lod_<n>" (see mesh_lod.go generateMeshLOD).
+func (w *StageWorkspace) ShowLODs() string {
+	defer tracing.NewRegion("StageWorkspace.ShowLODs").End()
+	man := w.stageView.Manager()
+	if !man.HasSelection() {
+		return "no entity selected"
 	}
-	// LOD level 0 is the source mesh itself; levels 1..4 are the generated LOD
-	// meshes cached under "<key>_lod_<n>" (see mesh_lod.go generateMeshLOD).
+	e := man.LastSelected()
+	if e == nil {
+		return "no entity selected"
+	}
+	mesh := e.StageData.Mesh
+	if mesh == nil {
+		return "selected entity has no mesh"
+	}
 	const spacing = 2.5
-	meshes := []*rendering.Mesh{mesh}
-	for i := 1; i <= 4; i++ {
+	const levelCount = 4
+	base := e.Transform.Position()
+	spawned := 0
+	for i := 1; i <= levelCount; i++ {
 		key := fmt.Sprintf("%s_lod_%d", mesh.Key(), i)
 		lod, ok := w.Host.MeshCache().FindMesh(key)
 		if !ok {
 			slog.Warn("failed to find generated LOD mesh", "key", key)
 			continue
 		}
-		meshes = append(meshes, lod)
-	}
-	for i, m := range meshes {
 		pos := base.Add(matrix.NewVec3(float32(i)*spacing, 0, 0))
-		w.spawnDebugMeshEntity(m, fmt.Sprintf("Sphere LOD %d", i), pos)
+		w.spawnLODMeshEntity(lod, fmt.Sprintf("%s LOD %d", e.Name(), i), pos)
+		spawned++
 	}
+	return fmt.Sprintf("spawned %d LOD mesh(es) for %s", spawned, e.Name())
 }
 
-func (w *StageWorkspace) spawnDebugMeshEntity(mesh *rendering.Mesh, name string, position matrix.Vec3) {
+func (w *StageWorkspace) spawnLODMeshEntity(mesh *rendering.Mesh, name string, position matrix.Vec3) {
 	mat, err := w.Host.MaterialCache().Material(assets.MaterialDefinitionBasic)
 	if err != nil {
 		slog.Error("failed to find the basic material", "error", err)
@@ -182,9 +188,12 @@ func (w *StageWorkspace) spawnDebugMeshEntity(mesh *rendering.Mesh, name string,
 	e.StageData.Description.Mesh = mesh.Key()
 	e.StageData.Description.Material = mat.Id
 	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
-	// Simple AABB-based BVH so the entity is pickable in the editor.
+	// Use the mesh bounds as a pickable BVH so the entity can be selected in
+	// the editor.
+	b := mesh.Bounds()
 	box := graviton.AABB{}
-	box.Extent = matrix.NewVec3XYZ(0.5)
+	box.Center = b.Center
+	box.Extent = b.Extent
 	e.StageData.Bvh = graviton.NewBVH([]graviton.HitObject{box}, &e.Transform, e)
 	man.AddBVH(e)
 	man.RefitBVH(e)
