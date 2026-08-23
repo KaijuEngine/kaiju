@@ -1,7 +1,6 @@
 package rendering
 
 import (
-	"container/heap"
 	"errors"
 	"fmt"
 	"math"
@@ -17,7 +16,7 @@ const (
 	// hold before the mesh is split again. It bounds per-goroutine work so chunk
 	// processing stays short enough to run at load/runtime without a perceptible
 	// hitch.
-	meshQemChunkTargetVerts = 4096
+	meshQemChunkTargetVerts = 512
 
 	// meshLodMinTriangles is the triangle-count floor below which a mesh is
 	// considered "already low poly enough" to skip further simplification.
@@ -123,8 +122,9 @@ type meshQemSlot struct {
 	local int
 }
 
-// qemEdgeHeap is a min-heap of qemEdge ordered by cost.
-type qemEdgeHeap []*qemEdge
+// qemEdgeHeap stores values instead of pointers so rebuilding or refreshing
+// candidates does not allocate one object per edge.
+type qemEdgeHeap []qemEdge
 
 func (l MeshLod) IsValid() bool { return len(l.Levels) > 0 }
 
@@ -132,6 +132,18 @@ func NewMeshLodGeneratorQem(threads *concurrent.Threads) *MeshLodGeneratorQem {
 	return &MeshLodGeneratorQem{
 		Threads: threads,
 	}
+}
+
+// generateMeshLOD preserves the package-local entry point used by focused
+// rendering tests and tools that do not have a host thread pool.
+func generateMeshLOD(mesh *Mesh, cache *MeshCache, verts []Vertex, indices []uint32, levels int) (MeshLod, error) {
+	return NewMeshLodGeneratorQem(nil).GenerateLods(mesh, cache, verts, indices, levels)
+}
+
+// processQemChunks preserves the package-local synchronous helper used by
+// focused chunking tests.
+func processQemChunks(chunks []MeshQemChunk) {
+	NewMeshLodGeneratorQem(nil).processQemChunks(chunks)
 }
 
 // generateMeshLOD builds a set of level-of-detail meshes for the given source
@@ -143,10 +155,9 @@ func NewMeshLodGeneratorQem(threads *concurrent.Threads) *MeshLodGeneratorQem {
 //
 // Generation happens at runtime (rather than being pre-baked offline) so that
 // content loaded from player mods can be simplified on demand. The algorithm
-// chunks the mesh (quadricErrorMetricChunkify), simplifies each chunk
-// independently in parallel (quadricErrorMetricProcessChunk — safe because
-// boundary vertices are held fixed), and welds the chunk results back into a
-// single watertight mesh (stitchQemChunks).
+// chunks the mesh once (quadricErrorMetricChunkify), simplifies each chunk
+// progressively in parallel, snapshots every requested level, and welds each
+// set of chunk snapshots back into a watertight mesh (stitchQemChunks).
 //
 // The computed LODs are cached on mesh so repeated calls return the same set.
 // verts and indices describe the full-resolution geometry; if a level cannot
@@ -177,19 +188,26 @@ func (g *MeshLodGeneratorQem) GenerateLods(mesh *Mesh, cache *MeshCache, verts [
 		mesh.lods = lods
 		return lods, nil
 	}
+	if levels == 1 {
+		mesh.lods = lods
+		return lods, nil
+	}
+	// Chunking, welding, adjacency construction, and the collapse sequence are
+	// shared by the entire LOD chain. Re-running QEM from the source for every
+	// ratio performs over three times as many collapses for the default five
+	// levels and repeatedly allocates the same topology.
+	chunks := quadricErrorMetricChunkify(verts, indices, ratios[levels-1])
+	if len(chunks) == 0 {
+		for i := 1; i < levels; i++ {
+			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratios[i]}
+		}
+		mesh.lods = lods
+		return lods, nil
+	}
+	levelChunks := g.processQemChunkLevels(chunks, ratios[1:])
 	for i := 1; i < levels; i++ {
 		ratio := ratios[i]
-		chunks := quadricErrorMetricChunkify(verts, indices, ratio)
-		if len(chunks) == 0 {
-			// Nothing to simplify; reuse the full mesh for this level.
-			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
-			continue
-		}
-		// Chunks are independent after geometric seam welding and boundary
-		// locking, so simplification can be distributed across the generator's
-		// worker threads.
-		g.processQemChunks(chunks)
-		lodVerts, lodIndices := stitchQemChunks(verts, chunks)
+		lodVerts, lodIndices := stitchQemChunks(verts, levelChunks[i-1])
 		if len(lodVerts) == 0 || len(lodIndices) == 0 {
 			lods.Levels[i] = MeshLODInstance{Mesh: lastLod, Ratio: ratio}
 			continue
@@ -218,21 +236,47 @@ func (g *MeshLodGeneratorQem) GenerateLods(mesh *Mesh, cache *MeshCache, verts [
 // processed inline.
 func (g *MeshLodGeneratorQem) processQemChunks(chunks []MeshQemChunk) {
 	defer tracing.NewRegion("MeshLodGeneratorQem.processQemChunks").End()
+	g.runQemWork(len(chunks), func(i int) {
+		chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
+	})
+}
+
+// processQemChunkLevels initializes each chunk simplifier once and progressively
+// advances it through ratios. A worker owns one chunk for the full chain, so no
+// simplifier state is shared and no synchronization is needed inside QEM.
+func (g *MeshLodGeneratorQem) processQemChunkLevels(chunks []MeshQemChunk, ratios []float32) [][]MeshQemChunk {
+	defer tracing.NewRegion("MeshLodGeneratorQem.processQemChunkLevels").End()
+	levels := make([][]MeshQemChunk, len(ratios))
+	for i := range levels {
+		levels[i] = make([]MeshQemChunk, len(chunks))
+	}
+	g.runQemWork(len(chunks), func(chunkIndex int) {
+		simplifier := newQemChunkSimplifier(chunks[chunkIndex])
+		triangleCount := len(chunks[chunkIndex].indices) / 3
+		for level, ratio := range ratios {
+			target := qemTargetTriangles(triangleCount, ratio)
+			simplifier.simplifyTo(target)
+			levels[level][chunkIndex] = simplifier.snapshot(target)
+		}
+	})
+	return levels
+}
+
+func (g *MeshLodGeneratorQem) runQemWork(count int, call func(int)) {
 	threads := g.Threads
-	if threads == nil || threads.ThreadCount() == 0 || len(chunks) <= 1 {
-		for i := range chunks {
-			chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
+	if threads == nil || threads.ThreadCount() == 0 || count <= 1 {
+		for i := 0; i < count; i++ {
+			call(i)
 		}
 		return
 	}
 	group := sync.WaitGroup{}
-	group.Add(len(chunks))
-	work := make([]func(int), len(chunks))
-	for i := range chunks {
-		// Capture i to avoid the classic loop-variable aliasing bug.
+	group.Add(count)
+	work := make([]func(int), count)
+	for i := range work {
 		i := i
 		work[i] = func(int) {
-			chunks[i] = quadricErrorMetricProcessChunk(chunks[i])
+			call(i)
 			group.Done()
 		}
 	}
@@ -286,24 +330,64 @@ func stitchQemChunks(verts []Vertex, chunks []MeshQemChunk) ([]Vertex, []uint32)
 	return outVerts, outIndices
 }
 
-func (h qemEdgeHeap) Len() int { return len(h) }
-func (h qemEdgeHeap) Less(i, j int) bool {
-	if h[i].cost != h[j].cost {
-		return h[i].cost < h[j].cost
+func qemEdgeLess(a, b qemEdge) bool {
+	if a.cost != b.cost {
+		return a.cost < b.cost
 	}
-	if h[i].v0 != h[j].v0 {
-		return h[i].v0 < h[j].v0
+	if a.v0 != b.v0 {
+		return a.v0 < b.v0
 	}
-	return h[i].v1 < h[j].v1
+	return a.v1 < b.v1
 }
-func (h qemEdgeHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-func (h *qemEdgeHeap) Push(x any)   { *h = append(*h, x.(*qemEdge)) }
-func (h *qemEdgeHeap) Pop() any {
-	old := *h
-	n := len(old)
-	item := old[n-1]
-	*h = old[:n-1]
-	return item
+
+func (h *qemEdgeHeap) initialize() {
+	for i := len(*h)/2 - 1; i >= 0; i-- {
+		h.down(i)
+	}
+}
+
+func (h *qemEdgeHeap) push(edge qemEdge) {
+	*h = append(*h, edge)
+	child := len(*h) - 1
+	for child > 0 {
+		parent := (child - 1) / 2
+		if !qemEdgeLess((*h)[child], (*h)[parent]) {
+			break
+		}
+		(*h)[parent], (*h)[child] = (*h)[child], (*h)[parent]
+		child = parent
+	}
+}
+
+func (h *qemEdgeHeap) pop() qemEdge {
+	edge := (*h)[0]
+	last := len(*h) - 1
+	(*h)[0] = (*h)[last]
+	(*h)[last] = qemEdge{}
+	*h = (*h)[:last]
+	if len(*h) > 0 {
+		h.down(0)
+	}
+	return edge
+}
+
+func (h *qemEdgeHeap) down(parent int) {
+	for {
+		left := parent*2 + 1
+		if left >= len(*h) {
+			return
+		}
+		child := left
+		right := left + 1
+		if right < len(*h) && qemEdgeLess((*h)[right], (*h)[left]) {
+			child = right
+		}
+		if !qemEdgeLess((*h)[child], (*h)[parent]) {
+			return
+		}
+		(*h)[parent], (*h)[child] = (*h)[child], (*h)[parent]
+		parent = child
+	}
 }
 
 // buildMeshQemWeldData groups positions that differ only by floating-point seam
@@ -387,12 +471,11 @@ func qemVerticesDeformTogether(a, b Vertex) bool {
 // performed at runtime (rather than offline) to support player mods that ship
 // un-simplified geometry and are loaded on demand.
 //
-// Triangles are walked in index order and added to a group until the local
-// vertex count reaches meshQemChunkTargetVerts, at which point the group is
-// emitted as a chunk and a fresh group is started. A vertex that spans more
-// than one group is duplicated into each chunk it belongs to and flagged as
-// boundary, keeping the shared seams watertight. Those boundary vertices must
-// be held fixed by processChunk.
+// Chunks grow breadth-first through welded triangle adjacency until their local
+// vertex count reaches meshQemChunkTargetVerts. This minimizes cut vertices
+// compared with slicing arbitrary index order. A vertex that spans more than
+// one chunk is duplicated and flagged as boundary, keeping shared seams
+// watertight while chunks simplify independently.
 //
 // Before partitioning, position-equivalent attribute vertices are welded into
 // one geometric topology. This closes UV/hard-normal seams for simplification;
@@ -418,17 +501,91 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 	// occupies. A boundary vertex appears in more than one chunk.
 	vertexSlots := make([][]meshQemSlot, len(welded.positions))
 	chunks := make([]MeshQemChunk, 0, 8)
-	current := MeshQemChunk{}
+	tris := len(indices) / 3
+	if len(welded.positions) <= meshQemChunkTargetVerts {
+		chunk := MeshQemChunk{}
+		localToGlobal := make([]int, 0, len(welded.positions))
+		globalToLocal := make(map[int]int, len(welded.positions))
+		for corner := 0; corner < tris*3; corner++ {
+			source := int(indices[corner])
+			if source < 0 || source >= len(welded.sourceToWeld) {
+				return nil
+			}
+			geometry := welded.sourceToWeld[source]
+			local, exists := globalToLocal[geometry]
+			if !exists {
+				local = len(localToGlobal)
+				localToGlobal = append(localToGlobal, geometry)
+				globalToLocal[geometry] = local
+			}
+			chunk.indices = append(chunk.indices, uint32(local))
+			chunk.sourceIndices = append(chunk.sourceIndices, source)
+		}
+		emitQemChunk(&chunks, &chunk, localToGlobal, vertexSlots, ratio)
+		buildQemChunkGeometry(welded, chunks, vertexSlots)
+		return chunks
+	}
+	triangleGeometry := make([][3]int, tris)
+	vertexTriangleCounts := make([]int, len(welded.positions))
+	for t := 0; t < tris; t++ {
+		base := t * 3
+		for corner := 0; corner < 3; corner++ {
+			source := int(indices[base+corner])
+			if source < 0 || source >= len(welded.sourceToWeld) {
+				return nil
+			}
+			geometry := welded.sourceToWeld[source]
+			triangleGeometry[t][corner] = geometry
+			unique := true
+			for previous := 0; previous < corner; previous++ {
+				if triangleGeometry[t][previous] == geometry {
+					unique = false
+					break
+				}
+			}
+			if unique {
+				vertexTriangleCounts[geometry]++
+			}
+		}
+	}
+	// A compact vertex-to-triangle CSR table lets breadth-first partitioning
+	// traverse topology without thousands of per-vertex map/slice allocations.
+	vertexTriangleOffsets := make([]int, len(welded.positions)+1)
+	for vertex, count := range vertexTriangleCounts {
+		vertexTriangleOffsets[vertex+1] = vertexTriangleOffsets[vertex] + count
+	}
+	vertexTriangles := make([]int, vertexTriangleOffsets[len(vertexTriangleOffsets)-1])
+	vertexTriangleCursor := append([]int(nil), vertexTriangleOffsets[:len(welded.positions)]...)
+	for triangle, geometry := range triangleGeometry {
+		for corner, vertex := range geometry {
+			unique := true
+			for previous := 0; previous < corner; previous++ {
+				if geometry[previous] == vertex {
+					unique = false
+					break
+				}
+			}
+			if unique {
+				vertexTriangles[vertexTriangleCursor[vertex]] = triangle
+				vertexTriangleCursor[vertex]++
+			}
+		}
+	}
+	visited := make([]bool, tris)
+	queued := make([]uint32, tris)
+	queue := make([]int, 0, min(tris, meshQemChunkTargetVerts*2))
+	queueGeneration := uint32(0)
 	localToGlobal := make([]int, 0, meshQemChunkTargetVerts)
 	globalToLocal := make(map[int]int, meshQemChunkTargetVerts)
-	tris := len(indices) / 3
 	// cornerLocal holds the remapped local index of each corner of the triangle
 	// currently being processed.
 	cornerLocal := [3]int{}
-	addTriangle := func(base int) {
+	current := MeshQemChunk{}
+	addTriangle := func(triangle int) {
+		base := triangle * 3
 		for c := 0; c < 3; c++ {
 			source := int(indices[base+c])
-			g := welded.sourceToWeld[source]
+			g := triangleGeometry[triangle][c]
 			if li, ok := globalToLocal[g]; ok {
 				cornerLocal[c] = li
 			} else {
@@ -442,38 +599,67 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 		current.indices = append(current.indices,
 			uint32(cornerLocal[0]), uint32(cornerLocal[1]), uint32(cornerLocal[2]))
 	}
-	for t := 0; t < tris; t++ {
-		base := t * 3
-		newVerts := 0
-		triangleWelds := [3]int{-1, -1, -1}
-		for c := 0; c < 3; c++ {
-			g := welded.sourceToWeld[int(indices[base+c])]
-			alreadyCounted := false
-			for p := 0; p < c; p++ {
-				if triangleWelds[p] == g {
-					alreadyCounted = true
-					break
+	for seed := 0; seed < tris; seed++ {
+		if visited[seed] {
+			continue
+		}
+		queueGeneration++
+		if queueGeneration == 0 {
+			clear(queued)
+			queueGeneration = 1
+		}
+		queue = queue[:0]
+		queue = append(queue, seed)
+		queued[seed] = queueGeneration
+		for head := 0; head < len(queue); head++ {
+			triangle := queue[head]
+			if visited[triangle] {
+				continue
+			}
+			geometry := triangleGeometry[triangle]
+			newVertices := 0
+			for corner, vertex := range geometry {
+				unique := true
+				for previous := 0; previous < corner; previous++ {
+					if geometry[previous] == vertex {
+						unique = false
+						break
+					}
+				}
+				if unique {
+					if _, exists := globalToLocal[vertex]; !exists {
+						newVertices++
+					}
 				}
 			}
-			triangleWelds[c] = g
-			if _, ok := globalToLocal[g]; !ok && !alreadyCounted {
-				newVerts++
+			if len(current.indices) > 0 && len(localToGlobal)+newVertices > meshQemChunkTargetVerts {
+				continue
+			}
+			visited[triangle] = true
+			addTriangle(triangle)
+			for corner, vertex := range geometry {
+				unique := true
+				for previous := 0; previous < corner; previous++ {
+					if geometry[previous] == vertex {
+						unique = false
+						break
+					}
+				}
+				if !unique {
+					continue
+				}
+				for _, adjacent := range vertexTriangles[vertexTriangleOffsets[vertex]:vertexTriangleOffsets[vertex+1]] {
+					if !visited[adjacent] && queued[adjacent] != queueGeneration {
+						queued[adjacent] = queueGeneration
+						queue = append(queue, adjacent)
+					}
+				}
 			}
 		}
-		// Emit before adding the triangle that would exceed the chunk budget.
-		// Adding it first and then restarting with the same triangle duplicates
-		// that triangle in both chunks when the chunks are stitched together.
-		if len(current.indices) > 0 && len(localToGlobal)+newVerts > meshQemChunkTargetVerts {
-			emitQemChunk(&chunks, &current, localToGlobal, vertexSlots, ratio)
-			current = MeshQemChunk{}
-			clear(globalToLocal)
-			localToGlobal = localToGlobal[:0]
-		}
-		addTriangle(base)
-	}
-	// Emit the final, possibly incomplete, chunk.
-	if len(localToGlobal) > 0 {
 		emitQemChunk(&chunks, &current, localToGlobal, vertexSlots, ratio)
+		current = MeshQemChunk{}
+		clear(globalToLocal)
+		localToGlobal = localToGlobal[:0]
 	}
 	buildQemChunkGeometry(welded, chunks, vertexSlots)
 	return chunks
@@ -488,16 +674,22 @@ func emitQemChunk(chunks *[]MeshQemChunk, chunk *MeshQemChunk, localToGlobal []i
 	for li, g := range localToGlobal {
 		vertexSlots[g] = append(vertexSlots[g], meshQemSlot{chunk: chunkIndex, local: li})
 	}
-	chunkTriCount := len(chunk.indices) / 3
-	if ratio >= 1 {
-		chunk.targetTriangles = chunkTriCount
-	} else {
-		chunk.targetTriangles = int(float32(chunkTriCount)*ratio) + 1
-		if chunk.targetTriangles > chunkTriCount {
-			chunk.targetTriangles = chunkTriCount
-		}
-	}
+	chunk.targetTriangles = qemTargetTriangles(len(chunk.indices)/3, ratio)
 	*chunks = append(*chunks, *chunk)
+}
+
+func qemTargetTriangles(triangleCount int, ratio float32) int {
+	if ratio >= 1 {
+		return triangleCount
+	}
+	target := int(float32(triangleCount) * ratio)
+	if triangleCount > 0 && target < 1 {
+		return 1
+	}
+	if target > triangleCount {
+		return triangleCount
+	}
+	return target
 }
 
 // buildQemChunkGeometry fills in each chunk's local welded positions, source
@@ -562,27 +754,88 @@ func selectMeshLodRatios(count int) []float32 {
 
 func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 	defer tracing.NewRegion("quadricErrorMetricProcessChunk").End()
-	tris := len(chunk.indices) / 3
-	if tris < 1 || len(chunk.positions) == 0 {
-		chunk.resultIndices = chunk.indices
+	if len(chunk.indices) < 3 || len(chunk.positions) == 0 {
+		chunk.resultIndices = append(chunk.resultIndices[:0], chunk.indices...)
+		chunk.resultSources = append(chunk.resultSources[:0], chunk.sourceIndices...)
 		return chunk
 	}
-	positions := append([]matrix.Vec3(nil), chunk.positions...)
-	normals := make([]matrix.Vec3, len(positions))
-	copy(normals, chunk.normals)
-	triangles := make([][3]int, tris)
-	triangleSources := make([][3]int, tris)
-	liveTris := make([]bool, tris)
-	referenceFaces := make([]matrix.Vec3, tris)
-	quadrics := make([]matrix.Mat4, len(positions))
-	areaEpsilon := qemAreaEpsilon(positions)
-	liveCount := 0
-	for t := 0; t < tris; t++ {
+	simplifier := newQemChunkSimplifier(chunk)
+	simplifier.simplifyTo(chunk.targetTriangles)
+	return simplifier.snapshot(chunk.targetTriangles)
+}
+
+// qemChunkSimplifier owns the mutable state for one chunk. Adjacency and the
+// edge queue are built once. Each collapse rewires only incident triangles and
+// refreshes candidates in the affected one-ring; old heap entries are rejected
+// cheaply through per-vertex versions.
+type qemChunkSimplifier struct {
+	source           MeshQemChunk
+	positions        []matrix.Vec3
+	normals          []matrix.Vec3
+	triangles        [][3]int
+	triangleSources  [][3]int
+	liveTris         []bool
+	liveVertices     []bool
+	referenceFaces   []matrix.Vec3
+	quadrics         []matrix.Mat4
+	incident         [][]int
+	protected        []bool
+	topologyBoundary []bool
+	versions         []uint32
+	liveCount        int
+	areaEpsilon      matrix.Float
+	edges            qemEdgeHeap
+	lastQueued       map[uint64]uint32
+	queueGeneration  uint32
+	vertexMarks      []uint32
+	commonMarks      []uint32
+	triangleMarks    []uint32
+	vertexMark       uint32
+	commonMark       uint32
+	triangleMark     uint32
+	affected         []int
+	stuck            bool
+}
+
+func newQemChunkSimplifier(chunk MeshQemChunk) *qemChunkSimplifier {
+	vertexCount := len(chunk.positions)
+	triangleCount := len(chunk.indices) / 3
+	s := &qemChunkSimplifier{
+		source:           chunk,
+		positions:        append([]matrix.Vec3(nil), chunk.positions...),
+		normals:          make([]matrix.Vec3, vertexCount),
+		triangles:        make([][3]int, triangleCount),
+		triangleSources:  make([][3]int, triangleCount),
+		liveTris:         make([]bool, triangleCount),
+		liveVertices:     make([]bool, vertexCount),
+		referenceFaces:   make([]matrix.Vec3, triangleCount),
+		quadrics:         make([]matrix.Mat4, vertexCount),
+		incident:         make([][]int, vertexCount),
+		protected:        make([]bool, vertexCount),
+		topologyBoundary: make([]bool, vertexCount),
+		versions:         make([]uint32, vertexCount),
+		lastQueued:       make(map[uint64]uint32, triangleCount*2),
+		vertexMarks:      make([]uint32, vertexCount),
+		commonMarks:      make([]uint32, vertexCount),
+		triangleMarks:    make([]uint32, triangleCount),
+		affected:         make([]int, 0, 32),
+	}
+	copy(s.normals, chunk.normals)
+	copy(s.protected, chunk.boundary)
+	for i := range s.liveVertices {
+		s.liveVertices[i] = true
+		s.versions[i] = 1
+	}
+	s.areaEpsilon = qemAreaEpsilon(s.positions)
+	edgeUses := make(map[uint64]uint8, triangleCount*2)
+	incidentCounts := make([]int, vertexCount)
+	for t := 0; t < triangleCount; t++ {
 		a := int(chunk.indices[t*3])
 		b := int(chunk.indices[t*3+1])
 		c := int(chunk.indices[t*3+2])
-		triangles[t] = [3]int{a, b, c}
-		for corner, local := range triangles[t] {
+		tri := [3]int{a, b, c}
+		s.triangles[t] = tri
+		for corner, local := range tri {
 			source := -1
 			inputCorner := t*3 + corner
 			if inputCorner < len(chunk.sourceIndices) {
@@ -590,95 +843,382 @@ func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
 			} else if local >= 0 && local < len(chunk.sourceVariants) && len(chunk.sourceVariants[local]) > 0 {
 				source = chunk.sourceVariants[local][0]
 			}
-			triangleSources[t][corner] = source
+			s.triangleSources[t][corner] = source
 		}
-		if a < 0 || b < 0 || c < 0 || a >= len(positions) || b >= len(positions) || c >= len(positions) ||
+		if a < 0 || b < 0 || c < 0 || a >= vertexCount || b >= vertexCount || c >= vertexCount ||
 			a == b || b == c || a == c {
 			continue
 		}
-		face := positions[b].Subtract(positions[a]).Cross(positions[c].Subtract(positions[a]))
-		if face.LengthSquared() <= areaEpsilon {
+		face := s.positions[b].Subtract(s.positions[a]).Cross(s.positions[c].Subtract(s.positions[a]))
+		if face.LengthSquared() <= s.areaEpsilon {
 			continue
 		}
-		referenceFaces[t] = face
-		liveTris[t] = true
-		liveCount++
-		addPlaneQuadric(&quadrics[a], positions[a], positions[b], positions[c])
-		addPlaneQuadric(&quadrics[b], positions[a], positions[b], positions[c])
-		addPlaneQuadric(&quadrics[c], positions[a], positions[b], positions[c])
+		s.referenceFaces[t] = face
+		s.liveTris[t] = true
+		s.liveCount++
+		incidentCounts[a]++
+		incidentCounts[b]++
+		incidentCounts[c]++
+		addPlaneQuadric(&s.quadrics[a], s.positions[a], s.positions[b], s.positions[c])
+		addPlaneQuadric(&s.quadrics[b], s.positions[a], s.positions[b], s.positions[c])
+		addPlaneQuadric(&s.quadrics[c], s.positions[a], s.positions[b], s.positions[c])
+		edgeUses[qemEdgeKey(a, b)]++
+		edgeUses[qemEdgeKey(b, c)]++
+		edgeUses[qemEdgeKey(c, a)]++
 	}
-	// Inter-chunk vertices remain fixed so independently processed chunks stitch
-	// to the same position. Real topological boundary vertices may collapse only
-	// along other boundary vertices; this preserves the boundary without freezing
-	// the many duplicated seam and pole vertices used by UV meshes.
-	protected := make([]bool, len(positions))
-	copy(protected, chunk.boundary)
-	topologyBoundary := make([]bool, len(positions))
-	_, initialEdgeUses, _ := qemTopology(triangles, liveTris, len(positions))
-	for edge, uses := range initialEdgeUses {
+	for vertex, count := range incidentCounts {
+		if count > 0 {
+			// A little spare capacity absorbs the usual one-ring transfers without
+			// forcing a new allocation on every successful collapse.
+			s.incident[vertex] = make([]int, 0, count+4)
+		}
+	}
+	for t, tri := range s.triangles {
+		if !s.liveTris[t] {
+			continue
+		}
+		s.incident[tri[0]] = append(s.incident[tri[0]], t)
+		s.incident[tri[1]] = append(s.incident[tri[1]], t)
+		s.incident[tri[2]] = append(s.incident[tri[2]], t)
+	}
+	// Inter-chunk vertices remain fixed. Original topological-boundary vertices
+	// can collapse only along the same kind of boundary, matching the previous
+	// simplifier's restrictions.
+	for key, uses := range edgeUses {
 		if uses != 2 {
-			topologyBoundary[edge[0]] = true
-			topologyBoundary[edge[1]] = true
+			a, b := qemEdgeVertices(key)
+			s.topologyBoundary[a] = true
+			s.topologyBoundary[b] = true
 		}
 	}
-	for liveCount > chunk.targetTriangles {
-		neighbors, edgeUses, edges := qemTopology(triangles, liveTris, len(positions))
-		pq := &qemEdgeHeap{}
-		heap.Init(pq)
-		for _, edge := range edges {
-			v0, v1 := edge[0], edge[1]
-			if topologyBoundary[v0] != topologyBoundary[v1] {
-				continue
-			}
-			if protected[v0] && protected[v1] {
-				continue
-			}
-			// v0 is removed and v1 survives. A protected endpoint may survive,
-			// but it must never be removed or moved.
-			if protected[v0] {
-				v0, v1 = v1, v0
-			}
-			combined := quadrics[v0]
-			combined.AddAssign(quadrics[v1])
-			cost, pos := qemCollapsePosition(combined, positions[v0], positions[v1], protected[v1])
-			if matrix.IsNaN(cost) || matrix.IsInf(cost, 0) || pos.IsNaN() || pos.IsInf(0) {
-				continue
-			}
-			heap.Push(pq, &qemEdge{v0: v0, v1: v1, cost: cost, pos: pos})
-		}
+	s.rebuildEdgeQueue()
+	return s
+}
+
+func (s *qemChunkSimplifier) simplifyTo(target int) {
+	if target < 0 {
+		target = 0
+	}
+	for s.liveCount > target && !s.stuck {
 		collapsed := false
-		for pq.Len() > 0 {
-			e := heap.Pop(pq).(*qemEdge)
-			if !qemCollapsePreservesTopology(e.v0, e.v1, neighbors, edgeUses) ||
-				!qemCollapsePreservesGeometry(e, triangles, liveTris, positions, normals, referenceFaces, areaEpsilon) {
+		for len(s.edges) > 0 {
+			edge := s.edges.pop()
+			if !s.edgeIsCurrent(edge) || !s.collapsePreservesTopology(edge) || !s.collapsePreservesGeometry(edge) {
 				continue
 			}
-			removed := qemApplyCollapse(e, triangles, liveTris, positions, quadrics)
+			affected := s.collectAffected(edge.v0, edge.v1)
+			removed := s.applyCollapse(edge)
 			if removed == 0 {
 				continue
 			}
-			liveCount -= removed
+			s.liveCount -= removed
+			s.refreshAffected(affected)
 			collapsed = true
 			break
 		}
 		if !collapsed {
-			break
+			s.stuck = true
 		}
 	}
-	chunk.resultIndices = chunk.resultIndices[:0]
-	chunk.resultSources = chunk.resultSources[:0]
-	for t := range triangles {
-		if !liveTris[t] {
+}
+
+func (s *qemChunkSimplifier) snapshot(target int) MeshQemChunk {
+	chunk := s.source
+	chunk.targetTriangles = target
+	chunk.positions = append([]matrix.Vec3(nil), s.positions...)
+	chunk.quadrics = append([]matrix.Mat4(nil), s.quadrics...)
+	chunk.resultIndices = make([]uint32, 0, s.liveCount*3)
+	chunk.resultSources = make([]int, 0, s.liveCount*3)
+	for t, tri := range s.triangles {
+		if !s.liveTris[t] {
 			continue
 		}
-		chunk.resultIndices = append(chunk.resultIndices,
-			uint32(triangles[t][0]), uint32(triangles[t][1]), uint32(triangles[t][2]))
+		chunk.resultIndices = append(chunk.resultIndices, uint32(tri[0]), uint32(tri[1]), uint32(tri[2]))
 		chunk.resultSources = append(chunk.resultSources,
-			triangleSources[t][0], triangleSources[t][1], triangleSources[t][2])
+			s.triangleSources[t][0], s.triangleSources[t][1], s.triangleSources[t][2])
 	}
-	copy(chunk.positions, positions)
-	chunk.quadrics = quadrics
 	return chunk
+}
+
+func (s *qemChunkSimplifier) rebuildEdgeQueue() {
+	s.edges = s.edges[:0]
+	s.nextQueueGeneration()
+	for t, tri := range s.triangles {
+		if !s.liveTris[t] {
+			continue
+		}
+		s.queueEdge(tri[0], tri[1], false)
+		s.queueEdge(tri[1], tri[2], false)
+		s.queueEdge(tri[2], tri[0], false)
+	}
+	s.edges.initialize()
+}
+
+func (s *qemChunkSimplifier) queueEdge(a, b int, initialized bool) {
+	if a == b || !s.liveVertices[a] || !s.liveVertices[b] ||
+		s.topologyBoundary[a] != s.topologyBoundary[b] || s.protected[a] && s.protected[b] {
+		return
+	}
+	key := qemEdgeKey(a, b)
+	if s.lastQueued[key] == s.queueGeneration {
+		return
+	}
+	s.lastQueued[key] = s.queueGeneration
+	v0, v1 := qemEdgeVertices(key)
+	if s.protected[v0] {
+		v0, v1 = v1, v0
+	}
+	combined := s.quadrics[v0]
+	combined.AddAssign(s.quadrics[v1])
+	cost, position := qemCollapsePosition(combined, s.positions[v0], s.positions[v1], s.protected[v1])
+	if matrix.IsNaN(cost) || matrix.IsInf(cost, 0) || position.IsNaN() || position.IsInf(0) {
+		return
+	}
+	edge := qemEdge{
+		v0:       v0,
+		v1:       v1,
+		cost:     cost,
+		pos:      position,
+		version0: s.versions[v0],
+		version1: s.versions[v1],
+	}
+	if initialized {
+		s.edges.push(edge)
+	} else {
+		s.edges = append(s.edges, edge)
+	}
+}
+
+func (s *qemChunkSimplifier) edgeIsCurrent(edge qemEdge) bool {
+	return s.liveVertices[edge.v0] && s.liveVertices[edge.v1] &&
+		s.versions[edge.v0] == edge.version0 && s.versions[edge.v1] == edge.version1
+}
+
+func (s *qemChunkSimplifier) collapsePreservesTopology(edge qemEdge) bool {
+	neighborMark := s.nextVertexMark()
+	edgeUses := 0
+	for _, t := range s.incident[edge.v0] {
+		if !s.liveTris[t] {
+			continue
+		}
+		tri := s.triangles[t]
+		usesSurvivor := false
+		for _, vertex := range tri {
+			if vertex == edge.v1 {
+				usesSurvivor = true
+			}
+			if vertex != edge.v0 {
+				s.vertexMarks[vertex] = neighborMark
+			}
+		}
+		if usesSurvivor {
+			edgeUses++
+		}
+	}
+	if edgeUses < 1 || edgeUses > 2 {
+		return false
+	}
+	countedMark := s.nextCommonMark()
+	common := 0
+	for _, t := range s.incident[edge.v1] {
+		if !s.liveTris[t] {
+			continue
+		}
+		for _, vertex := range s.triangles[t] {
+			if vertex != edge.v1 && s.vertexMarks[vertex] == neighborMark && s.commonMarks[vertex] != countedMark {
+				s.commonMarks[vertex] = countedMark
+				common++
+			}
+		}
+	}
+	return common == edgeUses
+}
+
+func (s *qemChunkSimplifier) collapsePreservesGeometry(edge qemEdge) bool {
+	triangleMark := s.nextTriangleMark()
+	endpoints := [2]int{edge.v0, edge.v1}
+	for _, endpoint := range endpoints {
+		for _, t := range s.incident[endpoint] {
+			if !s.liveTris[t] || s.triangleMarks[t] == triangleMark {
+				continue
+			}
+			s.triangleMarks[t] = triangleMark
+			tri := s.triangles[t]
+			usesRemoved := qemTriangleContains(tri, edge.v0)
+			usesSurvivor := qemTriangleContains(tri, edge.v1)
+			if usesRemoved && usesSurvivor {
+				continue
+			}
+			updated := [3]matrix.Vec3{s.positions[tri[0]], s.positions[tri[1]], s.positions[tri[2]]}
+			updatedIndices := tri
+			for i, vertex := range tri {
+				if vertex == edge.v0 || vertex == edge.v1 {
+					updated[i] = edge.pos
+				}
+				if vertex == edge.v0 {
+					updatedIndices[i] = edge.v1
+				}
+			}
+			newFace := updated[1].Subtract(updated[0]).Cross(updated[2].Subtract(updated[0]))
+			newArea := newFace.LengthSquared()
+			referenceArea := s.referenceFaces[t].LengthSquared()
+			direction := s.referenceFaces[t].Dot(newFace)
+			const minNormalDotSquared = matrix.Float(0.04)
+			if newFace.IsNaN() || newFace.IsInf(0) || newArea <= s.areaEpsilon || direction <= 0 ||
+				direction*direction < referenceArea*newArea*minNormalDotSquared {
+				return false
+			}
+			vertexNormal := s.normals[updatedIndices[0]].Add(s.normals[updatedIndices[1]]).Add(s.normals[updatedIndices[2]])
+			if !vertexNormal.IsZero() {
+				normalDirection := vertexNormal.Dot(newFace)
+				if normalDirection <= 0 || normalDirection*normalDirection < vertexNormal.LengthSquared()*newArea*minNormalDotSquared {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+func (s *qemChunkSimplifier) collectAffected(removed, survivor int) []int {
+	mark := s.nextVertexMark()
+	s.affected = s.affected[:0]
+	add := func(vertex int) {
+		if s.vertexMarks[vertex] == mark {
+			return
+		}
+		s.vertexMarks[vertex] = mark
+		s.affected = append(s.affected, vertex)
+	}
+	add(removed)
+	add(survivor)
+	for _, endpoint := range [2]int{removed, survivor} {
+		for _, t := range s.incident[endpoint] {
+			if !s.liveTris[t] {
+				continue
+			}
+			for _, vertex := range s.triangles[t] {
+				add(vertex)
+			}
+		}
+	}
+	return s.affected
+}
+
+func (s *qemChunkSimplifier) applyCollapse(edge qemEdge) int {
+	removedTriangles := 0
+	for _, t := range s.incident[edge.v0] {
+		if !s.liveTris[t] {
+			continue
+		}
+		tri := s.triangles[t]
+		if qemTriangleContains(tri, edge.v1) {
+			s.liveTris[t] = false
+			removedTriangles++
+			continue
+		}
+		for i := range tri {
+			if tri[i] == edge.v0 {
+				tri[i] = edge.v1
+			}
+		}
+		s.triangles[t] = tri
+		s.incident[edge.v1] = append(s.incident[edge.v1], t)
+	}
+	if removedTriangles == 0 {
+		return 0
+	}
+	s.quadrics[edge.v1].AddAssign(s.quadrics[edge.v0])
+	s.positions[edge.v1] = edge.pos
+	s.liveVertices[edge.v0] = false
+	s.incident[edge.v0] = nil
+	return removedTriangles
+}
+
+func (s *qemChunkSimplifier) refreshAffected(affected []int) {
+	for _, vertex := range affected {
+		s.versions[vertex]++
+		if !s.liveVertices[vertex] {
+			continue
+		}
+		incident := s.incident[vertex][:0]
+		for _, t := range s.incident[vertex] {
+			if s.liveTris[t] && qemTriangleContains(s.triangles[t], vertex) {
+				incident = append(incident, t)
+			}
+		}
+		s.incident[vertex] = incident
+	}
+	// Lazy invalidation normally keeps refreshes local. Rebuild occasionally if
+	// stale candidates grow far beyond the current topology.
+	if len(s.edges) > max(128, s.liveCount*6) {
+		s.rebuildEdgeQueue()
+		return
+	}
+	s.nextQueueGeneration()
+	for _, vertex := range affected {
+		if !s.liveVertices[vertex] {
+			continue
+		}
+		for _, t := range s.incident[vertex] {
+			tri := s.triangles[t]
+			for _, neighbor := range tri {
+				if neighbor != vertex {
+					s.queueEdge(vertex, neighbor, true)
+				}
+			}
+		}
+	}
+}
+
+func (s *qemChunkSimplifier) nextQueueGeneration() {
+	s.queueGeneration++
+	if s.queueGeneration == 0 {
+		clear(s.lastQueued)
+		s.queueGeneration = 1
+	}
+}
+
+func (s *qemChunkSimplifier) nextVertexMark() uint32 {
+	s.vertexMark++
+	if s.vertexMark == 0 {
+		clear(s.vertexMarks)
+		s.vertexMark = 1
+	}
+	return s.vertexMark
+}
+
+func (s *qemChunkSimplifier) nextCommonMark() uint32 {
+	s.commonMark++
+	if s.commonMark == 0 {
+		clear(s.commonMarks)
+		s.commonMark = 1
+	}
+	return s.commonMark
+}
+
+func (s *qemChunkSimplifier) nextTriangleMark() uint32 {
+	s.triangleMark++
+	if s.triangleMark == 0 {
+		clear(s.triangleMarks)
+		s.triangleMark = 1
+	}
+	return s.triangleMark
+}
+
+func qemEdgeKey(a, b int) uint64 {
+	if a > b {
+		a, b = b, a
+	}
+	return uint64(uint32(a))<<32 | uint64(uint32(b))
+}
+
+func qemEdgeVertices(key uint64) (int, int) {
+	return int(uint32(key >> 32)), int(uint32(key))
+}
+
+func qemTriangleContains(triangle [3]int, vertex int) bool {
+	return triangle[0] == vertex || triangle[1] == vertex || triangle[2] == vertex
 }
 
 // addPlaneQuadric accumulates the quadric of the plane through the triangle
@@ -782,146 +1322,10 @@ func qemCollapsePosition(q matrix.Mat4, removed, survivor matrix.Vec3, survivorP
 	return bestCost, bestPosition
 }
 
-// qemTopology rebuilds the live one-ring neighborhoods and edge-use counts.
-// Rebuilding after each accepted collapse ensures every queued edge references
-// the current topology; stale endpoints were the source of the disappearing
-// triangles in the previous implementation.
-func qemTopology(triangles [][3]int, liveTris []bool, vertexCount int) ([]map[int]struct{}, map[[2]int]int, [][2]int) {
-	neighbors := make([]map[int]struct{}, vertexCount)
-	edgeUses := make(map[[2]int]int)
-	add := func(a, b int) {
-		if a > b {
-			a, b = b, a
-		}
-		edgeUses[[2]int{a, b}]++
-	}
-	addNeighbor := func(a, b int) {
-		if neighbors[a] == nil {
-			neighbors[a] = make(map[int]struct{})
-		}
-		neighbors[a][b] = struct{}{}
-	}
-	for t, tri := range triangles {
-		if !liveTris[t] {
-			continue
-		}
-		a, b, c := tri[0], tri[1], tri[2]
-		add(a, b)
-		add(b, c)
-		add(c, a)
-		addNeighbor(a, b)
-		addNeighbor(a, c)
-		addNeighbor(b, a)
-		addNeighbor(b, c)
-		addNeighbor(c, a)
-		addNeighbor(c, b)
-	}
-	edges := make([][2]int, 0, len(edgeUses))
-	for edge := range edgeUses {
-		edges = append(edges, edge)
-	}
-	return neighbors, edgeUses, edges
-}
-
-// qemCollapsePreservesTopology applies the triangle-mesh link condition. For a
-// manifold edge, the endpoints may have only the opposite vertices of the
-// edge's one or two incident triangles in common. Any additional shared neighbor
-// would turn the collapse into a duplicate face or non-manifold connection.
-func qemCollapsePreservesTopology(removed, survivor int, neighbors []map[int]struct{}, edgeUses map[[2]int]int) bool {
-	a, b := removed, survivor
-	if a > b {
-		a, b = b, a
-	}
-	uses := edgeUses[[2]int{a, b}]
-	if uses < 1 || uses > 2 {
-		return false
-	}
-	common := 0
-	for neighbor := range neighbors[removed] {
-		if _, ok := neighbors[survivor][neighbor]; ok {
-			common++
-		}
-	}
-	return common == uses
-}
-
-// qemCollapsePreservesGeometry rejects collapses that flatten or flip any
-// surviving incident face. Faces containing both endpoints are intentionally
-// omitted because the collapse removes them.
-func qemCollapsePreservesGeometry(e *qemEdge, triangles [][3]int, liveTris []bool, positions, normals, referenceFaces []matrix.Vec3, areaEpsilon matrix.Float) bool {
-	for t, tri := range triangles {
-		if !liveTris[t] {
-			continue
-		}
-		usesRemoved := tri[0] == e.v0 || tri[1] == e.v0 || tri[2] == e.v0
-		usesSurvivor := tri[0] == e.v1 || tri[1] == e.v1 || tri[2] == e.v1
-		if !usesRemoved && !usesSurvivor {
-			continue
-		}
-		if usesRemoved && usesSurvivor {
-			continue
-		}
-		updated := [3]matrix.Vec3{positions[tri[0]], positions[tri[1]], positions[tri[2]]}
-		updatedIndices := tri
-		for i := range tri {
-			if tri[i] == e.v0 || tri[i] == e.v1 {
-				updated[i] = e.pos
-			}
-			if tri[i] == e.v0 {
-				updatedIndices[i] = e.v1
-			}
-		}
-		newFace := updated[1].Subtract(updated[0]).Cross(updated[2].Subtract(updated[0]))
-		newArea := newFace.LengthSquared()
-		referenceArea := referenceFaces[t].LengthSquared()
-		direction := referenceFaces[t].Dot(newFace)
-		// Require more than a merely positive dot product. Repeated collapses can
-		// otherwise rotate a face almost 90 degrees a little at a time, producing
-		// radial "curtains" that look like missing wedges under back-face culling.
-		const minNormalDotSquared = matrix.Float(0.04) // cos(angle) >= 0.2
-		if newFace.IsNaN() || newFace.IsInf(0) || newArea <= areaEpsilon || direction <= 0 ||
-			direction*direction < referenceArea*newArea*minNormalDotSquared {
-			return false
-		}
-		vertexNormal := normals[updatedIndices[0]].Add(normals[updatedIndices[1]]).Add(normals[updatedIndices[2]])
-		if !vertexNormal.IsZero() {
-			normalDirection := vertexNormal.Dot(newFace)
-			if normalDirection <= 0 || normalDirection*normalDirection < vertexNormal.LengthSquared()*newArea*minNormalDotSquared {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// qemApplyCollapse rewires the current triangle indices immediately, removing
-// faces that contain both endpoints. No deferred union-find resolution is used,
-// so subsequent adjacency and candidate costs are built from the actual mesh.
-func qemApplyCollapse(e *qemEdge, triangles [][3]int, liveTris []bool, positions []matrix.Vec3, quadrics []matrix.Mat4) int {
-	removedTriangles := 0
-	for t := range triangles {
-		if !liveTris[t] {
-			continue
-		}
-		for i := range triangles[t] {
-			if triangles[t][i] == e.v0 {
-				triangles[t][i] = e.v1
-			}
-		}
-		tri := triangles[t]
-		if tri[0] == tri[1] || tri[1] == tri[2] || tri[0] == tri[2] {
-			liveTris[t] = false
-			removedTriangles++
-		}
-	}
-	quadrics[e.v1].AddAssign(quadrics[e.v0])
-	positions[e.v1] = e.pos
-	return removedTriangles
-}
-
 // qemEdge is a candidate edge collapse in the priority queue.
 type qemEdge struct {
-	v0, v1 int
-	cost   matrix.Float
-	pos    matrix.Vec3
+	v0, v1             int
+	cost               matrix.Float
+	pos                matrix.Vec3
+	version0, version1 uint32
 }

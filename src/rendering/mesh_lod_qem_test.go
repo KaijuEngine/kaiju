@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/concurrent"
 )
 
 // buildGrid2 builds an n x n grid of quads (two triangles each) laid out in the
@@ -150,6 +151,7 @@ func TestGenerateMeshLODClampsRemainingLevels(t *testing.T) {
 
 func TestGenerateMeshLODSphereStaysClosedAndValid(t *testing.T) {
 	cache := NewMeshCache(nil, nil)
+	cache.SetLodGenerator(NewMeshLodGeneratorQem(nil))
 	sphere := NewMeshSphere(&cache, 1, 32, 32)
 	if !sphere.lods.IsValid() {
 		t.Fatal("expected sphere LODs to be generated")
@@ -260,6 +262,24 @@ func TestQuadricErrorMetricKeepsProtectedVerticesFixed(t *testing.T) {
 	}
 }
 
+func TestQuadricErrorMetricProcessChunkDoesNotMutateInput(t *testing.T) {
+	verts, indices := buildGrid2(8)
+	chunk := quadricErrorMetricChunkify(verts, indices, 0.25)[0]
+	wantPositions := append([]matrix.Vec3(nil), chunk.positions...)
+	wantIndices := append([]uint32(nil), chunk.indices...)
+	quadricErrorMetricProcessChunk(chunk)
+	for i := range wantPositions {
+		if chunk.positions[i] != wantPositions[i] {
+			t.Fatalf("input position %d changed from %v to %v", i, wantPositions[i], chunk.positions[i])
+		}
+	}
+	for i := range wantIndices {
+		if chunk.indices[i] != wantIndices[i] {
+			t.Fatalf("input index %d changed from %d to %d", i, wantIndices[i], chunk.indices[i])
+		}
+	}
+}
+
 func TestQuadricErrorMetricChunkifyDoesNotDuplicateSplitTriangle(t *testing.T) {
 	vertexCount := meshQemChunkTargetVerts + 2
 	verts := make([]Vertex, vertexCount)
@@ -279,6 +299,18 @@ func TestQuadricErrorMetricChunkifyDoesNotDuplicateSplitTriangle(t *testing.T) {
 
 func TestQuadricErrorMetricMultiChunkMeshStaysClosed(t *testing.T) {
 	verts, indices := buildUVTorus(65, 65)
+	// Deliberately destroy triangle locality. Topology-aware partitioning should
+	// still form coherent chunks instead of turning most vertices into cuts.
+	scrambled := make([]uint32, len(indices))
+	triangleCount := len(indices) / 3
+	for triangle := 0; triangle < triangleCount; triangle++ {
+		sourceTriangle := triangle / 2
+		if triangle%2 != 0 {
+			sourceTriangle = triangleCount - 1 - sourceTriangle
+		}
+		copy(scrambled[triangle*3:triangle*3+3], indices[sourceTriangle*3:sourceTriangle*3+3])
+	}
+	indices = scrambled
 	chunks := quadricErrorMetricChunkify(verts, indices, 0.999)
 	if len(chunks) < 2 {
 		t.Fatalf("expected a multi-chunk mesh, got %d chunk", len(chunks))
@@ -306,6 +338,28 @@ func TestMeshQemWeldsAttributeSeamsButNotDeformationSeams(t *testing.T) {
 	}
 	if got := len(welded.variants[welded.sourceToWeld[0]]); got != 2 {
 		t.Fatalf("attribute seam has %d source variants, want 2", got)
+	}
+}
+
+func TestGenerateMeshLODParallelChunks(t *testing.T) {
+	verts, indices := buildGrid2(40)
+	threads := concurrent.Threads{}
+	threads.Initialize()
+	threads.Start()
+	defer threads.Stop()
+	mesh := NewMesh("parallel-grid", verts, indices)
+	cache := NewMeshCache(nil, nil)
+	lods, err := NewMeshLodGeneratorQem(&threads).GenerateLods(mesh, &cache, verts, indices, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := len(indices)
+	for level := 1; level < len(lods.Levels); level++ {
+		got := len(lods.Levels[level].Mesh.pendingIndexes)
+		if got > previous {
+			t.Fatalf("LOD %d has %d indices after previous level had %d", level, got, previous)
+		}
+		previous = got
 	}
 }
 
@@ -339,4 +393,72 @@ func buildUVTorus(majorSegments, minorSegments int) ([]Vertex, []uint32) {
 		}
 	}
 	return verts, indices
+}
+
+func BenchmarkQuadricErrorMetricProcessChunk(b *testing.B) {
+	verts, indices := buildGrid2(24)
+	chunk := quadricErrorMetricChunkify(verts, indices, 0.25)[0]
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		quadricErrorMetricProcessChunk(chunk)
+	}
+}
+
+func BenchmarkGenerateMeshLOD(b *testing.B) {
+	verts, indices := buildGrid2(24)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mesh := NewMesh("benchmark-grid", verts, indices)
+		cache := NewMeshCache(nil, nil)
+		if _, err := generateMeshLOD(mesh, &cache, verts, indices, 5); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGenerateMeshLODMultiChunk(b *testing.B) {
+	verts, indices := buildUVTorus(65, 65)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mesh := NewMesh("benchmark-torus", verts, indices)
+		cache := NewMeshCache(nil, nil)
+		if _, err := generateMeshLOD(mesh, &cache, verts, indices, 5); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGenerateMeshLOD4096Vertices(b *testing.B) {
+	// 64x64 vertices exercises several full-size runtime chunks.
+	verts, indices := buildGrid2(63)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mesh := NewMesh("benchmark-chunk-limit", verts, indices)
+		cache := NewMeshCache(nil, nil)
+		if _, err := generateMeshLOD(mesh, &cache, verts, indices, 5); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGenerateMeshLOD4096VerticesParallel(b *testing.B) {
+	verts, indices := buildGrid2(63)
+	threads := concurrent.Threads{}
+	threads.Initialize()
+	threads.Start()
+	defer threads.Stop()
+	generator := NewMeshLodGeneratorQem(&threads)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mesh := NewMesh("benchmark-parallel-grid", verts, indices)
+		cache := NewMeshCache(nil, nil)
+		if _, err := generator.GenerateLods(mesh, &cache, verts, indices, 5); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
