@@ -147,3 +147,79 @@ func TestGenerateMeshLODClampsRemainingLevels(t *testing.T) {
 	}
 }
 
+func TestGenerateMeshLODSphereHasNoDegenerateTriangles(t *testing.T) {
+	cache := NewMeshCache(nil, nil)
+	sphere := NewMeshSphere(&cache, 1, 32, 32)
+	if !sphere.lods.IsValid() {
+		t.Fatal("expected sphere LODs to be generated")
+	}
+	for level := 1; level < len(sphere.lods.Levels); level++ {
+		lod := sphere.lods.Levels[level].Mesh
+		t.Logf("LOD %d: %d vertices, %d triangles", level, len(lod.pendingVerts), len(lod.pendingIndexes)/3)
+		for i := 0; i < len(lod.pendingIndexes); i += 3 {
+			a := lod.pendingIndexes[i]
+			b := lod.pendingIndexes[i+1]
+			c := lod.pendingIndexes[i+2]
+			if a == b || b == c || a == c {
+				t.Fatalf("LOD %d triangle %d has duplicate indices: %d, %d, %d", level, i/3, a, b, c)
+			}
+			p0 := lod.pendingVerts[a].Position
+			p1 := lod.pendingVerts[b].Position
+			p2 := lod.pendingVerts[c].Position
+			face := p1.Subtract(p0).Cross(p2.Subtract(p0))
+			if face.LengthSquared() <= 1e-12 {
+				t.Fatalf("LOD %d triangle %d has zero area", level, i/3)
+			}
+			centroid := p0.Add(p1).Add(p2).Scale(1.0 / 3.0)
+			if face.Dot(centroid) <= 0 {
+				t.Fatalf("LOD %d triangle %d faces inward: indices=%v positions=%v,%v,%v face=%v centroid=%v", level, i/3,
+					[]uint32{a, b, c}, p0, p1, p2, face, centroid)
+			}
+		}
+	}
+}
+
+func TestQuadricErrorMetricKeepsProtectedVerticesFixed(t *testing.T) {
+	chunk := MeshQemChunk{
+		positions: []matrix.Vec3{
+			{0, 0, 0},
+			{-1, 0, -1},
+			{1, 0, -1},
+			{1, 0, 1},
+			{-1, 0, 1},
+		},
+		indices: []uint32{
+			0, 2, 1,
+			0, 3, 2,
+			0, 4, 3,
+			0, 1, 4,
+		},
+		boundary:        []bool{false, true, true, true, true},
+		globalIndices:   []int{0, 1, 2, 3, 4},
+		targetTriangles: 2,
+	}
+	want := append([]matrix.Vec3(nil), chunk.positions...)
+	result := quadricErrorMetricProcessChunk(chunk)
+	for i := 1; i < len(want); i++ {
+		if result.positions[i] != want[i] {
+			t.Errorf("protected vertex %d moved from %v to %v", i, want[i], result.positions[i])
+		}
+	}
+}
+
+func TestQuadricErrorMetricChunkifyDoesNotDuplicateSplitTriangle(t *testing.T) {
+	vertexCount := meshQemChunkTargetVerts + 2
+	verts := make([]Vertex, vertexCount)
+	indices := make([]uint32, 0, (vertexCount/3)*3)
+	for i := 0; i+2 < vertexCount; i += 3 {
+		indices = append(indices, uint32(i), uint32(i+1), uint32(i+2))
+	}
+	chunks := quadricErrorMetricChunkify(verts, indices, 0.5)
+	gotTriangles := 0
+	for i := range chunks {
+		gotTriangles += len(chunks[i].indices) / 3
+	}
+	if wantTriangles := len(indices) / 3; gotTriangles != wantTriangles {
+		t.Fatalf("chunking produced %d triangles, want %d", gotTriangles, wantTriangles)
+	}
+}

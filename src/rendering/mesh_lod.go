@@ -46,12 +46,11 @@ type MeshLod struct {
 //
 // Simplification proceeds by repeatedly collapsing the edge (v1, v2) whose
 // combined quadric Q = Q1 + Q2 predicts the smallest error. The collapsed
-// vertex is placed at the point that minimizes v^T Q v (the least-squares
-// optimal position), and its quadric is replaced by the sum of the two
-// collapsed vertices' quadrics so the error estimate is carried forward.
-// This greedy, error-driven approach lets the algorithm remove geometry where
-// it matters least visually, keeping the surface as faithful as possible for
-// the requested triangle budget.
+// vertex is placed at the lowest-error point along the source edge, and its
+// quadric is replaced by the sum of the two collapsed vertices' quadrics so the
+// error estimate is carried forward. Restricting the solution to the edge and
+// rejecting topology or normal inversions keeps the runtime-generated mesh
+// valid while retaining the greedy, error-driven behavior of QEM.
 
 type MeshQem struct {
 	chunks []MeshQemChunk
@@ -72,6 +71,8 @@ type MeshQem struct {
 //
 // Inputs populated by chunkify:
 //   - positions:       the chunk's vertices, compacted to [0, len(positions)).
+//   - normals:         the corresponding source normals, used to preserve face
+//     orientation while validating collapses.
 //   - indices:         the chunk's triangles, remapped into local position space.
 //   - boundary:        for each local position, whether it lies on the chunk's
 //     outer border. Border vertices are shared with neighboring chunks and MUST
@@ -89,6 +90,7 @@ type MeshQem struct {
 type MeshQemChunk struct {
 	// Inputs
 	positions       []matrix.Vec3
+	normals         []matrix.Vec3
 	indices         []uint32
 	boundary        []bool
 	globalIndices   []int
@@ -217,10 +219,18 @@ func stitchQemChunks(verts []Vertex, chunks []MeshQemChunk) ([]Vertex, []uint32)
 	return outVerts, outIndices
 }
 
-func (h qemEdgeHeap) Len() int           { return len(h) }
-func (h qemEdgeHeap) Less(i, j int) bool { return h[i].cost < h[j].cost }
-func (h qemEdgeHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-func (h *qemEdgeHeap) Push(x any)        { *h = append(*h, x.(*qemEdge)) }
+func (h qemEdgeHeap) Len() int { return len(h) }
+func (h qemEdgeHeap) Less(i, j int) bool {
+	if h[i].cost != h[j].cost {
+		return h[i].cost < h[j].cost
+	}
+	if h[i].v0 != h[j].v0 {
+		return h[i].v0 < h[j].v0
+	}
+	return h[i].v1 < h[j].v1
+}
+func (h qemEdgeHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h *qemEdgeHeap) Push(x any)   { *h = append(*h, x.(*qemEdge)) }
 func (h *qemEdgeHeap) Pop() any {
 	old := *h
 	n := len(old)
@@ -283,17 +293,22 @@ func quadricErrorMetricChunkify(verts []Vertex, indices []uint32, ratio float32)
 	}
 	for t := 0; t < tris; t++ {
 		base := t * 3
-		addTriangle(base)
-		// If the current chunk overflowed its budget, emit it and restart the
-		// group with the same triangle.
-		if len(localToGlobal) > meshQemChunkTargetVerts {
+		newVerts := 0
+		for c := 0; c < 3; c++ {
+			if _, ok := globalToLocal[int(indices[base+c])]; !ok {
+				newVerts++
+			}
+		}
+		// Emit before adding the triangle that would exceed the chunk budget.
+		// Adding it first and then restarting with the same triangle duplicates
+		// that triangle in both chunks when the chunks are stitched together.
+		if len(current.indices) > 0 && len(localToGlobal)+newVerts > meshQemChunkTargetVerts {
 			emitQemChunk(&chunks, &current, localToGlobal, vertexSlots, ratio)
 			current = MeshQemChunk{}
 			clear(globalToLocal)
 			localToGlobal = localToGlobal[:0]
-			current.indices = current.indices[:0]
-			addTriangle(base)
 		}
+		addTriangle(base)
 	}
 	// Emit the final, possibly incomplete, chunk.
 	if len(localToGlobal) > 0 {
@@ -338,6 +353,7 @@ func buildQemChunkGeometry(verts []Vertex, chunks []MeshQemChunk, vertexSlots []
 	}
 	for ci := range chunks {
 		chunks[ci].positions = make([]matrix.Vec3, chunkSizes[ci])
+		chunks[ci].normals = make([]matrix.Vec3, chunkSizes[ci])
 		chunks[ci].boundary = make([]bool, chunkSizes[ci])
 		chunks[ci].globalIndices = make([]int, chunkSizes[ci])
 	}
@@ -346,6 +362,7 @@ func buildQemChunkGeometry(verts []Vertex, chunks []MeshQemChunk, vertexSlots []
 	for g, slots := range vertexSlots {
 		for _, s := range slots {
 			chunks[s.chunk].positions[s.local] = verts[g].Position
+			chunks[s.chunk].normals[s.local] = verts[g].Normal
 			chunks[s.chunk].globalIndices[s.local] = g
 		}
 	}
@@ -377,148 +394,111 @@ func selectMeshLodRatios(count int) []float32 {
 }
 
 func quadricErrorMetricProcessChunk(chunk MeshQemChunk) MeshQemChunk {
-	// Degenerate or trivially small chunks pass through unchanged.
 	tris := len(chunk.indices) / 3
-	if tris < 1 {
+	if tris < 1 || len(chunk.positions) == 0 {
 		chunk.resultIndices = chunk.indices
 		return chunk
 	}
-	if chunk.targetTriangles >= tris {
-		chunk.resultIndices = chunk.indices
-		return chunk
-	}
-	nVerts := len(chunk.positions)
-	// A working copy of the positions; surviving vertices keep their index.
-	positions := make([]matrix.Vec3, nVerts)
-	copy(positions, chunk.positions)
-	// Per-vertex quadric matrices; index i matches positions[i].
-	quadrics := make([]matrix.Mat4, nVerts)
-	// Live triangles, indexed by their first index into chunk.indices (3*t).
+
+	positions := append([]matrix.Vec3(nil), chunk.positions...)
+	normals := make([]matrix.Vec3, len(positions))
+	copy(normals, chunk.normals)
+	triangles := make([][3]int, tris)
 	liveTris := make([]bool, tris)
-	// Union-find "parent": parent[i] is the representative vertex that vertex i
-	// has collapsed into. find(i) resolves the current representative.
-	parent := make([]int, nVerts)
-	for i := range parent {
-		parent[i] = i
-	}
-	find := func(x int) int {
-		for parent[x] != x {
-			parent[x] = parent[parent[x]]
-			x = parent[x]
-		}
-		return x
-	}
-	// Vertex-to-triangle adjacency (built once, then maintained incrementally).
-	adj := make([][]int, nVerts)
-	// Build per-vertex quadrics and adjacency from the initial triangles.
+	referenceFaces := make([]matrix.Vec3, tris)
+	quadrics := make([]matrix.Mat4, len(positions))
+	areaEpsilon := qemAreaEpsilon(positions)
+	liveCount := 0
 	for t := 0; t < tris; t++ {
-		a := int(chunk.indices[t*3+0])
+		a := int(chunk.indices[t*3])
 		b := int(chunk.indices[t*3+1])
 		c := int(chunk.indices[t*3+2])
-		if a == b || b == c || a == c {
-			liveTris[t] = false
+		triangles[t] = [3]int{a, b, c}
+		if a < 0 || b < 0 || c < 0 || a >= len(positions) || b >= len(positions) || c >= len(positions) ||
+			a == b || b == c || a == c {
 			continue
 		}
+		face := positions[b].Subtract(positions[a]).Cross(positions[c].Subtract(positions[a]))
+		if face.LengthSquared() <= areaEpsilon {
+			continue
+		}
+		referenceFaces[t] = face
 		liveTris[t] = true
+		liveCount++
 		addPlaneQuadric(&quadrics[a], positions[a], positions[b], positions[c])
 		addPlaneQuadric(&quadrics[b], positions[a], positions[b], positions[c])
 		addPlaneQuadric(&quadrics[c], positions[a], positions[b], positions[c])
-		adj[a] = append(adj[a], t)
-		adj[b] = append(adj[b], t)
-		adj[c] = append(adj[c], t)
 	}
-	// Build the initial set of candidate edges from the live triangles.
-	edges := make(map[[2]int]bool)
-	for t := 0; t < tris; t++ {
-		if !liveTris[t] {
-			continue
+
+	// Inter-chunk vertices remain fixed so independently processed chunks stitch
+	// to the same position. Real topological boundary vertices may collapse only
+	// along other boundary vertices; this preserves the boundary without freezing
+	// the many duplicated seam and pole vertices used by UV meshes.
+	protected := make([]bool, len(positions))
+	copy(protected, chunk.boundary)
+	topologyBoundary := make([]bool, len(positions))
+	_, initialEdgeUses, _ := qemTopology(triangles, liveTris, len(positions))
+	for edge, uses := range initialEdgeUses {
+		if uses != 2 {
+			topologyBoundary[edge[0]] = true
+			topologyBoundary[edge[1]] = true
 		}
-		a := int(chunk.indices[t*3+0])
-		b := int(chunk.indices[t*3+1])
-		c := int(chunk.indices[t*3+2])
-		addEdgeKey(edges, a, b)
-		addEdgeKey(edges, b, c)
-		addEdgeKey(edges, c, a)
 	}
-	// Priority queue of candidate edge collapses ordered by lowest error.
-	pq := &qemEdgeHeap{}
-	heap.Init(pq)
-	edgeIndex := make(map[[2]int]*qemEdge)
-	// addCandidate computes and enqueues a collapse candidate for the given
-	// representative edge. The lower-index endpoint is treated as v0 (the one
-	// that gets absorbed) whenever possible.
-	addCandidate := func(k [2]int) {
-		if _, exists := edgeIndex[k]; exists {
-			return
+
+	for liveCount > chunk.targetTriangles {
+		neighbors, edgeUses, edges := qemTopology(triangles, liveTris, len(positions))
+		pq := &qemEdgeHeap{}
+		heap.Init(pq)
+		for _, edge := range edges {
+			v0, v1 := edge[0], edge[1]
+			if topologyBoundary[v0] != topologyBoundary[v1] {
+				continue
+			}
+			if protected[v0] && protected[v1] {
+				continue
+			}
+			// v0 is removed and v1 survives. A protected endpoint may survive,
+			// but it must never be removed or moved.
+			if protected[v0] {
+				v0, v1 = v1, v0
+			}
+			combined := quadrics[v0]
+			combined.AddAssign(quadrics[v1])
+			cost, pos := qemCollapsePosition(combined, positions[v0], positions[v1], protected[v1])
+			if matrix.IsNaN(cost) || matrix.IsInf(cost, 0) || pos.IsNaN() || pos.IsInf(0) {
+				continue
+			}
+			heap.Push(pq, &qemEdge{v0: v0, v1: v1, cost: cost, pos: pos})
 		}
-		r0, r1 := find(k[0]), find(k[1])
-		if r0 == r1 {
-			return
-		}
-		// Only a non-boundary vertex may be collapsed away. Choose the absorbed
-		// vertex to be the one that is allowed to move (not a boundary vertex).
-		// If both are boundary, there's nothing to collapse.
-		v0, v1 := r0, r1
-		if chunk.boundary[v0] && !chunk.boundary[v1] {
-			v0, v1 = v1, v0
-		} else if chunk.boundary[v0] && chunk.boundary[v1] {
-			return
-		}
-		combined := quadrics[v0]
-		combined.AddAssign(quadrics[v1])
-		cost, pos, ok := solveQuadric(combined)
-		if !ok {
-			cost = quadricCost(combined, positions[v0])
-			pos = positions[v0]
-		}
-		e := &qemEdge{v0: v0, v1: v1, cost: cost, pos: pos}
-		e.key = [2]int{v0, v1}
-		edgeIndex[e.key] = e
-		heap.Push(pq, e)
-	}
-	for k := range edges {
-		addCandidate(k)
-	}
-	liveCount := tris
-	for pq.Len() > 0 {
-		if liveCount <= chunk.targetTriangles {
+
+		collapsed := false
+		for pq.Len() > 0 {
+			e := heap.Pop(pq).(*qemEdge)
+			if !qemCollapsePreservesTopology(e.v0, e.v1, neighbors, edgeUses) ||
+				!qemCollapsePreservesGeometry(e, triangles, liveTris, positions, normals, referenceFaces, areaEpsilon) {
+				continue
+			}
+			removed := qemApplyCollapse(e, triangles, liveTris, positions, quadrics)
+			if removed == 0 {
+				continue
+			}
+			liveCount -= removed
+			collapsed = true
 			break
 		}
-		e := heap.Pop(pq).(*qemEdge)
-		// Resolve current representatives; stale entries (already collapsed) are
-		// dropped.
-		r0, r1 := find(e.v0), find(e.v1)
-		if r0 == r1 {
-			continue
+		if !collapsed {
+			break
 		}
-		if chunk.boundary[e.v0] && !chunk.boundary[e.v1] {
-			// Re-queue with the roles swapped so the movable vertex is absorbed.
-			addCandidate([2]int{e.v1, e.v0})
-			continue
-		}
-		// Perform the collapse into representative r1 (the surviving vertex).
-		merged, removed := applyCollapse(e, parent, positions, quadrics, adj, liveTris, chunk.boundary)
-		if !merged {
-			continue
-		}
-		_ = r0
-		liveCount -= removed
-		// Refresh candidates around the merged vertex.
-		refreshCandidates(edges, pq, edgeIndex, parent, chunk.boundary, addCandidate)
 	}
-	// Emit the surviving triangles, resolving each corner to its representative.
+
 	chunk.resultIndices = chunk.resultIndices[:0]
-	for t := 0; t < tris; t++ {
+	for t := range triangles {
 		if !liveTris[t] {
 			continue
 		}
 		chunk.resultIndices = append(chunk.resultIndices,
-			uint32(find(int(chunk.indices[t*3+0]))),
-			uint32(find(int(chunk.indices[t*3+1]))),
-			uint32(find(int(chunk.indices[t*3+2]))))
+			uint32(triangles[t][0]), uint32(triangles[t][1]), uint32(triangles[t][2]))
 	}
-	// Write back the collapsed (representative) positions so the stitch step can
-	// produce a final mesh with the optimal collapse positions.
 	copy(chunk.positions, positions)
 	chunk.quadrics = quadrics
 	return chunk
@@ -564,126 +544,202 @@ func quadricCost(q matrix.Mat4, v matrix.Vec3) matrix.Float {
 		z*(q[2]*x+q[6]*y+q[10]*z+q[11]) + q[15]
 }
 
-// solveQuadric finds the point v minimizing v^T Q v by solving the 3x3 linear
-// system A v = -b, where A is the 3x3 block of the quadric and b is the affine
-// part. Returns ok=false when A is singular (no unique minimum); the caller
-// should fall back to one of the endpoints.
-func solveQuadric(q matrix.Mat4) (matrix.Float, matrix.Vec3, bool) {
-	a00, a01, a02 := q[0], q[1], q[2]
-	a10, a11, a12 := q[1], q[5], q[6]
-	a20, a21, a22 := q[2], q[6], q[10]
-	b0, b1, b2 := q[3], q[7], q[11]
-	det := a00*(a11*a22-a12*a21) - a01*(a10*a22-a12*a20) + a02*(a10*a21-a11*a20)
-	eps := matrix.Float(1e-12)
-	if det > -eps && det < eps {
-		return 0, matrix.Vec3{}, false
+// qemAreaEpsilon returns a scale-relative threshold for rejecting zero-area
+// faces. This also removes the numerically tiny cap triangles produced by UV
+// spheres whose duplicated pole positions differ only by trig roundoff.
+func qemAreaEpsilon(positions []matrix.Vec3) matrix.Float {
+	if len(positions) == 0 {
+		return 0
 	}
-	inv := 1.0 / det
-	// Inverse of A via cofactors: inv[i][j] = Cji / det.
-	c00 := a11*a22 - a12*a21
-	c01 := -(a10*a22 - a12*a20)
-	c02 := a10*a21 - a11*a20
-	c10 := -(a01*a22 - a02*a21)
-	c11 := a00*a22 - a02*a20
-	c12 := -(a00*a21 - a01*a20)
-	c20 := a01*a12 - a02*a11
-	c21 := -(a00*a12 - a02*a10)
-	c22 := a00*a11 - a01*a10
-	// x = A^-1 * (-b); inv[i][j] = Cji.
-	x := (c00*-b0 + c10*-b1 + c20*-b2) * inv
-	y := (c01*-b0 + c11*-b1 + c21*-b2) * inv
-	z := (c02*-b0 + c12*-b1 + c22*-b2) * inv
-	pos := matrix.Vec3{x, y, z}
-	return quadricCost(q, pos), pos, true
+	low, high := positions[0], positions[0]
+	for i := 1; i < len(positions); i++ {
+		low = matrix.Vec3Min(low, positions[i])
+		high = matrix.Vec3Max(high, positions[i])
+	}
+	scaleSquared := high.Subtract(low).LengthSquared()
+	return scaleSquared * scaleSquared * matrix.Float(1e-12)
 }
 
-// applyCollapse merges the representative of e.v0 into e.v1. Every triangle
-// that becomes degenerate (references both endpoints) is removed, and all other
-// triangles touching the absorbed vertex are rewired via the union-find parent
-// so they now reference the representative. It returns whether the collapse was
-// performed and how many triangles were removed.
-func applyCollapse(e *qemEdge, parent []int, positions []matrix.Vec3, quadrics []matrix.Mat4, adj [][]int, liveTris, boundary []bool) (bool, int) {
-	// e.v0 must be a non-boundary vertex being absorbed into e.v1.
-	v0, v1 := e.v0, e.v1
-	if boundary[v0] {
-		return false, 0
+// qemCollapsePosition selects the lowest-cost finite point along the collapsed
+// edge. Constraining the optimum to the edge segment prevents a mathematically
+// low-cost solution from jumping across a curved mesh. A protected survivor is
+// held exactly at its source position so independently processed chunks and open
+// seams remain watertight.
+func qemCollapsePosition(q matrix.Mat4, removed, survivor matrix.Vec3, survivorProtected bool) (matrix.Float, matrix.Vec3) {
+	if survivorProtected {
+		return quadricCost(q, survivor), survivor
 	}
-	removed := 0
-	for _, t := range adj[v0] {
+	midpoint := removed.Add(survivor).Scale(0.5)
+	candidates := [4]matrix.Vec3{
+		removed,
+		survivor,
+		midpoint,
+	}
+	candidateCount := 3
+	// Fit f(t) = a*t^2 + b*t + c from the costs at t={0,.5,1},
+	// then include its segment-clamped minimum as the fourth candidate.
+	f0 := quadricCost(q, removed)
+	f1 := quadricCost(q, survivor)
+	fm := quadricCost(q, midpoint)
+	a := 2*f0 + 2*f1 - 4*fm
+	b := f1 - f0 - a
+	if matrix.Abs(a) > matrix.Float(1e-20) {
+		t := -b / (2 * a)
+		if t > 0 && t < 1 {
+			candidates[candidateCount] = removed.Add(survivor.Subtract(removed).Scale(t))
+			candidateCount++
+		}
+	}
+	bestCost := matrix.FloatMax
+	bestPosition := survivor
+	for i := 0; i < candidateCount; i++ {
+		cost := quadricCost(q, candidates[i])
+		if matrix.IsNaN(cost) || matrix.IsInf(cost, 0) {
+			continue
+		}
+		if cost < bestCost {
+			bestCost = cost
+			bestPosition = candidates[i]
+		}
+	}
+	return bestCost, bestPosition
+}
+
+// qemTopology rebuilds the live one-ring neighborhoods and edge-use counts.
+// Rebuilding after each accepted collapse ensures every queued edge references
+// the current topology; stale endpoints were the source of the disappearing
+// triangles in the previous implementation.
+func qemTopology(triangles [][3]int, liveTris []bool, vertexCount int) ([]map[int]struct{}, map[[2]int]int, [][2]int) {
+	neighbors := make([]map[int]struct{}, vertexCount)
+	edgeUses := make(map[[2]int]int)
+	add := func(a, b int) {
+		if a > b {
+			a, b = b, a
+		}
+		edgeUses[[2]int{a, b}]++
+	}
+	addNeighbor := func(a, b int) {
+		if neighbors[a] == nil {
+			neighbors[a] = make(map[int]struct{})
+		}
+		neighbors[a][b] = struct{}{}
+	}
+	for t, tri := range triangles {
 		if !liveTris[t] {
 			continue
 		}
-		// Determine whether this triangle also references v1. If so it becomes
-		// degenerate after the merge and is removed.
-		if triUses(adj, v1, t) {
-			liveTris[t] = false
-			removed++
-			continue
-		}
-		// Otherwise the triangle survives; the union-find rewrite at emit time
-		// maps v0 -> v1. We leave liveTris as is.
-		_ = t
+		a, b, c := tri[0], tri[1], tri[2]
+		add(a, b)
+		add(b, c)
+		add(c, a)
+		addNeighbor(a, b)
+		addNeighbor(a, c)
+		addNeighbor(b, a)
+		addNeighbor(b, c)
+		addNeighbor(c, a)
+		addNeighbor(c, b)
 	}
-	// Union: v0's parent becomes v1.
-	parent[v0] = v1
-	// v1 inherits v0's quadric and moves to the optimal position.
-	quadrics[v1].AddAssign(quadrics[v0])
-	positions[v1] = e.pos
-	return true, removed
+	edges := make([][2]int, 0, len(edgeUses))
+	for edge := range edgeUses {
+		edges = append(edges, edge)
+	}
+	return neighbors, edgeUses, edges
 }
 
-// triUses reports whether any live triangle touching vertex v is t.
-func triUses(adj [][]int, v, t int) bool {
-	for _, x := range adj[v] {
-		if x == t {
-			return true
-		}
-	}
-	return false
-}
-
-// addEdgeKey records the undirected edge (a, b) into the set.
-func addEdgeKey(edges map[[2]int]bool, a, b int) {
+// qemCollapsePreservesTopology applies the triangle-mesh link condition. For a
+// manifold edge, the endpoints may have only the opposite vertices of the
+// edge's one or two incident triangles in common. Any additional shared neighbor
+// would turn the collapse into a duplicate face or non-manifold connection.
+func qemCollapsePreservesTopology(removed, survivor int, neighbors []map[int]struct{}, edgeUses map[[2]int]int) bool {
+	a, b := removed, survivor
 	if a > b {
 		a, b = b, a
 	}
-	edges[[2]int{a, b}] = true
-}
-
-// refreshCandidates rebuilds the candidate queue after a collapse: it drops
-// stale entries whose endpoints now share a representative and re-adds the
-// edges surrounding the merged vertex.
-func refreshCandidates(edges map[[2]int]bool, pq *qemEdgeHeap, edgeIndex map[[2]int]*qemEdge, parent []int, boundary []bool, addCandidate func(k [2]int)) {
-	// Drop candidates whose endpoints now resolve to the same representative.
-	for k, e := range edgeIndex {
-		if findParent(parent, e.v0) == findParent(parent, e.v1) {
-			delete(edgeIndex, k)
+	uses := edgeUses[[2]int{a, b}]
+	if uses < 1 || uses > 2 {
+		return false
+	}
+	common := 0
+	for neighbor := range neighbors[removed] {
+		if _, ok := neighbors[survivor][neighbor]; ok {
+			common++
 		}
 	}
-	// Re-add the current edge set (stale candidates get filtered inside
-	// addCandidate by representative equality).
-	for k := range edges {
-		addCandidate(k)
-	}
+	return common == uses
 }
 
-// findParent resolves the representative of x in the union-find parent array.
-func findParent(parent []int, x int) int {
-	for parent[x] != x {
-		x = parent[x]
-	}
-	return x
-}
-
-// countLiveTris counts how many triangles are still alive.
-func countLiveTris(liveTris []bool) int {
-	n := 0
-	for _, l := range liveTris {
-		if l {
-			n++
+// qemCollapsePreservesGeometry rejects collapses that flatten or flip any
+// surviving incident face. Faces containing both endpoints are intentionally
+// omitted because the collapse removes them.
+func qemCollapsePreservesGeometry(e *qemEdge, triangles [][3]int, liveTris []bool, positions, normals, referenceFaces []matrix.Vec3, areaEpsilon matrix.Float) bool {
+	for t, tri := range triangles {
+		if !liveTris[t] {
+			continue
+		}
+		usesRemoved := tri[0] == e.v0 || tri[1] == e.v0 || tri[2] == e.v0
+		usesSurvivor := tri[0] == e.v1 || tri[1] == e.v1 || tri[2] == e.v1
+		if !usesRemoved && !usesSurvivor {
+			continue
+		}
+		if usesRemoved && usesSurvivor {
+			continue
+		}
+		updated := [3]matrix.Vec3{positions[tri[0]], positions[tri[1]], positions[tri[2]]}
+		updatedIndices := tri
+		for i := range tri {
+			if tri[i] == e.v0 || tri[i] == e.v1 {
+				updated[i] = e.pos
+			}
+			if tri[i] == e.v0 {
+				updatedIndices[i] = e.v1
+			}
+		}
+		newFace := updated[1].Subtract(updated[0]).Cross(updated[2].Subtract(updated[0]))
+		newArea := newFace.LengthSquared()
+		referenceArea := referenceFaces[t].LengthSquared()
+		direction := referenceFaces[t].Dot(newFace)
+		// Require more than a merely positive dot product. Repeated collapses can
+		// otherwise rotate a face almost 90 degrees a little at a time, producing
+		// radial "curtains" that look like missing wedges under back-face culling.
+		const minNormalDotSquared = matrix.Float(0.04) // cos(angle) >= 0.2
+		if newFace.IsNaN() || newFace.IsInf(0) || newArea <= areaEpsilon || direction <= 0 ||
+			direction*direction < referenceArea*newArea*minNormalDotSquared {
+			return false
+		}
+		vertexNormal := normals[updatedIndices[0]].Add(normals[updatedIndices[1]]).Add(normals[updatedIndices[2]])
+		if !vertexNormal.IsZero() {
+			normalDirection := vertexNormal.Dot(newFace)
+			if normalDirection <= 0 || normalDirection*normalDirection < vertexNormal.LengthSquared()*newArea*minNormalDotSquared {
+				return false
+			}
 		}
 	}
-	return n
+	return true
+}
+
+// qemApplyCollapse rewires the current triangle indices immediately, removing
+// faces that contain both endpoints. No deferred union-find resolution is used,
+// so subsequent adjacency and candidate costs are built from the actual mesh.
+func qemApplyCollapse(e *qemEdge, triangles [][3]int, liveTris []bool, positions []matrix.Vec3, quadrics []matrix.Mat4) int {
+	removedTriangles := 0
+	for t := range triangles {
+		if !liveTris[t] {
+			continue
+		}
+		for i := range triangles[t] {
+			if triangles[t][i] == e.v0 {
+				triangles[t][i] = e.v1
+			}
+		}
+		tri := triangles[t]
+		if tri[0] == tri[1] || tri[1] == tri[2] || tri[0] == tri[2] {
+			liveTris[t] = false
+			removedTriangles++
+		}
+	}
+	quadrics[e.v1].AddAssign(quadrics[e.v0])
+	positions[e.v1] = e.pos
+	return removedTriangles
 }
 
 // qemEdge is a candidate edge collapse in the priority queue.
@@ -691,5 +747,4 @@ type qemEdge struct {
 	v0, v1 int
 	cost   matrix.Float
 	pos    matrix.Vec3
-	key    [2]int
 }
