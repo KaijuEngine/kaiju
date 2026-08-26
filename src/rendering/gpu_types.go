@@ -403,7 +403,7 @@ const (
 )
 
 const (
-	GPUFormatFeatureSampledImageBit GPUFormatFeatureFlags = iota
+	GPUFormatFeatureSampledImageBit GPUFormatFeatureFlags = (1 << iota)
 	GPUFormatFeatureStorageImageBit
 	GPUFormatFeatureStorageImageAtomicBit
 	GPUFormatFeatureUniformTexelBufferBit

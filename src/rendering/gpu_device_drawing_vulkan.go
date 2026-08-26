@@ -455,9 +455,6 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 		descriptorSets[0] = vk.DescriptorSet(state.InstanceDriverData.descriptorSets[g.Painter.currentFrame].handle)
 		vk.CmdBindDescriptorSets(cmd, vulkan_const.PipelineBindPointGraphics,
 			vk.PipelineLayout(layout.handle), 0, uint32(len(descriptorSets)), &descriptorSets[0], 0, &dynOffsets[0])
-		meshId := group.Mesh.MeshId
-		vb[0] = vk.Buffer(meshId.vertexBuffer.handle)
-		vk.CmdBindVertexBuffers(cmd, 0, uint32(len(vb)), &vb[0], &vbOffsets[0])
 		instanceBuffers[0] = vk.Buffer(state.instanceBuffer.buffers[g.Painter.currentFrame].handle)
 		vk.CmdBindVertexBuffers(cmd, uint32(state.instanceBuffer.bindingId),
 			uint32(len(instanceBuffers)), &instanceBuffers[0], &ibOffsets[0])
@@ -468,8 +465,29 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 					uint32(len(namedBuffers)), &namedBuffers[0], &ibOffsets[0])
 			}
 		}
-		vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
-		vk.CmdDrawIndexed(cmd, meshId.indexCount, uint32(state.visibleCount), 0, 0, 0)
+		if len(state.lodBatches) == 0 {
+			meshId := group.Mesh.MeshId
+			vb[0] = vk.Buffer(meshId.vertexBuffer.handle)
+			vk.CmdBindVertexBuffers(cmd, 0, uint32(len(vb)), &vb[0], &vbOffsets[0])
+			vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
+			vk.CmdDrawIndexed(cmd, meshId.indexCount, uint32(state.visibleCount), 0, 0, 0)
+			continue
+		}
+		for j := range state.lodBatches {
+			batch := &state.lodBatches[j]
+			mesh := batch.Mesh
+			if mesh == nil || !mesh.IsReady() {
+				mesh = group.Mesh
+			}
+			if mesh == nil || !mesh.IsReady() || batch.InstanceCount == 0 {
+				continue
+			}
+			meshId := mesh.MeshId
+			vb[0] = vk.Buffer(meshId.vertexBuffer.handle)
+			vk.CmdBindVertexBuffers(cmd, 0, uint32(len(vb)), &vb[0], &vbOffsets[0])
+			vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
+			vk.CmdDrawIndexed(cmd, meshId.indexCount, batch.InstanceCount, 0, 0, batch.FirstInstance)
+		}
 	}
 }
 

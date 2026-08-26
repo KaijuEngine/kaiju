@@ -41,6 +41,43 @@ func (c *testViewCuller) IsInView(box graviton.AABB) bool {
 
 func (c *testViewCuller) ViewChanged() bool { return c.viewChanged }
 
+type testMeshLodCamera struct {
+	position     matrix.Vec3
+	inView       bool
+	orthographic bool
+}
+
+func (c *testMeshLodCamera) Position() matrix.Vec3 { return c.position }
+func (c *testMeshLodCamera) IsOrthographic() bool  { return c.orthographic }
+func (c *testMeshLodCamera) IsInView(graviton.AABB) bool {
+	return c.inView
+}
+func (c *testMeshLodCamera) ViewChanged() bool { return true }
+
+func testMeshLodChain() (*Mesh, *Mesh, *Mesh) {
+	verts := []Vertex{
+		{Position: matrix.Vec3{-1, -1, -1}},
+		{Position: matrix.Vec3{1, 1, 1}},
+	}
+	base := NewMesh("lod_base", verts, []uint32{0, 1})
+	lod1 := NewMesh("lod_1", verts, []uint32{0, 1})
+	lod2 := NewMesh("lod_2", verts, []uint32{0, 1})
+	base.lods = MeshLod{Levels: []MeshLODInstance{
+		{Mesh: base, Ratio: 1},
+		{Mesh: lod1, Ratio: 0.5},
+		{Mesh: lod2, Ratio: 0.25},
+	}}
+	return base, lod1, lod2
+}
+
+func translatedTestDrawInstance(position matrix.Vec3) *testDrawInstance {
+	instance := newTestDrawInstance()
+	model := matrix.Mat4Identity()
+	model.Translate(position)
+	instance.SetModel(model)
+	return instance
+}
+
 func TestReflectDuplicateDrawInstance(t *testing.T) {
 	if ReflectDuplicateDrawInstance(nil) != nil {
 		t.Fatalf("nil duplicate should be nil")
@@ -222,6 +259,109 @@ func TestDrawInstanceGroupViewStatesAreIndependent(t *testing.T) {
 	rightState.rawData.byteMapping[0] = unsafe.Pointer(&rightByte)
 	if leftState.rawData.byteMapping[0] == rightState.rawData.byteMapping[0] {
 		t.Fatalf("raw instance buffer mappings should be per view")
+	}
+}
+
+func TestSelectMeshLodUsesScaleAwareDistance(t *testing.T) {
+	base, lod1, lod2 := testMeshLodChain()
+	bounds := base.Bounds()
+	tests := []struct {
+		name   string
+		camera any
+		bounds graviton.AABB
+		want   *Mesh
+	}{
+		{name: "missing camera", bounds: bounds, want: base},
+		{name: "near", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 9.9}}, bounds: bounds, want: base},
+		{name: "first transition", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 10}}, bounds: bounds, want: lod1},
+		{name: "second transition", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 20}}, bounds: bounds, want: lod2},
+		{name: "clamped far", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 100}}, bounds: bounds, want: lod2},
+		{name: "scaled object remains near", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 15}}, bounds: graviton.NewAABB(matrix.Vec3Zero(), matrix.Vec3{2, 2, 2}), want: base},
+		{name: "orthographic uses source", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 100}, orthographic: true}, bounds: bounds, want: base},
+		{name: "zero size uses source", camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, 100}}, bounds: graviton.NewAABB(matrix.Vec3Zero(), matrix.Vec3Zero()), want: base},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := selectMeshLod(base, test.bounds, test.camera); got != test.want {
+				t.Fatalf("selected mesh = %q, want %q", got.Key(), test.want.Key())
+			}
+		})
+	}
+}
+
+func TestDrawInstanceGroupCaptureBatchesInstancesByLod(t *testing.T) {
+	base, lod1, lod2 := testMeshLodChain()
+	group := NewDrawInstanceGroup(base, newTestDrawInstance().Size(), nil)
+	group.MaterialInstance = &Material{}
+	group.AddInstance(translatedTestDrawInstance(matrix.Vec3{0, 0, -5}))
+	group.AddInstance(translatedTestDrawInstance(matrix.Vec3{0, 0, -15}))
+	group.AddInstance(translatedTestDrawInstance(matrix.Vec3{0, 0, -25}))
+	view := newRenderView(RenderViewOptions{
+		Name:   "lod",
+		Camera: &testMeshLodCamera{inView: true},
+	}, 0)
+
+	group.CaptureDataForView(LightsForRender{}, newRenderViewFrame(view))
+	state := group.viewStateForView(view)
+	batches := state.frameData.lodBatches
+	if state.frameData.visibleCount != 3 || len(batches) != 3 {
+		t.Fatalf("visible/batches = %d/%d, want 3/3", state.frameData.visibleCount, len(batches))
+	}
+	wantMeshes := []*Mesh{base, lod1, lod2}
+	for i := range batches {
+		if batches[i].Mesh != wantMeshes[i] || batches[i].FirstInstance != uint32(i) || batches[i].InstanceCount != 1 {
+			t.Fatalf("batch %d = %+v, want mesh %q first %d count 1", i, batches[i], wantMeshes[i].Key(), i)
+		}
+	}
+
+	group.UpdateDataForView(&GPUDevice{}, 0, LightsForRender{}, view)
+	if len(state.lodBatches) != 3 || state.lodBatches[2].Mesh != lod2 {
+		t.Fatalf("captured LOD batches were not applied to render state: %+v", state.lodBatches)
+	}
+}
+
+func TestDrawInstanceGroupMergesLodLevelsThatReuseMesh(t *testing.T) {
+	base, lod1, _ := testMeshLodChain()
+	base.lods.Levels[2].Mesh = lod1
+	group := NewDrawInstanceGroup(base, newTestDrawInstance().Size(), nil)
+	group.MaterialInstance = &Material{}
+	group.AddInstance(translatedTestDrawInstance(matrix.Vec3{0, 0, -15}))
+	group.AddInstance(translatedTestDrawInstance(matrix.Vec3{0, 0, -25}))
+	view := newRenderView(RenderViewOptions{
+		Name:   "lod",
+		Camera: &testMeshLodCamera{inView: true},
+	}, 0)
+
+	group.CaptureDataForView(LightsForRender{}, newRenderViewFrame(view))
+	batches := group.viewStateForView(view).frameData.lodBatches
+	if len(batches) != 1 || batches[0].Mesh != lod1 || batches[0].FirstInstance != 0 || batches[0].InstanceCount != 2 {
+		t.Fatalf("reused LOD mesh was not merged into one batch: %+v", batches)
+	}
+}
+
+func TestDrawInstanceGroupSelectsLodPerRenderView(t *testing.T) {
+	base, lod1, _ := testMeshLodChain()
+	group := NewDrawInstanceGroup(base, newTestDrawInstance().Size(), nil)
+	group.MaterialInstance = &Material{}
+	group.AddInstance(translatedTestDrawInstance(matrix.Vec3{0, 0, -15}))
+	far := newRenderView(RenderViewOptions{
+		Name:   "far",
+		Camera: &testMeshLodCamera{inView: true},
+	}, 0)
+	near := newRenderView(RenderViewOptions{
+		Name:   "near",
+		Camera: &testMeshLodCamera{position: matrix.Vec3{0, 0, -10}, inView: true},
+	}, 1)
+
+	group.CaptureDataForView(LightsForRender{}, newRenderViewFrame(far))
+	group.CaptureDataForView(LightsForRender{}, newRenderViewFrame(near))
+	farBatches := group.viewStateForView(far).frameData.lodBatches
+	nearBatches := group.viewStateForView(near).frameData.lodBatches
+	if len(farBatches) != 1 || farBatches[0].Mesh != lod1 {
+		t.Fatalf("far view selected %+v, want LOD 1", farBatches)
+	}
+	if len(nearBatches) != 1 || nearBatches[0].Mesh != base {
+		t.Fatalf("near view selected %+v, want source mesh", nearBatches)
 	}
 }
 

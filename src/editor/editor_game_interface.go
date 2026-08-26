@@ -82,4 +82,11 @@ func (EditorGame) Launch(host *engine.Host) {
 	})
 	console.For(host).OnOpen.Add(func() { ed.BlurInterface() })
 	console.For(host).OnClose.Add(func() { ed.FocusInterface() })
+	if build.Debug {
+		console.For(host).AddCommand("showlods",
+			"Spawns all of the selected mesh's LOD meshes beside it",
+			func(h *engine.Host, arg string) string {
+				return ed.StageWorkspace().ShowLODs()
+			})
+	}
 }

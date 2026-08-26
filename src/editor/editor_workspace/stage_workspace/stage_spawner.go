@@ -7,6 +7,7 @@
 package stage_workspace
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 	"weak"
@@ -18,6 +19,7 @@ import (
 	"kaijuengine.com/editor/editor_stage_manager/data_binding_renderer"
 	"kaijuengine.com/editor/project/project_database/content_database"
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/engine_entity_data/content_id"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_camera"
 	"kaijuengine.com/engine_entity_data/engine_entity_data_light"
@@ -128,6 +130,85 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 	man.ClearSelection()
 	man.SelectEntity(e)
 	return e, true
+}
+
+// ShowLODs spawns the generated LOD meshes of the currently selected entity
+// beside it so the geometry can be inspected (e.g. with RenderDoc). It is
+// exposed as the editor console command "showlods". LOD level 0 is the source
+// mesh itself and levels 1..4 are the generated LOD meshes cached under
+// "<key>_lod_<n>" (see mesh_lod.go generateMeshLOD).
+func (w *StageWorkspace) ShowLODs() string {
+	defer tracing.NewRegion("StageWorkspace.ShowLODs").End()
+	man := w.stageView.Manager()
+	if !man.HasSelection() {
+		return "no entity selected"
+	}
+	e := man.LastSelected()
+	if e == nil {
+		return "no entity selected"
+	}
+	mesh := e.StageData.Mesh
+	if mesh == nil {
+		return "selected entity has no mesh"
+	}
+	const spacing = 2.5
+	const levelCount = 4
+	base := e.Transform.Position()
+	spawned := 0
+	for i := 1; i <= levelCount; i++ {
+		key := fmt.Sprintf("%s_lod_%d", mesh.Key(), i)
+		lod, ok := w.Host.MeshCache().FindMesh(key)
+		if !ok {
+			slog.Warn("failed to find generated LOD mesh", "key", key)
+			continue
+		}
+		pos := base.Add(matrix.NewVec3(float32(i)*spacing, 0, 0))
+		w.spawnLODMeshEntity(lod, fmt.Sprintf("%s LOD %d", e.Name(), i), pos, e)
+		spawned++
+	}
+	return fmt.Sprintf("spawned %d LOD mesh(es) for %s", spawned, e.Name())
+}
+
+func (w *StageWorkspace) spawnLODMeshEntity(mesh *rendering.Mesh, name string, position matrix.Vec3, source *editor_stage_manager.StageEntity) {
+	// Reuse the source mesh's material (including its textures) so the LOD
+	// meshes render with the same setup as the selected entity.
+	mat, ok := w.materialForEntity(source)
+	if !ok {
+		slog.Error("failed to build the entity material for LOD spawn")
+		return
+	}
+	man := w.stageView.Manager()
+	e := man.AddEntity(name, position)
+	e.StageData.Mesh = mesh
+	e.StageData.Description.Mesh = mesh.Key()
+	e.StageData.Description.Material = source.StageData.Description.Material
+	e.StageData.Description.Textures = cloneTextureIDs(source.StageData.Description.Textures)
+	e.StageData.ShaderData = shader_data_registry.Create(mat.Shader.DrawInstanceDataName())
+	// Use the mesh bounds as a pickable BVH so the entity can be selected in
+	// the editor.
+	b := mesh.Bounds()
+	box := graviton.AABB{}
+	box.Center = b.Center
+	box.Extent = b.Extent
+	e.StageData.Bvh = graviton.NewBVH([]graviton.HitObject{box}, &e.Transform, e)
+	man.AddBVH(e)
+	man.RefitBVH(e)
+	w.Host.RunOnMainThread(func() {
+		w.Host.RunOnRenderThread(func(device *rendering.GPUDevice) {
+			for _, t := range mat.Textures {
+				t.DelayedCreate(device)
+			}
+		})
+		draw := rendering.Drawing{
+			Material:   mat,
+			Mesh:       e.StageData.Mesh,
+			ShaderData: e.StageData.ShaderData,
+			Transform:  &e.Transform,
+			ViewCuller: &w.Host.Cameras.Primary,
+		}
+		w.Host.Drawings.AddDrawing(draw)
+		man.AddPickingDrawing(e)
+	})
 }
 
 func primitiveName(primitive rendering.PrimitiveMesh) string {
