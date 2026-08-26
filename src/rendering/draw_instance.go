@@ -295,6 +295,8 @@ type DrawInstanceViewState struct {
 	InstanceDriverData
 	rawData           InstanceCopyData
 	boundInstanceData []InstanceCopyData
+	lodBatches        []drawInstanceLodBatch
+	lodBuckets        []drawInstanceLodBucket
 	visibleCount      int
 	frameData         DrawInstanceFrameData
 	lastInstanceCount uintptr
@@ -303,9 +305,26 @@ type DrawInstanceViewState struct {
 type DrawInstanceFrameData struct {
 	raw          []byte
 	bound        [][]byte
+	lodBatches   []drawInstanceLodBatch
 	visibleCount int
 	ready        bool
 }
+
+type drawInstanceLodBatch struct {
+	Mesh          *Mesh
+	FirstInstance uint32
+	InstanceCount uint32
+}
+
+type drawInstanceLodBucket struct {
+	mesh      *Mesh
+	instances []DrawInstance
+}
+
+// meshLodFirstTransitionRadii is the camera distance, measured in the
+// instance's largest world-space AABB radius, at which LOD 1 becomes active.
+// Each subsequent LOD transition doubles this distance.
+const meshLodFirstTransitionRadii matrix.Float = 10
 
 func NewDrawInstanceViewState(dataSize int) DrawInstanceViewState {
 	return DrawInstanceViewState{
@@ -457,6 +476,96 @@ func (d *DrawInstanceGroup) updateBoundData(state *DrawInstanceViewState, index,
 	}
 }
 
+func (s *DrawInstanceViewState) resetLodBuckets() {
+	for i := range s.lodBuckets {
+		clear(s.lodBuckets[i].instances)
+		s.lodBuckets[i].instances = s.lodBuckets[i].instances[:0]
+	}
+}
+
+func (s *DrawInstanceViewState) addLodInstance(mesh *Mesh, instance DrawInstance) {
+	for i := range s.lodBuckets {
+		if s.lodBuckets[i].mesh == mesh {
+			s.lodBuckets[i].instances = append(s.lodBuckets[i].instances, instance)
+			return
+		}
+	}
+	s.lodBuckets = append(s.lodBuckets, drawInstanceLodBucket{
+		mesh:      mesh,
+		instances: []DrawInstance{instance},
+	})
+}
+
+type meshLodCamera interface {
+	Position() matrix.Vec3
+}
+
+type orthographicMeshLodCamera interface {
+	IsOrthographic() bool
+}
+
+func selectMeshLod(mesh *Mesh, bounds graviton.AABB, camera any) *Mesh {
+	if mesh == nil || !mesh.lods.IsValid() || len(mesh.lods.Levels) < 2 {
+		return mesh
+	}
+	positioner, ok := camera.(meshLodCamera)
+	if !ok {
+		return mesh
+	}
+	if orthographic, ok := camera.(orthographicMeshLodCamera); ok && orthographic.IsOrthographic() {
+		return mesh
+	}
+	radius := max(bounds.Extent.X(), bounds.Extent.Y(), bounds.Extent.Z())
+	if radius <= matrix.Tiny {
+		return mesh
+	}
+	normalizedDistance := positioner.Position().Distance(bounds.Center) / radius
+	level := 0
+	transition := meshLodFirstTransitionRadii
+	for next := 1; next < len(mesh.lods.Levels); next++ {
+		if normalizedDistance < transition {
+			break
+		}
+		level = next
+		transition *= 2
+	}
+	selected := mesh.lods.Levels[level].Mesh
+	if selected == nil {
+		return mesh
+	}
+	return selected
+}
+
+func (d *DrawInstanceGroup) collectVisibleInstancesForView(state *DrawInstanceViewState,
+	view *RenderView, viewCuller ViewCuller, camera any, lights LightsForRender) {
+	state.resetLodBuckets()
+	count := len(d.Instances)
+	for i := 0; i < count; i++ {
+		instance := d.Instances[i]
+		instanceBase := instance.Base()
+		if instanceBase.IsDestroyed() {
+			d.Instances[i] = d.Instances[count-1]
+			i--
+			count--
+			continue
+		}
+		if !instanceBase.UpdateModelForView(view, viewCuller, d.Mesh.Bounds()) {
+			continue
+		}
+		instance.SelectLights(lights)
+		mesh := d.Mesh
+		if d.EffectiveLayer() != RenderLayerUI {
+			mesh = selectMeshLod(d.Mesh, instanceBase.renderBounds(), camera)
+		}
+		state.addLodInstance(mesh, instance)
+	}
+	if count < len(d.Instances) {
+		d.rawData.length = count * (d.instanceSize + d.rawData.padding)
+		d.Instances = d.Instances[:count]
+		d.syncViewStateTemplates()
+	}
+}
+
 func (d *DrawInstanceGroup) UpdateData(device *GPUDevice, frame int, lights LightsForRender) {
 	d.UpdateDataForView(device, frame, lights, nil)
 }
@@ -470,28 +579,33 @@ func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, ligh
 	}
 	base := state.rawData.byteMapping[frame]
 	offset := uintptr(0)
-	count := len(d.Instances)
 	state.visibleCount = 0
+	state.lodBatches = state.lodBatches[:0]
 	instanceIndex := 0
 	viewCuller := renderViewCuller(view, d.viewCuller)
 	if d.EffectiveLayer() == RenderLayerUI {
 		viewCuller = d.viewCuller
 	}
-	for i := 0; i < count; i++ {
-		instance := d.Instances[i]
-		// This gives me a tiny fraction of extra perf for some reason, don't judge me
-		instanceBase := instance.Base()
-		if instanceBase.IsDestroyed() {
-			d.Instances[i] = d.Instances[count-1]
-			i--
-			count--
+	var camera any
+	if view != nil {
+		camera = view.Camera()
+	}
+	d.collectVisibleInstancesForView(state, view, viewCuller, camera, lights)
+	for i := range state.lodBuckets {
+		bucket := &state.lodBuckets[i]
+		if len(bucket.instances) == 0 {
 			continue
 		}
-		if instanceBase.UpdateModelForView(view, viewCuller, d.Mesh.Bounds()) {
-			instance.SelectLights(lights)
+		batch := drawInstanceLodBatch{
+			Mesh:          bucket.mesh,
+			FirstInstance: uint32(instanceIndex),
+		}
+		for j := range bucket.instances {
+			instance := bucket.instances[j]
+			instanceBase := instance.Base()
 			if state.generatedSets && len(state.boundInstanceData) > 0 {
-				for j := range state.boundInstanceData {
-					d.updateBoundData(state, instanceIndex, j, instance, frame)
+				for binding := range state.boundInstanceData {
+					d.updateBoundData(state, instanceIndex, binding, instance, frame)
 				}
 			}
 			if drawDiag {
@@ -528,12 +642,11 @@ func (d *DrawInstanceGroup) UpdateDataForView(device *GPUDevice, frame int, ligh
 			offset += uintptr(d.instanceSize + state.rawData.padding)
 			state.visibleCount++
 			instanceIndex++
+			batch.InstanceCount++
 		}
-	}
-	if count < len(d.Instances) {
-		d.rawData.length = count * (d.instanceSize + d.rawData.padding)
-		d.Instances = d.Instances[:count]
-		d.syncViewStateTemplates()
+		if batch.InstanceCount > 0 {
+			state.lodBatches = append(state.lodBatches, batch)
+		}
 	}
 	d.visibleCount = state.visibleCount
 	d.bindInstanceDriverData(state)
@@ -553,6 +666,7 @@ func (d *DrawInstanceGroup) CaptureDataForView(lights LightsForRender, view Rend
 		state.frameData.raw = make([]byte, 0, count*stride)
 	}
 	state.frameData.raw = state.frameData.raw[:0]
+	state.frameData.lodBatches = state.frameData.lodBatches[:0]
 	if len(state.frameData.bound) < len(state.boundInstanceData) {
 		state.frameData.bound = make([][]byte, len(state.boundInstanceData))
 	}
@@ -568,34 +682,31 @@ func (d *DrawInstanceGroup) CaptureDataForView(lights LightsForRender, view Rend
 	if d.EffectiveLayer() == RenderLayerUI {
 		viewCuller = d.viewCuller
 	}
-	for i := 0; i < count; i++ {
-		instance := d.Instances[i]
-		instanceBase := instance.Base()
-		if instanceBase.IsDestroyed() {
-			d.Instances[i] = d.Instances[count-1]
-			i--
-			count--
+	d.collectVisibleInstancesForView(state, view.Key(), viewCuller, view.Camera(), lights)
+	for i := range state.lodBuckets {
+		bucket := &state.lodBuckets[i]
+		if len(bucket.instances) == 0 {
 			continue
 		}
-		if !instanceBase.UpdateModelForView(view.Key(), viewCuller, d.Mesh.Bounds()) {
-			continue
+		batch := drawInstanceLodBatch{
+			Mesh:          bucket.mesh,
+			FirstInstance: uint32(state.visibleCount),
+			InstanceCount: uint32(len(bucket.instances)),
 		}
-		instance.SelectLights(lights)
-		if len(state.boundInstanceData) > 0 {
-			for binding := range state.boundInstanceData {
-				d.captureBoundData(state, binding, instance)
+		for j := range bucket.instances {
+			instance := bucket.instances[j]
+			if len(state.boundInstanceData) > 0 {
+				for binding := range state.boundInstanceData {
+					d.captureBoundData(state, binding, instance)
+				}
 			}
+			start := len(state.frameData.raw)
+			state.frameData.raw = append(state.frameData.raw, make([]byte, stride)...)
+			copyFromPointer(state.frameData.raw[start:start+d.instanceSize],
+				instance.Base().DataPointer(), d.instanceSize)
+			state.visibleCount++
 		}
-		start := len(state.frameData.raw)
-		state.frameData.raw = append(state.frameData.raw, make([]byte, stride)...)
-		copyFromPointer(state.frameData.raw[start:start+d.instanceSize],
-			instanceBase.DataPointer(), d.instanceSize)
-		state.visibleCount++
-	}
-	if count < len(d.Instances) {
-		d.rawData.length = count * (d.instanceSize + d.rawData.padding)
-		d.Instances = d.Instances[:count]
-		d.syncViewStateTemplates()
+		state.frameData.lodBatches = append(state.frameData.lodBatches, batch)
 	}
 	d.visibleCount = state.visibleCount
 	state.frameData.visibleCount = state.visibleCount
@@ -668,6 +779,7 @@ func (d *DrawInstanceGroup) applyCapturedDataForView(device *GPUDevice, frame in
 		}
 	}
 	state.visibleCount = state.frameData.visibleCount
+	state.lodBatches = append(state.lodBatches[:0], state.frameData.lodBatches...)
 	d.visibleCount = state.visibleCount
 	d.bindInstanceDriverData(state)
 	if len(d.Instances) == 0 {
