@@ -72,7 +72,7 @@ func (g *GPUDevice) TextureRead(texture *Texture) ([]byte, error) {
 	if !g.FlushForReadback() {
 		return []byte{}, errors.New("failed to flush pending GPU commands before texture readback")
 	}
-	return g.textureReadImpl(&texture.RenderId)
+	return g.textureReadImpl(&texture.TextureId)
 }
 
 func (g *GPUDevice) TextureReadRegion(texture *Texture, rect matrix.Vec4i) ([]byte, error) {
@@ -83,7 +83,7 @@ func (g *GPUDevice) TextureReadRegion(texture *Texture, rect matrix.Vec4i) ([]by
 	if !g.FlushForReadback() {
 		return []byte{}, errors.New("failed to flush pending GPU commands before texture region readback")
 	}
-	return g.textureReadRegionImpl(&texture.RenderId, rect)
+	return g.textureReadRegionImpl(&texture.TextureId, rect)
 }
 
 func (g *GPUDevice) TextureReadPixel(texture *Texture, x, y int) matrix.Color {

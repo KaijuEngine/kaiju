@@ -119,7 +119,7 @@ func testReadyTextureID() TextureId {
 
 func TestTextureCacheForceRemoveQueuesUploadedTextureForFree(t *testing.T) {
 	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
-	tex := &Texture{Key: "tex", Filter: textures.TextureFilterLinear, RenderId: testReadyTextureID()}
+	tex := &Texture{Key: "tex", Filter: textures.TextureFilterLinear, TextureId: testReadyTextureID()}
 	cache.mutex.Lock()
 	cache.textures[textures.TextureFilterLinear][tex.Key] = tex
 	cache.mutex.Unlock()

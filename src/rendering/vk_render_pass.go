@@ -142,7 +142,7 @@ func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture {
 		return fallback
 	}
 	for i := range r.textures {
-		if !isDepthFormat(r.textures[i].RenderId.Format.ToVulkan()) {
+		if !isDepthFormat(r.textures[i].Format.ToVulkan()) {
 			slog.Error("failed to find an output color attachment for the render pass, using fallback", "renderPass", r.construction.Name)
 			return &r.textures[i]
 		}
@@ -201,7 +201,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 		device.createDescriptorSet(sp.shader.RenderId.descriptorSetLayout, 0))
 	var err error
 	for i := range c.SampledImages {
-		t := &r.textures[c.SampledImages[i]].RenderId
+		t := &r.textures[c.SampledImages[i]].TextureId
 		if !t.Sampler.IsValid() {
 			t.Sampler, err = device.CreateTextureSampler(t.MipLevels, gpu_types.FilterLinear)
 			if err != nil {
@@ -464,7 +464,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 			}
 			p.textures[i].Width = int(w)
 			p.textures[i].Height = int(h)
-			err := device.CreateImage(&p.textures[i].RenderId, img.MemoryProperty,
+			err := device.CreateImage(&p.textures[i].TextureId, img.MemoryProperty,
 				GPUImageCreateRequest{
 					ImageType:   gpu_types.ImageType2d,
 					Extent:      matrix.Vec3i{int32(w), int32(h), 1},
@@ -479,25 +479,25 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				slog.Error("failed to create image for render pass attachment", "attachmentIndex", i)
 				return err
 			}
-			err = device.LogicalDevice.CreateImageView(&p.textures[i].RenderId, img.Aspect, gpu_types.ImageViewType2d)
+			err = device.LogicalDevice.CreateImageView(&p.textures[i].TextureId, img.Aspect, gpu_types.ImageViewType2d)
 			if err != nil {
 				const e = "failed to create image view for render pass attachment"
 				for j := range i + 1 {
-					device.LogicalDevice.FreeTexture(&p.textures[j].RenderId)
+					device.LogicalDevice.FreeTexture(&p.textures[j].TextureId)
 				}
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
 			}
-			p.textures[i].RenderId.Sampler, err = device.CreateTextureSampler(img.MipLevels, img.Filter)
+			p.textures[i].Sampler, err = device.CreateTextureSampler(img.MipLevels, img.Filter)
 			if err != nil {
 				for j := range i + 1 {
-					device.LogicalDevice.FreeTexture(&p.textures[j].RenderId)
+					device.LogicalDevice.FreeTexture(&p.textures[j].TextureId)
 				}
 				slog.Error("failed to create image sampler for render pass attachment", "attachmentIndex", i)
 				return err
 			}
 			if a.InitialLayout != 0 {
-				device.TransitionImageLayout(&p.textures[i].RenderId,
+				device.TransitionImageLayout(&p.textures[i].TextureId,
 					a.InitialLayout, img.Aspect, img.Access, nil)
 			}
 		}
@@ -614,7 +614,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				found := false
 				for _, v := range device.LogicalDevice.renderPassCache {
 					if t, ok := v.findTextureByName(a.Image.ExistingImage); ok {
-						imageViews = append(imageViews, t.RenderId.View)
+						imageViews = append(imageViews, t.View)
 						found = true
 						break
 					}
@@ -624,7 +624,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				}
 			}
 		} else {
-			imageViews = append(imageViews, p.textures[i].RenderId.View)
+			imageViews = append(imageViews, p.textures[i].View)
 		}
 	}
 	if len(imageViews) == len(attachments) {
@@ -653,8 +653,8 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 	device.LogicalDevice.dbg.remove(p.Buffer.Handle)
 	p.Buffer.Reset()
 	for i := range p.textures {
-		device.LogicalDevice.FreeTexture(&p.textures[i].RenderId)
-		p.textures[i].RenderId = TextureId{}
+		device.LogicalDevice.FreeTexture(&p.textures[i].TextureId)
+		p.textures[i].TextureId = TextureId{}
 	}
 	for i := range p.subpasses {
 		sp := &p.subpasses[i]

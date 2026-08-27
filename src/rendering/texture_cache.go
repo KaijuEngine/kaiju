@@ -151,7 +151,7 @@ func (t *TextureCache) ReloadTexture(textureKey string, filter textures.Filter) 
 		t.mutex.Unlock()
 		return nil
 	}
-	renderId := texture.RenderId
+	renderId := texture.TextureId
 	t.mutex.Unlock()
 
 	if err := texture.Reload(t.assetDatabase); err != nil {
@@ -255,8 +255,8 @@ func (t *TextureCache) ForceRemoveTexture(key string, filter textures.Filter) {
 	if !ok {
 		return
 	}
-	if texture.RenderId.IsValid() {
-		t.pendingFree = append(t.pendingFree, texture.RenderId)
+	if texture.TextureId.IsValid() {
+		t.pendingFree = append(t.pendingFree, texture.TextureId)
 	}
 	t.removePendingUploadLocked(texture)
 	delete(t.textures[filter], key)
@@ -296,7 +296,7 @@ func (t *TextureCache) Destroy() {
 	t.pendingTextures = klib.WipeSlice(t.pendingTextures)
 	for i := range t.textures {
 		for _, tex := range t.textures[i] {
-			t.device.LogicalDevice.FreeTexture(&tex.RenderId)
+			t.device.LogicalDevice.FreeTexture(&tex.TextureId)
 		}
 		t.textures[i] = make(map[string]*Texture)
 	}

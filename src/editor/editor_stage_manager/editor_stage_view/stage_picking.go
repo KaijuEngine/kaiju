@@ -74,7 +74,7 @@ func (p *StagePicking) Update() {
 		p.fallback(req)
 		return
 	}
-	region, ok := p.requestRegion(req, tex.RenderId.Width, tex.RenderId.Height)
+	region, ok := p.requestRegion(req, tex.Width, tex.Height)
 	if !ok {
 		p.fallback(req)
 		return
@@ -273,7 +273,7 @@ func (p *StagePicking) SamplePoint(point matrix.Vec2) (uint32, bool) {
 	if err != nil {
 		return 0, false
 	}
-	region, ok := pickingPointReadRegion(point, viewportSize, tex.RenderId.Width, tex.RenderId.Height)
+	region, ok := pickingPointReadRegion(point, viewportSize, tex.Width, tex.Height)
 	if !ok {
 		return 0, false
 	}
@@ -303,7 +303,7 @@ func (p *StagePicking) pickingTexture() (*rendering.Texture, error) {
 		return nil, errors.New("editor picking material has no render pass")
 	}
 	tex := pass.Texture(0)
-	if tex == nil || !tex.RenderId.IsValid() {
+	if tex == nil || !tex.IsValid() {
 		return nil, errors.New("editor picking texture is not ready")
 	}
 	return tex, nil

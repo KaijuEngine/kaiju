@@ -36,14 +36,11 @@ const (
 )
 
 type Texture struct {
+	TextureId
 	Key               string
 	TexturePixelCache []byte
-	RenderId          TextureId
 	Channels          int
 	Filter            int
-	MipLevels         int
-	Width             int
-	Height            int
 	CacheInvalid      bool
 	pendingDataMutex  sync.Mutex
 	pendingData       *textures.TextureData
@@ -116,7 +113,7 @@ func TexturePixelsFromAsset(assetDb assets.Database, key string) (textures.Textu
 
 func (t *Texture) Reload(assetDb assets.Database) error {
 	defer tracing.NewRegion("Texture.Reload").End()
-	t.RenderId = TextureId{}
+	t.TextureId = TextureId{}
 	if assetDb.Exists(t.Key) {
 		if imgBuff, err := assetDb.Read(t.Key); err != nil {
 			return err
@@ -238,7 +235,7 @@ func (t *Texture) create(imgBuff []byte) {
 }
 
 func (t *Texture) delayedCreate(device *GPUDevice, batch *TextureUploadBatch) {
-	if t.RenderId.IsValid() {
+	if t.TextureId.IsValid() {
 		return
 	}
 	data := t.takePendingData()

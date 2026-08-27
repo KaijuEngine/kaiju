@@ -30,7 +30,7 @@ func TestDescriptorTextureOrFallbackUsesFallbackForInvalidTexture(t *testing.T) 
 	t.Parallel()
 
 	invalid := testDescriptorTexture()
-	invalid.RenderId.View.Reset()
+	invalid.View.Reset()
 	fallback := testDescriptorTexture()
 
 	if got := descriptorTextureOrFallback(invalid, fallback); got != fallback {
@@ -42,7 +42,7 @@ func TestDescriptorTextureOrFallbackRejectsInvalidFallback(t *testing.T) {
 	t.Parallel()
 
 	invalid := testDescriptorTexture()
-	invalid.RenderId.Sampler.Reset()
+	invalid.Sampler.Reset()
 
 	if got := descriptorTextureOrFallback(invalid, &Texture{}); got != nil {
 		t.Fatalf("descriptor texture = %p, want nil", got)
@@ -51,7 +51,7 @@ func TestDescriptorTextureOrFallbackRejectsInvalidFallback(t *testing.T) {
 
 func testDescriptorTexture() *Texture {
 	return &Texture{
-		RenderId: TextureId{
+		TextureId: TextureId{
 			Image:   gpu_types.Image{gpu_types.GpuHandle{Handle: unsafe.Pointer(&descriptorTextureHandles[0])}},
 			View:    gpu_types.ImageView{gpu_types.GpuHandle{Handle: unsafe.Pointer(&descriptorTextureHandles[1])}},
 			Sampler: gpu_types.Sampler{gpu_types.GpuHandle{Handle: unsafe.Pointer(&descriptorTextureHandles[2])}},

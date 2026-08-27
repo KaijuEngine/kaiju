@@ -107,7 +107,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 				slog.Error("not enough descriptor writes for this action")
 				break
 			}
-			t := &renderPass.textures[s.sampledImages[j]].RenderId
+			t := &renderPass.textures[s.sampledImages[j]].TextureId
 			imageInfos[j] = imageInfoVk(vk.ImageView(t.View.Handle), vk.Sampler(t.Sampler.Handle))
 			descriptorWrites[j] = prepareSetWriteImage(vk.DescriptorSet(set.Handle), imageInfos[j:j+1], uint32(j), true)
 		}
@@ -199,15 +199,15 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 	}
 	defer cmd.End()
 	g.Painter.forceQueueCommand(*cmd, false)
-	g.TransitionImageLayout(&targetTexture.RenderId,
+	g.TransitionImageLayout(&targetTexture.TextureId,
 		gpu_types.ImageLayoutTransferDstOptimal, gpu_types.ImageAspectColorBit,
 		gpu_types.AccessTransferWriteBit, cmd)
 	region := vk.ImageBlit{}
 	region.SrcOffsets[1].X = int32(img.Width)
 	region.SrcOffsets[1].Y = int32(img.Height)
 	region.SrcOffsets[1].Z = 1
-	region.DstOffsets[1].X = int32(targetTexture.RenderId.Width)
-	region.DstOffsets[1].Y = int32(targetTexture.RenderId.Height)
+	region.DstOffsets[1].X = int32(targetTexture.Width)
+	region.DstOffsets[1].Y = int32(targetTexture.Height)
 	region.DstOffsets[1].Z = 1
 	region.DstSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	region.DstSubresource.LayerCount = 1
@@ -216,11 +216,11 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 	g.TransitionImageLayout(img, gpu_types.ImageLayoutTransferSrcOptimal,
 		gpu_types.ImageAspectColorBit, gpu_types.AccessTransferReadBit, cmd)
 	vk.CmdBlitImage(cmd.buffer, vk.Image(img.Image.Handle), img.Layout.ToVulkan(),
-		vk.Image(targetTexture.RenderId.Image.Handle), vulkan_const.ImageLayoutTransferDstOptimal,
+		vk.Image(targetTexture.Image.Handle), vulkan_const.ImageLayoutTransferDstOptimal,
 		1, &region, vulkan_const.FilterLinear)
 	g.TransitionImageLayout(img, gpu_types.ImageLayoutColorAttachmentOptimal,
 		gpu_types.ImageAspectColorBit, gpu_types.AccessColorAttachmentReadBit|gpu_types.AccessColorAttachmentWriteBit, cmd)
-	g.TransitionImageLayout(&targetTexture.RenderId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+	g.TransitionImageLayout(&targetTexture.TextureId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
 		gpu_types.ImageAspectColorBit, gpu_types.AccessShaderReadBit, cmd)
 	g.cleanupCombined(cmd, combined)
 }
@@ -293,16 +293,16 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 					validTextures = false
 					break
 				}
-				state.imageInfos[j] = imageInfo(vk.ImageView(t.RenderId.View.Handle),
-					vk.Sampler(t.RenderId.Sampler.Handle))
+				state.imageInfos[j] = imageInfo(vk.ImageView(t.View.Handle),
+					vk.Sampler(t.Sampler.Handle))
 			}
 			if !validTextures {
 				continue
 			}
 			if group.MaterialInstance.ReceivesShadows {
 				for j := range MaxLocalLights {
-					sm := &g.Painter.fallbackShadowMap.RenderId
-					smCube := &g.Painter.fallbackCubeShadowMap.RenderId
+				sm := &g.Painter.fallbackShadowMap.TextureId
+				smCube := &g.Painter.fallbackCubeShadowMap.TextureId
 					if len(shadows) > j {
 						if shadows[j].IsValid() {
 							sm = &shadows[j]
@@ -420,9 +420,9 @@ func descriptorTextureOrFallback(texture, fallback *Texture) *Texture {
 
 func textureDescriptorReady(texture *Texture) bool {
 	return texture != nil &&
-		texture.RenderId.IsValid() &&
-		texture.RenderId.View.IsValid() &&
-		texture.RenderId.Sampler.IsValid()
+		texture.TextureId.IsValid() &&
+		texture.View.IsValid() &&
+		texture.Sampler.IsValid()
 }
 
 func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayout, pushConstantData unsafe.Pointer) {
@@ -600,12 +600,12 @@ func (g *GPUDevice) combineTargets(entry *combinedTargetDrawEntry, view RenderVi
 	for i := range draws[0].instanceGroups {
 		mi := draws[0].instanceGroups[i].MaterialInstance
 		for j := range mi.Textures {
-			g.TransitionImageLayout(&mi.Textures[j].RenderId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+			g.TransitionImageLayout(&mi.Textures[j].TextureId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
 				gpu_types.ImageAspectColorBit, gpu_types.AccessTransferReadBit, cmd)
 		}
 	}
 	g.DrawView(combinePass, draws, LightsForRender{}, []TextureId{}, view, RenderLayerAll)
-	return &combinePass.textures[0].RenderId
+	return &combinePass.textures[0].TextureId
 }
 
 func (g *GPUDevice) cleanupCombined(cmd *CommandRecorder, entry *combinedTargetDrawEntry) {
@@ -617,8 +617,8 @@ func (g *GPUDevice) cleanupCombined(cmd *CommandRecorder, entry *combinedTargetD
 	for i := range groups {
 		mi := groups[i].MaterialInstance
 		for j := range mi.Textures {
-			if mi.Textures[j].RenderId.Access != 0 {
-				g.TransitionImageLayout(&mi.Textures[j].RenderId, gpu_types.ImageLayoutColorAttachmentOptimal,
+			if mi.Textures[j].Access != 0 {
+				g.TransitionImageLayout(&mi.Textures[j].TextureId, gpu_types.ImageLayoutColorAttachmentOptimal,
 					gpu_types.ImageAspectColorBit, gpu_types.AccessColorAttachmentReadBit|gpu_types.AccessColorAttachmentWriteBit, cmd)
 			}
 		}

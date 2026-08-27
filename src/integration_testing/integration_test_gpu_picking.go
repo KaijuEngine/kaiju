@@ -117,11 +117,11 @@ func createPickingCube(host *engine.Host, manager *editor_stage_manager.StageMan
 
 func readVisiblePickingIDs(host *engine.Host, material *rendering.Material) ([]uint32, uint32, error) {
 	tex := material.RenderPass().Texture(0)
-	if tex == nil || !tex.RenderId.IsValid() {
+	if tex == nil || !tex.IsValid() {
 		return nil, 0, fmt.Errorf("picking texture is not ready")
 	}
-	w := tex.RenderId.Width
-	h := tex.RenderId.Height
+	w := tex.Width
+	h := tex.Height
 	var allData []byte
 	var centerData []byte
 	var err error

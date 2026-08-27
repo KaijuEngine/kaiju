@@ -301,7 +301,7 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	textureKey := face.string() + ".png"
 	bin.texture, _ = cache.renderCaches.TextureCache().Texture(textureKey, textures.TextureFilterLinear)
 	if bin.texture != nil {
-		needsReload := bin.texture.RenderId.IsValid() && bin.texture.RenderId.MipLevels != 1
+		needsReload := bin.texture.IsValid() && bin.texture.MipLevels != 1
 		bin.texture.MipLevels = 1
 		if needsReload {
 			if err := cache.renderCaches.TextureCache().ReloadTexture(textureKey, textures.TextureFilterLinear); err != nil {

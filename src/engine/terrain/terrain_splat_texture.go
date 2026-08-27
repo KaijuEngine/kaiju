@@ -101,7 +101,7 @@ func (t *Terrain) ApplyTextureDirty(region DirtyRegion) {
 		}
 		t.writeSplatPixelsRegion(i, dirty, request.Pixels)
 		texture := t.SplatTextures[i].Texture
-		if t.host != nil && texture != nil && texture.RenderId.IsValid() {
+		if t.host != nil && texture != nil && texture.IsValid() {
 			t.host.RunOnRenderThread(func(device *rendering.GPUDevice) {
 				texture.WritePixels(device, []rendering.GPUImageWriteRequest{request})
 			})

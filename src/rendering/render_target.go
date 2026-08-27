@@ -152,7 +152,7 @@ func (t *RenderTarget) Texture(name string) (*Texture, error) {
 	if !ok {
 		return nil, fmt.Errorf("render target %q has no output texture %q", t.options.Name, name)
 	}
-	if tex == nil || !tex.RenderId.IsValid() {
+	if tex == nil || !tex.IsValid() {
 		return nil, fmt.Errorf("%w: %s.%s", ErrRenderTargetNotRealized, t.options.Name, name)
 	}
 	return tex, nil
@@ -168,7 +168,7 @@ func (t *RenderTarget) setTexture(name string, texture *Texture) error {
 		return fmt.Errorf("render target %q has no output texture %q", t.options.Name, name)
 	}
 	t.outputs[name] = texture
-	if texture != nil && texture.RenderId.IsValid() {
+	if texture != nil && texture.IsValid() {
 		t.resizeDirty = false
 	}
 	return nil
@@ -199,7 +199,7 @@ func (t *RenderTarget) ensureRealized(device *GPUDevice) error {
 	if !t.resizeDirty {
 		ready := true
 		for _, tex := range t.outputs {
-			if tex == nil || !tex.RenderId.IsValid() {
+			if tex == nil || !tex.IsValid() {
 				ready = false
 				break
 			}
@@ -217,7 +217,7 @@ func (t *RenderTarget) ensureRealized(device *GPUDevice) error {
 	if _, ok := t.outputs[RenderTargetOutputDepth]; ok {
 		depth, err := newRenderTargetDepthTexture(device, t.options, t.width, t.height)
 		if err != nil {
-			device.LogicalDevice.FreeTexture(&color.RenderId)
+			device.LogicalDevice.FreeTexture(&color.TextureId)
 			t.outputs[RenderTargetOutputColor] = nil
 			return err
 		}
@@ -230,11 +230,11 @@ func (t *RenderTarget) ensureRealized(device *GPUDevice) error {
 func (t *RenderTarget) releaseOutputsLocked(device *GPUDevice) {
 	for name, tex := range t.outputs {
 		if tex != nil {
-			if tex.RenderId.IsValid() {
+			if tex.IsValid() {
 				if device == nil {
 					continue
 				}
-				device.LogicalDevice.FreeTexture(&tex.RenderId)
+				device.LogicalDevice.FreeTexture(&tex.TextureId)
 			}
 			t.outputs[name] = nil
 		}
@@ -250,13 +250,15 @@ func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions,
 		}
 	}
 	tex := &Texture{
-		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputColor),
-		Filter:    textures.TextureFilterLinear,
-		MipLevels: 1,
-		Width:     width,
-		Height:    height,
+		Key:    renderTargetTextureKey(options.Name, RenderTargetOutputColor),
+		Filter: textures.TextureFilterLinear,
+		TextureId: TextureId{
+			MipLevels: 1,
+			Width:     width,
+			Height:    height,
+		},
 	}
-	err := device.CreateImage(&tex.RenderId, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+	err := device.CreateImage(&tex.TextureId, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
 		ImageType:   gpu_types.ImageType2d,
 		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
 		MipLevels:   1,
@@ -272,16 +274,16 @@ func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions,
 	if err != nil {
 		return nil, err
 	}
-	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, gpu_types.ImageAspectColorBit, gpu_types.ImageViewType2d); err != nil {
-		device.LogicalDevice.FreeTexture(&tex.RenderId)
+	if err = device.LogicalDevice.CreateImageView(&tex.TextureId, gpu_types.ImageAspectColorBit, gpu_types.ImageViewType2d); err != nil {
+		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
 	}
-	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
+	tex.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
 	if err != nil {
-		device.LogicalDevice.FreeTexture(&tex.RenderId)
+		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
 	}
-	device.TransitionImageLayout(&tex.RenderId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+	device.TransitionImageLayout(&tex.TextureId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
 		gpu_types.ImageAspectColorBit, gpu_types.AccessShaderReadBit, nil)
 	return tex, nil
 }
@@ -290,13 +292,15 @@ func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions,
 	format := device.PhysicalDevice.FindSupportedFormat(depthFormatCandidates(),
 		gpu_types.ImageTilingOptimal, gpu_types.FormatFeatureDepthStencilAttachmentBit)
 	tex := &Texture{
-		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputDepth),
-		Filter:    textures.TextureFilterLinear,
-		MipLevels: 1,
-		Width:     width,
-		Height:    height,
+		Key:    renderTargetTextureKey(options.Name, RenderTargetOutputDepth),
+		Filter: textures.TextureFilterLinear,
+		TextureId: TextureId{
+			MipLevels: 1,
+			Width:     width,
+			Height:    height,
+		},
 	}
-	err := device.CreateImage(&tex.RenderId, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+	err := device.CreateImage(&tex.TextureId, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
 		ImageType:   gpu_types.ImageType2d,
 		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
 		MipLevels:   1,
@@ -309,16 +313,16 @@ func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions,
 	if err != nil {
 		return nil, err
 	}
-	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, gpu_types.ImageAspectDepthBit, gpu_types.ImageViewType2d); err != nil {
-		device.LogicalDevice.FreeTexture(&tex.RenderId)
+	if err = device.LogicalDevice.CreateImageView(&tex.TextureId, gpu_types.ImageAspectDepthBit, gpu_types.ImageViewType2d); err != nil {
+		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
 	}
-	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
+	tex.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
 	if err != nil {
-		device.LogicalDevice.FreeTexture(&tex.RenderId)
+		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
 	}
-	device.TransitionImageLayout(&tex.RenderId, gpu_types.ImageLayoutDepthStencilReadOnlyOptimal,
+	device.TransitionImageLayout(&tex.TextureId, gpu_types.ImageLayoutDepthStencilReadOnlyOptimal,
 		gpu_types.ImageAspectDepthBit, gpu_types.AccessShaderReadBit, nil)
 	return tex, nil
 }

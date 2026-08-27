@@ -208,7 +208,7 @@ func TestTextureReadPendingDataForTransparencyConcurrentUpload(t *testing.T) {
 }
 
 func TestTextureSize(t *testing.T) {
-	tex := Texture{Width: 13, Height: 21}
+	tex := Texture{TextureId: TextureId{Width: 13, Height: 21}}
 	if got := tex.Size(); got != (matrix.Vec2{13, 21}) {
 		t.Fatalf("Size = %v, want 13x21", got)
 	}

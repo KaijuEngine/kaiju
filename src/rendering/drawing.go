@@ -264,7 +264,7 @@ func (d *Drawings) Render(device *GPUDevice, lights LightsForRender, views []Ren
 		passes = append(passes, rp)
 		if rp.IsShadowPass() {
 			if cascade, ok := shadowCascadeIndex(rp.construction.Name); ok && cascade < len(shadows) {
-				shadows[cascade] = rp.textures[0].RenderId
+				shadows[cascade] = rp.textures[0].TextureId
 			}
 		}
 	}

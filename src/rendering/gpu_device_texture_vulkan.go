@@ -91,7 +91,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 	mip := texture.MipLevels
 	if mip <= 0 {
 		w, h := float32(width), float32(height)
-		mip = int(matrix.Floor(matrix.Log2(max(w, h)))) + 1
+		mip = uint32(matrix.Floor(matrix.Log2(max(w, h)))) + 1
 	}
 	layerCount := uintptr(1)
 	flags := gpu_types.ImageCreateFlags(0)
@@ -128,7 +128,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 	}
 	g.UnmapMemory(stagingBufferMemory)
 	// TODO:  Provide the desired sample as part of texture data?
-	err = g.CreateImage(&texture.RenderId, props, GPUImageCreateRequest{
+	err = g.CreateImage(&texture.TextureId, props, GPUImageCreateRequest{
 		ImageType:   imageTypeFromDimensions(data),
 		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
 		MipLevels:   uint32(mip),
@@ -143,23 +143,23 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 		cleanupStaging()
 		return err
 	}
-	texture.RenderId.MipLevels = uint32(mip)
-	texture.RenderId.Format = format
-	texture.RenderId.Width = width
-	texture.RenderId.Height = height
-	texture.RenderId.LayerCount = int(layerCount)
+	texture.MipLevels = uint32(mip)
+	texture.Format = format
+	texture.Width = width
+	texture.Height = height
+	texture.LayerCount = int(layerCount)
 	cmd := (*CommandRecorder)(nil)
 	if batch != nil {
 		cmd = batch.cmd
 	} else {
 		cmd = g.beginSingleTimeCommands()
 	}
-	g.TransitionImageLayout(&texture.RenderId,
+	g.TransitionImageLayout(&texture.TextureId,
 		gpu_types.ImageLayoutTransferDstOptimal, gpu_types.ImageAspectColorBit,
-		texture.RenderId.Access, cmd)
-	g.copyBufferToImageWithCommand(cmd, stagingBuffer, texture.RenderId.Image,
+		texture.Access, cmd)
+	g.copyBufferToImageWithCommand(cmd, stagingBuffer, texture.Image,
 		uint32(width), uint32(height), int(layerCount))
-	err = g.generateMipMapsWithCommand(cmd, &texture.RenderId, format,
+	err = g.generateMipMapsWithCommand(cmd, &texture.TextureId, format,
 		uint32(width), uint32(height), uint32(mip), filter)
 	if batch != nil {
 		batch.DeferCleanup(cleanupStaging)
@@ -170,12 +170,12 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 	if err != nil {
 		return err
 	}
-	err = g.LogicalDevice.CreateImageView(&texture.RenderId,
+	err = g.LogicalDevice.CreateImageView(&texture.TextureId,
 		gpu_types.ImageAspectColorBit, viewTypeFromDimensions(data))
 	if err != nil {
 		return err
 	}
-	texture.RenderId.Sampler, err = g.CreateTextureSampler(uint32(mip), filter)
+	texture.Sampler, err = g.CreateTextureSampler(uint32(mip), filter)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 		d.Painter.preRuns = append(d.Painter.preRuns, func() {
 			ld.FreeTexture(&state.id)
 		})
-	}, TextureCleanup{texture.RenderId, weak.Make(g)})
+	}, TextureCleanup{texture.TextureId, weak.Make(g)})
 	return nil
 }
 
@@ -491,7 +491,7 @@ func (g *GPUDevice) textureReadRegionImplWithBytesPerPixel(id *TextureId, rect m
 func (g *GPUDevice) textureReadPixelImpl(texture *Texture, x, y int) matrix.Color {
 	defer tracing.NewRegion("GPUDevice.textureReadPixelImpl").End()
 	var zero matrix.Color
-	id := &texture.RenderId
+	id := &texture.TextureId
 	origLayout := id.Layout
 	origAccess := id.Access
 	const transferSrcLayout = gpu_types.ImageLayoutTransferSrcOptimal
@@ -570,7 +570,7 @@ func (g *GPUDevice) textureWritePixelsImpl(texture *Texture, requests []GPUImage
 		layout = gpu_types.ImageLayoutTransferDstOptimal
 		flags  = gpu_types.ImageAspectColorBit
 	)
-	id := &texture.RenderId
+	id := &texture.TextureId
 	initLayout := id.Layout
 	state := layoutStateUnchanged
 	if initLayout != gpu_types.ImageLayoutTransferDstOptimal {
