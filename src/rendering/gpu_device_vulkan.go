@@ -16,14 +16,15 @@ import (
 	"kaijuengine.com/engine/cameras"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
 
-func (g *GPUDevice) mapMemoryImpl(memory GPUDeviceMemory, offset uintptr, size uintptr, flags GPUMemoryFlags, out *unsafe.Pointer) error {
+func (g *GPUDevice) mapMemoryImpl(memory gpu_types.DeviceMemory, offset uintptr, size uintptr, flags gpu_types.MemoryFlags, out *unsafe.Pointer) error {
 	defer tracing.NewRegion("GPUDevice.mapMemoryImpl").End()
-	res := vk.MapMemory(vk.Device(g.LogicalDevice.handle), vk.DeviceMemory(memory.handle),
-		vk.DeviceSize(offset), vk.DeviceSize(size), vk.MemoryMapFlags(flags.toVulkan()), out)
+	res := vk.MapMemory(vk.Device(g.LogicalDevice.Handle), vk.DeviceMemory(memory.Handle),
+		vk.DeviceSize(offset), vk.DeviceSize(size), vk.MemoryMapFlags(flags.ToVulkan()), out)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to map memory", "code", res)
 		return fmt.Errorf("failed to map memory: %d", res)
@@ -37,15 +38,15 @@ func (g *GPUDevice) memcopyImpl(dst unsafe.Pointer, src []byte) int {
 	return copy(dstView[:len(src)], src)
 }
 
-func (g *GPUDevice) unmapMemoryImpl(memory GPUDeviceMemory) {
+func (g *GPUDevice) unmapMemoryImpl(memory gpu_types.DeviceMemory) {
 	defer tracing.NewRegion("GPUDevice.unmapMemoryImpl").End()
-	vk.UnmapMemory(vk.Device(g.LogicalDevice.handle), vk.DeviceMemory(memory.handle))
+	vk.UnmapMemory(vk.Device(g.LogicalDevice.Handle), vk.DeviceMemory(memory.Handle))
 }
 
-func (g *GPUDevice) createBufferImpl(size uintptr, usage GPUBufferUsageFlags, properties GPUMemoryPropertyFlags) (GPUBuffer, GPUDeviceMemory, error) {
+func (g *GPUDevice) createBufferImpl(size uintptr, usage gpu_types.BufferUsageFlags, properties gpu_types.MemoryPropertyFlags) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
 	defer tracing.NewRegion("GPUDevice.createBufferImpl").End()
-	var buffer GPUBuffer
-	var bufferMemory GPUDeviceMemory
+	var buffer gpu_types.Buffer
+	var bufferMemory gpu_types.DeviceMemory
 	if size == 0 {
 		// Soft-fail: a zero-length upload (empty texture/mesh staging) must not
 		// take down the process. Callers get an error and skip the resource.
@@ -54,19 +55,19 @@ func (g *GPUDevice) createBufferImpl(size uintptr, usage GPUBufferUsageFlags, pr
 	bufferInfo := vk.BufferCreateInfo{
 		SType:       vulkan_const.StructureTypeBufferCreateInfo,
 		Size:        vk.DeviceSize(g.PhysicalDevice.PadBufferSize(size)),
-		Usage:       usage.toVulkan(),
+		Usage:       usage.ToVulkan(),
 		SharingMode: vulkan_const.SharingModeExclusive,
 	}
 	var localBuffer vk.Buffer
-	res := vk.CreateBuffer(vk.Device(g.LogicalDevice.handle), &bufferInfo, nil, &localBuffer)
+	res := vk.CreateBuffer(vk.Device(g.LogicalDevice.Handle), &bufferInfo, nil, &localBuffer)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to create vertex buffer")
 		return buffer, bufferMemory, fmt.Errorf("failed to create vertex buffer: %d", res)
 	}
-	buffer.handle = unsafe.Pointer(localBuffer)
-	g.LogicalDevice.dbg.track(buffer.handle)
+	buffer.Handle = unsafe.Pointer(localBuffer)
+	g.LogicalDevice.dbg.track(buffer.Handle)
 	var memRequirements vk.MemoryRequirements
-	vk.GetBufferMemoryRequirements(vk.Device(g.LogicalDevice.handle), vk.Buffer(buffer.handle), &memRequirements)
+	vk.GetBufferMemoryRequirements(vk.Device(g.LogicalDevice.Handle), vk.Buffer(buffer.Handle), &memRequirements)
 	aInfo := vk.MemoryAllocateInfo{
 		SType:          vulkan_const.StructureTypeMemoryAllocateInfo,
 		AllocationSize: memRequirements.Size,
@@ -78,36 +79,36 @@ func (g *GPUDevice) createBufferImpl(size uintptr, usage GPUBufferUsageFlags, pr
 	}
 	aInfo.MemoryTypeIndex = uint32(memType)
 	var localBufferMemory vk.DeviceMemory
-	res = vk.AllocateMemory(vk.Device(g.LogicalDevice.handle), &aInfo, nil, &localBufferMemory)
+	res = vk.AllocateMemory(vk.Device(g.LogicalDevice.Handle), &aInfo, nil, &localBufferMemory)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to allocate vertex buffer memory")
 		return buffer, bufferMemory, fmt.Errorf("failed to allocate vertex buffer memory: %d", res)
 	}
-	bufferMemory.handle = unsafe.Pointer(localBufferMemory)
-	g.LogicalDevice.dbg.track(bufferMemory.handle)
-	vk.BindBufferMemory(vk.Device(g.LogicalDevice.handle),
-		vk.Buffer(buffer.handle), vk.DeviceMemory(bufferMemory.handle), 0)
+	bufferMemory.Handle = unsafe.Pointer(localBufferMemory)
+	g.LogicalDevice.dbg.track(bufferMemory.Handle)
+	vk.BindBufferMemory(vk.Device(g.LogicalDevice.Handle),
+		vk.Buffer(buffer.Handle), vk.DeviceMemory(bufferMemory.Handle), 0)
 	return buffer, bufferMemory, nil
 }
 
-func (g *GPUDevice) destroyBufferImpl(buffer GPUBuffer) {
+func (g *GPUDevice) destroyBufferImpl(buffer gpu_types.Buffer) {
 	defer tracing.NewRegion("GPUDevice.destroyBufferImpl").End()
-	vk.DestroyBuffer(vk.Device(g.LogicalDevice.handle), vk.Buffer(buffer.handle), nil)
-	g.LogicalDevice.dbg.remove(buffer.handle)
+	vk.DestroyBuffer(vk.Device(g.LogicalDevice.Handle), vk.Buffer(buffer.Handle), nil)
+	g.LogicalDevice.dbg.remove(buffer.Handle)
 }
 
-func (g *GPUDevice) freeMemoryImpl(memory GPUDeviceMemory) {
+func (g *GPUDevice) freeMemoryImpl(memory gpu_types.DeviceMemory) {
 	defer tracing.NewRegion("GPUDevice.freeMemoryImpl").End()
-	vk.FreeMemory(vk.Device(g.LogicalDevice.handle), vk.DeviceMemory(memory.handle), nil)
-	g.LogicalDevice.dbg.remove(memory.handle)
+	vk.FreeMemory(vk.Device(g.LogicalDevice.Handle), vk.DeviceMemory(memory.Handle), nil)
+	g.LogicalDevice.dbg.remove(memory.Handle)
 }
 
-func (g *GPUDevice) createFrameBufferImpl(renderPass *RenderPass, attachments []GPUImageView, width, height int32) (GPUFrameBuffer, error) {
+func (g *GPUDevice) createFrameBufferImpl(renderPass *RenderPass, attachments []gpu_types.ImageView, width, height int32) (gpu_types.FrameBuffer, error) {
 	defer tracing.NewRegion("GPULogicalDevice.createFrameBufferImpl").End()
-	var frameBuffer GPUFrameBuffer
+	var frameBuffer gpu_types.FrameBuffer
 	vkAttachments := make([]vk.ImageView, len(attachments))
 	for i := range vkAttachments {
-		vkAttachments[i] = vk.ImageView(attachments[i].handle)
+		vkAttachments[i] = vk.ImageView(attachments[i].Handle)
 	}
 	framebufferInfo := vk.FramebufferCreateInfo{
 		SType:           vulkan_const.StructureTypeFramebufferCreateInfo,
@@ -119,58 +120,58 @@ func (g *GPUDevice) createFrameBufferImpl(renderPass *RenderPass, attachments []
 		Layers:          1,
 	}
 	var fb vk.Framebuffer
-	res := vk.CreateFramebuffer(vk.Device(g.LogicalDevice.handle), &framebufferInfo, nil, &fb)
+	res := vk.CreateFramebuffer(vk.Device(g.LogicalDevice.Handle), &framebufferInfo, nil, &fb)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to create framebuffer")
 		return frameBuffer, fmt.Errorf("failed to create framebuffer: %d", res)
 	}
-	frameBuffer.handle = unsafe.Pointer(fb)
-	g.LogicalDevice.dbg.track(frameBuffer.handle)
+	frameBuffer.Handle = unsafe.Pointer(fb)
+	g.LogicalDevice.dbg.track(frameBuffer.Handle)
 	return frameBuffer, nil
 }
 
-func (g *GPUDevice) destroyFrameBufferImpl(frameBuffer GPUFrameBuffer) {
+func (g *GPUDevice) destroyFrameBufferImpl(frameBuffer gpu_types.FrameBuffer) {
 	defer tracing.NewRegion("GPULogicalDevice.destroyFrameBufferImpl").End()
-	vk.DestroyFramebuffer(vk.Device(g.LogicalDevice.handle), vk.Framebuffer(frameBuffer.handle), nil)
+	vk.DestroyFramebuffer(vk.Device(g.LogicalDevice.Handle), vk.Framebuffer(frameBuffer.Handle), nil)
 }
 
-func imageTypeFromDimensions(data *TextureData) GPUImageType {
+func imageTypeFromDimensions(data *TextureData) gpu_types.ImageType {
 	switch data.Dimensions {
 	case TextureDimensions1:
-		return GPUImageType1d
+		return gpu_types.ImageType1d
 	case TextureDimensions3:
-		return GPUImageType3d
+		return gpu_types.ImageType3d
 	case TextureDimensions2:
 		fallthrough
 	default:
-		return GPUImageType2d
+		return gpu_types.ImageType2d
 	}
 }
 
-func viewTypeFromDimensions(data *TextureData) GPUImageViewType {
+func viewTypeFromDimensions(data *TextureData) gpu_types.ImageViewType {
 	switch data.Dimensions {
 	case TextureDimensions1:
-		return GPUImageViewType1d
+		return gpu_types.ImageViewType1d
 	case TextureDimensions3:
-		return GPUImageViewType3d
+		return gpu_types.ImageViewType3d
 	case TextureDimensionsCube:
-		return GPUImageViewTypeCube
+		return gpu_types.ImageViewTypeCube
 	case TextureDimensions2:
 		fallthrough
 	default:
-		return GPUImageViewType2d
+		return gpu_types.ImageViewType2d
 	}
 }
 
-func (g *GPUDevice) copyBufferImpl(srcBuffer GPUBuffer, dstBuffer GPUBuffer, size uintptr) {
+func (g *GPUDevice) copyBufferImpl(srcBuffer gpu_types.Buffer, dstBuffer gpu_types.Buffer, size uintptr) {
 	defer tracing.NewRegion("GPULogicalDevice.copyBufferImpl").End()
 	cmd := g.beginSingleTimeCommands()
 	defer g.endSingleTimeCommands(cmd)
 	copyRegion := vk.BufferCopy{
 		Size: vk.DeviceSize(size),
 	}
-	vk.CmdCopyBuffer(cmd.buffer, vk.Buffer(srcBuffer.handle),
-		vk.Buffer(dstBuffer.handle), 1, &copyRegion)
+	vk.CmdCopyBuffer(cmd.buffer, vk.Buffer(srcBuffer.Handle),
+		vk.Buffer(dstBuffer.Handle), 1, &copyRegion)
 }
 
 func (g *GPUDevice) beginSingleTimeCommandsImpl() *CommandRecorder {
@@ -198,7 +199,7 @@ func (g *GPUDevice) endSingleTimeCommandsImpl(cmd *CommandRecorder) {
 		PCommandBuffers:    &buff,
 	}
 	vk.QueueSubmit(vk.Queue(g.LogicalDevice.graphicsQueue), 1, &submitInfo, cmd.fence)
-	vkDevice := vk.Device(g.LogicalDevice.handle)
+	vkDevice := vk.Device(g.LogicalDevice.Handle)
 	result := vk.WaitForFences(vkDevice, 1, &cmd.fence, vulkan_const.True, 1e9)
 	if result == vulkan_const.Success {
 		vk.ResetFences(vkDevice, 1, &cmd.fence)
@@ -240,32 +241,32 @@ func (g *GPUDevice) createDescriptorPool(counts uint32) error {
 	poolInfo.Flags = vk.DescriptorPoolCreateFlags(vulkan_const.DescriptorPoolCreateFreeDescriptorSetBit)
 	poolInfo.MaxSets = counts * swapImageCount
 	var descriptorPool vk.DescriptorPool
-	if vk.CreateDescriptorPool(vk.Device(g.LogicalDevice.handle), &poolInfo, nil, &descriptorPool) != vulkan_const.Success {
+	if vk.CreateDescriptorPool(vk.Device(g.LogicalDevice.Handle), &poolInfo, nil, &descriptorPool) != vulkan_const.Success {
 		slog.Error("Failed to create descriptor pool")
 		return errors.New("Failed to create descriptor pool")
 	}
-	pool := GPUDescriptorPool{GPUHandle{unsafe.Pointer(descriptorPool)}}
-	g.LogicalDevice.dbg.track(pool.handle)
+	pool := gpu_types.DescriptorPool{gpu_types.GpuHandle{unsafe.Pointer(descriptorPool)}}
+	g.LogicalDevice.dbg.track(pool.Handle)
 	g.Painter.descriptorPools = append(g.Painter.descriptorPools, pool)
 	return nil
 }
 
-func (g *GPUDevice) createDescriptorSet(layout GPUDescriptorSetLayout, poolIdx int) ([maxFramesInFlight]GPUDescriptorSet, GPUDescriptorPool, error) {
+func (g *GPUDevice) createDescriptorSet(layout gpu_types.DescriptorSetLayout, poolIdx int) ([maxFramesInFlight]gpu_types.DescriptorSet, gpu_types.DescriptorPool, error) {
 	layouts := [maxFramesInFlight]vk.DescriptorSetLayout{}
 	for i := range layouts {
-		layouts[i] = vk.DescriptorSetLayout(layout.handle)
+		layouts[i] = vk.DescriptorSetLayout(layout.Handle)
 	}
 	aInfo := vk.DescriptorSetAllocateInfo{
 		SType:              vulkan_const.StructureTypeDescriptorSetAllocateInfo,
-		DescriptorPool:     vk.DescriptorPool(g.Painter.descriptorPools[poolIdx].handle),
+		DescriptorPool:     vk.DescriptorPool(g.Painter.descriptorPools[poolIdx].Handle),
 		DescriptorSetCount: uint32(len(g.LogicalDevice.SwapChain.Images)),
 		PSetLayouts:        &layouts[0],
 	}
 	sets := [maxFramesInFlight]vk.DescriptorSet{}
-	res := vk.AllocateDescriptorSets(vk.Device(g.LogicalDevice.handle), &aInfo, &sets[0])
-	gpuSets := [maxFramesInFlight]GPUDescriptorSet{}
+	res := vk.AllocateDescriptorSets(vk.Device(g.LogicalDevice.Handle), &aInfo, &sets[0])
+	gpuSets := [maxFramesInFlight]gpu_types.DescriptorSet{}
 	for i := range sets {
-		gpuSets[i].handle = unsafe.Pointer(sets[i])
+		gpuSets[i].Handle = unsafe.Pointer(sets[i])
 	}
 	if res != vulkan_const.Success {
 		// Grow onto a fresh pool + retry for exhaustion AND fragmentation. MoltenVK
@@ -279,12 +280,12 @@ func (g *GPUDevice) createDescriptorSet(layout GPUDescriptorSetLayout, poolIdx i
 				return g.createDescriptorSet(layout, poolIdx+1)
 			}
 			if err := g.createDescriptorPool(1000); err != nil {
-				return gpuSets, GPUDescriptorPool{}, err
+				return gpuSets, gpu_types.DescriptorPool{}, err
 			}
 			return g.createDescriptorSet(layout, poolIdx+1)
 		}
 		slog.Error("failed to allocate descriptor sets", "result", int(res))
-		return gpuSets, GPUDescriptorPool{}, errors.New("failed to allocate descriptor sets")
+		return gpuSets, gpu_types.DescriptorPool{}, errors.New("failed to allocate descriptor sets")
 	}
 	return gpuSets, g.Painter.descriptorPools[poolIdx], nil
 }
@@ -292,13 +293,13 @@ func (g *GPUDevice) createDescriptorSet(layout GPUDescriptorSetLayout, poolIdx i
 func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicationInstance, width, height int32) bool {
 	defer tracing.NewRegion("Vulkan.SwapFrame").End()
 	waitSemaphores := [...]vk.Semaphore{
-		vk.Semaphore(g.LogicalDevice.SwapChain.imageSemaphores[g.Painter.currentFrame].handle),
+		vk.Semaphore(g.LogicalDevice.SwapChain.imageSemaphores[g.Painter.currentFrame].Handle),
 	}
 	waitStages := [...]vk.PipelineStageFlags{vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit)}
 	signalSemaphores := [...]vk.Semaphore{
-		vk.Semaphore(g.LogicalDevice.SwapChain.renderFinishedSemaphores[g.Painter.imageIndex[g.Painter.currentFrame]].handle),
+		vk.Semaphore(g.LogicalDevice.SwapChain.renderFinishedSemaphores[g.Painter.imageIndex[g.Painter.currentFrame]].Handle),
 	}
-	fence := vk.Fence(g.LogicalDevice.SwapChain.renderFences[g.Painter.currentFrame].handle)
+	fence := vk.Fence(g.LogicalDevice.SwapChain.renderFences[g.Painter.currentFrame].Handle)
 	if !g.queuedCommandSubmitter().SubmitForPresent(waitSemaphores[:], waitStages[:], signalSemaphores[:], fence) {
 		return false
 	}
@@ -311,7 +312,7 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	//	DstStageMask:  vk.PipelineStageFlags(vulkan_const.PipelineStageColorAttachmentOutputBit),
 	//	DstAccessMask: vk.AccessFlags(vulkan_const.AccessColorAttachmentWriteBit),
 	//}
-	swapChains := []vk.Swapchain{vk.Swapchain(g.LogicalDevice.SwapChain.handle)}
+	swapChains := []vk.Swapchain{vk.Swapchain(g.LogicalDevice.SwapChain.Handle)}
 	presentInfo := vk.PresentInfo{
 		SType:              vulkan_const.StructureTypePresentInfo,
 		WaitSemaphoreCount: 1,
@@ -346,16 +347,16 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
 	painter := &g.Painter
 	ld := &g.LogicalDevice
-	fences := [...]GPUFence{ld.SwapChain.renderFences[painter.currentFrame]}
+	fences := [...]gpu_types.Fence{ld.SwapChain.renderFences[painter.currentFrame]}
 	ld.WaitForFences(fences[:])
 	painter.resetTargetBlitCommands(painter.currentFrame)
 	for _, renderPass := range ld.renderPassCache {
 		renderPass.resetViewCommandSets(painter.currentFrame)
 	}
 	frame := painter.currentFrame
-	res := vk.AcquireNextImage(vk.Device(ld.handle),
-		vk.Swapchain(ld.SwapChain.handle),
-		math.MaxUint64, vk.Semaphore(ld.SwapChain.imageSemaphores[frame].handle),
+	res := vk.AcquireNextImage(vk.Device(ld.Handle),
+		vk.Swapchain(ld.SwapChain.Handle),
+		math.MaxUint64, vk.Semaphore(ld.SwapChain.imageSemaphores[frame].Handle),
 		vk.Fence(vk.NullHandle), &painter.imageIndex[frame])
 	switch res {
 	case vulkan_const.Success, vulkan_const.Suboptimal: // VK_SUBOPTIMAL_KHR is a success and just means the swap chain no longer matches the surface properties exactly, but can still be used to present to the surface successfully.

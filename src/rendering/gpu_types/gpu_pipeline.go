@@ -1,0 +1,74 @@
+package gpu_types
+
+type AccessFlags uint32
+type AttachmentLoadOp uint8
+type AttachmentStoreOp uint8
+type PipelineStageFlags uint32
+
+const (
+	AccessIndirectCommandReadBit AccessFlags = (1 << iota)
+	AccessIndexReadBit
+	AccessVertexAttributeReadBit
+	AccessUniformReadBit
+	AccessInputAttachmentReadBit
+	AccessShaderReadBit
+	AccessShaderWriteBit
+	AccessColorAttachmentReadBit
+	AccessColorAttachmentWriteBit
+	AccessDepthStencilAttachmentReadBit
+	AccessDepthStencilAttachmentWriteBit
+	AccessTransferReadBit
+	AccessTransferWriteBit
+	AccessHostReadBit
+	AccessHostWriteBit
+	AccessMemoryReadBit
+	AccessMemoryWriteBit
+	AccessTransformFeedbackWriteBit
+	AccessTransformFeedbackCounterReadBit
+	AccessTransformFeedbackCounterWriteBit
+	AccessConditionalRenderingReadBit
+	AccessCommandProcessReadBitNvx
+	AccessCommandProcessWriteBitNvx
+	AccessColorAttachmentReadNoncoherentBit
+	AccessShadingRateImageReadBitNv
+	AccessAccelerationStructureReadBitNvx
+	AccessAccelerationStructureWriteBitNvx
+)
+
+const (
+	AttachmentLoadOpLoad AttachmentLoadOp = iota
+	AttachmentLoadOpClear
+	AttachmentLoadOpDontCare
+)
+
+const (
+	AttachmentStoreOpStore AttachmentStoreOp = iota
+	AttachmentStoreOpDontCare
+)
+
+const (
+	PipelineStageTopOfPipeBit PipelineStageFlags = (1 << iota)
+	PipelineStageDrawIndirectBit
+	PipelineStageVertexInputBit
+	PipelineStageVertexShaderBit
+	PipelineStageTessellationControlShaderBit
+	PipelineStageTessellationEvaluationShaderBit
+	PipelineStageGeometryShaderBit
+	PipelineStageFragmentShaderBit
+	PipelineStageEarlyFragmentTestsBit
+	PipelineStageLateFragmentTestsBit
+	PipelineStageColorAttachmentOutputBit
+	PipelineStageComputeShaderBit
+	PipelineStageTransferBit
+	PipelineStageBottomOfPipeBit
+	PipelineStageHostBit
+	PipelineStageAllGraphicsBit
+	PipelineStageAllCommandsBit
+	PipelineStageTransformFeedbackBit
+	PipelineStageConditionalRenderingBit
+	PipelineStageCommandProcessBitNvx
+	PipelineStageShadingRateImageBitNv
+	PipelineStageRaytracingBitNvx
+	PipelineStageTaskShaderBitNv
+	PipelineStageMeshShaderBitNv
+)

@@ -20,12 +20,12 @@ func (g *GPUPainter) executeCompute(device *GPUDevice) {
 	ds := [1]vk.DescriptorSet{}
 	computeCmd := device.beginSingleTimeCommands()
 	for _, task := range g.computeTasks {
-		vk.CmdBindPipeline(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, vk.Pipeline(task.Shader.RenderId.computePipeline.handle))
-		ds[0] = vk.DescriptorSet(task.DescriptorSets[g.currentFrame].handle)
+		vk.CmdBindPipeline(computeCmd.buffer, vulkan_const.PipelineBindPointCompute, vk.Pipeline(task.Shader.RenderId.computePipeline.Handle))
+		ds[0] = vk.DescriptorSet(task.DescriptorSets[g.currentFrame].Handle)
 		if len(ds) > 0 {
 			vk.CmdBindDescriptorSets(computeCmd.buffer,
 				vulkan_const.PipelineBindPointCompute,
-				vk.PipelineLayout(task.Shader.RenderId.pipelineLayout.handle), 0,
+				vk.PipelineLayout(task.Shader.RenderId.pipelineLayout.Handle), 0,
 				uint32(len(ds)), &ds[0], 0, nil)
 		}
 		vk.CmdDispatch(computeCmd.buffer, task.WorkGroups[0], task.WorkGroups[1], task.WorkGroups[2])
@@ -46,8 +46,8 @@ func (g *GPUPainter) executeCompute(device *GPUDevice) {
 func (g *GPUPainter) destroyDescriptorPoolsImpl(device *GPUDevice) {
 	defer tracing.NewRegion("GPUPainter.destroyDescriptorPoolsImpl").End()
 	for i := range device.Painter.descriptorPools {
-		vk.DestroyDescriptorPool(vk.Device(device.LogicalDevice.handle),
-			vk.DescriptorPool(g.descriptorPools[i].handle), nil)
-		device.LogicalDevice.dbg.remove(g.descriptorPools[i].handle)
+		vk.DestroyDescriptorPool(vk.Device(device.LogicalDevice.Handle),
+			vk.DescriptorPool(g.descriptorPools[i].Handle), nil)
+		device.LogicalDevice.dbg.remove(g.descriptorPools[i].Handle)
 	}
 }

@@ -7,6 +7,7 @@
 package rendering
 
 import (
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -34,30 +35,30 @@ func NewShaderDriverData() ShaderDriverData {
 type ShaderId struct {
 	instanceCount       int
 	currentUBSizes      [maxFramesInFlight]uint64
-	graphicsPipeline    GPUPipeline
-	computePipeline     GPUPipeline
-	pipelineLayout      GPUPipelineLayout
-	descriptorSetLayout GPUDescriptorSetLayout
-	vertModule          GPUShaderModule
-	fragModule          GPUShaderModule
-	geomModule          GPUShaderModule
-	tescModule          GPUShaderModule
-	teseModule          GPUShaderModule
-	compModule          GPUShaderModule
+	graphicsPipeline    gpu_types.Pipeline
+	computePipeline     gpu_types.Pipeline
+	pipelineLayout      gpu_types.PipelineLayout
+	descriptorSetLayout gpu_types.DescriptorSetLayout
+	vertModule          gpu_types.ShaderModule
+	fragModule          gpu_types.ShaderModule
+	geomModule          gpu_types.ShaderModule
+	tescModule          gpu_types.ShaderModule
+	teseModule          gpu_types.ShaderModule
+	compModule          gpu_types.ShaderModule
 }
 
 func (s ShaderId) IsValid() bool { return s.graphicsPipeline.IsValid() }
 
 type TextureId struct {
-	Image      GPUImage
-	Memory     GPUDeviceMemory
-	View       GPUImageView
-	Sampler    GPUSampler
-	Format     GPUFormat
+	Image      gpu_types.Image
+	Memory     gpu_types.DeviceMemory
+	View       gpu_types.ImageView
+	Sampler    gpu_types.Sampler
+	Format     gpu_types.Format
 	MipLevels  uint32
-	Layout     GPUImageLayout
-	Access     GPUAccessFlags
-	Samples    GPUSampleCountFlags
+	Layout     gpu_types.ImageLayout
+	Access     gpu_types.AccessFlags
+	Samples    gpu_types.SampleCountFlags
 	Width      int
 	Height     int
 	LayerCount int
@@ -68,10 +69,10 @@ func (t TextureId) IsValid() bool { return t.Image.IsValid() }
 type MeshId struct {
 	vertexCount        uint32
 	indexCount         uint32
-	vertexBuffer       GPUBuffer
-	vertexBufferMemory GPUDeviceMemory
-	indexBuffer        GPUBuffer
-	indexBufferMemory  GPUDeviceMemory
+	vertexBuffer       gpu_types.Buffer
+	vertexBufferMemory gpu_types.DeviceMemory
+	indexBuffer        gpu_types.Buffer
+	indexBufferMemory  gpu_types.DeviceMemory
 }
 
 func (m MeshId) IsValid() bool {

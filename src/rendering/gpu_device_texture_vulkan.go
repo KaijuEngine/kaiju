@@ -16,6 +16,7 @@ import (
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -29,87 +30,87 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 	defer tracing.NewRegion("GPUDevice.setupTextureImpl").End()
 	width := max(data.Width, texture.Width)
 	height := max(data.Height, texture.Height)
-	format := GPUFormatR8g8b8a8Srgb
+	format := gpu_types.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
 	case TextureInputTypeRgba8:
 		switch data.Format {
 		case TextureColorFormatRgbaSrgb:
-			format = GPUFormatR8g8b8a8Srgb
+			format = gpu_types.FormatR8g8b8a8Srgb
 		case TextureColorFormatRgbaUnorm:
-			format = GPUFormatR8g8b8a8Unorm
+			format = gpu_types.FormatR8g8b8a8Unorm
 		}
 	case TextureInputTypeRgb8:
 		switch data.Format {
 		case TextureColorFormatRgbSrgb:
-			format = GPUFormatR8g8b8Srgb
+			format = gpu_types.FormatR8g8b8Srgb
 		case TextureColorFormatRgbUnorm:
-			format = GPUFormatR8g8b8Unorm
+			format = gpu_types.FormatR8g8b8Unorm
 		}
 	case TextureInputTypeCompressedRgbaAstc4x4:
-		format = GPUFormatAstc4x4SrgbBlock
+		format = gpu_types.FormatAstc4x4SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc5x4:
-		format = GPUFormatAstc5x4SrgbBlock
+		format = gpu_types.FormatAstc5x4SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc5x5:
-		format = GPUFormatAstc5x5SrgbBlock
+		format = gpu_types.FormatAstc5x5SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc6x5:
-		format = GPUFormatAstc6x5SrgbBlock
+		format = gpu_types.FormatAstc6x5SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc6x6:
-		format = GPUFormatAstc6x6SrgbBlock
+		format = gpu_types.FormatAstc6x6SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc8x5:
-		format = GPUFormatAstc8x5SrgbBlock
+		format = gpu_types.FormatAstc8x5SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc8x6:
-		format = GPUFormatAstc8x6SrgbBlock
+		format = gpu_types.FormatAstc8x6SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc8x8:
-		format = GPUFormatAstc8x8SrgbBlock
+		format = gpu_types.FormatAstc8x8SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc10x5:
-		format = GPUFormatAstc10x5SrgbBlock
+		format = gpu_types.FormatAstc10x5SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc10x6:
-		format = GPUFormatAstc10x6SrgbBlock
+		format = gpu_types.FormatAstc10x6SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc10x8:
-		format = GPUFormatAstc10x8SrgbBlock
+		format = gpu_types.FormatAstc10x8SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc10x10:
-		format = GPUFormatAstc10x10SrgbBlock
+		format = gpu_types.FormatAstc10x10SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc12x10:
-		format = GPUFormatAstc12x10SrgbBlock
+		format = gpu_types.FormatAstc12x10SrgbBlock
 	case TextureInputTypeCompressedRgbaAstc12x12:
-		format = GPUFormatAstc12x12SrgbBlock
+		format = gpu_types.FormatAstc12x12SrgbBlock
 	case TextureInputTypeLuminance:
 		panic("Luminance textures are not supported")
 	}
-	filter := GPUFilterLinear
+	filter := gpu_types.FilterLinear
 	switch texture.Filter {
 	case TextureFilterLinear:
-		filter = GPUFilterLinear
+		filter = gpu_types.FilterLinear
 	case TextureFilterNearest:
-		filter = GPUFilterNearest
+		filter = gpu_types.FilterNearest
 	}
-	tile := GPUImageTilingOptimal
-	use := GPUImageUsageTransferSrcBit | GPUImageUsageTransferDstBit | GPUImageUsageSampledBit
-	props := GPUMemoryPropertyDeviceLocalBit
+	tile := gpu_types.ImageTilingOptimal
+	use := gpu_types.ImageUsageTransferSrcBit | gpu_types.ImageUsageTransferDstBit | gpu_types.ImageUsageSampledBit
+	props := gpu_types.MemoryPropertyDeviceLocalBit
 	mip := texture.MipLevels
 	if mip <= 0 {
 		w, h := float32(width), float32(height)
 		mip = int(matrix.Floor(matrix.Log2(max(w, h)))) + 1
 	}
 	layerCount := uintptr(1)
-	flags := GPUImageCreateFlags(0)
+	flags := gpu_types.ImageCreateFlags(0)
 	// TODO:  Deal with cube maps the correct way
 	if data.Dimensions == TextureDimensionsCube {
 		layerCount = 6
-		flags = GPUImageCreateCubeCompatibleBit
+		flags = gpu_types.ImageCreateCubeCompatibleBit
 	}
 	memLen := uintptr(len(data.Mem)) * layerCount
 	stagingBuffer, stagingBufferMemory, err := g.CreateBuffer(
-		memLen, GPUBufferUsageTransferSrcBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		memLen, gpu_types.BufferUsageTransferSrcBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		return err
 	}
 	cleanupStaging := func() {
 		g.DestroyBuffer(stagingBuffer)
-		g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+		g.LogicalDevice.dbg.remove(stagingBuffer.Handle)
 		g.FreeMemory(stagingBufferMemory)
-		g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
+		g.LogicalDevice.dbg.remove(stagingBufferMemory.Handle)
 	}
 	var stageData unsafe.Pointer
 	err = g.MapMemory(stagingBufferMemory, 0, memLen, 0, &stageData)
@@ -134,7 +135,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 		Format:      format,
 		Tiling:      tile,
 		Usage:       use,
-		Samples:     GPUSampleCount1Bit,
+		Samples:     gpu_types.SampleCount1Bit,
 		Flags:       flags,
 	})
 	if err != nil {
@@ -153,7 +154,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 		cmd = g.beginSingleTimeCommands()
 	}
 	g.TransitionImageLayout(&texture.RenderId,
-		GPUImageLayoutTransferDstOptimal, GPUImageAspectColorBit,
+		gpu_types.ImageLayoutTransferDstOptimal, gpu_types.ImageAspectColorBit,
 		texture.RenderId.Access, cmd)
 	g.copyBufferToImageWithCommand(cmd, stagingBuffer, texture.RenderId.Image,
 		uint32(width), uint32(height), int(layerCount))
@@ -169,7 +170,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 		return err
 	}
 	err = g.LogicalDevice.CreateImageView(&texture.RenderId,
-		GPUImageAspectColorBit, viewTypeFromDimensions(data))
+		gpu_types.ImageAspectColorBit, viewTypeFromDimensions(data))
 	if err != nil {
 		return err
 	}
@@ -190,23 +191,23 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 	return nil
 }
 
-func (g *GPUDevice) generateMipMapsImpl(texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {
+func (g *GPUDevice) generateMipMapsImpl(texId *TextureId, imageFormat gpu_types.Format, texWidth, texHeight, mipLevels uint32, filter gpu_types.Filter) error {
 	defer tracing.NewRegion("GPUDevice.generateMipMapsImpl").End()
 	cmd := g.beginSingleTimeCommands()
 	defer g.endSingleTimeCommands(cmd)
 	return g.generateMipMapsWithCommand(cmd, texId, imageFormat, texWidth, texHeight, mipLevels, filter)
 }
 
-func (g *GPUDevice) generateMipMapsWithCommand(cmd *CommandRecorder, texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {
+func (g *GPUDevice) generateMipMapsWithCommand(cmd *CommandRecorder, texId *TextureId, imageFormat gpu_types.Format, texWidth, texHeight, mipLevels uint32, filter gpu_types.Filter) error {
 	defer tracing.NewRegion("GPUDevice.generateMipMapsWithCommand").End()
 	fp := g.PhysicalDevice.FormatProperties(imageFormat)
-	if (fp.OptimalTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) == 0 {
+	if (fp.OptimalTilingFeatures & gpu_types.FormatFeatureSampledImageFilterLinearBit) == 0 {
 		slog.Error("Texture image format does not support linear blitting")
 		return fmt.Errorf("Texture image format does not support linear blitting")
 	}
 	barrier := vk.ImageMemoryBarrier{
 		SType:               vulkan_const.StructureTypeImageMemoryBarrier,
-		Image:               vk.Image(texId.Image.handle),
+		Image:               vk.Image(texId.Image.Handle),
 		SrcQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
 		DstQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
 		SubresourceRange: vk.ImageSubresourceRange{
@@ -245,11 +246,11 @@ func (g *GPUDevice) generateMipMapsWithCommand(cmd *CommandRecorder, texId *Text
 		blit.DstSubresource.MipLevel = i
 		blit.DstSubresource.BaseArrayLayer = 0
 		blit.DstSubresource.LayerCount = uint32(texId.LayerCount)
-		vk.CmdBlitImage(cmd.buffer, vk.Image(texId.Image.handle),
+		vk.CmdBlitImage(cmd.buffer, vk.Image(texId.Image.Handle),
 			vulkan_const.ImageLayoutTransferSrcOptimal,
-			vk.Image(texId.Image.handle),
+			vk.Image(texId.Image.Handle),
 			vulkan_const.ImageLayoutTransferDstOptimal,
-			1, &blit, filter.toVulkan())
+			1, &blit, filter.ToVulkan())
 		barrier.OldLayout = vulkan_const.ImageLayoutTransferSrcOptimal
 		barrier.NewLayout = vulkan_const.ImageLayoutShaderReadOnlyOptimal
 		barrier.SrcAccessMask = vk.AccessFlags(vulkan_const.AccessTransferReadBit)
@@ -270,77 +271,77 @@ func (g *GPUDevice) generateMipMapsWithCommand(cmd *CommandRecorder, texId *Text
 	barrier.DstAccessMask = vk.AccessFlags(vulkan_const.AccessShaderReadBit)
 	vk.CmdPipelineBarrier(cmd.buffer, vk.PipelineStageFlags(vulkan_const.PipelineStageTransferBit),
 		vk.PipelineStageFlags(vulkan_const.PipelineStageFragmentShaderBit), 0, 0, nil, 0, nil, 1, &barrier)
-	texId.Layout.fromVulkan(barrier.NewLayout)
+	texId.Layout.FromVulkan(barrier.NewLayout)
 	return nil
 }
 
-func textureReadBytesPerPixel(format GPUFormat) int {
+func textureReadBytesPerPixel(format gpu_types.Format) int {
 	switch format {
-	case GPUFormatR8Unorm, GPUFormatR8Snorm, GPUFormatR8Uscaled,
-		GPUFormatR8Sscaled, GPUFormatR8Uint, GPUFormatR8Sint,
-		GPUFormatR8Srgb:
+	case gpu_types.FormatR8Unorm, gpu_types.FormatR8Snorm, gpu_types.FormatR8Uscaled,
+		gpu_types.FormatR8Sscaled, gpu_types.FormatR8Uint, gpu_types.FormatR8Sint,
+		gpu_types.FormatR8Srgb:
 		return 1
-	case GPUFormatR16Unorm, GPUFormatR16Snorm, GPUFormatR16Uscaled,
-		GPUFormatR16Sscaled, GPUFormatR16Uint, GPUFormatR16Sint,
-		GPUFormatR16Sfloat, GPUFormatR8g8Unorm, GPUFormatR8g8Snorm,
-		GPUFormatR8g8Uscaled, GPUFormatR8g8Sscaled, GPUFormatR8g8Uint,
-		GPUFormatR8g8Sint, GPUFormatR8g8Srgb:
+	case gpu_types.FormatR16Unorm, gpu_types.FormatR16Snorm, gpu_types.FormatR16Uscaled,
+		gpu_types.FormatR16Sscaled, gpu_types.FormatR16Uint, gpu_types.FormatR16Sint,
+		gpu_types.FormatR16Sfloat, gpu_types.FormatR8g8Unorm, gpu_types.FormatR8g8Snorm,
+		gpu_types.FormatR8g8Uscaled, gpu_types.FormatR8g8Sscaled, gpu_types.FormatR8g8Uint,
+		gpu_types.FormatR8g8Sint, gpu_types.FormatR8g8Srgb:
 		return 2
-	case GPUFormatR8g8b8Unorm, GPUFormatR8g8b8Snorm,
-		GPUFormatR8g8b8Uscaled, GPUFormatR8g8b8Sscaled,
-		GPUFormatR8g8b8Uint, GPUFormatR8g8b8Sint,
-		GPUFormatR8g8b8Srgb, GPUFormatB8g8r8Unorm,
-		GPUFormatB8g8r8Snorm, GPUFormatB8g8r8Uscaled,
-		GPUFormatB8g8r8Sscaled, GPUFormatB8g8r8Uint,
-		GPUFormatB8g8r8Sint, GPUFormatB8g8r8Srgb:
+	case gpu_types.FormatR8g8b8Unorm, gpu_types.FormatR8g8b8Snorm,
+		gpu_types.FormatR8g8b8Uscaled, gpu_types.FormatR8g8b8Sscaled,
+		gpu_types.FormatR8g8b8Uint, gpu_types.FormatR8g8b8Sint,
+		gpu_types.FormatR8g8b8Srgb, gpu_types.FormatB8g8r8Unorm,
+		gpu_types.FormatB8g8r8Snorm, gpu_types.FormatB8g8r8Uscaled,
+		gpu_types.FormatB8g8r8Sscaled, gpu_types.FormatB8g8r8Uint,
+		gpu_types.FormatB8g8r8Sint, gpu_types.FormatB8g8r8Srgb:
 		return 3
-	case GPUFormatR32Uint, GPUFormatR32Sint, GPUFormatR32Sfloat,
-		GPUFormatR16g16Unorm, GPUFormatR16g16Snorm,
-		GPUFormatR16g16Uscaled, GPUFormatR16g16Sscaled,
-		GPUFormatR16g16Uint, GPUFormatR16g16Sint,
-		GPUFormatR16g16Sfloat, GPUFormatR8g8b8a8Unorm,
-		GPUFormatR8g8b8a8Snorm, GPUFormatR8g8b8a8Uscaled,
-		GPUFormatR8g8b8a8Sscaled, GPUFormatR8g8b8a8Uint,
-		GPUFormatR8g8b8a8Sint, GPUFormatR8g8b8a8Srgb,
-		GPUFormatB8g8r8a8Unorm, GPUFormatB8g8r8a8Snorm,
-		GPUFormatB8g8r8a8Uscaled, GPUFormatB8g8r8a8Sscaled,
-		GPUFormatB8g8r8a8Uint, GPUFormatB8g8r8a8Sint,
-		GPUFormatB8g8r8a8Srgb, GPUFormatA8b8g8r8UnormPack32,
-		GPUFormatA8b8g8r8SnormPack32, GPUFormatA8b8g8r8UscaledPack32,
-		GPUFormatA8b8g8r8SscaledPack32, GPUFormatA8b8g8r8UintPack32,
-		GPUFormatA8b8g8r8SintPack32, GPUFormatA8b8g8r8SrgbPack32,
-		GPUFormatA2r10g10b10UnormPack32, GPUFormatA2r10g10b10SnormPack32,
-		GPUFormatA2r10g10b10UscaledPack32, GPUFormatA2r10g10b10SscaledPack32,
-		GPUFormatA2r10g10b10UintPack32, GPUFormatA2r10g10b10SintPack32,
-		GPUFormatA2b10g10r10UnormPack32, GPUFormatA2b10g10r10SnormPack32,
-		GPUFormatA2b10g10r10UscaledPack32, GPUFormatA2b10g10r10SscaledPack32,
-		GPUFormatA2b10g10r10UintPack32, GPUFormatA2b10g10r10SintPack32,
-		GPUFormatB10g11r11UfloatPack32, GPUFormatE5b9g9r9UfloatPack32:
+	case gpu_types.FormatR32Uint, gpu_types.FormatR32Sint, gpu_types.FormatR32Sfloat,
+		gpu_types.FormatR16g16Unorm, gpu_types.FormatR16g16Snorm,
+		gpu_types.FormatR16g16Uscaled, gpu_types.FormatR16g16Sscaled,
+		gpu_types.FormatR16g16Uint, gpu_types.FormatR16g16Sint,
+		gpu_types.FormatR16g16Sfloat, gpu_types.FormatR8g8b8a8Unorm,
+		gpu_types.FormatR8g8b8a8Snorm, gpu_types.FormatR8g8b8a8Uscaled,
+		gpu_types.FormatR8g8b8a8Sscaled, gpu_types.FormatR8g8b8a8Uint,
+		gpu_types.FormatR8g8b8a8Sint, gpu_types.FormatR8g8b8a8Srgb,
+		gpu_types.FormatB8g8r8a8Unorm, gpu_types.FormatB8g8r8a8Snorm,
+		gpu_types.FormatB8g8r8a8Uscaled, gpu_types.FormatB8g8r8a8Sscaled,
+		gpu_types.FormatB8g8r8a8Uint, gpu_types.FormatB8g8r8a8Sint,
+		gpu_types.FormatB8g8r8a8Srgb, gpu_types.FormatA8b8g8r8UnormPack32,
+		gpu_types.FormatA8b8g8r8SnormPack32, gpu_types.FormatA8b8g8r8UscaledPack32,
+		gpu_types.FormatA8b8g8r8SscaledPack32, gpu_types.FormatA8b8g8r8UintPack32,
+		gpu_types.FormatA8b8g8r8SintPack32, gpu_types.FormatA8b8g8r8SrgbPack32,
+		gpu_types.FormatA2r10g10b10UnormPack32, gpu_types.FormatA2r10g10b10SnormPack32,
+		gpu_types.FormatA2r10g10b10UscaledPack32, gpu_types.FormatA2r10g10b10SscaledPack32,
+		gpu_types.FormatA2r10g10b10UintPack32, gpu_types.FormatA2r10g10b10SintPack32,
+		gpu_types.FormatA2b10g10r10UnormPack32, gpu_types.FormatA2b10g10r10SnormPack32,
+		gpu_types.FormatA2b10g10r10UscaledPack32, gpu_types.FormatA2b10g10r10SscaledPack32,
+		gpu_types.FormatA2b10g10r10UintPack32, gpu_types.FormatA2b10g10r10SintPack32,
+		gpu_types.FormatB10g11r11UfloatPack32, gpu_types.FormatE5b9g9r9UfloatPack32:
 		return 4
-	case GPUFormatR16g16b16Unorm, GPUFormatR16g16b16Snorm,
-		GPUFormatR16g16b16Uscaled, GPUFormatR16g16b16Sscaled,
-		GPUFormatR16g16b16Uint, GPUFormatR16g16b16Sint,
-		GPUFormatR16g16b16Sfloat:
+	case gpu_types.FormatR16g16b16Unorm, gpu_types.FormatR16g16b16Snorm,
+		gpu_types.FormatR16g16b16Uscaled, gpu_types.FormatR16g16b16Sscaled,
+		gpu_types.FormatR16g16b16Uint, gpu_types.FormatR16g16b16Sint,
+		gpu_types.FormatR16g16b16Sfloat:
 		return 6
-	case GPUFormatR32g32Uint, GPUFormatR32g32Sint, GPUFormatR32g32Sfloat,
-		GPUFormatR16g16b16a16Unorm, GPUFormatR16g16b16a16Snorm,
-		GPUFormatR16g16b16a16Uscaled, GPUFormatR16g16b16a16Sscaled,
-		GPUFormatR16g16b16a16Uint, GPUFormatR16g16b16a16Sint,
-		GPUFormatR16g16b16a16Sfloat, GPUFormatR64Uint,
-		GPUFormatR64Sint, GPUFormatR64Sfloat:
+	case gpu_types.FormatR32g32Uint, gpu_types.FormatR32g32Sint, gpu_types.FormatR32g32Sfloat,
+		gpu_types.FormatR16g16b16a16Unorm, gpu_types.FormatR16g16b16a16Snorm,
+		gpu_types.FormatR16g16b16a16Uscaled, gpu_types.FormatR16g16b16a16Sscaled,
+		gpu_types.FormatR16g16b16a16Uint, gpu_types.FormatR16g16b16a16Sint,
+		gpu_types.FormatR16g16b16a16Sfloat, gpu_types.FormatR64Uint,
+		gpu_types.FormatR64Sint, gpu_types.FormatR64Sfloat:
 		return 8
-	case GPUFormatR32g32b32Uint, GPUFormatR32g32b32Sint,
-		GPUFormatR32g32b32Sfloat:
+	case gpu_types.FormatR32g32b32Uint, gpu_types.FormatR32g32b32Sint,
+		gpu_types.FormatR32g32b32Sfloat:
 		return 12
-	case GPUFormatR32g32b32a32Uint, GPUFormatR32g32b32a32Sint,
-		GPUFormatR32g32b32a32Sfloat, GPUFormatR64g64Uint,
-		GPUFormatR64g64Sint, GPUFormatR64g64Sfloat:
+	case gpu_types.FormatR32g32b32a32Uint, gpu_types.FormatR32g32b32a32Sint,
+		gpu_types.FormatR32g32b32a32Sfloat, gpu_types.FormatR64g64Uint,
+		gpu_types.FormatR64g64Sint, gpu_types.FormatR64g64Sfloat:
 		return 16
-	case GPUFormatR64g64b64Uint, GPUFormatR64g64b64Sint,
-		GPUFormatR64g64b64Sfloat:
+	case gpu_types.FormatR64g64b64Uint, gpu_types.FormatR64g64b64Sint,
+		gpu_types.FormatR64g64b64Sfloat:
 		return 24
-	case GPUFormatR64g64b64a64Uint, GPUFormatR64g64b64a64Sint,
-		GPUFormatR64g64b64a64Sfloat:
+	case gpu_types.FormatR64g64b64a64Uint, gpu_types.FormatR64g64b64a64Sint,
+		gpu_types.FormatR64g64b64a64Sfloat:
 		return 32
 	default:
 		return BytesInPixel
@@ -425,18 +426,18 @@ func (g *GPUDevice) textureReadRegionImplWithBytesPerPixel(id *TextureId, rect m
 	}
 	origLayout := id.Layout
 	origAccess := id.Access
-	const transferSrcLayout = GPUImageLayoutTransferSrcOptimal
+	const transferSrcLayout = gpu_types.ImageLayoutTransferSrcOptimal
 	if origLayout != transferSrcLayout {
-		g.TransitionImageLayout(id, transferSrcLayout, GPUImageAspectColorBit, id.Access, nil)
+		g.TransitionImageLayout(id, transferSrcLayout, gpu_types.ImageAspectColorBit, id.Access, nil)
 	}
 	width, height := int(rect.Width()), int(rect.Height())
 	bufferSize := uintptr(width * height * bytesPerPixel)
 	stagingBuf, stagingMem, err := g.CreateBuffer(bufferSize,
-		GPUBufferUsageTransferDstBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		gpu_types.BufferUsageTransferDstBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		if origLayout != transferSrcLayout {
-			g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
+			g.TransitionImageLayout(id, origLayout, gpu_types.ImageAspectColorBit, origAccess, nil)
 		}
 		return []byte{}, fmt.Errorf("failed to create staging buffer")
 	}
@@ -458,17 +459,17 @@ func (g *GPUDevice) textureReadRegionImplWithBytesPerPixel(id *TextureId, rect m
 			Depth:  1,
 		},
 	}
-	vk.CmdCopyImageToBuffer(cmd.buffer, vk.Image(id.Image.handle),
-		transferSrcLayout.toVulkan(), vk.Buffer(stagingBuf.handle), 1, &region)
+	vk.CmdCopyImageToBuffer(cmd.buffer, vk.Image(id.Image.Handle),
+		transferSrcLayout.ToVulkan(), vk.Buffer(stagingBuf.Handle), 1, &region)
 	g.endSingleTimeCommands(cmd)
 	var mapped unsafe.Pointer
 	if err = g.MapMemory(stagingMem, 0, bufferSize, 0, &mapped); err != nil {
 		g.DestroyBuffer(stagingBuf)
-		g.LogicalDevice.dbg.remove(stagingBuf.handle)
+		g.LogicalDevice.dbg.remove(stagingBuf.Handle)
 		g.FreeMemory(stagingMem)
-		g.LogicalDevice.dbg.remove(stagingMem.handle)
+		g.LogicalDevice.dbg.remove(stagingMem.Handle)
 		if origLayout != transferSrcLayout {
-			g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
+			g.TransitionImageLayout(id, origLayout, gpu_types.ImageAspectColorBit, origAccess, nil)
 		}
 		return []byte{}, fmt.Errorf("failed to map staging memory")
 	}
@@ -477,11 +478,11 @@ func (g *GPUDevice) textureReadRegionImplWithBytesPerPixel(id *TextureId, rect m
 	copy(data, src)
 	g.UnmapMemory(stagingMem)
 	g.DestroyBuffer(stagingBuf)
-	g.LogicalDevice.dbg.remove(stagingBuf.handle)
+	g.LogicalDevice.dbg.remove(stagingBuf.Handle)
 	g.FreeMemory(stagingMem)
-	g.LogicalDevice.dbg.remove(stagingMem.handle)
+	g.LogicalDevice.dbg.remove(stagingMem.Handle)
 	if origLayout != transferSrcLayout {
-		g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
+		g.TransitionImageLayout(id, origLayout, gpu_types.ImageAspectColorBit, origAccess, nil)
 	}
 	return data, nil
 }
@@ -492,16 +493,16 @@ func (g *GPUDevice) textureReadPixelImpl(texture *Texture, x, y int) matrix.Colo
 	id := &texture.RenderId
 	origLayout := id.Layout
 	origAccess := id.Access
-	const transferSrcLayout = GPUImageLayoutTransferSrcOptimal
+	const transferSrcLayout = gpu_types.ImageLayoutTransferSrcOptimal
 	if origLayout != transferSrcLayout {
-		g.TransitionImageLayout(id, transferSrcLayout, GPUImageAspectColorBit, id.Access, nil)
+		g.TransitionImageLayout(id, transferSrcLayout, gpu_types.ImageAspectColorBit, id.Access, nil)
 	}
 	stagingBuf, stagingMem, err := g.CreateBuffer(4,
-		GPUBufferUsageTransferDstBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		gpu_types.BufferUsageTransferDstBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		if origLayout != transferSrcLayout {
-			g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
+			g.TransitionImageLayout(id, origLayout, gpu_types.ImageAspectColorBit, origAccess, nil)
 		}
 		return zero
 	}
@@ -527,28 +528,28 @@ func (g *GPUDevice) textureReadPixelImpl(texture *Texture, x, y int) matrix.Colo
 			Depth:  1,
 		},
 	}
-	vk.CmdCopyImageToBuffer(cmd.buffer, vk.Image(id.Image.handle),
-		transferSrcLayout.toVulkan(), vk.Buffer(stagingBuf.handle), 1, &region)
+	vk.CmdCopyImageToBuffer(cmd.buffer, vk.Image(id.Image.Handle),
+		transferSrcLayout.ToVulkan(), vk.Buffer(stagingBuf.Handle), 1, &region)
 	g.endSingleTimeCommands(cmd)
 	var pixelData unsafe.Pointer
 	if err = g.MapMemory(stagingMem, 0, 4, 0, &pixelData); err != nil {
 		g.DestroyBuffer(stagingBuf)
-		g.LogicalDevice.dbg.remove(stagingBuf.handle)
+		g.LogicalDevice.dbg.remove(stagingBuf.Handle)
 		g.FreeMemory(stagingMem)
-		g.LogicalDevice.dbg.remove(stagingMem.handle)
+		g.LogicalDevice.dbg.remove(stagingMem.Handle)
 		if origLayout != transferSrcLayout {
-			g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
+			g.TransitionImageLayout(id, origLayout, gpu_types.ImageAspectColorBit, origAccess, nil)
 		}
 		return zero
 	}
 	raw := *(*[4]byte)(pixelData)
 	g.UnmapMemory(stagingMem)
 	g.DestroyBuffer(stagingBuf)
-	g.LogicalDevice.dbg.remove(stagingBuf.handle)
+	g.LogicalDevice.dbg.remove(stagingBuf.Handle)
 	g.FreeMemory(stagingMem)
-	g.LogicalDevice.dbg.remove(stagingMem.handle)
+	g.LogicalDevice.dbg.remove(stagingMem.Handle)
 	if origLayout != transferSrcLayout {
-		g.TransitionImageLayout(id, origLayout, GPUImageAspectColorBit, origAccess, nil)
+		g.TransitionImageLayout(id, origLayout, gpu_types.ImageAspectColorBit, origAccess, nil)
 	}
 	return matrix.Color{
 		matrix.Float(raw[0]) / 255.0,
@@ -565,13 +566,13 @@ func (g *GPUDevice) textureWritePixelsImpl(texture *Texture, requests []GPUImage
 		layoutStateUnchanged = layoutState(iota)
 		layoutStateChanged
 		layoutStateFailed
-		layout = GPUImageLayoutTransferDstOptimal
-		flags  = GPUImageAspectColorBit
+		layout = gpu_types.ImageLayoutTransferDstOptimal
+		flags  = gpu_types.ImageAspectColorBit
 	)
 	id := &texture.RenderId
 	initLayout := id.Layout
 	state := layoutStateUnchanged
-	if initLayout != GPUImageLayoutTransferDstOptimal {
+	if initLayout != gpu_types.ImageLayoutTransferDstOptimal {
 		g.TransitionImageLayout(id, layout, flags, id.Access, nil)
 		state = layoutStateChanged
 	}
@@ -582,8 +583,8 @@ func (g *GPUDevice) textureWritePixelsImpl(texture *Texture, requests []GPUImage
 		}
 	}
 	if state == layoutStateChanged {
-		g.TransitionImageLayout(id, GPUImageLayoutShaderReadOnlyOptimal,
-			GPUImageAspectColorBit, id.Access, nil)
+		g.TransitionImageLayout(id, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+			gpu_types.ImageAspectColorBit, id.Access, nil)
 	}
 	return nil
 }

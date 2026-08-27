@@ -10,6 +10,7 @@ import (
 	"testing"
 	"weak"
 
+	"kaijuengine.com/rendering/gpu_types"
 	"kaijuengine.com/rendering/vulkan_const"
 )
 
@@ -156,7 +157,7 @@ func TestNewShaderAndReload(t *testing.T) {
 	if compute.Type != ShaderTypeCompute {
 		t.Fatalf("compute shader type = %v", compute.Type)
 	}
-	compute.RenderId.graphicsPipeline = GPUPipeline{GPUHandle{handle: testReadyMeshID().vertexBuffer.handle}}
+	compute.RenderId.graphicsPipeline = gpu_types.Pipeline{gpu_types.GpuHandle{Handle: testReadyMeshID().vertexBuffer.Handle}}
 	compute.Reload(ShaderDataCompiled{Name: "reloaded"})
 	if compute.RenderId.IsValid() || compute.ShaderDataName() != "reloaded" {
 		t.Fatalf("Reload did not clear render id/update data")

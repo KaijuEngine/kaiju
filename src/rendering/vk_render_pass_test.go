@@ -9,6 +9,8 @@ package rendering
 import (
 	"testing"
 	"unsafe"
+
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func TestActiveSubpassDescriptorSetUsesCommandSetDescriptors(t *testing.T) {
@@ -19,16 +21,16 @@ func TestActiveSubpassDescriptorSetUsesCommandSetDescriptors(t *testing.T) {
 	renderPass := RenderPass{
 		subpasses: []RenderPassSubpass{{}},
 	}
-	renderPass.subpasses[0].descriptorSets[1].handle = defaultHandle
-	targetSets := make([][maxFramesInFlight]GPUDescriptorSet, 1)
-	targetSets[0][1].handle = targetHandle
+	renderPass.subpasses[0].descriptorSets[1].Handle = defaultHandle
+	targetSets := make([][maxFramesInFlight]gpu_types.DescriptorSet, 1)
+	targetSets[0][1].Handle = targetHandle
 	renderPass.activeCmds = &RenderPassCommandSet{
 		subpassDescriptorSets: targetSets,
 	}
 
 	got := renderPass.activeSubpassDescriptorSet(0, 1)
-	if got.handle != targetHandle {
-		t.Fatalf("active target descriptor = %p, want %p", got.handle, targetHandle)
+	if got.Handle != targetHandle {
+		t.Fatalf("active target descriptor = %p, want %p", got.Handle, targetHandle)
 	}
 }
 
@@ -39,10 +41,10 @@ func TestActiveSubpassDescriptorSetUsesDefaultDescriptors(t *testing.T) {
 	renderPass := RenderPass{
 		subpasses: []RenderPassSubpass{{}},
 	}
-	renderPass.subpasses[0].descriptorSets[2].handle = defaultHandle
+	renderPass.subpasses[0].descriptorSets[2].Handle = defaultHandle
 
 	got := renderPass.activeSubpassDescriptorSet(0, 2)
-	if got.handle != defaultHandle {
-		t.Fatalf("default descriptor = %p, want %p", got.handle, defaultHandle)
+	if got.Handle != defaultHandle {
+		t.Fatalf("default descriptor = %p, want %p", got.Handle, defaultHandle)
 	}
 }

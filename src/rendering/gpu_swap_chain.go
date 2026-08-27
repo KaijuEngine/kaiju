@@ -14,21 +14,22 @@ import (
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type GPUSwapChain struct {
-	GPUHandle
+	gpu_types.GpuHandle
 	Images                   []TextureId
 	Extent                   matrix.Vec2i
 	Depth                    TextureId
 	Color                    TextureId
-	FrameBuffers             []GPUFrameBuffer
+	FrameBuffers             []gpu_types.FrameBuffer
 	clearColorOverride       matrix.Color
 	hasClearColorOverride    bool
 	renderPass               *RenderPass
-	renderFinishedSemaphores []GPUSemaphore
-	imageSemaphores          [maxFramesInFlight]GPUSemaphore
-	renderFences             [maxFramesInFlight]GPUFence
+	renderFinishedSemaphores []gpu_types.Semaphore
+	imageSemaphores          [maxFramesInFlight]gpu_types.Semaphore
+	renderFences             [maxFramesInFlight]gpu_types.Fence
 }
 
 func (g *GPUSwapChain) CopyAndReset() GPUSwapChain {
@@ -106,18 +107,18 @@ func (g *GPUSwapChain) CreateFrameBuffer(device *GPUDevice) error {
 	return g.createFrameBufferImpl(device)
 }
 
-func (g *GPUSwapChain) SelectSurfaceFormat(device *GPUPhysicalDevice) GPUSurfaceFormat {
+func (g *GPUSwapChain) SelectSurfaceFormat(device *GPUPhysicalDevice) gpu_types.SurfaceFormat {
 	defer tracing.NewRegion("GPUSwapChain.SelectSurfaceFormat").End()
-	var targetFormat *GPUSurfaceFormat = nil
-	var fallbackFormat *GPUSurfaceFormat = nil
+	var targetFormat *gpu_types.SurfaceFormat = nil
+	var fallbackFormat *gpu_types.SurfaceFormat = nil
 	for i := range device.SurfaceFormats {
 		surfFormat := &device.SurfaceFormats[i]
 		switch surfFormat.Format {
-		case GPUFormatR8g8b8a8Srgb:
+		case gpu_types.FormatR8g8b8a8Srgb:
 			fallbackFormat = surfFormat
-		case GPUFormatB8g8r8a8Unorm:
+		case gpu_types.FormatB8g8r8a8Unorm:
 			fallbackFormat = surfFormat
-		case GPUFormatR8g8b8a8Unorm:
+		case gpu_types.FormatR8g8b8a8Unorm:
 			targetFormat = surfFormat
 		}
 	}
@@ -131,10 +132,10 @@ func (g *GPUSwapChain) SelectSurfaceFormat(device *GPUPhysicalDevice) GPUSurface
 	return *targetFormat
 }
 
-func (g *GPUSwapChain) SelectPresentMode(device *GPUPhysicalDevice) GPUPresentMode {
+func (g *GPUSwapChain) SelectPresentMode(device *GPUPhysicalDevice) gpu_types.PresentMode {
 	defer tracing.NewRegion("GPUSwapChain.SelectPresentMode").End()
 	for i := range device.PresentModes {
-		if device.PresentModes[i] == GPUPresentModeMailbox {
+		if device.PresentModes[i] == gpu_types.PresentModeMailbox {
 			return device.PresentModes[i]
 		}
 	}
@@ -199,11 +200,11 @@ func (g *GPUSwapChain) resetSyncObjects(device *GPUDevice) {
 	for i := range maxFramesInFlight {
 		if g.imageSemaphores[i].IsValid() {
 			ld.DestroySemaphore(&g.imageSemaphores[i])
-			ld.dbg.remove(g.imageSemaphores[i].handle)
+			ld.dbg.remove(g.imageSemaphores[i].Handle)
 		}
 		if g.renderFences[i].IsValid() {
 			ld.DestroyFence(&g.renderFences[i])
-			ld.dbg.remove(g.renderFences[i].handle)
+			ld.dbg.remove(g.renderFences[i].Handle)
 		}
 		g.imageSemaphores[i].Reset()
 		g.renderFences[i].Reset()

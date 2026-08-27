@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"testing"
 	"unsafe"
+
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 var bufferDestroyerTestHandles [32]byte
@@ -18,15 +20,15 @@ type recordingBufferTrashReleaser struct {
 	events []string
 }
 
-func (r *recordingBufferTrashReleaser) FreeDescriptorSets(pool GPUDescriptorPool, sets []GPUDescriptorSet) {
+func (r *recordingBufferTrashReleaser) FreeDescriptorSets(pool gpu_types.DescriptorPool, sets []gpu_types.DescriptorSet) {
 	r.events = append(r.events, fmt.Sprintf("free-descriptor-sets:%d", len(sets)))
 }
 
-func (r *recordingBufferTrashReleaser) DestroyBuffer(GPUBuffer) {
+func (r *recordingBufferTrashReleaser) DestroyBuffer(gpu_types.Buffer) {
 	r.events = append(r.events, "destroy-buffer")
 }
 
-func (r *recordingBufferTrashReleaser) FreeMemory(GPUDeviceMemory) {
+func (r *recordingBufferTrashReleaser) FreeMemory(gpu_types.DeviceMemory) {
 	r.events = append(r.events, "free-memory")
 }
 
@@ -44,8 +46,8 @@ func TestBufferDestroyerFreesDescriptorSetsBeforeBuffers(t *testing.T) {
 	trash.sets[3] = testDescriptorSetHandle(2)
 	trash.buffers[0] = testBufferHandle(3)
 	trash.memories[0] = testMemoryHandle(4)
-	trash.namedBuffers[0] = []GPUBuffer{testBufferHandle(5)}
-	trash.namedMemories[0] = []GPUDeviceMemory{testMemoryHandle(6)}
+	trash.namedBuffers[0] = []gpu_types.Buffer{testBufferHandle(5)}
+	trash.namedMemories[0] = []gpu_types.DeviceMemory{testMemoryHandle(6)}
 
 	destroyer := bufferDestroyer{releaser: recorder}
 	destroyer.Add(trash)
@@ -75,7 +77,7 @@ func TestBufferDestroyerHonorsDelayBeforeReleasing(t *testing.T) {
 	trash := bufferTrash{
 		delay:   2,
 		pool:    testDescriptorPoolHandle(7),
-		buffers: [maxFramesInFlight]GPUBuffer{testBufferHandle(8)},
+		buffers: [maxFramesInFlight]gpu_types.Buffer{testBufferHandle(8)},
 	}
 	trash.sets[0] = testDescriptorSetHandle(9)
 
@@ -96,24 +98,24 @@ func TestBufferDestroyerHonorsDelayBeforeReleasing(t *testing.T) {
 	}
 }
 
-func testDescriptorPoolHandle(index int) GPUDescriptorPool {
-	return GPUDescriptorPool{GPUHandle{handle: testBufferDestroyerHandle(index)}}
+func testDescriptorPoolHandle(index int) gpu_types.DescriptorPool {
+	return gpu_types.DescriptorPool{gpu_types.GpuHandle{Handle: testBufferDestroyerHandle(index)}}
 }
 
-func testDescriptorSetHandle(index int) GPUDescriptorSet {
-	return GPUDescriptorSet{GPUHandle{handle: testBufferDestroyerHandle(index)}}
+func testDescriptorSetHandle(index int) gpu_types.DescriptorSet {
+	return gpu_types.DescriptorSet{gpu_types.GpuHandle{Handle: testBufferDestroyerHandle(index)}}
 }
 
-func testDescriptorSetLayoutHandle(index int) GPUDescriptorSetLayout {
-	return GPUDescriptorSetLayout{GPUHandle{handle: testBufferDestroyerHandle(index)}}
+func testDescriptorSetLayoutHandle(index int) gpu_types.DescriptorSetLayout {
+	return gpu_types.DescriptorSetLayout{gpu_types.GpuHandle{Handle: testBufferDestroyerHandle(index)}}
 }
 
-func testBufferHandle(index int) GPUBuffer {
-	return GPUBuffer{GPUHandle{handle: testBufferDestroyerHandle(index)}}
+func testBufferHandle(index int) gpu_types.Buffer {
+	return gpu_types.Buffer{gpu_types.GpuHandle{Handle: testBufferDestroyerHandle(index)}}
 }
 
-func testMemoryHandle(index int) GPUDeviceMemory {
-	return GPUDeviceMemory{GPUHandle{handle: testBufferDestroyerHandle(index)}}
+func testMemoryHandle(index int) gpu_types.DeviceMemory {
+	return gpu_types.DeviceMemory{gpu_types.GpuHandle{Handle: testBufferDestroyerHandle(index)}}
 }
 
 func testBufferDestroyerHandle(index int) unsafe.Pointer {

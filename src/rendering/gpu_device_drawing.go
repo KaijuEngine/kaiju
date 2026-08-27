@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func (g *GPUDevice) Draw(renderPass *RenderPass, drawings []ShaderDraw, lights LightsForRender, shadows []TextureId, layerMask RenderLayerMask) {
@@ -137,8 +138,8 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 		var err error
 		for i := 0; i < maxFramesInFlight; i++ {
 			state.instanceBuffer.buffers[i], state.instanceBuffer.memories[i], err = g.CreateBuffer(iSize*uintptr(capacity),
-				GPUBufferUsageVertexBufferBit|GPUBufferUsageTransferDstBit,
-				GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+				gpu_types.BufferUsageVertexBufferBit|gpu_types.BufferUsageTransferDstBit,
+				gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 			if err != nil {
 				return err
 			}
@@ -155,8 +156,8 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 					buff.bindingId = b.Binding
 					for j := 0; j < maxFramesInFlight; j++ {
 						buff.buffers[j], buff.memories[j], err = g.CreateBuffer(buff.size,
-							GPUBufferUsageVertexBufferBit|GPUBufferUsageTransferDstBit|GPUBufferUsageStorageBufferBit,
-							GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+							gpu_types.BufferUsageVertexBufferBit|gpu_types.BufferUsageTransferDstBit|gpu_types.BufferUsageStorageBufferBit,
+							gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 						if err != nil {
 							return err
 						}

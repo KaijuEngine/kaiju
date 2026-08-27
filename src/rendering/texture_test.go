@@ -17,6 +17,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func testPNG(t *testing.T, pixels []color.RGBA, width, height int) []byte {
@@ -211,7 +212,7 @@ func TestTextureSetPendingDataDimensions(t *testing.T) {
 }
 
 func TestTextureReadRegionBufferSizeClamps(t *testing.T) {
-	id := TextureId{Width: 10, Height: 5, Format: GPUFormatR32Uint}
+	id := TextureId{Width: 10, Height: 5, Format: gpu_types.FormatR32Uint}
 	rect, size, err := textureReadRegionBufferSize(&id, matrix.Vec4i{-2, 1, 5, 9})
 	if err != nil {
 		t.Fatalf("textureReadRegionBufferSize returned error: %v", err)
@@ -225,7 +226,7 @@ func TestTextureReadRegionBufferSizeClamps(t *testing.T) {
 }
 
 func TestTextureReadRegionBufferSizeValidates(t *testing.T) {
-	id := TextureId{Width: 10, Height: 5, Format: GPUFormatR32Uint}
+	id := TextureId{Width: 10, Height: 5, Format: gpu_types.FormatR32Uint}
 	cases := []matrix.Vec4i{
 		{0, 0, 0, 1},
 		{0, 0, 1, -1},
@@ -240,7 +241,7 @@ func TestTextureReadRegionBufferSizeValidates(t *testing.T) {
 }
 
 func TestTextureReadRegionFullReadByteSizeUnchanged(t *testing.T) {
-	id := TextureId{Width: 7, Height: 3, Format: GPUFormatR8Unorm}
+	id := TextureId{Width: 7, Height: 3, Format: gpu_types.FormatR8Unorm}
 	_, size, err := textureReadFullBufferSize(&id)
 	if err != nil {
 		t.Fatalf("textureReadFullBufferSize returned error: %v", err)

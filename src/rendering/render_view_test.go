@@ -6,7 +6,11 @@
 
 package rendering
 
-import "testing"
+import (
+	"testing"
+
+	"kaijuengine.com/rendering/gpu_types"
+)
 
 func TestRenderViewManagerSortsDeterministically(t *testing.T) {
 	manager := NewRenderViewManager(RenderViewOptions{
@@ -250,8 +254,8 @@ func TestDestroyRenderViewResourcesDefersGlobalUniformsAfterViewDescriptors(t *t
 	device := &GPUDevice{
 		globalUniforms: map[*RenderView]*globalUniformBufferSet{
 			view: {
-				buffers: [maxFramesInFlight]GPUBuffer{testBufferHandle(12)},
-				memory:  [maxFramesInFlight]GPUDeviceMemory{testMemoryHandle(13)},
+				buffers: [maxFramesInFlight]gpu_types.Buffer{testBufferHandle(12)},
+				memory:  [maxFramesInFlight]gpu_types.DeviceMemory{testMemoryHandle(13)},
 			},
 		},
 	}

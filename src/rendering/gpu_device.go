@@ -16,21 +16,22 @@ import (
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type GPUDevice struct {
 	PhysicalDevice             GPUPhysicalDevice
 	LogicalDevice              GPULogicalDevice
 	Painter                    GPUPainter
-	globalUniformBuffers       [maxFramesInFlight]GPUBuffer
-	globalUniformBuffersMemory [maxFramesInFlight]GPUDeviceMemory
+	globalUniformBuffers       [maxFramesInFlight]gpu_types.Buffer
+	globalUniformBuffersMemory [maxFramesInFlight]gpu_types.DeviceMemory
 	globalUniforms             map[*RenderView]*globalUniformBufferSet
 	singleTimeCommandPool      pooling.PoolGroup[CommandRecorder]
 }
 
 type globalUniformBufferSet struct {
-	buffers [maxFramesInFlight]GPUBuffer
-	memory  [maxFramesInFlight]GPUDeviceMemory
+	buffers [maxFramesInFlight]gpu_types.Buffer
+	memory  [maxFramesInFlight]gpu_types.DeviceMemory
 }
 
 func (g *GPUDevice) QueueCompute(buffer *ComputeShaderBuffer) {
@@ -54,7 +55,7 @@ func (g *GPUDevice) CreateSwapChain(window RenderingContainer, inst *GPUApplicat
 	return g.LogicalDevice.SwapChain.Setup(window, inst, g)
 }
 
-func (g *GPUDevice) MapMemory(memory GPUDeviceMemory, offset uintptr, size uintptr, flags GPUMemoryFlags, out *unsafe.Pointer) error {
+func (g *GPUDevice) MapMemory(memory gpu_types.DeviceMemory, offset uintptr, size uintptr, flags gpu_types.MemoryFlags, out *unsafe.Pointer) error {
 	defer tracing.NewRegion("GPUDevice.CreateImage").End()
 	return g.mapMemoryImpl(memory, offset, size, flags, out)
 }
@@ -64,37 +65,37 @@ func (g *GPUDevice) Memcopy(dst unsafe.Pointer, src []byte) int {
 	return g.memcopyImpl(dst, src)
 }
 
-func (g *GPUDevice) UnmapMemory(memory GPUDeviceMemory) {
+func (g *GPUDevice) UnmapMemory(memory gpu_types.DeviceMemory) {
 	defer tracing.NewRegion("GPUDevice.UnmapMemory").End()
 	g.unmapMemoryImpl(memory)
 }
 
-func (g *GPUDevice) CreateBuffer(size uintptr, usage GPUBufferUsageFlags, properties GPUMemoryPropertyFlags) (GPUBuffer, GPUDeviceMemory, error) {
+func (g *GPUDevice) CreateBuffer(size uintptr, usage gpu_types.BufferUsageFlags, properties gpu_types.MemoryPropertyFlags) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
 	defer tracing.NewRegion("GPUDevice.CreateBuffer").End()
 	return g.createBufferImpl(size, usage, properties)
 }
 
-func (g *GPUDevice) DestroyBuffer(buffer GPUBuffer) {
+func (g *GPUDevice) DestroyBuffer(buffer gpu_types.Buffer) {
 	defer tracing.NewRegion("GPUDevice.DestroyBuffer").End()
 	g.destroyBufferImpl(buffer)
 }
 
-func (g *GPUDevice) FreeMemory(memory GPUDeviceMemory) {
+func (g *GPUDevice) FreeMemory(memory gpu_types.DeviceMemory) {
 	defer tracing.NewRegion("GPUDevice.FreeMemory").End()
 	g.freeMemoryImpl(memory)
 }
 
-func (g *GPUDevice) CreateFrameBuffer(renderPass *RenderPass, attachments []GPUImageView, width, height int32) (GPUFrameBuffer, error) {
+func (g *GPUDevice) CreateFrameBuffer(renderPass *RenderPass, attachments []gpu_types.ImageView, width, height int32) (gpu_types.FrameBuffer, error) {
 	defer tracing.NewRegion("GPULogicalDevice.CreateFrameBuffer").End()
 	return g.createFrameBufferImpl(renderPass, attachments, width, height)
 }
 
-func (g *GPUDevice) DestroyFrameBuffer(frameBuffer GPUFrameBuffer) {
+func (g *GPUDevice) DestroyFrameBuffer(frameBuffer gpu_types.FrameBuffer) {
 	defer tracing.NewRegion("GPULogicalDevice.DestroyFrameBuffer").End()
 	g.destroyFrameBufferImpl(frameBuffer)
 }
 
-func (g *GPUDevice) CopyBuffer(srcBuffer GPUBuffer, dstBuffer GPUBuffer, size uintptr) {
+func (g *GPUDevice) CopyBuffer(srcBuffer gpu_types.Buffer, dstBuffer gpu_types.Buffer, size uintptr) {
 	defer tracing.NewRegion("GPULogicalDevice.CreateFrameBuffer").End()
 	g.copyBufferImpl(srcBuffer, dstBuffer, size)
 }
@@ -105,7 +106,7 @@ func (g *GPUDevice) Screenshot() ([]byte, error) {
 	if !s.IsValid() || len(s.Images) == 0 {
 		return nil, fmt.Errorf("cannot capture screenshot without a valid swap chain")
 	}
-	if g.PhysicalDevice.SurfaceCapabilities.SupportedUsageFlags&GPUImageUsageTransferSrcBit == 0 {
+	if g.PhysicalDevice.SurfaceCapabilities.SupportedUsageFlags&gpu_types.ImageUsageTransferSrcBit == 0 {
 		return nil, fmt.Errorf("swap chain images do not support transfer source usage")
 	}
 	frame := g.Painter.currentFrame - 1
@@ -149,7 +150,7 @@ func (g *GPUDevice) swapChainIsBGRA() bool {
 		return false
 	}
 	switch s.Images[0].Format {
-	case GPUFormatB8g8r8a8Unorm, GPUFormatB8g8r8a8Srgb:
+	case gpu_types.FormatB8g8r8a8Unorm, gpu_types.FormatB8g8r8a8Srgb:
 		return true
 	default:
 		return false
@@ -181,8 +182,8 @@ func (g *GPUDevice) createGlobalUniformBufferSet() (*globalUniformBufferSet, err
 	bufferSize := unsafe.Sizeof(*(*GlobalShaderData)(nil))
 	state := &globalUniformBufferSet{}
 	for i := range g.LogicalDevice.SwapChain.Images {
-		b, m, err := g.CreateBuffer(bufferSize, GPUBufferUsageUniformBufferBit,
-			GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		b, m, err := g.CreateBuffer(bufferSize, gpu_types.BufferUsageUniformBufferBit,
+			gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 		if err != nil {
 			return nil, err
 		}
@@ -197,8 +198,8 @@ func (g *GPUDevice) destroyGlobalUniforms() {
 		g.destroyGlobalUniformBufferSet(state)
 	}
 	g.globalUniforms = nil
-	g.globalUniformBuffers = [maxFramesInFlight]GPUBuffer{}
-	g.globalUniformBuffersMemory = [maxFramesInFlight]GPUDeviceMemory{}
+	g.globalUniformBuffers = [maxFramesInFlight]gpu_types.Buffer{}
+	g.globalUniformBuffersMemory = [maxFramesInFlight]gpu_types.DeviceMemory{}
 }
 
 func (g *GPUDevice) destroyGlobalUniformBufferSet(state *globalUniformBufferSet) {
@@ -260,10 +261,10 @@ func (g *GPUDevice) ensureGlobalUniformsForView(view *RenderView) (*globalUnifor
 	return state, nil
 }
 
-func (g *GPUDevice) globalUniformBuffer(view *RenderView, frame int) (GPUBuffer, error) {
+func (g *GPUDevice) globalUniformBuffer(view *RenderView, frame int) (gpu_types.Buffer, error) {
 	state, err := g.ensureGlobalUniformsForView(view)
 	if err != nil {
-		return GPUBuffer{}, err
+		return gpu_types.Buffer{}, err
 	}
 	return state.buffers[frame], nil
 }

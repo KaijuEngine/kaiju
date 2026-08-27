@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type GPUPhysicalDevice struct {
@@ -20,14 +21,14 @@ type GPUPhysicalDevice struct {
 	Properties          GPUPhysicalDeviceProperties
 	QueueFamilies       []GPUQueueFamily
 	Extensions          []GPUPhysicalDeviceExtension
-	SurfaceFormats      []GPUSurfaceFormat
-	PresentModes        []GPUPresentMode
-	SurfaceCapabilities GPUSurfaceCapabilities
+	SurfaceFormats      []gpu_types.SurfaceFormat
+	PresentModes        []gpu_types.PresentMode
+	SurfaceCapabilities gpu_types.SurfaceCapabilities
 }
 
 type GPUPhysicalDeviceMemoryProperties struct {
-	MemoryTypes []GPUMemoryType
-	MemoryHeaps []GPUMemoryHeap
+	MemoryTypes []gpu_types.MemoryType
+	MemoryHeaps []gpu_types.MemoryHeap
 }
 
 type GPUPhysicalDeviceExtension struct {
@@ -98,7 +99,7 @@ type GPUPhysicalDeviceProperties struct {
 	DriverVersion     uint32
 	VendorID          uint32
 	DeviceID          uint32
-	DeviceType        GPUPhysicalDeviceType
+	DeviceType        gpu_types.PhysicalDeviceType
 	DeviceName        string
 	PipelineCacheUUID string
 	Limits            GPUPhysicalDeviceLimits
@@ -186,16 +187,16 @@ type GPUPhysicalDeviceLimits struct {
 	MaxFramebufferWidth                             uint32
 	MaxFramebufferHeight                            uint32
 	MaxFramebufferLayers                            uint32
-	FramebufferColorSampleCounts                    GPUSampleCountFlags
-	FramebufferDepthSampleCounts                    GPUSampleCountFlags
-	FramebufferStencilSampleCounts                  GPUSampleCountFlags
-	FramebufferNoAttachmentsSampleCounts            GPUSampleCountFlags
+	FramebufferColorSampleCounts                    gpu_types.SampleCountFlags
+	FramebufferDepthSampleCounts                    gpu_types.SampleCountFlags
+	FramebufferStencilSampleCounts                  gpu_types.SampleCountFlags
+	FramebufferNoAttachmentsSampleCounts            gpu_types.SampleCountFlags
 	MaxColorAttachments                             uint32
-	SampledImageColorSampleCounts                   GPUSampleCountFlags
-	SampledImageIntegerSampleCounts                 GPUSampleCountFlags
-	SampledImageDepthSampleCounts                   GPUSampleCountFlags
-	SampledImageStencilSampleCounts                 GPUSampleCountFlags
-	StorageImageSampleCounts                        GPUSampleCountFlags
+	SampledImageColorSampleCounts                   gpu_types.SampleCountFlags
+	SampledImageIntegerSampleCounts                 gpu_types.SampleCountFlags
+	SampledImageDepthSampleCounts                   gpu_types.SampleCountFlags
+	SampledImageStencilSampleCounts                 gpu_types.SampleCountFlags
+	StorageImageSampleCounts                        gpu_types.SampleCountFlags
 	MaxSampleMaskWords                              uint32
 	TimestampComputeAndGraphics                     bool
 	TimestampPeriod                                 float32
@@ -269,23 +270,23 @@ func (g *GPUPhysicalDevice) IsExtensionSupported(extension string) bool {
 	return false
 }
 
-func (g *GPUPhysicalDevice) MaxUsableSampleCount() GPUSampleCountFlags {
+func (g *GPUPhysicalDevice) MaxUsableSampleCount() gpu_types.SampleCountFlags {
 	defer tracing.NewRegion("GPUPhysicalDevice.MaxUsableSampleCount").End()
 	return g.maxUsableSampleCount()
 }
 
-func (g *GPUPhysicalDevice) FormatProperties(format GPUFormat) GPUFormatProperties {
+func (g *GPUPhysicalDevice) FormatProperties(format gpu_types.Format) gpu_types.FormatProperties {
 	defer tracing.NewRegion("GPUPhysicalDevice.FormatProperties").End()
 	return g.formatPropertiesImpl(format)
 }
 
-func (g *GPUPhysicalDevice) FindSupportedFormat(candidates []GPUFormat, tiling GPUImageTiling, features GPUFormatFeatureFlags) GPUFormat {
+func (g *GPUPhysicalDevice) FindSupportedFormat(candidates []gpu_types.Format, tiling gpu_types.ImageTiling, features gpu_types.FormatFeatureFlags) gpu_types.Format {
 	for i := 0; i < len(candidates); i++ {
 		format := candidates[i]
 		props := g.FormatProperties(format)
-		if tiling == GPUImageTilingLinear && (props.LinearTilingFeatures&features) == features {
+		if tiling == gpu_types.ImageTilingLinear && (props.LinearTilingFeatures&features) == features {
 			return format
-		} else if tiling == GPUImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
+		} else if tiling == gpu_types.ImageTilingOptimal && (props.OptimalTilingFeatures&features) == features {
 			return format
 		}
 	}
@@ -294,7 +295,7 @@ func (g *GPUPhysicalDevice) FindSupportedFormat(candidates []GPUFormat, tiling G
 	return candidates[0]
 }
 
-func (g *GPUPhysicalDevice) FindMemoryType(typeFilter uint32, properties GPUMemoryPropertyFlags) int {
+func (g *GPUPhysicalDevice) FindMemoryType(typeFilter uint32, properties gpu_types.MemoryPropertyFlags) int {
 	defer tracing.NewRegion("GPUPhysicalDevice.FindMemoryType").End()
 	return g.findMemoryTypeImpl(typeFilter, properties)
 }
@@ -376,18 +377,18 @@ func selectPhysicalDeviceDefaltMethod(options []GPUPhysicalDevice) int {
 	return selectedIndex
 }
 
-func isPhysicalDeviceBetterType(a GPUPhysicalDeviceType, b GPUPhysicalDeviceType) bool {
+func isPhysicalDeviceBetterType(a gpu_types.PhysicalDeviceType, b gpu_types.PhysicalDeviceType) bool {
 	defer tracing.NewRegion("rendering.isPhysicalDeviceBetterType").End()
 	type score struct {
-		deviceType GPUPhysicalDeviceType
+		deviceType gpu_types.PhysicalDeviceType
 		score      int
 	}
 	scores := []score{
-		{GPUPhysicalDeviceTypeCpu, 1},
-		{GPUPhysicalDeviceTypeOther, 1},
-		{GPUPhysicalDeviceTypeVirtualGpu, 1},
-		{GPUPhysicalDeviceTypeIntegratedGpu, 2},
-		{GPUPhysicalDeviceTypeDiscreteGpu, 3},
+		{gpu_types.PhysicalDeviceTypeCpu, 1},
+		{gpu_types.PhysicalDeviceTypeOther, 1},
+		{gpu_types.PhysicalDeviceTypeVirtualGpu, 1},
+		{gpu_types.PhysicalDeviceTypeIntegratedGpu, 2},
+		{gpu_types.PhysicalDeviceTypeDiscreteGpu, 3},
 	}
 	aScore, bScore := 0, 0
 	for i := 0; i < len(scores); i++ {
@@ -401,14 +402,14 @@ func isPhysicalDeviceBetterType(a GPUPhysicalDeviceType, b GPUPhysicalDeviceType
 	return aScore > bScore
 }
 
-func (g *GPUPhysicalDevice) FormatIsTileable(format GPUFormat, tiling GPUImageTiling) bool {
+func (g *GPUPhysicalDevice) FormatIsTileable(format gpu_types.Format, tiling gpu_types.ImageTiling) bool {
 	defer tracing.NewRegion("GPUPhysicalDevice.FormatIsTileable").End()
 	props := g.FormatProperties(format)
 	switch tiling {
-	case GPUImageTilingOptimal:
-		return (props.OptimalTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) != 0
-	case GPUImageTilingLinear:
-		return (props.LinearTilingFeatures & GPUFormatFeatureSampledImageFilterLinearBit) != 0
+	case gpu_types.ImageTilingOptimal:
+		return (props.OptimalTilingFeatures & gpu_types.FormatFeatureSampledImageFilterLinearBit) != 0
+	case gpu_types.ImageTilingLinear:
+		return (props.LinearTilingFeatures & gpu_types.FormatFeatureSampledImageFilterLinearBit) != 0
 	default:
 		return false
 	}

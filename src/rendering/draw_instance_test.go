@@ -12,6 +12,7 @@ import (
 
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type testDrawInstance struct {
@@ -469,7 +470,7 @@ func TestDestroyGroupDescriptorSetsKeepsInstanceBuffers(t *testing.T) {
 	state.descriptorSets[0] = testDescriptorSetHandle(4)
 	state.descriptorLayout = testDescriptorSetLayoutHandle(5)
 	state.instanceBuffer.buffers[0] = testBufferHandle(6)
-	state.boundBuffers = []ShaderBuffer{{buffers: [maxFramesInFlight]GPUBuffer{testBufferHandle(7)}}}
+	state.boundBuffers = []ShaderBuffer{{buffers: [maxFramesInFlight]gpu_types.Buffer{testBufferHandle(7)}}}
 	state.descriptorCache.ShouldWrite(0, NewDescriptorWriteSignature())
 
 	device := &GPUDevice{}

@@ -6,7 +6,11 @@
 
 package rendering
 
-import "log/slog"
+import (
+	"log/slog"
+
+	"kaijuengine.com/rendering/gpu_enums"
+)
 
 const renderViewWireframeShaderKey = "render-view-wireframe"
 
@@ -75,8 +79,8 @@ func applyRenderViewPipelineOverride(pipeline ShaderPipelineDataCompiled, overri
 	switch override {
 	case RenderViewPipelineOverrideWireframe:
 		pipeline.Name += ".wireframe"
-		pipeline.Rasterization.PolygonMode = GPUPolygonModeLine
-		pipeline.Rasterization.CullMode = GPUCullModeNone
+		pipeline.Rasterization.PolygonMode = gpu_enums.PolygonModeLine
+		pipeline.Rasterization.CullMode = gpu_enums.CullModeNone
 		if pipeline.Rasterization.LineWidth <= 0 {
 			pipeline.Rasterization.LineWidth = 1
 		}

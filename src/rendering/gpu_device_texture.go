@@ -11,6 +11,7 @@ import (
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type TextureUploadBatch struct {
@@ -60,7 +61,7 @@ func (g *GPUDevice) SetupTextureInBatch(texture *Texture, data *TextureData, bat
 	return g.setupTextureImpl(texture, data, batch)
 }
 
-func (g *GPUDevice) GenerateMipMaps(texId *TextureId, imageFormat GPUFormat, texWidth, texHeight, mipLevels uint32, filter GPUFilter) error {
+func (g *GPUDevice) GenerateMipMaps(texId *TextureId, imageFormat gpu_types.Format, texWidth, texHeight, mipLevels uint32, filter gpu_types.Filter) error {
 	defer tracing.NewRegion("GPUDevice.GenerateMipMaps").End()
 	return g.generateMipMapsImpl(texId, imageFormat, texWidth, texHeight, mipLevels, filter)
 }

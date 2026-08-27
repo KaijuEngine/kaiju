@@ -14,6 +14,8 @@ import (
 	"strconv"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/gpu_enums"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type RenderPassData struct {
@@ -135,14 +137,14 @@ type RenderPassSubpassDataCompiled struct {
 }
 
 type RenderPassAttachmentDescriptionCompiled struct {
-	Format         GPUFormat
-	Samples        GPUSampleCountFlags
-	LoadOp         GPUAttachmentLoadOp
-	StoreOp        GPUAttachmentStoreOp
-	StencilLoadOp  GPUAttachmentLoadOp
-	StencilStoreOp GPUAttachmentStoreOp
-	InitialLayout  GPUImageLayout
-	FinalLayout    GPUImageLayout
+	Format         gpu_types.Format
+	Samples        gpu_types.SampleCountFlags
+	LoadOp         gpu_types.AttachmentLoadOp
+	StoreOp        gpu_types.AttachmentStoreOp
+	StencilLoadOp  gpu_types.AttachmentLoadOp
+	StencilStoreOp gpu_types.AttachmentStoreOp
+	InitialLayout  gpu_types.ImageLayout
+	FinalLayout    gpu_types.ImageLayout
 	Image          RenderPassAttachmentImageCompiled
 }
 
@@ -159,16 +161,16 @@ type RenderPassAttachmentImageCompiled struct {
 	ExistingImage  string
 	MipLevels      uint32
 	LayerCount     uint32
-	Tiling         GPUImageTiling
-	Filter         GPUFilter
-	Usage          GPUImageUsageFlags
-	MemoryProperty GPUMemoryPropertyFlags
-	Aspect         GPUImageAspectFlags
-	Access         GPUAccessFlags
+	Tiling         gpu_types.ImageTiling
+	Filter         gpu_types.Filter
+	Usage          gpu_types.ImageUsageFlags
+	MemoryProperty gpu_types.MemoryPropertyFlags
+	Aspect         gpu_types.ImageAspectFlags
+	Access         gpu_types.AccessFlags
 }
 
 type RenderPassSubpassDescriptionCompiled struct {
-	PipelineBindPoint         GPUPipelineBindPoint
+	PipelineBindPoint         gpu_enums.PipelineBindPoint
 	ColorAttachmentReferences []RenderPassAttachmentReferenceCompiled
 	InputAttachmentReferences []RenderPassAttachmentReferenceCompiled
 	ResolveAttachments        []RenderPassAttachmentReferenceCompiled
@@ -178,17 +180,17 @@ type RenderPassSubpassDescriptionCompiled struct {
 
 type RenderPassAttachmentReferenceCompiled struct {
 	Attachment uint32
-	Layout     GPUImageLayout
+	Layout     gpu_types.ImageLayout
 }
 
 type RenderPassSubpassDependencyCompiled struct {
 	SrcSubpass      uint32
 	DstSubpass      uint32
-	SrcStageMask    GPUPipelineStageFlags
-	DstStageMask    GPUPipelineStageFlags
-	SrcAccessMask   GPUAccessFlags
-	DstAccessMask   GPUAccessFlags
-	DependencyFlags GPUDependencyFlags
+	SrcStageMask    gpu_types.PipelineStageFlags
+	DstStageMask    gpu_types.PipelineStageFlags
+	SrcAccessMask   gpu_types.AccessFlags
+	DstAccessMask   gpu_types.AccessFlags
+	DependencyFlags gpu_enums.DependencyFlags
 }
 
 func NewRenderPassData(src string) (RenderPassData, error) {
@@ -304,87 +306,87 @@ func (d *RenderPassData) Compile(device *GPUDevice) RenderPassDataCompiled {
 	return c
 }
 
-func (ai *RenderPassAttachmentImage) TilingToGpu() GPUImageTiling {
+func (ai *RenderPassAttachmentImage) TilingToGpu() gpu_types.ImageTiling {
 	return imageTilingToGpu(ai.Tiling)
 }
 
-func (ai *RenderPassAttachmentImage) FilterToGpu() GPUFilter {
+func (ai *RenderPassAttachmentImage) FilterToGpu() gpu_types.Filter {
 	return filterToGpu(ai.Filter)
 }
 
-func (ai *RenderPassAttachmentImage) UsageToGpu() GPUImageUsageFlags {
+func (ai *RenderPassAttachmentImage) UsageToGpu() gpu_types.ImageUsageFlags {
 	return imageUsageFlagsToGpu(ai.Usage)
 }
 
-func (ai *RenderPassAttachmentImage) MemoryPropertyToGpu() GPUMemoryPropertyFlags {
+func (ai *RenderPassAttachmentImage) MemoryPropertyToGpu() gpu_types.MemoryPropertyFlags {
 	return memoryPropertyFlagsToGpu(ai.MemoryProperty)
 }
 
-func (ai *RenderPassAttachmentImage) AspectToGpu() GPUImageAspectFlags {
+func (ai *RenderPassAttachmentImage) AspectToGpu() gpu_types.ImageAspectFlags {
 	return imageAspectFlagsToGpu(ai.Aspect)
 }
 
-func (ai *RenderPassAttachmentImage) AccessToGpu() GPUAccessFlags {
+func (ai *RenderPassAttachmentImage) AccessToGpu() gpu_types.AccessFlags {
 	return accessFlagsToGpu(ai.Access)
 }
 
-func (ad *RenderPassAttachmentDescription) FormatToGpu(device *GPUDevice) GPUFormat {
+func (ad *RenderPassAttachmentDescription) FormatToGpu(device *GPUDevice) gpu_types.Format {
 	return formatToGpu(ad.Format, device)
 }
 
-func (ad *RenderPassAttachmentDescription) SamplesToGpu(device *GPUPhysicalDevice) GPUSampleCountFlags {
+func (ad *RenderPassAttachmentDescription) SamplesToGpu(device *GPUPhysicalDevice) gpu_types.SampleCountFlags {
 	return sampleCountToGpu(ad.Samples, device)
 }
 
-func (ad *RenderPassAttachmentDescription) LoadOpToGpu() GPUAttachmentLoadOp {
+func (ad *RenderPassAttachmentDescription) LoadOpToGpu() gpu_types.AttachmentLoadOp {
 	return attachmentLoadOpToGpu(ad.LoadOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StoreOpToGpu() GPUAttachmentStoreOp {
+func (ad *RenderPassAttachmentDescription) StoreOpToGpu() gpu_types.AttachmentStoreOp {
 	return attachmentStoreOpToGpu(ad.StoreOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StencilLoadOpToGpu() GPUAttachmentLoadOp {
+func (ad *RenderPassAttachmentDescription) StencilLoadOpToGpu() gpu_types.AttachmentLoadOp {
 	return attachmentLoadOpToGpu(ad.StencilLoadOp)
 }
 
-func (ad *RenderPassAttachmentDescription) StencilStoreOpToGpu() GPUAttachmentStoreOp {
+func (ad *RenderPassAttachmentDescription) StencilStoreOpToGpu() gpu_types.AttachmentStoreOp {
 	return attachmentStoreOpToGpu(ad.StencilStoreOp)
 }
 
-func (ad *RenderPassAttachmentDescription) InitialLayoutToGpu() GPUImageLayout {
+func (ad *RenderPassAttachmentDescription) InitialLayoutToGpu() gpu_types.ImageLayout {
 	return imageLayoutToGpu(ad.InitialLayout)
 }
 
-func (ad *RenderPassAttachmentDescription) FinalLayoutToGpu() GPUImageLayout {
+func (ad *RenderPassAttachmentDescription) FinalLayoutToGpu() gpu_types.ImageLayout {
 	return imageLayoutToGpu(ad.FinalLayout)
 }
 
-func (ad *RenderPassAttachmentReference) LayoutToGpu() GPUImageLayout {
+func (ad *RenderPassAttachmentReference) LayoutToGpu() gpu_types.ImageLayout {
 	return imageLayoutToGpu(ad.Layout)
 }
 
-func (ad *RenderPassSubpassDescription) PipelineBindPointToGpu() GPUPipelineBindPoint {
+func (ad *RenderPassSubpassDescription) PipelineBindPointToGpu() gpu_enums.PipelineBindPoint {
 	return pipelineBindPointToGpu(ad.PipelineBindPoint)
 }
 
-func (sd *RenderPassSubpassDependency) SrcStageMaskToGpu() GPUPipelineStageFlags {
+func (sd *RenderPassSubpassDependency) SrcStageMaskToGpu() gpu_types.PipelineStageFlags {
 	return pipelineStageFlagsToGpu(sd.SrcStageMask)
 }
 
-func (sd *RenderPassSubpassDependency) DstStageMaskToGpu() GPUPipelineStageFlags {
+func (sd *RenderPassSubpassDependency) DstStageMaskToGpu() gpu_types.PipelineStageFlags {
 	return pipelineStageFlagsToGpu(sd.DstStageMask)
 }
 
-func (sd *RenderPassSubpassDependency) SrcAccessMaskToGpu() GPUAccessFlags {
+func (sd *RenderPassSubpassDependency) SrcAccessMaskToGpu() gpu_types.AccessFlags {
 	return accessFlagsToGpu(sd.SrcAccessMask)
 }
 
-func (sd *RenderPassSubpassDependency) DstAccessMaskToGpu() GPUAccessFlags {
+func (sd *RenderPassSubpassDependency) DstAccessMaskToGpu() gpu_types.AccessFlags {
 	return accessFlagsToGpu(sd.DstAccessMask)
 }
 
-func (sd *RenderPassSubpassDependency) DependencyFlagsToGpu() GPUDependencyFlags {
+func (sd *RenderPassSubpassDependency) DependencyFlagsToGpu() gpu_enums.DependencyFlags {
 	return dependencyFlagsToGpu(sd.DependencyFlags)
 }
 

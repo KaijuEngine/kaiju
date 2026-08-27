@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 var testReadyMeshHandle byte
@@ -22,8 +23,8 @@ func testVerts() []Vertex {
 func testReadyMeshID() MeshId {
 	ptr := unsafe.Pointer(&testReadyMeshHandle)
 	return MeshId{
-		vertexBuffer: GPUBuffer{GPUHandle{handle: ptr}},
-		indexBuffer:  GPUBuffer{GPUHandle{handle: ptr}},
+		vertexBuffer: gpu_types.Buffer{gpu_types.GpuHandle{Handle: ptr}},
+		indexBuffer:  gpu_types.Buffer{gpu_types.GpuHandle{Handle: ptr}},
 	}
 }
 

@@ -9,13 +9,15 @@ package rendering
 import (
 	"testing"
 	"unsafe"
+
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func TestShaderCacheReloadQueuesDestroyForCreatePending(t *testing.T) {
 	cache := NewShaderCache(nil, nil)
 	shader := NewShader(ShaderDataCompiled{Name: "test"})
 	shader.RenderId = ShaderId{
-		graphicsPipeline: GPUPipeline{GPUHandle{handle: unsafe.Pointer(&testReadyMeshHandle)}},
+		graphicsPipeline: gpu_types.Pipeline{gpu_types.GpuHandle{Handle: unsafe.Pointer(&testReadyMeshHandle)}},
 	}
 	cache.shaders[shader.data.Name] = shader
 

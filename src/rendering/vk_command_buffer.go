@@ -57,7 +57,7 @@ func createCommandPoolBufferPair(device *GPUDevice, level vulkan_const.CommandBu
 		Flags:            vk.CommandPoolCreateFlags(vulkan_const.CommandPoolCreateResetCommandBufferBit),
 		QueueFamilyIndex: uint32(device.PhysicalDevice.FindGraphicsFamiliy().Index),
 	}
-	vkDevice := vk.Device(device.LogicalDevice.handle)
+	vkDevice := vk.Device(device.LogicalDevice.Handle)
 	var pool vk.CommandPool
 	if vk.CreateCommandPool(vkDevice, &poolInfo, nil, &pool) != vulkan_const.Success {
 		const e = "Failed to create command pool"
@@ -105,7 +105,7 @@ func (c *CommandRecorder) Begin() {
 
 func (c *CommandRecorder) Destroy(device *GPUDevice) {
 	buff := c.buffer
-	vkDevice := vk.Device(device.LogicalDevice.handle)
+	vkDevice := vk.Device(device.LogicalDevice.Handle)
 	vk.FreeCommandBuffers(vkDevice, c.pool, 1, &buff)
 	device.LogicalDevice.dbg.remove(unsafe.Pointer(buff))
 	vk.DestroyCommandPool(vkDevice, c.pool, nil)

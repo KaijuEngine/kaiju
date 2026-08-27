@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -52,7 +53,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		}
 		if len(allWrites) > 0 {
 			t := tracing.NewRegion("Vulkan.Draw.UpdateDescriptorSets")
-			vk.UpdateDescriptorSets(vk.Device(g.LogicalDevice.handle), uint32(len(allWrites)), &allWrites[0], 0, nil)
+			vk.UpdateDescriptorSets(vk.Device(g.LogicalDevice.Handle), uint32(len(allWrites)), &allWrites[0], 0, nil)
 			runtime.KeepAlive(allWrites)
 			t.End()
 		}
@@ -95,7 +96,7 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 		renderPass.beginNextSubpass(g.Painter.currentFrame, ext, clears)
 		cmd := renderPass.activeSubpassCommand(i)
 		vk.CmdBindPipeline(cmd.buffer, vulkan_const.PipelineBindPointGraphics,
-			vk.Pipeline(s.shader.RenderId.graphicsPipeline.handle))
+			vk.Pipeline(s.shader.RenderId.graphicsPipeline.Handle))
 		imageInfos := make([]vk.DescriptorImageInfo, len(s.sampledImages))
 		descriptorWrites := [10]vk.WriteDescriptorSet{}
 		//descriptorWrites := make([]vk.WriteDescriptorSet, len(s.sampledImages))
@@ -106,19 +107,19 @@ func (g *GPUDevice) drawImpl(renderPass *RenderPass, drawings []ShaderDraw, ligh
 				break
 			}
 			t := &renderPass.textures[s.sampledImages[j]].RenderId
-			imageInfos[j] = imageInfoVk(vk.ImageView(t.View.handle), vk.Sampler(t.Sampler.handle))
-			descriptorWrites[j] = prepareSetWriteImage(vk.DescriptorSet(set.handle), imageInfos[j:j+1], uint32(j), true)
+			imageInfos[j] = imageInfoVk(vk.ImageView(t.View.Handle), vk.Sampler(t.Sampler.Handle))
+			descriptorWrites[j] = prepareSetWriteImage(vk.DescriptorSet(set.Handle), imageInfos[j:j+1], uint32(j), true)
 		}
-		vk.UpdateDescriptorSets(vk.Device(g.LogicalDevice.handle), uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
-		ds := [...]vk.DescriptorSet{vk.DescriptorSet(set.handle)}
+		vk.UpdateDescriptorSets(vk.Device(g.LogicalDevice.Handle), uint32(len(imageInfos)), &descriptorWrites[0], 0, nil)
+		ds := [...]vk.DescriptorSet{vk.DescriptorSet(set.Handle)}
 		dsOffsets := [...]uint32{0}
 		vk.CmdBindDescriptorSets(cmd.buffer, vulkan_const.PipelineBindPointGraphics,
-			vk.PipelineLayout(s.shader.RenderId.pipelineLayout.handle), 0, uint32(len(ds)), &ds[0], 0, &dsOffsets[0])
+			vk.PipelineLayout(s.shader.RenderId.pipelineLayout.Handle), 0, uint32(len(ds)), &ds[0], 0, &dsOffsets[0])
 		mid := &s.renderQuad.MeshId
-		vb := [...]vk.Buffer{vk.Buffer(mid.vertexBuffer.handle)}
+		vb := [...]vk.Buffer{vk.Buffer(mid.vertexBuffer.Handle)}
 		vbOffsets := [...]vk.DeviceSize{0}
 		vk.CmdBindVertexBuffers(cmd.buffer, 0, 1, &vb[0], &vbOffsets[0])
-		vk.CmdBindIndexBuffer(cmd.buffer, vk.Buffer(mid.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
+		vk.CmdBindIndexBuffer(cmd.buffer, vk.Buffer(mid.indexBuffer.Handle), 0, vulkan_const.IndexTypeUint32)
 		vk.CmdDrawIndexed(cmd.buffer, mid.indexCount, 1, 0, 0, 0)
 		renderPass.ExecuteSecondaryCommands()
 	}
@@ -144,8 +145,8 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	idxSF := g.Painter.imageIndex[frame]
 	swapChain := g.LogicalDevice.SwapChain
 	g.TransitionImageLayout(&swapChain.Images[idxSF],
-		GPUImageLayoutTransferDstOptimal, GPUImageAspectColorBit,
-		GPUAccessTransferWriteBit, cmd)
+		gpu_types.ImageLayoutTransferDstOptimal, gpu_types.ImageAspectColorBit,
+		gpu_types.AccessTransferWriteBit, cmd)
 	area := matrix.Vec4{0, 0, 1, 1}
 	region := vk.ImageBlit{}
 	extentWidth := swapChain.Extent.Width()
@@ -162,15 +163,15 @@ func (g *GPUDevice) blitTargetsImpl(passes []*RenderPass) {
 	region.DstSubresource.LayerCount = 1
 	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	region.SrcSubresource.LayerCount = 1
-	g.TransitionImageLayout(img, GPUImageLayoutTransferSrcOptimal,
-		GPUImageAspectColorBit, GPUAccessTransferReadBit, cmd)
-	vk.CmdBlitImage(cmd.buffer, vk.Image(img.Image.handle), img.Layout.toVulkan(),
-		vk.Image(swapChain.Images[idxSF].Image.handle), vulkan_const.ImageLayoutTransferDstOptimal,
+	g.TransitionImageLayout(img, gpu_types.ImageLayoutTransferSrcOptimal,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessTransferReadBit, cmd)
+	vk.CmdBlitImage(cmd.buffer, vk.Image(img.Image.Handle), img.Layout.ToVulkan(),
+		vk.Image(swapChain.Images[idxSF].Image.Handle), vulkan_const.ImageLayoutTransferDstOptimal,
 		1, &region, vulkan_const.FilterNearest)
-	g.TransitionImageLayout(img, GPUImageLayoutColorAttachmentOptimal,
-		GPUImageAspectColorBit, GPUAccessColorAttachmentReadBit|GPUAccessColorAttachmentWriteBit, cmd)
-	g.TransitionImageLayout(&swapChain.Images[idxSF], GPUImageLayoutPresentSrc,
-		GPUImageAspectColorBit, GPUAccessTransferWriteBit, cmd)
+	g.TransitionImageLayout(img, gpu_types.ImageLayoutColorAttachmentOptimal,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessColorAttachmentReadBit|gpu_types.AccessColorAttachmentWriteBit, cmd)
+	g.TransitionImageLayout(&swapChain.Images[idxSF], gpu_types.ImageLayoutPresentSrc,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessTransferWriteBit, cmd)
 	g.cleanupCombined(cmd, combined)
 }
 
@@ -198,8 +199,8 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 	defer cmd.End()
 	g.Painter.forceQueueCommand(*cmd, false)
 	g.TransitionImageLayout(&targetTexture.RenderId,
-		GPUImageLayoutTransferDstOptimal, GPUImageAspectColorBit,
-		GPUAccessTransferWriteBit, cmd)
+		gpu_types.ImageLayoutTransferDstOptimal, gpu_types.ImageAspectColorBit,
+		gpu_types.AccessTransferWriteBit, cmd)
 	region := vk.ImageBlit{}
 	region.SrcOffsets[1].X = int32(img.Width)
 	region.SrcOffsets[1].Y = int32(img.Height)
@@ -211,15 +212,15 @@ func (g *GPUDevice) blitTargetsToRenderTargetImpl(passes []*RenderPass, target *
 	region.DstSubresource.LayerCount = 1
 	region.SrcSubresource.AspectMask = vk.ImageAspectFlags(vulkan_const.ImageAspectColorBit)
 	region.SrcSubresource.LayerCount = 1
-	g.TransitionImageLayout(img, GPUImageLayoutTransferSrcOptimal,
-		GPUImageAspectColorBit, GPUAccessTransferReadBit, cmd)
-	vk.CmdBlitImage(cmd.buffer, vk.Image(img.Image.handle), img.Layout.toVulkan(),
-		vk.Image(targetTexture.RenderId.Image.handle), vulkan_const.ImageLayoutTransferDstOptimal,
+	g.TransitionImageLayout(img, gpu_types.ImageLayoutTransferSrcOptimal,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessTransferReadBit, cmd)
+	vk.CmdBlitImage(cmd.buffer, vk.Image(img.Image.Handle), img.Layout.ToVulkan(),
+		vk.Image(targetTexture.RenderId.Image.Handle), vulkan_const.ImageLayoutTransferDstOptimal,
 		1, &region, vulkan_const.FilterLinear)
-	g.TransitionImageLayout(img, GPUImageLayoutColorAttachmentOptimal,
-		GPUImageAspectColorBit, GPUAccessColorAttachmentReadBit|GPUAccessColorAttachmentWriteBit, cmd)
-	g.TransitionImageLayout(&targetTexture.RenderId, GPUImageLayoutShaderReadOnlyOptimal,
-		GPUImageAspectColorBit, GPUAccessShaderReadBit, cmd)
+	g.TransitionImageLayout(img, gpu_types.ImageLayoutColorAttachmentOptimal,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessColorAttachmentReadBit|gpu_types.AccessColorAttachmentWriteBit, cmd)
+	g.TransitionImageLayout(&targetTexture.RenderId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessShaderReadBit, cmd)
 	g.cleanupCombined(cmd, combined)
 }
 
@@ -258,14 +259,14 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			continue
 		}
 		globalInfo := [1]vk.DescriptorBufferInfo{
-			bufferInfo(vk.Buffer(globalBuffer.handle),
+			bufferInfo(vk.Buffer(globalBuffer.Handle),
 				vk.DeviceSize(unsafe.Sizeof(*(*GlobalShaderData)(nil)))),
 		}
 		boundBufferInfos = boundBufferInfos[:0]
 		for k := range state.boundBuffers {
 			if state.boundBuffers[k].size > 0 {
 				boundBufferInfos = append(boundBufferInfos, boundBufferInfo{
-					info: bufferInfo(vk.Buffer(state.boundBuffers[k].buffers[g.Painter.currentFrame].handle),
+					info: bufferInfo(vk.Buffer(state.boundBuffers[k].buffers[g.Painter.currentFrame].Handle),
 						vk.DeviceSize(state.boundBuffers[k].size)),
 					boundBuffer: &state.boundBuffers[k],
 				})
@@ -273,7 +274,7 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		}
 		texCount := len(group.MaterialInstance.Textures)
 		if len(state.imageInfos) != texCount {
-			state.imageInfos = make([]GPUDescriptorImageInfo, texCount)
+			state.imageInfos = make([]gpu_types.DescriptorImageInfo, texCount)
 			state.descriptorCache.Invalidate()
 		}
 		var shadowMaps [MaxLocalLights]*TextureId
@@ -291,8 +292,8 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 					validTextures = false
 					break
 				}
-				state.imageInfos[j] = imageInfo(vk.ImageView(t.RenderId.View.handle),
-					vk.Sampler(t.RenderId.Sampler.handle))
+				state.imageInfos[j] = imageInfo(vk.ImageView(t.RenderId.View.Handle),
+					vk.Sampler(t.RenderId.Sampler.Handle))
 			}
 			if !validTextures {
 				continue
@@ -308,8 +309,8 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 					}
 					shadowMaps[j] = sm
 					shadowCubeMaps[j] = smCube
-					shadowImageInfos[j] = imageInfoVk(vk.ImageView(sm.View.handle), vk.Sampler(sm.Sampler.handle))
-					shadowCubeImageInfos[j] = imageInfoVk(vk.ImageView(smCube.View.handle), vk.Sampler(smCube.Sampler.handle))
+					shadowImageInfos[j] = imageInfoVk(vk.ImageView(sm.View.Handle), vk.Sampler(sm.Sampler.Handle))
+					shadowCubeImageInfos[j] = imageInfoVk(vk.ImageView(smCube.View.Handle), vk.Sampler(smCube.Sampler.Handle))
 				}
 			}
 		}
@@ -319,22 +320,22 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		if !state.descriptorCache.ShouldWrite(g.Painter.currentFrame, signature) {
 			continue
 		}
-		addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.handle), globalInfo[:],
+		addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.Handle), globalInfo[:],
 			0, vulkan_const.DescriptorTypeUniformBuffer))
 		if texCount > 0 {
 			vkImageInfos := make([]vk.DescriptorImageInfo, len(state.imageInfos))
 			for j := range state.imageInfos {
-				vkImageInfos[j].Sampler = vk.Sampler(state.imageInfos[j].Sampler.handle)
-				vkImageInfos[j].ImageView = vk.ImageView(state.imageInfos[j].ImageView.handle)
+				vkImageInfos[j].Sampler = vk.Sampler(state.imageInfos[j].Sampler.Handle)
+				vkImageInfos[j].ImageView = vk.ImageView(state.imageInfos[j].ImageView.Handle)
 				vkImageInfos[j].ImageLayout = vulkan_const.ImageLayout(state.imageInfos[j].ImageLayout)
 			}
-			addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), vkImageInfos, 1, false))
+			addWrite(prepareSetWriteImage(vk.DescriptorSet(set.Handle), vkImageInfos, 1, false))
 			if group.MaterialInstance.ReceivesShadows {
-				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), shadowImageInfos[:], 2, false))
-				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.handle), shadowCubeImageInfos[:], 3, false))
+				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.Handle), shadowImageInfos[:], 2, false))
+				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.Handle), shadowCubeImageInfos[:], 3, false))
 			}
 			for k := range boundBufferInfos {
-				addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.handle),
+				addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.Handle),
 					[]vk.DescriptorBufferInfo{boundBufferInfos[k].info},
 					uint32(boundBufferInfos[k].boundBuffer.bindingId),
 					vulkan_const.DescriptorTypeStorageBuffer))
@@ -345,18 +346,18 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 }
 
 func descriptorSignatureForDrawGroup(material *Material, group *DrawInstanceGroup, state *DrawInstanceViewState, frame int,
-	set GPUDescriptorSet, globalBuffer GPUBuffer, boundBufferInfos []boundBufferInfo, shadowMaps []*TextureId, shadowCubeMaps []*TextureId) DescriptorWriteSignature {
+	set gpu_types.DescriptorSet, globalBuffer gpu_types.Buffer, boundBufferInfos []boundBufferInfo, shadowMaps []*TextureId, shadowCubeMaps []*TextureId) DescriptorWriteSignature {
 	signature := NewDescriptorWriteSignature()
-	signature.AddHandle(set.GPUHandle)
-	signature.AddHandle(globalBuffer.GPUHandle)
+	signature.AddHandle(set.GpuHandle)
+	signature.AddHandle(globalBuffer.GpuHandle)
 	signature.AddPointer(unsafe.Pointer(material))
 	if material != nil {
 		signature.AddString(material.Id)
 		signature.AddPointer(unsafe.Pointer(material.Shader))
 		if material.Shader != nil {
-			signature.AddHandle(material.Shader.RenderId.descriptorSetLayout.GPUHandle)
-			signature.AddHandle(material.Shader.RenderId.pipelineLayout.GPUHandle)
-			signature.AddHandle(material.Shader.RenderId.graphicsPipeline.GPUHandle)
+			signature.AddHandle(material.Shader.RenderId.descriptorSetLayout.GpuHandle)
+			signature.AddHandle(material.Shader.RenderId.pipelineLayout.GpuHandle)
+			signature.AddHandle(material.Shader.RenderId.graphicsPipeline.GpuHandle)
 		}
 	}
 	if group != nil && group.MaterialInstance != nil {
@@ -369,18 +370,18 @@ func descriptorSignatureForDrawGroup(material *Material, group *DrawInstanceGrou
 			signature.AddInt(0)
 		}
 	}
-	signature.AddHandle(state.instanceBuffer.buffers[frame].GPUHandle)
+	signature.AddHandle(state.instanceBuffer.buffers[frame].GpuHandle)
 	signature.AddUintptr(state.instanceBuffer.size)
 	signature.AddInt(state.instanceCapacity.Capacity())
 	for i := range boundBufferInfos {
 		buffer := boundBufferInfos[i].boundBuffer
 		signature.AddInt(buffer.bindingId)
 		signature.AddUintptr(buffer.size)
-		signature.AddHandle(buffer.buffers[frame].GPUHandle)
+		signature.AddHandle(buffer.buffers[frame].GpuHandle)
 	}
 	for i := range state.imageInfos {
-		signature.AddHandle(state.imageInfos[i].Sampler.GPUHandle)
-		signature.AddHandle(state.imageInfos[i].ImageView.GPUHandle)
+		signature.AddHandle(state.imageInfos[i].Sampler.GpuHandle)
+		signature.AddHandle(state.imageInfos[i].ImageView.GpuHandle)
 		signature.AddInt(int(state.imageInfos[i].ImageLayout))
 	}
 	for i := range shadowMaps {
@@ -397,8 +398,8 @@ func addTextureIdToDescriptorSignature(signature *DescriptorWriteSignature, id *
 		signature.AddUint64(0)
 		return
 	}
-	signature.AddHandle(id.View.GPUHandle)
-	signature.AddHandle(id.Sampler.GPUHandle)
+	signature.AddHandle(id.View.GpuHandle)
+	signature.AddHandle(id.Sampler.GpuHandle)
 	signature.AddInt(int(id.Layout))
 	signature.AddInt(int(id.Format))
 	signature.AddInt(id.Width)
@@ -428,14 +429,14 @@ func writePushConstants(s *Shader, cmd vk.CommandBuffer, layout vk.PipelineLayou
 		return
 	}
 	vk.CmdPushConstants(cmd, layout,
-		s.pipelineInfo.PushConstant.StageFlags.toVulkan(), 0,
+		s.pipelineInfo.PushConstant.StageFlags.ToVulkan(), 0,
 		s.pipelineInfo.PushConstant.Size, pushConstantData)
 }
 
-func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layout GPUPipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, view RenderViewFrame, layerMask RenderLayerMask) {
+func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline gpu_types.Pipeline, layout gpu_types.PipelineLayout, groups []DrawInstanceGroup, s *Shader, pushConstantData unsafe.Pointer, view RenderViewFrame, layerMask RenderLayerMask) {
 	defer tracing.NewRegion("Vulkan.renderEach").End()
-	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, vk.Pipeline(pipeline.handle))
-	writePushConstants(s, cmd, vk.PipelineLayout(layout.handle), pushConstantData)
+	vk.CmdBindPipeline(cmd, vulkan_const.PipelineBindPointGraphics, vk.Pipeline(pipeline.Handle))
+	writePushConstants(s, cmd, vk.PipelineLayout(layout.Handle), pushConstantData)
 	dynOffsets := [...]uint32{0}
 	vbOffsets := [...]vk.DeviceSize{0}
 	ibOffsets := [...]vk.DeviceSize{0}
@@ -452,24 +453,24 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 		if !group.IsReady() || state.visibleCount == 0 {
 			continue
 		}
-		descriptorSets[0] = vk.DescriptorSet(state.InstanceDriverData.descriptorSets[g.Painter.currentFrame].handle)
+		descriptorSets[0] = vk.DescriptorSet(state.InstanceDriverData.descriptorSets[g.Painter.currentFrame].Handle)
 		vk.CmdBindDescriptorSets(cmd, vulkan_const.PipelineBindPointGraphics,
-			vk.PipelineLayout(layout.handle), 0, uint32(len(descriptorSets)), &descriptorSets[0], 0, &dynOffsets[0])
-		instanceBuffers[0] = vk.Buffer(state.instanceBuffer.buffers[g.Painter.currentFrame].handle)
+			vk.PipelineLayout(layout.Handle), 0, uint32(len(descriptorSets)), &descriptorSets[0], 0, &dynOffsets[0])
+		instanceBuffers[0] = vk.Buffer(state.instanceBuffer.buffers[g.Painter.currentFrame].Handle)
 		vk.CmdBindVertexBuffers(cmd, uint32(state.instanceBuffer.bindingId),
 			uint32(len(instanceBuffers)), &instanceBuffers[0], &ibOffsets[0])
 		for k := range state.boundBuffers {
 			if state.boundBuffers[k].size > 0 {
-				namedBuffers[0] = vk.Buffer(state.boundBuffers[k].buffers[g.Painter.currentFrame].handle)
+				namedBuffers[0] = vk.Buffer(state.boundBuffers[k].buffers[g.Painter.currentFrame].Handle)
 				vk.CmdBindVertexBuffers(cmd, uint32(state.boundBuffers[k].bindingId),
 					uint32(len(namedBuffers)), &namedBuffers[0], &ibOffsets[0])
 			}
 		}
 		if len(state.lodBatches) == 0 {
 			meshId := group.Mesh.MeshId
-			vb[0] = vk.Buffer(meshId.vertexBuffer.handle)
+			vb[0] = vk.Buffer(meshId.vertexBuffer.Handle)
 			vk.CmdBindVertexBuffers(cmd, 0, uint32(len(vb)), &vb[0], &vbOffsets[0])
-			vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
+			vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.Handle), 0, vulkan_const.IndexTypeUint32)
 			vk.CmdDrawIndexed(cmd, meshId.indexCount, uint32(state.visibleCount), 0, 0, 0)
 			continue
 		}
@@ -483,9 +484,9 @@ func (g *GPUDevice) renderEach(cmd vk.CommandBuffer, pipeline GPUPipeline, layou
 				continue
 			}
 			meshId := mesh.MeshId
-			vb[0] = vk.Buffer(meshId.vertexBuffer.handle)
+			vb[0] = vk.Buffer(meshId.vertexBuffer.Handle)
 			vk.CmdBindVertexBuffers(cmd, 0, uint32(len(vb)), &vb[0], &vbOffsets[0])
-			vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.handle), 0, vulkan_const.IndexTypeUint32)
+			vk.CmdBindIndexBuffer(cmd, vk.Buffer(meshId.indexBuffer.Handle), 0, vulkan_const.IndexTypeUint32)
 			vk.CmdDrawIndexed(cmd, meshId.indexCount, batch.InstanceCount, 0, 0, batch.FirstInstance)
 		}
 	}
@@ -598,8 +599,8 @@ func (g *GPUDevice) combineTargets(entry *combinedTargetDrawEntry, view RenderVi
 	for i := range draws[0].instanceGroups {
 		mi := draws[0].instanceGroups[i].MaterialInstance
 		for j := range mi.Textures {
-			g.TransitionImageLayout(&mi.Textures[j].RenderId, GPUImageLayoutShaderReadOnlyOptimal,
-				GPUImageAspectColorBit, GPUAccessTransferReadBit, cmd)
+			g.TransitionImageLayout(&mi.Textures[j].RenderId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+				gpu_types.ImageAspectColorBit, gpu_types.AccessTransferReadBit, cmd)
 		}
 	}
 	g.DrawView(combinePass, draws, LightsForRender{}, []TextureId{}, view, RenderLayerAll)
@@ -616,8 +617,8 @@ func (g *GPUDevice) cleanupCombined(cmd *CommandRecorder, entry *combinedTargetD
 		mi := groups[i].MaterialInstance
 		for j := range mi.Textures {
 			if mi.Textures[j].RenderId.Access != 0 {
-				g.TransitionImageLayout(&mi.Textures[j].RenderId, GPUImageLayoutColorAttachmentOptimal,
-					GPUImageAspectColorBit, GPUAccessColorAttachmentReadBit|GPUAccessColorAttachmentWriteBit, cmd)
+				g.TransitionImageLayout(&mi.Textures[j].RenderId, gpu_types.ImageLayoutColorAttachmentOptimal,
+					gpu_types.ImageAspectColorBit, gpu_types.AccessColorAttachmentReadBit|gpu_types.AccessColorAttachmentWriteBit, cmd)
 			}
 		}
 	}

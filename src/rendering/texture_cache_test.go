@@ -15,6 +15,7 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/engine/assets"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
@@ -112,7 +113,7 @@ var testReadyTextureHandle byte
 
 func testReadyTextureID() TextureId {
 	ptr := unsafe.Pointer(&testReadyTextureHandle)
-	return TextureId{Image: GPUImage{GPUHandle{handle: ptr}}}
+	return TextureId{Image: gpu_types.Image{gpu_types.GpuHandle{Handle: ptr}}}
 }
 
 func TestTextureCacheForceRemoveQueuesUploadedTextureForFree(t *testing.T) {

@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/gpu_enums"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func TestNewRenderPassData(t *testing.T) {
@@ -55,7 +57,7 @@ func TestRenderPassAttachmentImageInvalid(t *testing.T) {
 	if !(&RenderPassAttachmentImageCompiled{}).IsInvalid() {
 		t.Fatalf("empty compiled image should be invalid")
 	}
-	if (&RenderPassAttachmentImageCompiled{Usage: GPUImageUsageSampledBit, MipLevels: 1, LayerCount: 1}).IsInvalid() {
+	if (&RenderPassAttachmentImageCompiled{Usage: gpu_types.ImageUsageSampledBit, MipLevels: 1, LayerCount: 1}).IsInvalid() {
 		t.Fatalf("complete compiled image should be valid")
 	}
 }
@@ -69,12 +71,12 @@ func TestRenderPassAttachmentConversions(t *testing.T) {
 		Aspect:         []string{"ColorBit"},
 		Access:         []string{"ShaderReadBit", "ColorAttachmentWriteBit"},
 	}
-	if img.TilingToGpu() != GPUImageTilingOptimal ||
-		img.FilterToGpu() != GPUFilterLinear ||
-		img.UsageToGpu() != GPUImageUsageSampledBit|GPUImageUsageColorAttachmentBit ||
-		img.MemoryPropertyToGpu() != GPUMemoryPropertyDeviceLocalBit ||
-		img.AspectToGpu() != GPUImageAspectColorBit ||
-		img.AccessToGpu() != GPUAccessShaderReadBit|GPUAccessColorAttachmentWriteBit {
+	if img.TilingToGpu() != gpu_types.ImageTilingOptimal ||
+		img.FilterToGpu() != gpu_types.FilterLinear ||
+		img.UsageToGpu() != gpu_types.ImageUsageSampledBit|gpu_types.ImageUsageColorAttachmentBit ||
+		img.MemoryPropertyToGpu() != gpu_types.MemoryPropertyDeviceLocalBit ||
+		img.AspectToGpu() != gpu_types.ImageAspectColorBit ||
+		img.AccessToGpu() != gpu_types.AccessShaderReadBit|gpu_types.AccessColorAttachmentWriteBit {
 		t.Fatalf("unexpected image conversion")
 	}
 	desc := RenderPassAttachmentDescription{
@@ -87,25 +89,25 @@ func TestRenderPassAttachmentConversions(t *testing.T) {
 		InitialLayout:  "Undefined",
 		FinalLayout:    "ShaderReadOnlyOptimal",
 	}
-	if desc.FormatToGpu(nil) != GPUFormatR8g8b8a8Unorm ||
-		desc.SamplesToGpu(nil) != GPUSampleCount1Bit ||
-		desc.LoadOpToGpu() != GPUAttachmentLoadOpClear ||
-		desc.StoreOpToGpu() != GPUAttachmentStoreOpStore ||
-		desc.StencilLoadOpToGpu() != GPUAttachmentLoadOpDontCare ||
-		desc.StencilStoreOpToGpu() != GPUAttachmentStoreOpDontCare ||
-		desc.InitialLayoutToGpu() != GPUImageLayoutUndefined ||
-		desc.FinalLayoutToGpu() != GPUImageLayoutShaderReadOnlyOptimal {
+	if desc.FormatToGpu(nil) != gpu_types.FormatR8g8b8a8Unorm ||
+		desc.SamplesToGpu(nil) != gpu_types.SampleCount1Bit ||
+		desc.LoadOpToGpu() != gpu_types.AttachmentLoadOpClear ||
+		desc.StoreOpToGpu() != gpu_types.AttachmentStoreOpStore ||
+		desc.StencilLoadOpToGpu() != gpu_types.AttachmentLoadOpDontCare ||
+		desc.StencilStoreOpToGpu() != gpu_types.AttachmentStoreOpDontCare ||
+		desc.InitialLayoutToGpu() != gpu_types.ImageLayoutUndefined ||
+		desc.FinalLayoutToGpu() != gpu_types.ImageLayoutShaderReadOnlyOptimal {
 		t.Fatalf("unexpected attachment conversion")
 	}
 }
 
 func TestRenderPassSubpassConversions(t *testing.T) {
 	ref := RenderPassAttachmentReference{Attachment: 2, Layout: "ColorAttachmentOptimal"}
-	if ref.LayoutToGpu() != GPUImageLayoutColorAttachmentOptimal {
+	if ref.LayoutToGpu() != gpu_types.ImageLayoutColorAttachmentOptimal {
 		t.Fatalf("LayoutToGpu = %v", ref.LayoutToGpu())
 	}
 	subpass := RenderPassSubpassDescription{PipelineBindPoint: "Graphics"}
-	if subpass.PipelineBindPointToGpu() != GPUPipelineBindPointGraphics {
+	if subpass.PipelineBindPointToGpu() != gpu_enums.PipelineBindPointGraphics {
 		t.Fatalf("PipelineBindPointToGpu = %v", subpass.PipelineBindPointToGpu())
 	}
 }
@@ -118,20 +120,20 @@ func TestRenderPassSubpassDependencyConversions(t *testing.T) {
 		DstAccessMask:   []string{"ColorAttachmentWriteBit"},
 		DependencyFlags: []string{"ByRegionBit"},
 	}
-	if dep.SrcStageMaskToGpu() != GPUPipelineStageFragmentShaderBit ||
-		dep.DstStageMaskToGpu() != GPUPipelineStageColorAttachmentOutputBit ||
-		dep.SrcAccessMaskToGpu() != GPUAccessShaderReadBit ||
-		dep.DstAccessMaskToGpu() != GPUAccessColorAttachmentWriteBit ||
-		dep.DependencyFlagsToGpu() != GPUDependencyByRegionBit {
+	if dep.SrcStageMaskToGpu() != gpu_types.PipelineStageFragmentShaderBit ||
+		dep.DstStageMaskToGpu() != gpu_types.PipelineStageColorAttachmentOutputBit ||
+		dep.SrcAccessMaskToGpu() != gpu_types.AccessShaderReadBit ||
+		dep.DstAccessMaskToGpu() != gpu_types.AccessColorAttachmentWriteBit ||
+		dep.DependencyFlagsToGpu() != gpu_enums.DependencyByRegionBit {
 		t.Fatalf("unexpected dependency conversion")
 	}
 }
 
 func TestRenderPassAttachmentDescriptionIsDepthFormat(t *testing.T) {
-	if !(&RenderPassAttachmentDescriptionCompiled{Format: GPUFormatD16Unorm}).IsDepthFormat() {
+	if !(&RenderPassAttachmentDescriptionCompiled{Format: gpu_types.FormatD16Unorm}).IsDepthFormat() {
 		t.Fatalf("D16Unorm should be a depth format")
 	}
-	if (&RenderPassAttachmentDescriptionCompiled{Format: GPUFormatR8g8b8a8Unorm}).IsDepthFormat() {
+	if (&RenderPassAttachmentDescriptionCompiled{Format: gpu_types.FormatR8g8b8a8Unorm}).IsDepthFormat() {
 		t.Fatalf("R8g8b8a8Unorm should not be a depth format")
 	}
 }

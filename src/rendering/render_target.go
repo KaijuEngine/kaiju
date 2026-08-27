@@ -13,6 +13,7 @@ import (
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 const (
@@ -38,7 +39,7 @@ type RenderTargetOptions struct {
 	Width       int
 	Height      int
 	ResizeMode  RenderTargetResizeMode
-	ColorFormat GPUFormat
+	ColorFormat gpu_types.Format
 	Depth       bool
 }
 
@@ -241,8 +242,8 @@ func (t *RenderTarget) releaseOutputsLocked(device *GPUDevice) {
 
 func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions, width, height int) (*Texture, error) {
 	format := options.ColorFormat
-	if format == GPUFormatUndefined {
-		format = GPUFormatR8g8b8a8Unorm
+	if format == gpu_types.FormatUndefined {
+		format = gpu_types.FormatR8g8b8a8Unorm
 		if len(device.LogicalDevice.SwapChain.Images) > 0 {
 			format = device.LogicalDevice.SwapChain.Images[0].Format
 		}
@@ -254,39 +255,39 @@ func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions,
 		Width:     width,
 		Height:    height,
 	}
-	err := device.CreateImage(&tex.RenderId, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
-		ImageType:   GPUImageType2d,
+	err := device.CreateImage(&tex.RenderId, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+		ImageType:   gpu_types.ImageType2d,
 		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
 		MipLevels:   1,
 		ArrayLayers: 1,
 		Format:      format,
-		Tiling:      GPUImageTilingOptimal,
-		Usage: GPUImageUsageColorAttachmentBit |
-			GPUImageUsageTransferSrcBit |
-			GPUImageUsageTransferDstBit |
-			GPUImageUsageSampledBit,
-		Samples: GPUSampleCount1Bit,
+		Tiling:      gpu_types.ImageTilingOptimal,
+		Usage: gpu_types.ImageUsageColorAttachmentBit |
+			gpu_types.ImageUsageTransferSrcBit |
+			gpu_types.ImageUsageTransferDstBit |
+			gpu_types.ImageUsageSampledBit,
+		Samples: gpu_types.SampleCount1Bit,
 	})
 	if err != nil {
 		return nil, err
 	}
-	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, GPUImageAspectColorBit, GPUImageViewType2d); err != nil {
+	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, gpu_types.ImageAspectColorBit, gpu_types.ImageViewType2d); err != nil {
 		device.LogicalDevice.FreeTexture(&tex.RenderId)
 		return nil, err
 	}
-	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, GPUFilterLinear)
+	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
 	if err != nil {
 		device.LogicalDevice.FreeTexture(&tex.RenderId)
 		return nil, err
 	}
-	device.TransitionImageLayout(&tex.RenderId, GPUImageLayoutShaderReadOnlyOptimal,
-		GPUImageAspectColorBit, GPUAccessShaderReadBit, nil)
+	device.TransitionImageLayout(&tex.RenderId, gpu_types.ImageLayoutShaderReadOnlyOptimal,
+		gpu_types.ImageAspectColorBit, gpu_types.AccessShaderReadBit, nil)
 	return tex, nil
 }
 
 func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions, width, height int) (*Texture, error) {
 	format := device.PhysicalDevice.FindSupportedFormat(depthFormatCandidates(),
-		GPUImageTilingOptimal, GPUFormatFeatureDepthStencilAttachmentBit)
+		gpu_types.ImageTilingOptimal, gpu_types.FormatFeatureDepthStencilAttachmentBit)
 	tex := &Texture{
 		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputDepth),
 		Filter:    TextureFilterLinear,
@@ -294,30 +295,30 @@ func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions,
 		Width:     width,
 		Height:    height,
 	}
-	err := device.CreateImage(&tex.RenderId, GPUMemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
-		ImageType:   GPUImageType2d,
+	err := device.CreateImage(&tex.RenderId, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
+		ImageType:   gpu_types.ImageType2d,
 		Extent:      matrix.Vec3i{int32(width), int32(height), 1},
 		MipLevels:   1,
 		ArrayLayers: 1,
 		Format:      format,
-		Tiling:      GPUImageTilingOptimal,
-		Usage:       GPUImageUsageDepthStencilAttachmentBit | GPUImageUsageSampledBit,
-		Samples:     GPUSampleCount1Bit,
+		Tiling:      gpu_types.ImageTilingOptimal,
+		Usage:       gpu_types.ImageUsageDepthStencilAttachmentBit | gpu_types.ImageUsageSampledBit,
+		Samples:     gpu_types.SampleCount1Bit,
 	})
 	if err != nil {
 		return nil, err
 	}
-	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, GPUImageAspectDepthBit, GPUImageViewType2d); err != nil {
+	if err = device.LogicalDevice.CreateImageView(&tex.RenderId, gpu_types.ImageAspectDepthBit, gpu_types.ImageViewType2d); err != nil {
 		device.LogicalDevice.FreeTexture(&tex.RenderId)
 		return nil, err
 	}
-	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, GPUFilterLinear)
+	tex.RenderId.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
 	if err != nil {
 		device.LogicalDevice.FreeTexture(&tex.RenderId)
 		return nil, err
 	}
-	device.TransitionImageLayout(&tex.RenderId, GPUImageLayoutDepthStencilReadOnlyOptimal,
-		GPUImageAspectDepthBit, GPUAccessShaderReadBit, nil)
+	device.TransitionImageLayout(&tex.RenderId, gpu_types.ImageLayoutDepthStencilReadOnlyOptimal,
+		gpu_types.ImageAspectDepthBit, gpu_types.AccessShaderReadBit, nil)
 	return tex, nil
 }
 

@@ -6,7 +6,11 @@
 
 package rendering
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"kaijuengine.com/rendering/gpu_types"
+)
 
 const descriptorSignatureOffset uint64 = 14695981039346656037
 const descriptorSignaturePrime uint64 = 1099511628211
@@ -43,8 +47,8 @@ func (s *DescriptorWriteSignature) AddPointer(value unsafe.Pointer) {
 	s.AddUintptr(uintptr(value))
 }
 
-func (s *DescriptorWriteSignature) AddHandle(handle GPUHandle) {
-	s.AddPointer(handle.handle)
+func (s *DescriptorWriteSignature) AddHandle(handle gpu_types.GpuHandle) {
+	s.AddPointer(handle.Handle)
 }
 
 func (s DescriptorWriteSignature) Equal(other DescriptorWriteSignature) bool {

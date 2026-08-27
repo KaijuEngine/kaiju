@@ -9,12 +9,13 @@ package rendering
 import (
 	"kaijuengine.com/engine/graviton"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type GPUPainter struct {
 	caches                RenderCaches
 	imageIndex            [maxFramesInFlight]uint32
-	descriptorPools       []GPUDescriptorPool
+	descriptorPools       []gpu_types.DescriptorPool
 	currentFrame          int
 	combinedTargets       combinedTargetDrawCache
 	combinedDrawingCuller combinedDrawingCuller
@@ -29,7 +30,7 @@ type GPUPainter struct {
 	fallbackShadowMap     *Texture
 	fallbackCubeShadowMap *Texture
 	computeTasks          []ComputeTask
-	computeQueue          GPUQueue
+	computeQueue          gpu_types.Queue
 }
 
 type combinedDrawingCuller struct{}
@@ -39,7 +40,7 @@ func (combinedDrawingCuller) ViewChanged() bool           { return true }
 
 type ComputeTask struct {
 	Shader         *Shader
-	DescriptorSets []GPUDescriptorSet
+	DescriptorSets []gpu_types.DescriptorSet
 	WorkGroups     [3]uint32
 }
 

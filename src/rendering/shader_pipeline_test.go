@@ -10,37 +10,40 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+
+	"kaijuengine.com/rendering/gpu_enums"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func TestShaderPipelineStringMappings(t *testing.T) {
-	if got := (&ShaderPipelineInputAssembly{Topology: "Lines"}).TopologyToGPU(); got != GPUPrimitiveTopology(StringVkPrimitiveTopology["Lines"]) {
+	if got := (&ShaderPipelineInputAssembly{Topology: "Lines"}).TopologyToGPU(); got != gpu_enums.PrimitiveTopology(StringVkPrimitiveTopology["Lines"]) {
 		t.Fatalf("TopologyToGPU = %v", got)
 	}
-	if got := (&ShaderPipelineInputAssembly{Topology: "bad"}).TopologyToGPU(); got != GPUPrimitiveTopologyTriangleList {
+	if got := (&ShaderPipelineInputAssembly{Topology: "bad"}).TopologyToGPU(); got != gpu_enums.PrimitiveTopologyTriangleList {
 		t.Fatalf("bad TopologyToGPU = %v", got)
 	}
-	if got := (&ShaderPipelinePipelineRasterization{PolygonMode: "Line"}).PolygonModeToGPU(); got != GPUPolygonMode(StringVkPolygonMode["Line"]) {
+	if got := (&ShaderPipelinePipelineRasterization{PolygonMode: "Line"}).PolygonModeToGPU(); got != gpu_enums.PolygonMode(StringVkPolygonMode["Line"]) {
 		t.Fatalf("PolygonModeToGPU = %v", got)
 	}
-	if got := (&ShaderPipelinePipelineRasterization{CullMode: "Back"}).CullModeToGPU(); got != GPUCullModeFlags(StringVkCullModeFlagBits["Back"]) {
+	if got := (&ShaderPipelinePipelineRasterization{CullMode: "Back"}).CullModeToGPU(); got != gpu_enums.CullModeFlags(StringVkCullModeFlagBits["Back"]) {
 		t.Fatalf("CullModeToGPU = %v", got)
 	}
-	if got := (&ShaderPipelinePipelineRasterization{FrontFace: "CounterClockwise"}).FrontFaceToGPU(); got != GPUFrontFace(StringVkFrontFace["CounterClockwise"]) {
+	if got := (&ShaderPipelinePipelineRasterization{FrontFace: "CounterClockwise"}).FrontFaceToGPU(); got != gpu_enums.FrontFace(StringVkFrontFace["CounterClockwise"]) {
 		t.Fatalf("FrontFaceToGPU = %v", got)
 	}
-	if got := (&ShaderPipelineColorBlend{LogicOp: "Xor"}).LogicOpToGPU(); got != GPULogicOp(StringVkLogicOp["Xor"]) {
+	if got := (&ShaderPipelineColorBlend{LogicOp: "Xor"}).LogicOpToGPU(); got != gpu_enums.LogicOp(StringVkLogicOp["Xor"]) {
 		t.Fatalf("LogicOpToGPU = %v", got)
 	}
-	if got := blendFactorToGPU("SrcAlpha"); got != GPUBlendFactor(StringVkBlendFactor["SrcAlpha"]) {
+	if got := blendFactorToGPU("SrcAlpha"); got != gpu_enums.BlendFactor(StringVkBlendFactor["SrcAlpha"]) {
 		t.Fatalf("blendFactorToGPU = %v", got)
 	}
-	if got := blendOpToGPU("Add"); got != GPUBlendOp(StringVkBlendOp["Add"]) {
+	if got := blendOpToGPU("Add"); got != gpu_enums.BlendOp(StringVkBlendOp["Add"]) {
 		t.Fatalf("blendOpToGPU = %v", got)
 	}
-	if got := compareOpToGPU("Less"); got != GPUCompareOp(StringVkCompareOp["Less"]) {
+	if got := compareOpToGPU("Less"); got != gpu_enums.CompareOp(StringVkCompareOp["Less"]) {
 		t.Fatalf("compareOpToGPU = %v", got)
 	}
-	if got := stencilOpToGPU("Replace"); got != GPUStencilOp(StringVkStencilOp["Replace"]) {
+	if got := stencilOpToGPU("Replace"); got != gpu_enums.StencilOp(StringVkStencilOp["Replace"]) {
 		t.Fatalf("stencilOpToGPU = %v", got)
 	}
 	if got := (&ShaderPipelineTessellation{PatchControlPoints: "Quads"}).PatchControlPointsToGPU(); got != 4 {
@@ -50,7 +53,7 @@ func TestShaderPipelineStringMappings(t *testing.T) {
 
 func TestShaderPipelineColorWriteMaskToGPU(t *testing.T) {
 	attachment := ShaderPipelineColorBlendAttachments{ColorWriteMask: []string{"R", "G", "B", "A"}}
-	want := GPUColorComponentFlags(StringVkColorComponentFlagBits["R"] |
+	want := gpu_enums.ColorComponentFlags(StringVkColorComponentFlagBits["R"] |
 		StringVkColorComponentFlagBits["G"] |
 		StringVkColorComponentFlagBits["B"] |
 		StringVkColorComponentFlagBits["A"])
@@ -89,16 +92,16 @@ func TestShaderPipelineStencilOpStatesToGPU(t *testing.T) {
 		BackReference:    6,
 	}}
 	front := pipeline.FrontStencilOpStateToGPU()
-	if front.FailOp != GPUStencilOp(StringVkStencilOp["Keep"]) ||
-		front.PassOp != GPUStencilOp(StringVkStencilOp["Replace"]) ||
-		front.CompareOp != GPUCompareOp(StringVkCompareOp["Less"]) ||
+	if front.FailOp != gpu_enums.StencilOp(StringVkStencilOp["Keep"]) ||
+		front.PassOp != gpu_enums.StencilOp(StringVkStencilOp["Replace"]) ||
+		front.CompareOp != gpu_enums.CompareOp(StringVkCompareOp["Less"]) ||
 		front.CompareMask != 1 || front.WriteMask != 2 || front.Reference != 3 {
 		t.Fatalf("front stencil = %+v", front)
 	}
 	back := pipeline.BackStencilOpStateToGPU()
-	if back.FailOp != GPUStencilOp(StringVkStencilOp["Zero"]) ||
-		back.PassOp != GPUStencilOp(StringVkStencilOp["Invert"]) ||
-		back.CompareOp != GPUCompareOp(StringVkCompareOp["Greater"]) ||
+	if back.FailOp != gpu_enums.StencilOp(StringVkStencilOp["Zero"]) ||
+		back.PassOp != gpu_enums.StencilOp(StringVkStencilOp["Invert"]) ||
+		back.CompareOp != gpu_enums.CompareOp(StringVkCompareOp["Greater"]) ||
 		back.CompareMask != 4 || back.WriteMask != 5 || back.Reference != 6 {
 		t.Fatalf("back stencil = %+v", back)
 	}
@@ -106,7 +109,7 @@ func TestShaderPipelineStencilOpStatesToGPU(t *testing.T) {
 
 func TestShaderPipelineCreateFlagsToGPU(t *testing.T) {
 	gp := ShaderPipelineGraphicsPipeline{PipelineCreateFlags: []string{"DisableOptimizationBit", "AllowDerivativesBit"}}
-	want := GPUPipelineCreateFlags(StringVkPipelineCreateFlagBits["DisableOptimizationBit"] |
+	want := gpu_enums.PipelineCreateFlags(StringVkPipelineCreateFlagBits["DisableOptimizationBit"] |
 		StringVkPipelineCreateFlagBits["AllowDerivativesBit"])
 	if got := gp.PipelineCreateFlagsToGPU(); got != want {
 		t.Fatalf("PipelineCreateFlagsToGPU = %v, want %v", got, want)
@@ -115,7 +118,7 @@ func TestShaderPipelineCreateFlagsToGPU(t *testing.T) {
 
 func TestShaderPipelinePushConstantStageFlagsToGPU(t *testing.T) {
 	pc := ShaderPipelinePushConstant{StageFlags: []string{"VertexBit", "FragmentBit"}}
-	want := GPUShaderStageFlags(StringVkShaderStageFlagBits["VertexBit"] |
+	want := gpu_enums.ShaderStageFlags(StringVkShaderStageFlagBits["VertexBit"] |
 		StringVkShaderStageFlagBits["FragmentBit"])
 	if got := pc.ShaderStageFlagsToGPU(); got != want {
 		t.Fatalf("ShaderStageFlagsToGPU = %v, want %v", got, want)
@@ -175,10 +178,10 @@ func TestShaderPipelineCompile(t *testing.T) {
 	}
 	compiled := source.Compile(nil)
 	if compiled.Name != "pipeline" ||
-		compiled.InputAssembly.Topology != GPUPrimitiveTopologyTriangleList ||
+		compiled.InputAssembly.Topology != gpu_enums.PrimitiveTopologyTriangleList ||
 		!compiled.InputAssembly.PrimitiveRestart ||
-		compiled.Rasterization.PolygonMode != GPUPolygonModeFill ||
-		compiled.Multisample.RasterizationSamples != GPUSampleCount1Bit ||
+		compiled.Rasterization.PolygonMode != gpu_enums.PolygonModeFill ||
+		compiled.Multisample.RasterizationSamples != gpu_types.SampleCount1Bit ||
 		compiled.ColorBlend.BlendConstants != ([4]float32{1, 2, 3, 4}) ||
 		compiled.GraphicsPipeline.Subpass != 2 ||
 		compiled.PushConstant.Size != 16 ||

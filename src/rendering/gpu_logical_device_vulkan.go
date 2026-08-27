@@ -15,6 +15,7 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -72,8 +73,8 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 		slog.Error("Vulkan failed to create the logical device", "code", code)
 		return errors.New("failed to create logical device")
 	}
-	g.handle = unsafe.Pointer(device)
-	g.dbg.track(g.handle)
+	g.Handle = unsafe.Pointer(device)
+	g.dbg.track(g.Handle)
 	// Passing vr.device directly into vk.CreateDevice will cause
 	// cgo argument has Go pointer to Go pointer panic
 	var graphicsQueue vk.Queue
@@ -93,38 +94,38 @@ func (g *GPULogicalDevice) setupImpl(inst *GPUApplicationInstance, physicalDevic
 
 func (g *GPULogicalDevice) waitIdleImpl() {
 	defer tracing.NewRegion("GPULogicalDevice.waitIdleImpl").End()
-	vk.DeviceWaitIdle(vk.Device(g.handle))
+	vk.DeviceWaitIdle(vk.Device(g.Handle))
 }
 
-func (g *GPULogicalDevice) waitForFencesImpl(fences []GPUFence) {
+func (g *GPULogicalDevice) waitForFencesImpl(fences []gpu_types.Fence) {
 	defer tracing.NewRegion("GPULogicalDevice.waitForFencesImpl").End()
 	vkFences := make([]vk.Fence, len(fences))
 	for i := range fences {
-		vkFences[i] = vk.Fence(fences[i].handle)
+		vkFences[i] = vk.Fence(fences[i].Handle)
 	}
-	vk.WaitForFences(vk.Device(g.handle), uint32(len(vkFences)), &vkFences[0], vulkan_const.True, math.MaxUint64)
+	vk.WaitForFences(vk.Device(g.Handle), uint32(len(vkFences)), &vkFences[0], vulkan_const.True, math.MaxUint64)
 }
 
-func (g *GPULogicalDevice) imageMemoryRequirementsImpl(image GPUImage) GPUMemoryRequirements {
+func (g *GPULogicalDevice) imageMemoryRequirementsImpl(image gpu_types.Image) gpu_types.MemoryRequirements {
 	defer tracing.NewRegion("GPULogicalDevice.imageMemoryRequirementsImpl").End()
 	var memRequirements vk.MemoryRequirements
-	vk.GetImageMemoryRequirements(vk.Device(g.handle), vk.Image(image.handle), &memRequirements)
-	return GPUMemoryRequirements{
+	vk.GetImageMemoryRequirements(vk.Device(g.Handle), vk.Image(image.Handle), &memRequirements)
+	return gpu_types.MemoryRequirements{
 		Size:           uintptr(memRequirements.Size),
 		Alignment:      uintptr(memRequirements.Alignment),
 		MemoryTypeBits: memRequirements.MemoryTypeBits,
 	}
 }
 
-func (g *GPULogicalDevice) createImageViewImpl(id *TextureId, aspectFlags GPUImageAspectFlags, viewType GPUImageViewType) error {
+func (g *GPULogicalDevice) createImageViewImpl(id *TextureId, aspectFlags gpu_types.ImageAspectFlags, viewType gpu_types.ImageViewType) error {
 	defer tracing.NewRegion("GPULogicalDevice.createImageViewImpl").End()
 	viewInfo := vk.ImageViewCreateInfo{
 		SType:    vulkan_const.StructureTypeImageViewCreateInfo,
-		Image:    vk.Image(id.Image.handle),
-		ViewType: viewType.toVulkan(),
-		Format:   id.Format.toVulkan(),
+		Image:    vk.Image(id.Image.Handle),
+		ViewType: viewType.ToVulkan(),
+		Format:   id.Format.ToVulkan(),
 		SubresourceRange: vk.ImageSubresourceRange{
-			AspectMask:     aspectFlags.toVulkan(),
+			AspectMask:     aspectFlags.ToVulkan(),
 			BaseMipLevel:   0,
 			LevelCount:     id.MipLevels,
 			BaseArrayLayer: 0,
@@ -132,37 +133,37 @@ func (g *GPULogicalDevice) createImageViewImpl(id *TextureId, aspectFlags GPUIma
 		},
 	}
 	var idView vk.ImageView
-	res := vk.CreateImageView(vk.Device(g.handle), &viewInfo, nil, &idView)
+	res := vk.CreateImageView(vk.Device(g.Handle), &viewInfo, nil, &idView)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to create image view", "code", res)
 		return fmt.Errorf("failed to create the image view: %d", res)
 	}
-	id.View.handle = unsafe.Pointer(idView)
-	g.dbg.track(id.View.handle)
+	id.View.Handle = unsafe.Pointer(idView)
+	g.dbg.track(id.View.Handle)
 	return nil
 }
 
 func (g *GPULogicalDevice) freeTextureImpl(texId *TextureId) {
 	defer tracing.NewRegion("GPULogicalDevice.freeTextureImpl").End()
-	vkDevice := vk.Device(g.handle)
+	vkDevice := vk.Device(g.Handle)
 	if texId.View.IsValid() {
-		vk.DestroyImageView(vkDevice, vk.ImageView(texId.View.handle), nil)
-		g.dbg.remove(texId.View.handle)
+		vk.DestroyImageView(vkDevice, vk.ImageView(texId.View.Handle), nil)
+		g.dbg.remove(texId.View.Handle)
 		texId.View.Reset()
 	}
 	if texId.Image.IsValid() {
-		vk.DestroyImage(vkDevice, vk.Image(texId.Image.handle), nil)
-		g.dbg.remove(texId.Image.handle)
+		vk.DestroyImage(vkDevice, vk.Image(texId.Image.Handle), nil)
+		g.dbg.remove(texId.Image.Handle)
 		texId.Image.Reset()
 	}
 	if texId.Memory.IsValid() {
-		vk.FreeMemory(vkDevice, vk.DeviceMemory(texId.Memory.handle), nil)
-		g.dbg.remove(texId.Memory.handle)
+		vk.FreeMemory(vkDevice, vk.DeviceMemory(texId.Memory.Handle), nil)
+		g.dbg.remove(texId.Memory.Handle)
 		texId.Memory.Reset()
 	}
 	if texId.Sampler.IsValid() {
-		vk.DestroySampler(vkDevice, vk.Sampler(texId.Sampler.handle), nil)
-		g.dbg.remove(texId.Sampler.handle)
+		vk.DestroySampler(vkDevice, vk.Sampler(texId.Sampler.Handle), nil)
+		g.dbg.remove(texId.Sampler.Handle)
 		texId.Sampler.Reset()
 	}
 }
@@ -215,20 +216,20 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 	return nil
 }
 
-func (g *GPULogicalDevice) destroySemaphoreImpl(semaphore *GPUSemaphore) {
+func (g *GPULogicalDevice) destroySemaphoreImpl(semaphore *gpu_types.Semaphore) {
 	defer tracing.NewRegion("GPULogicalDevice.destroySemaphoreImpl").End()
-	vk.DestroySemaphore(vk.Device(g.handle), vk.Semaphore(semaphore.handle), nil)
+	vk.DestroySemaphore(vk.Device(g.Handle), vk.Semaphore(semaphore.Handle), nil)
 	semaphore.Reset()
 }
 
-func (g *GPULogicalDevice) destroyFenceImpl(fence *GPUFence) {
+func (g *GPULogicalDevice) destroyFenceImpl(fence *gpu_types.Fence) {
 	defer tracing.NewRegion("GPULogicalDevice.destroyFenceImpl").End()
-	vk.DestroyFence(vk.Device(g.handle), vk.Fence(fence.handle), nil)
+	vk.DestroyFence(vk.Device(g.Handle), vk.Fence(fence.Handle), nil)
 	fence.Reset()
 }
 
 func (g *GPULogicalDevice) destroyImpl() {
 	defer tracing.NewRegion("GPULogicalDevice.Destroy").End()
-	vk.DestroyDevice(vk.Device(g.handle), nil)
-	g.dbg.remove(g.handle)
+	vk.DestroyDevice(vk.Device(g.Handle), nil)
+	g.dbg.remove(g.Handle)
 }

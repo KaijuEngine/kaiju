@@ -10,6 +10,8 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/klib"
+	"kaijuengine.com/rendering/gpu_enums"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type ShaderPipelineData struct {
@@ -123,16 +125,16 @@ type ShaderPipelineDataCompiled struct {
 }
 
 type ShaderPipelineInputAssemblyCompiled struct {
-	Topology         GPUPrimitiveTopology
+	Topology         gpu_enums.PrimitiveTopology
 	PrimitiveRestart bool
 }
 
 type ShaderPipelinePipelineRasterizationCompiled struct {
 	DepthClampEnable        bool
 	DiscardEnable           bool
-	PolygonMode             GPUPolygonMode
-	CullMode                GPUCullModeFlags
-	FrontFace               GPUFrontFace
+	PolygonMode             gpu_enums.PolygonMode
+	CullMode                gpu_enums.CullModeFlags
+	FrontFace               gpu_enums.FrontFace
 	DepthBiasEnable         bool
 	DepthBiasConstantFactor float32
 	DepthBiasClamp          float32
@@ -141,7 +143,7 @@ type ShaderPipelinePipelineRasterizationCompiled struct {
 }
 
 type ShaderPipelinePipelineMultisampleCompiled struct {
-	RasterizationSamples  GPUSampleCountFlags
+	RasterizationSamples  gpu_types.SampleCountFlags
 	SampleShadingEnable   bool
 	MinSampleShading      float32
 	AlphaToCoverageEnable bool
@@ -150,18 +152,18 @@ type ShaderPipelinePipelineMultisampleCompiled struct {
 
 type ShaderPipelineColorBlendCompiled struct {
 	LogicOpEnable  bool
-	LogicOp        GPULogicOp
+	LogicOp        gpu_enums.LogicOp
 	BlendConstants [4]float32
 }
 
 type ShaderPipelineDepthStencilCompiled struct {
 	DepthTestEnable       bool
 	DepthWriteEnable      bool
-	DepthCompareOp        GPUCompareOp
+	DepthCompareOp        gpu_enums.CompareOp
 	DepthBoundsTestEnable bool
 	StencilTestEnable     bool
-	Front                 GPUStencilOpState
-	Back                  GPUStencilOpState
+	Front                 gpu_enums.StencilOpState
+	Back                  gpu_enums.StencilOpState
 	MinDepthBounds        float32
 	MaxDepthBounds        float32
 }
@@ -172,23 +174,23 @@ type ShaderPipelineTessellationCompiled struct {
 
 type ShaderPipelineGraphicsPipelineCompiled struct {
 	Subpass             uint32
-	PipelineCreateFlags GPUPipelineCreateFlags
+	PipelineCreateFlags gpu_enums.PipelineCreateFlags
 }
 
 type ShaderPipelinePushConstantCompiled struct {
 	Size       uint32
-	StageFlags GPUShaderStageFlags
+	StageFlags gpu_enums.ShaderStageFlags
 }
 
 type ShaderPipelineColorBlendAttachmentsCompiled struct {
 	BlendEnable         bool
-	SrcColorBlendFactor GPUBlendFactor
-	DstColorBlendFactor GPUBlendFactor
-	ColorBlendOp        GPUBlendOp
-	SrcAlphaBlendFactor GPUBlendFactor
-	DstAlphaBlendFactor GPUBlendFactor
-	AlphaBlendOp        GPUBlendOp
-	ColorWriteMask      GPUColorComponentFlags
+	SrcColorBlendFactor gpu_enums.BlendFactor
+	DstColorBlendFactor gpu_enums.BlendFactor
+	ColorBlendOp        gpu_enums.BlendOp
+	SrcAlphaBlendFactor gpu_enums.BlendFactor
+	DstAlphaBlendFactor gpu_enums.BlendFactor
+	AlphaBlendOp        gpu_enums.BlendOp
+	ColorWriteMask      gpu_enums.ColorComponentFlags
 }
 
 func (d *ShaderPipelineData) Compile(device *GPUPhysicalDevice) ShaderPipelineDataCompiled {
@@ -234,7 +236,7 @@ func (d *ShaderPipelineData) Compile(device *GPUPhysicalDevice) ShaderPipelineDa
 			DepthCompareOp:        compareOpToGPU(d.DepthStencil.DepthCompareOp),
 			DepthBoundsTestEnable: d.DepthStencil.DepthBoundsTestEnable,
 			StencilTestEnable:     d.DepthStencil.StencilTestEnable,
-			Front: GPUStencilOpState{
+			Front: gpu_enums.StencilOpState{
 				FailOp:      stencilOpToGPU(d.DepthStencil.FrontFailOp),
 				PassOp:      stencilOpToGPU(d.DepthStencil.FrontPassOp),
 				DepthFailOp: stencilOpToGPU(d.DepthStencil.FrontDepthFailOp),
@@ -243,7 +245,7 @@ func (d *ShaderPipelineData) Compile(device *GPUPhysicalDevice) ShaderPipelineDa
 				WriteMask:   d.DepthStencil.FrontWriteMask,
 				Reference:   d.DepthStencil.FrontReference,
 			},
-			Back: GPUStencilOpState{
+			Back: gpu_enums.StencilOpState{
 				FailOp:      stencilOpToGPU(d.DepthStencil.BackFailOp),
 				PassOp:      stencilOpToGPU(d.DepthStencil.BackPassOp),
 				DepthFailOp: stencilOpToGPU(d.DepthStencil.BackDepthFailOp),
@@ -307,68 +309,68 @@ func (a *ShaderPipelineColorBlendAttachments) ListAlphaBlendOp() []string {
 	return klib.MapKeysSorted(StringVkBlendOp)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) SrcColorBlendFactorToGPU() GPUBlendFactor {
+func (a *ShaderPipelineColorBlendAttachments) SrcColorBlendFactorToGPU() gpu_enums.BlendFactor {
 	return blendFactorToGPU(a.SrcColorBlendFactor)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) DstColorBlendFactorToGPU() GPUBlendFactor {
+func (a *ShaderPipelineColorBlendAttachments) DstColorBlendFactorToGPU() gpu_enums.BlendFactor {
 	return blendFactorToGPU(a.DstColorBlendFactor)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) ColorBlendOpToGPU() GPUBlendOp {
+func (a *ShaderPipelineColorBlendAttachments) ColorBlendOpToGPU() gpu_enums.BlendOp {
 	return blendOpToGPU(a.ColorBlendOp)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) SrcAlphaBlendFactorToGPU() GPUBlendFactor {
+func (a *ShaderPipelineColorBlendAttachments) SrcAlphaBlendFactorToGPU() gpu_enums.BlendFactor {
 	return blendFactorToGPU(a.SrcAlphaBlendFactor)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) DstAlphaBlendFactorToGPU() GPUBlendFactor {
+func (a *ShaderPipelineColorBlendAttachments) DstAlphaBlendFactorToGPU() gpu_enums.BlendFactor {
 	return blendFactorToGPU(a.DstAlphaBlendFactor)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToGPU() GPUBlendOp {
+func (a *ShaderPipelineColorBlendAttachments) AlphaBlendOpToGPU() gpu_enums.BlendOp {
 	return blendOpToGPU(a.AlphaBlendOp)
 }
 
-func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToGPU() GPUColorComponentFlags {
-	mask := GPUColorComponentFlags(0)
+func (a *ShaderPipelineColorBlendAttachments) ColorWriteMaskToGPU() gpu_enums.ColorComponentFlags {
+	mask := gpu_enums.ColorComponentFlags(0)
 	for i := range a.ColorWriteMask {
-		mask |= GPUColorComponentFlags(StringVkColorComponentFlagBits[a.ColorWriteMask[i]])
+		mask |= gpu_enums.ColorComponentFlags(StringVkColorComponentFlagBits[a.ColorWriteMask[i]])
 	}
 	return mask
 }
 
-func blendFactorToGPU(val string) GPUBlendFactor {
+func blendFactorToGPU(val string) gpu_enums.BlendFactor {
 	if res, ok := StringVkBlendFactor[val]; ok {
-		return GPUBlendFactor(res)
+		return gpu_enums.BlendFactor(res)
 	} else if val != "" {
 		slog.Warn("invalid string for vkBlendFactor", "value", val)
 	}
 	return 0
 }
 
-func blendOpToGPU(val string) GPUBlendOp {
+func blendOpToGPU(val string) gpu_enums.BlendOp {
 	if res, ok := StringVkBlendOp[val]; ok {
-		return GPUBlendOp(res)
+		return gpu_enums.BlendOp(res)
 	} else if val != "" {
 		slog.Warn("invalid string for vkBlendOp", "value", val)
 	}
 	return 0
 }
 
-func compareOpToGPU(val string) GPUCompareOp {
+func compareOpToGPU(val string) gpu_enums.CompareOp {
 	if res, ok := StringVkCompareOp[val]; ok {
-		return GPUCompareOp(res)
+		return gpu_enums.CompareOp(res)
 	} else if val != "" {
 		slog.Warn("invalid string for vkCompareOp", "value", val)
 	}
 	return 0
 }
 
-func stencilOpToGPU(val string) GPUStencilOp {
+func stencilOpToGPU(val string) gpu_enums.StencilOp {
 	if res, ok := StringVkStencilOp[val]; ok {
-		return GPUStencilOp(res)
+		return gpu_enums.StencilOp(res)
 	} else if val != "" {
 		slog.Warn("invalid string for vkStencilOpKeep", "value", val)
 	}
@@ -447,53 +449,53 @@ func (s ShaderPipelineData) ListPatchControlPoints() []string {
 	return klib.MapKeysSorted(StringVkPatchControlPoints)
 }
 
-func (s *ShaderPipelineInputAssembly) TopologyToGPU() GPUPrimitiveTopology {
+func (s *ShaderPipelineInputAssembly) TopologyToGPU() gpu_enums.PrimitiveTopology {
 	if res, ok := StringVkPrimitiveTopology[s.Topology]; ok {
-		return GPUPrimitiveTopology(res)
+		return gpu_enums.PrimitiveTopology(res)
 	} else if s.Topology != "" {
 		slog.Warn("invalid string for vkPrimitiveTopology", "value", s.Topology)
 	}
-	return GPUPrimitiveTopologyTriangleList
+	return gpu_enums.PrimitiveTopologyTriangleList
 }
 
-func (s *ShaderPipelinePipelineRasterization) PolygonModeToGPU() GPUPolygonMode {
+func (s *ShaderPipelinePipelineRasterization) PolygonModeToGPU() gpu_enums.PolygonMode {
 	if res, ok := StringVkPolygonMode[s.PolygonMode]; ok {
-		return GPUPolygonMode(res)
+		return gpu_enums.PolygonMode(res)
 	} else if s.PolygonMode != "" {
 		slog.Warn("invalid string for vkPolygonMode", "value", s.PolygonMode)
 	}
-	return GPUPolygonModeFill
+	return gpu_enums.PolygonModeFill
 }
 
-func (s *ShaderPipelinePipelineRasterization) CullModeToGPU() GPUCullModeFlags {
+func (s *ShaderPipelinePipelineRasterization) CullModeToGPU() gpu_enums.CullModeFlags {
 	if res, ok := StringVkCullModeFlagBits[s.CullMode]; ok {
-		return GPUCullModeFlags(res)
+		return gpu_enums.CullModeFlags(res)
 	} else if s.CullMode != "" {
 		slog.Warn("invalid string for vkCullModeFlagBits", "value", s.CullMode)
 	}
-	return GPUCullModeFrontBit
+	return gpu_enums.CullModeFrontBit
 }
 
-func (s *ShaderPipelinePipelineRasterization) FrontFaceToGPU() GPUFrontFace {
+func (s *ShaderPipelinePipelineRasterization) FrontFaceToGPU() gpu_enums.FrontFace {
 	if res, ok := StringVkFrontFace[s.FrontFace]; ok {
-		return GPUFrontFace(res)
+		return gpu_enums.FrontFace(res)
 	} else if s.FrontFace != "" {
 		slog.Warn("invalid string for vkFrontFace", "value", s.FrontFace)
 	}
-	return GPUFrontFaceClockwise
+	return gpu_enums.FrontFaceClockwise
 }
 
-func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToGPU(device *GPUPhysicalDevice) GPUSampleCountFlags {
+func (s *ShaderPipelinePipelineMultisample) RasterizationSamplesToGPU(device *GPUPhysicalDevice) gpu_types.SampleCountFlags {
 	return sampleCountToGpu(s.RasterizationSamples, device)
 }
 
-func (s *ShaderPipelineColorBlend) LogicOpToGPU() GPULogicOp {
+func (s *ShaderPipelineColorBlend) LogicOpToGPU() gpu_enums.LogicOp {
 	if res, ok := StringVkLogicOp[s.LogicOp]; ok {
-		return GPULogicOp(res)
+		return gpu_enums.LogicOp(res)
 	} else if s.LogicOp != "" {
 		slog.Warn("invalid string for vkLogicOp", "value", s.LogicOp)
 	}
-	return GPULogicOpCopy
+	return gpu_enums.LogicOpCopy
 }
 
 func (s *ShaderPipelineData) BlendConstants() [4]float32 {
@@ -516,8 +518,8 @@ func (s *ShaderPipelineTessellation) PatchControlPointsToGPU() uint32 {
 
 // TODO:  This and the BackStencilOpStateToGPU are duplicates because of a bad
 // structure setup, please fix later
-func (s *ShaderPipelineData) FrontStencilOpStateToGPU() GPUStencilOpState {
-	return GPUStencilOpState{
+func (s *ShaderPipelineData) FrontStencilOpStateToGPU() gpu_enums.StencilOpState {
+	return gpu_enums.StencilOpState{
 		FailOp:      stencilOpToGPU(s.DepthStencil.FrontFailOp),
 		PassOp:      stencilOpToGPU(s.DepthStencil.FrontPassOp),
 		DepthFailOp: stencilOpToGPU(s.DepthStencil.FrontDepthFailOp),
@@ -528,8 +530,8 @@ func (s *ShaderPipelineData) FrontStencilOpStateToGPU() GPUStencilOpState {
 	}
 }
 
-func (s *ShaderPipelineData) BackStencilOpStateToGPU() GPUStencilOpState {
-	return GPUStencilOpState{
+func (s *ShaderPipelineData) BackStencilOpStateToGPU() gpu_enums.StencilOpState {
+	return gpu_enums.StencilOpState{
 		FailOp:      stencilOpToGPU(s.DepthStencil.BackFailOp),
 		PassOp:      stencilOpToGPU(s.DepthStencil.BackPassOp),
 		DepthFailOp: stencilOpToGPU(s.DepthStencil.BackDepthFailOp),
@@ -540,18 +542,18 @@ func (s *ShaderPipelineData) BackStencilOpStateToGPU() GPUStencilOpState {
 	}
 }
 
-func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToGPU() GPUPipelineCreateFlags {
-	mask := GPUPipelineCreateFlags(0)
+func (s *ShaderPipelineGraphicsPipeline) PipelineCreateFlagsToGPU() gpu_enums.PipelineCreateFlags {
+	mask := gpu_enums.PipelineCreateFlags(0)
 	for i := range s.PipelineCreateFlags {
-		mask |= GPUPipelineCreateFlags(StringVkPipelineCreateFlagBits[s.PipelineCreateFlags[i]])
+		mask |= gpu_enums.PipelineCreateFlags(StringVkPipelineCreateFlagBits[s.PipelineCreateFlags[i]])
 	}
 	return mask
 }
 
-func (s *ShaderPipelinePushConstant) ShaderStageFlagsToGPU() GPUShaderStageFlags {
-	mask := GPUShaderStageFlags(0)
+func (s *ShaderPipelinePushConstant) ShaderStageFlagsToGPU() gpu_enums.ShaderStageFlags {
+	mask := gpu_enums.ShaderStageFlags(0)
 	for i := range s.StageFlags {
-		mask |= GPUShaderStageFlags(StringVkShaderStageFlagBits[s.StageFlags[i]])
+		mask |= gpu_enums.ShaderStageFlags(StringVkShaderStageFlagBits[s.StageFlags[i]])
 	}
 	return mask
 }

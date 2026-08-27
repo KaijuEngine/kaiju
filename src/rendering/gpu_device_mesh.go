@@ -12,6 +12,7 @@ import (
 	"weak"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type MeshCleanup struct {
@@ -19,12 +20,12 @@ type MeshCleanup struct {
 	device weak.Pointer[GPUDevice]
 }
 
-func (g *GPUDevice) CreateVertexBuffer(verts []Vertex) (GPUBuffer, GPUDeviceMemory, error) {
+func (g *GPUDevice) CreateVertexBuffer(verts []Vertex) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
 	defer tracing.NewRegion("GPUDevice.CreateVertexBuffer").End()
 	return g.createVertexBufferImpl(verts)
 }
 
-func (g *GPUDevice) CreateIndexBuffer(indices []uint32) (GPUBuffer, GPUDeviceMemory, error) {
+func (g *GPUDevice) CreateIndexBuffer(indices []uint32) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
 	defer tracing.NewRegion("GPUDevice.CreateIndexBuffer").End()
 	return g.createIndexBufferImpl(indices)
 }
@@ -108,12 +109,12 @@ func (g *GPUDevice) destroyMeshHandle(handle MeshId) MeshId {
 	defer tracing.NewRegion("GPUDevice.DestroyMesh").End()
 	g.LogicalDevice.WaitIdle()
 	g.DestroyBuffer(handle.indexBuffer)
-	g.LogicalDevice.dbg.remove(handle.indexBuffer.handle)
+	g.LogicalDevice.dbg.remove(handle.indexBuffer.Handle)
 	g.FreeMemory(handle.indexBufferMemory)
-	g.LogicalDevice.dbg.remove(handle.indexBufferMemory.handle)
+	g.LogicalDevice.dbg.remove(handle.indexBufferMemory.Handle)
 	g.DestroyBuffer(handle.vertexBuffer)
-	g.LogicalDevice.dbg.remove(handle.vertexBuffer.handle)
+	g.LogicalDevice.dbg.remove(handle.vertexBuffer.Handle)
 	g.FreeMemory(handle.vertexBufferMemory)
-	g.LogicalDevice.dbg.remove(handle.vertexBufferMemory.handle)
+	g.LogicalDevice.dbg.remove(handle.vertexBufferMemory.Handle)
 	return MeshId{}
 }

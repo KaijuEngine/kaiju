@@ -10,6 +10,8 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/klib"
+	"kaijuengine.com/rendering/gpu_enums"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -384,100 +386,100 @@ var (
 		"Clockwise":        vulkan_const.FrontFaceClockwise,
 		"CounterClockwise": vulkan_const.FrontFaceCounterClockwise,
 	}
-	StringVkSampleCountFlagBits = map[string]GPUSampleCountFlags{
-		swapChainSampleCountKey: GPUSampleSwapChainCount,
-		"1Bit":                  GPUSampleCount1Bit,
-		"2Bit":                  GPUSampleCount2Bit,
-		"4Bit":                  GPUSampleCount4Bit,
-		"8Bit":                  GPUSampleCount8Bit,
-		"16Bit":                 GPUSampleCount16Bit,
-		"32Bit":                 GPUSampleCount32Bit,
-		"64Bit":                 GPUSampleCount64Bit,
+	StringVkSampleCountFlagBits = map[string]gpu_types.SampleCountFlags{
+		swapChainSampleCountKey: gpu_types.SampleSwapChainCount,
+		"1Bit":                  gpu_types.SampleCount1Bit,
+		"2Bit":                  gpu_types.SampleCount2Bit,
+		"4Bit":                  gpu_types.SampleCount4Bit,
+		"8Bit":                  gpu_types.SampleCount8Bit,
+		"16Bit":                 gpu_types.SampleCount16Bit,
+		"32Bit":                 gpu_types.SampleCount32Bit,
+		"64Bit":                 gpu_types.SampleCount64Bit,
 	}
 	StringVkPatchControlPoints = map[string]uint32{
 		"Lines":     2,
 		"Triangles": 3,
 		"Quads":     4,
 	}
-	StringVkAttachmentLoadOp = map[string]GPUAttachmentLoadOp{
-		"Load":     GPUAttachmentLoadOpLoad,
-		"Clear":    GPUAttachmentLoadOpClear,
-		"DontCare": GPUAttachmentLoadOpDontCare,
+	StringVkAttachmentLoadOp = map[string]gpu_types.AttachmentLoadOp{
+		"Load":     gpu_types.AttachmentLoadOpLoad,
+		"Clear":    gpu_types.AttachmentLoadOpClear,
+		"DontCare": gpu_types.AttachmentLoadOpDontCare,
 	}
-	StringVkAttachmentStoreOp = map[string]GPUAttachmentStoreOp{
-		"Store":    GPUAttachmentStoreOpStore,
-		"DontCare": GPUAttachmentStoreOpDontCare,
+	StringVkAttachmentStoreOp = map[string]gpu_types.AttachmentStoreOp{
+		"Store":    gpu_types.AttachmentStoreOpStore,
+		"DontCare": gpu_types.AttachmentStoreOpDontCare,
 	}
-	StringVkImageLayout = map[string]GPUImageLayout{
-		"Undefined":                             GPUImageLayoutUndefined,
-		"General":                               GPUImageLayoutGeneral,
-		"ColorAttachmentOptimal":                GPUImageLayoutColorAttachmentOptimal,
-		"DepthStencilAttachmentOptimal":         GPUImageLayoutDepthStencilAttachmentOptimal,
-		"DepthStencilReadOnlyOptimal":           GPUImageLayoutDepthStencilReadOnlyOptimal,
-		"ShaderReadOnlyOptimal":                 GPUImageLayoutShaderReadOnlyOptimal,
-		"TransferSrcOptimal":                    GPUImageLayoutTransferSrcOptimal,
-		"TransferDstOptimal":                    GPUImageLayoutTransferDstOptimal,
-		"Preinitialized":                        GPUImageLayoutPreinitialized,
-		"DepthReadOnlyStencilAttachmentOptimal": GPUImageLayoutDepthReadOnlyStencilAttachmentOptimal,
-		"DepthAttachmentStencilReadOnlyOptimal": GPUImageLayoutDepthAttachmentStencilReadOnlyOptimal,
-		"PresentSrc":                            GPUImageLayoutPresentSrc,
-		"SharedPresent":                         GPUImageLayoutSharedPresent,
-		"ShadingRateOptimalNv":                  GPUImageLayoutShadingRateOptimalNv,
+	StringVkImageLayout = map[string]gpu_types.ImageLayout{
+		"Undefined":                             gpu_types.ImageLayoutUndefined,
+		"General":                               gpu_types.ImageLayoutGeneral,
+		"ColorAttachmentOptimal":                gpu_types.ImageLayoutColorAttachmentOptimal,
+		"DepthStencilAttachmentOptimal":         gpu_types.ImageLayoutDepthStencilAttachmentOptimal,
+		"DepthStencilReadOnlyOptimal":           gpu_types.ImageLayoutDepthStencilReadOnlyOptimal,
+		"ShaderReadOnlyOptimal":                 gpu_types.ImageLayoutShaderReadOnlyOptimal,
+		"TransferSrcOptimal":                    gpu_types.ImageLayoutTransferSrcOptimal,
+		"TransferDstOptimal":                    gpu_types.ImageLayoutTransferDstOptimal,
+		"Preinitialized":                        gpu_types.ImageLayoutPreinitialized,
+		"DepthReadOnlyStencilAttachmentOptimal": gpu_types.ImageLayoutDepthReadOnlyStencilAttachmentOptimal,
+		"DepthAttachmentStencilReadOnlyOptimal": gpu_types.ImageLayoutDepthAttachmentStencilReadOnlyOptimal,
+		"PresentSrc":                            gpu_types.ImageLayoutPresentSrc,
+		"SharedPresent":                         gpu_types.ImageLayoutSharedPresent,
+		"ShadingRateOptimalNv":                  gpu_types.ImageLayoutShadingRateOptimalNv,
 	}
-	StringVkPipelineStageFlagBits = map[string]GPUPipelineStageFlags{
-		"TopOfPipeBit":                    GPUPipelineStageTopOfPipeBit,
-		"DrawIndirectBit":                 GPUPipelineStageDrawIndirectBit,
-		"VertexInputBit":                  GPUPipelineStageVertexInputBit,
-		"VertexShaderBit":                 GPUPipelineStageVertexShaderBit,
-		"TessellationControlShaderBit":    GPUPipelineStageTessellationControlShaderBit,
-		"TessellationEvaluationShaderBit": GPUPipelineStageTessellationEvaluationShaderBit,
-		"GeometryShaderBit":               GPUPipelineStageGeometryShaderBit,
-		"FragmentShaderBit":               GPUPipelineStageFragmentShaderBit,
-		"EarlyFragmentTestsBit":           GPUPipelineStageEarlyFragmentTestsBit,
-		"LateFragmentTestsBit":            GPUPipelineStageLateFragmentTestsBit,
-		"ColorAttachmentOutputBit":        GPUPipelineStageColorAttachmentOutputBit,
-		"ComputeShaderBit":                GPUPipelineStageComputeShaderBit,
-		"TransferBit":                     GPUPipelineStageTransferBit,
-		"BottomOfPipeBit":                 GPUPipelineStageBottomOfPipeBit,
-		"HostBit":                         GPUPipelineStageHostBit,
-		"AllGraphicsBit":                  GPUPipelineStageAllGraphicsBit,
-		"AllCommandsBit":                  GPUPipelineStageAllCommandsBit,
-		"TransformFeedbackBit":            GPUPipelineStageTransformFeedbackBit,
-		"ConditionalRenderingBit":         GPUPipelineStageConditionalRenderingBit,
-		"CommandProcessBitNvx":            GPUPipelineStageCommandProcessBitNvx,
-		"ShadingRateImageBitNv":           GPUPipelineStageShadingRateImageBitNv,
-		"RaytracingBitNvx":                GPUPipelineStageRaytracingBitNvx,
-		"TaskShaderBitNv":                 GPUPipelineStageTaskShaderBitNv,
-		"MeshShaderBitNv":                 GPUPipelineStageMeshShaderBitNv,
+	StringVkPipelineStageFlagBits = map[string]gpu_types.PipelineStageFlags{
+		"TopOfPipeBit":                    gpu_types.PipelineStageTopOfPipeBit,
+		"DrawIndirectBit":                 gpu_types.PipelineStageDrawIndirectBit,
+		"VertexInputBit":                  gpu_types.PipelineStageVertexInputBit,
+		"VertexShaderBit":                 gpu_types.PipelineStageVertexShaderBit,
+		"TessellationControlShaderBit":    gpu_types.PipelineStageTessellationControlShaderBit,
+		"TessellationEvaluationShaderBit": gpu_types.PipelineStageTessellationEvaluationShaderBit,
+		"GeometryShaderBit":               gpu_types.PipelineStageGeometryShaderBit,
+		"FragmentShaderBit":               gpu_types.PipelineStageFragmentShaderBit,
+		"EarlyFragmentTestsBit":           gpu_types.PipelineStageEarlyFragmentTestsBit,
+		"LateFragmentTestsBit":            gpu_types.PipelineStageLateFragmentTestsBit,
+		"ColorAttachmentOutputBit":        gpu_types.PipelineStageColorAttachmentOutputBit,
+		"ComputeShaderBit":                gpu_types.PipelineStageComputeShaderBit,
+		"TransferBit":                     gpu_types.PipelineStageTransferBit,
+		"BottomOfPipeBit":                 gpu_types.PipelineStageBottomOfPipeBit,
+		"HostBit":                         gpu_types.PipelineStageHostBit,
+		"AllGraphicsBit":                  gpu_types.PipelineStageAllGraphicsBit,
+		"AllCommandsBit":                  gpu_types.PipelineStageAllCommandsBit,
+		"TransformFeedbackBit":            gpu_types.PipelineStageTransformFeedbackBit,
+		"ConditionalRenderingBit":         gpu_types.PipelineStageConditionalRenderingBit,
+		"CommandProcessBitNvx":            gpu_types.PipelineStageCommandProcessBitNvx,
+		"ShadingRateImageBitNv":           gpu_types.PipelineStageShadingRateImageBitNv,
+		"RaytracingBitNvx":                gpu_types.PipelineStageRaytracingBitNvx,
+		"TaskShaderBitNv":                 gpu_types.PipelineStageTaskShaderBitNv,
+		"MeshShaderBitNv":                 gpu_types.PipelineStageMeshShaderBitNv,
 	}
-	StringVkAccessFlagBits = map[string]GPUAccessFlags{
-		"IndirectCommandReadBit":            GPUAccessIndirectCommandReadBit,
-		"IndexReadBit":                      GPUAccessIndexReadBit,
-		"VertexAttributeReadBit":            GPUAccessVertexAttributeReadBit,
-		"UniformReadBit":                    GPUAccessUniformReadBit,
-		"InputAttachmentReadBit":            GPUAccessInputAttachmentReadBit,
-		"ShaderReadBit":                     GPUAccessShaderReadBit,
-		"ShaderWriteBit":                    GPUAccessShaderWriteBit,
-		"ColorAttachmentReadBit":            GPUAccessColorAttachmentReadBit,
-		"ColorAttachmentWriteBit":           GPUAccessColorAttachmentWriteBit,
-		"DepthStencilAttachmentReadBit":     GPUAccessDepthStencilAttachmentReadBit,
-		"DepthStencilAttachmentWriteBit":    GPUAccessDepthStencilAttachmentWriteBit,
-		"TransferReadBit":                   GPUAccessTransferReadBit,
-		"TransferWriteBit":                  GPUAccessTransferWriteBit,
-		"HostReadBit":                       GPUAccessHostReadBit,
-		"HostWriteBit":                      GPUAccessHostWriteBit,
-		"MemoryReadBit":                     GPUAccessMemoryReadBit,
-		"MemoryWriteBit":                    GPUAccessMemoryWriteBit,
-		"TransformFeedbackWriteBit":         GPUAccessTransformFeedbackWriteBit,
-		"TransformFeedbackCounterReadBit":   GPUAccessTransformFeedbackCounterReadBit,
-		"TransformFeedbackCounterWriteBit":  GPUAccessTransformFeedbackCounterWriteBit,
-		"ConditionalRenderingReadBit":       GPUAccessConditionalRenderingReadBit,
-		"CommandProcessReadBitNvx":          GPUAccessCommandProcessReadBitNvx,
-		"CommandProcessWriteBitNvx":         GPUAccessCommandProcessWriteBitNvx,
-		"ColorAttachmentReadNoncoherentBit": GPUAccessColorAttachmentReadNoncoherentBit,
-		"ShadingRateImageReadBitNv":         GPUAccessShadingRateImageReadBitNv,
-		"AccelerationStructureReadBitNvx":   GPUAccessAccelerationStructureReadBitNvx,
-		"AccelerationStructureWriteBitNvx":  GPUAccessAccelerationStructureWriteBitNvx,
+	StringVkAccessFlagBits = map[string]gpu_types.AccessFlags{
+		"IndirectCommandReadBit":            gpu_types.AccessIndirectCommandReadBit,
+		"IndexReadBit":                      gpu_types.AccessIndexReadBit,
+		"VertexAttributeReadBit":            gpu_types.AccessVertexAttributeReadBit,
+		"UniformReadBit":                    gpu_types.AccessUniformReadBit,
+		"InputAttachmentReadBit":            gpu_types.AccessInputAttachmentReadBit,
+		"ShaderReadBit":                     gpu_types.AccessShaderReadBit,
+		"ShaderWriteBit":                    gpu_types.AccessShaderWriteBit,
+		"ColorAttachmentReadBit":            gpu_types.AccessColorAttachmentReadBit,
+		"ColorAttachmentWriteBit":           gpu_types.AccessColorAttachmentWriteBit,
+		"DepthStencilAttachmentReadBit":     gpu_types.AccessDepthStencilAttachmentReadBit,
+		"DepthStencilAttachmentWriteBit":    gpu_types.AccessDepthStencilAttachmentWriteBit,
+		"TransferReadBit":                   gpu_types.AccessTransferReadBit,
+		"TransferWriteBit":                  gpu_types.AccessTransferWriteBit,
+		"HostReadBit":                       gpu_types.AccessHostReadBit,
+		"HostWriteBit":                      gpu_types.AccessHostWriteBit,
+		"MemoryReadBit":                     gpu_types.AccessMemoryReadBit,
+		"MemoryWriteBit":                    gpu_types.AccessMemoryWriteBit,
+		"TransformFeedbackWriteBit":         gpu_types.AccessTransformFeedbackWriteBit,
+		"TransformFeedbackCounterReadBit":   gpu_types.AccessTransformFeedbackCounterReadBit,
+		"TransformFeedbackCounterWriteBit":  gpu_types.AccessTransformFeedbackCounterWriteBit,
+		"ConditionalRenderingReadBit":       gpu_types.AccessConditionalRenderingReadBit,
+		"CommandProcessReadBitNvx":          gpu_types.AccessCommandProcessReadBitNvx,
+		"CommandProcessWriteBitNvx":         gpu_types.AccessCommandProcessWriteBitNvx,
+		"ColorAttachmentReadNoncoherentBit": gpu_types.AccessColorAttachmentReadNoncoherentBit,
+		"ShadingRateImageReadBitNv":         gpu_types.AccessShadingRateImageReadBitNv,
+		"AccelerationStructureReadBitNvx":   gpu_types.AccessAccelerationStructureReadBitNvx,
+		"AccelerationStructureWriteBitNvx":  gpu_types.AccessAccelerationStructureWriteBitNvx,
 	}
 	StringVkShaderStageFlagBits = map[string]vulkan_const.ShaderStageFlagBits{
 		"VertexBit":                 vulkan_const.ShaderStageVertexBit,
@@ -498,15 +500,15 @@ var (
 		"MeshBitNv":                 vulkan_const.ShaderStageMeshBitNv,
 		"FlagBitsMaxEnum":           vulkan_const.ShaderStageFlagBitsMaxEnum,
 	}
-	StringVkPipelineBindPoint = map[string]GPUPipelineBindPoint{
-		"Graphics":      GPUPipelineBindPointGraphics,
-		"Compute":       GPUPipelineBindPointCompute,
-		"RaytracingNvx": GPUPipelineBindPointRaytracingNvx,
+	StringVkPipelineBindPoint = map[string]gpu_enums.PipelineBindPoint{
+		"Graphics":      gpu_enums.PipelineBindPointGraphics,
+		"Compute":       gpu_enums.PipelineBindPointCompute,
+		"RaytracingNvx": gpu_enums.PipelineBindPointRaytracingNvx,
 	}
-	StringVkDependencyFlagBits = map[string]GPUDependencyFlags{
-		"ByRegionBit":    GPUDependencyByRegionBit,
-		"DeviceGroupBit": GPUDependencyDeviceGroupBit,
-		"ViewLocalBit":   GPUDependencyViewLocalBit,
+	StringVkDependencyFlagBits = map[string]gpu_enums.DependencyFlags{
+		"ByRegionBit":    gpu_enums.DependencyByRegionBit,
+		"DeviceGroupBit": gpu_enums.DependencyDeviceGroupBit,
+		"ViewLocalBit":   gpu_enums.DependencyViewLocalBit,
 	}
 	StringVkColorComponentFlagBits = map[string]vulkan_const.ColorComponentFlagBits{
 		"R": vulkan_const.ColorComponentRBit,
@@ -522,47 +524,47 @@ var (
 		"DispatchBase":                vulkan_const.PipelineCreateDispatchBase,
 		"DeferCompileBitNvx":          vulkan_const.PipelineCreateDeferCompileBitNvx,
 	}
-	StringVkImageTiling = map[string]GPUImageTiling{
-		"Optimal":           GPUImageTilingOptimal,
-		"Linear":            GPUImageTilingLinear,
-		"DrmFormatModifier": GPUImageTilingDrmFormatModifier,
+	StringVkImageTiling = map[string]gpu_types.ImageTiling{
+		"Optimal":           gpu_types.ImageTilingOptimal,
+		"Linear":            gpu_types.ImageTilingLinear,
+		"DrmFormatModifier": gpu_types.ImageTilingDrmFormatModifier,
 	}
-	StringVkFilter = map[string]GPUFilter{
-		"Nearest":  GPUFilterNearest,
-		"Linear":   GPUFilterLinear,
-		"CubicImg": GPUFilterCubicImg,
+	StringVkFilter = map[string]gpu_types.Filter{
+		"Nearest":  gpu_types.FilterNearest,
+		"Linear":   gpu_types.FilterLinear,
+		"CubicImg": gpu_types.FilterCubicImg,
 	}
-	StringVkImageUsageFlagBits = map[string]GPUImageUsageFlags{
-		"TransferSrcBit":            GPUImageUsageTransferSrcBit,
-		"TransferDstBit":            GPUImageUsageTransferDstBit,
-		"SampledBit":                GPUImageUsageSampledBit,
-		"StorageBit":                GPUImageUsageStorageBit,
-		"ColorAttachmentBit":        GPUImageUsageColorAttachmentBit,
-		"DepthStencilAttachmentBit": GPUImageUsageDepthStencilAttachmentBit,
-		"TransientAttachmentBit":    GPUImageUsageTransientAttachmentBit,
-		"InputAttachmentBit":        GPUImageUsageInputAttachmentBit,
-		"ShadingRateImageBitNv":     GPUImageUsageShadingRateImageBitNv,
+	StringVkImageUsageFlagBits = map[string]gpu_types.ImageUsageFlags{
+		"TransferSrcBit":            gpu_types.ImageUsageTransferSrcBit,
+		"TransferDstBit":            gpu_types.ImageUsageTransferDstBit,
+		"SampledBit":                gpu_types.ImageUsageSampledBit,
+		"StorageBit":                gpu_types.ImageUsageStorageBit,
+		"ColorAttachmentBit":        gpu_types.ImageUsageColorAttachmentBit,
+		"DepthStencilAttachmentBit": gpu_types.ImageUsageDepthStencilAttachmentBit,
+		"TransientAttachmentBit":    gpu_types.ImageUsageTransientAttachmentBit,
+		"InputAttachmentBit":        gpu_types.ImageUsageInputAttachmentBit,
+		"ShadingRateImageBitNv":     gpu_types.ImageUsageShadingRateImageBitNv,
 	}
-	StringVkMemoryPropertyFlagBits = map[string]GPUMemoryPropertyFlags{
-		"DeviceLocalBit":     GPUMemoryPropertyDeviceLocalBit,
-		"HostVisibleBit":     GPUMemoryPropertyHostVisibleBit,
-		"HostCoherentBit":    GPUMemoryPropertyHostCoherentBit,
-		"HostCachedBit":      GPUMemoryPropertyHostCachedBit,
-		"LazilyAllocatedBit": GPUMemoryPropertyLazilyAllocatedBit,
-		"ProtectedBit":       GPUMemoryPropertyProtectedBit,
+	StringVkMemoryPropertyFlagBits = map[string]gpu_types.MemoryPropertyFlags{
+		"DeviceLocalBit":     gpu_types.MemoryPropertyDeviceLocalBit,
+		"HostVisibleBit":     gpu_types.MemoryPropertyHostVisibleBit,
+		"HostCoherentBit":    gpu_types.MemoryPropertyHostCoherentBit,
+		"HostCachedBit":      gpu_types.MemoryPropertyHostCachedBit,
+		"LazilyAllocatedBit": gpu_types.MemoryPropertyLazilyAllocatedBit,
+		"ProtectedBit":       gpu_types.MemoryPropertyProtectedBit,
 	}
-	StringVkImageAspectFlagBits = map[string]GPUImageAspectFlags{
-		"ColorBit":        GPUImageAspectColorBit,
-		"DepthBit":        GPUImageAspectDepthBit,
-		"StencilBit":      GPUImageAspectStencilBit,
-		"MetadataBit":     GPUImageAspectMetadataBit,
-		"Plane0Bit":       GPUImageAspectPlane0Bit,
-		"Plane1Bit":       GPUImageAspectPlane1Bit,
-		"Plane2Bit":       GPUImageAspectPlane2Bit,
-		"MemoryPlane0Bit": GPUImageAspectMemoryPlane0Bit,
-		"MemoryPlane1Bit": GPUImageAspectMemoryPlane1Bit,
-		"MemoryPlane2Bit": GPUImageAspectMemoryPlane2Bit,
-		"MemoryPlane3Bit": GPUImageAspectMemoryPlane3Bit,
+	StringVkImageAspectFlagBits = map[string]gpu_types.ImageAspectFlags{
+		"ColorBit":        gpu_types.ImageAspectColorBit,
+		"DepthBit":        gpu_types.ImageAspectDepthBit,
+		"StencilBit":      gpu_types.ImageAspectStencilBit,
+		"MetadataBit":     gpu_types.ImageAspectMetadataBit,
+		"Plane0Bit":       gpu_types.ImageAspectPlane0Bit,
+		"Plane1Bit":       gpu_types.ImageAspectPlane1Bit,
+		"Plane2Bit":       gpu_types.ImageAspectPlane2Bit,
+		"MemoryPlane0Bit": gpu_types.ImageAspectMemoryPlane0Bit,
+		"MemoryPlane1Bit": gpu_types.ImageAspectMemoryPlane1Bit,
+		"MemoryPlane2Bit": gpu_types.ImageAspectMemoryPlane2Bit,
+		"MemoryPlane3Bit": gpu_types.ImageAspectMemoryPlane3Bit,
 	}
 	StringVkMap = map[string]any{
 		"StringVkFormat":                 StringVkFormat,
@@ -602,7 +604,7 @@ func boolToVkBool(val bool) vk.Bool32 {
 	}
 }
 
-func attachmentLoadOpToGpu(val string) GPUAttachmentLoadOp {
+func attachmentLoadOpToGpu(val string) gpu_types.AttachmentLoadOp {
 	if res, ok := StringVkAttachmentLoadOp[val]; ok {
 		return res
 	} else if val != "" {
@@ -611,7 +613,7 @@ func attachmentLoadOpToGpu(val string) GPUAttachmentLoadOp {
 	return 0
 }
 
-func attachmentStoreOpToGpu(val string) GPUAttachmentStoreOp {
+func attachmentStoreOpToGpu(val string) gpu_types.AttachmentStoreOp {
 	if res, ok := StringVkAttachmentStoreOp[val]; ok {
 		return res
 	} else if val != "" {
@@ -620,7 +622,7 @@ func attachmentStoreOpToGpu(val string) GPUAttachmentStoreOp {
 	return 0
 }
 
-func imageLayoutToGpu(val string) GPUImageLayout {
+func imageLayoutToGpu(val string) gpu_types.ImageLayout {
 	if res, ok := StringVkImageLayout[val]; ok {
 		return res
 	} else if val != "" {
@@ -629,7 +631,7 @@ func imageLayoutToGpu(val string) GPUImageLayout {
 	return 0
 }
 
-func sampleCountToGpu(val string, device *GPUPhysicalDevice) GPUSampleCountFlags {
+func sampleCountToGpu(val string, device *GPUPhysicalDevice) gpu_types.SampleCountFlags {
 	if val == swapChainSampleCountKey {
 		return device.MaxUsableSampleCount()
 	} else if res, ok := StringVkSampleCountFlagBits[val]; ok {
@@ -640,15 +642,15 @@ func sampleCountToGpu(val string, device *GPUPhysicalDevice) GPUSampleCountFlags
 	return 0
 }
 
-func formatToGpu(val string, device *GPUDevice) GPUFormat {
+func formatToGpu(val string, device *GPUDevice) gpu_types.Format {
 	if val == detectDepthFormatKey {
 		return device.PhysicalDevice.FindSupportedFormat(
-			depthFormatCandidates(), GPUImageTilingOptimal, GPUFormatFeatureDepthStencilAttachmentBit)
+			depthFormatCandidates(), gpu_types.ImageTilingOptimal, gpu_types.FormatFeatureDepthStencilAttachmentBit)
 	} else if val == swapChainFormatKey {
 		return device.LogicalDevice.SwapChain.Images[0].Format
 	} else if res, ok := StringVkFormat[val]; ok {
-		var fmt GPUFormat
-		fmt.fromVulkan(res)
+		var fmt gpu_types.Format
+		fmt.FromVulkan(res)
 		return fmt
 	} else if val != "" {
 		slog.Warn("failed to convert format string", "string", val)
@@ -692,7 +694,7 @@ func blendOpToVK(val string) vulkan_const.BlendOp {
 	return 0
 }
 
-func imageTilingToGpu(val string) GPUImageTiling {
+func imageTilingToGpu(val string) gpu_types.ImageTiling {
 	if res, ok := StringVkImageTiling[val]; ok {
 		return res
 	} else if val != "" {
@@ -701,7 +703,7 @@ func imageTilingToGpu(val string) GPUImageTiling {
 	return 0
 }
 
-func filterToGpu(val string) GPUFilter {
+func filterToGpu(val string) gpu_types.Filter {
 	if res, ok := StringVkFilter[val]; ok {
 		return res
 	} else if val != "" {
@@ -710,7 +712,7 @@ func filterToGpu(val string) GPUFilter {
 	return 0
 }
 
-func pipelineBindPointToGpu(val string) GPUPipelineBindPoint {
+func pipelineBindPointToGpu(val string) gpu_enums.PipelineBindPoint {
 	if res, ok := StringVkPipelineBindPoint[val]; ok {
 		return res
 	} else if val != "" {
@@ -731,32 +733,32 @@ func flagsToVK[B klib.Integer, F klib.Integer](mapping map[string]B, vals []stri
 	return F(mask)
 }
 
-func pipelineStageFlagsToGpu(vals []string) GPUPipelineStageFlags {
-	return flagsToVK[GPUPipelineStageFlags, GPUPipelineStageFlags](
+func pipelineStageFlagsToGpu(vals []string) gpu_types.PipelineStageFlags {
+	return flagsToVK[gpu_types.PipelineStageFlags, gpu_types.PipelineStageFlags](
 		StringVkPipelineStageFlagBits, vals)
 }
 
-func accessFlagsToGpu(vals []string) GPUAccessFlags {
-	return flagsToVK[GPUAccessFlags, GPUAccessFlags](
+func accessFlagsToGpu(vals []string) gpu_types.AccessFlags {
+	return flagsToVK[gpu_types.AccessFlags, gpu_types.AccessFlags](
 		StringVkAccessFlagBits, vals)
 }
 
-func imageUsageFlagsToGpu(vals []string) GPUImageUsageFlags {
-	return flagsToVK[GPUImageUsageFlags, GPUImageUsageFlags](
+func imageUsageFlagsToGpu(vals []string) gpu_types.ImageUsageFlags {
+	return flagsToVK[gpu_types.ImageUsageFlags, gpu_types.ImageUsageFlags](
 		StringVkImageUsageFlagBits, vals)
 }
 
-func memoryPropertyFlagsToGpu(vals []string) GPUMemoryPropertyFlags {
-	return flagsToVK[GPUMemoryPropertyFlags, GPUMemoryPropertyFlags](
+func memoryPropertyFlagsToGpu(vals []string) gpu_types.MemoryPropertyFlags {
+	return flagsToVK[gpu_types.MemoryPropertyFlags, gpu_types.MemoryPropertyFlags](
 		StringVkMemoryPropertyFlagBits, vals)
 }
 
-func imageAspectFlagsToGpu(vals []string) GPUImageAspectFlags {
-	return flagsToVK[GPUImageAspectFlags, GPUImageAspectFlags](
+func imageAspectFlagsToGpu(vals []string) gpu_types.ImageAspectFlags {
+	return flagsToVK[gpu_types.ImageAspectFlags, gpu_types.ImageAspectFlags](
 		StringVkImageAspectFlagBits, vals)
 }
 
-func dependencyFlagsToGpu(vals []string) GPUDependencyFlags {
-	return flagsToVK[GPUDependencyFlags, GPUDependencyFlags](
+func dependencyFlagsToGpu(vals []string) gpu_enums.DependencyFlags {
+	return flagsToVK[gpu_enums.DependencyFlags, gpu_enums.DependencyFlags](
 		StringVkDependencyFlagBits, vals)
 }

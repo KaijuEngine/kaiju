@@ -14,19 +14,20 @@ import (
 
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
-func (g *GPUDevice) createVertexBufferImpl(verts []Vertex) (GPUBuffer, GPUDeviceMemory, error) {
-	var vertexBuffer GPUBuffer
-	var vertexBufferMemory GPUDeviceMemory
+func (g *GPUDevice) createVertexBufferImpl(verts []Vertex) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
+	var vertexBuffer gpu_types.Buffer
+	var vertexBufferMemory gpu_types.DeviceMemory
 	vertBuff := klib.StructSliceToByteArray(verts)
 	if len(vertBuff) <= 0 {
 		return vertexBuffer, vertexBufferMemory, errors.New("buffer size is 0")
 	}
 	bufferSize := uintptr(len(vertBuff))
 	stagingBuffer, stagingBufferMemory, err := g.CreateBuffer(
-		bufferSize, GPUBufferUsageTransferSrcBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		bufferSize, gpu_types.BufferUsageTransferSrcBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		slog.Error("Failed to create the staging buffer for the verts")
 		return vertexBuffer, vertexBufferMemory, err
@@ -35,30 +36,30 @@ func (g *GPUDevice) createVertexBufferImpl(verts []Vertex) (GPUBuffer, GPUDevice
 	g.MapMemory(stagingBufferMemory, 0, uintptr(bufferSize), 0, &data)
 	g.Memcopy(data, vertBuff)
 	g.UnmapMemory(stagingBufferMemory)
-	useFlags := GPUBufferUsageTransferSrcBit | GPUBufferUsageTransferDstBit | GPUBufferUsageVertexBufferBit
+	useFlags := gpu_types.BufferUsageTransferSrcBit | gpu_types.BufferUsageTransferDstBit | gpu_types.BufferUsageVertexBufferBit
 	vertexBuffer, vertexBufferMemory, err = g.CreateBuffer(
-		bufferSize, useFlags, GPUMemoryPropertyDeviceLocalBit)
+		bufferSize, useFlags, gpu_types.MemoryPropertyDeviceLocalBit)
 	if err != nil {
 		slog.Error("Failed to create from staging buffer for the verts")
 		return vertexBuffer, vertexBufferMemory, err
 	}
 	g.CopyBuffer(stagingBuffer, vertexBuffer, bufferSize)
 	g.DestroyBuffer(stagingBuffer)
-	g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+	g.LogicalDevice.dbg.remove(stagingBuffer.Handle)
 	g.FreeMemory(stagingBufferMemory)
-	g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
+	g.LogicalDevice.dbg.remove(stagingBufferMemory.Handle)
 	return vertexBuffer, vertexBufferMemory, nil
 }
 
-func (g *GPUDevice) updateVertexBufferImpl(dst GPUBuffer, verts []Vertex) error {
+func (g *GPUDevice) updateVertexBufferImpl(dst gpu_types.Buffer, verts []Vertex) error {
 	vertBuff := klib.StructSliceToByteArray(verts)
 	if len(vertBuff) <= 0 {
 		return errors.New("buffer size is 0")
 	}
 	bufferSize := uintptr(len(vertBuff))
 	stagingBuffer, stagingBufferMemory, err := g.CreateBuffer(
-		bufferSize, GPUBufferUsageTransferSrcBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		bufferSize, gpu_types.BufferUsageTransferSrcBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		slog.Error("Failed to create staging buffer for vertex update")
 		return err
@@ -69,21 +70,21 @@ func (g *GPUDevice) updateVertexBufferImpl(dst GPUBuffer, verts []Vertex) error 
 	g.UnmapMemory(stagingBufferMemory)
 	g.CopyBuffer(stagingBuffer, dst, bufferSize)
 	g.DestroyBuffer(stagingBuffer)
-	g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+	g.LogicalDevice.dbg.remove(stagingBuffer.Handle)
 	g.FreeMemory(stagingBufferMemory)
-	g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
+	g.LogicalDevice.dbg.remove(stagingBufferMemory.Handle)
 	return nil
 }
 
-func (g *GPUDevice) createDynamicVertexBufferImpl(verts []Vertex) (GPUBuffer, GPUDeviceMemory, error) {
+func (g *GPUDevice) createDynamicVertexBufferImpl(verts []Vertex) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
 	vertBuff := klib.StructSliceToByteArray(verts)
 	if len(vertBuff) <= 0 {
-		return GPUBuffer{}, GPUDeviceMemory{}, errors.New("buffer size is 0")
+		return gpu_types.Buffer{}, gpu_types.DeviceMemory{}, errors.New("buffer size is 0")
 	}
 	bufferSize := uintptr(len(vertBuff))
 	buffer, memory, err := g.CreateBuffer(
-		bufferSize, GPUBufferUsageTransferSrcBit|GPUBufferUsageVertexBufferBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		bufferSize, gpu_types.BufferUsageTransferSrcBit|gpu_types.BufferUsageVertexBufferBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		slog.Error("Failed to create dynamic vertex buffer")
 		return buffer, memory, err
@@ -95,7 +96,7 @@ func (g *GPUDevice) createDynamicVertexBufferImpl(verts []Vertex) (GPUBuffer, GP
 	return buffer, memory, nil
 }
 
-func (g *GPUDevice) updateDynamicVertexBufferImpl(memory GPUDeviceMemory, verts []Vertex) {
+func (g *GPUDevice) updateDynamicVertexBufferImpl(memory gpu_types.DeviceMemory, verts []Vertex) {
 	vertBuff := klib.StructSliceToByteArray(verts)
 	bufferSize := uintptr(len(vertBuff))
 	var data unsafe.Pointer
@@ -104,17 +105,17 @@ func (g *GPUDevice) updateDynamicVertexBufferImpl(memory GPUDeviceMemory, verts 
 	g.UnmapMemory(memory)
 }
 
-func (g *GPUDevice) createIndexBufferImpl(indices []uint32) (GPUBuffer, GPUDeviceMemory, error) {
-	var indexBuffer GPUBuffer
-	var indexBufferMemory GPUDeviceMemory
+func (g *GPUDevice) createIndexBufferImpl(indices []uint32) (gpu_types.Buffer, gpu_types.DeviceMemory, error) {
+	var indexBuffer gpu_types.Buffer
+	var indexBufferMemory gpu_types.DeviceMemory
 	indexBuff := klib.StructSliceToByteArray(indices)
 	if len(indexBuff) <= 0 {
 		return indexBuffer, indexBufferMemory, errors.New("buffer size is 0")
 	}
 	bufferSize := uintptr(len(indexBuff))
 	stagingBuffer, stagingBufferMemory, err := g.CreateBuffer(
-		bufferSize, GPUBufferUsageTransferSrcBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		bufferSize, gpu_types.BufferUsageTransferSrcBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		slog.Error("Failed to create the staging index buffer")
 		return indexBuffer, indexBufferMemory, err
@@ -124,17 +125,17 @@ func (g *GPUDevice) createIndexBufferImpl(indices []uint32) (GPUBuffer, GPUDevic
 	g.Memcopy(data, indexBuff)
 	g.UnmapMemory(stagingBufferMemory)
 	indexBuffer, indexBufferMemory, err = g.CreateBuffer(bufferSize,
-		GPUBufferUsageTransferSrcBit|GPUBufferUsageTransferDstBit|GPUBufferUsageIndexBufferBit,
-		GPUMemoryPropertyDeviceLocalBit)
+		gpu_types.BufferUsageTransferSrcBit|gpu_types.BufferUsageTransferDstBit|gpu_types.BufferUsageIndexBufferBit,
+		gpu_types.MemoryPropertyDeviceLocalBit)
 	if err != nil {
 		slog.Error("Failed to create the index buffer")
 		return indexBuffer, indexBufferMemory, err
 	}
 	g.CopyBuffer(stagingBuffer, indexBuffer, bufferSize)
 	g.DestroyBuffer(stagingBuffer)
-	g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+	g.LogicalDevice.dbg.remove(stagingBuffer.Handle)
 	g.FreeMemory(stagingBufferMemory)
-	g.LogicalDevice.dbg.remove(stagingBufferMemory.handle)
+	g.LogicalDevice.dbg.remove(stagingBufferMemory.Handle)
 	return indexBuffer, indexBufferMemory, nil
 }
 
@@ -151,23 +152,23 @@ func (g *GPUDevice) meshReadImpl(id MeshId) ([]Vertex, []uint32, error) {
 	return verts, indexes, nil
 }
 
-func readBufferToSlice[T any](g *GPUDevice, src GPUBuffer, dst []T) error {
+func readBufferToSlice[T any](g *GPUDevice, src gpu_types.Buffer, dst []T) error {
 	defer tracing.NewRegion("GPUDevice.readBufferToSlice").End()
 	if len(dst) == 0 {
 		return nil
 	}
 	size := uintptr(len(dst)) * unsafe.Sizeof(dst[0])
 	stagingBuffer, stagingMemory, err := g.CreateBuffer(size,
-		GPUBufferUsageTransferDstBit,
-		GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		gpu_types.BufferUsageTransferDstBit,
+		gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		g.DestroyBuffer(stagingBuffer)
-		g.LogicalDevice.dbg.remove(stagingBuffer.handle)
+		g.LogicalDevice.dbg.remove(stagingBuffer.Handle)
 		g.FreeMemory(stagingMemory)
-		g.LogicalDevice.dbg.remove(stagingMemory.handle)
+		g.LogicalDevice.dbg.remove(stagingMemory.Handle)
 	}()
 	g.CopyBuffer(src, stagingBuffer, size)
 	var data unsafe.Pointer

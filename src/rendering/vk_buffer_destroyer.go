@@ -11,17 +11,18 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 )
 
 type bufferTrash struct {
 	delay         int
-	pool          GPUDescriptorPool
-	sets          [maxFramesInFlight]GPUDescriptorSet
-	buffers       [maxFramesInFlight]GPUBuffer
-	memories      [maxFramesInFlight]GPUDeviceMemory
-	namedBuffers  [maxFramesInFlight][]GPUBuffer
-	namedMemories [maxFramesInFlight][]GPUDeviceMemory
+	pool          gpu_types.DescriptorPool
+	sets          [maxFramesInFlight]gpu_types.DescriptorSet
+	buffers       [maxFramesInFlight]gpu_types.Buffer
+	memories      [maxFramesInFlight]gpu_types.DeviceMemory
+	namedBuffers  [maxFramesInFlight][]gpu_types.Buffer
+	namedMemories [maxFramesInFlight][]gpu_types.DeviceMemory
 }
 
 type bufferDestroyer struct {
@@ -32,9 +33,9 @@ type bufferDestroyer struct {
 }
 
 type bufferTrashReleaser interface {
-	FreeDescriptorSets(pool GPUDescriptorPool, sets []GPUDescriptorSet)
-	DestroyBuffer(buffer GPUBuffer)
-	FreeMemory(memory GPUDeviceMemory)
+	FreeDescriptorSets(pool gpu_types.DescriptorPool, sets []gpu_types.DescriptorSet)
+	DestroyBuffer(buffer gpu_types.Buffer)
+	FreeMemory(memory gpu_types.DeviceMemory)
 	RemoveDebug(handle unsafe.Pointer)
 }
 
@@ -96,27 +97,27 @@ func releaseBufferTrash(releaser bufferTrashReleaser, pd *bufferTrash) {
 	for j := range maxFramesInFlight {
 		if pd.buffers[j].IsValid() {
 			releaser.DestroyBuffer(pd.buffers[j])
-			releaser.RemoveDebug(pd.buffers[j].handle)
+			releaser.RemoveDebug(pd.buffers[j].Handle)
 		}
 		if pd.memories[j].IsValid() {
 			releaser.FreeMemory(pd.memories[j])
-			releaser.RemoveDebug(pd.memories[j].handle)
+			releaser.RemoveDebug(pd.memories[j].Handle)
 		}
 		for k := range pd.namedBuffers[j] {
 			if pd.namedBuffers[j][k].IsValid() {
 				releaser.DestroyBuffer(pd.namedBuffers[j][k])
-				releaser.RemoveDebug(pd.namedBuffers[j][k].handle)
+				releaser.RemoveDebug(pd.namedBuffers[j][k].Handle)
 			}
 			if k < len(pd.namedMemories[j]) && pd.namedMemories[j][k].IsValid() {
 				releaser.FreeMemory(pd.namedMemories[j][k])
-				releaser.RemoveDebug(pd.namedMemories[j][k].handle)
+				releaser.RemoveDebug(pd.namedMemories[j][k].Handle)
 			}
 		}
 	}
 }
 
-func validDescriptorSets(sets [maxFramesInFlight]GPUDescriptorSet) []GPUDescriptorSet {
-	valid := make([]GPUDescriptorSet, 0, len(sets))
+func validDescriptorSets(sets [maxFramesInFlight]gpu_types.DescriptorSet) []gpu_types.DescriptorSet {
+	valid := make([]gpu_types.DescriptorSet, 0, len(sets))
 	for i := range sets {
 		if sets[i].IsValid() {
 			valid = append(valid, sets[i])
@@ -125,25 +126,25 @@ func validDescriptorSets(sets [maxFramesInFlight]GPUDescriptorSet) []GPUDescript
 	return valid
 }
 
-func (r gpuBufferTrashReleaser) FreeDescriptorSets(pool GPUDescriptorPool, sets []GPUDescriptorSet) {
+func (r gpuBufferTrashReleaser) FreeDescriptorSets(pool gpu_types.DescriptorPool, sets []gpu_types.DescriptorSet) {
 	if r.device == nil || !pool.IsValid() || len(sets) == 0 {
 		return
 	}
 	vkSets := make([]vk.DescriptorSet, len(sets))
 	for i := range sets {
-		vkSets[i] = vk.DescriptorSet(sets[i].handle)
+		vkSets[i] = vk.DescriptorSet(sets[i].Handle)
 	}
-	vk.FreeDescriptorSets(vk.Device(r.device.LogicalDevice.handle),
-		vk.DescriptorPool(pool.handle), uint32(len(vkSets)), &vkSets[0])
+	vk.FreeDescriptorSets(vk.Device(r.device.LogicalDevice.Handle),
+		vk.DescriptorPool(pool.Handle), uint32(len(vkSets)), &vkSets[0])
 }
 
-func (r gpuBufferTrashReleaser) DestroyBuffer(buffer GPUBuffer) {
+func (r gpuBufferTrashReleaser) DestroyBuffer(buffer gpu_types.Buffer) {
 	if r.device != nil && buffer.IsValid() {
 		r.device.DestroyBuffer(buffer)
 	}
 }
 
-func (r gpuBufferTrashReleaser) FreeMemory(memory GPUDeviceMemory) {
+func (r gpuBufferTrashReleaser) FreeMemory(memory gpu_types.DeviceMemory) {
 	if r.device != nil && memory.IsValid() {
 		r.device.FreeMemory(memory)
 	}

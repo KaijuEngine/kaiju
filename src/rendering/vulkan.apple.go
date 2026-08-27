@@ -11,6 +11,7 @@ package rendering
 import (
 	"os"
 
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -21,11 +22,11 @@ const vkGeometryShaderValid = vulkan_const.False
 const vkInstanceFlags = 1
 const compositeAlpha = vulkan_const.CompositeAlphaInheritBit
 
-func preTransform(_ GPUSwapChainSupportDetails) vk.SurfaceTransformFlags {
+func preTransform(_ gpu_types.SwapChainSupportDetails) vk.SurfaceTransformFlags {
 	return vk.SurfaceTransformFlags(vulkan_const.SurfaceTransformIdentityBit)
 }
 
-func vkColorSpace(_ GPUSurfaceFormat) vulkan_const.ColorSpace {
+func vkColorSpace(_ gpu_types.SurfaceFormat) vulkan_const.ColorSpace {
 	return vulkan_const.ColorSpaceSrgbNonlinear
 }
 

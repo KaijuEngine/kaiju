@@ -150,7 +150,7 @@ func lastQueuedCommandStage(counts [queuedCommandStageCount]int) int {
 
 func (s QueuedCommandSubmitter) submitStage(stage int, commands []vk.CommandBuffer, submitInfo vk.SubmitInfo, fence vk.Fence, options queuedCommandSubmitOptions) bool {
 	defer tracing.NewRegion("QueuedCommandSubmitter.QueueSubmit").End()
-	vkDevice := vk.Device(s.device.LogicalDevice.handle)
+	vkDevice := vk.Device(s.device.LogicalDevice.Handle)
 	if fence != vk.NullFence {
 		res := vk.ResetFences(vkDevice, 1, &fence)
 		if res != vulkan_const.Success {

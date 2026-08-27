@@ -9,6 +9,7 @@
 package rendering
 
 import (
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -16,12 +17,12 @@ import (
 const vkGeometryShaderValid = vulkan_const.True
 const vkInstanceFlags = 0
 
-func preTransform(scs GPUSwapChainSupportDetails) vk.SurfaceTransformFlags {
-	return scs.capabilities.CurrentTransform.toVulkan()
+func preTransform(scs gpu_types.SwapChainSupportDetails) vk.SurfaceTransformFlags {
+	return scs.Capabilities.CurrentTransform.ToVulkan()
 }
 
-func vkColorSpace(sf GPUSurfaceFormat) vulkan_const.ColorSpace {
-	return sf.ColorSpace.toVulkan()
+func vkColorSpace(sf gpu_types.SurfaceFormat) vulkan_const.ColorSpace {
+	return sf.ColorSpace.ToVulkan()
 }
 
 func vkInstanceExtensions() []string {

@@ -9,6 +9,8 @@ package rendering
 import (
 	"testing"
 	"unsafe"
+
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 var descriptorTextureHandles [3]byte
@@ -50,9 +52,9 @@ func TestDescriptorTextureOrFallbackRejectsInvalidFallback(t *testing.T) {
 func testDescriptorTexture() *Texture {
 	return &Texture{
 		RenderId: TextureId{
-			Image:   GPUImage{GPUHandle{handle: unsafe.Pointer(&descriptorTextureHandles[0])}},
-			View:    GPUImageView{GPUHandle{handle: unsafe.Pointer(&descriptorTextureHandles[1])}},
-			Sampler: GPUSampler{GPUHandle{handle: unsafe.Pointer(&descriptorTextureHandles[2])}},
+			Image:   gpu_types.Image{gpu_types.GpuHandle{Handle: unsafe.Pointer(&descriptorTextureHandles[0])}},
+			View:    gpu_types.ImageView{gpu_types.GpuHandle{Handle: unsafe.Pointer(&descriptorTextureHandles[1])}},
+			Sampler: gpu_types.Sampler{gpu_types.GpuHandle{Handle: unsafe.Pointer(&descriptorTextureHandles[2])}},
 		},
 	}
 }

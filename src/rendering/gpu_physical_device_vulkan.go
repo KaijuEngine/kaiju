@@ -13,28 +13,29 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
 
-func (g *GPUPhysicalDevice) formatPropertiesImpl(format GPUFormat) GPUFormatProperties {
+func (g *GPUPhysicalDevice) formatPropertiesImpl(format gpu_types.Format) gpu_types.FormatProperties {
 	defer tracing.NewRegion("GPUPhysicalDevice.formatPropertiesImpl").End()
 	var formatProps vk.FormatProperties
 	vk.GetPhysicalDeviceFormatProperties(vk.PhysicalDevice(g.handle),
-		gpuFormatToVulkan[format], &formatProps)
-	props := GPUFormatProperties{}
-	props.LinearTilingFeatures.fromVulkan(formatProps.LinearTilingFeatures)
-	props.OptimalTilingFeatures.fromVulkan(formatProps.OptimalTilingFeatures)
-	props.BufferFeatures.fromVulkan(formatProps.BufferFeatures)
+		gpu_types.FormatToVulkan[format], &formatProps)
+	props := gpu_types.FormatProperties{}
+	props.LinearTilingFeatures.FromVulkan(formatProps.LinearTilingFeatures)
+	props.OptimalTilingFeatures.FromVulkan(formatProps.OptimalTilingFeatures)
+	props.BufferFeatures.FromVulkan(formatProps.BufferFeatures)
 	return props
 }
 
-func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties GPUMemoryPropertyFlags) int {
+func (g *GPUPhysicalDevice) findMemoryTypeImpl(typeFilter uint32, properties gpu_types.MemoryPropertyFlags) int {
 	defer tracing.NewRegion("GPUPhysicalDevice.findMemoryTypeImpl").End()
 	var memProperties vk.PhysicalDeviceMemoryProperties
 	vk.GetPhysicalDeviceMemoryProperties(vk.PhysicalDevice(g.handle), &memProperties)
 	found := -1
-	vkProperties := properties.toVulkan()
+	vkProperties := properties.ToVulkan()
 	for i := uint32(0); i < memProperties.MemoryTypeCount && found < 0; i++ {
 		memType := memProperties.MemoryTypes[i]
 		propMatch := (memType.PropertyFlags & vkProperties) == vkProperties
@@ -49,7 +50,7 @@ func (g *GPUPhysicalDevice) refreshSurfaceCapabilitiesImpl(surface unsafe.Pointe
 	defer tracing.NewRegion("GPUPhysicalDevice.refreshSurfaceCapabilitiesImpl").End()
 	var capabilities vk.SurfaceCapabilities
 	vk.GetPhysicalDeviceSurfaceCapabilities(vk.PhysicalDevice(g.handle), vk.Surface(surface), &capabilities)
-	g.SurfaceCapabilities.fromVulkan(capabilities)
+	g.SurfaceCapabilities.FromVulkan(capabilities)
 }
 
 func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevice, error) {
@@ -104,19 +105,19 @@ func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevi
 		// Surface capabilities
 		var capabilities vk.SurfaceCapabilities
 		vk.GetPhysicalDeviceSurfaceCapabilities(vkDevices[i], vkSurface, &capabilities)
-		devices[i].SurfaceCapabilities.fromVulkan(capabilities)
+		devices[i].SurfaceCapabilities.FromVulkan(capabilities)
 		// Surface formats
 		var formatCount uint32
 		vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &formatCount, nil)
 		if formatCount > 0 {
-			devices[i].SurfaceFormats = make([]GPUSurfaceFormat, formatCount)
+			devices[i].SurfaceFormats = make([]gpu_types.SurfaceFormat, formatCount)
 			formats := make([]vk.SurfaceFormat, formatCount)
 			vk.GetPhysicalDeviceSurfaceFormats(vkDevices[i], vkSurface, &formatCount, &formats[0])
 			for j := range formats {
-				sf := GPUSurfaceFormat{
-					Format: formatFromVulkan(formats[j].Format),
+				sf := gpu_types.SurfaceFormat{
+					Format: gpu_types.FormatFromVulkan(formats[j].Format),
 				}
-				sf.ColorSpace.fromVulkan(formats[j].ColorSpace)
+				sf.ColorSpace.FromVulkan(formats[j].ColorSpace)
 				devices[i].SurfaceFormats[j] = sf
 			}
 		}
@@ -124,11 +125,11 @@ func listPhysicalGpuDevicesImpl(inst *GPUApplicationInstance) ([]GPUPhysicalDevi
 		var presentModeCount uint32
 		vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &presentModeCount, nil)
 		if presentModeCount > 0 {
-			devices[i].PresentModes = make([]GPUPresentMode, presentModeCount)
+			devices[i].PresentModes = make([]gpu_types.PresentMode, presentModeCount)
 			presentModes := make([]vulkan_const.PresentMode, presentModeCount)
 			vk.GetPhysicalDeviceSurfacePresentModes(vkDevices[i], vkSurface, &presentModeCount, &presentModes[0])
 			for j := range presentModes {
-				devices[i].PresentModes[j] = presentModeFromVulkan(presentModes[j])
+				devices[i].PresentModes[j] = gpu_types.GpuPresentModeFromVulkan(presentModes[j])
 			}
 		}
 	}
@@ -220,18 +221,18 @@ func mapPhysicalDeviceProperties(prop vk.PhysicalDeviceProperties) GPUPhysicalDe
 	}
 }
 
-func mapPhysicalDeviceType(typ vulkan_const.PhysicalDeviceType) GPUPhysicalDeviceType {
+func mapPhysicalDeviceType(typ vulkan_const.PhysicalDeviceType) gpu_types.PhysicalDeviceType {
 	switch typ {
 	case vulkan_const.PhysicalDeviceTypeOther:
-		return GPUPhysicalDeviceTypeOther
+		return gpu_types.PhysicalDeviceTypeOther
 	case vulkan_const.PhysicalDeviceTypeIntegratedGpu:
-		return GPUPhysicalDeviceTypeIntegratedGpu
+		return gpu_types.PhysicalDeviceTypeIntegratedGpu
 	case vulkan_const.PhysicalDeviceTypeDiscreteGpu:
-		return GPUPhysicalDeviceTypeDiscreteGpu
+		return gpu_types.PhysicalDeviceTypeDiscreteGpu
 	case vulkan_const.PhysicalDeviceTypeVirtualGpu:
-		return GPUPhysicalDeviceTypeVirtualGpu
+		return gpu_types.PhysicalDeviceTypeVirtualGpu
 	case vulkan_const.PhysicalDeviceTypeCpu:
-		return GPUPhysicalDeviceTypeCpu
+		return gpu_types.PhysicalDeviceTypeCpu
 	}
 	slog.Error("invalid physical device mapping from vulkan to kaiju", "type", typ)
 	return 0
@@ -358,32 +359,32 @@ func mapPhysicalDeviceSparseProperties(sparse vk.PhysicalDeviceSparseProperties)
 	}
 }
 
-func mapSampleCountFlags(bits vk.SampleCountFlags) GPUSampleCountFlags {
+func mapSampleCountFlags(bits vk.SampleCountFlags) gpu_types.SampleCountFlags {
 	// Directly cast Vulkan sample count flag bits to the internal GPUSampleCountFlags type.
 	// The underlying values match (1, 2, 4, 8, 16, 32, 64), so a simple conversion is sufficient.
-	return GPUSampleCountFlags(bits)
+	return gpu_types.SampleCountFlags(bits)
 }
 
-func (g *GPUPhysicalDevice) maxUsableSampleCount() GPUSampleCountFlags {
+func (g *GPUPhysicalDevice) maxUsableSampleCount() gpu_types.SampleCountFlags {
 	defer tracing.NewRegion("GPUPhysicalDevice.maxUsableSampleCount").End()
 	counts := vk.SampleCountFlags(g.Properties.Limits.FramebufferColorSampleCounts & g.Properties.Limits.FramebufferDepthSampleCounts)
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount64Bit)) != 0 {
-		return GPUSampleCount64Bit
+		return gpu_types.SampleCount64Bit
 	}
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount32Bit)) != 0 {
-		return GPUSampleCount32Bit
+		return gpu_types.SampleCount32Bit
 	}
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount16Bit)) != 0 {
-		return GPUSampleCount16Bit
+		return gpu_types.SampleCount16Bit
 	}
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount8Bit)) != 0 {
-		return GPUSampleCount8Bit
+		return gpu_types.SampleCount8Bit
 	}
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount4Bit)) != 0 {
-		return GPUSampleCount4Bit
+		return gpu_types.SampleCount4Bit
 	}
 	if (counts & vk.SampleCountFlags(vulkan_const.SampleCount2Bit)) != 0 {
-		return GPUSampleCount2Bit
+		return gpu_types.SampleCount2Bit
 	}
-	return GPUSampleCount1Bit
+	return gpu_types.SampleCount1Bit
 }

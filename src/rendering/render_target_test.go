@@ -9,6 +9,8 @@ package rendering
 import (
 	"errors"
 	"testing"
+
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 func TestRenderTargetCreationStoresOptionsAndSize(t *testing.T) {
@@ -18,7 +20,7 @@ func TestRenderTargetCreationStoresOptionsAndSize(t *testing.T) {
 		Width:       640,
 		Height:      360,
 		ResizeMode:  RenderTargetResizeModeMatchWindow,
-		ColorFormat: GPUFormatB8g8r8a8Unorm,
+		ColorFormat: gpu_types.FormatB8g8r8a8Unorm,
 		Depth:       true,
 	}
 	target, err := manager.Create(options)

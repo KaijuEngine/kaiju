@@ -12,10 +12,11 @@ import (
 
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 )
 
 type GPULogicalDevice struct {
-	GPUHandle
+	gpu_types.GpuHandle
 	graphicsQueue   unsafe.Pointer
 	computeQueue    unsafe.Pointer
 	presentQueue    unsafe.Pointer
@@ -26,15 +27,15 @@ type GPULogicalDevice struct {
 }
 
 type GPUImageCreateRequest struct {
-	Flags       GPUImageCreateFlags
-	ImageType   GPUImageType
-	Format      GPUFormat
+	Flags       gpu_types.ImageCreateFlags
+	ImageType   gpu_types.ImageType
+	Format      gpu_types.Format
 	Extent      matrix.Vec3i
 	MipLevels   uint32
 	ArrayLayers uint32
-	Samples     GPUSampleCountFlags
-	Tiling      GPUImageTiling
-	Usage       GPUImageUsageFlags
+	Samples     gpu_types.SampleCountFlags
+	Tiling      gpu_types.ImageTiling
+	Usage       gpu_types.ImageUsageFlags
 }
 
 func (g *GPULogicalDevice) Setup(inst *GPUApplicationInstance, physicalDevice *GPUPhysicalDevice) error {
@@ -53,14 +54,14 @@ func (g *GPULogicalDevice) WaitForRender(device *GPUDevice) {
 	defer tracing.NewRegion("GPULogicalDevice.WaitForRender").End()
 	g.WaitIdle()
 	fenceCount := len(g.SwapChain.Images)
-	fences := make([]GPUFence, fenceCount)
+	fences := make([]gpu_types.Fence, fenceCount)
 	for i := range fenceCount {
-		fences[i].handle = unsafe.Pointer(g.SwapChain.renderFences[i].handle)
+		fences[i].Handle = unsafe.Pointer(g.SwapChain.renderFences[i].Handle)
 	}
 	g.WaitForFences(fences[:])
 }
 
-func (g *GPULogicalDevice) WaitForFences(fences []GPUFence) {
+func (g *GPULogicalDevice) WaitForFences(fences []gpu_types.Fence) {
 	defer tracing.NewRegion("GPULogicalDevice.WaitForFences").End()
 	g.waitForFencesImpl(fences)
 }
@@ -70,12 +71,12 @@ func (g *GPULogicalDevice) SetupBufferDestroyer(device *GPUDevice) {
 	g.bufferTrash = newBufferDestroyer(device, &g.dbg)
 }
 
-func (g *GPULogicalDevice) ImageMemoryRequirements(image GPUImage) GPUMemoryRequirements {
+func (g *GPULogicalDevice) ImageMemoryRequirements(image gpu_types.Image) gpu_types.MemoryRequirements {
 	defer tracing.NewRegion("GPULogicalDevice.ImageMemoryRequirements").End()
 	return g.imageMemoryRequirementsImpl(image)
 }
 
-func (g *GPULogicalDevice) CreateImageView(id *TextureId, aspectFlags GPUImageAspectFlags, viewType GPUImageViewType) error {
+func (g *GPULogicalDevice) CreateImageView(id *TextureId, aspectFlags gpu_types.ImageAspectFlags, viewType gpu_types.ImageViewType) error {
 	defer tracing.NewRegion("GPULogicalDevice.CreateImageView").End()
 	return g.createImageViewImpl(id, aspectFlags, viewType)
 }
@@ -144,9 +145,9 @@ func (g *GPULogicalDevice) destroyGroupDescriptorSets(state *DrawInstanceViewSta
 			sets:  state.descriptorSets,
 		})
 	}
-	state.descriptorPool = GPUDescriptorPool{}
-	state.descriptorSets = [maxFramesInFlight]GPUDescriptorSet{}
-	state.descriptorLayout = GPUDescriptorSetLayout{}
+	state.descriptorPool = gpu_types.DescriptorPool{}
+	state.descriptorSets = [maxFramesInFlight]gpu_types.DescriptorSet{}
+	state.descriptorLayout = gpu_types.DescriptorSetLayout{}
 	state.generatedSets = false
 	state.descriptorCache.Invalidate()
 }
@@ -171,13 +172,13 @@ func drawInstanceViewStateHasResources(state *DrawInstanceViewState) bool {
 	return false
 }
 
-func (g *GPULogicalDevice) DestroySemaphore(semaphore *GPUSemaphore) {
+func (g *GPULogicalDevice) DestroySemaphore(semaphore *gpu_types.Semaphore) {
 	defer tracing.NewRegion("GPULogicalDevice.DestroySemaphore").End()
 	g.destroySemaphoreImpl(semaphore)
 	semaphore.Reset()
 }
 
-func (g *GPULogicalDevice) DestroyFence(fence *GPUFence) {
+func (g *GPULogicalDevice) DestroyFence(fence *gpu_types.Fence) {
 	defer tracing.NewRegion("GPULogicalDevice.DestroyFence").End()
 	g.destroyFenceImpl(fence)
 	fence.Reset()

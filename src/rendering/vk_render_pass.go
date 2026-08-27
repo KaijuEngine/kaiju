@@ -17,13 +17,14 @@ import (
 
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
 
 type RenderPass struct {
 	Handle       vk.RenderPass
-	Buffer       GPUFrameBuffer
+	Buffer       gpu_types.FrameBuffer
 	textures     []Texture
 	construction RenderPassDataCompiled
 	subpasses    []RenderPassSubpass
@@ -45,8 +46,8 @@ const (
 type RenderPassSubpass struct {
 	shader         *Shader
 	shaderPipeline ShaderPipelineDataCompiled
-	descriptorSets [maxFramesInFlight]GPUDescriptorSet
-	descriptorPool GPUDescriptorPool
+	descriptorSets [maxFramesInFlight]gpu_types.DescriptorSet
+	descriptorPool gpu_types.DescriptorPool
 	sampledImages  []int
 	renderQuad     *Mesh
 	cmd            [maxFramesInFlight]CommandRecorderSecondary
@@ -58,8 +59,8 @@ type RenderPassCommandSet struct {
 	subpassCmds  []CommandRecorderSecondary
 	// A target view records commands before the swapchain view. Its subpass
 	// descriptors must remain unchanged until that command buffer is submitted.
-	subpassDescriptorSets  [][maxFramesInFlight]GPUDescriptorSet
-	subpassDescriptorPools []GPUDescriptorPool
+	subpassDescriptorSets  [][maxFramesInFlight]gpu_types.DescriptorSet
+	subpassDescriptorPools []gpu_types.DescriptorPool
 }
 
 func (r *RenderPass) Width() int  { return r.construction.Width }
@@ -114,7 +115,7 @@ func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture {
 	var fallback *Texture
 	for i := range r.construction.AttachmentDescriptions {
 		a := &r.construction.AttachmentDescriptions[i]
-		if (a.Image.Usage & GPUImageUsageColorAttachmentBit) != 0 {
+		if (a.Image.Usage & gpu_types.ImageUsageColorAttachmentBit) != 0 {
 			if fallback == nil {
 				// First image is likely the better image to fall back to
 				fallback = &r.textures[i]
@@ -141,7 +142,7 @@ func (r *RenderPass) SelectOutputAttachment(device *GPUDevice) *Texture {
 		return fallback
 	}
 	for i := range r.textures {
-		if !isDepthFormat(r.textures[i].RenderId.Format.toVulkan()) {
+		if !isDepthFormat(r.textures[i].RenderId.Format.ToVulkan()) {
 			slog.Error("failed to find an output color attachment for the render pass, using fallback", "renderPass", r.construction.Name)
 			return &r.textures[i]
 		}
@@ -202,7 +203,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 	for i := range c.SampledImages {
 		t := &r.textures[c.SampledImages[i]].RenderId
 		if !t.Sampler.IsValid() {
-			t.Sampler, err = device.CreateTextureSampler(t.MipLevels, GPUFilterLinear)
+			t.Sampler, err = device.CreateTextureSampler(t.MipLevels, gpu_types.FilterLinear)
 			if err != nil {
 				return err
 			}
@@ -244,7 +245,7 @@ func (r *RenderPass) beginNextSubpass(currentFrame int, extent vk.Extent2D, clea
 		renderPassInfo := vk.RenderPassBeginInfo{
 			SType:       vulkan_const.StructureTypeRenderPassBeginInfo,
 			RenderPass:  r.Handle,
-			Framebuffer: vk.Framebuffer(r.Buffer.handle),
+			Framebuffer: vk.Framebuffer(r.Buffer.Handle),
 			RenderArea: vk.Rect2D{
 				Offset: vk.Offset2D{X: 0, Y: 0},
 				Extent: extent,
@@ -308,8 +309,8 @@ func (r *RenderPass) createViewCommandSet(device *GPUDevice) (RenderPassCommandS
 		return RenderPassCommandSet{}, err
 	}
 	set.subpassCmds = make([]CommandRecorderSecondary, len(r.subpasses))
-	set.subpassDescriptorSets = make([][maxFramesInFlight]GPUDescriptorSet, len(r.subpasses))
-	set.subpassDescriptorPools = make([]GPUDescriptorPool, len(r.subpasses))
+	set.subpassDescriptorSets = make([][maxFramesInFlight]gpu_types.DescriptorSet, len(r.subpasses))
+	set.subpassDescriptorPools = make([]gpu_types.DescriptorPool, len(r.subpasses))
 	for i := range r.subpasses {
 		if set.subpassCmds[i], err = NewCommandRecorderSecondary(device, r, i+1); err != nil {
 			set.destroy(device)
@@ -325,7 +326,7 @@ func (r *RenderPass) createViewCommandSet(device *GPUDevice) (RenderPassCommandS
 	return set, nil
 }
 
-func (r *RenderPass) activeSubpassDescriptorSet(index, frame int) GPUDescriptorSet {
+func (r *RenderPass) activeSubpassDescriptorSet(index, frame int) gpu_types.DescriptorSet {
 	if r.activeCmds != nil {
 		return r.activeCmds.subpassDescriptorSets[index][frame]
 	}
@@ -374,7 +375,7 @@ func (s *RenderPassCommandSet) destroy(device *GPUDevice) {
 		}
 	}
 	for i := range s.subpassDescriptorSets {
-		pool := GPUDescriptorPool{}
+		pool := gpu_types.DescriptorPool{}
 		if i < len(s.subpassDescriptorPools) {
 			pool = s.subpassDescriptorPools[i]
 		}
@@ -465,7 +466,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 			p.textures[i].Height = int(h)
 			err := device.CreateImage(&p.textures[i].RenderId, img.MemoryProperty,
 				GPUImageCreateRequest{
-					ImageType:   GPUImageType2d,
+					ImageType:   gpu_types.ImageType2d,
 					Extent:      matrix.Vec3i{int32(w), int32(h), 1},
 					MipLevels:   img.MipLevels,
 					ArrayLayers: img.LayerCount,
@@ -478,7 +479,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				slog.Error("failed to create image for render pass attachment", "attachmentIndex", i)
 				return err
 			}
-			err = device.LogicalDevice.CreateImageView(&p.textures[i].RenderId, img.Aspect, GPUImageViewType2d)
+			err = device.LogicalDevice.CreateImageView(&p.textures[i].RenderId, img.Aspect, gpu_types.ImageViewType2d)
 			if err != nil {
 				const e = "failed to create image view for render pass attachment"
 				for j := range i + 1 {
@@ -505,14 +506,14 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 	for i := range r.AttachmentDescriptions {
 		// TODO:  Flags
 		attachments[i].Flags = 0
-		attachments[i].Format = r.AttachmentDescriptions[i].Format.toVulkan()
-		attachments[i].Samples = vulkan_const.SampleCountFlagBits(r.AttachmentDescriptions[i].Samples.toVulkan())
-		attachments[i].LoadOp = r.AttachmentDescriptions[i].LoadOp.toVulkan()
-		attachments[i].StoreOp = r.AttachmentDescriptions[i].StoreOp.toVulkan()
-		attachments[i].StencilLoadOp = r.AttachmentDescriptions[i].StencilLoadOp.toVulkan()
-		attachments[i].StencilStoreOp = r.AttachmentDescriptions[i].StencilStoreOp.toVulkan()
-		attachments[i].InitialLayout = r.AttachmentDescriptions[i].InitialLayout.toVulkan()
-		attachments[i].FinalLayout = r.AttachmentDescriptions[i].FinalLayout.toVulkan()
+		attachments[i].Format = r.AttachmentDescriptions[i].Format.ToVulkan()
+		attachments[i].Samples = vulkan_const.SampleCountFlagBits(r.AttachmentDescriptions[i].Samples.ToVulkan())
+		attachments[i].LoadOp = r.AttachmentDescriptions[i].LoadOp.ToVulkan()
+		attachments[i].StoreOp = r.AttachmentDescriptions[i].StoreOp.ToVulkan()
+		attachments[i].StencilLoadOp = r.AttachmentDescriptions[i].StencilLoadOp.ToVulkan()
+		attachments[i].StencilStoreOp = r.AttachmentDescriptions[i].StencilStoreOp.ToVulkan()
+		attachments[i].InitialLayout = r.AttachmentDescriptions[i].InitialLayout.ToVulkan()
+		attachments[i].FinalLayout = r.AttachmentDescriptions[i].FinalLayout.ToVulkan()
 	}
 	color := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
 	input := make([][]vk.AttachmentReference, len(r.SubpassDescriptions))
@@ -533,27 +534,27 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 		resolve[i] = make([]vk.AttachmentReference, len(ra))
 		for j := range car {
 			color[i][j].Attachment = car[j].Attachment
-			color[i][j].Layout = car[j].Layout.toVulkan()
+			color[i][j].Layout = car[j].Layout.ToVulkan()
 		}
 		for j := range iar {
 			input[i][j].Attachment = iar[j].Attachment
-			input[i][j].Layout = iar[j].Layout.toVulkan()
+			input[i][j].Layout = iar[j].Layout.ToVulkan()
 		}
 		copy(preserve[i], pa)
 		for j := range dsa {
 			depthStencil[i][j].Attachment = dsa[j].Attachment
-			depthStencil[i][j].Layout = dsa[j].Layout.toVulkan()
+			depthStencil[i][j].Layout = dsa[j].Layout.ToVulkan()
 		}
 		for j := range ra {
 			resolve[i][j].Attachment = ra[j].Attachment
-			resolve[i][j].Layout = ra[j].Layout.toVulkan()
+			resolve[i][j].Layout = ra[j].Layout.ToVulkan()
 		}
 	}
 	subpasses := make([]vk.SubpassDescription, len(r.SubpassDescriptions))
 	for i := range r.SubpassDescriptions {
 		// TODO:  Fill in the flags
 		subpasses[i].Flags = 0
-		subpasses[i].PipelineBindPoint = r.SubpassDescriptions[i].PipelineBindPoint.toVulkan()
+		subpasses[i].PipelineBindPoint = r.SubpassDescriptions[i].PipelineBindPoint.ToVulkan()
 		subpasses[i].ColorAttachmentCount = uint32(len(color[i]))
 		subpasses[i].InputAttachmentCount = uint32(len(input[i]))
 		subpasses[i].PreserveAttachmentCount = uint32(len(preserve[i]))
@@ -577,11 +578,11 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 	for i := range r.SubpassDependencies {
 		selfDependencies[i].SrcSubpass = r.SubpassDependencies[i].SrcSubpass
 		selfDependencies[i].DstSubpass = r.SubpassDependencies[i].DstSubpass
-		selfDependencies[i].SrcStageMask = r.SubpassDependencies[i].SrcStageMask.toVulkan()
-		selfDependencies[i].DstStageMask = r.SubpassDependencies[i].DstStageMask.toVulkan()
-		selfDependencies[i].SrcAccessMask = r.SubpassDependencies[i].SrcAccessMask.toVulkan()
-		selfDependencies[i].DstAccessMask = r.SubpassDependencies[i].DstAccessMask.toVulkan()
-		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlags.toVulkan()
+		selfDependencies[i].SrcStageMask = r.SubpassDependencies[i].SrcStageMask.ToVulkan()
+		selfDependencies[i].DstStageMask = r.SubpassDependencies[i].DstStageMask.ToVulkan()
+		selfDependencies[i].SrcAccessMask = r.SubpassDependencies[i].SrcAccessMask.ToVulkan()
+		selfDependencies[i].DstAccessMask = r.SubpassDependencies[i].DstAccessMask.ToVulkan()
+		selfDependencies[i].DependencyFlags = r.SubpassDependencies[i].DependencyFlags.ToVulkan()
 	}
 	info := vk.RenderPassCreateInfo{}
 	info.SType = vulkan_const.StructureTypeRenderPassCreateInfo
@@ -594,7 +595,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 		info.PDependencies = &selfDependencies[0]
 	}
 	var handle vk.RenderPass
-	if vk.CreateRenderPass(vk.Device(device.LogicalDevice.handle), &info, nil, &handle) != vulkan_const.Success {
+	if vk.CreateRenderPass(vk.Device(device.LogicalDevice.Handle), &info, nil, &handle) != vulkan_const.Success {
 		return errors.New("failed to create the render pass")
 	}
 	p.Handle = handle
@@ -604,7 +605,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 			return err
 		}
 	}
-	imageViews := make([]GPUImageView, 0, len(p.textures))
+	imageViews := make([]gpu_types.ImageView, 0, len(p.textures))
 	missingExistingImage := false
 	for i := range len(r.AttachmentDescriptions) {
 		a := &r.AttachmentDescriptions[i]
@@ -645,11 +646,11 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 	if p.Handle == vk.NullRenderPass {
 		return
 	}
-	vk.DestroyRenderPass(vk.Device(device.LogicalDevice.handle), p.Handle, nil)
+	vk.DestroyRenderPass(vk.Device(device.LogicalDevice.Handle), p.Handle, nil)
 	device.LogicalDevice.dbg.remove(unsafe.Pointer(p.Handle))
 	p.Handle = vk.NullRenderPass
 	device.DestroyFrameBuffer(p.Buffer)
-	device.LogicalDevice.dbg.remove(p.Buffer.handle)
+	device.LogicalDevice.dbg.remove(p.Buffer.Handle)
 	p.Buffer.Reset()
 	for i := range p.textures {
 		device.LogicalDevice.FreeTexture(&p.textures[i].RenderId)
@@ -670,8 +671,8 @@ func (p *RenderPass) Destroy(device *GPUDevice) {
 				sets:  sp.descriptorSets,
 			})
 		}
-		sp.descriptorPool = GPUDescriptorPool{}
-		sp.descriptorSets = [maxFramesInFlight]GPUDescriptorSet{}
+		sp.descriptorPool = gpu_types.DescriptorPool{}
+		sp.descriptorSets = [maxFramesInFlight]gpu_types.DescriptorSet{}
 		for j := range len(sp.cmd) {
 			sp.cmd[j].Destroy(device)
 		}

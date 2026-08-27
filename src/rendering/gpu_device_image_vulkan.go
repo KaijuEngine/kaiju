@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -23,21 +24,21 @@ var accessMaskPipelineStageFlagsDefault = uint32(vulkan_const.PipelineStageVerte
 	vulkan_const.PipelineStageFragmentShaderBit |
 	vulkan_const.PipelineStageComputeShaderBit)
 
-func (g *GPUDevice) createImageImpl(id *TextureId, properties GPUMemoryPropertyFlags, req GPUImageCreateRequest) error {
+func (g *GPUDevice) createImageImpl(id *TextureId, properties gpu_types.MemoryPropertyFlags, req GPUImageCreateRequest) error {
 	defer tracing.NewRegion("GPUDevice.createImageImpl").End()
-	id.Layout.fromVulkan(vulkan_const.ImageLayoutUndefined)
+	id.Layout.FromVulkan(vulkan_const.ImageLayoutUndefined)
 	info := vk.ImageCreateInfo{
 		SType:         vulkan_const.StructureTypeImageCreateInfo,
 		InitialLayout: vulkan_const.ImageLayoutUndefined,
 		SharingMode:   vulkan_const.SharingModeExclusive,
-		Flags:         req.Flags.toVulkan(),
-		ImageType:     req.ImageType.toVulkan(),
-		Format:        req.Format.toVulkan(),
+		Flags:         req.Flags.ToVulkan(),
+		ImageType:     req.ImageType.ToVulkan(),
+		Format:        req.Format.ToVulkan(),
 		MipLevels:     req.MipLevels,
 		ArrayLayers:   req.ArrayLayers,
-		Samples:       vulkan_const.SampleCountFlagBits(req.Samples.toVulkan()),
-		Tiling:        req.Tiling.toVulkan(),
-		Usage:         req.Usage.toVulkan(),
+		Samples:       vulkan_const.SampleCountFlagBits(req.Samples.ToVulkan()),
+		Tiling:        req.Tiling.ToVulkan(),
+		Usage:         req.Usage.ToVulkan(),
 		Extent: vk.Extent3D{
 			Width:  uint32(req.Extent.Width()),
 			Height: uint32(req.Extent.Height()),
@@ -45,13 +46,13 @@ func (g *GPUDevice) createImageImpl(id *TextureId, properties GPUMemoryPropertyF
 		},
 	}
 	var image vk.Image
-	res := vk.CreateImage(vk.Device(g.LogicalDevice.handle), &info, nil, &image)
+	res := vk.CreateImage(vk.Device(g.LogicalDevice.Handle), &info, nil, &image)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to create image", "code", res)
 		return fmt.Errorf("failed to create image: %d", res)
 	}
-	id.Image.handle = unsafe.Pointer(image)
-	g.LogicalDevice.dbg.track(id.Image.handle)
+	id.Image.Handle = unsafe.Pointer(image)
+	g.LogicalDevice.dbg.track(id.Image.Handle)
 	memRequirements := g.LogicalDevice.ImageMemoryRequirements(id.Image)
 	aInfo := vk.MemoryAllocateInfo{
 		SType:          vulkan_const.StructureTypeMemoryAllocateInfo,
@@ -64,32 +65,32 @@ func (g *GPUDevice) createImageImpl(id *TextureId, properties GPUMemoryPropertyF
 	}
 	aInfo.MemoryTypeIndex = uint32(memType)
 	var tidMemory vk.DeviceMemory
-	if vk.AllocateMemory(vk.Device(g.LogicalDevice.handle), &aInfo, nil, &tidMemory) != vulkan_const.Success {
+	if vk.AllocateMemory(vk.Device(g.LogicalDevice.Handle), &aInfo, nil, &tidMemory) != vulkan_const.Success {
 		slog.Error("Failed to allocate image memory")
 		return fmt.Errorf("failed to allocate image memory")
 	}
 	g.LogicalDevice.dbg.track(unsafe.Pointer(tidMemory))
 
-	id.Memory.handle = unsafe.Pointer(tidMemory)
-	vk.BindImageMemory(vk.Device(g.LogicalDevice.handle),
-		vk.Image(id.Image.handle), vk.DeviceMemory(id.Memory.handle), 0)
+	id.Memory.Handle = unsafe.Pointer(tidMemory)
+	vk.BindImageMemory(vk.Device(g.LogicalDevice.Handle),
+		vk.Image(id.Image.Handle), vk.DeviceMemory(id.Memory.Handle), 0)
 	id.Access = 0
-	id.Format.fromVulkan(info.Format)
+	id.Format.FromVulkan(info.Format)
 	id.Width = int(info.Extent.Width)
 	id.Height = int(info.Extent.Height)
 	id.LayerCount = 1
 	id.MipLevels = info.MipLevels
-	id.Samples.fromVulkan(vk.SampleCountFlags(info.Samples))
+	id.Samples.FromVulkan(vk.SampleCountFlags(info.Samples))
 	return nil
 }
 
-func (g *GPUDevice) createTextureSamplerImpl(mipLevels uint32, filter GPUFilter) (GPUSampler, error) {
+func (g *GPUDevice) createTextureSamplerImpl(mipLevels uint32, filter gpu_types.Filter) (gpu_types.Sampler, error) {
 	defer tracing.NewRegion("GPULogicalDevice.createTextureSamplerImpl").End()
-	var sampler GPUSampler
+	var sampler gpu_types.Sampler
 	samplerInfo := vk.SamplerCreateInfo{
 		SType:                   vulkan_const.StructureTypeSamplerCreateInfo,
-		MagFilter:               filter.toVulkan(),
-		MinFilter:               filter.toVulkan(),
+		MagFilter:               filter.ToVulkan(),
+		MinFilter:               filter.ToVulkan(),
 		AddressModeU:            vulkan_const.SamplerAddressModeRepeat,
 		AddressModeV:            vulkan_const.SamplerAddressModeRepeat,
 		AddressModeW:            vulkan_const.SamplerAddressModeRepeat,
@@ -103,27 +104,27 @@ func (g *GPUDevice) createTextureSamplerImpl(mipLevels uint32, filter GPUFilter)
 		MaxLod:                  float32(mipLevels + 1),
 	}
 	switch filter {
-	case GPUFilterNearest:
+	case gpu_types.FilterNearest:
 		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeNearest
 		samplerInfo.AnisotropyEnable = vulkan_const.False
-	case GPUFilterCubicImg:
+	case gpu_types.FilterCubicImg:
 		fallthrough
-	case GPUFilterLinear:
+	case gpu_types.FilterLinear:
 		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeLinear
 		samplerInfo.AnisotropyEnable = vulkan_const.True
 	}
 	var localSampler vk.Sampler
-	res := vk.CreateSampler(vk.Device(g.LogicalDevice.handle), &samplerInfo, nil, &localSampler)
+	res := vk.CreateSampler(vk.Device(g.LogicalDevice.Handle), &samplerInfo, nil, &localSampler)
 	if res != vulkan_const.Success {
 		slog.Error("Failed to create texture sampler")
 		return sampler, fmt.Errorf("failed to create texture sampler: %d", res)
 	}
-	sampler.handle = unsafe.Pointer(localSampler)
+	sampler.Handle = unsafe.Pointer(localSampler)
 	g.LogicalDevice.dbg.track(unsafe.Pointer(localSampler))
 	return sampler, nil
 }
 
-func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout GPUImageLayout, aspectMask GPUImageAspectFlags, newAccess GPUAccessFlags, cmd *CommandRecorder) {
+func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout gpu_types.ImageLayout, aspectMask gpu_types.ImageAspectFlags, newAccess gpu_types.AccessFlags, cmd *CommandRecorder) {
 	defer tracing.NewRegion("GPUDevice.transitionImageLayoutImpl").End()
 	if vt.Layout == newLayout {
 		return
@@ -131,10 +132,10 @@ func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout GPUImageL
 	// Note that in larger applications, we could batch together pipeline
 	// barriers for better performance!
 	if aspectMask == 0 {
-		if newLayout == GPUImageLayoutDepthStencilAttachmentOptimal {
-			aspectMask = GPUImageAspectDepthBit
+		if newLayout == gpu_types.ImageLayoutDepthStencilAttachmentOptimal {
+			aspectMask = gpu_types.ImageAspectDepthBit
 		} else {
-			aspectMask = GPUImageAspectColorBit
+			aspectMask = gpu_types.ImageAspectColorBit
 		}
 	}
 	// A combined depth/stencil image must transition BOTH aspects together
@@ -144,8 +145,8 @@ func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout GPUImageL
 	// aspect is left in VK_IMAGE_LAYOUT_UNDEFINED, any later use of the image is
 	// undefined behavior — which MoltenVK turns into a GPU fault (the resize
 	// crash). VUID-VkImageMemoryBarrier-image-03320 / VUID-vkCmdDraw-None-09600.
-	if aspectMask&GPUImageAspectDepthBit != 0 && formatHasStencil(vt.Format) {
-		aspectMask |= GPUImageAspectStencilBit
+	if aspectMask&gpu_types.ImageAspectDepthBit != 0 && formatHasStencil(vt.Format) {
+		aspectMask |= gpu_types.ImageAspectStencilBit
 	}
 	commandBuffer := cmd
 	if cmd == nil {
@@ -154,20 +155,20 @@ func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout GPUImageL
 	}
 	barrier := vk.ImageMemoryBarrier{
 		SType:               vulkan_const.StructureTypeImageMemoryBarrier,
-		OldLayout:           vt.Layout.toVulkan(),
-		NewLayout:           newLayout.toVulkan(),
+		OldLayout:           vt.Layout.ToVulkan(),
+		NewLayout:           newLayout.ToVulkan(),
 		SrcQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
 		DstQueueFamilyIndex: vulkan_const.QueueFamilyIgnored,
-		Image:               vk.Image(vt.Image.handle),
+		Image:               vk.Image(vt.Image.Handle),
 		SubresourceRange: vk.ImageSubresourceRange{
-			AspectMask:     aspectMask.toVulkan(),
+			AspectMask:     aspectMask.ToVulkan(),
 			BaseMipLevel:   0,
 			LevelCount:     vt.MipLevels,
 			BaseArrayLayer: 0,
 			LayerCount:     uint32(vt.LayerCount),
 		},
-		SrcAccessMask: vt.Access.toVulkan(),
-		DstAccessMask: newAccess.toVulkan(),
+		SrcAccessMask: vt.Access.ToVulkan(),
+		DstAccessMask: newAccess.ToVulkan(),
 	}
 	sourceStage := makeAccessMaskPipelineStageFlags(vt.Access)
 	destinationStage := makeAccessMaskPipelineStageFlags(newAccess)
@@ -176,14 +177,14 @@ func (g *GPUDevice) transitionImageLayoutImpl(vt *TextureId, newLayout GPUImageL
 	vt.Access = newAccess
 }
 
-func (g *GPUDevice) copyBufferToImageImpl(buffer GPUBuffer, image GPUImage, width, height uint32, layerCount int) {
+func (g *GPUDevice) copyBufferToImageImpl(buffer gpu_types.Buffer, image gpu_types.Image, width, height uint32, layerCount int) {
 	defer tracing.NewRegion("Vulkan.copyBufferToImageImpl").End()
 	cmd := g.beginSingleTimeCommands()
 	defer g.endSingleTimeCommands(cmd)
 	g.copyBufferToImageWithCommand(cmd, buffer, image, width, height, layerCount)
 }
 
-func (g *GPUDevice) copyBufferToImageWithCommand(cmd *CommandRecorder, buffer GPUBuffer, image GPUImage, width, height uint32, layerCount int) {
+func (g *GPUDevice) copyBufferToImageWithCommand(cmd *CommandRecorder, buffer gpu_types.Buffer, image gpu_types.Image, width, height uint32, layerCount int) {
 	defer tracing.NewRegion("Vulkan.copyBufferToImageWithCommand").End()
 	offset := vk.DeviceSize(0)
 	for i := range layerCount {
@@ -197,13 +198,13 @@ func (g *GPUDevice) copyBufferToImageWithCommand(cmd *CommandRecorder, buffer GP
 		region.ImageSubresource.LayerCount = 1
 		region.ImageOffset = vk.Offset3D{X: 0, Y: 0, Z: 0}
 		region.ImageExtent = vk.Extent3D{Width: width, Height: height, Depth: 1}
-		vk.CmdCopyBufferToImage(cmd.buffer, vk.Buffer(buffer.handle), vk.Image(image.handle),
+		vk.CmdCopyBufferToImage(cmd.buffer, vk.Buffer(buffer.Handle), vk.Image(image.Handle),
 			vulkan_const.ImageLayoutTransferDstOptimal, 1, &region)
 		offset += vk.DeviceSize(width * height * bytesInPixel)
 	}
 }
 
-func (g *GPUDevice) writeBufferToImageRegionImpl(image GPUImage, requests []GPUImageWriteRequest) error {
+func (g *GPUDevice) writeBufferToImageRegionImpl(image gpu_types.Image, requests []GPUImageWriteRequest) error {
 	defer tracing.NewRegion("Vulkan.writeBufferToImageRegion").End()
 	// TODO:  Might need to match up the color here...
 	memLen := uintptr(0)
@@ -211,7 +212,7 @@ func (g *GPUDevice) writeBufferToImageRegionImpl(image GPUImage, requests []GPUI
 		memLen += uintptr(requests[i].Region.Width()) * uintptr(requests[i].Region.Height()) * BytesInPixel
 	}
 	stagingBuffer, stagingBufferMemory, err := g.CreateBuffer(memLen,
-		GPUBufferUsageTransferSrcBit, GPUMemoryPropertyHostVisibleBit|GPUMemoryPropertyHostCoherentBit)
+		gpu_types.BufferUsageTransferSrcBit, gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 	if err != nil {
 		return err
 	}
@@ -254,58 +255,58 @@ func (g *GPUDevice) writeBufferToImageRegionImpl(image GPUImage, requests []GPUI
 			},
 		}
 	}
-	vk.CmdCopyBufferToImage(cmd.buffer, vk.Buffer(stagingBuffer.handle), vk.Image(image.handle),
+	vk.CmdCopyBufferToImage(cmd.buffer, vk.Buffer(stagingBuffer.Handle), vk.Image(image.Handle),
 		vulkan_const.ImageLayoutTransferDstOptimal, uint32(len(regions)), &regions[0])
 	// TODO:  Generate mips?
 	return nil
 }
 
-func makeAccessMaskPipelineStageFlags(access GPUAccessFlags) GPUPipelineStageFlags {
+func makeAccessMaskPipelineStageFlags(access gpu_types.AccessFlags) gpu_types.PipelineStageFlags {
 	defer tracing.NewRegion("rendering.makeAccessMaskPipelineStageFlags").End()
 	if access == 0 {
-		return GPUPipelineStageTopOfPipeBit
+		return gpu_types.PipelineStageTopOfPipeBit
 	}
 	accessPipes := []uint32{
-		uint32(GPUAccessIndirectCommandReadBit),
-		uint32(GPUPipelineStageDrawIndirectBit),
-		uint32(GPUAccessIndexReadBit),
-		uint32(GPUPipelineStageVertexInputBit),
-		uint32(GPUAccessVertexAttributeReadBit),
-		uint32(GPUPipelineStageVertexInputBit),
-		uint32(GPUAccessUniformReadBit),
+		uint32(gpu_types.AccessIndirectCommandReadBit),
+		uint32(gpu_types.PipelineStageDrawIndirectBit),
+		uint32(gpu_types.AccessIndexReadBit),
+		uint32(gpu_types.PipelineStageVertexInputBit),
+		uint32(gpu_types.AccessVertexAttributeReadBit),
+		uint32(gpu_types.PipelineStageVertexInputBit),
+		uint32(gpu_types.AccessUniformReadBit),
 		accessMaskPipelineStageFlagsDefault,
-		uint32(GPUAccessInputAttachmentReadBit),
-		uint32(GPUPipelineStageFragmentShaderBit),
-		uint32(GPUAccessShaderReadBit),
+		uint32(gpu_types.AccessInputAttachmentReadBit),
+		uint32(gpu_types.PipelineStageFragmentShaderBit),
+		uint32(gpu_types.AccessShaderReadBit),
 		accessMaskPipelineStageFlagsDefault,
-		uint32(GPUAccessShaderWriteBit),
+		uint32(gpu_types.AccessShaderWriteBit),
 		accessMaskPipelineStageFlagsDefault,
-		uint32(GPUAccessColorAttachmentReadBit),
-		uint32(GPUPipelineStageColorAttachmentOutputBit),
-		uint32(GPUAccessColorAttachmentReadNoncoherentBit),
-		uint32(GPUPipelineStageColorAttachmentOutputBit),
-		uint32(GPUAccessColorAttachmentWriteBit),
-		uint32(GPUPipelineStageColorAttachmentOutputBit),
-		uint32(GPUAccessDepthStencilAttachmentReadBit),
-		uint32(GPUPipelineStageEarlyFragmentTestsBit | GPUPipelineStageLateFragmentTestsBit),
-		uint32(GPUAccessDepthStencilAttachmentWriteBit),
-		uint32(GPUPipelineStageEarlyFragmentTestsBit | GPUPipelineStageLateFragmentTestsBit),
-		uint32(GPUAccessTransferReadBit),
-		uint32(GPUPipelineStageTransferBit),
-		uint32(GPUAccessTransferWriteBit),
-		uint32(GPUPipelineStageTransferBit),
-		uint32(GPUAccessHostReadBit),
-		uint32(GPUPipelineStageHostBit),
-		uint32(GPUAccessHostWriteBit),
-		uint32(GPUPipelineStageHostBit),
-		uint32(GPUAccessMemoryReadBit),
+		uint32(gpu_types.AccessColorAttachmentReadBit),
+		uint32(gpu_types.PipelineStageColorAttachmentOutputBit),
+		uint32(gpu_types.AccessColorAttachmentReadNoncoherentBit),
+		uint32(gpu_types.PipelineStageColorAttachmentOutputBit),
+		uint32(gpu_types.AccessColorAttachmentWriteBit),
+		uint32(gpu_types.PipelineStageColorAttachmentOutputBit),
+		uint32(gpu_types.AccessDepthStencilAttachmentReadBit),
+		uint32(gpu_types.PipelineStageEarlyFragmentTestsBit | gpu_types.PipelineStageLateFragmentTestsBit),
+		uint32(gpu_types.AccessDepthStencilAttachmentWriteBit),
+		uint32(gpu_types.PipelineStageEarlyFragmentTestsBit | gpu_types.PipelineStageLateFragmentTestsBit),
+		uint32(gpu_types.AccessTransferReadBit),
+		uint32(gpu_types.PipelineStageTransferBit),
+		uint32(gpu_types.AccessTransferWriteBit),
+		uint32(gpu_types.PipelineStageTransferBit),
+		uint32(gpu_types.AccessHostReadBit),
+		uint32(gpu_types.PipelineStageHostBit),
+		uint32(gpu_types.AccessHostWriteBit),
+		uint32(gpu_types.PipelineStageHostBit),
+		uint32(gpu_types.AccessMemoryReadBit),
 		0,
-		uint32(GPUAccessMemoryWriteBit),
+		uint32(gpu_types.AccessMemoryWriteBit),
 		0,
-		uint32(GPUAccessCommandProcessReadBitNvx),
-		uint32(GPUPipelineStageCommandProcessBitNvx),
-		uint32(GPUAccessCommandProcessWriteBitNvx),
-		uint32(GPUPipelineStageCommandProcessBitNvx),
+		uint32(gpu_types.AccessCommandProcessReadBitNvx),
+		uint32(gpu_types.PipelineStageCommandProcessBitNvx),
+		uint32(gpu_types.AccessCommandProcessWriteBitNvx),
+		uint32(gpu_types.PipelineStageCommandProcessBitNvx),
 	}
 	pipes := uint32(0)
 	for i := uint32(0); i < uint32(len(accessPipes)); i += 2 {
@@ -316,5 +317,5 @@ func makeAccessMaskPipelineStageFlags(access GPUAccessFlags) GPUPipelineStageFla
 	if pipes == 0 {
 		panic("invalid access flags")
 	}
-	return GPUPipelineStageFlags(pipes)
+	return gpu_types.PipelineStageFlags(pipes)
 }

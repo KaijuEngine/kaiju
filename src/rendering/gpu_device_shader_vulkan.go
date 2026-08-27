@@ -15,6 +15,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/gpu_types"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -56,7 +57,7 @@ func (g *GPUDevice) createGraphicsShader(shader *Shader, assetDB assets.Database
 	vertStage.Stage = vulkan_const.ShaderStageVertexBit
 	vertStage.Module = vert
 	vertStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
-	shader.RenderId.vertModule.handle = unsafe.Pointer(vert)
+	shader.RenderId.vertModule.Handle = unsafe.Pointer(vert)
 
 	fragStage := vk.PipelineShaderStageCreateInfo{}
 	fMem, err = assetDB.Read(shader.data.Fragment)
@@ -73,7 +74,7 @@ func (g *GPUDevice) createGraphicsShader(shader *Shader, assetDB assets.Database
 	fragStage.Stage = vulkan_const.ShaderStageFragmentBit
 	fragStage.Module = frag
 	fragStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
-	shader.RenderId.fragModule.handle = unsafe.Pointer(frag)
+	shader.RenderId.fragModule.Handle = unsafe.Pointer(frag)
 
 	geomStage := vk.PipelineShaderStageCreateInfo{}
 	if len(shader.data.Geometry) > 0 {
@@ -109,7 +110,7 @@ func (g *GPUDevice) createGraphicsShader(shader *Shader, assetDB assets.Database
 		tescStage.Stage = vulkan_const.ShaderStageTessellationControlBit
 		tescStage.Module = tesc
 		tescStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
-		shader.RenderId.tescModule.handle = unsafe.Pointer(tesc)
+		shader.RenderId.tescModule.Handle = unsafe.Pointer(tesc)
 	}
 
 	teseStage := vk.PipelineShaderStageCreateInfo{}
@@ -128,7 +129,7 @@ func (g *GPUDevice) createGraphicsShader(shader *Shader, assetDB assets.Database
 		teseStage.Stage = vulkan_const.ShaderStageTessellationEvaluationBit
 		teseStage.Module = tese
 		teseStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
-		shader.RenderId.teseModule.handle = unsafe.Pointer(tese)
+		shader.RenderId.teseModule.Handle = unsafe.Pointer(tese)
 	}
 
 	id := &shader.RenderId
@@ -183,15 +184,15 @@ func (g *GPUDevice) createComputeShader(shader *Shader, assetDB assets.Database)
 	compStage.Stage = vulkan_const.ShaderStageComputeBit
 	compStage.Module = comp
 	compStage.PName = (*vk.Char)(unsafe.Pointer(&([]byte("main\x00"))[0]))
-	shader.RenderId.compModule.handle = unsafe.Pointer(comp)
+	shader.RenderId.compModule.Handle = unsafe.Pointer(comp)
 	id := &shader.RenderId
 	shader.DriverData.setup(&shader.data)
-	vkDevice := vk.Device(g.LogicalDevice.handle)
+	vkDevice := vk.Device(g.LogicalDevice.Handle)
 	id.descriptorSetLayout, err = g.createDescriptorSetLayout(shader.DriverData.DescriptorSetLayoutStructure)
 	if err != nil {
 		return err
 	}
-	pSetLayouts := vk.DescriptorSetLayout(shader.RenderId.descriptorSetLayout.handle)
+	pSetLayouts := vk.DescriptorSetLayout(shader.RenderId.descriptorSetLayout.Handle)
 	pipelineLayoutInfo := vk.PipelineLayoutCreateInfo{
 		SType:                  vulkan_const.StructureTypePipelineLayoutCreateInfo,
 		SetLayoutCount:         1,
@@ -206,11 +207,11 @@ func (g *GPUDevice) createComputeShader(shader *Shader, assetDB assets.Database)
 	} else {
 		g.LogicalDevice.dbg.track(unsafe.Pointer(pLayout))
 	}
-	shader.RenderId.pipelineLayout.handle = unsafe.Pointer(pLayout)
+	shader.RenderId.pipelineLayout.Handle = unsafe.Pointer(pLayout)
 	pipelineInfo := vk.ComputePipelineCreateInfo{
 		SType:  vulkan_const.StructureTypeComputePipelineCreateInfo,
 		Stage:  compStage,
-		Layout: vk.PipelineLayout(id.pipelineLayout.handle),
+		Layout: vk.PipelineLayout(id.pipelineLayout.Handle),
 	}
 	pipelines := [1]vk.Pipeline{}
 	if vk.CreateComputePipelines(vkDevice, vk.NullPipelineCache, 1, &pipelineInfo, nil, &pipelines[0]) != vulkan_const.Success {
@@ -219,7 +220,7 @@ func (g *GPUDevice) createComputeShader(shader *Shader, assetDB assets.Database)
 	} else {
 		g.LogicalDevice.dbg.track(unsafe.Pointer(pipelines[0]))
 	}
-	id.computePipeline.handle = unsafe.Pointer(pipelines[0])
+	id.computePipeline.Handle = unsafe.Pointer(pipelines[0])
 	return nil
 }
 
@@ -230,7 +231,7 @@ func (g *GPUDevice) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 	info.CodeSize = uint(len(mem))
 	info.PCode = (*uint32)(unsafe.Pointer(&mem[0]))
 	var outModule vk.ShaderModule
-	vkDevice := vk.Device(g.LogicalDevice.handle)
+	vkDevice := vk.Device(g.LogicalDevice.Handle)
 	if vk.CreateShaderModule(vkDevice, &info, nil, &outModule) != vulkan_const.Success {
 		slog.Error("Failed to create shader module", slog.String("module", string(mem)))
 		return outModule, false
@@ -242,39 +243,39 @@ func (g *GPUDevice) createSpvModule(mem []byte) (vk.ShaderModule, bool) {
 
 func (g *GPUDevice) destroyShaderHandleImpl(id ShaderId) {
 	defer tracing.NewRegion("GPUDevice.destroyShaderHandleImpl").End()
-	vkDevice := vk.Device(g.LogicalDevice.handle)
+	vkDevice := vk.Device(g.LogicalDevice.Handle)
 	g.LogicalDevice.WaitIdle()
-	vk.DestroyPipeline(vkDevice, vk.Pipeline(id.graphicsPipeline.handle), nil)
-	g.LogicalDevice.dbg.remove(id.graphicsPipeline.handle)
-	vk.DestroyPipeline(vkDevice, vk.Pipeline(id.computePipeline.handle), nil)
-	g.LogicalDevice.dbg.remove(id.computePipeline.handle)
-	vk.DestroyPipelineLayout(vkDevice, vk.PipelineLayout(id.pipelineLayout.handle), nil)
-	g.LogicalDevice.dbg.remove(id.pipelineLayout.handle)
-	vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.vertModule.handle), nil)
-	g.LogicalDevice.dbg.remove(id.vertModule.handle)
-	vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.fragModule.handle), nil)
-	g.LogicalDevice.dbg.remove(id.fragModule.handle)
+	vk.DestroyPipeline(vkDevice, vk.Pipeline(id.graphicsPipeline.Handle), nil)
+	g.LogicalDevice.dbg.remove(id.graphicsPipeline.Handle)
+	vk.DestroyPipeline(vkDevice, vk.Pipeline(id.computePipeline.Handle), nil)
+	g.LogicalDevice.dbg.remove(id.computePipeline.Handle)
+	vk.DestroyPipelineLayout(vkDevice, vk.PipelineLayout(id.pipelineLayout.Handle), nil)
+	g.LogicalDevice.dbg.remove(id.pipelineLayout.Handle)
+	vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.vertModule.Handle), nil)
+	g.LogicalDevice.dbg.remove(id.vertModule.Handle)
+	vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.fragModule.Handle), nil)
+	g.LogicalDevice.dbg.remove(id.fragModule.Handle)
 	if id.geomModule.IsValid() {
-		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.geomModule.handle), nil)
-		g.LogicalDevice.dbg.remove(id.geomModule.handle)
+		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.geomModule.Handle), nil)
+		g.LogicalDevice.dbg.remove(id.geomModule.Handle)
 	}
 	if id.tescModule.IsValid() {
-		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.tescModule.handle), nil)
-		g.LogicalDevice.dbg.remove(id.tescModule.handle)
+		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.tescModule.Handle), nil)
+		g.LogicalDevice.dbg.remove(id.tescModule.Handle)
 	}
 	if id.teseModule.IsValid() {
-		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.teseModule.handle), nil)
-		g.LogicalDevice.dbg.remove(id.teseModule.handle)
+		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.teseModule.Handle), nil)
+		g.LogicalDevice.dbg.remove(id.teseModule.Handle)
 	}
 	if id.compModule.IsValid() {
-		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.compModule.handle), nil)
-		g.LogicalDevice.dbg.remove(id.compModule.handle)
+		vk.DestroyShaderModule(vkDevice, vk.ShaderModule(id.compModule.Handle), nil)
+		g.LogicalDevice.dbg.remove(id.compModule.Handle)
 	}
-	vk.DestroyDescriptorSetLayout(vkDevice, vk.DescriptorSetLayout(id.descriptorSetLayout.handle), nil)
-	g.LogicalDevice.dbg.remove(id.descriptorSetLayout.handle)
+	vk.DestroyDescriptorSetLayout(vkDevice, vk.DescriptorSetLayout(id.descriptorSetLayout.Handle), nil)
+	g.LogicalDevice.dbg.remove(id.descriptorSetLayout.Handle)
 }
 
-func (g *GPUDevice) createDescriptorSetLayout(structure DescriptorSetLayoutStructure) (GPUDescriptorSetLayout, error) {
+func (g *GPUDevice) createDescriptorSetLayout(structure DescriptorSetLayoutStructure) (gpu_types.DescriptorSetLayout, error) {
 	defer tracing.NewRegion("GPUDevice.createDescriptorSetLayout").End()
 	structureCount := len(structure.Types)
 	bindings := make([]vk.DescriptorSetLayoutBinding, structureCount)
@@ -294,11 +295,11 @@ func (g *GPUDevice) createDescriptorSetLayout(structure DescriptorSetLayoutStruc
 		info.PBindings = &bindings[0]
 	}
 	var layout vk.DescriptorSetLayout
-	if vk.CreateDescriptorSetLayout(vk.Device(g.LogicalDevice.handle), &info, nil, &layout) != vulkan_const.Success {
-		return GPUDescriptorSetLayout{}, errors.New("failed to create descriptor set layout")
+	if vk.CreateDescriptorSetLayout(vk.Device(g.LogicalDevice.Handle), &info, nil, &layout) != vulkan_const.Success {
+		return gpu_types.DescriptorSetLayout{}, errors.New("failed to create descriptor set layout")
 	}
 	g.LogicalDevice.dbg.track(unsafe.Pointer(layout))
-	return GPUDescriptorSetLayout{GPUHandle{unsafe.Pointer(layout)}}, nil
+	return gpu_types.DescriptorSetLayout{gpu_types.GpuHandle{unsafe.Pointer(layout)}}, nil
 }
 
 func bufferInfo(buffer vk.Buffer, bufferSize vk.DeviceSize) vk.DescriptorBufferInfo {
@@ -321,11 +322,11 @@ func prepareSetWriteBuffer(set vk.DescriptorSet, bufferInfos []vk.DescriptorBuff
 	return write
 }
 
-func imageInfo(view vk.ImageView, sampler vk.Sampler) GPUDescriptorImageInfo {
-	imageInfo := GPUDescriptorImageInfo{}
-	imageInfo.ImageLayout.fromVulkan(vulkan_const.ImageLayoutShaderReadOnlyOptimal)
-	imageInfo.ImageView.handle = unsafe.Pointer(view)
-	imageInfo.Sampler.handle = unsafe.Pointer(sampler)
+func imageInfo(view vk.ImageView, sampler vk.Sampler) gpu_types.DescriptorImageInfo {
+	imageInfo := gpu_types.DescriptorImageInfo{}
+	imageInfo.ImageLayout.FromVulkan(vulkan_const.ImageLayoutShaderReadOnlyOptimal)
+	imageInfo.ImageView.Handle = unsafe.Pointer(view)
+	imageInfo.Sampler.Handle = unsafe.Pointer(sampler)
 	return imageInfo
 }
 
