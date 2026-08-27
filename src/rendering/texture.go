@@ -39,9 +39,7 @@ type Texture struct {
 	TextureId
 	Key               string
 	TexturePixelCache []byte
-	Channels          int
 	Filter            int
-	CacheInvalid      bool
 	pendingDataMutex  sync.Mutex
 	pendingData       *textures.TextureData
 	hasTransparency   transparencyReadState
