@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -24,7 +25,7 @@ const (
 )
 
 var (
-	sFilter           = rendering.TextureFilterLinear
+	sFilter           = textures.TextureFilterLinear
 	sPixelPositioning = false
 )
 
@@ -285,11 +286,11 @@ func (s *Sprite) SwapMaterial(mat *rendering.Material) {
 	}
 }
 
-func (s *Sprite) PlayAnimation()                             { s.paused = false }
-func (s *Sprite) StopAnimation()                             { s.paused = true }
-func (s *Sprite) SetFrameRate(inFPS float32)                 { s.fps = inFPS }
-func SetDefaultTextureFilter(filter rendering.TextureFilter) { sFilter = filter }
-func SetPixelPositioning(pixelPositioning bool)              { sPixelPositioning = pixelPositioning }
+func (s *Sprite) PlayAnimation()                     { s.paused = false }
+func (s *Sprite) StopAnimation()                     { s.paused = true }
+func (s *Sprite) SetFrameRate(inFPS float32)         { s.fps = inFPS }
+func SetDefaultTextureFilter(filter textures.Filter) { sFilter = filter }
+func SetPixelPositioning(pixelPositioning bool)      { sPixelPositioning = pixelPositioning }
 
 func (s *Sprite) SetUVs(drawing int, inUVs matrix.Vec4) {
 	s.ShaderData(drawing).UVs = inUVs

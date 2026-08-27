@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type TextureBrushMode int
@@ -80,7 +80,7 @@ type TerrainLayer struct {
 	TextureContentID   string
 	NormalContentID    string
 	RoughnessContentID string
-	Filter             rendering.TextureFilter
+	Filter             textures.Filter
 	Tiling             matrix.Vec2
 	Offset             matrix.Vec2
 	Rotation           matrix.Float
@@ -153,7 +153,7 @@ func NewTerrainLayer(textureContentID string) TerrainLayer {
 	return TerrainLayer{
 		Name:             textureContentID,
 		TextureContentID: textureContentID,
-		Filter:           rendering.TextureFilterLinear,
+		Filter:           textures.TextureFilterLinear,
 		Tiling:           matrix.Vec2One(),
 		Tint:             matrix.ColorWhite(),
 	}
@@ -1241,8 +1241,8 @@ func normalizeTerrainLayer(layer TerrainLayer) TerrainLayer {
 	if layer.Name == "" {
 		layer.Name = layer.TextureContentID
 	}
-	if layer.Filter < 0 || layer.Filter >= rendering.TextureFilterMax {
-		layer.Filter = rendering.TextureFilterLinear
+	if layer.Filter < 0 || layer.Filter >= textures.TextureFilterMax {
+		layer.Filter = textures.TextureFilterLinear
 	}
 	if layer.Tiling.X() == 0 && layer.Tiling.Y() == 0 {
 		layer.Tiling = matrix.Vec2One()

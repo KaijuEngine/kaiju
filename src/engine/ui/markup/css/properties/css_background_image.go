@@ -16,7 +16,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func (p BackgroundImage) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -31,7 +31,7 @@ func (p BackgroundImage) Process(panel *ui.Panel, elm *document.Element, values 
 	}
 
 	path := strings.TrimSpace(parts[1])
-	tex, err := host.TextureCache().Texture(path, rendering.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(path, textures.TextureFilterLinear)
 	if err != nil {
 		return err
 	}

@@ -20,93 +20,9 @@ import (
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/textures"
 
 	"github.com/KaijuEngine/uuid"
-)
-
-/*
-	ASTC notes:
-	The header size is found here:  https://github.com/ARM-software/astc-encoder/blob/437f2423fede947a09086f28f547d1897bfe4546/Source/astc_toplevel.cpp#L177
-
-	The following struct denotes it:
-	struct astc_header
-	{
-		uint8_t magic[4];
-		uint8_t blockdim_x;
-		uint8_t blockdim_y;
-		uint8_t blockdim_z;
-		uint8_t xsize[3];			// x-size = xsize[0] + xsize[1] + xsize[2]
-		uint8_t ysize[3];			// x-size, y-size and z-size are given in texels;
-		uint8_t zsize[3];			// block count is inferred
-	};
-*/
-
-type TextureInputType int
-type TextureColorFormat int
-type TextureFilter = int
-type TextureMemType = int
-type TextureFileFormat = int
-type TextureDimensions = int
-
-const (
-	TextureInputTypeCompressedRgbaAstc4x4 TextureInputType = iota
-	TextureInputTypeCompressedRgbaAstc5x4
-	TextureInputTypeCompressedRgbaAstc5x5
-	TextureInputTypeCompressedRgbaAstc6x5
-	TextureInputTypeCompressedRgbaAstc6x6
-	TextureInputTypeCompressedRgbaAstc8x5
-	TextureInputTypeCompressedRgbaAstc8x6
-	TextureInputTypeCompressedRgbaAstc8x8
-	TextureInputTypeCompressedRgbaAstc10x5
-	TextureInputTypeCompressedRgbaAstc10x6
-	TextureInputTypeCompressedRgbaAstc10x8
-	TextureInputTypeCompressedRgbaAstc10x10
-	TextureInputTypeCompressedRgbaAstc12x10
-	TextureInputTypeCompressedRgbaAstc12x12
-	TextureInputTypeRgba8
-	TextureInputTypeRgb8
-	TextureInputTypeLuminance
-)
-
-const (
-	TextureColorFormatRgbaUnorm TextureColorFormat = iota
-	TextureColorFormatRgbUnorm
-	TextureColorFormatRgbaSrgb
-	TextureColorFormatRgbSrgb
-	TextureColorFormatLuminance
-)
-
-const (
-	TextureFilterLinear TextureFilter = iota
-	TextureFilterNearest
-	TextureFilterMax
-)
-
-const (
-	TextureMemTypeUnsignedByte TextureMemType = iota
-)
-
-const (
-	TextureFileFormatAstc TextureFileFormat = iota
-	TextureFileFormatPng
-	TextureFileFormatJpeg
-	TextureFileFormatRaw
-)
-
-const (
-	bytesInPixel = 4
-	CubeMapSides = 6
-)
-
-const (
-	TextureDimensions2 TextureDimensions = iota
-	TextureDimensions1
-	TextureDimensions3
-	TextureDimensionsCube
-)
-
-const (
-	GenerateUniqueTextureKey = ""
 )
 
 type GPUImageWriteRequest struct {
@@ -116,13 +32,13 @@ type GPUImageWriteRequest struct {
 
 type TextureData struct {
 	Mem            []byte
-	InternalFormat TextureInputType
-	Format         TextureColorFormat
-	Type           TextureMemType
+	InternalFormat textures.InputType
+	Format         textures.ColorFormat
+	Type           textures.MemType
 	Width          int
 	Height         int
-	InputType      TextureFileFormat
-	Dimensions     TextureDimensions
+	InputType      textures.TextureFileFormat
+	Dimensions     textures.Dimensions
 }
 
 type transparencyReadState int
@@ -159,31 +75,31 @@ func TextureKeys(textures []*Texture) []string {
 
 // ReadRawTextureData reads raw texture data from a byte slice based on the specified input type (ASTC, PNG, or RAW).
 // It returns a TextureData struct containing the decoded pixel data, dimensions, and format information.
-func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
+func ReadRawTextureData(mem []byte, inputType textures.TextureFileFormat) TextureData {
 	defer tracing.NewRegion("rendering.ReadRawTextureData").End()
 
 	var res TextureData
 	res.InputType = inputType
 
-	astcFormatMap := map[[2]byte]TextureInputType{
-		{4, 0}:   TextureInputTypeCompressedRgbaAstc4x4,
-		{5, 4}:   TextureInputTypeCompressedRgbaAstc5x4,
-		{5, 5}:   TextureInputTypeCompressedRgbaAstc5x5,
-		{6, 5}:   TextureInputTypeCompressedRgbaAstc6x5,
-		{6, 6}:   TextureInputTypeCompressedRgbaAstc6x6,
-		{8, 5}:   TextureInputTypeCompressedRgbaAstc8x5,
-		{8, 6}:   TextureInputTypeCompressedRgbaAstc8x6,
-		{8, 8}:   TextureInputTypeCompressedRgbaAstc8x8,
-		{10, 5}:  TextureInputTypeCompressedRgbaAstc10x5,
-		{10, 6}:  TextureInputTypeCompressedRgbaAstc10x6,
-		{10, 8}:  TextureInputTypeCompressedRgbaAstc10x8,
-		{10, 10}: TextureInputTypeCompressedRgbaAstc10x10,
-		{12, 10}: TextureInputTypeCompressedRgbaAstc12x10,
-		{12, 12}: TextureInputTypeCompressedRgbaAstc12x12,
+	astcFormatMap := map[[2]byte]textures.InputType{
+		{4, 0}:   textures.TextureInputTypeCompressedRgbaAstc4x4,
+		{5, 4}:   textures.TextureInputTypeCompressedRgbaAstc5x4,
+		{5, 5}:   textures.TextureInputTypeCompressedRgbaAstc5x5,
+		{6, 5}:   textures.TextureInputTypeCompressedRgbaAstc6x5,
+		{6, 6}:   textures.TextureInputTypeCompressedRgbaAstc6x6,
+		{8, 5}:   textures.TextureInputTypeCompressedRgbaAstc8x5,
+		{8, 6}:   textures.TextureInputTypeCompressedRgbaAstc8x6,
+		{8, 8}:   textures.TextureInputTypeCompressedRgbaAstc8x8,
+		{10, 5}:  textures.TextureInputTypeCompressedRgbaAstc10x5,
+		{10, 6}:  textures.TextureInputTypeCompressedRgbaAstc10x6,
+		{10, 8}:  textures.TextureInputTypeCompressedRgbaAstc10x8,
+		{10, 10}: textures.TextureInputTypeCompressedRgbaAstc10x10,
+		{12, 10}: textures.TextureInputTypeCompressedRgbaAstc12x10,
+		{12, 12}: textures.TextureInputTypeCompressedRgbaAstc12x12,
 	}
 
 	switch inputType {
-	case TextureFileFormatAstc:
+	case textures.FileFormatAstc:
 		key := [2]byte{mem[4], mem[5]}
 		if format, ok := astcFormatMap[key]; ok {
 			res.InternalFormat = format
@@ -193,28 +109,28 @@ func ReadRawTextureData(mem []byte, inputType TextureFileFormat) TextureData {
 		res.Height = int(mem[12])<<16 | int(mem[11])<<8 | int(mem[10])
 
 		res.Mem = mem[16:]
-		res.Format = TextureColorFormatRgbaUnorm
-		res.Type = TextureMemTypeUnsignedByte
+		res.Format = textures.TextureColorFormatRgbaUnorm
+		res.Type = textures.TextureMemTypeUnsignedByte
 
-	case TextureFileFormatPng:
+	case textures.FileFormatPng:
 		return readImageTextureData(mem, inputType, png.Decode)
 
-	case TextureFileFormatJpeg:
+	case textures.FileFormatJpeg:
 		return readImageTextureData(mem, inputType, jpeg.Decode)
 
-	case TextureFileFormatRaw:
+	case textures.FileFormatRaw:
 		res.Mem = mem
 		res.Width = 0
 		res.Height = 0
-		res.InternalFormat = TextureInputTypeRgba8
-		res.Format = TextureColorFormatRgbaUnorm
-		res.Type = TextureMemTypeUnsignedByte
+		res.InternalFormat = textures.TextureInputTypeRgba8
+		res.Format = textures.TextureColorFormatRgbaUnorm
+		res.Type = textures.TextureMemTypeUnsignedByte
 	}
 
 	return res
 }
 
-func readImageTextureData(mem []byte, inputType TextureFileFormat, decode func(io.Reader) (image.Image, error)) TextureData {
+func readImageTextureData(mem []byte, inputType textures.TextureFileFormat, decode func(io.Reader) (image.Image, error)) TextureData {
 	res := TextureData{InputType: inputType}
 	img, err := decode(bytes.NewReader(mem))
 	if err != nil {
@@ -231,26 +147,26 @@ func readImageTextureData(mem []byte, inputType TextureFileFormat, decode func(i
 	}
 	res.Width = width
 	res.Height = height
-	res.InternalFormat = TextureInputTypeRgba8
-	res.Format = TextureColorFormatRgbaUnorm
-	res.Type = TextureMemTypeUnsignedByte
+	res.InternalFormat = textures.TextureInputTypeRgba8
+	res.Format = textures.TextureColorFormatRgbaUnorm
+	res.Type = textures.TextureMemTypeUnsignedByte
 	return res
 }
 
-func textureFileFormat(key string, mem []byte) TextureFileFormat {
+func textureFileFormat(key string, mem []byte) textures.TextureFileFormat {
 	lowerKey := strings.ToLower(key)
 	if strings.HasSuffix(lowerKey, ".astc") {
-		return TextureFileFormatAstc
+		return textures.FileFormatAstc
 	}
 	if strings.HasSuffix(lowerKey, ".png") ||
 		(len(mem) > 4 && mem[0] == '\x89' && mem[1] == 'P' && mem[2] == 'N' && mem[3] == 'G') {
-		return TextureFileFormatPng
+		return textures.FileFormatPng
 	}
 	if strings.HasSuffix(lowerKey, ".jpg") || strings.HasSuffix(lowerKey, ".jpeg") ||
 		(len(mem) > 3 && mem[0] == 0xff && mem[1] == 0xd8 && mem[2] == 0xff) {
-		return TextureFileFormatJpeg
+		return textures.FileFormatJpeg
 	}
-	return TextureFileFormatRaw
+	return textures.FileFormatRaw
 }
 
 func (t *Texture) createData(imgBuff []byte, overrideWidth, overrideHeight int, key string) TextureData {
@@ -275,7 +191,7 @@ func (t *Texture) create(imgBuff []byte) {
 	t.Height = data.Height
 }
 
-func NewTexture(assetDb assets.Database, key string, filter TextureFilter) (*Texture, error) {
+func NewTexture(assetDb assets.Database, key string, filter textures.Filter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
 	key = selectKey(key)
 	tex := &Texture{Key: key, Filter: filter}
@@ -369,14 +285,14 @@ func (t *Texture) pendingDataSize() uintptr {
 	return uintptr(len(t.pendingData.Mem))
 }
 
-func NewTextureFromImage(key string, data []byte, filter TextureFilter) (*Texture, error) {
+func NewTextureFromImage(key string, data []byte, filter textures.Filter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTextureFromImage").End()
 	tex := &Texture{Key: key, Filter: filter}
 	tex.create(data)
 	return tex, nil
 }
 
-func NewTextureFromMemory(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
+func NewTextureFromMemory(key string, data []byte, width, height int, filter textures.Filter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTextureFromMemory").End()
 	key = selectKey(key)
 	tex := &Texture{Key: key, Filter: filter}
@@ -414,7 +330,7 @@ func (t *Texture) Size() matrix.Vec2 {
 	return matrix.NewVec2(t.Width, t.Height)
 }
 
-func (t *Texture) SetPendingDataDimensions(dim TextureDimensions) {
+func (t *Texture) SetPendingDataDimensions(dim textures.Dimensions) {
 	t.pendingDataMutex.Lock()
 	defer t.pendingDataMutex.Unlock()
 	if t.pendingData != nil {
@@ -439,7 +355,7 @@ func TexturePixelsFromAsset(assetDb assets.Database, key string) (TextureData, e
 }
 
 func selectKey(req string) string {
-	if req == GenerateUniqueTextureKey {
+	if req == textures.GenerateUniqueTextureKey {
 		return uuid.NewString()
 	}
 	return req

@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func init() {
@@ -96,15 +97,15 @@ func newPBRTestSphereDrawing(host *engine.Host) (rendering.Drawing, *shader_data
 		assets.TexturePBRDefaultMetallicRough,
 		assets.TextureBlankSquare,
 	}
-	textures := make([]*rendering.Texture, len(textureNames))
+	sTextures := make([]*rendering.Texture, len(textureNames))
 	for i := range textureNames {
-		textures[i], err = host.TextureCache().Texture(textureNames[i], rendering.TextureFilterLinear)
+		sTextures[i], err = host.TextureCache().Texture(textureNames[i], textures.TextureFilterLinear)
 		if err != nil {
 			panic(err)
 		}
 	}
 	return rendering.Drawing{
-		Material:   material.CreateInstance(textures),
+		Material:   material.CreateInstance(sTextures),
 		Mesh:       sphere,
 		ShaderData: shaderData,
 		Transform:  &ball.Transform,

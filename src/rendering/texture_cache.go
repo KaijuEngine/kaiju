@@ -12,6 +12,7 @@ import (
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/textures"
 )
 
 type TextureUploadPriority int
@@ -41,8 +42,8 @@ type textureLoadCall struct {
 type TextureCache struct {
 	device          *GPUDevice
 	assetDatabase   assets.Database
-	textures        [TextureFilterMax]map[string]*Texture
-	loading         [TextureFilterMax]map[string]*textureLoadCall
+	textures        [textures.TextureFilterMax]map[string]*Texture
+	loading         [textures.TextureFilterMax]map[string]*textureLoadCall
 	pendingTextures []pendingTextureUpload
 	pendingFree     []TextureId
 	uploadBudget    TextureUploadBudget
@@ -72,7 +73,7 @@ func (t *TextureCache) SetUploadBudget(budget TextureUploadBudget) {
 	t.mutex.Unlock()
 }
 
-func (t *TextureCache) Find(textureKey string, filter TextureFilter) (*Texture, bool) {
+func (t *TextureCache) Find(textureKey string, filter textures.Filter) (*Texture, bool) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	texture, ok := t.textures[filter][textureKey]
@@ -82,7 +83,7 @@ func (t *TextureCache) Find(textureKey string, filter TextureFilter) (*Texture, 
 // TexturePixels returns decoded CPU pixels from a pending cached texture when
 // available, falling back to the cache's asset database. This allows generated
 // textures such as terrain atlases to consume content before its GPU upload.
-func (t *TextureCache) TexturePixels(textureKey string, filter TextureFilter) (TextureData, error) {
+func (t *TextureCache) TexturePixels(textureKey string, filter textures.Filter) (TextureData, error) {
 	textureKey = selectKey(textureKey)
 	t.mutex.Lock()
 	if texture, ok := t.textures[filter][textureKey]; ok && texture.pendingData != nil {
@@ -94,11 +95,11 @@ func (t *TextureCache) TexturePixels(textureKey string, filter TextureFilter) (T
 	return TexturePixelsFromAsset(t.assetDatabase, textureKey)
 }
 
-func (t *TextureCache) Texture(textureKey string, filter TextureFilter) (*Texture, error) {
+func (t *TextureCache) Texture(textureKey string, filter textures.Filter) (*Texture, error) {
 	return t.TextureWithPriority(textureKey, filter, TextureUploadPriorityNormal)
 }
 
-func (t *TextureCache) TextureWithPriority(textureKey string, filter TextureFilter, priority TextureUploadPriority) (*Texture, error) {
+func (t *TextureCache) TextureWithPriority(textureKey string, filter textures.Filter, priority TextureUploadPriority) (*Texture, error) {
 	defer tracing.NewRegion("TextureCache.Texture").End()
 	textureKey = selectKey(textureKey)
 	t.mutex.Lock()
@@ -143,7 +144,7 @@ func (t *TextureCache) TextureWithPriority(textureKey string, filter TextureFilt
 
 // ReloadTexture forces a reload of the texture data for the given texture key and filter, bypassing the cache.
 // And invalidates the cached decoded data to ensure the next load will read fresh data from the asset database.
-func (t *TextureCache) ReloadTexture(textureKey string, filter TextureFilter) error {
+func (t *TextureCache) ReloadTexture(textureKey string, filter textures.Filter) error {
 	t.mutex.Lock()
 	texture, ok := t.textures[filter][textureKey]
 	if !ok {
@@ -183,11 +184,11 @@ func (t *TextureCache) InsertTextureWithPriority(tex *Texture, priority TextureU
 
 // InsertRawTexture creates a texture directly from raw data and caches it without needing to read from the asset database
 // This is useful for dynamically generated textures or when the raw data is already available in memory, caching without redundant file I/O.
-func (t *TextureCache) InsertRawTexture(key string, data []byte, width, height int, filter TextureFilter) (*Texture, error) {
+func (t *TextureCache) InsertRawTexture(key string, data []byte, width, height int, filter textures.Filter) (*Texture, error) {
 	return t.InsertRawTextureWithPriority(key, data, width, height, filter, TextureUploadPriorityNormal)
 }
 
-func (t *TextureCache) InsertRawTextureWithPriority(key string, data []byte, width, height int, filter TextureFilter, priority TextureUploadPriority) (*Texture, error) {
+func (t *TextureCache) InsertRawTextureWithPriority(key string, data []byte, width, height int, filter textures.Filter, priority TextureUploadPriority) (*Texture, error) {
 	defer tracing.NewRegion("TextureCache.InsertTexture").End()
 	key = selectKey(key)
 	t.mutex.Lock()
@@ -213,11 +214,11 @@ func (t *TextureCache) InsertRawTextureWithPriority(key string, data []byte, wid
 }
 
 // InsertImageTexture creates a texture from raw image data and caches it efficiently
-func (t *TextureCache) InsertImageTexture(key string, imageData []byte, filter TextureFilter) (*Texture, error) {
+func (t *TextureCache) InsertImageTexture(key string, imageData []byte, filter textures.Filter) (*Texture, error) {
 	return t.InsertImageTextureWithPriority(key, imageData, filter, TextureUploadPriorityNormal)
 }
 
-func (t *TextureCache) InsertImageTextureWithPriority(key string, imageData []byte, filter TextureFilter, priority TextureUploadPriority) (*Texture, error) {
+func (t *TextureCache) InsertImageTextureWithPriority(key string, imageData []byte, filter textures.Filter, priority TextureUploadPriority) (*Texture, error) {
 	defer tracing.NewRegion("TextureCache.InsertImageTexture").End()
 	key = selectKey(key)
 	t.mutex.Lock()
@@ -247,7 +248,7 @@ func (t *TextureCache) InsertImageTextureWithPriority(key string, imageData []by
 // into pendingFree so ProcessPending frees it on the next frame, and any
 // still-queued upload for the texture is dropped so an evicted texture is
 // never uploaded after removal.
-func (t *TextureCache) ForceRemoveTexture(key string, filter TextureFilter) {
+func (t *TextureCache) ForceRemoveTexture(key string, filter textures.Filter) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	texture, ok := t.textures[filter][key]

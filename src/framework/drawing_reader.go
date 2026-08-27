@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/load_result"
+	"kaijuengine.com/rendering/textures"
 )
 
 const pbrMaterialKey = assets.MaterialDefinitionPBR
@@ -74,27 +75,27 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 			mesh = rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 			host.MeshCache().AddMesh(mesh)
 		}
-		textures := []*rendering.Texture{}
+		mTextures := []*rendering.Texture{}
 		textureKeys := textureKeysForSlots(m.Textures, textureSlots)
 		for i := range textureKeys {
-			tex, err := host.TextureCache().Texture(textureKeys[i], rendering.TextureFilterLinear)
+			tex, err := host.TextureCache().Texture(textureKeys[i], textures.TextureFilterLinear)
 			if err != nil {
 				return drawings, fmt.Errorf("failed to load mesh texture %q: %w", textureKeys[i], err)
 			}
-			textures = append(textures, tex)
+			mTextures = append(mTextures, tex)
 		}
-		for i := len(textures); i < minimumTextures; i++ {
-			tex, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		for i := len(mTextures); i < minimumTextures; i++ {
+			tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 			if err != nil {
 				return drawings, fmt.Errorf("failed to load fallback texture %q: %w", assets.TextureSquare, err)
 			}
-			textures = append(textures, tex)
+			mTextures = append(mTextures, tex)
 		}
 		mat, err := host.MaterialCache().Material(matKey)
 		if err != nil {
 			return drawings, err
 		}
-		mat = mat.CreateInstance(textures)
+		mat = mat.CreateInstance(mTextures)
 		drawings = append(drawings, ModelDrawing{
 			Node:     m.Node,
 			MeshName: m.Name,

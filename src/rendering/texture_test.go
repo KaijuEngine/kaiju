@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 )
 
 func testPNG(t *testing.T, pixels []color.RGBA, width, height int) []byte {
@@ -51,14 +52,14 @@ func TestReadRawTextureDataPNG(t *testing.T) {
 	data := ReadRawTextureData(testPNG(t, []color.RGBA{
 		{R: 10, G: 20, B: 30, A: 255},
 		{R: 50, G: 60, B: 70, A: 255},
-	}, 2, 1), TextureFileFormatPng)
+	}, 2, 1), textures.FileFormatPng)
 	if data.Width != 2 || data.Height != 1 {
 		t.Fatalf("PNG dimensions = %dx%d, want 2x1", data.Width, data.Height)
 	}
-	if data.InputType != TextureFileFormatPng ||
-		data.InternalFormat != TextureInputTypeRgba8 ||
-		data.Format != TextureColorFormatRgbaUnorm ||
-		data.Type != TextureMemTypeUnsignedByte {
+	if data.InputType != textures.FileFormatPng ||
+		data.InternalFormat != textures.TextureInputTypeRgba8 ||
+		data.Format != textures.TextureColorFormatRgbaUnorm ||
+		data.Type != textures.TextureMemTypeUnsignedByte {
 		t.Fatalf("unexpected PNG metadata: %+v", data)
 	}
 	if got := data.Mem[:8]; !bytes.Equal(got, []byte{10, 20, 30, 255, 50, 60, 70, 255}) {
@@ -74,11 +75,11 @@ func TestReadRawTextureDataJPEG(t *testing.T) {
 	if err := jpeg.Encode(&buff, img, &jpeg.Options{Quality: 100}); err != nil {
 		t.Fatal(err)
 	}
-	data := ReadRawTextureData(buff.Bytes(), TextureFileFormatJpeg)
+	data := ReadRawTextureData(buff.Bytes(), textures.FileFormatJpeg)
 	if data.Width != 2 || data.Height != 1 {
 		t.Fatalf("JPEG dimensions = %dx%d, want 2x1", data.Width, data.Height)
 	}
-	if data.InputType != TextureFileFormatJpeg || data.InternalFormat != TextureInputTypeRgba8 || len(data.Mem) != 8 {
+	if data.InputType != textures.FileFormatJpeg || data.InternalFormat != textures.TextureInputTypeRgba8 || len(data.Mem) != 8 {
 		t.Fatalf("unexpected JPEG metadata: %+v", data)
 	}
 	for pixel := 0; pixel < 2; pixel++ {
@@ -89,24 +90,24 @@ func TestReadRawTextureDataJPEG(t *testing.T) {
 }
 
 func TestTextureFileFormatDetectsJPEGByNameAndSignature(t *testing.T) {
-	if got := textureFileFormat("terrain.JPG", nil); got != TextureFileFormatJpeg {
-		t.Fatalf("JPG extension format = %d, want JPEG", got)
+	if got := textureFileFormat("terrain.JPG", nil); got != textures.FileFormatJpeg {
+		t.Fatalf("JPG extension format = %s, want %s", got, textures.FileFormatJpeg)
 	}
-	if got := textureFileFormat("terrain", []byte{0xff, 0xd8, 0xff, 0xe0}); got != TextureFileFormatJpeg {
-		t.Fatalf("JPEG signature format = %d, want JPEG", got)
+	if got := textureFileFormat("terrain", []byte{0xff, 0xd8, 0xff, 0xe0}); got != textures.FileFormatJpeg {
+		t.Fatalf("JPEG signature format = %s, want %s", got, textures.FileFormatJpeg)
 	}
 }
 
 func TestReadRawTextureDataRaw(t *testing.T) {
 	mem := []byte{1, 2, 3, 4}
-	data := ReadRawTextureData(mem, TextureFileFormatRaw)
+	data := ReadRawTextureData(mem, textures.FileFormatRaw)
 	if !bytes.Equal(data.Mem, mem) {
 		t.Fatalf("raw data was not passed through")
 	}
 	if data.Width != 0 || data.Height != 0 ||
-		data.InternalFormat != TextureInputTypeRgba8 ||
-		data.Format != TextureColorFormatRgbaUnorm ||
-		data.Type != TextureMemTypeUnsignedByte {
+		data.InternalFormat != textures.TextureInputTypeRgba8 ||
+		data.Format != textures.TextureColorFormatRgbaUnorm ||
+		data.Type != textures.TextureMemTypeUnsignedByte {
 		t.Fatalf("unexpected raw metadata: %+v", data)
 	}
 }
@@ -117,8 +118,8 @@ func TestReadRawTextureDataASTC(t *testing.T) {
 	mem[7], mem[8], mem[9] = 0x34, 0x12, 0x00
 	mem[10], mem[11], mem[12] = 0x78, 0x56, 0x00
 	copy(mem[16:], []byte{9, 8, 7, 6})
-	data := ReadRawTextureData(mem, TextureFileFormatAstc)
-	if data.InternalFormat != TextureInputTypeCompressedRgbaAstc5x4 {
+	data := ReadRawTextureData(mem, textures.FileFormatAstc)
+	if data.InternalFormat != textures.TextureInputTypeCompressedRgbaAstc5x4 {
 		t.Fatalf("ASTC format = %v", data.InternalFormat)
 	}
 	if data.Width != 0x1234 || data.Height != 0x5678 {
@@ -130,21 +131,21 @@ func TestReadRawTextureDataASTC(t *testing.T) {
 }
 
 func TestNewTextureFromMemory(t *testing.T) {
-	tex, err := NewTextureFromMemory("raw", []byte{1, 2, 3, 4}, 7, 9, TextureFilterNearest)
+	tex, err := NewTextureFromMemory("raw", []byte{1, 2, 3, 4}, 7, 9, textures.TextureFilterNearest)
 	if err != nil {
 		t.Fatalf("NewTextureFromMemory returned error: %v", err)
 	}
-	if tex.Key != "raw" || tex.Width != 7 || tex.Height != 9 || tex.Filter != TextureFilterNearest {
+	if tex.Key != "raw" || tex.Width != 7 || tex.Height != 9 || tex.Filter != textures.TextureFilterNearest {
 		t.Fatalf("unexpected texture: %+v", tex)
 	}
 	if tex.pendingData == nil || !bytes.Equal(tex.pendingData.Mem, []byte{1, 2, 3, 4}) {
 		t.Fatalf("pending raw data not set correctly")
 	}
-	a, err := NewTextureFromMemory(GenerateUniqueTextureKey, []byte{1, 2, 3, 4}, 1, 1, TextureFilterLinear)
+	a, err := NewTextureFromMemory(textures.GenerateUniqueTextureKey, []byte{1, 2, 3, 4}, 1, 1, textures.TextureFilterLinear)
 	if err != nil {
 		t.Fatalf("first generated texture returned error: %v", err)
 	}
-	b, err := NewTextureFromMemory(GenerateUniqueTextureKey, []byte{1, 2, 3, 4}, 1, 1, TextureFilterLinear)
+	b, err := NewTextureFromMemory(textures.GenerateUniqueTextureKey, []byte{1, 2, 3, 4}, 1, 1, textures.TextureFilterLinear)
 	if err != nil {
 		t.Fatalf("second generated texture returned error: %v", err)
 	}
@@ -203,10 +204,10 @@ func TestTextureSize(t *testing.T) {
 
 func TestTextureSetPendingDataDimensions(t *testing.T) {
 	tex := Texture{}
-	tex.SetPendingDataDimensions(TextureDimensionsCube)
+	tex.SetPendingDataDimensions(textures.TextureDimensionsCube)
 	tex.pendingData = &TextureData{}
-	tex.SetPendingDataDimensions(TextureDimensionsCube)
-	if tex.pendingData.Dimensions != TextureDimensionsCube {
+	tex.SetPendingDataDimensions(textures.TextureDimensionsCube)
+	if tex.pendingData.Dimensions != textures.TextureDimensionsCube {
 		t.Fatalf("Dimensions = %v, want cube", tex.pendingData.Dimensions)
 	}
 }

@@ -13,7 +13,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values []rules.PropertyValue, host *engine.Host) error {
@@ -29,8 +29,8 @@ func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values [
 		if tex == nil {
 			return errors.New("Failed to set image rendering, no background created yet, possibly CSS sort order issue")
 		}
-		if tex.Filter != rendering.TextureFilterLinear {
-			tex, err = host.TextureCache().Texture(tex.Key, rendering.TextureFilterLinear)
+		if tex.Filter != textures.TextureFilterLinear {
+			tex, err = host.TextureCache().Texture(tex.Key, textures.TextureFilterLinear)
 			if err == nil {
 				panel.SetBackground(tex)
 			}
@@ -40,8 +40,8 @@ func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values [
 		if tex == nil {
 			return errors.New("Failed to set image rendering, no background created yet, possibly CSS sort order issue")
 		}
-		if tex.Filter != rendering.TextureFilterNearest {
-			tex, err = host.TextureCache().Texture(tex.Key, rendering.TextureFilterNearest)
+		if tex.Filter != textures.TextureFilterNearest {
+			tex, err = host.TextureCache().Texture(tex.Key, textures.TextureFilterNearest)
 			if err == nil {
 				panel.SetBackground(tex)
 			}

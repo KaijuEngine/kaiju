@@ -22,6 +22,7 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type WorkspaceHierarchyUI struct {
@@ -338,7 +339,7 @@ func (hui *WorkspaceHierarchyUI) setHierarchyCollapsed(row *document.Element, co
 
 func (hui *WorkspaceHierarchyUI) textureFromString(key string) *rendering.Texture {
 	w := hui.workspace.Value()
-	filter := rendering.TextureFilterLinear
+	filter := textures.TextureFilterLinear
 	tex, err := w.Host.TextureCache().Texture(key, filter)
 	if err == nil {
 		return tex

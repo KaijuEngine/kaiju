@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -605,10 +606,10 @@ func (f *renderGraphNodeField) updateTexturePreview() {
 	if textureID == "" {
 		textureID = assets.TextureSquare
 	}
-	tex, err := f.node.host.TextureCache().Texture(textureID, rendering.TextureFilterLinear)
+	tex, err := f.node.host.TextureCache().Texture(textureID, textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to load shader graph texture preview", "texture", textureID, "error", err)
-		tex, err = f.node.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		tex, err = f.node.host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 		if err != nil {
 			return
 		}

@@ -20,6 +20,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -104,7 +105,7 @@ func IntegrationTestStageMultiViewports(host *engine.Host) {
 }
 
 func createStageMultiViewportLayout(host *engine.Host, uiMan *ui.Manager, specs []stageViewportIntegrationSpec) {
-	blank, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	blank, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err != nil {
 		stageMultiViewportIntegrationFail(stageViewportFourWayScreenshotOutput,
 			"load viewport placeholder texture", err)

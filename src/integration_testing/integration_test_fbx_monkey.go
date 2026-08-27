@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders"
+	"kaijuengine.com/rendering/textures"
 )
 
 const fbxMonkeyScreenshotOutput = "integration_test_fbx_monkey.png"
@@ -45,9 +46,9 @@ func IntegrationTestFBXMonkey(host *engine.Host) {
 		first = v
 		break
 	}
-	tex, err := host.TextureCache().Texture(first, rendering.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(first, textures.TextureFilterLinear)
 	if err != nil {
-		tex, err = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		tex, err = host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	}
 	if err != nil {
 		panic(err)

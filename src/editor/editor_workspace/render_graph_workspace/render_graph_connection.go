@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -116,12 +117,12 @@ func renderGraphConnectionRefs(output, input *renderGraphPort) (RenderGraphPortR
 		return RenderGraphPortRef{}, RenderGraphPortRef{}, false
 	}
 	return RenderGraphPortRef{
-			Node: output.node.id,
-			Port: output.index,
-		}, RenderGraphPortRef{
-			Node: input.node.id,
-			Port: input.index,
-		}, true
+		Node: output.node.id,
+		Port: output.index,
+	}, RenderGraphPortRef{
+		Node: input.node.id,
+		Port: input.index,
+	}, true
 }
 
 type renderGraphSpline struct {
@@ -189,7 +190,7 @@ func (s *renderGraphSpline) addDrawing() {
 			"material", assets.MaterialDefinitionUITransparent, "error", err)
 		return
 	}
-	texture, err := s.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterNearest)
+	texture, err := s.host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterNearest)
 	if err != nil {
 		slog.Error("failed to load shader graph spline texture",
 			"texture", assets.TextureSquare, "error", err)

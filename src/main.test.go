@@ -27,6 +27,7 @@ import (
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders"
+	"kaijuengine.com/rendering/textures"
 )
 
 const rawContentPath = `editor/editor_embedded_content/editor_content`
@@ -69,7 +70,7 @@ func (g *Game) Launch(host *engine.Host) {
 	if err != nil {
 		panic("you've probably got the wrong asset database path")
 	}
-	tex, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err != nil {
 		panic("you've probably got the wrong asset database path")
 	}

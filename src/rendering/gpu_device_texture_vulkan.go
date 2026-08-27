@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -32,56 +33,56 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 	height := max(data.Height, texture.Height)
 	format := gpu_types.FormatR8g8b8a8Srgb
 	switch data.InternalFormat {
-	case TextureInputTypeRgba8:
+	case textures.TextureInputTypeRgba8:
 		switch data.Format {
-		case TextureColorFormatRgbaSrgb:
+		case textures.TextureColorFormatRgbaSrgb:
 			format = gpu_types.FormatR8g8b8a8Srgb
-		case TextureColorFormatRgbaUnorm:
+		case textures.TextureColorFormatRgbaUnorm:
 			format = gpu_types.FormatR8g8b8a8Unorm
 		}
-	case TextureInputTypeRgb8:
+	case textures.TextureInputTypeRgb8:
 		switch data.Format {
-		case TextureColorFormatRgbSrgb:
+		case textures.TextureColorFormatRgbSrgb:
 			format = gpu_types.FormatR8g8b8Srgb
-		case TextureColorFormatRgbUnorm:
+		case textures.TextureColorFormatRgbUnorm:
 			format = gpu_types.FormatR8g8b8Unorm
 		}
-	case TextureInputTypeCompressedRgbaAstc4x4:
+	case textures.TextureInputTypeCompressedRgbaAstc4x4:
 		format = gpu_types.FormatAstc4x4SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc5x4:
+	case textures.TextureInputTypeCompressedRgbaAstc5x4:
 		format = gpu_types.FormatAstc5x4SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc5x5:
+	case textures.TextureInputTypeCompressedRgbaAstc5x5:
 		format = gpu_types.FormatAstc5x5SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc6x5:
+	case textures.TextureInputTypeCompressedRgbaAstc6x5:
 		format = gpu_types.FormatAstc6x5SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc6x6:
+	case textures.TextureInputTypeCompressedRgbaAstc6x6:
 		format = gpu_types.FormatAstc6x6SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc8x5:
+	case textures.TextureInputTypeCompressedRgbaAstc8x5:
 		format = gpu_types.FormatAstc8x5SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc8x6:
+	case textures.TextureInputTypeCompressedRgbaAstc8x6:
 		format = gpu_types.FormatAstc8x6SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc8x8:
+	case textures.TextureInputTypeCompressedRgbaAstc8x8:
 		format = gpu_types.FormatAstc8x8SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc10x5:
+	case textures.TextureInputTypeCompressedRgbaAstc10x5:
 		format = gpu_types.FormatAstc10x5SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc10x6:
+	case textures.TextureInputTypeCompressedRgbaAstc10x6:
 		format = gpu_types.FormatAstc10x6SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc10x8:
+	case textures.TextureInputTypeCompressedRgbaAstc10x8:
 		format = gpu_types.FormatAstc10x8SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc10x10:
+	case textures.TextureInputTypeCompressedRgbaAstc10x10:
 		format = gpu_types.FormatAstc10x10SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc12x10:
+	case textures.TextureInputTypeCompressedRgbaAstc12x10:
 		format = gpu_types.FormatAstc12x10SrgbBlock
-	case TextureInputTypeCompressedRgbaAstc12x12:
+	case textures.TextureInputTypeCompressedRgbaAstc12x12:
 		format = gpu_types.FormatAstc12x12SrgbBlock
-	case TextureInputTypeLuminance:
+	case textures.TextureInputTypeLuminance:
 		panic("Luminance textures are not supported")
 	}
 	filter := gpu_types.FilterLinear
 	switch texture.Filter {
-	case TextureFilterLinear:
+	case textures.TextureFilterLinear:
 		filter = gpu_types.FilterLinear
-	case TextureFilterNearest:
+	case textures.TextureFilterNearest:
 		filter = gpu_types.FilterNearest
 	}
 	tile := gpu_types.ImageTilingOptimal
@@ -95,7 +96,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch 
 	layerCount := uintptr(1)
 	flags := gpu_types.ImageCreateFlags(0)
 	// TODO:  Deal with cube maps the correct way
-	if data.Dimensions == TextureDimensionsCube {
+	if data.Dimensions == textures.TextureDimensionsCube {
 		layerCount = 6
 		flags = gpu_types.ImageCreateCubeCompatibleBit
 	}

@@ -21,6 +21,7 @@ import (
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type InputType = int32
@@ -107,7 +108,7 @@ func (input *Input) Init(placeholderText string) {
 	p := input.Base().ToPanel()
 	man := p.man.Value()
 	host := man.Host
-	tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	p.Init(tex, ElementTypeInput)
 	p.DontFitContent()
 	p.SetOverflow(OverflowHidden)

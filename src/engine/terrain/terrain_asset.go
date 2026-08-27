@@ -19,7 +19,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/concurrent"
 	"kaijuengine.com/platform/profiler/tracing"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -336,7 +336,7 @@ func (a TerrainAsset) validate() error {
 		if strings.TrimSpace(a.Layers[i].TextureContentID) == "" {
 			return fmt.Errorf("terrain asset layer %d requires a texture content id", i)
 		}
-		if a.Layers[i].Filter < 0 || a.Layers[i].Filter >= rendering.TextureFilterMax {
+		if a.Layers[i].Filter < 0 || a.Layers[i].Filter >= textures.TextureFilterMax {
 			return fmt.Errorf("terrain asset layer %d has unsupported texture filter %d", i, a.Layers[i].Filter)
 		}
 	}

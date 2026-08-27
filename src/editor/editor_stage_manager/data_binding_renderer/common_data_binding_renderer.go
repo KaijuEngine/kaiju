@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManager, target *editor_stage_manager.StageEntity, iconName string) rendering.DrawInstance {
@@ -25,7 +26,7 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 		return nil
 	}
 	tex, err := host.TextureCache().Texture(
-		"editor/textures/icons/"+iconName, rendering.TextureFilterLinear)
+		"editor/textures/icons/"+iconName, textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to load the gizmo icon", "icon", iconName, "error", err)
 		return nil

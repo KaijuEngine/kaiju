@@ -13,6 +13,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -34,15 +35,15 @@ func (t *Terrain) terrainMaterialAtlases(host *engine.Host) (*rendering.Texture,
 	}
 	layers := t.renderedLayers()
 	materialKey, normalKey := terrainMaterialAtlasCacheKeys(layers)
-	material, materialFound := host.TextureCache().Find(materialKey, rendering.TextureFilterLinear)
-	normal, normalFound := host.TextureCache().Find(normalKey, rendering.TextureFilterLinear)
+	material, materialFound := host.TextureCache().Find(materialKey, textures.TextureFilterLinear)
+	normal, normalFound := host.TextureCache().Find(normalKey, textures.TextureFilterLinear)
 	if materialFound && normalFound {
 		return material, normal, nil
 	}
 
 	materialPixels, normalPixels, width, height, diagnostics, err := buildTerrainAtlasPixelsWithLoader(
 		func(key string) (rendering.TextureData, error) {
-			return host.TextureCache().TexturePixels(key, rendering.TextureFilterLinear)
+			return host.TextureCache().TexturePixels(key, textures.TextureFilterLinear)
 		}, layers, terrainAtlasTileSize, terrainAtlasGutter)
 	if err != nil {
 		return nil, nil, err
@@ -51,11 +52,11 @@ func (t *Terrain) terrainMaterialAtlases(host *engine.Host) (*rendering.Texture,
 		slog.Warn("terrain material atlas used a fallback", "layer", diagnostic.layer,
 			"map", diagnostic.kind, "texture", diagnostic.texture, "error", diagnostic.err)
 	}
-	material, err = host.TextureCache().InsertRawTexture(materialKey, materialPixels, width, height, rendering.TextureFilterLinear)
+	material, err = host.TextureCache().InsertRawTexture(materialKey, materialPixels, width, height, textures.TextureFilterLinear)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create terrain albedo/roughness atlas: %w", err)
 	}
-	normal, err = host.TextureCache().InsertRawTexture(normalKey, normalPixels, width, height, rendering.TextureFilterLinear)
+	normal, err = host.TextureCache().InsertRawTexture(normalKey, normalPixels, width, height, textures.TextureFilterLinear)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create terrain normal atlas: %w", err)
 	}

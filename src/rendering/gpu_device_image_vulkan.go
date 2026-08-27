@@ -13,6 +13,7 @@ import (
 
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -200,7 +201,7 @@ func (g *GPUDevice) copyBufferToImageWithCommand(cmd *CommandRecorder, buffer gp
 		region.ImageExtent = vk.Extent3D{Width: width, Height: height, Depth: 1}
 		vk.CmdCopyBufferToImage(cmd.buffer, vk.Buffer(buffer.Handle), vk.Image(image.Handle),
 			vulkan_const.ImageLayoutTransferDstOptimal, 1, &region)
-		offset += vk.DeviceSize(width * height * bytesInPixel)
+		offset += vk.DeviceSize(width * height * textures.BytesInPixel)
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func TestTerrainLayerSetDefaultsToHeightResolution(t *testing.T) {
@@ -38,7 +38,7 @@ func TestTerrainLayersAddAndStorePaintFields(t *testing.T) {
 		TextureContentID:   "grass",
 		NormalContentID:    "grass_normal",
 		RoughnessContentID: "grass_roughness",
-		Filter:             rendering.TextureFilterNearest,
+		Filter:             textures.TextureFilterNearest,
 		Tiling:             matrix.NewVec2(8, 6),
 		Offset:             matrix.NewVec2(0.25, 0.5),
 		Rotation:           0.125,
@@ -54,7 +54,7 @@ func TestTerrainLayersAddAndStorePaintFields(t *testing.T) {
 	if set.Layers[0].TextureContentID != "grass" || set.Layers[0].NormalContentID != "grass_normal" {
 		t.Fatalf("expected layer content ids to be preserved, got %+v", set.Layers[0])
 	}
-	if set.Layers[0].Filter != rendering.TextureFilterNearest {
+	if set.Layers[0].Filter != textures.TextureFilterNearest {
 		t.Fatalf("expected nearest filter, got %d", set.Layers[0].Filter)
 	}
 	if set.Layers[0].Tiling != matrix.NewVec2(8, 6) || set.Layers[0].Offset != matrix.NewVec2(0.25, 0.5) {

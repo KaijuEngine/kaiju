@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -137,11 +138,11 @@ func (g *GPUDevice) destroyFrameBufferImpl(frameBuffer gpu_types.FrameBuffer) {
 
 func imageTypeFromDimensions(data *TextureData) gpu_types.ImageType {
 	switch data.Dimensions {
-	case TextureDimensions1:
+	case textures.TextureDimensions1:
 		return gpu_types.ImageType1d
-	case TextureDimensions3:
+	case textures.TextureDimensions3:
 		return gpu_types.ImageType3d
-	case TextureDimensions2:
+	case textures.TextureDimensions2:
 		fallthrough
 	default:
 		return gpu_types.ImageType2d
@@ -150,13 +151,13 @@ func imageTypeFromDimensions(data *TextureData) gpu_types.ImageType {
 
 func viewTypeFromDimensions(data *TextureData) gpu_types.ImageViewType {
 	switch data.Dimensions {
-	case TextureDimensions1:
+	case textures.TextureDimensions1:
 		return gpu_types.ImageViewType1d
-	case TextureDimensions3:
+	case textures.TextureDimensions3:
 		return gpu_types.ImageViewType3d
-	case TextureDimensionsCube:
+	case textures.TextureDimensionsCube:
 		return gpu_types.ImageViewTypeCube
-	case TextureDimensions2:
+	case textures.TextureDimensions2:
 		fallthrough
 	default:
 		return gpu_types.ImageViewType2d

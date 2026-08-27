@@ -12,7 +12,7 @@ import (
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type sliderData struct {
@@ -43,7 +43,7 @@ func (s *Slider) Init() {
 	man := p.man.Value()
 	host := man.Host
 	tex, _ := host.TextureCache().Texture(
-		assets.TextureSquare, rendering.TextureFilterLinear)
+		assets.TextureSquare, textures.TextureFilterLinear)
 	ld.bgPanel = man.Add().ToPanel()
 	ld.bgPanel.Init(tex, ElementTypePanel)
 	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}

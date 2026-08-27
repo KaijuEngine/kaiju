@@ -19,6 +19,7 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -41,7 +42,7 @@ const MaxRenderedLayers = 8
 
 type TerrainTexture struct {
 	Key    string
-	Filter rendering.TextureFilter
+	Filter textures.Filter
 }
 
 type TerrainConfig struct {
@@ -1094,11 +1095,11 @@ func normalizeConfig(config TerrainConfig) TerrainConfig {
 		config.ShaderData = "terrain"
 	}
 	if len(config.Textures) == 0 {
-		config.Textures = []TerrainTexture{{Key: assets.TextureSquare, Filter: rendering.TextureFilterLinear}}
+		config.Textures = []TerrainTexture{{Key: assets.TextureSquare, Filter: textures.TextureFilterLinear}}
 	}
 	for i := range config.Textures {
-		if config.Textures[i].Filter < 0 || config.Textures[i].Filter >= rendering.TextureFilterMax {
-			config.Textures[i].Filter = rendering.TextureFilterLinear
+		if config.Textures[i].Filter < 0 || config.Textures[i].Filter >= textures.TextureFilterMax {
+			config.Textures[i].Filter = textures.TextureFilterLinear
 		}
 	}
 	return config
@@ -1167,13 +1168,13 @@ func (t *Terrain) terrainMaterialTextures(host *engine.Host) ([]*rendering.Textu
 		return nil, err
 	}
 	count := terrainWeightMapSlots + terrainMaterialMapSlots
-	textures := make([]*rendering.Texture, count)
+	terrainTextures := make([]*rendering.Texture, count)
 	baseWeight, err := host.TextureCache().InsertRawTexture(
 		terrainBaseWeightMapName,
 		[]byte{255, 0, 0, 0},
 		1,
 		1,
-		rendering.TextureFilterNearest,
+		textures.TextureFilterNearest,
 	)
 	if err != nil {
 		return nil, err
@@ -1183,27 +1184,27 @@ func (t *Terrain) terrainMaterialTextures(host *engine.Host) ([]*rendering.Textu
 		[]byte{0, 0, 0, 0},
 		1,
 		1,
-		rendering.TextureFilterNearest,
+		textures.TextureFilterNearest,
 	)
 	if err != nil {
 		return nil, err
 	}
 	for i := 0; i < terrainWeightMapSlots; i++ {
-		textures[i] = emptyWeight
+		terrainTextures[i] = emptyWeight
 		if i == 0 {
-			textures[i] = baseWeight
+			terrainTextures[i] = baseWeight
 		}
 		if i < len(t.SplatTextures) && t.SplatTextures[i].Texture != nil {
-			textures[i] = t.SplatTextures[i].Texture
+			terrainTextures[i] = t.SplatTextures[i].Texture
 		}
 	}
 	materialAtlas, normalAtlas, err := t.terrainMaterialAtlases(host)
 	if err != nil {
 		return nil, err
 	}
-	textures[terrainWeightMapSlots] = materialAtlas
-	textures[terrainWeightMapSlots+1] = normalAtlas
-	return textures, nil
+	terrainTextures[terrainWeightMapSlots] = materialAtlas
+	terrainTextures[terrainWeightMapSlots+1] = normalAtlas
+	return terrainTextures, nil
 }
 
 func (t *Terrain) syncConfigTexturesFromLayers() {
@@ -1215,7 +1216,7 @@ func (t *Terrain) syncConfigTexturesFromLayers() {
 
 func terrainTexturesFromLayers(layers []TerrainLayer) []TerrainTexture {
 	if len(layers) == 0 {
-		return []TerrainTexture{{Key: assets.TextureSquare, Filter: rendering.TextureFilterLinear}}
+		return []TerrainTexture{{Key: assets.TextureSquare, Filter: textures.TextureFilterLinear}}
 	}
 	textures := make([]TerrainTexture, len(layers))
 	for i := range layers {

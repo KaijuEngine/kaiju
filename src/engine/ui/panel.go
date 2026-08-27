@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type PanelScrollDirection = int32
@@ -916,7 +917,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		defer tracing.NewRegion("Panel.ensureBGExists").End()
 		if tex == nil {
 			tex, _ = host.TextureCache().Texture(
-				assets.TextureSquare, rendering.TextureFilterLinear)
+				assets.TextureSquare, textures.TextureFilterLinear)
 		}
 		tex.MipLevels = 1
 		material, err := host.MaterialCache().Material(assets.MaterialDefinitionUI)
@@ -1941,7 +1942,7 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 func (p *Panel) createScrollBar() *Panel {
 	man := p.man.Value()
 	scrollBarTex, _ := man.Host.TextureCache().Texture(
-		assets.TextureSquare, rendering.TextureFilterLinear)
+		assets.TextureSquare, textures.TextureFilterLinear)
 	sb := man.Add().ToPanel()
 	sb.Init(scrollBarTex, ElementTypePanel)
 	sb.DontFitContent()

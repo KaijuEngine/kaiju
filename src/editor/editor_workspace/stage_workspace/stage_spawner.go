@@ -32,6 +32,7 @@ import (
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
+	"kaijuengine.com/rendering/textures"
 )
 
 func (w *StageWorkspace) attachEntityData(e *editor_stage_manager.StageEntity, g codegen.GeneratedType) *entity_data_binding.EntityDataEntry {
@@ -90,7 +91,7 @@ func (w *StageWorkspace) CreatePrimitive(primitive rendering.PrimitiveMesh) (*ed
 		return nil, false
 	}
 	tex, err := w.Host.TextureCache().Texture(assets.TextureSquare,
-		rendering.TextureFilterLinear)
+		textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to create the default texture", "error", err)
 		return nil, false
@@ -405,8 +406,8 @@ func (w *StageWorkspace) spawnTexture(cc *content_database.CachedContent, point 
 		slog.Error("error reading the image file", "path", path)
 		return
 	}
-	tex, err := w.Host.TextureCache().InsertRawTexture(rendering.GenerateUniqueTextureKey,
-		data, 0, 0, rendering.TextureFilterLinear)
+	tex, err := w.Host.TextureCache().InsertRawTexture(textures.GenerateUniqueTextureKey,
+		data, 0, 0, textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to create the texture resource", "id", cc.Id(), "error", err)
 		return
@@ -547,7 +548,7 @@ func (w *StageWorkspace) spawnMeshEntity(name, meshRef, materialId string, km ka
 	}
 	if len(mat.Textures) == 0 {
 		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare,
-			rendering.TextureFilterLinear)
+			textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the default texture", "error", err)
 			return nil
@@ -769,7 +770,7 @@ func (w *StageWorkspace) materialForEntity(e *editor_stage_manager.StageEntity) 
 	}
 	texs := make([]*rendering.Texture, 0, len(e.StageData.Description.Textures))
 	for _, texId := range e.StageData.Description.Textures {
-		tex, err := w.Host.TextureCache().Texture(texId, rendering.TextureFilterLinear)
+		tex, err := w.Host.TextureCache().Texture(texId, textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to find the entity texture", "id", texId, "error", err)
 			continue
@@ -780,7 +781,7 @@ func (w *StageWorkspace) materialForEntity(e *editor_stage_manager.StageEntity) 
 		texs = append(texs, mat.Textures...)
 	}
 	if len(texs) == 0 {
-		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the default texture", "error", err)
 			return nil, false
@@ -809,7 +810,7 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 	if textureIds != nil {
 		texs = make([]*rendering.Texture, 0, len(textureIds))
 		for _, texId := range textureIds {
-			tex, err := w.Host.TextureCache().Texture(texId, rendering.TextureFilterLinear)
+			tex, err := w.Host.TextureCache().Texture(texId, textures.TextureFilterLinear)
 			if err != nil {
 				slog.Error("failed to find the entity texture", "id", texId, "error", err)
 				return false
@@ -819,7 +820,7 @@ func (w *StageWorkspace) setEntityMaterial(e *editor_stage_manager.StageEntity, 
 		storeTextureIds = cloneTextureIDs(textureIds)
 	}
 	if len(texs) == 0 {
-		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		tex, err := w.Host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the default texture", "error", err)
 			return false

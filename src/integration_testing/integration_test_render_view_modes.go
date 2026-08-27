@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const renderViewModesScreenshotOutput = "integration_test_render_view_modes.png"
@@ -70,7 +71,7 @@ func IntegrationTestRenderViewModes(host *engine.Host) {
 }
 
 func createRenderViewModePreviewLayout(host *engine.Host, uiMan *ui.Manager) (*ui.UI, *ui.UI) {
-	blank, err := host.TextureCache().Texture(assets.TextureBlankSquare, rendering.TextureFilterLinear)
+	blank, err := host.TextureCache().Texture(assets.TextureBlankSquare, textures.TextureFilterLinear)
 	if err != nil {
 		renderViewModesIntegrationFail("load preview placeholder texture", err)
 	}
@@ -153,7 +154,7 @@ func createRenderViewModeCube(host *engine.Host) {
 	if err != nil {
 		renderViewModesIntegrationFail("load basic material", err)
 	}
-	tex, err := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err != nil {
 		renderViewModesIntegrationFail("load square texture", err)
 	}

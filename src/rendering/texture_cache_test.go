@@ -16,6 +16,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 )
 
 func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
@@ -30,13 +31,13 @@ func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
 	start := make(chan struct{})
 	var wg sync.WaitGroup
 	wg.Add(workers)
-	textures := make([]*Texture, workers)
+	allTextures := make([]*Texture, workers)
 	errs := make([]error, workers)
 	for i := range workers {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			textures[i], errs[i] = cache.Texture("tex.png", TextureFilterLinear)
+			allTextures[i], errs[i] = cache.Texture("tex.png", textures.TextureFilterLinear)
 		}(i)
 	}
 	close(start)
@@ -46,8 +47,8 @@ func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
 		if errs[i] != nil {
 			t.Fatalf("Texture worker %d returned error: %v", i, errs[i])
 		}
-		if textures[i] != textures[0] {
-			t.Fatalf("Texture worker %d returned %p, want shared %p", i, textures[i], textures[0])
+		if allTextures[i] != allTextures[0] {
+			t.Fatalf("Texture worker %d returned %p, want shared %p", i, allTextures[i], allTextures[0])
 		}
 	}
 	if got := db.ReadCount(); got != 1 {
@@ -58,10 +59,10 @@ func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
 func TestTextureCacheTexturePixelsReadsPendingCachedImage(t *testing.T) {
 	cache := NewTextureCache(nil, assets.NewMockDB(nil))
 	pngData := testPNG(t, []color.RGBA{{R: 11, G: 22, B: 33, A: 255}}, 1, 1)
-	if _, err := cache.InsertImageTexture("generated.png", pngData, TextureFilterLinear); err != nil {
+	if _, err := cache.InsertImageTexture("generated.png", pngData, textures.TextureFilterLinear); err != nil {
 		t.Fatal(err)
 	}
-	data, err := cache.TexturePixels("generated.png", TextureFilterLinear)
+	data, err := cache.TexturePixels("generated.png", textures.TextureFilterLinear)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,14 +119,14 @@ func testReadyTextureID() TextureId {
 
 func TestTextureCacheForceRemoveQueuesUploadedTextureForFree(t *testing.T) {
 	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
-	tex := &Texture{Key: "tex", Filter: TextureFilterLinear, RenderId: testReadyTextureID()}
+	tex := &Texture{Key: "tex", Filter: textures.TextureFilterLinear, RenderId: testReadyTextureID()}
 	cache.mutex.Lock()
-	cache.textures[TextureFilterLinear][tex.Key] = tex
+	cache.textures[textures.TextureFilterLinear][tex.Key] = tex
 	cache.mutex.Unlock()
 
-	cache.ForceRemoveTexture("tex", TextureFilterLinear)
+	cache.ForceRemoveTexture("tex", textures.TextureFilterLinear)
 
-	if _, ok := cache.Find("tex", TextureFilterLinear); ok {
+	if _, ok := cache.Find("tex", textures.TextureFilterLinear); ok {
 		t.Fatalf("ForceRemoveTexture did not remove texture from cache")
 	}
 	if len(cache.pendingFree) != 1 {
@@ -140,15 +141,15 @@ func TestTextureCacheForceRemoveDropsPendingUpload(t *testing.T) {
 	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
 	// Texture inserted but not yet uploaded: no valid RenderId, still queued.
 	tex := testPendingTexture("tex", 1)
-	tex.Filter = TextureFilterLinear
+	tex.Filter = textures.TextureFilterLinear
 	cache.mutex.Lock()
-	cache.textures[TextureFilterLinear][tex.Key] = tex
+	cache.textures[textures.TextureFilterLinear][tex.Key] = tex
 	cache.queuePendingLocked(tex, TextureUploadPriorityNormal)
 	cache.mutex.Unlock()
 
-	cache.ForceRemoveTexture("tex", TextureFilterLinear)
+	cache.ForceRemoveTexture("tex", textures.TextureFilterLinear)
 
-	if _, ok := cache.Find("tex", TextureFilterLinear); ok {
+	if _, ok := cache.Find("tex", textures.TextureFilterLinear); ok {
 		t.Fatalf("ForceRemoveTexture did not remove texture from cache")
 	}
 	if len(cache.pendingTextures) != 0 {
@@ -161,7 +162,7 @@ func TestTextureCacheForceRemoveDropsPendingUpload(t *testing.T) {
 
 func TestTextureCacheForceRemoveMissingTextureIsNoop(t *testing.T) {
 	cache := NewTextureCache(nil, assets.NewMockDB(map[string][]byte{}))
-	cache.ForceRemoveTexture("nope", TextureFilterLinear)
+	cache.ForceRemoveTexture("nope", textures.TextureFilterLinear)
 	if len(cache.pendingFree) != 0 {
 		t.Fatalf("pendingFree = %d, want 0", len(cache.pendingFree))
 	}

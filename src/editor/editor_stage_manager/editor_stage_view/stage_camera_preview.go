@@ -19,6 +19,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -227,7 +228,7 @@ func (v *StageView) setCameraPreviewPlaceholderTexture() {
 	if v.host == nil || v.cameraPreview.ui == nil || !v.cameraPreview.ui.IsType(ui.ElementTypeImage) {
 		return
 	}
-	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err == nil && tex != nil {
 		v.cameraPreview.ui.ToImage().SetTexture(tex)
 	}

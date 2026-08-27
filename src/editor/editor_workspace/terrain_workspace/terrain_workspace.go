@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/editor/editor_overlay/content_selector"
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/editor_workspace_registry"
+	"kaijuengine.com/rendering/textures"
 
 	"kaijuengine.com/editor/editor_workspace"
 	"kaijuengine.com/editor/editor_workspace/common_workspace"
@@ -1455,28 +1456,28 @@ func (w *TerrainWorkspace) readTextureLayer() int {
 	return v
 }
 
-func (w *TerrainWorkspace) readTextureFilter() rendering.TextureFilter {
+func (w *TerrainWorkspace) readTextureFilter() textures.Filter {
 	if w.textureFilterSelect == nil {
-		return rendering.TextureFilterLinear
+		return textures.TextureFilterLinear
 	}
 	switch w.textureFilterSelect.UI.ToSelect().Value() {
 	case "nearest":
-		return rendering.TextureFilterNearest
+		return textures.TextureFilterNearest
 	case "linear":
 		fallthrough
 	default:
-		return rendering.TextureFilterLinear
+		return textures.TextureFilterLinear
 	}
 }
 
-func textureFilterOption(filter rendering.TextureFilter) string {
-	if filter == rendering.TextureFilterNearest {
+func textureFilterOption(filter textures.Filter) string {
+	if filter == textures.TextureFilterNearest {
 		return "nearest"
 	}
 	return "linear"
 }
 
-func textureFilterOptionIndex(filter rendering.TextureFilter) int {
+func textureFilterOptionIndex(filter textures.Filter) int {
 	if textureFilterOption(filter) == "nearest" {
 		return 1
 	}
@@ -1545,7 +1546,7 @@ func (w *TerrainWorkspace) loadLayerSwatchTexture(swatch *document.Element, laye
 	data := w.active.LayerSet.Layers[layer]
 	tex, err := w.Host.TextureCache().Texture(data.TextureContentID, data.Filter)
 	if err != nil {
-		tex, err = w.Host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+		tex, err = w.Host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	}
 	if err == nil {
 		thumb.SetBackground(tex)

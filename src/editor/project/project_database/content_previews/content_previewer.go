@@ -24,6 +24,7 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -110,19 +111,19 @@ func (p *ContentPreviewer) LoadPreviewImage(id string) (*rendering.Texture, erro
 	}
 	host := p.ed.Host()
 	texKey := "preview_" + contentPreviewCacheVersion + "_" + id
-	const filter = rendering.TextureFilterLinear
+	const filter = textures.TextureFilterLinear
 	return cachedPreviewTexture(host.TextureCache(), texKey, data, filter)
 }
 
 // useCachedTexture attempts to insert the preview image data into the texture cache and returns the texture if successful.
 // This allows for efficient reuse of textures across multiple previews and avoids redundant GPU uploads if the texture already exists in the cache.
-func (p *ContentPreviewer) useCachedTexture(texKey string, data []byte, filter rendering.TextureFilter) (*rendering.Texture, error) {
+func (p *ContentPreviewer) useCachedTexture(texKey string, data []byte, filter textures.Filter) (*rendering.Texture, error) {
 	defer tracing.NewRegion("ContentPreviewer.useCachedTexture").End()
 	host := p.ed.Host()
 	return cachedPreviewTexture(host.TextureCache(), texKey, data, filter)
 }
 
-func cachedPreviewTexture(textureCache *rendering.TextureCache, texKey string, data []byte, filter rendering.TextureFilter) (*rendering.Texture, error) {
+func cachedPreviewTexture(textureCache *rendering.TextureCache, texKey string, data []byte, filter textures.Filter) (*rendering.Texture, error) {
 	if tex, ok := textureCache.Find(texKey, filter); ok {
 		return tex, nil
 	}

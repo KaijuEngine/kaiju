@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -250,7 +251,7 @@ func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions,
 	}
 	tex := &Texture{
 		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputColor),
-		Filter:    TextureFilterLinear,
+		Filter:    textures.TextureFilterLinear,
 		MipLevels: 1,
 		Width:     width,
 		Height:    height,
@@ -290,7 +291,7 @@ func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions,
 		gpu_types.ImageTilingOptimal, gpu_types.FormatFeatureDepthStencilAttachmentBit)
 	tex := &Texture{
 		Key:       renderTargetTextureKey(options.Name, RenderTargetOutputDepth),
-		Filter:    TextureFilterLinear,
+		Filter:    textures.TextureFilterLinear,
 		MipLevels: 1,
 		Width:     width,
 		Height:    height,

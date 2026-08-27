@@ -16,6 +16,7 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/load_result"
+	"kaijuengine.com/rendering/textures"
 )
 
 var drawingSpecifications = map[string]DrawingSpecification{}
@@ -85,24 +86,24 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 				mesh = rendering.NewMesh(m.MeshName, m.Verts, m.Indexes)
 				host.MeshCache().AddMesh(mesh)
 			}
-			textures := []*rendering.Texture{}
+			mTextures := []*rendering.Texture{}
 			for j := range m.Textures {
-				tex, _ := host.TextureCache().Texture(m.Textures[j], rendering.TextureFilterLinear)
-				textures = append(textures, tex)
+				tex, _ := host.TextureCache().Texture(m.Textures[j], textures.TextureFilterLinear)
+				mTextures = append(mTextures, tex)
 			}
 			for j := range s.RenderInfo {
 				mat, err := host.MaterialCache().Material(s.RenderInfo[j].Material)
 				if err != nil {
 					return drawings, err
 				}
-				for k := len(textures); k < len(mat.Textures); k++ {
-					tex, _ := host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
-					textures = append(textures, tex)
+				for k := len(mTextures); k < len(mat.Textures); k++ {
+					tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+					mTextures = append(mTextures, tex)
 				}
-				for i := range textures {
-					textures[i].MipLevels = 1
+				for i := range mTextures {
+					mTextures[i].MipLevels = 1
 				}
-				mat = mat.CreateInstance(textures[0:len(mat.Textures)])
+				mat = mat.CreateInstance(mTextures[0:len(mat.Textures)])
 				drawings = append(drawings, ModelDrawing{
 					Node:     m.Node,
 					MeshName: m.Name,

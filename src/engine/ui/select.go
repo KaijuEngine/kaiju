@@ -13,6 +13,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -151,7 +152,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 	man := s.man.Value()
 	host := man.Host
 	bg, _ := host.TextureCache().Texture(
-		assets.TextureSquare, rendering.TextureFilterLinear)
+		assets.TextureSquare, textures.TextureFilterLinear)
 	p.Init(bg, ElementTypeSelect)
 	p.SetColor(selectControlColor())
 	p.SetBorderSize(1, 1, 1, 1)
@@ -196,7 +197,7 @@ func (s *Select) Init(text string, options []SelectOption) {
 	}
 	{
 		// Up/down triangle
-		triTex, _ := host.TextureCache().Texture(inputAtlas, rendering.TextureFilterLinear)
+		triTex, _ := host.TextureCache().Texture(inputAtlas, textures.TextureFilterLinear)
 		tri := man.Add()
 		img := tri.ToImage()
 		initSelectArrow(img, triTex)
@@ -228,7 +229,7 @@ func (s *Select) AddOption(name, value string) {
 	man := s.man.Value()
 	panel := man.Add()
 	p := panel.ToPanel()
-	bg, _ := s.Base().Host().TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	bg, _ := s.Base().Host().TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	p.Init(bg, ElementTypePanel)
 	p.SetColor(data.optionColor)
 	p.layout.Stylizer = SelectOptionStylizer{BasicStylizer{weak.Make(s.Base())}}
@@ -238,7 +239,7 @@ func (s *Select) AddOption(name, value string) {
 	{
 		// Create the selected option arrow from the shared input atlas.
 		arrowTexture, _ := s.Base().Host().TextureCache().Texture(
-			inputAtlas, rendering.TextureFilterLinear)
+			inputAtlas, textures.TextureFilterLinear)
 		arrowHolderUI := man.Add()
 		arrowHolder := arrowHolderUI.ToPanel()
 		arrowHolder.Init(nil, ElementTypePanel)

@@ -12,6 +12,7 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const splatTextureChannels = 4
@@ -154,7 +155,7 @@ func (t *Terrain) createSplatTextures(host *engine.Host) error {
 				pixels,
 				t.LayerSet.WeightMap.Resolution,
 				t.LayerSet.WeightMap.Resolution,
-				rendering.TextureFilterLinear,
+				textures.TextureFilterLinear,
 			)
 			if err != nil {
 				return err

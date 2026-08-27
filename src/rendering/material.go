@@ -17,6 +17,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/textures"
 )
 
 type Material struct {
@@ -97,17 +98,17 @@ func (m *Material) CreateInstance(textures []*Texture) *Material {
 	return copy
 }
 
-func (d *MaterialTextureData) FilterToVK() TextureFilter {
+func (d *MaterialTextureData) FilterToVK() textures.Filter {
 	switch d.Filter {
 	case "Nearest":
-		return TextureFilterNearest
+		return textures.TextureFilterNearest
 	case "Linear":
-		return TextureFilterLinear
+		return textures.TextureFilterLinear
 	case "CubicImg":
 		// TODO:  Implement this filter
 		fallthrough
 	default:
-		return TextureFilterLinear
+		return textures.TextureFilterLinear
 	}
 }
 

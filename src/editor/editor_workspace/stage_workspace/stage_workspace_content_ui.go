@@ -25,6 +25,7 @@ import (
 	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
+	"kaijuengine.com/rendering/textures"
 )
 
 type WorkspaceContentUI struct {
@@ -161,7 +162,7 @@ func (cui *WorkspaceContentUI) addContentBatch(ids []string) {
 		cui.loadEntryImage(cpys[i], cc)
 		tex, err := w.Host.TextureCache().TextureWithPriority(
 			fmt.Sprintf("editor/textures/icons/%s.png", cc.Config.Type),
-			rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
+			textures.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 		if err == nil {
 			cpys[i].Children[2].UI.ToPanel().SetBackground(tex)
 		}
@@ -212,7 +213,7 @@ func (cui *WorkspaceContentUI) setupSubmeshEntry(e *document.Element, cc *conten
 func (cui *WorkspaceContentUI) setSubmeshEntryIcon(e *document.Element) {
 	tex, err := cui.workspace.Value().Host.TextureCache().TextureWithPriority(
 		fmt.Sprintf("editor/textures/icons/%s.png", (content_database.Mesh{}).TypeName()),
-		rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
+		textures.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 	if err != nil {
 		return
 	}
@@ -299,7 +300,7 @@ func (cui *WorkspaceContentUI) loadEntryImage(e *document.Element, cc *content_d
 		// goroutine
 		go func() {
 			tex, err := w.Host.TextureCache().TextureWithPriority(
-				cc.Id(), rendering.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
+				cc.Id(), textures.TextureFilterLinear, rendering.TextureUploadPriorityHigh)
 			if err != nil {
 				slog.Error("failed to load the texture", "id", cc.Id(), "error", err)
 				return

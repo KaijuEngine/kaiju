@@ -17,17 +17,18 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func TestCachedPreviewTextureDoesNotQueryAssetDatabase(t *testing.T) {
 	db := &previewAssetDatabase{}
 	textureCache := rendering.NewTextureCache(nil, db)
 	data := previewPNG(t)
-	tex, err := cachedPreviewTexture(&textureCache, "preview_v2_tex", data, rendering.TextureFilterLinear)
+	tex, err := cachedPreviewTexture(&textureCache, "preview_v2_tex", data, textures.TextureFilterLinear)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := cachedPreviewTexture(&textureCache, "preview_v2_tex", data, rendering.TextureFilterLinear)
+	again, err := cachedPreviewTexture(&textureCache, "preview_v2_tex", data, textures.TextureFilterLinear)
 	if err != nil {
 		t.Fatal(err)
 	}

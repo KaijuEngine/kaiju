@@ -22,6 +22,7 @@ import (
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/textures"
 )
 
 const (
@@ -298,12 +299,12 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
 	textureKey := face.string() + ".png"
-	bin.texture, _ = cache.renderCaches.TextureCache().Texture(textureKey, TextureFilterLinear)
+	bin.texture, _ = cache.renderCaches.TextureCache().Texture(textureKey, textures.TextureFilterLinear)
 	if bin.texture != nil {
 		needsReload := bin.texture.RenderId.IsValid() && bin.texture.RenderId.MipLevels != 1
 		bin.texture.MipLevels = 1
 		if needsReload {
-			if err := cache.renderCaches.TextureCache().ReloadTexture(textureKey, TextureFilterLinear); err != nil {
+			if err := cache.renderCaches.TextureCache().ReloadTexture(textureKey, textures.TextureFilterLinear); err != nil {
 				slog.Error("failed to reload font texture without mipmaps", "texture", textureKey, "error", err)
 			}
 		}

@@ -36,6 +36,7 @@ import (
 	platformPower "kaijuengine.com/platform/power"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 
 	// Built-in workspace packages register themselves with
 	// editor_workspace_registry from their init(). Blank-imported here for
@@ -278,7 +279,7 @@ func (ed *Editor) postProjectLoad() {
 		ed.rebuildMenuBarTabs()
 	}
 	// Pre-warm the, quite large, material icons PNG file
-	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", rendering.TextureFilterLinear)
+	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureFilterLinear)
 }
 
 // defaultWorkspaceOrder is the canonical first-time ordering of the built-in

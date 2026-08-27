@@ -29,6 +29,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type TemplateIndexedAny struct {
@@ -305,7 +306,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					slog.Error("failed to find the JSON for the sprite sheet", "png", pngSrc, "json", jsonSrc)
 					return
 				}
-				if tex, err = host.TextureCache().Texture(pngSrc, rendering.TextureFilterLinear); err != nil {
+				if tex, err = host.TextureCache().Texture(pngSrc, textures.TextureFilterLinear); err != nil {
 					slog.Error("failed to read the sprite sheet PNG file", "png", pngSrc, "error", err)
 					return
 				}
@@ -315,12 +316,12 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				}
 				assets.Cache(jsonSrc, []byte(spriteJSON))
 			} else {
-				tex, err = host.TextureCache().Texture(src, rendering.TextureFilterLinear)
+				tex, err = host.TextureCache().Texture(src, textures.TextureFilterLinear)
 			}
 			missing := err != nil
 			if err != nil {
 				slog.Error(err.Error())
-				tex, _ = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+				tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 			}
 			img := panel.Base().ToImage()
 			if strings.HasSuffix(src, ".gif") {

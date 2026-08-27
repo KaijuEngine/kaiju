@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/platform/hid"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 const stageMainRenderTargetName = "stage-main"
@@ -533,7 +534,7 @@ func (v *StageView) setViewportPlaceholderTexture(viewport *stageRenderViewport)
 		viewport.texture = nil
 		return
 	}
-	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err == nil && tex != nil {
 		if tex == viewport.texture {
 			return

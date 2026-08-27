@@ -14,7 +14,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
-	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
@@ -35,7 +35,7 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 		TextureContentID:   "grass-albedo",
 		NormalContentID:    "grass-normal",
 		RoughnessContentID: "grass-roughness",
-		Filter:             rendering.TextureFilterNearest,
+		Filter:             textures.TextureFilterNearest,
 		Tiling:             matrix.NewVec2(6, 4),
 		Offset:             matrix.NewVec2(0.25, 0.5),
 		Rotation:           0.2,
@@ -44,7 +44,7 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 	rock := set.AddLayer(TerrainLayer{
 		Name:             "Rock",
 		TextureContentID: "rock-albedo",
-		Filter:           rendering.TextureFilterLinear,
+		Filter:           textures.TextureFilterLinear,
 		Tiling:           matrix.NewVec2(2, 3),
 		Tint:             matrix.ColorGray(),
 	})
@@ -82,7 +82,7 @@ func TestTerrainAssetVersion2RoundTripsPaintLayersAndWeights(t *testing.T) {
 	if loaded.Layers[0].Name != "Grass" || loaded.Layers[1].Name != "Rock" {
 		t.Fatalf("expected layer names to round-trip, got %+v", loaded.Layers)
 	}
-	if loaded.Layers[0].Filter != rendering.TextureFilterNearest {
+	if loaded.Layers[0].Filter != textures.TextureFilterNearest {
 		t.Fatalf("expected nearest filter to round-trip, got %d", loaded.Layers[0].Filter)
 	}
 	if len(loaded.Config.Textures) != 2 || loaded.Config.Textures[0].Key != "grass-albedo" ||
@@ -170,7 +170,7 @@ func TestTerrainAssetVersion1LoadsWithDefaultPaintLayer(t *testing.T) {
 		InitialHeight: 0,
 		Textures: []TerrainTexture{{
 			Key:    "legacy-grass",
-			Filter: rendering.TextureFilterNearest,
+			Filter: textures.TextureFilterNearest,
 		}},
 	}
 	legacy, err := serializeLegacyTerrainAsset(config, []matrix.Float{0, 1, 2, 4})
@@ -270,7 +270,7 @@ func TestTerrainAssetLegacyJSONLoadsWithDefaultPaintLayer(t *testing.T) {
 			MinHeight:     0,
 			MaxHeight:     1,
 			InitialHeight: 0,
-			Textures:      []TerrainTexture{{Key: assets.TextureSquare, Filter: rendering.TextureFilterLinear}},
+			Textures:      []TerrainTexture{{Key: assets.TextureSquare, Filter: textures.TextureFilterLinear}},
 		},
 		Heights: []uint16{0, 0, 0, 65535},
 	}

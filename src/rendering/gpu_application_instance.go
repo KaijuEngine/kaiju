@@ -11,6 +11,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering/textures"
 	vk "kaijuengine.com/rendering/vulkan"
 )
 
@@ -105,15 +106,15 @@ func (g *GPUApplicationInstance) SetupCaches(caches RenderCaches, width, height 
 	device := g.PrimaryDevice()
 	device.Painter.caches = caches
 	var err error
-	device.Painter.fallbackShadowMap, err = caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
+	device.Painter.fallbackShadowMap, err = caches.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err != nil {
 		return err
 	}
-	device.Painter.fallbackCubeShadowMap, err = caches.TextureCache().Texture(assets.TextureCube, TextureFilterLinear)
+	device.Painter.fallbackCubeShadowMap, err = caches.TextureCache().Texture(assets.TextureCube, textures.TextureFilterLinear)
 	if err != nil {
 		return err
 	}
-	device.Painter.fallbackCubeShadowMap.SetPendingDataDimensions(TextureDimensionsCube)
+	device.Painter.fallbackCubeShadowMap.SetPendingDataDimensions(textures.TextureDimensionsCube)
 	caches.TextureCache().ProcessPending()
 	return err
 }

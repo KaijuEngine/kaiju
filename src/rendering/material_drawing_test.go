@@ -9,6 +9,8 @@ package rendering
 import (
 	"testing"
 	"weak"
+
+	"kaijuengine.com/rendering/textures"
 )
 
 func TestMaterialHasTransparentSuffix(t *testing.T) {
@@ -78,13 +80,13 @@ func TestMaterialCreateInstanceWithPrepass(t *testing.T) {
 func TestMaterialTextureDataFilterToVK(t *testing.T) {
 	cases := []struct {
 		filter string
-		want   TextureFilter
+		want   textures.Filter
 	}{
-		{"Nearest", TextureFilterNearest},
-		{"Linear", TextureFilterLinear},
-		{"CubicImg", TextureFilterLinear},
-		{"", TextureFilterLinear},
-		{"bad", TextureFilterLinear},
+		{"Nearest", textures.TextureFilterNearest},
+		{"Linear", textures.TextureFilterLinear},
+		{"CubicImg", textures.TextureFilterLinear},
+		{"", textures.TextureFilterLinear},
+		{"bad", textures.TextureFilterLinear},
 	}
 	for _, c := range cases {
 		if got := (&MaterialTextureData{Filter: c.filter}).FilterToVK(); got != c.want {

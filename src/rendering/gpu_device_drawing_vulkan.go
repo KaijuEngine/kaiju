@@ -17,6 +17,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 	vk "kaijuengine.com/rendering/vulkan"
 	"kaijuengine.com/rendering/vulkan_const"
 )
@@ -501,7 +502,7 @@ type combinedTargetSpec struct {
 
 func (g *GPUDevice) combinedTargetSpecs(passes []*RenderPass) []combinedTargetSpec {
 	defer tracing.NewRegion("Vulkan.combinedTargetSpecs").End()
-	blankTex, err := g.Painter.caches.TextureCache().Texture(assets.TextureSquare, TextureFilterLinear)
+	blankTex, err := g.Painter.caches.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to load fallback combine texture", "error", err)
 		return nil

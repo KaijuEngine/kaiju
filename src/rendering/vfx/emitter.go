@@ -18,6 +18,7 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
+	"kaijuengine.com/rendering/textures"
 )
 
 type Emitter struct {
@@ -47,20 +48,20 @@ type EmitterConfig struct {
 	SpawnArea matrix.Vec3
 	// Size is the per-particle scale. Zero defaults to (1,1,1). Use small values for
 	// fine particles (rain drops, dust).
-	Size         matrix.Vec3
-	DirectionMin matrix.Vec3
-	DirectionMax     matrix.Vec3
-	VelocityMinMax   matrix.Vec2
-	OpacityMinMax    matrix.Vec2
-	Color            matrix.Color
-	PathFuncName     string                      `options:"PathFuncName"`
-	PathFunc         func(t float64) matrix.Vec3 `visible:"hidden" json:"-"`
-	PathFuncOffset   float64
-	PathFuncScale    float32
-	PathFuncSpeed    float32
-	FadeOutOverLife  bool
-	Burst            bool
-	Repeat           bool
+	Size            matrix.Vec3
+	DirectionMin    matrix.Vec3
+	DirectionMax    matrix.Vec3
+	VelocityMinMax  matrix.Vec2
+	OpacityMinMax   matrix.Vec2
+	Color           matrix.Color
+	PathFuncName    string                      `options:"PathFuncName"`
+	PathFunc        func(t float64) matrix.Vec3 `visible:"hidden" json:"-"`
+	PathFuncOffset  float64
+	PathFuncScale   float32
+	PathFuncSpeed   float32
+	FadeOutOverLife bool
+	Burst           bool
+	Repeat          bool
 }
 
 func (e *Emitter) IsValid() bool { return e.rand != nil }
@@ -121,9 +122,9 @@ func (e *Emitter) ForceReloadConfig(host *engine.Host) {
 		e.particleData[i].Destroy()
 	}
 	if maxCount > 0 {
-		tex, err := host.TextureCache().Texture(string(e.Config.Texture), rendering.TextureFilterLinear)
+		tex, err := host.TextureCache().Texture(string(e.Config.Texture), textures.TextureFilterLinear)
 		if err != nil {
-			tex, _ = host.TextureCache().Texture(assets.TextureSquare, rendering.TextureFilterLinear)
+			tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
 		}
 		e.particles = make([]Particle, maxCount)
 		e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))

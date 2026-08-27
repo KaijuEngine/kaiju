@@ -36,6 +36,7 @@ import (
 	"kaijuengine.com/registry/shader_data_registry"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/loaders/kaiju_mesh"
+	"kaijuengine.com/rendering/textures"
 
 	"github.com/KaijuEngine/uuid"
 )
@@ -756,7 +757,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 		}
 		// TODO:  Should be reading the filter from the configuration file
 		tex, err := m.host.TextureCache().InsertRawTexture(textureIds[i],
-			texData, 0, 0, rendering.TextureFilterLinear)
+			texData, 0, 0, textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the texture from it's data", "id", textureIds[i], "error", err)
 			return err
@@ -768,7 +769,7 @@ func (m *StageManager) spawnLoadedEntity(e *StageEntity, host *engine.Host, fs *
 	}
 	if len(texs) == 0 {
 		tex, err := host.TextureCache().Texture(assets.TextureSquare,
-			rendering.TextureFilterLinear)
+			textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the default texture", "error", err)
 		}
