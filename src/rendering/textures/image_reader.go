@@ -6,6 +6,8 @@
 
 package textures
 
+import "kaijuengine.com/platform/profiler/tracing"
+
 var imageReaders = []ImageReader{
 	ImageAstc{},
 	ImagePng{},
@@ -34,6 +36,7 @@ type TextureData struct {
 func (t *TextureData) IsValid() bool { return len(t.Mem) == 0 }
 
 func ReadImage(mem []byte, pathOrFileFormat string) (TextureData, error) {
+	defer tracing.NewRegion("textures.ReadImage").End()
 	var res TextureData
 	for i := range imageReaders {
 		if !imageReaders[i].CanRead(pathOrFileFormat) {
