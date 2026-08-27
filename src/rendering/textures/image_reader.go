@@ -39,3 +39,12 @@ func ReadImage(mem []byte, pathOrFileFormat string) (TextureData, error) {
 	}
 	return res, nil
 }
+
+func InferFileFormat(nameOrKey string, imgBuff []byte) string {
+	for i := range imageReaders {
+		if imageReaders[i].IsMyType(nameOrKey, imgBuff) {
+			return imageReaders[i].FileFormat()
+		}
+	}
+	return FileFormatRaw
+}

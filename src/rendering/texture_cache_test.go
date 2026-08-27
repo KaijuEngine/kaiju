@@ -104,7 +104,7 @@ func TestTextureCacheUploadBudgetPrioritizesHighPriority(t *testing.T) {
 func testPendingTexture(key string, bytes int) *Texture {
 	return &Texture{
 		Key: key,
-		pendingData: &TextureData{
+		pendingData: &textures.TextureData{
 			Mem: make([]byte, bytes),
 		},
 	}

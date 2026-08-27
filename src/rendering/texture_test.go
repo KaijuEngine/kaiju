@@ -49,10 +49,13 @@ func TestTextureKeys(t *testing.T) {
 }
 
 func TestReadRawTextureDataPNG(t *testing.T) {
-	data := ReadRawTextureData(testPNG(t, []color.RGBA{
+	data, err := textures.ReadImage(testPNG(t, []color.RGBA{
 		{R: 10, G: 20, B: 30, A: 255},
 		{R: 50, G: 60, B: 70, A: 255},
 	}, 2, 1), textures.FileFormatPng)
+	if err != nil {
+		t.Fatalf("ReadImage returned error: %v", err)
+	}
 	if data.Width != 2 || data.Height != 1 {
 		t.Fatalf("PNG dimensions = %dx%d, want 2x1", data.Width, data.Height)
 	}
@@ -75,7 +78,10 @@ func TestReadRawTextureDataJPEG(t *testing.T) {
 	if err := jpeg.Encode(&buff, img, &jpeg.Options{Quality: 100}); err != nil {
 		t.Fatal(err)
 	}
-	data := ReadRawTextureData(buff.Bytes(), textures.FileFormatJpeg)
+	data, err := textures.ReadImage(buff.Bytes(), textures.FileFormatJpeg)
+	if err != nil {
+		t.Fatalf("ReadImage returned error: %v", err)
+	}
 	if data.Width != 2 || data.Height != 1 {
 		t.Fatalf("JPEG dimensions = %dx%d, want 2x1", data.Width, data.Height)
 	}
@@ -100,7 +106,10 @@ func TestTextureFileFormatDetectsJPEGByNameAndSignature(t *testing.T) {
 
 func TestReadRawTextureDataRaw(t *testing.T) {
 	mem := []byte{1, 2, 3, 4}
-	data := ReadRawTextureData(mem, textures.FileFormatRaw)
+	data, err := textures.ReadImage(mem, textures.FileFormatRaw)
+	if err != nil {
+		t.Fatalf("ReadImage returned error: %v", err)
+	}
 	if !bytes.Equal(data.Mem, mem) {
 		t.Fatalf("raw data was not passed through")
 	}
@@ -118,7 +127,10 @@ func TestReadRawTextureDataASTC(t *testing.T) {
 	mem[7], mem[8], mem[9] = 0x34, 0x12, 0x00
 	mem[10], mem[11], mem[12] = 0x78, 0x56, 0x00
 	copy(mem[16:], []byte{9, 8, 7, 6})
-	data := ReadRawTextureData(mem, textures.FileFormatAstc)
+	data, err := textures.ReadImage(mem, textures.FileFormatAstc)
+	if err != nil {
+		t.Fatalf("ReadImage returned error: %v", err)
+	}
 	if data.InternalFormat != textures.TextureInputTypeCompressedRgbaAstc5x4 {
 		t.Fatalf("ASTC format = %v", data.InternalFormat)
 	}

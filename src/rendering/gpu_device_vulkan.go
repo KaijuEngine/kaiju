@@ -136,7 +136,7 @@ func (g *GPUDevice) destroyFrameBufferImpl(frameBuffer gpu_types.FrameBuffer) {
 	vk.DestroyFramebuffer(vk.Device(g.LogicalDevice.Handle), vk.Framebuffer(frameBuffer.Handle), nil)
 }
 
-func imageTypeFromDimensions(data *TextureData) gpu_types.ImageType {
+func imageTypeFromDimensions(data *textures.TextureData) gpu_types.ImageType {
 	switch data.Dimensions {
 	case textures.TextureDimensions1:
 		return gpu_types.ImageType1d
@@ -149,7 +149,7 @@ func imageTypeFromDimensions(data *TextureData) gpu_types.ImageType {
 	}
 }
 
-func viewTypeFromDimensions(data *TextureData) gpu_types.ImageViewType {
+func viewTypeFromDimensions(data *textures.TextureData) gpu_types.ImageViewType {
 	switch data.Dimensions {
 	case textures.TextureDimensions1:
 		return gpu_types.ImageViewType1d

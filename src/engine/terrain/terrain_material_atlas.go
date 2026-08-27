@@ -42,7 +42,7 @@ func (t *Terrain) terrainMaterialAtlases(host *engine.Host) (*rendering.Texture,
 	}
 
 	materialPixels, normalPixels, width, height, diagnostics, err := buildTerrainAtlasPixelsWithLoader(
-		func(key string) (rendering.TextureData, error) {
+		func(key string) (textures.TextureData, error) {
 			return host.TextureCache().TexturePixels(key, textures.TextureFilterLinear)
 		}, layers, terrainAtlasTileSize, terrainAtlasGutter)
 	if err != nil {
@@ -102,12 +102,12 @@ func buildTerrainAtlasPixels(assetDb assets.Database, layers []TerrainLayer, til
 	if assetDb == nil {
 		return nil, nil, 0, 0, nil, errors.New("terrain material atlas requires an asset database")
 	}
-	return buildTerrainAtlasPixelsWithLoader(func(key string) (rendering.TextureData, error) {
+	return buildTerrainAtlasPixelsWithLoader(func(key string) (textures.TextureData, error) {
 		return rendering.TexturePixelsFromAsset(assetDb, key)
 	}, layers, tileSize, gutter)
 }
 
-func buildTerrainAtlasPixelsWithLoader(load func(string) (rendering.TextureData, error),
+func buildTerrainAtlasPixelsWithLoader(load func(string) (textures.TextureData, error),
 	layers []TerrainLayer, tileSize, gutter int) (
 	material, normal []byte, width, height int, diagnostics []terrainAtlasDiagnostic, err error,
 ) {
@@ -182,7 +182,7 @@ func writeTerrainAtlasTile(material, normal []byte, atlasWidth, tileSize, gutter
 	}
 }
 
-func terrainAtlasTextureSource(load func(string) (rendering.TextureData, error), layer int, kind, key string, fallback terrainAtlasSource) (
+func terrainAtlasTextureSource(load func(string) (textures.TextureData, error), layer int, kind, key string, fallback terrainAtlasSource) (
 	terrainAtlasSource, *terrainAtlasDiagnostic,
 ) {
 	key = strings.TrimSpace(key)

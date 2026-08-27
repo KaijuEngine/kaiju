@@ -12,6 +12,7 @@ import (
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering/gpu_types"
+	"kaijuengine.com/rendering/textures"
 )
 
 type TextureUploadBatch struct {
@@ -51,12 +52,12 @@ func (b *TextureUploadBatch) End() {
 	b.cmd = nil
 }
 
-func (g *GPUDevice) SetupTexture(texture *Texture, data *TextureData) error {
+func (g *GPUDevice) SetupTexture(texture *Texture, data *textures.TextureData) error {
 	defer tracing.NewRegion("GPUDevice.SetupTexture").End()
 	return g.setupTextureImpl(texture, data, nil)
 }
 
-func (g *GPUDevice) SetupTextureInBatch(texture *Texture, data *TextureData, batch *TextureUploadBatch) error {
+func (g *GPUDevice) SetupTextureInBatch(texture *Texture, data *textures.TextureData, batch *TextureUploadBatch) error {
 	defer tracing.NewRegion("GPUDevice.SetupTextureInBatch").End()
 	return g.setupTextureImpl(texture, data, batch)
 }

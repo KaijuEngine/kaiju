@@ -27,7 +27,7 @@ type TextureCleanup struct {
 	device weak.Pointer[GPUDevice]
 }
 
-func (g *GPUDevice) setupTextureImpl(texture *Texture, data *TextureData, batch *TextureUploadBatch) error {
+func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureData, batch *TextureUploadBatch) error {
 	defer tracing.NewRegion("GPUDevice.setupTextureImpl").End()
 	width := max(data.Width, texture.Width)
 	height := max(data.Height, texture.Height)
