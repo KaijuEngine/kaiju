@@ -561,10 +561,13 @@ func propertyValueEqual(a, b rules.PropertyValue) bool {
 		slices.Equal(a.Args, b.Args) && slices.Equal(a.ArgNums, b.ArgNums)
 }
 
-func (s *ElementLayoutStylizer) clone(newElm *Element) ElementLayoutStylizer {
-	out := ElementLayoutStylizer{
+func (s *ElementLayoutStylizer) cloneInto(newElm *Element) {
+	newElm.Stylizer = ElementLayoutStylizer{
 		element: weak.Make(newElm),
 	}
-	out.ReplaceRules(s.styleRules)
-	return out
+	// Bind pseudo-state callbacks only after the stylizer is in its final
+	// address. Returning a populated stylizer by value leaves those callbacks
+	// pointing at the temporary copy, so cloned elements never update their
+	// live hover/focus/active state.
+	newElm.Stylizer.ReplaceRules(s.styleRules)
 }

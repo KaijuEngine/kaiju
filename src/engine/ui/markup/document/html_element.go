@@ -325,7 +325,7 @@ func (e *Element) Clone(parent *Element) *Element {
 	for i := range e.Children {
 		e.Children[i].Clone(elm)
 	}
-	elm.Stylizer = e.Stylizer.clone(elm)
+	e.Stylizer.cloneInto(elm)
 	if elm.UI != nil {
 		elm.UI.Layout().Stylizer = &elm.Stylizer
 	}
