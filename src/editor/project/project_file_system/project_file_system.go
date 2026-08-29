@@ -61,6 +61,7 @@ var (
 		ContentTemplateFolder,
 		ContentTerrainFolder,
 		ContentTextureFolder,
+		ContentVectorFolder,
 	}
 	coreRequiredFolders = []string{
 		DatabaseFolder,
