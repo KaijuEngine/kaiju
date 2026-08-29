@@ -1,0 +1,14 @@
+{
+  "name": "Kaiju",
+  "mainPath": "../",
+  "folders": [
+    "../"
+  ],
+  "languageServers": {
+    "enabledProfileIds": [
+      "gopls"
+    ],
+    "formatOnSave": true,
+    "formatOnSaveTimeoutMs": 3000
+  }
+}
