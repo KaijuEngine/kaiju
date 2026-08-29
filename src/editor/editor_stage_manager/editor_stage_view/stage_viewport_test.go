@@ -13,6 +13,8 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/hid"
+	"kaijuengine.com/platform/windowing"
 	"kaijuengine.com/rendering"
 )
 
@@ -46,6 +48,27 @@ func TestStageViewportBoundsConvertsScreenBoxToLocalBottomArea(t *testing.T) {
 	want := matrix.NewVec4(50, 170, 150, 270)
 	if got != want {
 		t.Fatalf("local bottom area = %v, want %v", got, want)
+	}
+}
+
+func TestStageViewDetectsCameraPanStartInsideViewport(t *testing.T) {
+	t.Parallel()
+
+	window := &windowing.Window{Mouse: hid.NewMouse()}
+	window.Mouse.SetPosition(50, 50, 200, 100)
+	window.Mouse.SetDown(hid.MouseButtonMiddle)
+	view := StageView{
+		host:     &engine.Host{Window: window},
+		open:     true,
+		viewport: stageViewportBounds{Left: 25, Top: 25, Width: 100, Height: 50},
+	}
+
+	if !view.IsCameraPanInputStarting() {
+		t.Fatal("middle press inside the stage viewport did not start camera pan input")
+	}
+	view.viewport = stageViewportBounds{Left: 125, Top: 25, Width: 50, Height: 50}
+	if view.IsCameraPanInputStarting() {
+		t.Fatal("middle press outside the stage viewport started camera pan input")
 	}
 }
 

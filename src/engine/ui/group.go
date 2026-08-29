@@ -101,6 +101,12 @@ func (group *Group) IsFocusedOnInput() bool {
 	return group.focus.IsType(ElementTypeInput) || group.focus.IsType(ElementTypeTextArea)
 }
 
+// ClearFocus releases the currently focused element through its normal miss
+// handler so inputs can submit and blur just as they do when clicking elsewhere.
+func (group *Group) ClearFocus() {
+	group.setFocus(nil)
+}
+
 func (group *Group) Attach(host *engine.Host) {
 	wGroup := weak.Make(group)
 	group.updateId = host.UILateUpdater.AddUpdate(func(dt float64) {

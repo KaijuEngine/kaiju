@@ -255,7 +255,11 @@ func (w *StageWorkspace) Update(deltaTime float64) {
 		return
 	}
 	w.stageView.SyncStageViewport()
-	if w.UiMan.Group.HasRequests() {
+	resumeCameraPan := w.IsFocusedOnInput() && w.stageView.IsCameraPanInputStarting()
+	if resumeCameraPan {
+		w.UiMan.Group.ClearFocus()
+	}
+	if w.UiMan.Group.HasRequests() && !resumeCameraPan {
 		return
 	}
 	if !w.IsFocusedOnInput() {

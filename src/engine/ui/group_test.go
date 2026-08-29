@@ -77,3 +77,21 @@ func TestGroupLateUpdateDispatchesFocusAndBlur(t *testing.T) {
 		t.Fatalf("lateUpdate did not clear dispatched focus requests")
 	}
 }
+
+func TestGroupClearFocusDispatchesMiss(t *testing.T) {
+	t.Parallel()
+
+	target := &UI{}
+	missed := false
+	target.events[EventTypeMiss].Add(func() { missed = true })
+	group := Group{focus: target}
+
+	group.ClearFocus()
+
+	if !missed {
+		t.Fatal("clearing focus did not dispatch a miss event")
+	}
+	if group.focus != nil {
+		t.Fatal("clearing focus retained the focused element")
+	}
+}

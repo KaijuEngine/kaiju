@@ -79,6 +79,17 @@ func (v *StageView) IsFlyCameraInputActive() bool {
 		(m.Pressed(hid.MouseButtonRight) || m.Held(hid.MouseButtonRight))
 }
 
+// IsCameraPanInputStarting reports the middle-button press that must reach the
+// camera on this frame so it can initialize its drag state.
+func (v *StageView) IsCameraPanInputStarting() bool {
+	if !v.open || v.host == nil || v.host.Window == nil {
+		return false
+	}
+	m := &v.host.Window.Mouse
+	return m.Pressed(hid.MouseButtonMiddle) &&
+		v.viewportContainsScreenPosition(m.ScreenPosition())
+}
+
 func (v *StageView) SetViewportToolOwner(owner ViewportToolOwner) {
 	v.toolOwner = owner
 }
