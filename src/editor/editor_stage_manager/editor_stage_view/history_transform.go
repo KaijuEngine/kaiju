@@ -28,11 +28,7 @@ type transformHistoryPRS struct {
 
 func (h *transformHistory) Redo() {
 	defer tracing.NewRegion("transformHistory.Redo").End()
-	for i, e := range h.entities {
-		e.Transform.SetPosition(h.to[i].position)
-		e.Transform.SetRotation(h.to[i].rotation)
-		e.Transform.SetScale(h.to[i].scale)
-	}
+	h.apply(h.to)
 	// TODO:  Use the following when the BVH.Refit function is fixed. Just
 	// so there aren't any issues right now, I'm going to use a refit on
 	// the first selected entity as it'll go to the root and refit all.
@@ -47,11 +43,7 @@ func (h *transformHistory) Redo() {
 
 func (h *transformHistory) Undo() {
 	defer tracing.NewRegion("transformHistory.Undo").End()
-	for i, e := range h.entities {
-		e.Transform.SetPosition(h.from[i].position)
-		e.Transform.SetRotation(h.from[i].rotation)
-		e.Transform.SetScale(h.from[i].scale)
-	}
+	h.apply(h.from)
 	// TODO:  Use the following when the BVH.Refit function is fixed. Just
 	// so there aren't any issues right now, I'm going to use a refit on
 	// the first selected entity as it'll go to the root and refit all.
@@ -62,6 +54,14 @@ func (h *transformHistory) Undo() {
 	man := h.tman.manager
 	man.RefitBVH(h.entities[0])
 	h.tman.translateTool.Show(h.toolTarget.Transform.Position())
+}
+
+func (h *transformHistory) apply(values []transformHistoryPRS) {
+	for i, e := range h.entities {
+		e.Transform.SetWorldPosition(values[i].position)
+		e.Transform.SetWorldRotation(values[i].rotation)
+		e.Transform.SetWorldScale(values[i].scale)
+	}
 }
 
 func (h *transformHistory) Delete() {}

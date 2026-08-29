@@ -7,8 +7,20 @@
 package klib
 
 import (
+	"math"
 	"testing"
 )
+
+func TestFormatFloatToNDecimalsDoesNotDisplayNegativeZero(t *testing.T) {
+	t.Parallel()
+
+	values := []float64{math.Copysign(0, -1), -0.0001}
+	for _, value := range values {
+		if got := FormatFloatToNDecimals(value, 3); got != "0" {
+			t.Errorf("FormatFloatToNDecimals(%v, 3) = %q, want 0", value, got)
+		}
+	}
+}
 
 func TestStringValueCompare(t *testing.T) {
 	tests := []struct {

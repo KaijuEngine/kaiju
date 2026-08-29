@@ -42,7 +42,11 @@ func FormatFloatToNDecimals[T float32 | float64](f T, decimals int) string {
 
 func StripFloatStringZeros(fString string) string {
 	fString = strings.TrimRight(fString, "0")
-	return strings.TrimSuffix(fString, ".")
+	fString = strings.TrimSuffix(fString, ".")
+	if fString == "-0" {
+		return "0"
+	}
+	return fString
 }
 
 func ToSnakeCase(str string) string {

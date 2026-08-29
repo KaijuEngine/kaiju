@@ -25,11 +25,11 @@ func (h *toolHistory) Redo() {
 	for i, e := range h.entities {
 		switch h.state {
 		case ToolStateMove:
-			e.Transform.SetPosition(h.to[i])
+			e.Transform.SetWorldPosition(h.to[i])
 		case ToolStateRotate:
-			e.Transform.SetRotation(h.to[i])
+			e.Transform.SetWorldRotation(h.to[i])
 		case ToolStateScale:
-			e.Transform.SetScale(h.to[i])
+			e.Transform.SetWorldScale(h.to[i])
 		}
 	}
 	// TODO:  Use the following when the BVH.Refit function is fixed. Just
@@ -47,11 +47,11 @@ func (h *toolHistory) Undo() {
 	for i, e := range h.entities {
 		switch h.state {
 		case ToolStateMove:
-			e.Transform.SetPosition(h.from[i])
+			e.Transform.SetWorldPosition(h.from[i])
 		case ToolStateRotate:
-			e.Transform.SetRotation(h.from[i])
+			e.Transform.SetWorldRotation(h.from[i])
 		case ToolStateScale:
-			e.Transform.SetScale(h.from[i])
+			e.Transform.SetWorldScale(h.from[i])
 		}
 	}
 	// TODO:  Use the following when the BVH.Refit function is fixed. Just
