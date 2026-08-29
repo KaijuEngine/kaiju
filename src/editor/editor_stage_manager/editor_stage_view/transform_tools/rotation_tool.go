@@ -240,19 +240,27 @@ func (t *RotationTool) processDrag(host *engine.Host, cam cameras.Camera, snap b
 			angle := t.lastDirection.SignedAngle(dir, nml)
 			t.lastDirection = dir
 			t.rotationDelta += angle
-			rot := t.rotationVector()
-			if snap {
-				rot.SetW(matrix.Floor(rot.W()/snapScale) * snapScale)
-			}
-			t.OnDragRotate.Execute(rot)
+			t.OnDragRotate.Execute(t.dragRotation(snap, snapScale))
 		}
 		if c.Released() {
-			t.dragging = false
-			t.OnDragEnd.Execute(t.rotationVector())
-			t.rotationDelta = 0
+			t.endDrag(snap, snapScale)
 			t.Show(t.root.Position())
 		}
 	}
+}
+
+func (t *RotationTool) endDrag(snap bool, snapScale float32) {
+	t.dragging = false
+	t.OnDragEnd.Execute(t.dragRotation(snap, snapScale))
+	t.rotationDelta = 0
+}
+
+func (t *RotationTool) dragRotation(snap bool, snapScale float32) matrix.Vec4 {
+	rot := t.rotationVector()
+	if snap && !matrix.Approx(snapScale, 0) {
+		rot.SetW(matrix.Floor(rot.W()/snapScale) * snapScale)
+	}
+	return rot
 }
 
 func (t *RotationTool) rotationVector() matrix.Vec4 {
