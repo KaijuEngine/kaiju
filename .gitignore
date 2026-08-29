@@ -35,8 +35,6 @@ interpreter/kaiju-*
 .echo/autosave.json
 .echo/chat-*.json
 .echo/trajectories/
-.echo/icon.png
-.echo/workspace.json
 
 # Go pprof files
 heap.prof
