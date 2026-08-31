@@ -228,58 +228,65 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 	return klib.Clamp(refreshRate, 0, 320)
 }
 
-func (ed *Editor) postProjectLoad() {
+func (ed *Editor) postProjectLoad(onComplete func()) {
 	defer tracing.NewRegion("Editor.lateLoadUI").End()
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("compiling the project to get things ready")
-	{
-		// Read the project source synchronosly for now, if not, any stage loading
-		// before this is complete will have issues.
+	
+	go func() {
+		// Read the project source asynchronously so we don't freeze the UI
 		ed.project.ReadSourceCode()
-	}
-	editorContent := ed.host.AssetDatabase().(*editor_embedded_content.EditorContent)
-	editorContent.Pfs = ed.project.FileSystem()
-	editorContent.SetProjectContentIndex(ed.project.CacheDatabase().List())
-	ed.events.OnContentAdded.Add(func(ids []string) {
-		editorContent.IndexProjectContentIDs(ed.project.CacheDatabase(), ids)
-	})
-	ed.events.OnContentRemoved.Add(editorContent.RemoveProjectContentIDs)
-	ed.host.TextureCache().SetUploadBudget(rendering.TextureUploadBudget{
-		MaxCreatesPerFrame: launchMaxTextureCreatesPerFrame,
-		MaxBytesPerFrame:   launchMaxTextureBytesPerFrame,
-	})
-	ed.setupWindowActivity()
-	ed.activeWorkspaces = map[string]editor_workspace.Workspace{}
-	ed.initializedWorkspaces = map[string]struct{}{}
-	ed.reconcileWorkspaces()
-	ed.initializeWorkspaces()
-	ed.rebuildMenuBarTabs()
-	ed.connectFileDropRouter()
-	if id := ed.firstSelectableWorkspaceID(); id != WorkspaceStateNone {
-		ed.setWorkspaceState(id)
-	}
-	// goroutine
-	go ed.project.CompileDebug()
-	if build.Debug && ed.initAutoTest() {
-		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
-	} else {
-		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
-	}
-	for k, v := range editorPluginRegistry {
-		if err := v.Launch(ed); err != nil {
-			slog.Error("failed to launch plugin", "key", k, "error", err)
-			continue
-		}
-		ed.plugins = append(ed.plugins, v)
-	}
-	// A plugin's Launch may have called RegisterWorkspace late. Pick up any
-	// new entries, initialize them, and refresh the menu bar.
-	if ed.reconcileWorkspaces() {
-		ed.initializeWorkspaces()
-		ed.rebuildMenuBarTabs()
-	}
-	// Pre-warm the, quite large, material icons PNG file
-	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureFilterLinear)
+		
+		ed.host.RunOnMainThread(func() {
+			editorContent := ed.host.AssetDatabase().(*editor_embedded_content.EditorContent)
+			editorContent.Pfs = ed.project.FileSystem()
+			editorContent.SetProjectContentIndex(ed.project.CacheDatabase().List())
+			ed.events.OnContentAdded.Add(func(ids []string) {
+				editorContent.IndexProjectContentIDs(ed.project.CacheDatabase(), ids)
+			})
+			ed.events.OnContentRemoved.Add(editorContent.RemoveProjectContentIDs)
+			ed.host.TextureCache().SetUploadBudget(rendering.TextureUploadBudget{
+				MaxCreatesPerFrame: launchMaxTextureCreatesPerFrame,
+				MaxBytesPerFrame:   launchMaxTextureBytesPerFrame,
+			})
+			ed.setupWindowActivity()
+			ed.activeWorkspaces = map[string]editor_workspace.Workspace{}
+			ed.initializedWorkspaces = map[string]struct{}{}
+			ed.reconcileWorkspaces()
+			ed.initializeWorkspaces()
+			ed.rebuildMenuBarTabs()
+			ed.connectFileDropRouter()
+			if id := ed.firstSelectableWorkspaceID(); id != WorkspaceStateNone {
+				ed.setWorkspaceState(id)
+			}
+			// goroutine
+			go ed.project.CompileDebug()
+			if build.Debug && ed.initAutoTest() {
+				ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
+			} else {
+				ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+			}
+			for k, v := range editorPluginRegistry {
+				if err := v.Launch(ed); err != nil {
+					slog.Error("failed to launch plugin", "key", k, "error", err)
+					continue
+				}
+				ed.plugins = append(ed.plugins, v)
+			}
+			// A plugin's Launch may have called RegisterWorkspace late. Pick up any
+			// new entries, initialize them, and refresh the menu bar.
+			if ed.reconcileWorkspaces() {
+				ed.initializeWorkspaces()
+				ed.rebuildMenuBarTabs()
+			}
+			// Pre-warm the, quite large, material icons PNG file
+			ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureFilterLinear)
+			
+			if onComplete != nil {
+				onComplete()
+			}
+		})
+	}()
 }
 
 // defaultWorkspaceOrder is the canonical first-time ordering of the built-in

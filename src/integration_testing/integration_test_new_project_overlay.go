@@ -32,8 +32,8 @@ func IntegrationTestNewProjectOverlay(host *engine.Host) {
 			`C:\KaijuProjects\physics_mesh`,
 			`C:\KaijuProjects\Sudoku`,
 		},
-		OnCreate: func(name, path, templatePath string) {},
-		OnOpen:   func(path string) {},
+		OnCreate: func(name, path, templatePath string, close func()) {},
+		OnOpen:   func(path string, close func()) {},
 	}); err != nil {
 		slog.Error("failed to show new project overlay", "error", err)
 		os.Exit(1)
