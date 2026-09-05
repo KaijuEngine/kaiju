@@ -71,6 +71,10 @@ const (
 )
 
 func objDecipherLine(str string) objLineType {
+	str = strings.TrimSpace(str)
+	if str == "" {
+		return objLineTypeNotSupported
+	}
 	runes := []rune(str)
 	switch runes[0] {
 	case '#':
