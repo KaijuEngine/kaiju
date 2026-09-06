@@ -26,6 +26,7 @@ type NewProject struct {
 	templatePathElm  *document.Element
 	clearTemplateBtn *document.Element
 	errorBox         *document.Element
+	loadingOverlay   *document.Element
 	config           Config
 	templatePath     string
 }
@@ -33,11 +34,11 @@ type NewProject struct {
 type Config struct {
 	// OnCreate will be called when the "Create" button is clicked, it will
 	// return the name that the developer typed in and the path they selected.
-	OnCreate func(name, path, templatePath string)
+	OnCreate func(name, path, templatePath string, close func())
 
 	// OnOpen will be called when the "Browse" button is clicked, it will return
 	// the path that was selected.
-	OnOpen func(string)
+	OnOpen func(path string, close func())
 
 	// Error will be used to print out an error to the developer in the window.
 	Error string
@@ -88,6 +89,7 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np.templatePathElm, _ = np.doc.GetElementById("templatePath")
 	np.clearTemplateBtn, _ = np.doc.GetElementById("clearTemplateBtn")
 	np.errorBox, _ = np.doc.GetElementById("errorBox")
+	np.loadingOverlay, _ = np.doc.GetElementById("loadingOverlay")
 	
 	if np.nameInput != nil && np.nameInput.UI != nil {
 		np.nameInput.UI.ToInput().Focus()
@@ -188,12 +190,15 @@ func (np *NewProject) createProject(e *document.Element) {
 		np.showError("Project folder was not set.")
 		return
 	}
-	np.Close()
+	if np.loadingOverlay != nil {
+		np.doc.SetElementClasses(np.loadingOverlay, "loadingOverlay")
+	}
 	if np.config.OnCreate == nil {
 		slog.Error("nothing bound to OnCreate, doing nothing")
+		np.Close()
 		return
 	}
-	np.config.OnCreate(name, folder, np.templatePath)
+	np.config.OnCreate(name, folder, np.templatePath, np.Close)
 }
 
 func (np *NewProject) showError(msg string) {
@@ -232,10 +237,13 @@ func (np *NewProject) openRecentProject(e *document.Element) {
 }
 
 func (np *NewProject) openProjectFolder(path string) {
-	np.Close()
+	if np.loadingOverlay != nil {
+		np.doc.SetElementClasses(np.loadingOverlay, "loadingOverlay")
+	}
 	if np.config.OnOpen == nil {
 		slog.Error("nothing bound to OnOpen, doing nothing")
+		np.Close()
 		return
 	}
-	np.config.OnOpen(path)
+	np.config.OnOpen(path, np.Close)
 }

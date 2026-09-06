@@ -376,6 +376,37 @@
 			.hidden {
 				display: none;
 			}
+			
+			.loadingOverlay {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				z-index: 99;
+			}
+			
+			.loadingModal {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 16em;
+				height: 5em;
+				transform: translate(-50%, -50%);
+				background-color: #202020;
+				border: 1px solid #3A3A3D;
+			}
+
+			.loadingText {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				color: #E0E0E0;
+				font-size: 1.1em;
+				font-weight: bold;
+				letter-spacing: 0.02em;
+			}
 		</style>
 	</head>
 	<body>
@@ -443,6 +474,11 @@
 							<button class="createBtn" onclick="createProject">Create Project</button>
 						</div>
 					</div>
+				</div>
+			</div>
+			<div id="loadingOverlay" class="loadingOverlay hidden">
+				<div class="loadingModal">
+					<div class="loadingText">Loading...</div>
 				</div>
 			</div>
 		</div>
