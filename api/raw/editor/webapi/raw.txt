@@ -1,0 +1,64 @@
+package webapi // import "kaijuengine.com/editor/webapi"
+
+
+CONSTANTS
+
+const (
+	VersionPrefix = "/v1"
+	HelpPath      = "/help"
+)
+const (
+	DefaultPort = 1337
+)
+
+VARIABLES
+
+var (
+	ErrDuplicateRoute = errors.New("webapi: duplicate route")
+	ErrInvalidRoute   = errors.New("webapi: invalid route")
+)
+var ErrMissingAPIKey = errors.New("webapi: missing API key")
+
+FUNCTIONS
+
+func Address(port int32) string
+func MustRegister[T any](handler Endpoint[T])
+func Register[T any](handler Endpoint[T]) error
+
+TYPES
+
+type Config struct {
+	Enabled bool
+	Port    int32
+	APIKey  string
+}
+
+type Endpoint[T any] interface {
+	Routes() []Route
+	ServeEditorWebAPI(editor T, w http.ResponseWriter, r *http.Request)
+}
+
+type HelpResponse struct {
+	Version   string  `json:"version"`
+	Endpoints []Route `json:"endpoints"`
+}
+
+type Route struct {
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	Description string `json:"description,omitempty"`
+	Example     string `json:"example,omitempty"`
+}
+
+type Server[T any] struct {
+	// Has unexported fields.
+}
+
+func New[T any](editor T) *Server[T]
+
+func (s *Server[T]) Apply(config Config) error
+
+func (s *Server[T]) Close(ctx context.Context) error
+
+func (s *Server[T]) ServeHTTP(w http.ResponseWriter, r *http.Request)
+

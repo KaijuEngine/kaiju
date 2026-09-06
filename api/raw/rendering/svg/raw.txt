@@ -1,0 +1,19 @@
+package svg // import "kaijuengine.com/rendering/svg"
+
+
+TYPES
+
+type Svg struct {
+	Width  int
+	Height int
+	RGBA   []byte
+}
+
+func RenderFile(path string, width, height int) (Svg, error)
+    RenderFile decodes and rasterizes the SVG stored at the given path, scaled
+    to the given width/height (<=0 uses the SVG's intrinsic size).
+
+func RenderString(svg string, width, height int) (Svg, error)
+    RenderString decodes and rasterizes an SVG provided as a string, scaled to
+    the given width/height (<=0 uses the SVG's intrinsic size).
+

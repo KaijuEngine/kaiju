@@ -1,0 +1,60 @@
+[
+  {
+    "title": "Making Kaiju More Than A Coder Tool",
+    "description": "Adding tools to enable artists and make level designing faster, fun, and more fluid.",
+    "category": "Editor",
+    "date": "2026-05-23",
+    "url": "posts/2026_05_23_making_kaiju_more_than_a_coder_tool/",
+    "tags": [
+      "game engine",
+      "level design",
+      "tools"
+    ]
+  },
+  {
+    "title": "Ditching the GOB encoder (and making my own)",
+    "description": "Why the Go gob encoder breaks with empty or identical structs and how a custom POD encoder solves the problem using fully\u2011qualified type names.",
+    "category": "Engineering",
+    "date": "2026-02-07",
+    "url": "posts/2026_02_07_ditching_the_gob_encoder/",
+    "tags": [
+      "go",
+      "serialization",
+      "gob",
+      "pod",
+      "reflection",
+      "engine"
+    ],
+    "image": "images/simd_matrix.png"
+  },
+  {
+    "title": "SIMD Optimizations for Matrix Operations in Kaiju Engine",
+    "description": "How SIMD assembly on AMD64 and ARM64 dramatically speeds up matrix math in the engine.",
+    "category": "Performance",
+    "date": "2026-02-03",
+    "url": "posts/2026_02_03_go_and_simd/",
+    "tags": [
+      "go",
+      "simd",
+      "assembly",
+      "performance",
+      "matrix"
+    ],
+    "image": "images/simd_matrix.png"
+  },
+  {
+    "title": "Working with VFX in Kaiju Engine",
+    "description": "An overview of the visual effects (VFX) subsystem, how particle systems and emitters are implemented, and how to use them in the Kaiju Engine editor.",
+    "category": "VFX",
+    "date": "2026-01-30",
+    "url": "posts/2026_01_30_working_with_vfx/",
+    "tags": [
+      "vfx",
+      "particles",
+      "engine",
+      "graphics",
+      "go"
+    ],
+    "image": "images/vfx_overview.png"
+  }
+]

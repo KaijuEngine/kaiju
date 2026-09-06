@@ -1,0 +1,158 @@
+package textures // import "kaijuengine.com/rendering/textures"
+
+
+CONSTANTS
+
+const (
+	FileFormatAstc = astcExtension
+	FileFormatPng  = pngExtension
+	FileFormatJpeg = jpegExtension
+	FileFormatRaw  = rawFileFormat
+)
+const (
+	BytesInPixel             = 4
+	CubeMapSides             = 6
+	GenerateUniqueTextureKey = ""
+)
+
+FUNCTIONS
+
+func InferFileFormat(nameOrKey string, imgBuff []byte) string
+
+TYPES
+
+type ColorFormat int
+
+const (
+	TextureColorFormatRgbaUnorm ColorFormat = iota
+	TextureColorFormatRgbUnorm
+	TextureColorFormatRgbaSrgb
+	TextureColorFormatRgbSrgb
+	TextureColorFormatLuminance
+)
+type Dimensions = int
+
+const (
+	TextureDimensions2 Dimensions = iota
+	TextureDimensions1
+	TextureDimensions3
+	TextureDimensionsCube
+)
+type Filter = int
+
+const (
+	TextureFilterLinear Filter = iota
+	TextureFilterNearest
+	TextureFilterMax
+)
+type ImageAstc struct{}
+
+func (r ImageAstc) CanRead(path string) bool
+
+func (r ImageAstc) FileFormat() string
+
+func (r ImageAstc) IsMyType(pathOrKey string, mem []byte) bool
+
+func (r ImageAstc) Read(mem []byte) TextureData
+
+type ImageJpeg struct{}
+
+func (r ImageJpeg) CanRead(path string) bool
+
+func (r ImageJpeg) FileFormat() string
+
+func (r ImageJpeg) IsMyType(pathOrKey string, mem []byte) bool
+
+func (r ImageJpeg) Read(mem []byte) TextureData
+
+type ImagePng struct{}
+
+func (r ImagePng) CanRead(path string) bool
+
+func (r ImagePng) FileFormat() string
+
+func (r ImagePng) IsMyType(pathOrKey string, mem []byte) bool
+
+func (r ImagePng) Read(mem []byte) TextureData
+
+type ImageRaw struct{}
+
+func (r ImageRaw) CanRead(path string) bool
+
+func (r ImageRaw) FileFormat() string
+
+func (r ImageRaw) IsMyType(pathOrKey string, mem []byte) bool
+
+func (r ImageRaw) Read(mem []byte) TextureData
+
+type ImageReader interface {
+	CanRead(path string) bool
+	Read(mem []byte) TextureData
+	FileFormat() string
+	IsMyType(pathOrKey string, mem []byte) bool
+}
+
+type InputType int
+
+const (
+	TextureInputTypeCompressedRgbaAstc4x4 InputType = iota
+	TextureInputTypeCompressedRgbaAstc5x4
+	TextureInputTypeCompressedRgbaAstc5x5
+	TextureInputTypeCompressedRgbaAstc6x5
+	TextureInputTypeCompressedRgbaAstc6x6
+	TextureInputTypeCompressedRgbaAstc8x5
+	TextureInputTypeCompressedRgbaAstc8x6
+	TextureInputTypeCompressedRgbaAstc8x8
+	TextureInputTypeCompressedRgbaAstc10x5
+	TextureInputTypeCompressedRgbaAstc10x6
+	TextureInputTypeCompressedRgbaAstc10x8
+	TextureInputTypeCompressedRgbaAstc10x10
+	TextureInputTypeCompressedRgbaAstc12x10
+	TextureInputTypeCompressedRgbaAstc12x12
+	TextureInputTypeRgba8
+	TextureInputTypeRgb8
+	TextureInputTypeLuminance
+)
+type Kind uint8
+
+const (
+	Texture1D Kind = iota
+	Texture1DArray
+	Texture2D
+	Texture2DArray
+	Texture3D
+	TextureCube
+	TextureCubeArray
+)
+type MemType = int
+
+const (
+	TextureMemTypeUnsignedByte MemType = iota
+)
+type TextureData struct {
+	Mem            []byte
+	InternalFormat InputType
+	Format         ColorFormat
+	Type           MemType
+	Width          int
+	Height         int
+	InputType      TextureFileFormat
+	Dimensions     Dimensions
+}
+
+func ReadImage(mem []byte, pathOrFileFormat string) (TextureData, error)
+
+func (t *TextureData) IsValid() bool
+
+type TextureFileFormat = string
+
+type Usage uint32
+
+const (
+	TextureSampled Usage = (1 << iota)
+	TextureStorage
+	TextureColorTarget
+	TextureDepthStencilTarget
+	TextureCopySource
+	TextureCopyDestination
+)
