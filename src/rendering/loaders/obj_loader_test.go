@@ -175,3 +175,72 @@ f 1/1/1 2/2/2 3/3/3`
 		t.Fatalf("mesh should contain 3 indexes, got %d", len(mesh.Indexes))
 	}
 }
+
+func TestObjToRawIgnoresEmptyLines(t *testing.T) {
+	objData := `mtllib test.mtl
+# vertices
+v -176 -16 -64
+v -176 -16 144
+v -176 0 144
+v -176 0 -64
+v 48 0 144
+v 48 -16 144
+v 48 -16 -64
+v 48 0 -64
+
+# texture coordinates
+vt 1.9999999 -0.5
+vt -3.9999995 -0.5
+vt -3.9999995 0.5
+vt 1.9999999 0.5
+vt 1 0.5
+vt -6 0.5
+vt -6 -0.5
+vt 1 -0.5
+vt 1 -3.9999995
+vt -6 -3.9999995
+vt -6 1.9999999
+vt 1 1.9999999
+
+# normals
+vn -1 0 0
+vn 0 0 1
+vn 0 -1 -0
+vn -0 1 -0
+vn 0 -0 -1
+vn 1 0 0
+
+o entity0_brush0
+usemtl __TB_empty
+f  1/1/1  2/2/1  3/3/1  4/4/1
+usemtl __TB_empty
+f  5/5/2  3/6/2  2/7/2  6/8/2
+usemtl __TB_empty
+f  6/9/3  2/10/3  1/11/3  7/12/3
+usemtl __TB_empty
+f  8/12/4  4/11/4  3/10/4  5/9/4
+usemtl __TB_empty
+f  7/8/5  1/7/5  4/6/5  8/5/5
+usemtl __TB_empty
+f  8/4/6  5/3/6  6/2/6  7/1/6`
+
+	builders, library, err := ObjToRaw(objData)
+	if err != nil {
+		t.Fatalf("ObjToRaw returned error: %v", err)
+	}
+	if len(builders) != 1 {
+		t.Fatalf("expected 1 builder, got %d", len(builders))
+	}
+	if len(library.points) != 8 {
+		t.Fatalf("expected 8 points, got %d", len(library.points))
+	}
+	if len(library.uvs) != 12 {
+		t.Fatalf("expected 12 uvs, got %d", len(library.uvs))
+	}
+	if len(library.normals) != 6 {
+		t.Fatalf("expected 6 normals, got %d", len(library.normals))
+	}
+	if len(builders[0].vIndexes) != 36 {
+		t.Fatalf("expected 36 indexes, got %d", len(builders[0].vIndexes))
+	}
+}
