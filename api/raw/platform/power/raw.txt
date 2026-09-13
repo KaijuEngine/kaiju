@@ -1,0 +1,25 @@
+package power // import "kaijuengine.com/platform/power"
+
+
+TYPES
+
+type Source int
+    Source is the currently detected system power source.
+
+const (
+	SourceUnknown Source = iota
+	SourceAC
+	SourceBattery
+)
+type Status struct {
+	Source         Source
+	HasBattery     bool
+	BatteryPercent int
+}
+    Status is a snapshot of the system power state.
+
+func Query() (Status, error)
+
+func (s Status) OnBattery() bool
+    OnBattery returns true when the machine is currently running on battery.
+

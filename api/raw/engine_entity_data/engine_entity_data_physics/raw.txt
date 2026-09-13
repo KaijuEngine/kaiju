@@ -1,0 +1,129 @@
+package engine_entity_data_physics // import "kaijuengine.com/engine_entity_data/engine_entity_data_physics"
+
+
+CONSTANTS
+
+const (
+	PhysicsJointNamedData      = "PhysicsJoint"
+	PhysicsConstraintNamedData = "PhysicsConstraint"
+)
+
+FUNCTIONS
+
+func BindingKey() string
+
+TYPES
+
+type DistanceJointEntityData struct {
+	ConnectedEntityId engine.EntityId
+	LocalAnchorA      matrix.Vec3  // Local body anchor on this entity.
+	TargetAnchorB     matrix.Vec3  // Local target anchor, or fixed world anchor when ConnectedEntityId is empty.
+	Stiffness         matrix.Float `default:"1"`
+	Bias              matrix.Float `default:"0.2"`
+	Correction        matrix.Float `default:"0.8"`
+	Slop              matrix.Float `default:"0.001"`
+	MaxCorrection     matrix.Float `default:"0.5"`
+	WarmStarting      bool
+	Enabled           bool `default:"true"`
+	BreakForce        matrix.Float
+	BreakTorque       matrix.Float
+	RestLength        matrix.Float
+	AutoRestLength    bool `default:"true"`
+}
+
+func (d DistanceJointEntityData) EntityDataInitPhase() engine.EntityDataPhase
+
+func (d DistanceJointEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type HingeJointEntityData struct {
+	ConnectedEntityId engine.EntityId
+	LocalAnchorA      matrix.Vec3  // Local body anchor on this entity; hinge joints keep this coincident with TargetAnchorB.
+	TargetAnchorB     matrix.Vec3  // Local target anchor, or fixed world anchor when ConnectedEntityId is empty.
+	Stiffness         matrix.Float `default:"1"`
+	Bias              matrix.Float `default:"0.2"`
+	Correction        matrix.Float `default:"0.8"`
+	Slop              matrix.Float `default:"0.001"`
+	MaxCorrection     matrix.Float `default:"0.5"`
+	WarmStarting      bool
+	Enabled           bool `default:"true"`
+	BreakForce        matrix.Float
+	BreakTorque       matrix.Float
+	HingeAxis         matrix.Vec3 `default:"1,0,0"`
+	EnableLimits      bool
+	MinAngleDegrees   matrix.Float
+	MaxAngleDegrees   matrix.Float
+	EnableMotor       bool
+	MotorSpeedDegrees matrix.Float
+	MaxMotorTorque    matrix.Float
+	MaxMotorImpulse   matrix.Float
+}
+
+func (d HingeJointEntityData) EntityDataInitPhase() engine.EntityDataPhase
+
+func (d HingeJointEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type PointJointEntityData struct {
+	ConnectedEntityId engine.EntityId
+	LocalAnchorA      matrix.Vec3  // Local body anchor on this entity; point joints keep this coincident with TargetAnchorB.
+	TargetAnchorB     matrix.Vec3  // Local target anchor, or fixed world anchor when ConnectedEntityId is empty.
+	Stiffness         matrix.Float `default:"1"`
+	Bias              matrix.Float `default:"0.2"`
+	Correction        matrix.Float `default:"0.8"`
+	Slop              matrix.Float `default:"0.001"`
+	MaxCorrection     matrix.Float `default:"0.5"`
+	WarmStarting      bool
+	Enabled           bool `default:"true"`
+	BreakForce        matrix.Float
+	BreakTorque       matrix.Float
+}
+
+func (d PointJointEntityData) EntityDataInitPhase() engine.EntityDataPhase
+
+func (d PointJointEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type RigidBodyEntityData struct {
+	AssetKey content_id.Mesh
+	Extent   matrix.Vec3 `default:"1,1,1"`
+	Mass     float32     `default:"1"`
+	Radius   float32     `default:"1"`
+	Height   float32     `default:"1"`
+	Shape    Shape
+	IsStatic bool
+}
+
+func (r RigidBodyEntityData) EntityDataInitPhase() engine.EntityDataPhase
+
+func (r RigidBodyEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type RopeJointEntityData struct {
+	ConnectedEntityId engine.EntityId
+	LocalAnchorA      matrix.Vec3  // Local body anchor on this entity.
+	TargetAnchorB     matrix.Vec3  // Local target anchor, or fixed world anchor when ConnectedEntityId is empty.
+	Stiffness         matrix.Float `default:"1"`
+	Bias              matrix.Float `default:"0.2"`
+	Correction        matrix.Float `default:"0.8"`
+	Slop              matrix.Float `default:"0.001"`
+	MaxCorrection     matrix.Float `default:"0.5"`
+	WarmStarting      bool
+	Enabled           bool `default:"true"`
+	BreakForce        matrix.Float
+	BreakTorque       matrix.Float
+	MaxLength         matrix.Float
+	AutoMaxLength     bool `default:"true"`
+}
+
+func (d RopeJointEntityData) EntityDataInitPhase() engine.EntityDataPhase
+
+func (d RopeJointEntityData) Init(e *engine.Entity, host *engine.Host)
+
+type Shape int
+
+const (
+	ShapeBox Shape = iota
+	ShapeSphere
+	ShapeCapsule
+	ShapeCylinder
+	ShapeCone
+	ShapeMesh
+	ShapeTerrain
+)

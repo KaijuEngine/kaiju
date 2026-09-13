@@ -1,0 +1,38 @@
+package vfx_workspace // import "kaijuengine.com/editor/editor_workspace/vfx_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "vfx"
+	DisplayName = "VFX"
+)
+
+TYPES
+
+type VfxWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *VfxWorkspace) Close()
+
+func (w *VfxWorkspace) DisplayName() string
+
+func (w *VfxWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *VfxWorkspace) ID() string
+
+func (w *VfxWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *VfxWorkspace) IsRequired() bool
+
+func (w *VfxWorkspace) Open()
+
+func (w *VfxWorkspace) OpenParticleSystem(id string)
+
+func (w *VfxWorkspace) Shutdown()
+
+func (w *VfxWorkspace) Update(deltaTime float64)
+

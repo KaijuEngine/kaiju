@@ -1,0 +1,97 @@
+package editor_workspace // import "kaijuengine.com/editor/editor_workspace"
+
+
+TYPES
+
+type Workspace interface {
+	ID() string
+	DisplayName() string
+	IsRequired() bool
+
+	Initialize(ed WorkspaceEditorInterface) error
+	Shutdown()
+
+	Open()
+	Close()
+	Focus()
+	Blur()
+	Hotkeys() []common_workspace.HotKey
+	Update(deltaTime float64)
+	IsFocusedOnInput() bool
+}
+    Workspace is the contract every workspace (built-in or plugin) implements.
+
+    Identity:
+      - ID returns a stable unique key (e.g. "stage", "com.foo.my_plugin").
+        It is used by the editor's workspace state machine, by settings
+        persistence, and as the lookup key for cross-workspace event subscribers
+        and typed service queries.
+      - DisplayName returns the label shown on the menu bar tab.
+      - IsRequired marks a workspace that the editor must keep enabled. Stage
+        and Settings return true so the user always has a valid landing surface
+        and a way to re-enable other workspaces. Required workspaces can still
+        be hidden from the tab bar.
+
+    Lifecycle:
+      - Initialize is called once after registration, when the editor has
+        decided this workspace is enabled. The shared editor interface gives the
+        workspace access to the host, project, settings, events, the stage view,
+        sibling workspaces, and the workspace switching API.
+      - Shutdown is called when a workspace is disabled at runtime via the
+        Workspaces settings panel. Implementations should drop subscriptions,
+        release UI documents, and clear any other resources tied to the editor
+        session.
+      - Open / Close mark the workspace as the active one — the editor calls
+        them when switching tabs.
+      - Focus / Blur signal whether the editor as a whole has input focus.
+      - Update is called every frame while the workspace is current.
+
+type WorkspaceEditorInterface interface {
+	// Engine / runtime
+	Host() *engine.Host
+	Cache() *content_database.Cache
+	ContentPreviewer() *content_previews.ContentPreviewer
+
+	// Editor services
+	Actions() *editor_action.Service
+	Settings() *editor_settings.Settings
+	Events() *editor_events.EditorEvents
+	History() *memento.History
+	Project() *project.Project
+	ProjectFileSystem() *project_file_system.FileSystem
+	StageView() *editor_stage_view.StageView
+
+	// Focus management — workspaces blur the rest of the editor while a
+	// modal/overlay is in front of them and re-focus on close.
+	BlurInterface()
+	FocusInterface()
+	IsInputFocused() bool
+
+	// Workspace registry. SelectWorkspace switches the active workspace to
+	// the one with the given id (no-op if unknown or disabled). Workspace
+	// returns the live instance for type-asserted typed-service queries.
+	// Workspaces returns the enabled set in current load order.
+	SelectWorkspace(id string) error
+	Workspace(id string) (Workspace, bool)
+	Workspaces() []Workspace
+
+	// UpdateSettings persists the current Settings struct and re-applies
+	// frame rate / scroll speed / etc. to the live host.
+	UpdateSettings()
+
+	// ShowReferences opens the references viewer overlay for the given
+	// content id. Lives here because the overlay is editor-owned, not
+	// workspace-owned.
+	ShowReferences(id string)
+}
+    WorkspaceEditorInterface is the single editor surface every workspace
+    receives during Initialize. It intentionally exposes editor-level services
+    (host, settings, events, history, project, stage view, content previewer)
+    plus the workspace registry and switching API, but does not contain any
+    per-workspace methods. Cross-workspace operations go through events
+    (Events()) or through Workspace(id) lookups against well-known string IDs or
+    typed service interfaces.
+
+    Methods on this interface map 1:1 to methods on the Editor struct so the
+    editor implements the interface implicitly.
+

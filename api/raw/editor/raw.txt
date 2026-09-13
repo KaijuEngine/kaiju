@@ -1,0 +1,298 @@
+package editor // import "kaijuengine.com/editor"
+
+
+CONSTANTS
+
+const (
+	ActionEditorBuild              editor_action.ActionID = "editor.build"
+	ActionEditorBuildDebug         editor_action.ActionID = "editor.buildDebug"
+	ActionEditorBuildRelease       editor_action.ActionID = "editor.buildRelease"
+	ActionEditorBuildAndRun        editor_action.ActionID = "editor.buildAndRun"
+	ActionEditorBuildAndRunDebug   editor_action.ActionID = "editor.buildAndRunDebug"
+	ActionEditorBuildAndRunRelease editor_action.ActionID = "editor.buildAndRunRelease"
+	ActionEditorRunCurrentStage    editor_action.ActionID = "editor.runCurrentStage"
+)
+const (
+	ActionEditorSaveStage   editor_action.ActionID = "editor.saveStage"
+	ActionEditorUndo        editor_action.ActionID = "editor.undo"
+	ActionEditorRedo        editor_action.ActionID = "editor.redo"
+	ActionEditorOpenPalette editor_action.ActionID = "editor.openActionPalette"
+)
+const (
+	ActionStageSelectAll        editor_action.ActionID = "stage.selectAll"
+	ActionStageClearSelection   editor_action.ActionID = "stage.clearSelection"
+	ActionStageSelectByID       editor_action.ActionID = "stage.selectById"
+	ActionStageDeleteSelection  editor_action.ActionID = "stage.deleteSelection"
+	ActionStageDuplicate        editor_action.ActionID = "stage.duplicateSelection"
+	ActionStageRemoveFromParent editor_action.ActionID = "stage.removeFromParent"
+)
+const (
+	ActionStageSpawnEntity    editor_action.ActionID = "stage.spawnEntity"
+	ActionStageSpawnCamera    editor_action.ActionID = "stage.spawnCamera"
+	ActionStageSpawnLight     editor_action.ActionID = "stage.spawnLight"
+	ActionStageSpawnPrimitive editor_action.ActionID = "stage.spawnPrimitive"
+	ActionStageSpawnCube      editor_action.ActionID = "stage.spawnCube"
+	ActionStageSpawnSphere    editor_action.ActionID = "stage.spawnSphere"
+	ActionStageSpawnPlane     editor_action.ActionID = "stage.spawnPlane"
+	ActionStageSpawnCapsule   editor_action.ActionID = "stage.spawnCapsule"
+	ActionStageSpawnCylinder  editor_action.ActionID = "stage.spawnCylinder"
+	ActionStageSpawnCone      editor_action.ActionID = "stage.spawnCone"
+	ActionStageSpawnArrow     editor_action.ActionID = "stage.spawnArrow"
+)
+const (
+	ActionStageSetGridVisible       editor_action.ActionID = "stage.setGridVisible"
+	ActionStageToggleViewportLayout editor_action.ActionID = "stage.toggleViewportLayout"
+	ActionStageToggleContentPanel   editor_action.ActionID = "stage.toggleContentPanel"
+	ActionStageToggleHierarchyPanel editor_action.ActionID = "stage.toggleHierarchyPanel"
+	ActionStageToggleDetailsPanel   editor_action.ActionID = "stage.toggleDetailsPanel"
+	ActionStageRenameActor          editor_action.ActionID = "stage.renameActor"
+	ActionStageFocusSelection       editor_action.ActionID = "stage.focusSelection"
+	ActionStageAlignWithView        editor_action.ActionID = "stage.alignWithView"
+	ActionStageTransformMove        editor_action.ActionID = "stage.transformMove"
+	ActionStageTransformRotate      editor_action.ActionID = "stage.transformRotate"
+	ActionStageTransformScale       editor_action.ActionID = "stage.transformScale"
+	ActionStageWireframeMove        editor_action.ActionID = "stage.wireframeMove"
+	ActionStageWireframeRotate      editor_action.ActionID = "stage.wireframeRotate"
+	ActionStageWireframeScale       editor_action.ActionID = "stage.wireframeScale"
+	ActionStageCreateTemplate       editor_action.ActionID = "stage.createTemplate"
+)
+const (
+	ActionTerrainDecreaseBrushRadius   editor_action.ActionID = "terrain.decreaseBrushRadius"
+	ActionTerrainIncreaseBrushRadius   editor_action.ActionID = "terrain.increaseBrushRadius"
+	ActionTerrainDecreaseBrushStrength editor_action.ActionID = "terrain.decreaseBrushStrength"
+	ActionTerrainIncreaseBrushStrength editor_action.ActionID = "terrain.increaseBrushStrength"
+)
+const (
+	ActionEditorOpenWorkspace editor_action.ActionID = "editor.openWorkspace"
+)
+const (
+	ActionLuaRunScript editor_action.ActionID = "lua.runScript"
+)
+const EditorVersion float64 = 0.0021
+
+FUNCTIONS
+
+func CreateNewProjectFromCLI(path string)
+func RegisterPlugin(key string, plugin editor_plugin.EditorPlugin)
+    RegisterPlugin records a plugin implementation in the compiled-in plugin
+    registry. It is called from each plugin's package init() function.
+
+    Convention: pluginKey MUST equal the plugin's Go module path (as
+    declared in the plugin's go.mod `module` line). The startup validator
+    (validateCompiledPlugins → MissingCompiledPlugins) depends on this
+    convention to match enabled entries in plugin.json against the compiled-in
+    registry. A best-effort heuristic emits a slog.Warn if the supplied key
+    does not contain a slash, since real Go module paths almost always do (e.g.
+    "go.digitalxero.dev/kaiju-code", "github.com/foo/bar"). Registration still
+    proceeds — the warning is purely advisory so authors can fix their plugin
+    without bricking the editor.
+
+    Example call shape (placed inside the plugin's package init()):
+
+        func init() {
+            editor.RegisterPlugin("go.digitalxero.dev/kaiju-code", &Plugin{})
+        }
+
+    Why the convention matters: when a fresh editor binary is built from source,
+    plugins that are Enabled=true in plugin.json but absent from the compiled-in
+    registry are surfaced via a startup modal that offers to recompile the
+    editor with them included. The validator joins the two sets by module path,
+    so a mismatched key would produce a false positive on every launch.
+
+
+TYPES
+
+type Editor struct {
+	// Has unexported fields.
+}
+    Editor is the entry point structure for the entire editor. It acts as the
+    delegate to the various systems and holds the primary members that make up
+    the bulk of the editor identity.
+
+    The design goal of the editor is different than that of the engine.Host,
+    as it is not intended to be passed around for access to the system. Instead
+    it will supply interface functions that are needed to the systems that it
+    holds internally.
+
+func (ed *Editor) Actions() *editor_action.Service
+
+func (ed *Editor) ApplyWorkspaceConfigChanges()
+    ApplyWorkspaceConfigChanges is called by the settings workspace after the
+    user toggles enable/visible or reorders a workspace. Re-runs reconciliation
+    (which may shut down workspaces that are now disabled, initialize newly-
+    enabled ones), rebuilds the menu bar tab strip, and switches the active
+    workspace if the current one has been disabled.
+
+func (ed *Editor) BlurInterface()
+    FocusInterface is responsible for disabling the input on the various
+    interfaces that are currently presented to the developer. This primarily
+    includes the menu bar, status bar, and whichever workspace is active.
+
+func (ed *Editor) Build(buildMode project.GameBuildMode)
+
+func (ed *Editor) BuildAndRun(buildMode project.GameBuildMode)
+
+func (ed *Editor) BuildAndRunCurrentStage()
+
+func (ed *Editor) Cache() *content_database.Cache
+
+func (ed *Editor) ConnectSelectedAsDistanceChain()
+
+func (ed *Editor) ConnectSelectedAsHingeChain()
+
+func (ed *Editor) ConnectSelectedAsRope()
+
+func (ed *Editor) ContentPreviewer() *content_previews.ContentPreviewer
+
+func (ed *Editor) CreateCssStylesheetFile(name string)
+
+func (ed *Editor) CreateHtmlUiFile(name string)
+
+func (ed *Editor) CreateNewCamera()
+
+func (ed *Editor) CreateNewEntity()
+
+func (ed *Editor) CreateNewLight()
+
+func (ed *Editor) CreateNewStage()
+
+func (ed *Editor) CreatePluginProject(path string)
+
+func (ed *Editor) CreatePrimitive(primitive rendering.PrimitiveMesh)
+
+func (ed *Editor) Events() *editor_events.EditorEvents
+
+func (ed *Editor) FileDropRouter() *FileDropRouter
+
+func (ed *Editor) FocusInterface()
+    FocusInterface is responsible for enabling the input on the various
+    interfaces that are currently presented to the developer. This primarily
+    includes the menu bar, status bar, and whichever workspace is active.
+
+func (ed *Editor) History() *memento.History
+
+func (ed *Editor) Host() *engine.Host
+
+func (ed *Editor) IsInputFocused() bool
+
+func (ed *Editor) MissingCompiledPlugins() ([]editor_plugin.PluginInfo, error)
+    MissingCompiledPlugins returns the enabled plugins from
+    editor_plugin.AvailablePlugins() whose Go module path is NOT a key
+    in the compiled-in editorPluginRegistry — i.e., plugins the user
+    marked Enabled=true in plugin.json but that the current editor binary
+    does not contain. The set is used by the startup-validation modal
+    (validateCompiledPlugins) to offer a Recompile-or-Continue choice.
+
+    Behaviour notes:
+      - Disabled plugins (Config.Enabled == false) are ignored entirely.
+      - Plugins whose module path is in ed.sessionDisabledPlugins are skipped
+        so the modal does not repeat within one process after the user chose
+        "Continue" (which session-disables the missing entry).
+      - Git-source plugins (Path starts with "git://") cannot be inspected for
+        a local go.mod; they are reported as missing if not in the registry,
+        with a slog.Warn so users see the cause.
+      - Per-plugin failures during go.mod parsing are slog.Warn-logged and the
+        plugin is treated as missing (better to surface a stray modal than to
+        silently mask a misconfiguration).
+
+    The current implementation cannot return a non-nil error — the signature
+    reserves room for future failure modes (e.g. registry inspection errors)
+    without an API break.
+
+func (ed *Editor) OpenCodeEditor()
+    OpenCodeEditor will run a command specified in CodeEditor settings entry
+    directly to the project top level folder. This is an exposed function to
+    meet the interface needs of menu_bar.MenuBarHandler. func (ed *Editor)
+    OpenVSCodeProject() {
+
+func (ed *Editor) Project() *project.Project
+
+func (ed *Editor) ProjectFileSystem() *project_file_system.FileSystem
+
+func (ed *Editor) RecompileWithPlugins(plugins []editor_plugin.PluginInfo, onComplete func(err error)) error
+
+func (ed *Editor) SaveCurrentStage()
+    SaveCurrentStage will save the currently open stage file. This is an exposed
+    function to meet the interface needs of menu_bar.MenuBarHandler.
+
+func (ed *Editor) SaveCurrentStageWithCallback(cb func(bool))
+
+func (ed *Editor) SelectWorkspace(id string) error
+    SelectWorkspace switches the active workspace to the one identified by id.
+    Errors out if the id is unknown to the active workspace set (e.g. workspace
+    is disabled or never registered).
+
+func (ed *Editor) SetGridVisible(visible bool)
+    SetGridVisible records the developer's preference for the editor viewport
+    grid, persists it to the global editor settings, and applies the change to
+    the live stage view if one is initialized.
+
+func (ed *Editor) Settings() *editor_settings.Settings
+
+func (ed *Editor) ShowReferences(id string)
+    ShowReferences opens the references viewer overlay for the given content id.
+    This sits on the editor (not on a workspace) because the overlay is a
+    chrome-level surface, not part of any workspace's UI document.
+
+func (ed *Editor) StageView() *editor_stage_view.StageView
+
+func (ed *Editor) StageWorkspace() *stage_workspace.StageWorkspace
+
+func (ed *Editor) StalePlugins() ([]editor_plugin.PluginInfo, error)
+    StalePlugins returns the enabled plugins from
+    editor_plugin.AvailablePlugins() whose source folder contains a .go /
+    go.mod / go.sum file newer than the running editor binary's mtime — i.e.,
+    plugins the user has edited since the last `go build` of the editor. The set
+    is used by the startup-validation modal (validateCompiledPlugins) alongside
+    MissingCompiledPlugins to offer a Recompile-or-Continue choice.
+
+    Behaviour notes:
+      - Disabled plugins (Config.Enabled == false) are ignored.
+      - Plugins NOT in editorPluginRegistry are skipped — they are the "missing"
+        case owned by MissingCompiledPlugins; including them here would
+        double-list them in the modal.
+      - Git-source plugins (Path prefixed with "git://") are skipped: there is
+        no local source tree to walk, and a git plugin can only become stale via
+        a fresh `go get`, which is its own workflow.
+      - On os.Executable() / stat failure: slog.Warn + return (nil, nil).
+        Fail-quiet — better silence than false-positive modals.
+      - On per-plugin module-path resolution or walk failure: slog.Warn + skip
+        the plugin. Defensive: false negatives are preferable to surfacing a
+        stale flag with no actionable source data.
+
+    The current implementation cannot return a non-nil error — the signature
+    reserves room for future failure modes without an API break.
+
+func (ed *Editor) UpdateSettings()
+
+func (ed *Editor) Workspace(id string) (editor_workspace.Workspace, bool)
+    Workspace returns the live instance for a given id. Used by callers that
+    need a typed-service interface from another workspace via type assertion.
+
+func (ed *Editor) WorkspaceSelected(id string)
+    WorkspaceSelected switches the active workspace to the one with the given
+    id. Called by the menu bar when the user clicks a tab and by plugins via
+    editor_workspace.WorkspaceEditorInterface.SelectWorkspace.
+
+func (ed *Editor) Workspaces() []editor_workspace.Workspace
+    Workspaces returns the set of currently active (enabled) workspaces in load
+    order. Excludes disabled workspaces; includes hidden ones (Visible=false).
+
+type EditorGame struct{}
+    EditorGame satisfies [bootstrap.GameInterface] and will allow the engine to
+    bootstrap the editor (as it would a game).
+
+func (EditorGame) ContentDatabase() (assets.Database, error)
+
+func (EditorGame) Launch(host *engine.Host)
+
+func (EditorGame) PluginRegistry() []reflect.Type
+
+type FileDropRouter struct{}
+
+type WorkspaceState = string
+    WorkspaceState is the id of the currently active workspace. Empty string
+    means "none active". The set of valid values is determined at runtime by
+    what's in the workspace registry, not by a hard-coded enum.
+
+const WorkspaceStateNone WorkspaceState = ""

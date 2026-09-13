@@ -1,0 +1,75 @@
+package content_workspace // import "kaijuengine.com/editor/editor_workspace/content_workspace"
+
+
+CONSTANTS
+
+const (
+	// ID is the stable workspace identifier used for registration, settings,
+	// and SelectWorkspace calls.
+	ID = "content"
+
+	// DisplayName is the label shown on the content workspace's menu bar tab.
+	DisplayName = "Content"
+)
+const DefaultContentLoadBatchSize = 48
+
+FUNCTIONS
+
+func ImportPaths(paths []string, pfs *project_file_system.FileSystem, cache *content_database.Cache) []string
+    ImportPaths is shared by the content workspace and global file-drop routing.
+
+func ShouldHideContent(id string, typeFilters, tagFilters map[string]struct{}, cdb *content_database.Cache) bool
+func ShouldShowContent(query, id string, typeFilters, tagFilters map[string]struct{}, cdb *content_database.Cache) bool
+
+TYPES
+
+type BatchedContentLoader struct {
+	// Has unexported fields.
+}
+
+func (l *BatchedContentLoader) Configure(host *engine.Host, batchSize int, process func([]string))
+
+func (l *BatchedContentLoader) Enqueue(ids []string)
+
+func (l *BatchedContentLoader) Stop()
+
+type ContentAudioView struct {
+	// Has unexported fields.
+}
+
+type ContentWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *ContentWorkspace) Close()
+
+func (w *ContentWorkspace) DisplayName() string
+
+func (w *ContentWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *ContentWorkspace) ID() string
+
+func (w *ContentWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *ContentWorkspace) IsRequired() bool
+
+func (w *ContentWorkspace) Open()
+
+func (w *ContentWorkspace) Shutdown()
+    Shutdown is called when the editor disables this workspace at runtime.
+    It drops the UI document. (Event subscriptions are not currently tracked
+    for removal — the editor process owns the EditorEvents lifetime so leaked
+    subscriptions are harmless until restart. Add explicit Remove calls if
+    disabling/re-enabling within a session becomes a hot path.)
+
+func (w *ContentWorkspace) Update(deltaTime float64)
+
+type WorkspaceUIData struct {
+	Filters map[string]int
+	Tags    map[string]int
+}
+
+func (w *WorkspaceUIData) SetupUIData(cdb *content_database.Cache) []string
+

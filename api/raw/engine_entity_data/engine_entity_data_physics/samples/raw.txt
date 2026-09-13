@@ -1,0 +1,21 @@
+package samples // import "kaijuengine.com/engine_entity_data/engine_entity_data_physics/samples"
+
+
+CONSTANTS
+
+const (
+	SampleStageDistanceChain = "physics_distance_chain"
+	SampleStageRope          = "physics_rope"
+	SampleStageBridge        = "physics_bridge"
+	SampleStageHingePendulum = "physics_hinge_pendulum"
+	SampleStageBodyWorld     = "physics_body_world_anchor"
+)
+
+FUNCTIONS
+
+func BodyWorldAnchorSampleStage() stages.Stage
+func BridgeSampleStage() stages.Stage
+func ConstraintSampleStages() map[string]stages.Stage
+func DistanceChainSampleStage() stages.Stage
+func HingePendulumSampleStage() stages.Stage
+func RopeSampleStage() stages.Stage
