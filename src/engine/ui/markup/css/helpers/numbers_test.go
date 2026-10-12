@@ -153,3 +153,20 @@ func TestNumFromLengthWithFont_NonFiniteInput(t *testing.T) {
 		})
 	}
 }
+
+func TestNumFromLengthWithFont_PxUsesUIScale(t *testing.T) {
+	previous := rendering.UIScale
+	rendering.UIScale = 2
+	defer func() { rendering.UIScale = previous }()
+
+	w := testWindow{dpmm: 2, width: 1000, height: 500}
+	if got := NumFromLengthWithFont("100px", w, 20); got != 200 {
+		t.Fatalf("NumFromLengthWithFont(100px) = %v, want 200", got)
+	}
+	if got := NumFromLengthWithFont("50%", w, 20); got != 0.5 {
+		t.Fatalf("NumFromLengthWithFont(50%%) = %v, want 0.5", got)
+	}
+	if got := NumFromLengthWithFont("10vw", w, 20); got != 100 {
+		t.Fatalf("NumFromLengthWithFont(10vw) = %v, want 100", got)
+	}
+}

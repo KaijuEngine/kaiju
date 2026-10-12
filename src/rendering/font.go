@@ -52,8 +52,8 @@ const (
 	FontBaselineTop
 )
 
-const (
-	DefaultFontEMSize = 14.0
+var (
+	DefaultFontEMSize = 14.0 * UIScale
 )
 
 type fontBinMetrics struct {

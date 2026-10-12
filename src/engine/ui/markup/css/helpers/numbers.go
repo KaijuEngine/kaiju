@@ -129,7 +129,7 @@ func NumFromLengthWithFont(str string, window WindowDimensions, fontSize float32
 		size := parse(str, 2)
 		switch str[len(str)-2:] {
 		case "px":
-			return size
+			return size * rendering.UIScale
 		case "em", "ex":
 			return size * fontSize
 		case "cm":
