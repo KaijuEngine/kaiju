@@ -41,6 +41,9 @@ func (p *Project) BuildRunAndroid(reader content_archive.FileReader, ndkHome, ja
 
 func (p *Project) BuildAndroid(reader content_archive.FileReader, ndkHome, javaHome string, tags []string) error {
 	defer tracing.NewRegion("Project.BuildAndroid").End()
+	if ndkHome == "" {
+		return errors.New("the Android NDK folder path hasn't yet been setup in the editor settings")
+	}
 	sdkHome := filepath.Join(ndkHome, "../../")
 	if err := p.Package(reader); err != nil {
 		return err
