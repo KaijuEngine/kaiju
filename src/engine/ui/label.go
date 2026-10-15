@@ -10,6 +10,7 @@ import (
 	"slices"
 	"unicode/utf8"
 
+	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
@@ -245,7 +246,7 @@ func (label *Label) renderText() {
 			rd := &ld.runeDrawings[i]
 			rd.Transform = &label.entity.Transform
 			rd.Layer = rendering.RenderLayerUI
-			if ld.transparentBG {
+			if label.usesCutout(ld.bgColor) {
 				// Use the opaque shader as a glyph cutout: it discards the
 				// transparent background and writes opaque foreground pixels.
 				rd.Material = host.FontCache().OpaqueMaterial(rd.Material)
@@ -285,6 +286,28 @@ func (label *Label) labelRender() {
 	ld.renderRequired = false
 }
 
+// usesCutout reports whether the label should render as an opaque glyph cutout
+// rather than blending against its calculated surface. This is the case when
+// cutout was explicitly requested, or when the parent panel paints an image:
+// the panel color is then only a tint for that image, so the real color under
+// the text is unknown and filling glyph quads with it would box in the text.
+func (label *Label) usesCutout(bg matrix.Color) bool {
+	if bg.A() >= 1.0 {
+		return false
+	}
+	if label.LabelData().transparentBG {
+		return true
+	}
+	if label.entity.Parent != nil {
+		if p := FirstPanelOnEntity(label.entity.Parent); p != nil {
+			if tex := p.Background(); tex != nil && tex.Key != assets.TextureSquare {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // calculatedSurface returns the opaque "used" color this text visually sits on:
 // the parent panel's calculated background, or the manager's root backdrop when
 // the label has no parent panel. Used as the glyph-edge blend target so
@@ -317,7 +340,7 @@ func (label *Label) calculatedSurface() matrix.Color {
 // that fill is invisible and the anti-aliased edges blend toward the correct
 // color with no halo.
 func (label *Label) resolveFontColors(fg, bg matrix.Color) (matrix.Color, matrix.Color) {
-	if label.LabelData().transparentBG && bg.A() < 1.0 {
+	if label.usesCutout(bg) {
 		// The negative background alpha selects the opaque cutout branch in the
 		// text shader. RGB matches the foreground for consistency if this value is
 		// inspected before material selection.
