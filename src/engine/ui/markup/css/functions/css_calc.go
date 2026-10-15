@@ -14,6 +14,7 @@ import (
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
+	"kaijuengine.com/rendering"
 )
 
 type calcOp int
@@ -86,5 +87,8 @@ func (f Calc) Process(panel *ui.Panel, elm *document.Element, value rules.Proper
 			i--
 		}
 	}
-	return strconv.FormatFloat(float64(entries[0].value), 'f', 5, 32) + "px", nil
+	// Values above are already in scaled pixels; convert back to CSS px so the
+	// result is not scaled a second time when it is parsed as a length.
+	result := entries[0].value / rendering.UIScale
+	return strconv.FormatFloat(float64(result), 'f', 5, 32) + "px", nil
 }

@@ -183,7 +183,7 @@ func (b *MenuBar) setPopupUiPos(e *document.Element, pop *document.Element) {
 	t := &e.UI.Entity().Transform
 	x := t.WorldPosition().X() + float32(b.uiMan.Host.Window.Width())*0.5 -
 		e.UI.Layout().PixelSize().X()*0.5
-	b.doc.SetElementStylePropertyWithoutApply(pop, "left", fmt.Sprintf("%dpx", int(matrix.Round(x))))
+	b.doc.SetElementStylePropertyWithoutApply(pop, "left", fmt.Sprintf("%dpx", int(matrix.Round(x/rendering.UIScale))))
 }
 
 func (b *MenuBar) openMenuTarget(e *document.Element) {

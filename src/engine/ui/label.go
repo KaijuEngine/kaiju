@@ -16,8 +16,8 @@ import (
 	"kaijuengine.com/rendering"
 )
 
-const (
-	LabelFontSize = 14.0
+var (
+	LabelFontSize = 14.0 * rendering.UIScale
 )
 
 type colorRange struct {
