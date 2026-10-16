@@ -1,0 +1,17 @@
+package markup // import "kaijuengine.com/engine/ui/markup"
+
+
+FUNCTIONS
+
+func DocumentFromHTMLAsset(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element)) (*document.Document, error)
+func DocumentFromHTMLAssetRooted(uiMan *ui.Manager, htmlPath string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error)
+func DocumentFromHTMLAssetWithCSS(uiMan *ui.Manager, htmlPath, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) (*document.Document, error)
+    DocumentFromHTMLAssetWithCSS loads an HTML document from the asset database
+    like DocumentFromHTMLAsset (including kaiju-include expansion) but forwards
+    an explicit cssStr into the style cascade. DocumentFromHTMLAsset hardcodes
+    an empty cssStr, which prevents callers from theming asset-sourced
+    templates; this variant closes that gap. The cssStr is parsed after
+    css.DefaultCSS/OverrideCSS and before any document <style>/<link>, so later
+    rules win (there is no specificity weighting).
+
+func DocumentFromHTMLString(uiMan *ui.Manager, html, cssStr string, withData any, funcMap map[string]func(*document.Element), root *document.Element) *document.Document

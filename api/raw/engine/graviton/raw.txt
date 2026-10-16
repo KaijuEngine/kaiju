@@ -1,0 +1,1134 @@
+package graviton // import "kaijuengine.com/engine/graviton"
+
+
+CONSTANTS
+
+const (
+	DefaultCollisionGroup = 0
+	DefaultCollisionMask  = 1 << DefaultCollisionGroup
+)
+const (
+	DefaultSleepThreshold = matrix.Float(0.5)
+)
+
+VARIABLES
+
+var NullAABB = AABB{Type: ShapeTypeAABB}
+
+FUNCTIONS
+
+func AngularAxisEffectiveMass(body *RigidBody, axis matrix.Vec3) matrix.Float
+func AngularConstraintEffectiveMass(bodyA, bodyB *RigidBody, axis matrix.Vec3) matrix.Float
+func AngularConstraintImpulseDenominator(bodyA, bodyB *RigidBody, axis matrix.Vec3) matrix.Float
+func AngularEffectiveMass(body *RigidBody, relativeAnchor, axis matrix.Vec3) matrix.Float
+func CalculateLocalInertia(shape Shape, mass matrix.Float) matrix.Vec3
+func ConstraintEffectiveMass(bodyA, bodyB *RigidBody, ra, rb, axis matrix.Vec3) matrix.Float
+func ConstraintImpulseDenominator(bodyA, bodyB *RigidBody, ra, rb, axis matrix.Vec3) matrix.Float
+func LocalAnchor(body *RigidBody, worldAnchor matrix.Vec3) matrix.Vec3
+func LocalAxis(body *RigidBody, worldAxis matrix.Vec3) matrix.Vec3
+func PointOutsideOfPlane(p, a, b, c, d matrix.Vec3) bool
+    PointOutsideOfPlane returns true if the given point is outside of the plane
+
+func RelativeAnchorOffset(body *RigidBody, worldAnchor matrix.Vec3) matrix.Vec3
+func RemoveAllLeavesMatchingTransform(world **BVH, transform *matrix.Transform)
+func RemoveBVHNode(root **BVH, node *BVH)
+func RemoveSubBVH(world **BVH, sub *BVH)
+func VelocityAtAnchor(body *RigidBody, relativeAnchor matrix.Vec3) matrix.Vec3
+func WakeConstrainedBodies(bodyA, bodyB *RigidBody)
+func WorldAnchor(body *RigidBody, localAnchor matrix.Vec3) matrix.Vec3
+func WorldAxis(body *RigidBody, localAxis matrix.Vec3) matrix.Vec3
+
+TYPES
+
+type AABB Shape
+
+func AABBFromCorners(corners [8]matrix.Vec3) AABB
+    AABBFromCorners creates an AABB from 8 corner points
+
+func AABBFromMinMax(min, max matrix.Vec3) AABB
+    AABBFromMinMax creates an AABB from the minimum and maximum points
+
+func AABBFromPoints(points []matrix.Vec3) AABB
+
+func AABBFromTransform(transform *matrix.Transform) AABB
+
+func AABBFromTriangles(triangles []DetailedTriangle) AABB
+
+func AABBFromWidth(center matrix.Vec3, halfWidth matrix.Float) AABB
+    AABBFromWidth creates an AABB from the center and half-width
+
+func AABBUnion(a, b AABB) AABB
+    Union returns the union of two AABBs
+
+func NewAABB(center, extent matrix.Vec3) AABB
+
+func (a *AABB) AABBIntersect(b AABB) bool
+    AABBIntersect returns whether the AABB intersects another AABB
+
+func (box AABB) Bounds() AABB
+    Satisfying BVH HitObject interface
+
+func (a AABB) ClosestDistance(b AABB) matrix.Float
+    ClosestDistance returns the closest distance between two AABBs
+
+func (box *AABB) Contains(point matrix.Vec3) bool
+    Contains returns whether the AABB contains the point
+
+func (box *AABB) ContainsAABB(b AABB) bool
+    ContainsAABB returns whether the AABB contains another AABB
+
+func (box AABB) Corners() [8]matrix.Vec3
+
+func (box *AABB) FromTriangle(triangle DetailedTriangle) AABB
+    FromTriangle returns an AABB that contains the triangle
+
+func (box *AABB) IntersectsFrustum(frustum Frustum) bool
+    IntersectsFrustum returns whether the AABB is in the frustum
+
+func (box *AABB) LongestAxis() int
+    LongestAxis returns the longest axis of the AABB (0 = X, 1 = Y, 2 = Z)
+
+func (box *AABB) Max() matrix.Vec3
+    Max returns the maximum point of the AABB
+
+func (box *AABB) Min() matrix.Vec3
+    Min returns the minimum point of the AABB
+
+func (box *AABB) PlaneIntersect(plane Plane) bool
+    PlaneIntersect returns whether the AABB intersects a plane
+
+func (box *AABB) RayHit(ray Ray) (matrix.Vec3, bool)
+    RayHit returns the point of intersection and whether the ray hit the AABB
+
+func (box AABB) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
+
+func (box AABB) Size() matrix.Vec3
+    Size returns the size of the AABB
+
+func (box AABB) SurfaceArea() matrix.Float
+
+func (a AABB) Transform(m matrix.Mat4) AABB
+
+func (box *AABB) TriangleIntersect(tri DetailedTriangle) bool
+    TriangleIntersect returns whether the AABB intersects a triangle
+
+type ActivePair struct {
+	BodyA *RigidBody
+	BodyB *RigidBody
+}
+    ActivePair represents a potential collision pair found by SAP
+
+type AngularConstraintSolverRow struct {
+	BodyA              *RigidBody
+	BodyB              *RigidBody
+	Axis               matrix.Vec3
+	EffectiveMass      matrix.Float
+	Bias               matrix.Float
+	AccumulatedImpulse matrix.Float
+	MinImpulse         matrix.Float
+	MaxImpulse         matrix.Float
+}
+    AngularConstraintSolverRow stores a scalar angular-only Jacobian row.
+    It is used by constraints that must remove relative angular velocity around
+    a world-space axis without applying any linear impulse.
+
+func (r *AngularConstraintSolverRow) ApplyImpulse(impulse matrix.Float)
+
+func (r *AngularConstraintSolverRow) RelativeVelocity() matrix.Float
+
+func (r *AngularConstraintSolverRow) SetImpulseLimits(minimum, maximum matrix.Float)
+
+func (r *AngularConstraintSolverRow) SetWorldAxis(bodyA, bodyB *RigidBody, axis matrix.Vec3)
+
+func (r *AngularConstraintSolverRow) Solve() matrix.Float
+
+type Axis = uint
+
+const (
+	AxisX Axis = iota
+	AxisY
+	AxisZ
+)
+type BVH struct {
+	Left   *BVH
+	Right  *BVH
+	Parent *BVH
+	Item   BVHItem
+	// Has unexported fields.
+}
+
+func AddSubBVH(world **BVH, sub *BVH, transform *matrix.Transform) *BVH
+
+func CloneBVH(bvh *BVH) *BVH
+
+func InsertBVH(root **BVH, hitCheck HitObject, transform *matrix.Transform, data any) *BVH
+
+func NewBVH(entries []HitObject, transform *matrix.Transform, data any) *BVH
+
+func (b *BVH) Bounds() AABB
+
+func (b *BVH) IsLeaf() bool
+
+func (b *BVH) RayIntersect(ray Ray, length float32) (any, matrix.Vec3, bool)
+
+func (b *BVH) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
+
+func (b *BVH) Refit()
+
+func (b *BVH) RefitUpwards()
+
+type BVHItem struct {
+	Transform *matrix.Transform
+	HitCheck  HitObject
+	Data      any
+}
+
+func (item BVHItem) Bounds() AABB
+
+func (item BVHItem) IsValid() bool
+
+func (item BVHItem) RayIntersect(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
+
+type BroadPhaseFilter func(a, b *RigidBody) bool
+
+type Capsule Shape
+
+func NewCapsule(center matrix.Vec3, radius matrix.Float, height matrix.Float, direction matrix.Vec3) Capsule
+
+func (s Capsule) IntersectsAABB(b AABB) bool
+
+func (s Capsule) IntersectsCapsule(b Capsule) bool
+
+func (s Capsule) IntersectsCone(c Cone) bool
+
+func (s Capsule) IntersectsCylinder(c Cylinder) bool
+
+func (s Capsule) IntersectsFrustum(f Frustum) bool
+
+func (s Capsule) IntersectsOOBB(b OOBB) bool
+
+func (s Capsule) IntersectsPlane(p Plane) (bool, float32)
+
+func (s Capsule) IntersectsRay(r Ray) (bool, float32)
+
+func (s Capsule) IntersectsSphere(c Sphere) bool
+
+type Circle struct {
+	Point  matrix.Vec3
+	Radius matrix.Float
+	Axis   Axis
+}
+
+func (c Circle) RayHit(ray Ray) (matrix.Vec3, bool)
+
+type CollisionInfo struct {
+	Shape     Shape
+	Mesh      *MeshCollision
+	Terrain   *TerrainCollision
+	LocalAABB AABB
+	Group     int
+	Mask      int
+	IsTrigger bool
+}
+
+type CollisionSolver struct {
+	VelocityIterations int
+	PositionIterations int
+	DeltaTime          matrix.Float
+	Restitution        matrix.Float
+	StaticFriction     matrix.Float
+	DynamicFriction    matrix.Float
+	Baumgarte          matrix.Float
+	PenetrationSlop    matrix.Float
+	MaxCorrection      matrix.Float
+
+	// Has unexported fields.
+}
+    CollisionSolver resolves narrow-phase contacts with an iterative impulse
+    solver. Contacts are grouped into independent dynamic islands so islands can
+    be solved in parallel without concurrent writes to the same body.
+
+func (s *CollisionSolver) Initialize()
+
+func (s *CollisionSolver) Reset()
+
+func (s *CollisionSolver) Solve(manifolds []ContactManifold, threads *concurrent.Threads)
+
+func (s *CollisionSolver) SolveWithConstraints(manifolds []ContactManifold, constraints []*Constraint, threads *concurrent.Threads)
+
+type Cone Shape
+
+func NewCone(center matrix.Vec3, radius matrix.Float, height matrix.Float, direction matrix.Vec3) Cone
+
+func (a *Cone) IntersectCone(b Cone) bool
+
+func (s Cone) IntersectsAABB(b AABB) bool
+
+func (s Cone) IntersectsCapsule(c Capsule) bool
+
+func (s Cone) IntersectsCylinder(c Cylinder) bool
+
+func (s Cone) IntersectsFrustum(f Frustum) bool
+
+func (s Cone) IntersectsOOBB(b OOBB) bool
+
+func (s Cone) IntersectsPlane(p Plane) (bool, float32)
+
+func (s Cone) IntersectsRay(r Ray) (bool, float32)
+
+func (s Cone) IntersectsSphere(c Sphere) bool
+
+type Constraint struct {
+	Type     ConstraintType
+	BodyA    *RigidBody
+	BodyB    *RigidBody
+	Rows     []ConstraintSolverRow
+	Distance *DistanceJoint
+	Rope     *RopeJoint
+	Point    *PointJoint
+	Hinge    *HingeJoint
+	Active   bool
+	Enabled  bool
+	// BreakForce and BreakTorque are optional impulse thresholds. Values <= 0
+	// leave that break mode disabled.
+	BreakForce  matrix.Float
+	BreakTorque matrix.Float
+	Broken      bool
+
+	// Has unexported fields.
+}
+    Constraint stores the lifecycle and endpoints for a future Graviton
+    constraint solver. BodyA and BodyB form a body-body constraint; either body
+    may be nil to represent a body-world constraint.
+
+func (c *Constraint) AccumulatedAngularImpulse() matrix.Float
+
+func (c *Constraint) AccumulatedLinearImpulse() matrix.Float
+
+func (c *Constraint) BodiesValid() bool
+
+func (c *Constraint) BreakIfNeeded() bool
+
+func (c *Constraint) IsBodyBody() bool
+
+func (c *Constraint) IsBodyWorld() bool
+
+func (c *Constraint) IsStretched() bool
+
+func (c *Constraint) IsValid() bool
+
+func (c *Constraint) SetActive(active bool)
+
+func (c *Constraint) SetBodies(bodyA, bodyB *RigidBody)
+
+func (c *Constraint) SetBreakForce(threshold matrix.Float)
+
+func (c *Constraint) SetBreakTorque(threshold matrix.Float)
+
+func (c *Constraint) SetEnabled(enabled bool)
+
+func (c *Constraint) WakeBodies()
+
+type ConstraintSolverRow struct {
+	BodyA              *RigidBody
+	BodyB              *RigidBody
+	Axis               matrix.Vec3
+	JacobianLinearA    matrix.Vec3
+	JacobianAngularA   matrix.Vec3
+	JacobianLinearB    matrix.Vec3
+	JacobianAngularB   matrix.Vec3
+	AnchorA            matrix.Vec3
+	AnchorB            matrix.Vec3
+	RelativeAnchorA    matrix.Vec3
+	RelativeAnchorB    matrix.Vec3
+	EffectiveMass      matrix.Float
+	Bias               matrix.Float
+	AccumulatedImpulse matrix.Float
+	MinImpulse         matrix.Float
+	MaxImpulse         matrix.Float
+}
+    ConstraintSolverRow stores a single scalar Jacobian row for iterative
+    constraint solving. The row applies impulses along Axis at both anchors,
+    where BodyA receives the negative impulse and BodyB receives the positive
+    impulse.
+
+func NewConstraintSolverRow(bodyA, bodyB *RigidBody, anchorA, anchorB, axis matrix.Vec3) ConstraintSolverRow
+
+func (r *ConstraintSolverRow) ApplyImpulse(impulse matrix.Float)
+
+func (r *ConstraintSolverRow) RelativeVelocity() matrix.Float
+
+func (r *ConstraintSolverRow) SetImpulseLimits(minimum, maximum matrix.Float)
+
+func (r *ConstraintSolverRow) SetLocalAnchors(bodyA, bodyB *RigidBody, anchorA, anchorB, axis matrix.Vec3)
+
+func (r *ConstraintSolverRow) SetWorldAnchors(bodyA, bodyB *RigidBody, anchorA, anchorB, axis matrix.Vec3)
+
+func (r *ConstraintSolverRow) Solve() matrix.Float
+
+type ConstraintType uint8
+
+const (
+	ConstraintTypeUnknown ConstraintType = iota
+	ConstraintTypeGeneric
+	ConstraintTypeDistance
+	ConstraintTypeRope
+	ConstraintTypePoint
+	ConstraintTypeHinge
+)
+type Contact struct {
+	BodyA       *RigidBody
+	BodyB       *RigidBody
+	Point       matrix.Vec3
+	PointA      matrix.Vec3
+	PointB      matrix.Vec3
+	Normal      matrix.Vec3
+	Penetration matrix.Float
+}
+    Contact contains one world-space contact point generated by the narrow
+    phase. Normal always points from BodyA toward BodyB.
+
+type ContactManifold struct {
+	BodyA    *RigidBody
+	BodyB    *RigidBody
+	Normal   matrix.Vec3
+	Contacts [maxManifoldContacts]Contact
+	Count    int
+}
+    ContactManifold groups contacts for a colliding body pair.
+
+func CollideBodies(a, b *RigidBody) (ContactManifold, bool)
+
+type Cylinder Shape
+
+func NewCylinder(center matrix.Vec3, radius matrix.Float, height matrix.Float, direction matrix.Vec3) Cylinder
+
+func (s Cylinder) IntersectsAABB(b AABB) bool
+
+func (s Cylinder) IntersectsCapsule(c Capsule) bool
+
+func (s Cylinder) IntersectsCone(c Cone) bool
+
+func (a Cylinder) IntersectsCylinder(b Cylinder) bool
+
+func (s Cylinder) IntersectsFrustum(f Frustum) bool
+
+func (s Cylinder) IntersectsOOBB(b OOBB) bool
+
+func (s Cylinder) IntersectsPlane(p Plane) (bool, float32)
+
+func (s Cylinder) IntersectsRay(r Ray) (bool, float32)
+
+func (s Cylinder) IntersectsSphere(c Sphere) bool
+
+type DetailedTriangle struct {
+	Points   [3]matrix.Vec3
+	Normal   matrix.Vec3
+	Centroid matrix.Vec3
+	Radius   matrix.Float
+}
+
+func DetailedTriangleFromPoints(points [3]matrix.Vec3) DetailedTriangle
+    DetailedTriangleFromPoints creates a detailed triangle from three points,
+    a detailed triangle is different from a regular triangle in that it contains
+    additional information such as the centroid and radius
+
+func (t DetailedTriangle) Bounds() AABB
+
+func (t DetailedTriangle) RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
+
+type DistanceJoint struct {
+	BodyA                    *RigidBody
+	BodyB                    *RigidBody
+	LocalAnchorA             matrix.Vec3
+	LocalAnchorB             matrix.Vec3
+	RestLength               matrix.Float
+	Stiffness                matrix.Float
+	BiasFactor               matrix.Float
+	PositionCorrectionFactor matrix.Float
+	Slop                     matrix.Float
+	MaxCorrection            matrix.Float
+	WarmStarting             bool
+	AccumulatedImpulse       matrix.Float
+
+	// Has unexported fields.
+}
+    DistanceJoint keeps two body anchors, or one body anchor and one fixed world
+    anchor, at a target distance. Nil bodies are treated as fixed world anchors.
+
+func NewDistanceJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB matrix.Vec3) *DistanceJoint
+
+func NewDistanceJointAtWorldAnchors(bodyA, bodyB *RigidBody, worldAnchorA, worldAnchorB matrix.Vec3) *DistanceJoint
+
+func NewDistanceJointToWorld(body *RigidBody, localAnchor, worldAnchor matrix.Vec3) *DistanceJoint
+
+func (j *DistanceJoint) Constraint() *Constraint
+
+func (j *DistanceJoint) CurrentLength() matrix.Float
+
+func (j *DistanceJoint) IsStretched() bool
+
+func (j *DistanceJoint) SetRestLength(restLength matrix.Float)
+
+func (j *DistanceJoint) SetWorldAnchors(worldAnchorA, worldAnchorB matrix.Vec3)
+
+func (j *DistanceJoint) WorldAnchorA() matrix.Vec3
+
+func (j *DistanceJoint) WorldAnchorB() matrix.Vec3
+
+type Frustum struct {
+	Planes [6]Plane
+}
+
+func (f *Frustum) ExtractPlanes(vp matrix.Mat4)
+
+type FrustumCorners [8]matrix.Vec4
+
+func FrustumExtractCorners(view, projection matrix.Mat4) FrustumCorners
+
+func (c FrustumCorners) Center() matrix.Vec3
+
+type HingeJoint struct {
+	BodyA                     *RigidBody
+	BodyB                     *RigidBody
+	LocalAnchorA              matrix.Vec3
+	LocalAnchorB              matrix.Vec3
+	LocalAxisA                matrix.Vec3
+	LocalAxisB                matrix.Vec3
+	LocalRefA                 matrix.Vec3
+	LocalRefB                 matrix.Vec3
+	Stiffness                 matrix.Float
+	BiasFactor                matrix.Float
+	PositionCorrectionFactor  matrix.Float
+	Slop                      matrix.Float
+	MaxCorrection             matrix.Float
+	WarmStarting              bool
+	EnableLimits              bool
+	MinAngle                  matrix.Float
+	MaxAngle                  matrix.Float
+	EnableMotor               bool
+	MotorTargetSpeed          matrix.Float
+	MaxMotorImpulse           matrix.Float
+	MaxMotorTorque            matrix.Float
+	AccumulatedAnchorImpulse  matrix.Vec3
+	AccumulatedAngularImpulse matrix.Vec2
+	AccumulatedLimitImpulse   matrix.Float
+	AccumulatedMotorImpulse   matrix.Float
+
+	// Has unexported fields.
+}
+    HingeJoint keeps two anchors coincident and aligns each body's hinge axis.
+    Relative rotation is constrained around the two axes perpendicular to the
+    hinge, leaving rotation around the hinge axis free.
+
+func NewHingeJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB, localAxisA, localAxisB matrix.Vec3) *HingeJoint
+
+func NewHingeJointAtWorldAnchor(bodyA, bodyB *RigidBody, worldAnchor, worldAxis matrix.Vec3) *HingeJoint
+
+func NewHingeJointToWorld(body *RigidBody, localAnchor, worldAnchor, localAxis, worldAxis matrix.Vec3) *HingeJoint
+
+func (j *HingeJoint) AccumulatedAngularImpulseMagnitude() matrix.Float
+
+func (j *HingeJoint) Constraint() *Constraint
+
+func (j *HingeJoint) CurrentAnchorError() matrix.Vec3
+
+func (j *HingeJoint) CurrentAngle() matrix.Float
+
+func (j *HingeJoint) CurrentAngularError() matrix.Vec3
+
+func (j *HingeJoint) CurrentAngularVelocity() matrix.Float
+
+func (j *HingeJoint) DisableAngularLimits()
+
+func (j *HingeJoint) DisableMotor()
+
+func (j *HingeJoint) IsStretched() bool
+
+func (j *HingeJoint) SetAngularLimits(minAngle, maxAngle matrix.Float)
+
+func (j *HingeJoint) SetMotor(targetSpeed, maxMotorImpulse matrix.Float)
+
+func (j *HingeJoint) SetMotorTorque(targetSpeed, maxMotorTorque matrix.Float)
+
+func (j *HingeJoint) SetWorldAnchors(worldAnchorA, worldAnchorB matrix.Vec3)
+
+func (j *HingeJoint) SetWorldAxis(worldAxis matrix.Vec3)
+
+func (j *HingeJoint) WorldAnchorA() matrix.Vec3
+
+func (j *HingeJoint) WorldAnchorB() matrix.Vec3
+
+func (j *HingeJoint) WorldAxisA() matrix.Vec3
+
+func (j *HingeJoint) WorldAxisB() matrix.Vec3
+
+func (j *HingeJoint) WorldReferenceA() matrix.Vec3
+
+func (j *HingeJoint) WorldReferenceB() matrix.Vec3
+
+type Hit struct {
+	Body     *RigidBody
+	Point    matrix.Vec3
+	Normal   matrix.Vec3
+	Distance matrix.Float
+}
+
+type HitObject interface {
+	Bounds() AABB
+	RayIntersectTest(ray Ray, length float32, transform *matrix.Transform) (matrix.Vec3, bool)
+}
+
+type Interval struct {
+	Min  matrix.Float
+	Max  matrix.Float
+	Body *RigidBody
+	// Has unexported fields.
+}
+    Interval represents a projected AABB onto one axis
+
+type Mass struct {
+	Inertia matrix.Vec3
+
+	Mass matrix.Float
+	// Has unexported fields.
+}
+
+type MeshCollision struct {
+	Triangles []DetailedTriangle
+	BVH       *BVH
+	Bounds    AABB
+}
+    MeshCollision stores the heavy collision data for triangle meshes. The flat
+    Shape keeps only type and bounds so primitive shape data stays compact.
+
+func NewMeshCollision(triangles []DetailedTriangle) *MeshCollision
+
+func NewMeshCollisionFromVertices(vertices []matrix.Vec3, indexes []uint32) *MeshCollision
+
+func (m *MeshCollision) ForEachWorldTriangle(transform *matrix.Transform, visit func(DetailedTriangle) bool)
+
+func (m *MeshCollision) Raycast(ray Ray, length matrix.Float, transform *matrix.Transform) (Hit, bool)
+
+type MotionState struct {
+	Acceleration        matrix.Vec3
+	AngularAcceleration matrix.Vec3
+	LinearVelocity      matrix.Vec3
+	AngularVelocity     matrix.Vec3
+}
+
+type NarrowPhase struct {
+	// Has unexported fields.
+}
+    NarrowPhase performs exact pair tests after the broad phase has produced
+    candidate pairs. It owns reusable buffers so a physics step can run without
+    per-pair allocations.
+
+func (n *NarrowPhase) Collide(pairs []ActivePair, threads *concurrent.Threads) []ContactManifold
+
+func (n *NarrowPhase) Manifolds() []ContactManifold
+
+func (n *NarrowPhase) Reset()
+
+type OOBB Shape
+
+func NewOOBB(center, extent matrix.Vec3, orientation matrix.Mat3) OOBB
+
+func OOBBFromAABB(aabb AABB) OOBB
+
+func OOBBFromTransform(baseAABB AABB, transform *matrix.Transform) OOBB
+
+func (o OOBB) Bounds() AABB
+
+func (o OOBB) ContainsPoint(point matrix.Vec3) bool
+
+func (o OOBB) Corners() [8]matrix.Vec3
+
+func (o OOBB) Intersect(other OOBB) bool
+
+func (o OOBB) RayIntersect(ray Ray, length float32) bool
+
+type Octree struct {
+	Center    matrix.Vec3
+	HalfWidth matrix.Float
+	Children  [8]*Octree
+	Objects   []HitObject
+}
+
+func NewOctree(center matrix.Vec3, halfWidth matrix.Float, maxDepth int) *Octree
+
+func OctreeForMesh(mesh []matrix.Vec3) *Octree
+
+func (o *Octree) AsAABB() AABB
+
+func (node *Octree) Insert(obj HitObject)
+
+type Plane struct {
+	Normal matrix.Vec3
+	Dot    matrix.Float
+}
+
+func PlaneCCW(a, b, c matrix.Vec3) Plane
+    PlaneCCW creates a plane from three points in counter clockwise order
+
+func (p Plane) ClosestPoint(point matrix.Vec3) matrix.Vec3
+    ClosestPoint returns the closest point on the plane to the given point
+
+func (p Plane) Distance(point matrix.Vec3) float32
+    Distance returns the distance from the plane to the given point
+
+func (p *Plane) SetFloatValue(value float32, index int)
+    SetFloatValue sets the value of the plane at the given index (X, Y, Z, Dot)
+
+func (p Plane) ToArray() [4]float32
+    ToArray converts the plane to an array of 4 floats
+
+func (p Plane) ToVec4() matrix.Vec4
+    ToVec4 converts the plane to a Vec4 (analogous to ToArray)
+
+type PointJoint struct {
+	BodyA                    *RigidBody
+	BodyB                    *RigidBody
+	LocalAnchorA             matrix.Vec3
+	LocalAnchorB             matrix.Vec3
+	Stiffness                matrix.Float
+	BiasFactor               matrix.Float
+	PositionCorrectionFactor matrix.Float
+	Slop                     matrix.Float
+	MaxCorrection            matrix.Float
+	WarmStarting             bool
+	AccumulatedImpulse       matrix.Vec3
+
+	// Has unexported fields.
+}
+    PointJoint keeps two local anchors coincident while leaving relative
+    orientation unconstrained. Nil bodies are treated as fixed world anchors.
+
+func NewPointJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB matrix.Vec3) *PointJoint
+
+func NewPointJointAtWorldAnchors(bodyA, bodyB *RigidBody, worldAnchorA, worldAnchorB matrix.Vec3) *PointJoint
+
+func NewPointJointToWorld(body *RigidBody, localAnchor, worldAnchor matrix.Vec3) *PointJoint
+
+func (j *PointJoint) Constraint() *Constraint
+
+func (j *PointJoint) CurrentError() matrix.Vec3
+
+func (j *PointJoint) IsStretched() bool
+
+func (j *PointJoint) SetWorldAnchors(worldAnchorA, worldAnchorB matrix.Vec3)
+
+func (j *PointJoint) WorldAnchorA() matrix.Vec3
+
+func (j *PointJoint) WorldAnchorB() matrix.Vec3
+
+type Ray struct {
+	Origin    matrix.Vec3
+	Direction matrix.Vec3
+}
+
+func (r Ray) PlaneHit(planePosition, planeNormal matrix.Vec3) (hit matrix.Vec3, success bool)
+    PlaneHit returns the point of intersection with the plane and true if the
+    ray hits the plane
+
+func (r Ray) Point(distance float32) matrix.Vec3
+    Point returns the point at the given distance along the ray
+
+func (r Ray) SphereHit(center matrix.Vec3, radius, maxLen float32) bool
+    SphereHit returns true if the ray hits the sphere
+
+func (r Ray) TriangleHit(rayLen float32, a, b, c matrix.Vec3) (matrix.Vec3, bool)
+    TriangleHit returns true if the ray hits the triangle defined by the three
+    points
+
+type RigidBody struct {
+	Transform   matrix.Transform
+	MotionState MotionState
+	Mass        Mass
+	Collision   CollisionInfo
+	Simulation  SimulationState
+	Active      bool
+
+	// Has unexported fields.
+}
+
+func (r *RigidBody) ApplyForce(force matrix.Vec3)
+    ApplyForce applies a continuous world-space force at the body's center of
+    mass.
+
+func (r *RigidBody) ApplyForceAtPoint(force, point matrix.Vec3)
+    ApplyForceAtPoint applies a continuous world-space force at a world-space
+    point.
+
+func (r *RigidBody) ApplyImpulse(impulse matrix.Vec3)
+    ApplyImpulse applies an immediate world-space impulse at the body's center
+    of mass.
+
+func (r *RigidBody) ApplyImpulseAtPoint(impulse, point matrix.Vec3)
+    ApplyImpulseAtPoint applies an immediate world-space impulse at a
+    world-space point.
+
+func (r *RigidBody) CollisionFilter() (int, int)
+
+func (r *RigidBody) IsDynamic() bool
+
+func (r *RigidBody) IsKinematic() bool
+
+func (r *RigidBody) IsStatic() bool
+
+func (r *RigidBody) IsTrigger() bool
+
+func (r *RigidBody) Position() matrix.Vec3
+
+func (r *RigidBody) Rotation() matrix.Quaternion
+
+func (r *RigidBody) SetCollisionFilter(group, mask int)
+
+func (r *RigidBody) SetDynamic(mass matrix.Float, inertia matrix.Vec3)
+
+func (r *RigidBody) SetKinematic()
+    SetKinematic makes this body entity-driven: the stage sync copies the entity
+    transform into the body before collision detection, and the solver treats it
+    as immovable because kinematic bodies have no inverse mass.
+
+func (r *RigidBody) SetMass(mass matrix.Float, inertia matrix.Vec3)
+
+func (r *RigidBody) SetShape(shape Shape)
+
+func (r *RigidBody) SetShapeMesh(mesh *MeshCollision)
+
+func (r *RigidBody) SetStatic()
+
+func (r *RigidBody) SetStaticTerrain(terrain *TerrainCollision)
+
+func (r *RigidBody) SetTrigger(isTrigger bool)
+
+func (r *RigidBody) Shape() Shape
+
+func (r *RigidBody) Sleep()
+
+func (r *RigidBody) Wake()
+
+func (r *RigidBody) WorldAABB() AABB
+
+type RigidBodyType uint8
+
+const (
+	RigidBodyTypeStatic RigidBodyType = iota
+	RigidBodyTypeKinematic
+	RigidBodyTypeDynamic
+)
+type RopeJoint struct {
+	BodyA                    *RigidBody
+	BodyB                    *RigidBody
+	LocalAnchorA             matrix.Vec3
+	LocalAnchorB             matrix.Vec3
+	MaxLength                matrix.Float
+	Stiffness                matrix.Float
+	BiasFactor               matrix.Float
+	PositionCorrectionFactor matrix.Float
+	Slop                     matrix.Float
+	MaxCorrection            matrix.Float
+	WarmStarting             bool
+	AccumulatedImpulse       matrix.Float
+
+	// Has unexported fields.
+}
+    RopeJoint keeps two anchors from separating beyond MaxLength. Unlike a
+    DistanceJoint, it is inactive while the anchors are within the limit.
+
+func NewRopeJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB matrix.Vec3) *RopeJoint
+
+func NewRopeJointAtWorldAnchors(bodyA, bodyB *RigidBody, worldAnchorA, worldAnchorB matrix.Vec3) *RopeJoint
+
+func NewRopeJointToWorld(body *RigidBody, localAnchor, worldAnchor matrix.Vec3) *RopeJoint
+
+func (j *RopeJoint) Constraint() *Constraint
+
+func (j *RopeJoint) CurrentLength() matrix.Float
+
+func (j *RopeJoint) IsSlack() bool
+
+func (j *RopeJoint) IsStretched() bool
+
+func (j *RopeJoint) SetMaxLength(maxLength matrix.Float)
+
+func (j *RopeJoint) SetWorldAnchors(worldAnchorA, worldAnchorB matrix.Vec3)
+
+func (j *RopeJoint) WorldAnchorA() matrix.Vec3
+
+func (j *RopeJoint) WorldAnchorB() matrix.Vec3
+
+type Segment struct {
+	A matrix.Vec3
+	B matrix.Vec3
+}
+
+func LineSegmentFromRay(ray Ray, length float32) Segment
+    LineSegmentFromRay creates a line segment from a ray
+
+func (l Segment) TriangleHit(a, b, c matrix.Vec3) (matrix.Vec3, bool)
+    TriangleHit returns true if the segment hits the triangle defined by the
+    three points
+
+type Shape struct {
+	Center      matrix.Vec3  // Circle, AABB, OOBB, Capsule, Cylinder, Cone
+	Radius      matrix.Float // Circle, Capsule, Cylinder, Cone
+	Extent      matrix.Vec3  // AABB, OOBB
+	Orientation matrix.Mat3  // OOBB
+	Height      matrix.Float // Capsule, Cylinder, Cone
+	Direction   matrix.Vec3  // Capsule, Cylinder, Cone
+	Type        ShapeType
+}
+
+func NewAABBShape(extent matrix.Vec3) Shape
+
+func NewBoxShape(extent matrix.Vec3) Shape
+
+func NewCapsuleShape(radius, height matrix.Float) Shape
+
+func NewConeShape(radius, height matrix.Float) Shape
+
+func NewCylinderShape(radius, height matrix.Float) Shape
+
+func NewMeshShape(bounds AABB) Shape
+
+func NewOOBBShape(extent matrix.Vec3) Shape
+
+func NewSphereShape(radius matrix.Float) Shape
+
+func NewTerrainShape(bounds AABB) Shape
+
+func (s *Shape) SetAABB(center, extent matrix.Vec3)
+
+func (s *Shape) SetAABBShape(extent matrix.Vec3)
+
+func (s *Shape) SetBoxShape(extent matrix.Vec3)
+
+func (s *Shape) SetCapsule(center matrix.Vec3, radius matrix.Float, height matrix.Float, direction matrix.Vec3)
+
+func (s *Shape) SetCapsuleShape(radius, height matrix.Float)
+
+func (s *Shape) SetCone(center matrix.Vec3, radius matrix.Float, height matrix.Float, direction matrix.Vec3)
+
+func (s *Shape) SetConeShape(radius, height matrix.Float)
+
+func (s *Shape) SetCylinder(center matrix.Vec3, radius matrix.Float, height matrix.Float, direction matrix.Vec3)
+
+func (s *Shape) SetCylinderShape(radius, height matrix.Float)
+
+func (s *Shape) SetMesh(bounds AABB)
+
+func (s *Shape) SetOOBB(center, extent matrix.Vec3, orientation matrix.Mat3)
+
+func (s *Shape) SetOOBBShape(extent matrix.Vec3)
+
+func (s *Shape) SetSphere(center matrix.Vec3, radius matrix.Float)
+
+func (s *Shape) SetSphereShape(radius matrix.Float)
+
+func (s *Shape) SetTerrain(bounds AABB)
+
+type ShapeType uint8
+
+const (
+	ShapeTypeSphere ShapeType = iota
+	ShapeTypeAABB
+	ShapeTypeOOBB
+	ShapeTypeCapsule
+	ShapeTypeCylinder
+	ShapeTypeCone
+	ShapeTypeMesh
+	ShapeTypeTerrain
+)
+type SimulationState struct {
+	Type            RigidBodyType
+	SleepThreshold  matrix.Float
+	SleepTimer      matrix.Float
+	IsSleeping      bool
+	IsFixedRotation bool
+	IsFixedPosition bool
+
+	// Has unexported fields.
+}
+
+type Sphere Shape
+
+func NewSphere(center matrix.Vec3, radius matrix.Float) Sphere
+
+func (s Sphere) IntersectsAABB(b AABB) bool
+
+func (s Sphere) IntersectsCapsule(c Capsule) bool
+
+func (s Sphere) IntersectsCone(c Cone) bool
+
+func (s Sphere) IntersectsCylinder(c Cylinder) bool
+
+func (s Sphere) IntersectsFrustum(f Frustum) bool
+
+func (s Sphere) IntersectsOOBB(b OOBB) bool
+
+func (s Sphere) IntersectsPlane(p Plane) (bool, float32)
+
+func (s Sphere) IntersectsRay(r Ray) (bool, float32)
+
+func (a Sphere) IntersectsSphere(b Sphere) bool
+
+type SweepPrune struct {
+	// Has unexported fields.
+}
+
+func (s *SweepPrune) Initialize(initialBodyCount int)
+
+func (s *SweepPrune) Rebuild(bodies *pooling.PoolGroup[RigidBody])
+
+func (s *SweepPrune) RebuildParallel(bodies *pooling.PoolGroup[RigidBody], threads *concurrent.Threads)
+
+func (s *SweepPrune) Sweep() []ActivePair
+
+func (s *SweepPrune) SweepParallel(threads *concurrent.Threads, filter BroadPhaseFilter) []ActivePair
+
+type System struct {
+
+	// Constraint iteration counts are shared by contact and constraint solving
+	// because System.Step solves them together in the same islands.
+	ConstraintVelocityIterations int
+	ConstraintPositionIterations int
+
+	// Has unexported fields.
+}
+
+func (s *System) AddBody(body *RigidBody) *RigidBody
+
+func (s *System) AddConstraint(constraint *Constraint) *Constraint
+
+func (s *System) AddConstraintWithBodies(constraint *Constraint, bodyA, bodyB *RigidBody) *Constraint
+
+func (s *System) AddDistanceJoint(joint *DistanceJoint) *DistanceJoint
+
+func (s *System) AddHingeJoint(joint *HingeJoint) *HingeJoint
+
+func (s *System) AddPointJoint(joint *PointJoint) *PointJoint
+
+func (s *System) AddRopeJoint(joint *RopeJoint) *RopeJoint
+
+func (s *System) Clear()
+
+func (s *System) ClearConstraints()
+
+func (s *System) Constraints() []*Constraint
+    Constraints returns the constraints currently stored in the System. The
+    returned slice is owned by the System and is reused on the next constraints
+    query or Step.
+
+func (s *System) Contacts() []ContactManifold
+    Contacts returns the contact manifolds generated during the most recent
+    Step. The returned slice is owned by the System and is reused on the next
+    Step.
+
+func (s *System) Initialize()
+
+func (s *System) NewBody() *RigidBody
+
+func (s *System) NewConstraint(constraintType ConstraintType, bodyA, bodyB *RigidBody) *Constraint
+
+func (s *System) NewDistanceJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB matrix.Vec3) *DistanceJoint
+
+func (s *System) NewDistanceJointAtWorldAnchors(bodyA, bodyB *RigidBody, worldAnchorA, worldAnchorB matrix.Vec3) *DistanceJoint
+
+func (s *System) NewDistanceJointToWorld(body *RigidBody, localAnchor, worldAnchor matrix.Vec3) *DistanceJoint
+
+func (s *System) NewHingeJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB, localAxisA, localAxisB matrix.Vec3) *HingeJoint
+
+func (s *System) NewHingeJointAtWorldAnchor(bodyA, bodyB *RigidBody, worldAnchor, worldAxis matrix.Vec3) *HingeJoint
+
+func (s *System) NewHingeJointToWorld(body *RigidBody, localAnchor, worldAnchor, localAxis, worldAxis matrix.Vec3) *HingeJoint
+
+func (s *System) NewPointJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB matrix.Vec3) *PointJoint
+
+func (s *System) NewPointJointAtWorldAnchors(bodyA, bodyB *RigidBody, worldAnchorA, worldAnchorB matrix.Vec3) *PointJoint
+
+func (s *System) NewPointJointToWorld(body *RigidBody, localAnchor, worldAnchor matrix.Vec3) *PointJoint
+
+func (s *System) NewRopeJoint(bodyA, bodyB *RigidBody, localAnchorA, localAnchorB matrix.Vec3) *RopeJoint
+
+func (s *System) NewRopeJointAtWorldAnchors(bodyA, bodyB *RigidBody, worldAnchorA, worldAnchorB matrix.Vec3) *RopeJoint
+
+func (s *System) NewRopeJointToWorld(body *RigidBody, localAnchor, worldAnchor matrix.Vec3) *RopeJoint
+
+func (s *System) Raycast(from, to matrix.Vec3) (Hit, bool)
+
+func (s *System) RemoveBody(body *RigidBody)
+    RemoveBody releases a body and disables any constraints attached to it.
+    The disabled constraints remain in constraint storage until explicitly
+    removed or cleared, with the removed body endpoint set to nil.
+
+func (s *System) RemoveConstraint(constraint *Constraint)
+
+func (s *System) RemoveDistanceJoint(joint *DistanceJoint)
+
+func (s *System) RemoveHingeJoint(joint *HingeJoint)
+
+func (s *System) RemovePointJoint(joint *PointJoint)
+
+func (s *System) RemoveRopeJoint(joint *RopeJoint)
+
+func (s *System) SetGravity(gravity matrix.Vec3)
+
+func (s *System) SphereSweep(from, to matrix.Vec3, radius matrix.Float) (Hit, bool)
+
+func (s *System) Step(workGroup *concurrent.WorkGroup, threads *concurrent.Threads, deltaTime float64)
+
+type TerrainCollision struct {
+	Resolution int
+	WorldSize  matrix.Vec2
+	Heights    []matrix.Float
+	MinHeight  matrix.Float
+	MaxHeight  matrix.Float
+	Bounds     AABB
+}
+
+func NewTerrainCollision(resolution int, worldSize matrix.Vec2, heights []matrix.Float, minHeight, maxHeight matrix.Float) (*TerrainCollision, error)
+
+func NewTerrainCollisionCopy(resolution int, worldSize matrix.Vec2, heights []matrix.Float, minHeight, maxHeight matrix.Float) (*TerrainCollision, error)
+
+func (c *TerrainCollision) CellRangeForLocalAABB(bounds AABB) (minX, minZ, maxX, maxZ int, ok bool)
+
+func (c *TerrainCollision) ForEachTriangleInLocalAABB(bounds AABB, visit func(DetailedTriangle) bool)
+
+func (c *TerrainCollision) GridToLocal(x, z matrix.Float) matrix.Vec3
+
+func (c *TerrainCollision) Height(x, z int) matrix.Float
+
+func (c *TerrainCollision) HeightAtLocal(localXZ matrix.Vec2) matrix.Float
+
+func (c *TerrainCollision) LocalBounds() AABB
+
+func (c *TerrainCollision) LocalToGrid(localXZ matrix.Vec2) (matrix.Float, matrix.Float)
+
+func (c *TerrainCollision) NormalAtLocal(localXZ matrix.Vec2) matrix.Vec3
+
+func (c *TerrainCollision) Raycast(ray Ray, length matrix.Float, transform *matrix.Transform) (Hit, bool)
+
+func (c *TerrainCollision) RefreshBounds() AABB
+
+func (c *TerrainCollision) SampleGrid(x, z matrix.Float) matrix.Float
+
+type Triangle struct {
+	P           Plane
+	EdgePlaneBC Plane
+	EdgePlaneCA Plane
+}
+
+type TriangleBVH struct {
+	Bounds      AABB
+	Left        *TriangleBVH
+	Right       *TriangleBVH
+	Triangle    DetailedTriangle
+	HasTriangle bool
+}
+
+func NewTriangleBVH(bvh *BVH) *TriangleBVH
+
+func (b *TriangleBVH) ToBVH(transform *matrix.Transform, data any) *BVH
+

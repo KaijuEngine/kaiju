@@ -1,0 +1,173 @@
+package fbx // import "kaijuengine.com/rendering/loaders/fbx"
+
+
+CONSTANTS
+
+const (
+	BinaryHeader = "Kaydara FBX Binary  \x00\x1a\x00"
+)
+
+VARIABLES
+
+var (
+	ErrASCIINotSupported = errors.New("ASCII FBX is not supported yet")
+	ErrInvalidHeader     = errors.New("invalid FBX file")
+)
+
+FUNCTIONS
+
+func SplitNameClass(value string) (string, string)
+func ToLoadResult(doc Document) (load_result.Result, error)
+func ToLoadResultWithPath(doc Document, path string) (load_result.Result, error)
+
+TYPES
+
+type Connection struct {
+	Type     string
+	Child    int64
+	Parent   int64
+	Property string
+	Node     *Node
+}
+
+type ConnectionIndex struct {
+	All              []Connection
+	ChildrenByParent map[int64][]Connection
+	ParentsByChild   map[int64][]Connection
+	PropertiesByNode map[int64][]Connection
+}
+
+type Definition struct {
+	ObjectType string
+	Count      int64
+	Properties PropertyTable
+	Node       *Node
+}
+
+type DefinitionsIndex struct {
+	ByObjectType map[string]*Definition
+}
+
+type Document struct {
+	Version uint32
+	Nodes   []Node
+}
+
+func Parse(data []byte) (Document, error)
+
+type GlobalSettings struct {
+	UpAxis                  int
+	UpAxisSign              int
+	FrontAxis               int
+	FrontAxisSign           int
+	CoordAxis               int
+	CoordAxisSign           int
+	UnitScaleFactor         float64
+	OriginalUnitScaleFactor float64
+}
+
+func DefaultGlobalSettings() GlobalSettings
+
+func (s GlobalSettings) IsKaijuCompatible() bool
+
+type Node struct {
+	Name          string
+	Properties    []Property
+	Children      []Node
+	StartOffset   int64
+	EndOffset     int64
+	PropertyStart int64
+	PropertyEnd   int64
+}
+
+type Object struct {
+	ID         int64
+	Name       string
+	Class      string
+	SubClass   string
+	NodeClass  string
+	Properties PropertyTable
+	Node       *Node
+}
+
+type ParseError struct {
+	Offset int64
+	Reason string
+}
+
+func (e ParseError) Error() string
+
+type Property struct {
+	Type   byte
+	Offset int64
+	Value  any
+}
+
+type Property70 struct {
+	Name   string
+	Type   string
+	Label  string
+	Flags  string
+	Values []any
+	Node   *Node
+}
+
+func (p Property70) Bool() (bool, bool)
+
+func (p Property70) Enum() (int64, bool)
+
+func (p Property70) Int() (int64, bool)
+
+func (p Property70) Number() (float64, bool)
+
+func (p Property70) String() (string, bool)
+
+func (p Property70) Vec2() ([2]float64, bool)
+
+func (p Property70) Vec3() ([3]float64, bool)
+
+func (p Property70) Vec4() ([4]float64, bool)
+
+type PropertyTable struct {
+	ByName map[string]Property70
+	List   []Property70
+}
+
+func ParseProperties70(node *Node) PropertyTable
+
+func (t PropertyTable) Bool(name string) (bool, bool)
+
+func (t PropertyTable) Enum(name string) (int64, bool)
+
+func (t PropertyTable) Get(name string) (Property70, bool)
+
+func (t PropertyTable) Int(name string) (int64, bool)
+
+func (t PropertyTable) Number(name string) (float64, bool)
+
+func (t PropertyTable) String(name string) (string, bool)
+
+func (t PropertyTable) Vec2(name string) ([2]float64, bool)
+
+func (t PropertyTable) Vec3(name string) ([3]float64, bool)
+
+func (t PropertyTable) Vec4(name string) ([4]float64, bool)
+
+type SceneIndex struct {
+	Version        uint32
+	Objects        map[int64]*Object
+	ByClass        map[string]map[int64]*Object
+	Geometry       map[int64]*Object
+	Model          map[int64]*Object
+	Material       map[int64]*Object
+	Texture        map[int64]*Object
+	Video          map[int64]*Object
+	Deformer       map[int64]*Object
+	Animation      map[int64]*Object
+	Connections    ConnectionIndex
+	Definitions    DefinitionsIndex
+	GlobalSettings GlobalSettings
+}
+
+func BuildSceneIndex(doc Document) (SceneIndex, error)
+

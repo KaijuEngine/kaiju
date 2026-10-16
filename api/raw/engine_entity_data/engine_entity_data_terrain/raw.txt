@@ -1,0 +1,17 @@
+package engine_entity_data_terrain // import "kaijuengine.com/engine_entity_data/engine_entity_data_terrain"
+
+
+FUNCTIONS
+
+func BindingKey() string
+
+TYPES
+
+type TerrainEntityData struct {
+	Id content_id.Terrain `visible:"false"`
+}
+
+func (d TerrainEntityData) EntityDataInitPhase() engine.EntityDataPhase
+
+func (d TerrainEntityData) Init(e *engine.Entity, host *engine.Host)
+

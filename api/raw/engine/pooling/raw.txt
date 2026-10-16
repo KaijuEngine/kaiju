@@ -1,0 +1,68 @@
+package pooling // import "kaijuengine.com/engine/pooling"
+
+
+CONSTANTS
+
+const (
+	ElementsInPool = 256
+)
+const MaxPoolGroupId = 0x00FFFFFF
+
+TYPES
+
+type AtomicPoolGroup[T any] PoolGroup[T]
+
+func (p *AtomicPoolGroup[T]) Add() (elm *T, poolId PoolGroupId, elmId PoolIndex)
+
+func (p *AtomicPoolGroup[T]) Clear()
+
+func (p *AtomicPoolGroup[T]) Count() int
+
+func (p *AtomicPoolGroup[T]) Each(each func(elm *T))
+
+func (p *AtomicPoolGroup[T]) Remove(poolIndex PoolGroupId, elementId PoolIndex)
+
+func (p *AtomicPoolGroup[T]) Reserve(additionalElements int)
+
+type Pool[T any] struct {
+	// Has unexported fields.
+}
+
+type PoolGroup[T any] struct {
+	// Has unexported fields.
+}
+
+func (p *PoolGroup[T]) Add() (elm *T, poolId PoolGroupId, elmId PoolIndex)
+
+func (p *PoolGroup[T]) All(each func(elm *T))
+    Each will iterate through every element, both active and inactive element in
+    the pool and supply it to the expression that was supplied to this function
+    call
+
+func (p *PoolGroup[T]) Clear()
+
+func (p *PoolGroup[T]) ConditionalEach(each func(elm *T) bool)
+    ConditionalEach iterates over each active element in the pool group,
+    invoking the provided callback function `each`. If the callback returns
+    false for any element, the iteration stops early. This allows callers to
+    break out of the loop based on a condition while still processing elements
+    in order of their allocation.
+
+func (p *PoolGroup[T]) Count() int
+
+func (p *PoolGroup[T]) Each(each func(elm *T))
+    Each will iterate through each active element in the pool and supply it to
+    the expression that was supplied to this function call
+
+func (p *PoolGroup[T]) EachParallel(workName string, workGroup *concurrent.WorkGroup, threads *concurrent.Threads, each func(elm *T))
+
+func (p *PoolGroup[T]) ElementCount() int
+
+func (p *PoolGroup[T]) Remove(poolIndex PoolGroupId, elementId PoolIndex)
+
+func (p *PoolGroup[T]) Reserve(additionalElements int)
+
+type PoolGroupId = int // This is actually just 3 bytes
+
+type PoolIndex = uint8
+

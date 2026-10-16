@@ -1,0 +1,38 @@
+package ui_workspace // import "kaijuengine.com/editor/editor_workspace/ui_workspace"
+
+
+CONSTANTS
+
+const (
+	ID          = "ui"
+	DisplayName = "UI"
+)
+
+TYPES
+
+type UIWorkspace struct {
+	common_workspace.CommonWorkspace
+
+	// Has unexported fields.
+}
+
+func (w *UIWorkspace) Close()
+
+func (w *UIWorkspace) DisplayName() string
+
+func (w *UIWorkspace) Hotkeys() []common_workspace.HotKey
+
+func (w *UIWorkspace) ID() string
+
+func (w *UIWorkspace) Initialize(ed editor_workspace.WorkspaceEditorInterface) error
+
+func (w *UIWorkspace) IsRequired() bool
+
+func (w *UIWorkspace) Open()
+
+func (w *UIWorkspace) OpenHtml(html string)
+
+func (w *UIWorkspace) Shutdown()
+
+func (w *UIWorkspace) Update(deltaTime float64)
+

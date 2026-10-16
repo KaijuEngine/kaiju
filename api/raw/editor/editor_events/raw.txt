@@ -1,0 +1,71 @@
+package editor_events // import "kaijuengine.com/editor/editor_events"
+
+
+TYPES
+
+type EditorEvents struct {
+	// OnContentAdded sends the id of the content that was renamed
+	OnContentRenamed events.EventWithArg[string]
+
+	// OnContentAdded sends list of content ids that have been added
+	OnContentAdded events.EventWithArg[[]string]
+
+	// OnContentRemoved sends list of content ids that have been removed
+	OnContentRemoved events.EventWithArg[[]string]
+
+	// OnFocusContent is raised when a content should be focused wherever we
+	// are in the UI. This was created for the stage right-click context menu
+	// to be able to focus content in the content workspace, but it could be
+	// used in other ways as needed.
+	OnFocusContent events.EventWithArg[string]
+
+	// OnContentChangesSaved is called when content is updated and allows for
+	// other parts of the system to update in order to reflect those changes.
+	OnContentChangesSaved events.EventWithArg[string]
+
+	// OnFileSaved fires with the absolute file path whenever a code editor
+	// (or other text-content editor) completes a save to disk.
+	OnFileSaved events.EventWithArg[string]
+
+	// OnContentPreviewGenerated is called whenever a content preview image has
+	// been generated. This is primarily used in the background of the editor
+	// for updating any content preview images.
+	OnContentPreviewGenerated events.EventWithArg[string]
+
+	// OnNewTagAdded is called whenever any content is introduced with new tag
+	OnNewTagAdded events.EventWithArg[string]
+
+	// OnTagNoLongerInUse is called whenever a tag is no longer used by any content
+	OnTagNoLongerInUse events.EventWithArg[string]
+
+	OnTagRemoved events.EventWithArg[TagEvent]
+
+	OnTagAdded events.EventWithArg[TagEvent]
+
+	// OnRequestOpenStage asks the stage workspace to open the stage with the
+	// given content id and switch itself active. Used for cross-workspace
+	// requests instead of a hard-coded method on the editor.
+	OnRequestOpenStage events.EventWithArg[string]
+
+	// OnRequestViewHtmlUi asks the UI workspace to load the given HTML
+	// content id and switch itself active.
+	OnRequestViewHtmlUi events.EventWithArg[string]
+
+	// OnRequestOpenParticleSystem asks the VFX workspace to open the given
+	// particle system content id and switch itself active.
+	OnRequestOpenParticleSystem events.EventWithArg[string]
+
+	// OnRequestOpenVulkanSpec asks the Vulkan workspace to open the given
+	// shader / material / render pass content id and switch itself active.
+	OnRequestOpenVulkanSpec events.EventWithArg[string]
+
+	// OnRequestOpenTerrain asks the terrain workspace to open the given
+	// terrain content id and switch itself active.
+	OnRequestOpenTerrain events.EventWithArg[string]
+}
+
+type TagEvent struct {
+	Tag              string
+	AffectedContents []string
+}
+

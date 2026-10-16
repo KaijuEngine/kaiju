@@ -1,0 +1,26 @@
+package context_menu // import "kaijuengine.com/editor/editor_overlay/context_menu"
+
+
+FUNCTIONS
+
+func IsOpen() bool
+func IsPointInside(centeredScreenPos matrix.Vec2) bool
+    IsPointInside returns true when a centered-screen UI point is inside the
+    currently open context menu bounds.
+
+
+TYPES
+
+type ContextMenu struct {
+	// Has unexported fields.
+}
+
+func Show(host *engine.Host, options []ContextMenuOption, screenPos matrix.Vec2, onClose func()) (*ContextMenu, error)
+
+func (o *ContextMenu) Close()
+
+type ContextMenuOption struct {
+	Label string
+	Call  func()
+}
+

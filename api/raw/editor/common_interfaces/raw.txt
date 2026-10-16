@@ -1,0 +1,10 @@
+package common_interfaces // import "kaijuengine.com/editor/common_interfaces"
+
+
+TYPES
+
+type Focusable interface {
+	FocusInterface()
+	BlurInterface()
+}
+

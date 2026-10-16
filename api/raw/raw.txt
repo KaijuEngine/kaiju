@@ -1,0 +1,14 @@
+
+
+TYPES
+
+type Game struct {
+	// Has unexported fields.
+}
+
+func (Game) ContentDatabase() (assets.Database, error)
+
+func (g *Game) Launch(host *engine.Host)
+
+func (Game) PluginRegistry() []reflect.Type
+

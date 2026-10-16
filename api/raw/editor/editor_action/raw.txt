@@ -1,0 +1,201 @@
+package editor_action // import "kaijuengine.com/editor/editor_action"
+
+
+VARIABLES
+
+var (
+	ErrDuplicateAction = errors.New("editor_action: duplicate action")
+	ErrInvalidAction   = errors.New("editor_action: invalid action")
+	ErrActionNotFound  = errors.New("editor_action: action not found")
+)
+
+FUNCTIONS
+
+func ChordsEqual(a, b KeyChord) bool
+func FormatKeyChord(chord KeyChord) string
+func HasChord(chord KeyChord) bool
+func IsModifierKey(key int) bool
+func KeyName(key int) string
+func Param[T any](req Request) (T, bool)
+func Params(value any) any
+func ValidChord(chord KeyChord) bool
+
+TYPES
+
+type ActionBinding struct {
+	Action    ActionID `json:"action"`
+	Params    any      `json:"params,omitempty"`
+	Workspace string   `json:"workspace,omitempty"`
+	Enabled   bool     `json:"enabled"`
+	Chord     KeyChord `json:"chord"`
+}
+
+func BindingsForAction(defaults, user []ActionBinding, action ActionID, workspace string) []ActionBinding
+
+func EffectiveBindings(defaults, user []ActionBinding) []ActionBinding
+
+func RemoveBindingConflicts(defaults, user []ActionBinding, conflicts []BindingConflict) []ActionBinding
+
+func ReplaceActionBindings(user []ActionBinding, action ActionID, workspace string, replacements []ActionBinding) []ActionBinding
+
+type ActionID string
+
+type BindingConflict struct {
+	Binding ActionBinding
+	Label   string
+}
+
+func BindingConflicts(active []ActionBinding, candidate ActionBinding, labels map[ActionID]string) []BindingConflict
+
+type CanRunFunc func(Context, Request) Result
+
+type Context struct {
+	CurrentWorkspace string
+	InputFocused     bool
+	Services         map[string]any
+	Feedback         func(Result)
+}
+
+type Definition struct {
+	ID                ActionID        `json:"id"`
+	Label             string          `json:"label"`
+	Description       string          `json:"description,omitempty"`
+	Category          string          `json:"category,omitempty"`
+	Tags              []string        `json:"tags,omitempty"`
+	Aliases           []string        `json:"aliases,omitempty"`
+	DefaultParams     any             `json:"defaultParams,omitempty"`
+	NewParams         ParamsFactory   `json:"-"`
+	Parameters        []Parameter     `json:"parameters,omitempty"`
+	DefaultBindings   []ActionBinding `json:"defaultBindings,omitempty"`
+	UndoPolicy        UndoPolicy      `json:"undoPolicy"`
+	Visible           bool            `json:"visible"`
+	Unbindable        bool            `json:"unbindable,omitempty"`
+	RequiredWorkspace string          `json:"requiredWorkspace,omitempty"`
+	Variants          []Variant       `json:"variants,omitempty"`
+}
+
+type Entry struct {
+	Definition
+	Params       any `json:"params,omitempty"`
+	VariantIndex int `json:"variantIndex,omitempty"`
+}
+
+type Handler func(Context, Request) Result
+
+type KeyChord struct {
+	Keys       []int `json:"keys,omitempty"`
+	Ctrl       bool  `json:"ctrl,omitempty"`
+	Meta       bool  `json:"meta,omitempty"`
+	CtrlOrMeta bool  `json:"ctrlOrMeta,omitempty"`
+	Shift      bool  `json:"shift,omitempty"`
+	Alt        bool  `json:"alt,omitempty"`
+}
+
+type Parameter struct {
+	Name        string   `json:"name"`
+	Label       string   `json:"label,omitempty"`
+	Type        string   `json:"type,omitempty"`
+	Required    bool     `json:"required,omitempty"`
+	Default     any      `json:"default,omitempty"`
+	Options     []string `json:"options,omitempty"`
+	Description string   `json:"description,omitempty"`
+}
+
+type ParamsFactory func() any
+
+type Registry struct {
+	// Has unexported fields.
+}
+
+func NewRegistry() *Registry
+
+func (r *Registry) Definition(id ActionID) (Definition, bool)
+
+func (r *Registry) Definitions() []Definition
+
+func (r *Registry) Entries(ctx Context, query string) []Entry
+
+func (r *Registry) Register(def Definition, handler Handler, canRun CanRunFunc) error
+
+func (r *Registry) Registered(id ActionID) (registeredAction, bool)
+
+type Request struct {
+	ID            ActionID `json:"id"`
+	Params        any      `json:"params,omitempty"`
+	Source        Source   `json:"source,omitempty"`
+	CorrelationID string   `json:"correlationId,omitempty"`
+}
+
+type Result struct {
+	OK                bool           `json:"ok"`
+	Message           string         `json:"message,omitempty"`
+	Error             string         `json:"error,omitempty"`
+	Data              map[string]any `json:"data,omitempty"`
+	Warnings          []string       `json:"warnings,omitempty"`
+	AffectedEntityIDs []string       `json:"affectedEntityIds,omitempty"`
+	SelectedEntityIDs []string       `json:"selectedEntityIds,omitempty"`
+}
+
+func Failure(message string) Result
+
+func Success(message string) Result
+
+type Service struct {
+	// Has unexported fields.
+}
+
+func NewService() *Service
+
+func (s *Service) CanRun(req Request) Result
+
+func (s *Service) CanRunOnMainThread(req Request) Result
+
+func (s *Service) DefaultBindings() []ActionBinding
+
+func (s *Service) Definitions() []Definition
+
+func (s *Service) NormalizeRequest(req Request) (Request, error)
+
+func (s *Service) Register(def Definition, handler Handler, canRun CanRunFunc) error
+
+func (s *Service) Registry() *Registry
+
+func (s *Service) Run(req Request) Result
+
+func (s *Service) RunOnMainThread(req Request) Result
+
+func (s *Service) Search(query string) []Entry
+
+func (s *Service) SearchOnMainThread(query string) []Entry
+
+func (s *Service) SetContextProvider(provider func() Context)
+
+func (s *Service) SetMainThreadScheduler(run func(func()))
+
+func (s *Service) SetTransactionHooks(begin, commit, cancel func())
+
+type Source string
+
+const (
+	SourceUnknown Source = ""
+	SourceMenu    Source = "menu"
+	SourcePalette Source = "palette"
+	SourceKeybind Source = "keybinding"
+	SourceLua     Source = "lua"
+	SourceREST    Source = "rest"
+)
+type UndoPolicy int
+
+const (
+	UndoPolicyNone UndoPolicy = iota
+	UndoPolicyTransaction
+	UndoPolicyManaged
+)
+type Variant struct {
+	Label       string   `json:"label"`
+	Description string   `json:"description,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	Params      any      `json:"params,omitempty"`
+	Hidden      bool     `json:"hidden,omitempty"`
+}
+
