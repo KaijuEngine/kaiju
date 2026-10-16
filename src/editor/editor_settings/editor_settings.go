@@ -188,29 +188,56 @@ func (s *Settings) Load() error {
 }
 
 func (s *Settings) tryFindAndroidNDKPath() {
-	appdata, err := os.UserConfigDir()
-	if err != nil {
-		return
+	if env := os.Getenv("ANDROID_NDK_HOME"); env != "" {
+		if info, err := os.Stat(env); err == nil && info.IsDir() {
+			s.BuildTools.AndroidNDK = env
+			return
+		}
 	}
-	var ndk string
-	switch runtime.GOOS {
-	case "windows":
-		ndk = filepath.Join(appdata, "../Local/Android/Sdk/ndk")
-	default:
-		ndk = filepath.Join(appdata, "Android/Sdk/ndk")
+	for _, ndk := range androidNDKSearchFolders() {
+		if latest := latestNDKInFolder(ndk); latest != "" {
+			s.BuildTools.AndroidNDK = latest
+			return
+		}
 	}
-	if _, err := os.Stat(ndk); err != nil {
-		return
+}
+
+// androidNDKSearchFolders lists the "ndk" folders of the Android SDK locations
+// that the SDK manager and Android Studio use by default on each platform.
+func androidNDKSearchFolders() []string {
+	folders := []string{}
+	for _, env := range []string{"ANDROID_HOME", "ANDROID_SDK_ROOT"} {
+		if sdk := os.Getenv(env); sdk != "" {
+			folders = append(folders, filepath.Join(sdk, "ndk"))
+		}
 	}
+	if appdata, err := os.UserConfigDir(); err == nil && runtime.GOOS == "windows" {
+		folders = append(folders, filepath.Join(appdata, "../Local/Android/Sdk/ndk"))
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		switch runtime.GOOS {
+		case "darwin":
+			folders = append(folders, filepath.Join(home, "Library/Android/sdk/ndk"))
+		case "linux":
+			folders = append(folders, filepath.Join(home, "Android/Sdk/ndk"))
+		}
+	}
+	return folders
+}
+
+func latestNDKInFolder(ndk string) string {
 	dir, err := os.ReadDir(ndk)
 	if err != nil {
-		return
+		return ""
+	}
+	dir = slices.DeleteFunc(dir, func(e os.DirEntry) bool { return !e.IsDir() })
+	if len(dir) == 0 {
+		return ""
 	}
 	slices.SortFunc(dir, func(a, b os.DirEntry) int {
 		return strings.Compare(a.Name(), b.Name())
 	})
-	last := dir[len(dir)-1]
-	s.BuildTools.AndroidNDK = filepath.Join(ndk, last.Name())
+	return filepath.Join(ndk, dir[len(dir)-1].Name())
 }
 
 func (s *Settings) tryFindJavaHomePath() {
