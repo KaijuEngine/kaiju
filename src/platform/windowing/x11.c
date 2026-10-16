@@ -443,7 +443,11 @@ void window_poll(void* x11State) {
 					.keyboardButton = {
 						.action = e.type == KeyPress
 							? WINDOW_EVENT_BUTTON_TYPE_DOWN : WINDOW_EVENT_BUTTON_TYPE_UP,
-						.buttonId = XLookupKeysym(&e.xkey, 0),
+						// Resolve the keysym from the first layout group so
+						// shortcuts keep working when a non-Latin layout
+						// (e.g. Russian) is active.
+						.buttonId = XkbKeycodeToKeysym(s->d,
+							e.xkey.keycode, 0, 0),
 					}
 				});
 				break;
