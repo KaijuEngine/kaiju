@@ -1,0 +1,30 @@
+package editor_workspace_registry // import "kaijuengine.com/editor/editor_workspace_registry"
+
+Package editor_workspace_registry holds the global registry of workspaces.
+Workspace packages (built-in and plugin) call Register from their init() to make
+themselves discoverable. The editor reads the registry during startup to decide
+which workspaces to initialize, in what order, and which tabs to surface in the
+menu bar.
+
+The registry is split into its own package (rather than living in editor or
+editor_workspace) so that workspace packages can register themselves without
+creating an import cycle with the editor package.
+
+FUNCTIONS
+
+func All() []editor_workspace.Workspace
+    All returns every registered workspace in the order they were registered.
+    The editor's reconciliation logic uses this order as the default for
+    workspaces that have no entry in persisted settings yet.
+
+func Get(id string) (editor_workspace.Workspace, bool)
+    Get returns the workspace registered under the given id, or false.
+
+func IDs() []string
+    IDs returns every registered workspace id in registration order.
+
+func Register(w editor_workspace.Workspace)
+    Register adds a workspace to the registry. It is intended to be called from
+    the package init() of every workspace (built-in or plugin). Duplicate IDs
+    are logged and ignored.
+

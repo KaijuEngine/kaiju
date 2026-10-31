@@ -1,0 +1,128 @@
+/* Blog and feature card styles */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 2rem 0 3rem;
+}
+
+.blog-author {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    padding-left: 0;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    list-style: none;
+}
+
+.blog-author .author-name {
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+}
+
+.blog-author .author-date {
+    color: var(--md-default-fg-color--lighter);
+    font-style: italic;
+}
+
+.feature-card {
+    display: block;
+    padding: 1.5rem;
+    border: 1px solid var(--md-default-fg-color--lighter);
+    border-radius: 8px;
+    color: inherit;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.feature-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    transform: translateY(-4px);
+}
+
+.feature-card-icon {
+    display: block;
+    margin-bottom: 1rem;
+    font-size: 3rem;
+}
+
+.feature-card-title {
+    margin: 0;
+    color: inherit;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.feature-section {
+    margin: 3rem 0;
+    scroll-margin-top: 4rem;
+}
+
+.feature-section h2 {
+    margin-bottom: 1rem;
+}
+
+/* Homepage content uses the regular MkDocs document shell. */
+.index-logo {
+    width: 100%;
+    background-image: url("https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/index.md/kaiju_engine_text_wide_logo.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    aspect-ratio: 2.9 / 1;
+}
+
+.indexHighlight {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.indexHighlight video,
+.indexHighlight img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
+.indexHighlight > div:first-child {
+    order: 2;
+}
+
+.indexHighlight > div:last-child {
+    order: 1;
+}
+
+@media (max-width: 768px) {
+    .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .indexHighlight {
+        grid-template-columns: 1fr;
+    }
+
+    .indexHighlight > div:first-child {
+        order: 1;
+    }
+
+    .indexHighlight > div:last-child {
+        order: 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+}

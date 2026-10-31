@@ -1,0 +1,45 @@
+
+
+TYPES
+
+type Atlas struct {
+	Width  int32 `json:"width"`
+	Height int32 `json:"height"`
+}
+
+type FontData struct {
+	Glyphs  []Glyph   `json:"glyphs"`
+	Atlas   Atlas     `json:"atlas"`
+	Metrics Metrics   `json:"metrics"`
+	Kerning []Kerning `json:"kerning"`
+}
+
+type Glyph struct {
+	Unicode     int     `json:"unicode"`
+	Advance     float32 `json:"advance"`
+	PlaneBounds Rect    `json:"planeBounds"`
+	AtlasBounds Rect    `json:"atlasBounds"`
+}
+
+type Kerning struct {
+	Unicode1 int32   `json:"unicode1"`
+	Unicode2 int32   `json:"unicode2"`
+	Advance  float32 `json:"advance"`
+}
+
+type Metrics struct {
+	EmSize             float32 `json:"emSize"`
+	LineHeight         float32 `json:"lineHeight"`
+	Ascender           float32 `json:"ascender"`
+	Descender          float32 `json:"descender"`
+	UnderlineY         float32 `json:"underlineY"`
+	UnderlineThickness float32 `json:"underlineThickness"`
+}
+
+type Rect struct {
+	Left   float32 `json:"left"`
+	Top    float32 `json:"top"`
+	Right  float32 `json:"right"`
+	Bottom float32 `json:"bottom"`
+}
+

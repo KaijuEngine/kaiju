@@ -1,0 +1,98 @@
+package editor_settings // import "kaijuengine.com/editor/editor_settings"
+
+
+FUNCTIONS
+
+func GenerateWebAPIKey() string
+
+TYPES
+
+type AppDataMissingError struct {
+	Err error
+}
+
+func (e AppDataMissingError) Error() string
+
+type BuildToolSettings struct {
+	AndroidNDK string `label:"Android NDK"`
+	JavaHome   string
+}
+
+type EditorCameraSettings struct {
+	ZoomSpeed          float32 `default:"120" label:"Zoom Speed"`
+	FlySpeed           float32 `default:"10"`
+	FlyBoostMultiplier float32 `default:"4" label:"Fly Boost Multiplier"`
+	FlyXSensitivity    float32 `default:"0.2"`
+	FlyYSensitivity    float32 `default:"0.2"`
+}
+
+type ReadError struct {
+	Err error
+	// Has unexported fields.
+}
+
+func (e ReadError) Error() string
+
+type Settings struct {
+	RecentProjects        []string `visible:"false"`
+	RefreshRate           int32    `clamp:"60,0,320"`
+	UseBatteryRefreshRate bool     `default:"false" label:"Use Battery Refresh Rate"`
+	BatteryRefreshRate    int32    `default:"30" clamp:"30,0,320" label:"Battery Refresh Rate"`
+	CodeEditor            string   `default:"code"`
+	ImageEditor           string
+	MeshEditor            string
+	AudioEditor           string
+	UIScrollSpeed         float32 `default:"20" label:"UI Scroll Speed"`
+	ShowGrid              bool    `default:"true" label:"Show Viewport Grid"`
+	EditorCamera          EditorCameraSettings
+	Snapping              SnapSettings
+	BuildTools            BuildToolSettings
+	WebAPI                WebAPISettings                `visible:"false" label:"Web API"`
+	ActionBindings        []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
+	// Workspaces is the persisted enable / visible / order state for every
+	// known workspace, keyed by Workspace.ID(). Slice order is the load /
+	// tab order. The editor's reconcile step on startup adds defaults for
+	// any registered workspace that is missing from this slice and drops
+	// entries whose workspace is no longer registered. Hidden from the
+	// reflection-rendered settings UI because the Workspaces panel renders
+	// it with a bespoke drag-to-reorder + toggle layout.
+	Workspaces []WorkspaceConfig `visible:"false"`
+}
+
+func (s *Settings) AddRecentProject(path string)
+
+func (s *Settings) Load() error
+
+func (s *Settings) NormalizeWebAPI()
+
+func (s *Settings) Save() error
+
+type SnapSettings struct {
+	TranslateIncrement float32
+	RotateIncrement    float32
+	ScaleIncrement     float32
+}
+
+type WebAPISettings struct {
+	Enabled bool
+	Port    int32  `default:"1337"`
+	APIKey  string `label:"API Key"`
+}
+
+type WorkspaceConfig struct {
+	ID      string `visible:"false"`
+	Enabled bool
+}
+    WorkspaceConfig is a single workspace's persisted state.
+
+    Enabled=false skips initialization entirely: the workspace is not added to
+    the active set, its tab is not rendered, and event subscriptions are not
+    wired up. Enabled=true means initialized and tabbed.
+
+type WriteError struct {
+	Err error
+	// Has unexported fields.
+}
+
+func (e WriteError) Error() string
+
