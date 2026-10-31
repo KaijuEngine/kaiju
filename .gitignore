@@ -30,6 +30,7 @@ external/bin
 interpreter/kaiju-*
 *.zip
 .gocache
+.cache
 
 # Echo
 .echo/autosave.json
