@@ -23,6 +23,15 @@ const (
 	ShaderDataStandardFlagEnable = 1 << 30
 )
 
+// Outline groups let the selection outline separate selected objects that
+// overlap on screen, an outline is only drawn where the group changes. These
+// bits sit in the mantissa of the float the flags are packed into for the
+// g-buffer, so they can never turn it into a NaN or infinity.
+const (
+	ShaderDataStandardOutlineGroupShift = 8
+	ShaderDataStandardOutlineGroupMask  = StandardShaderDataFlags(0x7FFF) << ShaderDataStandardOutlineGroupShift
+)
+
 func findStandardShaderDataFlags(target rendering.DrawInstance) (reflect.Value, bool) {
 	if target == nil {
 		return reflect.Value{}, false
@@ -77,6 +86,20 @@ func StandardShaderDataFlagsClear(target rendering.DrawInstance, flag StandardSh
 	}
 	flags := fieldVal.Interface().(StandardShaderDataFlags)
 	fieldVal.SetUint(uint64(flags &^ flag))
+	updateStandardShaderDataFlagEnableStatus(fieldVal)
+}
+
+// StandardShaderDataOutlineGroupSet replaces the outline group of the target,
+// only the lower bits of group that fit within the group mask are kept
+func StandardShaderDataOutlineGroupSet(target rendering.DrawInstance, group uint32) {
+	fieldVal, ok := findStandardShaderDataFlags(target)
+	if !ok {
+		return
+	}
+	flags := fieldVal.Interface().(StandardShaderDataFlags)
+	flags &^= ShaderDataStandardOutlineGroupMask
+	flags |= (group << ShaderDataStandardOutlineGroupShift) & ShaderDataStandardOutlineGroupMask
+	fieldVal.SetUint(uint64(flags))
 	updateStandardShaderDataFlagEnableStatus(fieldVal)
 }
 
