@@ -187,8 +187,9 @@ func projectWorldToImage(host *engine.Host, img *image.RGBA, pos matrix.Vec3) (m
 	}
 	scaleX := float32(img.Bounds().Dx()) / float32(host.Window.Width())
 	scaleY := float32(img.Bounds().Dy()) / float32(host.Window.Height())
+	// The Vulkan projection already flips Y, so screen space is top-down
 	x := float32(screen.X()) * scaleX
-	y := (float32(host.Window.Height()) - float32(screen.Y())) * scaleY
+	y := float32(screen.Y()) * scaleY
 	return matrix.NewVec2(matrix.Float(x), matrix.Float(y)), true
 }
 
