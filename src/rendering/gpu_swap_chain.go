@@ -145,19 +145,22 @@ func (g *GPUSwapChain) SelectPresentMode(device *GPUPhysicalDevice) gpu_types.Pr
 func (g *GPUSwapChain) SelectExtent(window RenderingContainer, device *GPUPhysicalDevice) matrix.Vec2i {
 	defer tracing.NewRegion("GPUSwapChain.SelectExtent").End()
 	capabilities := device.SurfaceCapabilities
-	if capabilities.CurrentExtent.Width() < 0 {
+	if capabilities.CurrentExtent.Width() > 0 && capabilities.CurrentExtent.Height() > 0 {
 		return capabilities.CurrentExtent
-	} else {
-		// TODO:  When the window resizes, we'll need to re-query this
-		w, h := window.GetDrawableSize()
-		actualExtent := matrix.Vec2i{
-			klib.Clamp(w, capabilities.MinImageExtent.Width(),
-				capabilities.MaxImageExtent.Width()),
-			klib.Clamp(h, capabilities.MinImageExtent.Height(),
-				capabilities.MaxImageExtent.Height()),
-		}
-		return actualExtent
 	}
+	if capabilities.CurrentExtent.Width() == 0 || capabilities.CurrentExtent.Height() == 0 {
+		return matrix.Vec2i{0, 0}
+	}
+	// When currentExtent is 0xFFFFFFFF (represented as < 0 in signed int32), the extent is determined
+	// by the swapchain targeting the surface, clamped to surface capabilities.
+	w, h := window.GetDrawableSize()
+	actualExtent := matrix.Vec2i{
+		klib.Clamp(w, capabilities.MinImageExtent.Width(),
+			capabilities.MaxImageExtent.Width()),
+		klib.Clamp(h, capabilities.MinImageExtent.Height(),
+			capabilities.MaxImageExtent.Height()),
+	}
+	return actualExtent
 }
 
 func (g *GPUSwapChain) SetupRenderPass(device *GPUDevice, assets assets.Database) error {

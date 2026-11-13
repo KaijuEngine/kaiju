@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"time"
 	"unsafe"
 
 	"kaijuengine.com/engine/cameras"
@@ -357,6 +358,18 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 	defer tracing.NewRegion("Vulkan.readyFrameImpl").End()
 	painter := &g.Painter
 	ld := &g.LogicalDevice
+
+	// If the window has resized, recreate the swapchain before waiting on fences or acquiring images.
+	w, h := window.GetDrawableSize()
+	if int32(w) != ld.SwapChain.Extent.Width() || int32(h) != ld.SwapChain.Extent.Height() {
+		if err := ld.RemakeSwapChain(window, inst, g); err != nil {
+			return false
+		}
+		if !ld.SwapChain.IsValid() {
+			return false
+		}
+	}
+
 	fences := [...]gpu_types.Fence{ld.SwapChain.renderFences[painter.currentFrame]}
 	ld.WaitForFences(fences[:])
 	painter.resetTargetBlitCommands(painter.currentFrame)
@@ -379,6 +392,15 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		}
 	case vulkan_const.ErrorOutOfDate:
 		ld.RemakeSwapChain(window, inst, g)
+		return false
+	case vulkan_const.NotReady, vulkan_const.Timeout:
+		w, h := window.GetDrawableSize()
+		if int32(w) != ld.SwapChain.Extent.Width() || int32(h) != ld.SwapChain.Extent.Height() {
+			ld.RemakeSwapChain(window, inst, g)
+			return false
+		}
+		// Presentation engine has no available image yet; sleep briefly to avoid a 100% CPU spin loop.
+		time.Sleep(time.Millisecond)
 		return false
 	default:
 		slog.Error("Failed to acquire swap chain image", "result", res)

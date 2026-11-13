@@ -9,6 +9,7 @@ package rendering
 import (
 	"fmt"
 	"log/slog"
+	"time"
 	"unsafe"
 
 	"kaijuengine.com/engine/cameras"
@@ -295,6 +296,7 @@ func (g *GPUDevice) ReadyFrame(inst *GPUApplicationInstance, window RenderingCon
 			return false
 		}
 		if !ld.SwapChain.IsValid() {
+			time.Sleep(10 * time.Millisecond)
 			return false
 		}
 	}

@@ -216,6 +216,7 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 			return err
 		}
 	}
+	device.Painter.currentFrame = 0
 	return nil
 }
 
