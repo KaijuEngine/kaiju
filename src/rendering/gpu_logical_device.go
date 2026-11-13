@@ -53,12 +53,6 @@ func (g *GPULogicalDevice) WaitIdle() {
 func (g *GPULogicalDevice) WaitForRender(device *GPUDevice) {
 	defer tracing.NewRegion("GPULogicalDevice.WaitForRender").End()
 	g.WaitIdle()
-	fenceCount := len(g.SwapChain.Images)
-	fences := make([]gpu_types.Fence, fenceCount)
-	for i := range fenceCount {
-		fences[i].Handle = unsafe.Pointer(g.SwapChain.renderFences[i].Handle)
-	}
-	g.WaitForFences(fences[:])
 }
 
 func (g *GPULogicalDevice) WaitForFences(fences []gpu_types.Fence) {

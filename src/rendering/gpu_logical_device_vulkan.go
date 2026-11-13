@@ -99,6 +99,9 @@ func (g *GPULogicalDevice) waitIdleImpl() {
 
 func (g *GPULogicalDevice) waitForFencesImpl(fences []gpu_types.Fence) {
 	defer tracing.NewRegion("GPULogicalDevice.waitForFencesImpl").End()
+	if len(fences) == 0 {
+		return
+	}
 	vkFences := make([]vk.Fence, len(fences))
 	for i := range fences {
 		vkFences[i] = vk.Fence(fences[i].Handle)
@@ -213,6 +216,7 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 			return err
 		}
 	}
+	device.Painter.currentFrame = 0
 	return nil
 }
 
