@@ -328,11 +328,20 @@ func (g *GPUDevice) swapFrameImpl(window RenderingContainer, inst *GPUApplicatio
 	switch res {
 	case vulkan_const.Success:
 		// Do nothing
-	case vulkan_const.ErrorOutOfDate, vulkan_const.Suboptimal:
+	case vulkan_const.Suboptimal:
+		// VK_SUBOPTIMAL_KHR is a success code; the image was presented to the screen.
+		// Only recreate the swapchain if the window's drawable dimensions have actually changed,
+		// preventing an infinite rebuild loop on compositors where presentation is permanently suboptimal.
+		w, h := window.GetDrawableSize()
+		if int32(w) != g.LogicalDevice.SwapChain.Extent.Width() || int32(h) != g.LogicalDevice.SwapChain.Extent.Height() {
+			g.LogicalDevice.RemakeSwapChain(window, inst, g)
+			return false
+		}
+	case vulkan_const.ErrorOutOfDate:
 		g.LogicalDevice.RemakeSwapChain(window, inst, g)
 		return false
 	default:
-		slog.Error("Failed to present swap chain image")
+		slog.Error("Failed to present swap chain image", "result", res)
 		return false
 	}
 	g.Painter.currentFrame = (g.Painter.currentFrame + 1) % int(len(g.LogicalDevice.SwapChain.Images))
@@ -360,18 +369,19 @@ func (g *GPUDevice) readyFrameImpl(inst *GPUApplicationInstance, window Renderin
 		math.MaxUint64, vk.Semaphore(ld.SwapChain.imageSemaphores[frame].Handle),
 		vk.Fence(vk.NullHandle), &painter.imageIndex[frame])
 	switch res {
-	case vulkan_const.Success, vulkan_const.Suboptimal: // VK_SUBOPTIMAL_KHR is a success and just means the swap chain no longer matches the surface properties exactly, but can still be used to present to the surface successfully.
+	case vulkan_const.Success:
 		// Do nothing
+	case vulkan_const.Suboptimal:
+		w, h := window.GetDrawableSize()
+		if int32(w) != ld.SwapChain.Extent.Width() || int32(h) != ld.SwapChain.Extent.Height() {
+			ld.RemakeSwapChain(window, inst, g)
+			return false
+		}
 	case vulkan_const.ErrorOutOfDate:
 		ld.RemakeSwapChain(window, inst, g)
 		return false
 	default:
-		slog.Error("Failed to present swap chain image")
-		if ld.SwapChain.IsValid() {
-			// TODO:  This is a bit strange...
-			ld.SwapChain.Destroy(g)
-			slog.Error("There is a swap chain, but no swap chain is expected at this point")
-		}
+		slog.Error("Failed to acquire swap chain image", "result", res)
 		return false
 	}
 	ld.bufferTrash.Cycle()
