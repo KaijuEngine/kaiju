@@ -88,6 +88,7 @@ func createSelectionOutlineScene(host *engine.Host, selectSphere bool) (matrix.V
 	floorData.(*shader_data_registry.ShaderDataStandard).Color = matrix.ColorWhite()
 	shader_data_registry.StandardShaderDataFlagsSet(
 		floorData, shader_data_registry.ShaderDataStandardFlagOutline)
+	shader_data_registry.StandardShaderDataOutlineGroupSet(floorData, 1)
 	floor := engine.NewEntity(host.WorkGroup())
 	floor.Transform.SetScale(matrix.NewVec3(5.0, 1.0, 5.0))
 	addBasicDrawing(host, rendering.NewMeshPlane(host.MeshCache()), floorData, floor)
@@ -99,6 +100,7 @@ func createSelectionOutlineScene(host *engine.Host, selectSphere bool) (matrix.V
 	if selectSphere {
 		shader_data_registry.StandardShaderDataFlagsSet(
 			sphereData, shader_data_registry.ShaderDataStandardFlagOutline)
+		shader_data_registry.StandardShaderDataOutlineGroupSet(sphereData, 2)
 	}
 	sphere := engine.NewEntity(host.WorkGroup())
 	sphere.Transform.SetPosition(sphereCenter)
@@ -136,7 +138,10 @@ func assertSelectionOutlineOccluder(host *engine.Host, img *image.RGBA, sphereCe
 	if !ok {
 		return fmt.Errorf("failed to project sphere into screenshot")
 	}
+	// Only the lower half, the far edge of the selected floor (which is
+	// correctly outlined) passes behind the top of the sphere
 	haloBounds := annulusBounds(img.Bounds(), centerX, centerY, radius+8)
+	haloBounds.Min.Y = int(centerY)
 	haloPixels := countOutlinePixelsInAnnulus(img, centerX, centerY, radius-5, radius+8, haloBounds)
 	if haloPixels > 4 {
 		return fmt.Errorf("expected no selected outline around unselected sphere, found %d outline pixels", haloPixels)
@@ -158,6 +163,16 @@ func assertSelectionOutlineSelectedPair(host *engine.Host, img *image.RGBA, sphe
 	haloPixels := countOutlinePixelsInAnnulus(img, centerX, centerY, radius-5, radius+8, haloBounds)
 	if haloPixels < 20 {
 		return fmt.Errorf("expected selected sphere boundary outline, found %d outline pixels", haloPixels)
+	}
+	// The outline is drawn outside of the silhouette, so nothing inside of the
+	// sphere should be painted over
+	insidePixels := countOutlinePixelsInAnnulus(img, centerX, centerY, 0, radius-3, haloBounds)
+	if insidePixels > 0 {
+		return fmt.Errorf("expected no outline inside of the selected sphere, found %d outline pixels", insidePixels)
+	}
+	outsidePixels := countOutlinePixelsInAnnulus(img, centerX, centerY, radius+0.5, radius+2.5, haloBounds)
+	if outsidePixels < 20 {
+		return fmt.Errorf("expected outline just outside of the selected sphere, found %d outline pixels", outsidePixels)
 	}
 	return nil
 }
