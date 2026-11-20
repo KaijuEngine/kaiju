@@ -10,10 +10,17 @@ package integration_testing
 
 import (
 	"errors"
+	"os"
 
 	"kaijuengine.com/engine/assets"
 )
 
 func (IntegrationGame) ContentDatabase() (assets.Database, error) {
-	return nil, errors.New("not implemented")
+	if _, err := os.Stat("game_content"); err == nil {
+		return assets.NewFileDatabase("game_content")
+	}
+	if _, err := os.Stat("src/game_content"); err == nil {
+		return assets.NewFileDatabase("src/game_content")
+	}
+	return nil, errors.New("game_content database not found")
 }

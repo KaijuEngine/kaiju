@@ -293,11 +293,27 @@ func (m *StageManager) SelectionBounds() graviton.AABB {
 	return bounds
 }
 
+// outlineGroupRoot finds the highest selected entity in the parent chain, so
+// that a selected hierarchy is outlined as one object rather than outlining
+// each of its parts against each other
+func (m *StageManager) outlineGroupRoot(e *StageEntity) *StageEntity {
+	root := e
+	for p := EntityToStageEntity(e.Parent); p != nil; p = EntityToStageEntity(p.Parent) {
+		if m.IsSelected(p) {
+			root = p
+		}
+	}
+	return root
+}
+
 func (m *StageManager) setShaderDataFlag(root *StageEntity) {
+	group := m.AssignPickID(m.outlineGroupRoot(root))
 	var procChildren func(e *StageEntity)
 	procChildren = func(e *StageEntity) {
 		shader_data_registry.StandardShaderDataFlagsSet(
 			e.StageData.ShaderData, shader_data_registry.ShaderDataStandardFlagOutline)
+		shader_data_registry.StandardShaderDataOutlineGroupSet(
+			e.StageData.ShaderData, group)
 		for i := range e.Children {
 			procChildren(EntityToStageEntity(e.Children[i]))
 		}
@@ -309,8 +325,9 @@ func (m *StageManager) clearShaderDataFlag(root *StageEntity) {
 	var procChildren func(e *StageEntity)
 	procChildren = func(e *StageEntity) {
 		if !m.IsSelected(e) {
-			shader_data_registry.StandardShaderDataFlagsClear(
-				e.StageData.ShaderData, shader_data_registry.ShaderDataStandardFlagOutline)
+			shader_data_registry.StandardShaderDataFlagsClear(e.StageData.ShaderData,
+				shader_data_registry.ShaderDataStandardFlagOutline|
+					shader_data_registry.ShaderDataStandardOutlineGroupMask)
 		}
 		for i := range e.Children {
 			procChildren(EntityToStageEntity(e.Children[i]))
