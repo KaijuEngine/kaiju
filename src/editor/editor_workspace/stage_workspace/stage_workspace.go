@@ -216,6 +216,9 @@ func (w *StageWorkspace) Open() {
 	w.stageViewport.bind(w.stageView)
 	w.applyViewportLayout()
 	w.stageView.Open()
+	if !w.ed.Settings().ShowFirstTimePopups {
+		w.removeFtde()
+	}
 	w.Doc.MarkDirty()
 	w.markPanelDocumentsDirty()
 }

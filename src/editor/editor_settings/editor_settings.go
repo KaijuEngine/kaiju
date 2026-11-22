@@ -38,11 +38,14 @@ type Settings struct {
 	AudioEditor           string
 	UIScrollSpeed         float32 `default:"20" label:"UI Scroll Speed"`
 	ShowGrid              bool    `default:"true" label:"Show Viewport Grid"`
-	EditorCamera          EditorCameraSettings
-	Snapping              SnapSettings
-	BuildTools            BuildToolSettings
-	WebAPI                WebAPISettings                `visible:"false" label:"Web API"`
-	ActionBindings        []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
+	// ShowFirstTimePopups toggles the first-time developer experience prompts
+	// (ftde) shown in the stage and content workspaces for new projects.
+	ShowFirstTimePopups bool `default:"true" label:"Show First Time Popups"`
+	EditorCamera        EditorCameraSettings
+	Snapping            SnapSettings
+	BuildTools          BuildToolSettings
+	WebAPI              WebAPISettings                `visible:"false" label:"Web API"`
+	ActionBindings      []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
 	// Workspaces is the persisted enable / visible / order state for every
 	// known workspace, keyed by Workspace.ID(). Slice order is the load /
 	// tab order. The editor's reconcile step on startup adds defaults for
@@ -97,6 +100,7 @@ func (s *Settings) setDefaults() {
 	s.CodeEditor = "code"
 	s.UIScrollSpeed = 20
 	s.ShowGrid = true
+	s.ShowFirstTimePopups = true
 	s.EditorCamera.ZoomSpeed = 120
 	s.EditorCamera.FlySpeed = 10
 	s.EditorCamera.FlyBoostMultiplier = 4

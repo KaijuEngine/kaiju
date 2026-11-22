@@ -50,20 +50,30 @@ func (ed *Editor) setProjectName(name string) {
 
 func (ed *Editor) newProjectOverlay() {
 	defer tracing.NewRegion("Editor.newProjectOverlay").End()
-	new_project.Show(ed.host, new_project.Config{
-		OnCreate:       ed.createProject,
-		OnOpen:         ed.openProject,
-		RecentProjects: ed.settings.RecentProjects,
-	})
+	new_project.Show(ed.host, ed.projectSelectConfig())
 }
 
 func (ed *Editor) retryNewProjectOverlay(err error) {
-	new_project.Show(ed.host, new_project.Config{
-		OnCreate:       ed.createProject,
-		OnOpen:         ed.openProject,
-		RecentProjects: ed.settings.RecentProjects,
-		Error:          err.Error(),
-	})
+	cfg := ed.projectSelectConfig()
+	cfg.Error = err.Error()
+	new_project.Show(ed.host, cfg)
+}
+
+// projectSelectConfig builds the shared config for the project select
+// overlay, wiring the first-time popups checkbox to the persisted settings.
+func (ed *Editor) projectSelectConfig() new_project.Config {
+	return new_project.Config{
+		OnCreate:            ed.createProject,
+		OnOpen:              ed.openProject,
+		RecentProjects:      ed.settings.RecentProjects,
+		ShowFirstTimePopups: ed.settings.ShowFirstTimePopups,
+		OnShowFirstTimePopupsChanged: func(enabled bool) {
+			ed.settings.ShowFirstTimePopups = enabled
+			if err := ed.settings.Save(); err != nil {
+				slog.Error("failed to save the editor settings", "error", err)
+			}
+		},
+	}
 }
 
 func (ed *Editor) createProject(name, path, templatePath string, closeFunc func()) {
