@@ -182,6 +182,9 @@ func (w *ContentWorkspace) Shutdown() {
 func (w *ContentWorkspace) Open() {
 	defer tracing.NewRegion("ContentWorkspace.Open").End()
 	w.CommonOpen()
+	if !w.editor.Settings().ShowFirstTimePopups {
+		w.removeFtde()
+	}
 	w.entryTemplate.UI.Hide()
 	w.tagFilterTemplate.UI.Hide()
 	w.info.entryTagTemplate.UI.Hide()

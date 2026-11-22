@@ -45,11 +45,20 @@ type Config struct {
 
 	// RecentProjects is a list of paths to recent projects.
 	RecentProjects []string
+
+	// ShowFirstTimePopups is the initial state of the first-time popup
+	// checkbox on the project select screen.
+	ShowFirstTimePopups bool
+
+	// OnShowFirstTimePopupsChanged is called when the developer toggles the
+	// first-time popup checkbox.
+	OnShowFirstTimePopupsChanged func(enabled bool)
 }
 
 type OverlayData struct {
-	Error          string
-	RecentProjects []struct {
+	Error               string
+	ShowFirstTimePopups bool
+	RecentProjects      []struct {
 		Path  string
 		Label string
 	}
@@ -60,7 +69,7 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np := &NewProject{config: config}
 	np.uiMan.Init(host)
 	var err error
-	data := OverlayData{Error: config.Error}
+	data := OverlayData{Error: config.Error, ShowFirstTimePopups: config.ShowFirstTimePopups}
 	for i := range config.RecentProjects {
 		data.RecentProjects = append(data.RecentProjects, struct {
 			Path  string
@@ -73,13 +82,14 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np.doc, err = markup.DocumentFromHTMLAsset(&np.uiMan,
 		"editor/ui/overlay/new_project_overlay.go.html",
 		data, map[string]func(*document.Element){
-			"openProject":       np.openProject,
-			"selectTemplate":    np.selectTemplate,
-			"clearTemplate":     np.clearTemplate,
-			"browse":            np.browse,
-			"createProject":     np.createProject,
-			"openRecentProject": np.openRecentProject,
-			"backgroundClick":   np.backgroundClick,
+			"openProject":           np.openProject,
+			"selectTemplate":        np.selectTemplate,
+			"clearTemplate":         np.clearTemplate,
+			"browse":                np.browse,
+			"createProject":         np.createProject,
+			"openRecentProject":     np.openRecentProject,
+			"backgroundClick":       np.backgroundClick,
+			"toggleFirstTimePopups": np.toggleFirstTimePopups,
 		})
 	if err != nil {
 		return np, err
@@ -90,7 +100,7 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 	np.clearTemplateBtn, _ = np.doc.GetElementById("clearTemplateBtn")
 	np.errorBox, _ = np.doc.GetElementById("errorBox")
 	np.loadingOverlay, _ = np.doc.GetElementById("loadingOverlay")
-	
+
 	if np.nameInput != nil && np.nameInput.UI != nil {
 		np.nameInput.UI.ToInput().Focus()
 		np.nameInput.UI.AddEvent(ui.EventTypeFocus, func() {
@@ -98,14 +108,14 @@ func Show(host *engine.Host, config Config) (*NewProject, error) {
 			np.hideError()
 		})
 	}
-	
+
 	if np.folder != nil && np.folder.UI != nil {
 		np.folder.UI.AddEvent(ui.EventTypeFocus, func() {
 			np.doc.SetElementClasses(np.folder, "folderInput")
 			np.hideError()
 		})
 	}
-	
+
 	return np, err
 }
 
@@ -227,6 +237,13 @@ func (np *NewProject) backgroundClick(e *document.Element) {
 		np.doc.SetElementClasses(np.folder, "folderInput")
 	}
 	np.hideError()
+}
+
+func (np *NewProject) toggleFirstTimePopups(e *document.Element) {
+	defer tracing.NewRegion("NewProject.toggleFirstTimePopups").End()
+	if np.config.OnShowFirstTimePopupsChanged != nil {
+		np.config.OnShowFirstTimePopupsChanged(e.UI.ToCheckbox().IsChecked())
+	}
 }
 
 func (np *NewProject) openRecentProject(e *document.Element) {

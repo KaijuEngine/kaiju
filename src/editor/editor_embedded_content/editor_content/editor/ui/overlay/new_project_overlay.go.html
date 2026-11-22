@@ -235,6 +235,14 @@
 				border: 1px solid #C7655D;
 			}
 			
+			.inputCheck {
+				position: static;
+				width: 20px;
+				height: 20px;
+				background-color: transparent;
+				border: none;
+			}
+			
 			.browseButton {
 				position: absolute;
 				right: 0;
@@ -329,6 +337,21 @@
 			
 			.pos3-label { top: 14.5em; }
 			.pos3-input { top: 16.3em; }
+			
+			.actionRow .inputCheck {
+				position: absolute;
+				left: 0;
+				top: 50%;
+				transform: translateY(-50%);
+			}
+			.actionCheckLabel {
+				position: absolute;
+				left: 2em;
+				top: 50%;
+				transform: translateY(-50%);
+				color: #CCCCCC;
+				font-size: 0.9em;
+			}
 			
 			.actionRow {
 				position: absolute;
@@ -471,6 +494,8 @@
 						</div>
 						
 						<div class="actionRow">
+							<input id="showFirstTimePopups" class="inputCheck" type="checkbox" {{if .ShowFirstTimePopups}}checked="checked"{{end}} onchange="toggleFirstTimePopups" />
+							<span class="actionCheckLabel">Show first-time popups</span>
 							<button class="createBtn" onclick="createProject">Create Project</button>
 						</div>
 					</div>
